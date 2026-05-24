@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  revalidateTag('events')
+  revalidateTag('events', 'max')
 
   return NextResponse.json({ synced: true, at: new Date().toISOString() })
 }
