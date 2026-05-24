@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check } from 'lucide-react'
+import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
+import { useFavorites } from '@/contexts/FavoritesContext'
 
 interface Props {
   event: Event | null
@@ -21,6 +22,8 @@ export default function EventDetailPanel({ event, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const { toggle, isFavorite } = useFavorites()
+  const fav = event ? isFavorite(event.id) : false
 
   useEffect(() => {
     if (!event) return
@@ -96,6 +99,17 @@ export default function EventDetailPanel({ event, onClose }: Props) {
               aria-label="Jaa"
             >
               <Share2 size={16} />
+            </button>
+            <button
+              onClick={() => event && toggle(event)}
+              style={{
+                background: fav ? '#ec4899' : 'rgba(0,0,0,0.5)',
+                color: fav ? '#fff' : 'rgba(255,255,255,0.7)',
+              }}
+              className="p-2 backdrop-blur-sm rounded-full transition-all"
+              aria-label="Tallenna suosikkeihin"
+            >
+              <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
             </button>
             <button
               onClick={onClose}
