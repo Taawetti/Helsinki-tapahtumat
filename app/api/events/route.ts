@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
     page_size: '50',
     include: 'location,keywords',
     language: 'fi',
-    sort: 'start_time',
+    sort: '-start_time',
   })
 
   // Use bbox for neighborhood filtering, otherwise use municipality
