@@ -77,9 +77,9 @@ export default function FeedCard({ event, onClick, index }: Props) {
         <div className="absolute top-3 right-3 flex gap-1.5">
           <button
             onClick={(e) => { e.stopPropagation(); toggle(event) }}
-            className={`p-2 backdrop-blur-sm rounded-full transition-all ${fav ? 'bg-pink-500/80 text-white' : 'bg-black/50 text-white/50 hover:text-pink-400'}`}
+            className={`p-2 rounded-full transition-all shadow-lg ${fav ? 'bg-pink-500 text-white' : 'bg-black/70 text-white/80 hover:text-pink-400'}`}
           >
-            <Heart size={14} fill={fav ? 'currentColor' : 'none'} />
+            <Heart size={15} fill={fav ? 'currentColor' : 'none'} />
           </button>
           <button
             onClick={(e) => shareEvent(e, event)}

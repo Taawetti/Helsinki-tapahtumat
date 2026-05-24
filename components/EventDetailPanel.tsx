@@ -145,7 +145,17 @@ export default function EventDetailPanel({ event, onClose }: Props) {
           {/* Description */}
           {(event.description || event.shortDescription) && (
             <p className="text-white/60 text-sm leading-relaxed whitespace-pre-line">
-              {event.description || event.shortDescription}
+              {(event.description || event.shortDescription)
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/p>/gi, '\n')
+                .replace(/<[^>]+>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim()}
             </p>
           )}
 
