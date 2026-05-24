@@ -73,21 +73,21 @@ export default function FeedCard({ event, onClick, index }: Props) {
           )}
         </div>
 
-        {/* Action buttons */}
-        <div className="absolute top-3 right-3 flex gap-1.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); toggle(event) }}
-            className={`p-2 rounded-full transition-all shadow-lg ${fav ? 'bg-pink-500 text-white' : 'bg-black/70 text-white/80 hover:text-pink-400'}`}
-          >
-            <Heart size={15} fill={fav ? 'currentColor' : 'none'} />
-          </button>
-          <button
-            onClick={(e) => shareEvent(e, event)}
-            className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
-          >
-            <Share2 size={14} />
-          </button>
-        </div>
+        {/* Heart button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); toggle(event) }}
+          style={{
+            position: 'absolute', top: 10, right: 10, zIndex: 10,
+            width: 34, height: 34, borderRadius: '50%', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', transition: 'transform 0.15s',
+            background: fav ? '#ec4899' : 'rgba(0,0,0,0.65)',
+            color: fav ? '#fff' : 'rgba(255,255,255,0.85)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+          }}
+        >
+          <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
+        </button>
       </div>
 
       {/* Content */}

@@ -77,23 +77,22 @@ export default function EventCard({ event, onClick }: Props) {
           )}
         </div>
 
-        {/* Action buttons — heart always visible */}
-        <div className="absolute top-2 right-2 flex gap-1.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); toggle(event) }}
-            className={`p-2 rounded-full transition-all shadow-lg ${fav ? 'bg-pink-500 text-white' : 'bg-black/70 text-white/80 hover:text-pink-400'}`}
-            aria-label="Tallenna suosikkeihin"
-          >
-            <Heart size={15} fill={fav ? 'currentColor' : 'none'} />
-          </button>
-          <button
-            onClick={(e) => handleShare(e, event)}
-            className="p-1.5 bg-black/40 hover:bg-black/70 backdrop-blur-sm rounded-full text-white/60 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
-            aria-label="Jaa tapahtuma"
-          >
-            <Share2 size={13} />
-          </button>
-        </div>
+        {/* Heart button — inline styles guarantee visibility */}
+        <button
+          onClick={(e) => { e.stopPropagation(); toggle(event) }}
+          aria-label="Tallenna suosikkeihin"
+          style={{
+            position: 'absolute', top: 8, right: 8, zIndex: 10,
+            width: 32, height: 32, borderRadius: '50%', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', transition: 'transform 0.15s',
+            background: fav ? '#ec4899' : 'rgba(0,0,0,0.65)',
+            color: fav ? '#fff' : 'rgba(255,255,255,0.85)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+          }}
+        >
+          <Heart size={15} fill={fav ? 'currentColor' : 'none'} />
+        </button>
 
         {/* Date chip bottom */}
         <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">
