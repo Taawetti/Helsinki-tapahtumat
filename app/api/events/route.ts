@@ -93,10 +93,12 @@ export async function GET(req: NextRequest) {
     start: startAfter || start,
     end,
     page,
-    page_size: '24',
+    page_size: '50',
     include: 'location,keywords',
     language: 'fi',
     sort: 'start_time',
+    // Exclude events that started before the requested window
+    start_gte: start,
   })
 
   // Use bbox for neighborhood filtering, otherwise use municipality
@@ -127,9 +129,13 @@ export async function GET(req: NextRequest) {
     }
 
     const linkedData = await linkedRes.value.json()
-    let events: Event[] = (linkedData.data || []).map(normalize)
+    const startTs = new Date(start).getTime()
+    // Filter out permanent exhibitions/ongoing events that started long before the requested date
+    let events: Event[] = (linkedData.data || [])
+      .map(normalize)
+      .filter((e: Event) => new Date(e.startTime).getTime() >= startTs - 24 * 60 * 60 * 1000)
     const hasMore = !!linkedData.meta?.next
-    let total: number = linkedData.meta?.count ?? 0
+    let total: number = events.length
 
     // Merge all external sources — deduplicate by title+date
     const seen = new Set(events.map((e) => `${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`)    )
