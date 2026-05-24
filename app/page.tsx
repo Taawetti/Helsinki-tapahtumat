@@ -13,6 +13,7 @@ import PosterCard from '@/components/PosterCard'
 import InstallBanner from '@/components/InstallBanner'
 import VibeBar from '@/components/VibeBar'
 import AdBanner from '@/components/AdBanner'
+import DatePicker from '@/components/DatePicker'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -169,13 +170,7 @@ export default function Home() {
                   </button>
                 )
               })}
-              <input
-                type="date"
-                value={customDate}
-                onChange={(e) => { setCustomDate(e.target.value); setDateFilter('custom') }}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all bg-transparent cursor-pointer ${customDate ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
-                style={customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}
-              />
+              <DatePicker size="sm" value={customDate} onChange={(v) => { setCustomDate(v); setDateFilter(v ? 'custom' : 'today') }} />
             </div>
             {/* Price row */}
             <div className="flex gap-2">
@@ -230,14 +225,7 @@ export default function Home() {
                 {label}
               </button>
             ))}
-            <input
-              type="date"
-              value={customDate}
-              onChange={(e) => { setCustomDate(e.target.value); setDateFilter('custom') }}
-              title="Valitse päivä"
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-black border-0 cursor-pointer transition-all ${customDate ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/8'}`}
-              style={customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}
-            />
+            <DatePicker size="md" value={customDate} onChange={(v) => { setCustomDate(v); setDateFilter(v ? 'custom' : 'today') }} />
           </div>
 
           {/* Vibe pills */}
