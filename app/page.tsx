@@ -80,25 +80,19 @@ export default function Home() {
   const filteredEvents = useMemo(() => {
     let result = events
 
-    // Vibe filter (keywords) — word-boundary match to avoid "yö" matching "työpaja" etc.
-    const vibeKeywords = activeVibes
-      .filter((v) => v !== 'ilmainen')
-      .flatMap((id) => VIBES.find((v) => v.id === id)?.keywords ?? [])
-    if (vibeKeywords.length > 0) {
-      const kwMatches = (text: string, kw: string) => {
-        const t = text.toLowerCase()
-        const k = kw.toLowerCase()
-        const idx = t.indexOf(k)
-        if (idx === -1) return false
-        const before = idx === 0 || /\W/.test(t[idx - 1])
-        const after = idx + k.length >= t.length || /\W/.test(t[idx + k.length])
-        return before && after
-      }
-      result = result.filter((e) =>
-        [...e.categories, e.title, e.shortDescription].some((text) =>
-          vibeKeywords.some((kw) => kwMatches(text, kw))
-        )
-      )
+    // Vibe filter — substring match; Yöelämä also matches evening start times
+    const activeVibeIds = activeVibes.filter((v) => v !== 'ilmainen')
+    if (activeVibeIds.length > 0) {
+      const vibeKeywords = activeVibeIds.flatMap((id) => VIBES.find((v) => v.id === id)?.keywords ?? [])
+      const isNightlife = activeVibeIds.includes('yoelama')
+      result = result.filter((e) => {
+        const haystack = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
+        const kwMatch = vibeKeywords.some((kw) => haystack.includes(kw.toLowerCase()))
+        // Evening events (18:00+) count as nightlife even without matching keywords
+        const hour = new Date(e.startTime).getHours()
+        const eveningMatch = isNightlife && hour >= 18
+        return kwMatch || eveningMatch
+      })
     }
 
     // Category filter
