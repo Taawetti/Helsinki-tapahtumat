@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { Fragment, useState, useCallback, useMemo } from 'react'
 import { LayoutGrid, Map, Loader2, AlertCircle, SlidersHorizontal, X, Rss } from 'lucide-react'
-import { Event, DateFilter, PriceFilter, CATEGORIES, NEIGHBORHOODS, Neighborhood, VIBES } from '@/lib/types'
+import { Event, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
 import { useEvents } from '@/hooks/useEvents'
 import EventCard from '@/components/EventCard'
 import FeedCard from '@/components/FeedCard'
@@ -11,7 +11,6 @@ import EventDetailPanel from '@/components/EventDetailPanel'
 import SearchBar from '@/components/SearchBar'
 import PosterCard from '@/components/PosterCard'
 import InstallBanner from '@/components/InstallBanner'
-import NeighborhoodTiles from '@/components/NeighborhoodTiles'
 import VibeBar from '@/components/VibeBar'
 import AdBanner from '@/components/AdBanner'
 
@@ -43,15 +42,11 @@ export default function Home() {
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [activeNeighborhood, setActiveNeighborhood] = useState<Neighborhood | null>(null)
   const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'free'>('discover')
   const [customDate, setCustomDate] = useState('')
 
-  // Derive bbox from selected neighborhood
-  const bbox = activeNeighborhood?.bbox ?? ''
-
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
-    dateFilter, customDate, keyword, municipality, activeCategories, bbox,
+    dateFilter, customDate, keyword, municipality, activeCategories, bbox: '',
   })
 
   const handleVibeToggle = useCallback((id: string) => {
@@ -70,7 +65,7 @@ export default function Home() {
   const clearFilters = useCallback(() => {
     setActiveCategories([]); setActiveVibes([]); setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
-    setPriceFilter('all'); setActiveNeighborhood(null); setCustomDate('')
+    setPriceFilter('all'); setCustomDate('')
   }, [])
 
   const handleMobileTab = useCallback((tab: typeof mobileTab) => {
@@ -81,12 +76,7 @@ export default function Home() {
     else if (tab === 'free') { setPriceFilter('free'); setMode('browse') }
   }, [])
 
-  const handleNeighborhoodSelect = useCallback((n: Neighborhood | null) => {
-    setActiveNeighborhood(n)
-    if (n) { setMunicipality(n.municipality); setMode('browse'); setMobileTab('browse') }
-  }, [])
-
-  // Vibe-based client filter on top of API results
+// Vibe-based client filter on top of API results
   const filteredEvents = useMemo(() => {
     let result = events
 
@@ -332,24 +322,17 @@ export default function Home() {
             </div>
           )}
 
-          {/* Neighborhood section */}
+          {/* City selector */}
           <div className="pt-4 border-t border-white/5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-black uppercase tracking-widest text-white/20">Etsi alueelta</p>
-              <div className="flex gap-1">
-                {['helsinki', 'espoo', 'vantaa'].map((c) => (
-                  <button key={c} onClick={() => setMunicipality(c)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold capitalize transition-all ${municipality === c ? 'bg-white/10 text-white' : 'text-white/20 hover:text-white/45'}`}>
-                    {c}
-                  </button>
-                ))}
-              </div>
+            <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">Kaupunki</p>
+            <div className="flex gap-2">
+              {[{id:'helsinki',label:'Helsinki'},{id:'espoo',label:'Espoo'},{id:'vantaa',label:'Vantaa'}].map((c) => (
+                <button key={c.id} onClick={() => setMunicipality(c.id)}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${municipality === c.id ? 'bg-white/15 text-white' : 'bg-white/5 text-white/40 hover:text-white/70'}`}>
+                  {c.label}
+                </button>
+              ))}
             </div>
-            <NeighborhoodTiles
-              activeMunicipality={municipality}
-              activeNeighborhood={activeNeighborhood?.id ?? null}
-              onSelect={handleNeighborhoodSelect}
-            />
           </div>
         </main>
       )}
@@ -360,13 +343,6 @@ export default function Home() {
 
           {/* Context bar */}
           <div className="flex flex-wrap items-center gap-2">
-            {activeNeighborhood && (
-              <span className="flex items-center gap-1.5 text-sm font-black px-3 py-1.5 rounded-full text-white"
-                style={{ background: 'linear-gradient(135deg,rgba(168,85,247,0.25),rgba(236,72,153,0.25))', border: '1px solid rgba(168,85,247,0.4)' }}>
-                {activeNeighborhood.emoji} {activeNeighborhood.name}
-                <button onClick={() => setActiveNeighborhood(null)}><X size={12} /></button>
-              </span>
-            )}
             {keyword && (
               <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border"
                 style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.3)', color: '#c084fc' }}>
@@ -396,12 +372,15 @@ export default function Home() {
           {/* Vibe bar in browse too */}
           <VibeBar active={activeVibes} onToggle={handleVibeToggle} />
 
-          {/* Neighborhood selector in browse */}
-          <NeighborhoodTiles
-            activeMunicipality={municipality}
-            activeNeighborhood={activeNeighborhood?.id ?? null}
-            onSelect={(n) => { setActiveNeighborhood(n); if (n) setMunicipality(n.municipality) }}
-          />
+          {/* City tabs in browse */}
+          <div className="flex gap-2">
+            {[{id:'helsinki',label:'Helsinki'},{id:'espoo',label:'Espoo'},{id:'vantaa',label:'Vantaa'}].map((c) => (
+              <button key={c.id} onClick={() => setMunicipality(c.id)}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${municipality === c.id ? 'bg-white/15 text-white' : 'bg-white/5 text-white/40 hover:text-white/70'}`}>
+                {c.label}
+              </button>
+            ))}
+          </div>
 
           {error && (
             <div className="flex items-center gap-3 rounded-xl p-4 text-red-300 bg-red-950/30 border border-red-800/30">
