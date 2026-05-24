@@ -97,8 +97,6 @@ export async function GET(req: NextRequest) {
     include: 'location,keywords',
     language: 'fi',
     sort: 'start_time',
-    // Exclude events that started before the requested window
-    start_gte: start,
   })
 
   // Use bbox for neighborhood filtering, otherwise use municipality
