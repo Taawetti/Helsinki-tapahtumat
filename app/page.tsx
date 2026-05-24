@@ -13,6 +13,7 @@ import PosterCard from '@/components/PosterCard'
 import InstallBanner from '@/components/InstallBanner'
 import NeighborhoodTiles from '@/components/NeighborhoodTiles'
 import VibeBar from '@/components/VibeBar'
+import AdBanner from '@/components/AdBanner'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -280,6 +281,9 @@ export default function Home() {
             )
           })()}
 
+          {/* Ad slot — between hero and event grid */}
+          <AdBanner slot="1234567890" format="horizontal" className="my-1" />
+
           {/* Event grid */}
           {discoverEvents.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -416,10 +420,24 @@ export default function Home() {
           {filteredEvents.length > 0 && (
             listStyle === 'feed'
               ? <div className="space-y-4 max-w-2xl mx-auto">
-                  {filteredEvents.map((e,i)=><FeedCard key={e.id} event={e} onClick={setSelectedEvent} index={i}/>)}
+                  {filteredEvents.map((e, i) => (
+                    <>
+                      <FeedCard key={e.id} event={e} onClick={setSelectedEvent} index={i} />
+                      {i === 7 && <AdBanner key="ad-feed" slot="0987654321" format="rectangle" />}
+                    </>
+                  ))}
                 </div>
               : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredEvents.map((e)=><EventCard key={e.id} event={e} onClick={setSelectedEvent}/>)}
+                  {filteredEvents.map((e, i) => (
+                    <>
+                      <EventCard key={e.id} event={e} onClick={setSelectedEvent} />
+                      {i === 5 && (
+                        <div key="ad-grid" className="col-span-full">
+                          <AdBanner slot="1122334455" format="horizontal" />
+                        </div>
+                      )}
+                    </>
+                  ))}
                 </div>
           )}
 

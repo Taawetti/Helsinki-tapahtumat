@@ -36,11 +36,19 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_ID
   return (
     <html lang="fi" className={inter.className}>
       <head>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" precedence="default" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        {adsenseId && (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}`}
+            crossOrigin="anonymous"
+          />
+        )}
       </head>
       <body className="min-h-screen">{children}</body>
     </html>
