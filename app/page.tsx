@@ -1,65 +1,479 @@
-import Image from "next/image";
+'use client'
+
+import dynamic from 'next/dynamic'
+import { useState, useCallback, useMemo } from 'react'
+import { LayoutGrid, Map, Loader2, AlertCircle, SlidersHorizontal, X, Rss } from 'lucide-react'
+import { Event, DateFilter, PriceFilter, CATEGORIES, NEIGHBORHOODS, Neighborhood, VIBES } from '@/lib/types'
+import { useEvents } from '@/hooks/useEvents'
+import EventCard from '@/components/EventCard'
+import FeedCard from '@/components/FeedCard'
+import EventDetailPanel from '@/components/EventDetailPanel'
+import SearchBar from '@/components/SearchBar'
+import PosterCard from '@/components/PosterCard'
+import InstallBanner from '@/components/InstallBanner'
+import NeighborhoodTiles from '@/components/NeighborhoodTiles'
+import VibeBar from '@/components/VibeBar'
+
+const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
+
+function nightlifeScore(e: Event): number {
+  const text = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
+  if (/keikka|konsertti|live[\s-]?musiikki|bändi|gig/.test(text)) return 7
+  if (/klubi|dj[\s-]?set|yökerho|disco|rave|after[\s-]?party/.test(text)) return 6
+  if (/jääkiekko|jalkapallo|ottelu|urheilu|koripallo/.test(text)) return 5
+  if (/stand[\s-]?up|komedia|comedy/.test(text)) return 4
+  if (/baari|pub|cocktail|terassi/.test(text)) return 3
+  if (/ravintola|illallinen|pop[\s-]?up|ruoka/.test(text)) return 2
+  if (/näyttely|museo|luento|seminaari|workshop|työpaja/.test(text)) return -1
+  return e.image ? 1 : 0
+}
+
+type AppMode = 'discover' | 'browse' | 'map'
+type ListStyle = 'feed' | 'grid'
 
 export default function Home() {
+  const [mode, setMode] = useState<AppMode>('discover')
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today')
+  const [municipality, setMunicipality] = useState('helsinki')
+  const [activeCategories, setActiveCategories] = useState<string[]>([])
+  const [activeVibes, setActiveVibes] = useState<string[]>([])
+  const [keyword, setKeyword] = useState('')
+  const [listStyle, setListStyle] = useState<ListStyle>('feed')
+  const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [activeNeighborhood, setActiveNeighborhood] = useState<Neighborhood | null>(null)
+  const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'free'>('discover')
+
+  // Derive bbox from selected neighborhood
+  const bbox = activeNeighborhood?.bbox ?? ''
+
+  const { events, loading, error, hasMore, total, loadMore } = useEvents({
+    dateFilter, keyword, municipality, activeCategories, bbox,
+  })
+
+  const handleVibeToggle = useCallback((id: string) => {
+    setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
+    // Map "ilmainen" vibe to price filter
+    if (id === 'ilmainen') {
+      setPriceFilter((p) => p === 'free' ? 'all' : 'free')
+      return
+    }
+  }, [])
+
+  const handleCategoryToggle = useCallback((id: string) => {
+    setActiveCategories((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id])
+  }, [])
+
+  const clearFilters = useCallback(() => {
+    setActiveCategories([]); setActiveVibes([]); setKeyword('')
+    setDateFilter('today'); setMunicipality('helsinki')
+    setPriceFilter('all'); setActiveNeighborhood(null)
+  }, [])
+
+  const handleMobileTab = useCallback((tab: typeof mobileTab) => {
+    setMobileTab(tab)
+    if (tab === 'discover') setMode('discover')
+    else if (tab === 'browse') setMode('browse')
+    else if (tab === 'map') setMode('map')
+    else if (tab === 'free') { setPriceFilter('free'); setMode('browse') }
+  }, [])
+
+  const handleNeighborhoodSelect = useCallback((n: Neighborhood | null) => {
+    setActiveNeighborhood(n)
+    if (n) { setMunicipality(n.municipality); setMode('browse'); setMobileTab('browse') }
+  }, [])
+
+  // Vibe-based client filter on top of API results
+  const filteredEvents = useMemo(() => {
+    let result = events
+
+    // Vibe filter (keywords)
+    const vibeKeywords = activeVibes
+      .filter((v) => v !== 'ilmainen')
+      .flatMap((id) => VIBES.find((v) => v.id === id)?.keywords ?? [])
+    if (vibeKeywords.length > 0) {
+      result = result.filter((e) =>
+        [...e.categories, e.title.toLowerCase(), e.shortDescription.toLowerCase()].some((text) =>
+          vibeKeywords.some((kw) => text.toLowerCase().includes(kw.toLowerCase()))
+        )
+      )
+    }
+
+    // Category filter
+    if (activeCategories.length > 0) {
+      const kws = activeCategories.flatMap((id) => CATEGORIES.find((c) => c.id === id)?.keywords ?? [])
+      result = result.filter((e) =>
+        e.categories.some((cat) => kws.some((kw) => cat.toLowerCase().includes(kw.toLowerCase())))
+      )
+    }
+
+    if (priceFilter === 'free') result = result.filter((e) => e.isFree)
+    if (priceFilter === 'paid') result = result.filter((e) => !e.isFree)
+    return result
+  }, [events, activeCategories, activeVibes, priceFilter])
+
+  const discoverEvents = useMemo(
+    () => [...filteredEvents].sort((a, b) => nightlifeScore(b) - nightlifeScore(a)),
+    [filteredEvents]
+  )
+
+  const activeCount = activeVibes.length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#08080c' }}>
+
+      {/* ── HEADER ── */}
+      <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(8,8,12,0.96)', backdropFilter: 'blur(20px)' }}>
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="shrink-0">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>H</div>
+          </button>
+
+          <div className="hidden md:flex gap-0.5 bg-white/5 rounded-xl p-1">
+            {(['discover', 'browse', 'map'] as AppMode[]).map((m) => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/65'}`}>
+                {m === 'discover' ? '✦ Etusivu' : m === 'browse' ? 'Selaa' : 'Kartta'}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 max-w-md">
+            <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('browse'); setMobileTab('browse') } }} />
+          </div>
+
+          {mode === 'browse' && (
+            <div className="hidden md:flex bg-white/5 rounded-xl p-1 gap-0.5 shrink-0">
+              <button onClick={() => setListStyle('feed')} className={`p-2 rounded-lg transition-all ${listStyle === 'feed' ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/60'}`}><Rss size={14} /></button>
+              <button onClick={() => setListStyle('grid')} className={`p-2 rounded-lg transition-all ${listStyle === 'grid' ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/60'}`}><LayoutGrid size={14} /></button>
+              <button onClick={() => setMode('map')} className="p-2 rounded-lg transition-all text-white/35 hover:text-white/60"><Map size={14} /></button>
+            </div>
+          )}
+
+          <button onClick={() => setShowFilters((p) => !p)}
+            className={`relative shrink-0 p-2 rounded-xl border transition-all ${showFilters ? 'border-purple-500/60 text-purple-400 bg-purple-500/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}>
+            <SlidersHorizontal size={15} />
+            {activeCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>{activeCount}</span>
+            )}
+          </button>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {showFilters && (
+          <div className="border-t border-white/5 px-4 py-4 max-w-6xl mx-auto space-y-3">
+            {/* Date row */}
+            <div className="flex flex-wrap gap-2">
+              {(['today','tonight','tomorrow','weekend','week','month'] as DateFilter[]).map((d) => {
+                const labels: Record<DateFilter,string> = { today:'Tänään', tonight:'🌙 Illalla', tomorrow:'Huomenna', weekend:'🎉 Viikonloppu', week:'Viikko', month:'Kuukausi' }
+                return (
+                  <button key={d} onClick={() => setDateFilter(d)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${dateFilter === d ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
+                    style={dateFilter === d ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}>
+                    {labels[d]}
+                  </button>
+                )
+              })}
+            </div>
+            {/* Price row */}
+            <div className="flex gap-2">
+              {(['all','free','paid'] as PriceFilter[]).map((p) => {
+                const labels = { all: 'Kaikki', free: '🎁 Ilmaiset', paid: '🎟 Maksulliset' }
+                return (
+                  <button key={p} onClick={() => setPriceFilter(p)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${priceFilter === p ? 'bg-white/12 border-white/20 text-white' : 'text-white/40 border-white/8 hover:text-white/60'}`}>
+                    {labels[p]}
+                  </button>
+                )
+              })}
+              {activeCount > 0 && (
+                <button onClick={clearFilters} className="ml-auto px-3 py-1.5 rounded-full text-xs font-bold text-white/30 border border-white/8 hover:text-white/60 transition-all">
+                  Tyhjennä kaikki
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* ══ DISCOVER ══ */}
+      {mode === 'discover' && (
+        <main className="max-w-6xl mx-auto px-4 pt-5 pb-20 space-y-5">
+
+          {/* City headline */}
+          <div>
+            <h1 className="font-black text-white leading-none select-none"
+              style={{ fontSize: 'clamp(3.5rem,15vw,8rem)', letterSpacing: '-0.04em' }}>
+              HELSINKI
+            </h1>
+            <p className="text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
+              {new Date().toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+
+          {/* Date strip */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
+            {([
+              { d: 'today' as DateFilter, label: 'Tänään' },
+              { d: 'tonight' as DateFilter, label: '🌙 Illalla' },
+              { d: 'tomorrow' as DateFilter, label: 'Huomenna' },
+              { d: 'weekend' as DateFilter, label: '🎉 Viikonloppu' },
+              { d: 'week' as DateFilter, label: 'Viikko' },
+            ]).map(({ d, label }) => (
+              <button key={d} onClick={() => setDateFilter(d)}
+                className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
+                  dateFilter === d ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
+                }`}
+                style={dateFilter === d ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Vibe pills */}
+          <VibeBar active={activeVibes} onToggle={(id) => {
+            if (id === 'ilmainen') { setPriceFilter((p) => p === 'free' ? 'all' : 'free'); return }
+            setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
+          }} />
+
+          {/* Loading skeletons */}
+          {loading && discoverEvents.length === 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="rounded-xl overflow-hidden bg-white/4 animate-pulse">
+                  <div className="w-full bg-white/5" style={{ aspectRatio: '3/4' }} />
+                  <div className="p-3 space-y-1.5">
+                    <div className="h-3.5 bg-white/6 rounded w-4/5" />
+                    <div className="h-3 bg-white/4 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Hero event — only if score ≥ 3 (actual nightlife) */}
+          {(() => {
+            const hero = discoverEvents.find((e) => nightlifeScore(e) >= 3 && e.image)
+            if (!hero) return null
+            return (
+              <button onClick={() => setSelectedEvent(hero)}
+                className="group relative w-full rounded-2xl overflow-hidden text-left" style={{ aspectRatio: '16/7' }}>
+                <img src={hero.image!} alt={hero.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(8,8,12,0.95) 0%,rgba(8,8,12,0.3) 50%,transparent 100%)' }} />
+                <div className="absolute top-4 left-4">
+                  <span className="text-[10px] font-black px-2.5 py-1 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>✦ SUOSITUS</span>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7">
+                  <h2 className="font-black text-white leading-tight mb-1.5" style={{ fontSize: 'clamp(1.3rem,3.5vw,2.2rem)', letterSpacing: '-0.02em' }}>
+                    {hero.title}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    {hero.location?.name && <span className="text-white/50">{hero.location.name}</span>}
+                    <span className="font-bold" style={{ color: '#c084fc' }}>
+                      {new Date(hero.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {hero.isFree && <span className="text-emerald-400 font-bold">Maksuton</span>}
+                    {!hero.isFree && hero.price && <span className="text-white/40">{hero.price}</span>}
+                  </div>
+                </div>
+              </button>
+            )
+          })()}
+
+          {/* Event grid */}
+          {discoverEvents.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {discoverEvents
+                .filter((e) => !discoverEvents.find((h) => nightlifeScore(h) >= 3 && h.image)?.id || e.id !== discoverEvents.find((h) => nightlifeScore(h) >= 3 && h.image)?.id)
+                .slice(0, 24)
+                .map((e) => (
+                  <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
+                ))}
+            </div>
+          )}
+
+          {!loading && discoverEvents.length === 0 && (
+            <div className="flex flex-col items-center py-28 text-center gap-3">
+              <span className="text-6xl">🏙</span>
+              <p className="text-white/30 font-bold text-lg">Ei tapahtumia</p>
+              <p className="text-white/18 text-sm">Kokeile eri päivää tai poista suodattimet</p>
+              <button onClick={clearFilters} className="mt-2 text-sm font-bold px-5 py-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white hover:border-white/25 transition-all">
+                Tyhjennä suodattimet
+              </button>
+            </div>
+          )}
+
+          {/* Neighborhood section */}
+          <div className="pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-black uppercase tracking-widest text-white/20">Etsi alueelta</p>
+              <div className="flex gap-1">
+                {['helsinki', 'espoo', 'vantaa'].map((c) => (
+                  <button key={c} onClick={() => setMunicipality(c)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold capitalize transition-all ${municipality === c ? 'bg-white/10 text-white' : 'text-white/20 hover:text-white/45'}`}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <NeighborhoodTiles
+              activeMunicipality={municipality}
+              activeNeighborhood={activeNeighborhood?.id ?? null}
+              onSelect={handleNeighborhoodSelect}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+        </main>
+      )}
+
+      {/* ══ BROWSE ══ */}
+      {mode === 'browse' && (
+        <main className="max-w-6xl mx-auto px-4 py-5 space-y-5">
+
+          {/* Context bar */}
+          <div className="flex flex-wrap items-center gap-2">
+            {activeNeighborhood && (
+              <span className="flex items-center gap-1.5 text-sm font-black px-3 py-1.5 rounded-full text-white"
+                style={{ background: 'linear-gradient(135deg,rgba(168,85,247,0.25),rgba(236,72,153,0.25))', border: '1px solid rgba(168,85,247,0.4)' }}>
+                {activeNeighborhood.emoji} {activeNeighborhood.name}
+                <button onClick={() => setActiveNeighborhood(null)}><X size={12} /></button>
+              </span>
+            )}
+            {keyword && (
+              <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border"
+                style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.3)', color: '#c084fc' }}>
+                &ldquo;{keyword}&rdquo; <button onClick={() => setKeyword('')}><X size={11} /></button>
+              </span>
+            )}
+            {activeVibes.filter(v=>v!=='ilmainen').map((id) => {
+              const v = VIBES.find((v) => v.id === id)
+              return v ? (
+                <span key={id} className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full border"
+                  style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.3)', color: '#c084fc' }}>
+                  {v.emoji} {v.label} <button onClick={() => setActiveVibes((p)=>p.filter(x=>x!==id))}><X size={11}/></button>
+                </span>
+              ) : null
+            })}
+            {priceFilter !== 'all' && (
+              <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full border"
+                style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.3)', color: '#c084fc' }}>
+                {priceFilter === 'free' ? '🎁 Ilmaiset' : '🎟 Maksulliset'} <button onClick={() => setPriceFilter('all')}><X size={11}/></button>
+              </span>
+            )}
+            {!loading && total > 0 && (
+              <span className="text-white/20 text-xs font-bold ml-auto">{total.toLocaleString('fi-FI')} tapahtumaa</span>
+            )}
+          </div>
+
+          {/* Vibe bar in browse too */}
+          <VibeBar active={activeVibes} onToggle={handleVibeToggle} />
+
+          {/* Neighborhood selector in browse */}
+          <NeighborhoodTiles
+            activeMunicipality={municipality}
+            activeNeighborhood={activeNeighborhood?.id ?? null}
+            onSelect={(n) => { setActiveNeighborhood(n); if (n) setMunicipality(n.municipality) }}
+          />
+
+          {error && (
+            <div className="flex items-center gap-3 rounded-xl p-4 text-red-300 bg-red-950/30 border border-red-800/30">
+              <AlertCircle size={18} className="shrink-0" /><p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Style toggle */}
+          <div className="flex items-center gap-2">
+            {(['feed','grid'] as ListStyle[]).map((s) => (
+              <button key={s} onClick={() => setListStyle(s)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${listStyle === s ? 'bg-white/10 text-white' : 'text-white/25 hover:text-white/55'}`}>
+                {s === 'feed' ? <><Rss size={11} /> Feed</> : <><LayoutGrid size={11} /> Grid</>}
+              </button>
+            ))}
+          </div>
+
+          {/* Skeleton */}
+          {loading && events.length === 0 && (
+            listStyle === 'feed'
+              ? <div className="space-y-4 max-w-2xl mx-auto">{Array.from({length:5}).map((_,i)=>(
+                  <div key={i} className="rounded-2xl overflow-hidden bg-white/3">
+                    <div className="w-full bg-white/4 animate-pulse" style={{aspectRatio:'16/9'}}/>
+                    <div className="p-4 space-y-2">
+                      <div className="h-4 bg-white/4 rounded animate-pulse w-3/4"/>
+                      <div className="h-3 bg-white/4 rounded animate-pulse w-full"/>
+                    </div>
+                  </div>
+                ))}</div>
+              : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({length:9}).map((_,i)=>(
+                  <div key={i} className="rounded-2xl overflow-hidden bg-white/3">
+                    <div className="h-44 bg-white/4 animate-pulse"/>
+                    <div className="p-4 space-y-2">
+                      <div className="h-4 bg-white/4 rounded animate-pulse w-4/5"/>
+                      <div className="h-3 bg-white/4 rounded animate-pulse w-1/2"/>
+                    </div>
+                  </div>
+                ))}</div>
+          )}
+
+          {filteredEvents.length > 0 && (
+            listStyle === 'feed'
+              ? <div className="space-y-4 max-w-2xl mx-auto">
+                  {filteredEvents.map((e,i)=><FeedCard key={e.id} event={e} onClick={setSelectedEvent} index={i}/>)}
+                </div>
+              : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredEvents.map((e)=><EventCard key={e.id} event={e} onClick={setSelectedEvent}/>)}
+                </div>
+          )}
+
+          {!loading && filteredEvents.length === 0 && !error && (
+            <div className="flex flex-col items-center py-24 text-center gap-4">
+              <span className="text-5xl">🤷</span>
+              <p className="text-white/45 font-bold">Ei löytynyt mitään</p>
+              <button onClick={clearFilters} className="text-sm font-bold px-5 py-2.5 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/25 transition-all">
+                Tyhjennä suodattimet
+              </button>
+            </div>
+          )}
+
+          {hasMore && !loading && filteredEvents.length > 0 && (
+            <div className="flex justify-center pt-2">
+              <button onClick={loadMore} className="text-sm font-bold px-8 py-3 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 bg-white/3 transition-all">
+                Lataa lisää
+              </button>
+            </div>
+          )}
+          {loading && events.length > 0 && (
+            <div className="flex justify-center pt-4"><Loader2 size={20} className="animate-spin text-purple-400"/></div>
+          )}
+        </main>
+      )}
+
+      {/* ══ MAP ══ */}
+      {mode === 'map' && (
+        <main className="max-w-6xl mx-auto px-4 py-5">
+          <MapView events={filteredEvents} onEventClick={setSelectedEvent}/>
+        </main>
+      )}
+
+      {/* ── MOBILE NAV ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/6"
+        style={{ background: 'rgba(8,8,12,0.97)', backdropFilter: 'blur(20px)' }}>
+        <div className="grid grid-cols-4">
+          {([
+            { tab: 'discover' as const, emoji: '✦', label: 'Etusivu' },
+            { tab: 'browse' as const, emoji: '🔍', label: 'Selaa' },
+            { tab: 'map' as const, emoji: '🗺', label: 'Kartta' },
+            { tab: 'free' as const, emoji: '🎁', label: 'Ilmaiset' },
+          ]).map(({ tab, emoji, label }) => (
+            <button key={tab} onClick={() => handleMobileTab(tab)}
+              className={`flex flex-col items-center gap-0.5 py-3 transition-all ${mobileTab === tab ? 'text-purple-400' : 'text-white/25 hover:text-white/50'}`}>
+              <span className="text-lg leading-none">{emoji}</span>
+              <span className="text-[10px] font-bold">{label}</span>
+            </button>
+          ))}
         </div>
-      </main>
+      </nav>
+
+      <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}/>
+      <InstallBanner/>
     </div>
-  );
+  )
 }
