@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useCallback, useMemo } from 'react'
+import { Fragment, useState, useCallback, useMemo } from 'react'
 import { LayoutGrid, Map, Loader2, AlertCircle, SlidersHorizontal, X, Rss } from 'lucide-react'
 import { Event, DateFilter, PriceFilter, CATEGORIES, NEIGHBORHOODS, Neighborhood, VIBES } from '@/lib/types'
 import { useEvents } from '@/hooks/useEvents'
@@ -437,22 +437,22 @@ export default function Home() {
             listStyle === 'feed'
               ? <div className="space-y-4 max-w-2xl mx-auto">
                   {filteredEvents.map((e, i) => (
-                    <>
-                      <FeedCard key={e.id} event={e} onClick={setSelectedEvent} index={i} />
-                      {i === 7 && <AdBanner key="ad-feed" slot="0987654321" format="rectangle" />}
-                    </>
+                    <Fragment key={e.id}>
+                      <FeedCard event={e} onClick={setSelectedEvent} index={i} />
+                      {i === 7 && <AdBanner slot="0987654321" format="rectangle" />}
+                    </Fragment>
                   ))}
                 </div>
               : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredEvents.map((e, i) => (
-                    <>
-                      <EventCard key={e.id} event={e} onClick={setSelectedEvent} />
+                    <Fragment key={e.id}>
+                      <EventCard event={e} onClick={setSelectedEvent} />
                       {i === 5 && (
-                        <div key="ad-grid" className="col-span-full">
+                        <div className="col-span-full">
                           <AdBanner slot="1122334455" format="horizontal" />
                         </div>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </div>
           )}
