@@ -99,11 +99,11 @@ export async function GET(req: NextRequest) {
     sort: '-start_time',
   })
 
-  // Use bbox for neighborhood filtering, otherwise use municipality
+  // Use bbox for neighborhood filtering, otherwise use division (municipality filter)
   if (bbox) {
     params.set('bbox', bbox)
   } else {
-    params.set('municipality', municipality)
+    params.set('division', municipality)
   }
 
   if (keyword) params.set('text', keyword)
