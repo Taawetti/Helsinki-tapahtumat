@@ -1,9 +1,10 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Fragment, useState, useCallback, useMemo } from 'react'
-import { LayoutGrid, Map, Loader2, AlertCircle, SlidersHorizontal, X, Rss } from 'lucide-react'
+import { Fragment, useState, useCallback, useMemo, useEffect } from 'react'
+import { LayoutGrid, Map, Loader2, AlertCircle, SlidersHorizontal, X, Rss, Heart, Bell } from 'lucide-react'
 import { Event, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
+import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents } from '@/hooks/useEvents'
 import EventCard from '@/components/EventCard'
 import FeedCard from '@/components/FeedCard'
@@ -29,10 +30,11 @@ function nightlifeScore(e: Event): number {
   return e.image ? 1 : 0
 }
 
-type AppMode = 'discover' | 'browse' | 'map'
+type AppMode = 'discover' | 'browse' | 'map' | 'favorites'
 type ListStyle = 'feed' | 'grid'
 
 export default function Home() {
+  const { favorites, count: favCount } = useFavorites()
   const [mode, setMode] = useState<AppMode>('discover')
   const [dateFilter, setDateFilter] = useState<DateFilter>('today')
   const [municipality, setMunicipality] = useState('helsinki')
@@ -68,6 +70,24 @@ export default function Home() {
     setDateFilter('today'); setMunicipality('helsinki')
     setPriceFilter('all'); setCustomDate('')
   }, [])
+
+  // Local notification: alert about today's events after 8h gap
+  useEffect(() => {
+    if (typeof window === 'undefined' || !events.length) return
+    const ask = async () => {
+      if (Notification.permission === 'default') return // don't auto-ask, user must click bell
+      if (Notification.permission !== 'granted') return
+      const last = Number(localStorage.getItem('hki-notif-ts') || 0)
+      if (Date.now() - last < 8 * 60 * 60 * 1000) return
+      localStorage.setItem('hki-notif-ts', String(Date.now()))
+      new Notification('Helsinki Tapahtumat', {
+        body: `${events.length} tapahtumaa tänään — katso mitä on tarjolla!`,
+        icon: '/icon-192.png',
+        tag: 'hki-daily',
+      })
+    }
+    ask()
+  }, [events.length])
 
   const handleMobileTab = useCallback((tab: typeof mobileTab) => {
     setMobileTab(tab)
@@ -147,6 +167,30 @@ export default function Home() {
             </div>
           )}
 
+          {/* Notifications bell */}
+          <button
+            onClick={async () => {
+              if (typeof Notification === 'undefined') return
+              await Notification.requestPermission()
+            }}
+            className="shrink-0 p-2 rounded-xl border border-white/8 text-white/40 bg-white/4 hover:text-white/70 transition-all"
+            title="Tilaa ilmoitukset"
+          >
+            <Bell size={15} />
+          </button>
+
+          {/* Favorites */}
+          <button
+            onClick={() => setMode(mode === 'favorites' ? 'discover' : 'favorites')}
+            className={`relative shrink-0 p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-pink-500/60 text-pink-400 bg-pink-500/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-pink-400'}`}
+            title="Suosikit"
+          >
+            <Heart size={15} fill={mode === 'favorites' ? 'currentColor' : 'none'} />
+            {favCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center bg-pink-500 text-white">{favCount}</span>
+            )}
+          </button>
+
           <button onClick={() => setShowFilters((p) => !p)}
             className={`relative shrink-0 p-2 rounded-xl border transition-all ${showFilters ? 'border-purple-500/60 text-purple-400 bg-purple-500/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}>
             <SlidersHorizontal size={15} />
@@ -192,6 +236,30 @@ export default function Home() {
           </div>
         )}
       </header>
+
+      {/* ══ FAVORITES ══ */}
+      {mode === 'favorites' && (
+        <main className="max-w-6xl mx-auto px-4 pt-5 pb-20 space-y-5">
+          <div className="flex items-center gap-3">
+            <Heart size={20} fill="currentColor" className="text-pink-400" />
+            <h2 className="text-lg font-black text-white">Suosikit</h2>
+            <span className="text-white/30 text-sm">{favCount} tallennettu</span>
+          </div>
+          {favorites.length === 0 ? (
+            <div className="text-center py-20 space-y-3">
+              <Heart size={40} className="text-white/10 mx-auto" />
+              <p className="text-white/30 text-sm">Ei vielä suosikkeja</p>
+              <p className="text-white/20 text-xs">Paina ♥ tapahtumakortissa tallentaaksesi</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {[...favorites].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()).map((e, i) => (
+                <FeedCard key={e.id} event={e} onClick={setSelectedEvent} index={i} />
+              ))}
+            </div>
+          )}
+        </main>
+      )}
 
       {/* ══ DISCOVER ══ */}
       {mode === 'discover' && (

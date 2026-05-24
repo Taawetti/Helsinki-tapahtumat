@@ -1,8 +1,9 @@
 'use client'
 
-import { Clock, MapPin, ArrowRight } from 'lucide-react'
+import { Clock, MapPin, ArrowRight, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime } from '@/lib/utils'
+import { useFavorites } from '@/contexts/FavoritesContext'
 
 interface Props {
   event: Event
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function HeroCard({ event, onClick }: Props) {
+  const { toggle, isFavorite } = useFavorites()
+  const fav = isFavorite(event.id)
   return (
     <button
       onClick={() => onClick(event)}
@@ -30,11 +33,17 @@ export default function HeroCard({ event, onClick }: Props) {
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
 
-      {/* Label */}
-      <div className="absolute top-4 left-4">
+      {/* Label + heart */}
+      <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
         <span className="bg-[#0072C6] text-white text-xs font-bold px-3 py-1 rounded-full tracking-wide uppercase">
           Suositellaan
         </span>
+        <button
+          onClick={(e) => { e.stopPropagation(); toggle(event) }}
+          className={`p-2 rounded-full backdrop-blur-sm transition-all ${fav ? 'bg-pink-500/80 text-white' : 'bg-black/40 text-white/60 hover:text-pink-400'}`}
+        >
+          <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
+        </button>
       </div>
 
       {/* Content */}

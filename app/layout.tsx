@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { FavoritesProvider } from '@/contexts/FavoritesContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -50,7 +51,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         )}
       </head>
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        <FavoritesProvider>
+          {children}
+        </FavoritesProvider>
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+              navigator.serviceWorker.register('/sw.js').catch(() => {})
+            })
+          }
+        `}} />
+      </body>
     </html>
   )
 }

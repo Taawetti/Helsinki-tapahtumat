@@ -1,8 +1,9 @@
 'use client'
 
-import { MapPin, Clock, Share2, ArrowUpRight } from 'lucide-react'
+import { MapPin, Clock, Share2, ArrowUpRight, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime } from '@/lib/utils'
+import { useFavorites } from '@/contexts/FavoritesContext'
 
 interface Props {
   event: Event
@@ -31,6 +32,8 @@ async function shareEvent(e: React.MouseEvent, event: Event) {
 
 export default function FeedCard({ event, onClick, index }: Props) {
   const gradient = GRADIENTS[index % GRADIENTS.length]
+  const { toggle, isFavorite } = useFavorites()
+  const fav = isFavorite(event.id)
 
   return (
     <article
@@ -70,13 +73,21 @@ export default function FeedCard({ event, onClick, index }: Props) {
           )}
         </div>
 
-        {/* Share button */}
-        <button
-          onClick={(e) => shareEvent(e, event)}
-          className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-sm rounded-full text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
-        >
-          <Share2 size={14} />
-        </button>
+        {/* Action buttons */}
+        <div className="absolute top-3 right-3 flex gap-1.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); toggle(event) }}
+            className={`p-2 backdrop-blur-sm rounded-full transition-all ${fav ? 'bg-pink-500/80 text-white' : 'bg-black/40 text-white/50 hover:text-pink-400 opacity-0 group-hover:opacity-100'}`}
+          >
+            <Heart size={14} fill={fav ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            onClick={(e) => shareEvent(e, event)}
+            className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white/50 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+          >
+            <Share2 size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Content */}

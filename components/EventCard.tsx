@@ -1,8 +1,9 @@
 'use client'
 
-import { MapPin, Clock, Share2 } from 'lucide-react'
+import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime, truncate, isTonight } from '@/lib/utils'
+import { useFavorites } from '@/contexts/FavoritesContext'
 
 interface Props {
   event: Event
@@ -39,6 +40,8 @@ function handleShare(e: React.MouseEvent, event: Event) {
 export default function EventCard({ event, onClick }: Props) {
   const gradient = hashGradient(event.id)
   const tonight = isTonight(event.startTime)
+  const { toggle, isFavorite } = useFavorites()
+  const fav = isFavorite(event.id)
 
   return (
     <button
@@ -74,14 +77,23 @@ export default function EventCard({ event, onClick }: Props) {
           )}
         </div>
 
-        {/* Share button */}
-        <button
-          onClick={(e) => handleShare(e, event)}
-          className="absolute top-3 right-3 p-1.5 bg-black/40 hover:bg-black/70 backdrop-blur-sm rounded-full text-white/60 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
-          aria-label="Jaa tapahtuma"
-        >
-          <Share2 size={13} />
-        </button>
+        {/* Action buttons */}
+        <div className="absolute top-3 right-3 flex gap-1.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); toggle(event) }}
+            className={`p-1.5 backdrop-blur-sm rounded-full transition-all ${fav ? 'bg-pink-500/80 text-white' : 'bg-black/40 text-white/60 hover:text-pink-400 opacity-0 group-hover:opacity-100'}`}
+            aria-label="Tallenna suosikkeihin"
+          >
+            <Heart size={13} fill={fav ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            onClick={(e) => handleShare(e, event)}
+            className="p-1.5 bg-black/40 hover:bg-black/70 backdrop-blur-sm rounded-full text-white/60 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+            aria-label="Jaa tapahtuma"
+          >
+            <Share2 size={13} />
+          </button>
+        </div>
 
         {/* Date chip bottom */}
         <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">
