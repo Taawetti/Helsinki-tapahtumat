@@ -68,14 +68,19 @@ export interface Vibe {
 }
 
 export const VIBES: Vibe[] = [
-  { id: 'keikka',    label: 'Keikka',         emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'] },
-  { id: 'klubi',     label: 'Klubi / DJ',      emoji: '🎧', keywords: ['klubi', 'dj', 'club', 'disco', 'tanssi', 'yökerho', 'after'] },
-  { id: 'yoelama',   label: 'Yöelämä',         emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'] },
-  { id: 'baari',     label: 'Baari / Pub',     emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'bier', 'pint'] },
-  { id: 'urheilu',   label: 'Urheilu',         emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },
-  { id: 'ravintola', label: 'Ravintola',       emoji: '🍝', keywords: ['ravintola', 'ruoka', 'food', 'dinner', 'illallinen'] },
-  { id: 'standup',   label: 'Stand up',        emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'] },
-  { id: 'ilmainen',  label: 'Ilmaiseksi',      emoji: '🎁', keywords: [] },
+  { id: 'keikka',    label: 'Keikka',           emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'] },
+  { id: 'klubi',     label: 'Klubi / DJ',        emoji: '🎧', keywords: ['klubi', 'dj', 'club', 'disco', 'tanssi', 'yökerho', 'after'] },
+  { id: 'yoelama',   label: 'Yöelämä',           emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'] },
+  { id: 'baari',     label: 'Baari / Pub',       emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'pint'] },
+  { id: 'teatteri',  label: 'Teatteri & Tanssi', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'] },
+  { id: 'taide',     label: 'Taide',             emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'art', 'gallery', 'exhibition', 'design'] },
+  { id: 'museo',     label: 'Museo',             emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma'] },
+  { id: 'lapset',    label: 'Lapset & Perhe',    emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children'] },
+  { id: 'tyopaja',   label: 'Työpaja & Kurssi',  emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus'] },
+  { id: 'urheilu',   label: 'Urheilu',           emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },
+  { id: 'ravintola', label: 'Ravintola',         emoji: '🍝', keywords: ['ravintola', 'ruoka', 'food', 'dinner', 'illallinen'] },
+  { id: 'standup',   label: 'Stand up',          emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'] },
+  { id: 'ilmainen',  label: 'Ilmaiseksi',        emoji: '🎁', keywords: [] },
 ]
 
 // ── COLLECTIONS ────────────────────────────────────────
