@@ -1,6 +1,6 @@
 import { DateFilter } from './types'
 
-export function getDateRange(filter: DateFilter): { start: string; end: string; startAfter?: string } {
+export function getDateRange(filter: DateFilter, customDate?: string): { start: string; end: string; startAfter?: string } {
   const now = new Date()
   const fmt = (d: Date) => d.toISOString().split('T')[0]
 
@@ -9,7 +9,6 @@ export function getDateRange(filter: DateFilter): { start: string; end: string; 
       return { start: fmt(now), end: fmt(now) }
 
     case 'tonight': {
-      // Events starting 17:00 or later today
       const tonightStart = new Date(now)
       tonightStart.setHours(17, 0, 0, 0)
       return { start: fmt(now), end: fmt(now), startAfter: tonightStart.toISOString() }
@@ -22,7 +21,7 @@ export function getDateRange(filter: DateFilter): { start: string; end: string; 
     }
 
     case 'weekend': {
-      const day = now.getDay() // 0=Sun, 6=Sat
+      const day = now.getDay()
       const daysToSat = day === 6 ? 0 : (6 - day)
       const sat = new Date(now)
       sat.setDate(now.getDate() + daysToSat)
@@ -41,6 +40,11 @@ export function getDateRange(filter: DateFilter): { start: string; end: string; 
       const end = new Date(now)
       end.setMonth(end.getMonth() + 1)
       return { start: fmt(now), end: fmt(end) }
+    }
+
+    case 'custom': {
+      const date = customDate || fmt(now)
+      return { start: date, end: date }
     }
   }
 }

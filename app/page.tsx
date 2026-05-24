@@ -45,12 +45,13 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false)
   const [activeNeighborhood, setActiveNeighborhood] = useState<Neighborhood | null>(null)
   const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'free'>('discover')
+  const [customDate, setCustomDate] = useState('')
 
   // Derive bbox from selected neighborhood
   const bbox = activeNeighborhood?.bbox ?? ''
 
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
-    dateFilter, keyword, municipality, activeCategories, bbox,
+    dateFilter, customDate, keyword, municipality, activeCategories, bbox,
   })
 
   const handleVibeToggle = useCallback((id: string) => {
@@ -69,7 +70,7 @@ export default function Home() {
   const clearFilters = useCallback(() => {
     setActiveCategories([]); setActiveVibes([]); setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
-    setPriceFilter('all'); setActiveNeighborhood(null)
+    setPriceFilter('all'); setActiveNeighborhood(null); setCustomDate('')
   }, [])
 
   const handleMobileTab = useCallback((tab: typeof mobileTab) => {
@@ -164,17 +165,24 @@ export default function Home() {
         {showFilters && (
           <div className="border-t border-white/5 px-4 py-4 max-w-6xl mx-auto space-y-3">
             {/* Date row */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               {(['today','tonight','tomorrow','weekend','week','month'] as DateFilter[]).map((d) => {
-                const labels: Record<DateFilter,string> = { today:'Tänään', tonight:'🌙 Illalla', tomorrow:'Huomenna', weekend:'🎉 Viikonloppu', week:'Viikko', month:'Kuukausi' }
+                const labels: Record<string,string> = { today:'Tänään', tonight:'🌙 Illalla', tomorrow:'Huomenna', weekend:'🎉 Viikonloppu', week:'Viikko', month:'Kuukausi' }
                 return (
-                  <button key={d} onClick={() => setDateFilter(d)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${dateFilter === d ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
-                    style={dateFilter === d ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}>
+                  <button key={d} onClick={() => { setDateFilter(d); setCustomDate('') }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${dateFilter === d && !customDate ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
+                    style={dateFilter === d && !customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}>
                     {labels[d]}
                   </button>
                 )
               })}
+              <input
+                type="date"
+                value={customDate}
+                onChange={(e) => { setCustomDate(e.target.value); setDateFilter('custom') }}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all bg-transparent cursor-pointer ${customDate ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
+                style={customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}
+              />
             </div>
             {/* Price row */}
             <div className="flex gap-2">
@@ -213,7 +221,7 @@ export default function Home() {
           </div>
 
           {/* Date strip */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 items-center">
             {([
               { d: 'today' as DateFilter, label: 'Tänään' },
               { d: 'tonight' as DateFilter, label: '🌙 Illalla' },
@@ -221,14 +229,22 @@ export default function Home() {
               { d: 'weekend' as DateFilter, label: '🎉 Viikonloppu' },
               { d: 'week' as DateFilter, label: 'Viikko' },
             ]).map(({ d, label }) => (
-              <button key={d} onClick={() => setDateFilter(d)}
+              <button key={d} onClick={() => { setDateFilter(d); setCustomDate('') }}
                 className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
-                  dateFilter === d ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
+                  dateFilter === d && !customDate ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
                 }`}
-                style={dateFilter === d ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
+                style={dateFilter === d && !customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
                 {label}
               </button>
             ))}
+            <input
+              type="date"
+              value={customDate}
+              onChange={(e) => { setCustomDate(e.target.value); setDateFilter('custom') }}
+              title="Valitse päivä"
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-black border-0 cursor-pointer transition-all ${customDate ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/8'}`}
+              style={customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}
+            />
           </div>
 
           {/* Vibe pills */}

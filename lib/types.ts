@@ -23,7 +23,7 @@ export interface Event {
   source: 'linked-events'
 }
 
-export type DateFilter = 'today' | 'tonight' | 'tomorrow' | 'weekend' | 'week' | 'month'
+export type DateFilter = 'today' | 'tonight' | 'tomorrow' | 'weekend' | 'week' | 'month' | 'custom'
 export type ViewMode = 'list' | 'map'
 export type PriceFilter = 'all' | 'free' | 'paid'
 
