@@ -77,11 +77,11 @@ export default function EventCard({ event, onClick }: Props) {
           )}
         </div>
 
-        {/* Action buttons */}
+        {/* Action buttons — heart always visible, share on hover */}
         <div className="absolute top-3 right-3 flex gap-1.5">
           <button
             onClick={(e) => { e.stopPropagation(); toggle(event) }}
-            className={`p-1.5 backdrop-blur-sm rounded-full transition-all ${fav ? 'bg-pink-500/80 text-white' : 'bg-black/40 text-white/60 hover:text-pink-400 opacity-0 group-hover:opacity-100'}`}
+            className={`p-1.5 backdrop-blur-sm rounded-full transition-all ${fav ? 'bg-pink-500/80 text-white' : 'bg-black/50 text-white/50 hover:text-pink-400'}`}
             aria-label="Tallenna suosikkeihin"
           >
             <Heart size={13} fill={fav ? 'currentColor' : 'none'} />
