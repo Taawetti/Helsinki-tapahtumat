@@ -13,27 +13,27 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Helsinki Tapahtumat — Mitä tänä iltana?',
+  title: 'Mitä tänään — Helsinki tapahtumat',
   description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa. Keikkat, klubit, taide, ruoka, ilmaiset tapahtumat ja paljon muuta.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Helsinki.',
+    title: 'Mitä tänään',
   },
   openGraph: {
-    title: 'Helsinki Tapahtumat',
-    description: 'Mitä tänä iltana? Löydä parhaat tapahtumat pääkaupunkiseudulla.',
+    title: 'Mitä tänään — Helsinki tapahtumat',
+    description: 'Löydä parhaat tapahtumat pääkaupunkiseudulla tänään.',
     type: 'website',
     locale: 'fi_FI',
-    siteName: 'Helsinki Tapahtumat',
+    siteName: 'Mitä tänään',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Helsinki Tapahtumat',
-    description: 'Mitä tänä iltana? Löydä parhaat tapahtumat pääkaupunkiseudulla.',
+    title: 'Mitä tänään — Helsinki tapahtumat',
+    description: 'Löydä parhaat tapahtumat pääkaupunkiseudulla tänään.',
   },
-  keywords: ['Helsinki tapahtumat', 'tapahtumat Helsinki', 'mitä tehdä Helsinki', 'keikkat Helsinki', 'klubit Helsinki', 'ilmaiset tapahtumat'],
+  keywords: ['mitä tänään', 'Helsinki tapahtumat', 'tapahtumat Helsinki', 'mitä tehdä Helsinki', 'keikkat Helsinki', 'ilmaiset tapahtumat'],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -142,8 +142,11 @@ export default function Home() {
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(8,8,12,0.96)', backdropFilter: 'blur(20px)' }}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="shrink-0">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>H</div>
+          <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="shrink-0 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>M</div>
+            <span className="font-black text-sm tracking-tight" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Mitä tänään
+            </span>
           </button>
 
           <div className="hidden md:flex gap-0.5 bg-white/5 rounded-xl p-1">
