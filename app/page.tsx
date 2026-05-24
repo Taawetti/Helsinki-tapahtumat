@@ -287,6 +287,7 @@ export default function Home() {
               { d: 'tomorrow' as DateFilter, label: 'Huomenna' },
               { d: 'weekend' as DateFilter, label: '🎉 Viikonloppu' },
               { d: 'week' as DateFilter, label: 'Viikko' },
+              { d: 'month' as DateFilter, label: 'Kuukausi' },
             ]).map(({ d, label }) => (
               <button key={d} onClick={() => { setDateFilter(d); setCustomDate('') }}
                 className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
