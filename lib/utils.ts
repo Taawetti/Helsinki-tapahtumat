@@ -81,3 +81,40 @@ export function isTonight(isoString: string): boolean {
   const isToday = date.toDateString() === now.toDateString()
   return isToday && date.getHours() >= 17
 }
+
+// Appends affiliate tracking parameters to known ticket vendor URLs.
+// Set env vars in .env.local to activate each vendor's affiliate program.
+export function affiliateUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+
+  try {
+    const u = new URL(url)
+
+    // Ticketmaster (Finland + global) — affiliate via camefrom param
+    // Join: https://developer.ticketmaster.com/products-and-docs/partner/
+    if (u.hostname.includes('ticketmaster')) {
+      const code = process.env.NEXT_PUBLIC_TM_AFFILIATE
+      if (code) u.searchParams.set('camefrom', code)
+      return u.toString()
+    }
+
+    // Lippupiste / Lippu.fi — affiliate via affiliate param
+    // Join: https://www.lippu.fi/affiliate
+    if (u.hostname.includes('lippu.fi') || u.hostname.includes('lippupiste')) {
+      const code = process.env.NEXT_PUBLIC_LIPPU_AFFILIATE
+      if (code) u.searchParams.set('affiliate', code)
+      return u.toString()
+    }
+
+    // Eventbrite — affiliate via aff param
+    if (u.hostname.includes('eventbrite')) {
+      const code = process.env.NEXT_PUBLIC_EVENTBRITE_AFFILIATE
+      if (code) u.searchParams.set('aff', code)
+      return u.toString()
+    }
+  } catch {
+    // malformed URL, return as-is
+  }
+
+  return url
+}

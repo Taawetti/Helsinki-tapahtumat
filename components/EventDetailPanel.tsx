@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check } from 'lucide-react'
 import { Event } from '@/lib/types'
-import { formatDate, formatDateRange, formatTime } from '@/lib/utils'
+import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 
 interface Props {
   event: Event | null
@@ -196,7 +196,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
           <div className="flex flex-col gap-2.5 pt-1">
             {(event.ticketUrl || event.infoUrl) && (
               <a
-                href={event.ticketUrl || event.infoUrl || '#'}
+                href={affiliateUrl(event.ticketUrl || event.infoUrl) || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
