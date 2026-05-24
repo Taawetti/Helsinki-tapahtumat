@@ -77,22 +77,23 @@ export default function EventCard({ event, onClick }: Props) {
           )}
         </div>
 
-        {/* Heart button — inline styles guarantee visibility */}
-        <button
+        {/* Heart — div because outer card is already a <button> (no nesting allowed) */}
+        <div
           onClick={(e) => { e.stopPropagation(); toggle(event) }}
+          role="button"
           aria-label="Tallenna suosikkeihin"
           style={{
             position: 'absolute', top: 8, right: 8, zIndex: 10,
-            width: 32, height: 32, borderRadius: '50%', border: 'none',
+            width: 32, height: 32, borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', transition: 'transform 0.15s',
+            cursor: 'pointer', transition: 'background 0.15s',
             background: fav ? '#ec4899' : 'rgba(0,0,0,0.65)',
             color: fav ? '#fff' : 'rgba(255,255,255,0.85)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
           }}
         >
           <Heart size={15} fill={fav ? 'currentColor' : 'none'} />
-        </button>
+        </div>
 
         {/* Date chip bottom */}
         <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">

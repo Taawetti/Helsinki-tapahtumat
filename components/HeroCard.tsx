@@ -38,12 +38,22 @@ export default function HeroCard({ event, onClick }: Props) {
         <span className="bg-[#0072C6] text-white text-xs font-bold px-3 py-1 rounded-full tracking-wide uppercase">
           Suositellaan
         </span>
-        <button
+        <div
           onClick={(e) => { e.stopPropagation(); toggle(event) }}
-          className={`p-2 rounded-full backdrop-blur-sm transition-all ${fav ? 'bg-pink-500/80 text-white' : 'bg-black/40 text-white/60 hover:text-pink-400'}`}
+          role="button"
+          aria-label="Tallenna suosikkeihin"
+          style={{
+            width: 36, height: 36, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', transition: 'background 0.15s',
+            background: fav ? '#ec4899' : 'rgba(0,0,0,0.55)',
+            color: fav ? '#fff' : 'rgba(255,255,255,0.7)',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+          }}
         >
           <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
-        </button>
+        </div>
       </div>
 
       {/* Content */}
