@@ -80,8 +80,12 @@ export default function EventDetailPanel({ event, onClose }: Props) {
         role="dialog"
         aria-modal
         aria-label={event.title}
-        className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-[#0e1117] shadow-2xl overflow-y-auto animate-slide-in"
+        className="fixed inset-x-0 bottom-0 z-50 h-[92dvh] rounded-t-3xl overflow-y-auto bg-[#0e1117] shadow-2xl animate-panel-up md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:h-auto md:w-full md:max-w-lg md:rounded-none md:animate-slide-in"
       >
+        {/* Drag handle — mobile only */}
+        <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
         {/* Hero image */}
         <div className="relative h-60 w-full bg-[#1a1f2e] shrink-0">
           {event.image ? (

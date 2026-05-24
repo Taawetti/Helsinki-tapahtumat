@@ -46,7 +46,7 @@ export default function Home() {
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'free'>('discover')
+  const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'favorites'>('discover')
   const [customDate, setCustomDate] = useState('')
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter, customDate, keyword, municipality, activeCategories, bbox: '',
@@ -94,7 +94,7 @@ export default function Home() {
     if (tab === 'discover') setMode('discover')
     else if (tab === 'browse') setMode('browse')
     else if (tab === 'map') setMode('map')
-    else if (tab === 'free') { setPriceFilter('free'); setMode('browse') }
+    else if (tab === 'favorites') setMode('favorites')
   }, [])
 
 // Vibe-based client filter on top of API results
@@ -141,7 +141,40 @@ export default function Home() {
 
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(8,8,12,0.96)', backdropFilter: 'blur(20px)' }}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+        {/* ── Mobile header row 1: logo + actions ── */}
+        <div className="md:hidden flex items-center justify-between px-4 pt-3 pb-2">
+          <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>M</div>
+            <span className="font-black text-sm tracking-tight" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Mitä tänään
+            </span>
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setMode(mode === 'favorites' ? 'discover' : 'favorites'); setMobileTab(mode === 'favorites' ? 'discover' : 'favorites') }}
+              className={`relative p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-pink-500/60 text-pink-400 bg-pink-500/15' : 'border-white/8 text-white/40 bg-white/4'}`}
+            >
+              <Heart size={15} fill={mode === 'favorites' ? 'currentColor' : 'none'} />
+              {favCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center bg-pink-500 text-white">{favCount}</span>
+              )}
+            </button>
+            <button onClick={() => setShowFilters((p) => !p)}
+              className={`relative p-2 rounded-xl border transition-all ${showFilters ? 'border-purple-500/60 text-purple-400 bg-purple-500/15' : 'border-white/8 text-white/40 bg-white/4'}`}>
+              <SlidersHorizontal size={15} />
+              {activeCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>{activeCount}</span>
+              )}
+            </button>
+          </div>
+        </div>
+        {/* ── Mobile header row 2: search ── */}
+        <div className="md:hidden px-4 pb-3">
+          <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('browse'); setMobileTab('browse') } }} />
+        </div>
+
+        {/* ── Desktop header: single row ── */}
+        <div className="hidden md:flex max-w-6xl mx-auto px-4 py-3 items-center gap-3">
           <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="shrink-0 flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>M</div>
             <span className="font-black text-sm tracking-tight" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -149,7 +182,7 @@ export default function Home() {
             </span>
           </button>
 
-          <div className="hidden md:flex gap-0.5 bg-white/5 rounded-xl p-1">
+          <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
             {(['discover', 'browse', 'map'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => setMode(m)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/65'}`}>
@@ -163,26 +196,21 @@ export default function Home() {
           </div>
 
           {mode === 'browse' && (
-            <div className="hidden md:flex bg-white/5 rounded-xl p-1 gap-0.5 shrink-0">
+            <div className="flex bg-white/5 rounded-xl p-1 gap-0.5 shrink-0">
               <button onClick={() => setListStyle('feed')} className={`p-2 rounded-lg transition-all ${listStyle === 'feed' ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/60'}`}><Rss size={14} /></button>
               <button onClick={() => setListStyle('grid')} className={`p-2 rounded-lg transition-all ${listStyle === 'grid' ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/60'}`}><LayoutGrid size={14} /></button>
               <button onClick={() => setMode('map')} className="p-2 rounded-lg transition-all text-white/35 hover:text-white/60"><Map size={14} /></button>
             </div>
           )}
 
-          {/* Notifications bell */}
           <button
-            onClick={async () => {
-              if (typeof Notification === 'undefined') return
-              await Notification.requestPermission()
-            }}
+            onClick={async () => { if (typeof Notification === 'undefined') return; await Notification.requestPermission() }}
             className="shrink-0 p-2 rounded-xl border border-white/8 text-white/40 bg-white/4 hover:text-white/70 transition-all"
             title="Tilaa ilmoitukset"
           >
             <Bell size={15} />
           </button>
 
-          {/* Favorites */}
           <button
             onClick={() => setMode(mode === 'favorites' ? 'discover' : 'favorites')}
             className={`relative shrink-0 p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-pink-500/60 text-pink-400 bg-pink-500/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-pink-400'}`}
@@ -271,8 +299,8 @@ export default function Home() {
           {/* City headline */}
           <div>
             <h1 className="font-black text-white leading-none select-none"
-              style={{ fontSize: 'clamp(3.5rem,15vw,8rem)', letterSpacing: '-0.04em' }}>
-              HELSINKI
+              style={{ fontSize: 'clamp(2.8rem,12vw,8rem)', letterSpacing: '-0.04em' }}>
+              {municipality.toUpperCase()}
             </h1>
             <p className="text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
               {new Date().toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -535,18 +563,21 @@ export default function Home() {
       {/* ── KYSY KAVEREILTA FAB ── */}
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/6"
-        style={{ background: 'rgba(8,8,12,0.97)', backdropFilter: 'blur(20px)' }}>
+        style={{ background: 'rgba(8,8,12,0.97)', backdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="grid grid-cols-4">
           {([
             { tab: 'discover' as const, emoji: '✦', label: 'Etusivu' },
             { tab: 'browse' as const, emoji: '🔍', label: 'Selaa' },
             { tab: 'map' as const, emoji: '🗺', label: 'Kartta' },
-            { tab: 'free' as const, emoji: '🎁', label: 'Ilmaiset' },
+            { tab: 'favorites' as const, emoji: '♥', label: 'Suosikit' },
           ]).map(({ tab, emoji, label }) => (
             <button key={tab} onClick={() => handleMobileTab(tab)}
-              className={`flex flex-col items-center gap-0.5 py-3 transition-all ${mobileTab === tab ? 'text-purple-400' : 'text-white/25 hover:text-white/50'}`}>
+              className={`relative flex flex-col items-center gap-0.5 py-3 transition-all ${mobileTab === tab ? 'text-purple-400' : 'text-white/25 hover:text-white/50'}`}>
               <span className="text-lg leading-none">{emoji}</span>
               <span className="text-[10px] font-bold">{label}</span>
+              {tab === 'favorites' && favCount > 0 && (
+                <span className="absolute top-2 right-[calc(50%-18px)] w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center bg-pink-500 text-white">{favCount}</span>
+              )}
             </button>
           ))}
         </div>
