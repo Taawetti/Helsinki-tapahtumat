@@ -28,7 +28,7 @@ export default function SpontaaniCard({ events, onOpen }: Props) {
 
   const candidates = useMemo(() => {
     const now = new Date()
-    const cutoff = new Date(now.getTime() + 6 * 60 * 60 * 1000)
+    const cutoff = new Date(now.getTime() + 12 * 60 * 60 * 1000)
     return events
       .filter(e => {
         const t = new Date(e.startTime)

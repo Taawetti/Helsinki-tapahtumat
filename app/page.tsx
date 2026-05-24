@@ -16,7 +16,6 @@ import VibeBar from '@/components/VibeBar'
 import AdBanner from '@/components/AdBanner'
 import DatePicker from '@/components/DatePicker'
 import SpontaaniCard from '@/components/SpontaaniCard'
-import type { VoteEvent } from '@/app/vote/page'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -49,8 +48,6 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false)
   const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'free'>('discover')
   const [customDate, setCustomDate] = useState('')
-  const [voteShared, setVoteShared] = useState(false)
-
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter, customDate, keyword, municipality, activeCategories, bbox: '',
   })
@@ -138,30 +135,6 @@ export default function Home() {
   )
 
   const activeCount = activeVibes.length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
-
-  async function handleVoteShare() {
-    const pool = discoverEvents.filter(e => e.image).slice(0, 3)
-    if (pool.length < 2) return
-    const sessionId = Math.random().toString(36).slice(2, 8)
-    const compact: VoteEvent[] = pool.map(e => ({
-      id: e.id,
-      t: e.title,
-      s: e.startTime,
-      l: e.location?.name,
-      img: e.image ?? undefined,
-      url: e.ticketUrl || e.infoUrl || undefined,
-      f: e.isFree,
-      p: e.price ?? undefined,
-    }))
-    const url = `${window.location.origin}/vote?d=${btoa(JSON.stringify(compact))}&s=${sessionId}`
-    if (navigator.share) {
-      try { await navigator.share({ title: 'Mitä tehdään tänään?', text: 'Äänestä paras vaihtoehto 👇', url }) } catch {}
-    } else {
-      await navigator.clipboard.writeText(url)
-      setVoteShared(true)
-      setTimeout(() => setVoteShared(false), 2500)
-    }
-  }
 
   return (
     <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#08080c' }}>
@@ -560,18 +533,6 @@ export default function Home() {
       )}
 
       {/* ── KYSY KAVEREILTA FAB ── */}
-      {(mode === 'discover' || mode === 'browse') && discoverEvents.length >= 2 && (
-        <div className="fixed bottom-20 md:bottom-6 right-4 z-40">
-          <button
-            onClick={handleVoteShare}
-            className="flex items-center gap-2 px-4 py-3 rounded-full text-white text-sm font-black shadow-2xl shadow-purple-500/30 transition-all hover:scale-105 active:scale-95"
-            style={{ background: voteShared ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#a855f7,#ec4899)' }}
-          >
-            {voteShared ? '✓ Linkki kopioitu!' : '🤔 Kysy kavereilta'}
-          </button>
-        </div>
-      )}
-
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/6"
         style={{ background: 'rgba(8,8,12,0.97)', backdropFilter: 'blur(20px)' }}>
