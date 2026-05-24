@@ -70,7 +70,8 @@ export interface Vibe {
 export const VIBES: Vibe[] = [
   { id: 'keikka',    label: 'Keikka',         emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'] },
   { id: 'klubi',     label: 'Klubi / DJ',      emoji: '🎧', keywords: ['klubi', 'dj', 'club', 'disco', 'tanssi', 'yökerho', 'after'] },
-  { id: 'yoelama',   label: 'Yöelämä',         emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'baari', 'pub', 'bar', 'cocktail', 'viini', 'wine', 'after', 'disko', 'tanssit', 'tanssi', 'juhla', 'bileet', 'bileissä', 'keikat', 'klubi', 'lounge', 'shot', 'drinkki', 'olut', 'beer', 'live music'] },
+  { id: 'yoelama',   label: 'Yöelämä',         emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'] },
+  { id: 'baari',     label: 'Baari / Pub',     emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'bier', 'pint'] },
   { id: 'urheilu',   label: 'Urheilu',         emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },
   { id: 'ravintola', label: 'Ravintola',       emoji: '🍝', keywords: ['ravintola', 'ruoka', 'food', 'dinner', 'illallinen'] },
   { id: 'standup',   label: 'Stand up',        emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'] },

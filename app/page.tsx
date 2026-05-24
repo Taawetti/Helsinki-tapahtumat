@@ -88,9 +88,9 @@ export default function Home() {
       result = result.filter((e) => {
         const haystack = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
         const kwMatch = vibeKeywords.some((kw) => haystack.includes(kw.toLowerCase()))
-        // Evening events (18:00+) count as nightlife even without matching keywords
-        const hour = new Date(e.startTime).getHours()
-        const eveningMatch = isNightlife && hour >= 18
+        // Evening events (19:30+) count as nightlife even without matching keywords
+        const d = new Date(e.startTime)
+        const eveningMatch = isNightlife && (d.getHours() > 19 || (d.getHours() === 19 && d.getMinutes() >= 30))
         return kwMatch || eveningMatch
       })
     }
