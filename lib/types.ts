@@ -69,7 +69,6 @@ export interface Vibe {
 
 export const VIBES: Vibe[] = [
   { id: 'keikka',    label: 'Keikka',           emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'] },
-  { id: 'klubi',     label: 'Klubi / DJ',        emoji: '🎧', keywords: ['klubi', 'dj', 'club', 'disco', 'tanssi', 'yökerho', 'after'] },
   { id: 'yoelama',   label: 'Yöelämä',           emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'] },
   { id: 'baari',     label: 'Baari / Pub',       emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'pint'] },
   { id: 'teatteri',  label: 'Teatteri & Tanssi', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'] },
