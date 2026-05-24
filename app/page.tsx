@@ -90,14 +90,23 @@ export default function Home() {
   const filteredEvents = useMemo(() => {
     let result = events
 
-    // Vibe filter (keywords)
+    // Vibe filter (keywords) — word-boundary match to avoid "yö" matching "työpaja" etc.
     const vibeKeywords = activeVibes
       .filter((v) => v !== 'ilmainen')
       .flatMap((id) => VIBES.find((v) => v.id === id)?.keywords ?? [])
     if (vibeKeywords.length > 0) {
+      const kwMatches = (text: string, kw: string) => {
+        const t = text.toLowerCase()
+        const k = kw.toLowerCase()
+        const idx = t.indexOf(k)
+        if (idx === -1) return false
+        const before = idx === 0 || /\W/.test(t[idx - 1])
+        const after = idx + k.length >= t.length || /\W/.test(t[idx + k.length])
+        return before && after
+      }
       result = result.filter((e) =>
-        [...e.categories, e.title.toLowerCase(), e.shortDescription.toLowerCase()].some((text) =>
-          vibeKeywords.some((kw) => text.toLowerCase().includes(kw.toLowerCase()))
+        [...e.categories, e.title, e.shortDescription].some((text) =>
+          vibeKeywords.some((kw) => kwMatches(text, kw))
         )
       )
     }
