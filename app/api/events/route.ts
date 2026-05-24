@@ -93,11 +93,13 @@ export async function GET(req: NextRequest) {
     start: startAfter || start,
     end,
     page,
-    page_size: '50',
+    page_size: keyword ? '100' : '50',
     include: 'location,keywords',
-    language: 'fi',
-    sort: '-start_time',
+    sort: 'start_time',  // soonest events first
   })
+
+  // When searching by keyword, skip language filter to catch all languages
+  if (!keyword) params.set('language', 'fi')
 
   // Use bbox for neighborhood filtering, otherwise use division (municipality filter)
   if (bbox) {

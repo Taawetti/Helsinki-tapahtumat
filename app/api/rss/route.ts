@@ -3,10 +3,10 @@ import { Event } from '@/lib/types'
 
 // RSS-syötteet Helsinki-tapahtumapaikoilta ja kulttuurilaitoksilta
 const RSS_FEEDS = [
-  { url: 'https://www.hel.fi/fi/kulttuuri-ja-vapaa-aika/tapahtumat/rss', city: 'Helsinki' },
-  { url: 'https://www.helsinkitimes.fi/rss/category/16-culture.xml', city: 'Helsinki' },
-  { url: 'https://www.kansallisteatteri.fi/rss/events', city: 'Helsinki' },
-  { url: 'https://www.musiikkitalo.fi/rss/events', city: 'Helsinki' },
+  { url: 'https://www.korjaamo.fi/feed/', city: 'Helsinki', venueName: 'Kulttuuritehdas Korjaamo' },
+  { url: 'https://tavastiaklubi.fi/feed/', city: 'Helsinki', venueName: 'Tavastia' },
+  { url: 'https://circushelsinki.fi/feed/', city: 'Helsinki', venueName: 'Circus Helsinki' },
+  { url: 'https://harjula.fi/feed/', city: 'Helsinki', venueName: 'Harjula' },
 ]
 
 function parseDate(str: string): string {
@@ -22,15 +22,16 @@ function extractText(xml: string, tag: string): string {
   return (match?.[1] || match?.[2] || '').trim()
 }
 
-function parseRssItems(xml: string, city: string, feedUrl: string): Event[] {
+function parseRssItems(xml: string, city: string, feedUrl: string, venueName?: string): Event[] {
   const items = xml.match(/<item[\s>][\s\S]*?<\/item>/g) ?? []
-  return items.slice(0, 10).map((item, i) => {
+  return items.slice(0, 15).map((item, i) => {
     const title = extractText(item, 'title') || 'Tapahtuma'
     const description = extractText(item, 'description').replace(/<[^>]+>/g, '').slice(0, 200)
     const link = extractText(item, 'link') || feedUrl
     const pubDate = extractText(item, 'pubDate') || extractText(item, 'dc:date')
     const image = item.match(/url="([^"]+\.(jpg|jpeg|png|webp))"/i)?.[1]
       || item.match(/<media:content[^>]+url="([^"]+)"/i)?.[1]
+      || item.match(/<enclosure[^>]+url="([^"]+\.(jpg|jpeg|png|webp))"/i)?.[1]
       || null
 
     return {
@@ -40,7 +41,7 @@ function parseRssItems(xml: string, city: string, feedUrl: string): Event[] {
       description,
       startTime: parseDate(pubDate),
       endTime: null,
-      location: { name: '', streetAddress: '', city },
+      location: { name: venueName || '', streetAddress: '', city },
       image,
       isFree: false,
       price: null,
@@ -57,10 +58,10 @@ export async function GET(req: NextRequest) {
   const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
 
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(({ url, city }) =>
+    RSS_FEEDS.map(({ url, city, venueName }) =>
       fetch(url, { next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(5000) })
         .then((r) => r.text())
-        .then((xml) => parseRssItems(xml, city, url))
+        .then((xml) => parseRssItems(xml, city, url, venueName))
     )
   )
 
