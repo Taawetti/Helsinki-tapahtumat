@@ -70,11 +70,9 @@ export interface Vibe {
 export const VIBES: Vibe[] = [
   { id: 'keikka',    label: 'Keikka',         emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'] },
   { id: 'klubi',     label: 'Klubi / DJ',      emoji: '🎧', keywords: ['klubi', 'dj', 'club', 'disco', 'tanssi', 'yökerho', 'after'] },
+  { id: 'yoelama',   label: 'Yöelämä',         emoji: '🌙', keywords: ['yökerho', 'yö', 'night', 'nightclub', 'baari', 'pub', 'bar', 'cocktail', 'viini', 'wine', 'after', 'dj'] },
   { id: 'urheilu',   label: 'Urheilu',         emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },
-  { id: 'baari',     label: 'Baari / Pub',     emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer'] },
-  { id: 'terassi',   label: 'Terassi',         emoji: '☀️', keywords: ['terassi', 'ulko', 'patio', 'outdoor', 'puisto'] },
   { id: 'ravintola', label: 'Ravintola',       emoji: '🍝', keywords: ['ravintola', 'ruoka', 'food', 'dinner', 'illallinen'] },
-  { id: 'cocktail',  label: 'Cocktailbaari',   emoji: '🍸', keywords: ['cocktail', 'viini', 'wine', 'spirits', 'mixology'] },
   { id: 'standup',   label: 'Stand up',        emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'] },
   { id: 'ilmainen',  label: 'Ilmaiseksi',      emoji: '🎁', keywords: [] },
 ]
