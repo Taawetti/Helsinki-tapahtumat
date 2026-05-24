@@ -110,14 +110,16 @@ export async function GET(req: NextRequest) {
 
   try {
     const linkedUrl = `https://api.hel.fi/linkedevents/v1/event/?${params}`
+    const extraParams = new URLSearchParams({ start, end, ...(keyword ? { keyword } : {}) })
+    const origin = req.nextUrl.origin
 
-    // Fetch Linked Events + Ticketmaster in parallel (page 1 only for TM)
-    const tmParams = new URLSearchParams({ start, end, ...(keyword ? { keyword } : {}) })
-    const [linkedRes, tmRes] = await Promise.allSettled([
+    // Fetch all sources in parallel — page 1 only for external sources
+    const [linkedRes, tmRes, ebRes, meetupRes, rssRes] = await Promise.allSettled([
       fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] } }),
-      page === '1'
-        ? fetch(`${req.nextUrl.origin}/api/ticketmaster?${tmParams}`)
-        : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/ticketmaster?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/eventbrite?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/meetup?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/rss?${extraParams}`) : Promise.resolve(null),
     ])
 
     if (linkedRes.status === 'rejected' || (linkedRes.status === 'fulfilled' && !linkedRes.value.ok)) {
@@ -129,20 +131,23 @@ export async function GET(req: NextRequest) {
     const hasMore = !!linkedData.meta?.next
     let total: number = linkedData.meta?.count ?? 0
 
-    // Merge Ticketmaster events (deduplicate by title+date)
-    if (tmRes.status === 'fulfilled' && tmRes.value) {
-      const tmData = await tmRes.value.json()
-      const tmEvents: Event[] = tmData.events ?? []
-      const seen = new Set(events.map((e) => `${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`))
-      const unique = tmEvents.filter(
-        (e) => !seen.has(`${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`)
-      )
-      // Interleave TM events by date
-      events = [...events, ...unique].sort(
-        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-      )
-      total += unique.length
+    // Merge all external sources — deduplicate by title+date
+    const seen = new Set(events.map((e) => `${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`)    )
+
+    for (const res of [tmRes, ebRes, meetupRes, rssRes]) {
+      if (res.status === 'fulfilled' && res.value) {
+        const data = await res.value.json()
+        const incoming: Event[] = data.events ?? []
+        const unique = incoming.filter(
+          (e) => !seen.has(`${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`)
+        )
+        unique.forEach((e) => seen.add(`${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`))
+        events.push(...unique)
+        total += unique.length
+      }
     }
+
+    events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
     return NextResponse.json({ events, hasMore, total })
   } catch (err) {

@@ -1,0 +1,73 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { Event } from '@/lib/types'
+
+// RSS-syötteet Helsinki-tapahtumapaikoilta ja kulttuurilaitoksilta
+const RSS_FEEDS = [
+  { url: 'https://www.hel.fi/fi/kulttuuri-ja-vapaa-aika/tapahtumat/rss', city: 'Helsinki' },
+  { url: 'https://www.helsinkitimes.fi/rss/category/16-culture.xml', city: 'Helsinki' },
+  { url: 'https://www.kansallisteatteri.fi/rss/events', city: 'Helsinki' },
+  { url: 'https://www.musiikkitalo.fi/rss/events', city: 'Helsinki' },
+]
+
+function parseDate(str: string): string {
+  try {
+    return new Date(str).toISOString()
+  } catch {
+    return new Date().toISOString()
+  }
+}
+
+function extractText(xml: string, tag: string): string {
+  const match = xml.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([^<]*)<\\/${tag}>`))
+  return (match?.[1] || match?.[2] || '').trim()
+}
+
+function parseRssItems(xml: string, city: string, feedUrl: string): Event[] {
+  const items = xml.match(/<item[\s>][\s\S]*?<\/item>/g) ?? []
+  return items.slice(0, 10).map((item, i) => {
+    const title = extractText(item, 'title') || 'Tapahtuma'
+    const description = extractText(item, 'description').replace(/<[^>]+>/g, '').slice(0, 200)
+    const link = extractText(item, 'link') || feedUrl
+    const pubDate = extractText(item, 'pubDate') || extractText(item, 'dc:date')
+    const image = item.match(/url="([^"]+\.(jpg|jpeg|png|webp))"/i)?.[1]
+      || item.match(/<media:content[^>]+url="([^"]+)"/i)?.[1]
+      || null
+
+    return {
+      id: `rss-${Buffer.from(link).toString('base64').slice(0, 16)}-${i}`,
+      title,
+      shortDescription: description,
+      description,
+      startTime: parseDate(pubDate),
+      endTime: null,
+      location: { name: '', streetAddress: '', city },
+      image,
+      isFree: false,
+      price: null,
+      ticketUrl: link,
+      infoUrl: link,
+      categories: ['Kulttuuri'],
+      source: 'linked-events' as const,
+    }
+  })
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = req.nextUrl
+  const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
+
+  const results = await Promise.allSettled(
+    RSS_FEEDS.map(({ url, city }) =>
+      fetch(url, { next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(5000) })
+        .then((r) => r.text())
+        .then((xml) => parseRssItems(xml, city, url))
+    )
+  )
+
+  const startTs = new Date(start).getTime()
+  const events: Event[] = results
+    .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+    .filter((e) => new Date(e.startTime).getTime() >= startTs - 86400000)
+
+  return NextResponse.json({ events })
+}
