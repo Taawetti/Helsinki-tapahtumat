@@ -45,6 +45,13 @@ export default function EventDetailPanel({ event, onClose }: Props) {
       )}`
     : null
 
+  // Transit directions via Google Maps (shows HSL routes in Helsinki automatically)
+  const transitUrl = event.location
+    ? event.location.lat && event.location.lon
+      ? `https://maps.google.com/maps?daddr=${event.location.lat},${event.location.lon}&travelmode=transit`
+      : `https://maps.google.com/maps?daddr=${encodeURIComponent([event.location.streetAddress, event.location.city].filter(Boolean).join(', '))}&travelmode=transit`
+    : null
+
   const shareText = buildShareText(event)
   const shareUrl = event.infoUrl || event.ticketUrl || 'https://helsinki-tapahtumat.fi'
 
@@ -234,16 +241,31 @@ export default function EventDetailPanel({ event, onClose }: Props) {
                 <ExternalLink size={13} className="opacity-70" />
               </a>
             )}
-            {mapsUrl && (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/60 font-medium text-sm py-3 rounded-xl border border-white/8 transition-colors"
-              >
-                <Navigation size={15} />
-                Avaa kartassa
-              </a>
+            {(mapsUrl || transitUrl) && (
+              <div className="grid grid-cols-2 gap-2">
+                {mapsUrl && (
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/8 text-white/60 font-medium text-sm py-3 rounded-xl border border-white/8 transition-colors"
+                  >
+                    <Navigation size={14} />
+                    Kartta
+                  </a>
+                )}
+                {transitUrl && (
+                  <a
+                    href={transitUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 bg-[#0072C6]/10 hover:bg-[#0072C6]/20 text-[#4da6e8] font-medium text-sm py-3 rounded-xl border border-[#0072C6]/20 transition-colors"
+                  >
+                    <Navigation size={14} />
+                    Reittiohjeet
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </div>

@@ -155,6 +155,57 @@ async function scrapeBarLoose(): Promise<VenueEvent[]> {
   })
 }
 
+// ── Ääniwalli ─────────────────────────────────────────────────────────────────
+
+async function scrapeAaniwalli(): Promise<VenueEvent[]> {
+  const res = await fetch('https://aaniwalli.fi/', {
+    next: { revalidate: 3600, tags: ['events'] },
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) return []
+
+  const html = await res.text()
+
+  // Match event anchors: <a href="/events/YYYY-MM-DD-slug">...</a>
+  const eventPattern = /<a\s+href="(\/events\/(\d{4}-\d{2}-\d{2})[^"]*)"[^>]*>([\s\S]*?)<\/a>/g
+  const results: VenueEvent[] = []
+  const seen = new Set<string>()
+  let m: RegExpExecArray | null
+
+  while ((m = eventPattern.exec(html)) !== null) {
+    const [block, href, date, inner] = m
+    if (seen.has(href)) continue
+    seen.add(href)
+
+    const titleMatch = inner.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)
+    const title = titleMatch?.[1]?.replace(/<[^>]+>/g, '').trim()
+    if (!title) continue
+
+    const imgMatch = inner.match(/<img[^>]+src="([^"]+)"/)
+    const image = imgMatch?.[1] ? `https://aaniwalli.fi${imgMatch[1]}` : null
+
+    // Adjacent "Osta liput" link immediately after this event block
+    const after = html.slice(m.index + block.length, m.index + block.length + 400)
+    const ticketMatch = after.match(/<a\s+href="([^"]+)"[^>]*>\s*Osta liput\s*<\/a>/)
+    const ticketUrl = ticketMatch?.[1] ?? `https://aaniwalli.fi${href}`
+
+    results.push({
+      url: ticketUrl,
+      date,
+      slug: href.replace('/events/', ''),
+      id: `aaniwalli-${href.replace('/events/', '')}`,
+      title,
+      image,
+      city: 'Helsinki',
+      address: '',
+      venueName: 'Ääniwalli',
+      price: null,
+    })
+  }
+  return results
+}
+
 // ── Shared toEvent ─────────────────────────────────────────────────────────────
 
 function toEvent(v: VenueEvent): Event {
@@ -186,17 +237,18 @@ export async function GET(req: NextRequest) {
   const end = searchParams.get('end') || start
   const keyword = searchParams.get('keyword')?.toLowerCase() || ''
 
-  const [tavastiaRes, semifinalRes, kuudesLinjaRes, barLooseRes] = await Promise.allSettled([
+  const [tavastiaRes, semifinalRes, kuudesLinjaRes, barLooseRes, aaniwalliRes] = await Promise.allSettled([
     scrapeTavastiaLike('https://tavastiaklubi.fi/', 'Tavastia', 'Urho Kekkosen katu 4-6'),
     scrapeTavastiaLike('https://tavastiaklubi.fi/semifinal/', 'Semifinal', 'Urho Kekkosen katu 4-6'),
     scrapeKuudesLinja(),
     scrapeBarLoose(),
+    scrapeAaniwalli(),
   ])
 
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 24 * 60 * 60 * 1000
 
-  const allRaw = [tavastiaRes, semifinalRes, kuudesLinjaRes, barLooseRes]
+  const allRaw = [tavastiaRes, semifinalRes, kuudesLinjaRes, barLooseRes, aaniwalliRes]
     .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
 
   let events = allRaw
