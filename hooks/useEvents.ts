@@ -64,7 +64,15 @@ export function useEvents({
         if (!res.ok) throw new Error(`Virhe: ${res.status}`)
         const data = await res.json()
 
-        setEvents((prev) => (append ? [...prev, ...data.events] : data.events))
+        setEvents((prev) => {
+          const merged = append ? [...prev, ...data.events] : data.events
+          const seen = new Set<string>()
+          return merged.filter((e: Event) => {
+            if (seen.has(e.id)) return false
+            seen.add(e.id)
+            return true
+          })
+        })
         setHasMore(data.hasMore)
         setTotal(data.total)
       } catch (err) {
@@ -79,6 +87,7 @@ export function useEvents({
 
   useEffect(() => {
     setPage(1)
+    setEvents([]) // Clear stale events immediately on filter change
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       fetchEvents(1, false)

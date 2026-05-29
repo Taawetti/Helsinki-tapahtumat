@@ -116,13 +116,19 @@ export async function GET(req: NextRequest) {
     const origin = req.nextUrl.origin
 
     // Fetch all sources in parallel — page 1 only for external sources
-    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes] = await Promise.allSettled([
+    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes] = await Promise.allSettled([
       fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] } }),
       page === '1' ? fetch(`${origin}/api/ticketmaster?${extraParams}`) : Promise.resolve(null),
       page === '1' ? fetch(`${origin}/api/eventbrite?${extraParams}`) : Promise.resolve(null),
       page === '1' ? fetch(`${origin}/api/meetup?${extraParams}`) : Promise.resolve(null),
       page === '1' ? fetch(`${origin}/api/rss?${extraParams}`) : Promise.resolve(null),
       page === '1' ? fetch(`${origin}/api/venues?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/culture?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/espoo?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/helmet?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/ilmonet?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/palvelukartta?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/lipas?${extraParams}`) : Promise.resolve(null),
     ])
 
     if (linkedRes.status === 'rejected' || (linkedRes.status === 'fulfilled' && !linkedRes.value.ok)) {
@@ -138,17 +144,26 @@ export async function GET(req: NextRequest) {
     const hasMore = !!linkedData.meta?.next
     let total: number = events.length
 
-    // Merge all external sources — deduplicate by title+date
-    const seen = new Set(events.map((e) => `${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`)    )
+    // Normalize title for dedup: strip ticket tier qualifiers ("| Premium Suite Ticket" etc.)
+    function dedupKey(title: string, date: string): string {
+      const base = title
+        .replace(/\s*[\|–\-]\s*(premium|legazy|standard|vip|gold|silver|early|late|general|suite|seat|ticket|standing|seated|presale|fan\s*club)[\w\s]*/gi, '')
+        .trim()
+        .toLowerCase()
+      return `${base}|${date}`
+    }
 
-    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes]) {
+    // Merge all external sources — deduplicate by normalized title+date
+    const seen = new Set(events.map((e) => dedupKey(e.title, e.startTime.slice(0, 10))))
+
+    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes]) {
       if (res.status === 'fulfilled' && res.value) {
         const data = await res.value.json()
         const incoming: Event[] = data.events ?? []
         const unique = incoming.filter(
-          (e) => !seen.has(`${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`)
+          (e) => !seen.has(dedupKey(e.title, e.startTime.slice(0, 10)))
         )
-        unique.forEach((e) => seen.add(`${e.title.toLowerCase()}|${e.startTime.slice(0, 10)}`))
+        unique.forEach((e) => seen.add(dedupKey(e.title, e.startTime.slice(0, 10))))
         events.push(...unique)
         total += unique.length
       }

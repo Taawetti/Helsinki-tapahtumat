@@ -36,6 +36,13 @@ interface TMEvent {
   _embedded?: { venues?: TMVenue[] }
 }
 
+// Strip ticket tier qualifiers so "Artist | Premium Suite Ticket" → "Artist"
+function baseTitle(title: string): string {
+  return title
+    .replace(/\s*[\|–\-]\s*(premium|legazy|standard|vip|gold|silver|early|late|general|suite|seat|ticket|standing|seated|presale|fan\s*club)[\w\s]*/gi, '')
+    .trim()
+}
+
 function normalize(raw: TMEvent): Event {
   const venue = raw._embedded?.venues?.[0]
   const image = raw.images?.find((i) => i.ratio === '16_9' && (i.width ?? 0) >= 640)?.url
@@ -113,7 +120,18 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json()
     const raw: TMEvent[] = data._embedded?.events ?? []
-    const events = raw.map(normalize)
+
+    // Deduplicate by base title + date — keep the entry with price info (most complete)
+    const seen = new Map<string, TMEvent>()
+    for (const e of raw) {
+      const key = `${baseTitle(e.name).toLowerCase()}|${e.dates?.start?.localDate ?? ''}`
+      const existing = seen.get(key)
+      if (!existing || (!existing.priceRanges?.length && e.priceRanges?.length)) {
+        seen.set(key, e)
+      }
+    }
+
+    const events = Array.from(seen.values()).map(normalize)
 
     return NextResponse.json({ events, hasMore: false, total: events.length })
   } catch (err) {
