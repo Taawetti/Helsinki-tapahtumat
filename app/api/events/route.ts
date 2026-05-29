@@ -115,25 +115,29 @@ export async function GET(req: NextRequest) {
     const extraParams = new URLSearchParams({ start, end, ...(keyword ? { keyword } : {}) })
     const origin = req.nextUrl.origin
 
+    // Helper: fetch an internal API route with a hard timeout
+    const src = (path: string) =>
+      fetch(`${origin}/${path}?${extraParams}`, { signal: AbortSignal.timeout(4500) })
+
     // Fetch all sources in parallel — page 1 only for external sources
     const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes] = await Promise.allSettled([
       fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] } }),
-      page === '1' ? fetch(`${origin}/api/ticketmaster?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/eventbrite?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/meetup?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/rss?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/venues?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/culture?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/espoo?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/helmet?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/ilmonet?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/palvelukartta?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/lipas?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/finna?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/visitfinland?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/sports?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/festivals?${extraParams}`) : Promise.resolve(null),
-      page === '1' ? fetch(`${origin}/api/theatre?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? src('api/ticketmaster') : Promise.resolve(null),
+      page === '1' ? src('api/eventbrite')   : Promise.resolve(null),
+      page === '1' ? src('api/meetup')       : Promise.resolve(null),
+      page === '1' ? src('api/rss')          : Promise.resolve(null),
+      page === '1' ? src('api/venues')       : Promise.resolve(null),
+      page === '1' ? src('api/culture')      : Promise.resolve(null),
+      page === '1' ? src('api/espoo')        : Promise.resolve(null),
+      page === '1' ? src('api/helmet')       : Promise.resolve(null),
+      page === '1' ? src('api/ilmonet')      : Promise.resolve(null),
+      page === '1' ? src('api/palvelukartta'): Promise.resolve(null),
+      page === '1' ? src('api/lipas')        : Promise.resolve(null),
+      page === '1' ? src('api/finna')        : Promise.resolve(null),
+      page === '1' ? src('api/visitfinland') : Promise.resolve(null),
+      page === '1' ? src('api/sports')       : Promise.resolve(null),
+      page === '1' ? src('api/festivals')    : Promise.resolve(null),
+      page === '1' ? src('api/theatre')      : Promise.resolve(null),
     ])
 
     if (linkedRes.status === 'rejected' || (linkedRes.status === 'fulfilled' && !linkedRes.value.ok)) {

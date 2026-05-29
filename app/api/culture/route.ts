@@ -66,7 +66,7 @@ async function fetchProductionDate(pageUrl: string): Promise<{ start: string; en
     const res = await fetch(pageUrl, {
       next: { revalidate: 86400, tags: ['events'] },
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(2000),
     })
     if (!res.ok) return null
     const html = await res.text()
@@ -88,14 +88,14 @@ async function fetchProductionDate(pageUrl: string): Promise<{ start: string; en
 
 async function scrapeOoppera(): Promise<Event[]> {
   const res = await fetch(
-    'https://oopperabaletti.fi/wp-json/wp/v2/production?per_page=20&_embed=1&lang=fi',
-    { next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(8000) }
+    'https://oopperabaletti.fi/wp-json/wp/v2/production?per_page=8&_embed=1&lang=fi',
+    { next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(6000) }
   )
   if (!res.ok) return []
 
   const productions: OopperaProduction[] = await res.json()
 
-  // Fetch dates for all productions in parallel
+  // Fetch dates for all productions in parallel, abort stragglers at 2 s
   const dated = await Promise.all(
     productions.map(async (p) => {
       const dates = await fetchProductionDate(p.link)
