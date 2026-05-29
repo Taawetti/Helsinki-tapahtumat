@@ -153,10 +153,13 @@ export async function GET(req: NextRequest) {
     const hasMore = !!linkedData.meta?.next
     let total: number = events.length
 
-    // Normalize title for dedup: strip ticket tier qualifiers ("| Premium Suite Ticket" etc.)
+    // Normalize title for dedup: strip ticket tiers, years, punctuation variation
     function dedupKey(title: string, date: string): string {
       const base = title
         .replace(/\s*[\|–\-]\s*(premium|legazy|standard|vip|gold|silver|early|late|general|suite|seat|ticket|standing|seated|presale|fan\s*club)[\w\s]*/gi, '')
+        .replace(/\b20\d{2}\b/g, '')        // strip years
+        .replace(/[^\wäöåÄÖÅ\s]/g, ' ')    // punct → space
+        .replace(/\s+/g, ' ')
         .trim()
         .toLowerCase()
       return `${base}|${date}`
@@ -169,10 +172,12 @@ export async function GET(req: NextRequest) {
       if (res.status === 'fulfilled' && res.value) {
         const data = await res.value.json()
         const incoming: Event[] = data.events ?? []
-        const unique = incoming.filter(
-          (e) => !seen.has(dedupKey(e.title, e.startTime.slice(0, 10)))
-        )
-        unique.forEach((e) => seen.add(dedupKey(e.title, e.startTime.slice(0, 10))))
+        const unique = incoming.filter((e) => {
+          const key = dedupKey(e.title, e.startTime.slice(0, 10))
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
         events.push(...unique)
         total += unique.length
       }
