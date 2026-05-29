@@ -50,17 +50,31 @@ function osmAddress(tags?: Record<string, string>): string {
   return street ? `${street}${num ? ` ${num}` : ''}` : ''
 }
 
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+]
+
 async function _fetchOSM(): Promise<Restaurant[]> {
+  const body = new URLSearchParams({ data: OSM_QUERY })
+
+  let res: Response | null = null
+  for (const mirror of OVERPASS_MIRRORS) {
+    try {
+      const r = await fetch(mirror, {
+        method: 'POST',
+        body,
+        signal: AbortSignal.timeout(35000),
+      })
+      if (r.ok) { res = r; break }
+    } catch { /* try next mirror */ }
+  }
+
   try {
-    const res = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: OSM_QUERY,
-      headers: { 'Content-Type': 'text/plain' },
-      signal: AbortSignal.timeout(35000),
-    })
+    if (!res) return []
     if (!res.ok) return []
 
-    const data: { elements: OSMElement[] } = await res.json()
+    const data: { elements: OSMElement[] } = await res!.json()
     const results: Restaurant[] = []
 
     for (const el of data.elements ?? []) {
@@ -94,9 +108,9 @@ async function _fetchOSM(): Promise<Restaurant[]> {
 // ── Palvelukartta ─────────────────────────────────────────
 
 async function fetchPK(q: string): Promise<PalvelukarttaUnit[]> {
+  const base = `https://api.hel.fi/servicemap/v2/unit/?format=json&municipality=helsinki,espoo,vantaa&q=${encodeURIComponent(q)}&page_size=1000`
   try {
-    const url = `https://api.hel.fi/servicemap/v2/unit/?format=json&municipality=helsinki,espoo,vantaa&q=${encodeURIComponent(q)}&page_size=200`
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    const res = await fetch(base, { signal: AbortSignal.timeout(12000) })
     if (!res.ok) return []
     const data = await res.json()
     return data.results ?? []
@@ -198,5 +212,9 @@ export async function GET(req: NextRequest) {
     return s(b) - s(a)
   })
 
-  return NextResponse.json({ restaurants, total: restaurants.length })
+  return NextResponse.json({
+    restaurants,
+    total: restaurants.length,
+    _sources: { osm: osmList.length, pk: pkList.length, pkExtra: pkExtra.length },
+  })
 }
