@@ -16,6 +16,12 @@ import VibeBar from '@/components/VibeBar'
 import AdBanner from '@/components/AdBanner'
 import DatePicker from '@/components/DatePicker'
 import SpontaaniCard from '@/components/SpontaaniCard'
+import QuickButtons from '@/components/QuickButtons'
+import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
+import IltasuunnitelmaCard from '@/components/IltasuunnitelmaCard'
+import JarjestajaForm from '@/components/JarjestajaForm'
+import NewsletterBanner from '@/components/NewsletterBanner'
+import RestaurantsView from '@/components/RestaurantsView'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -96,7 +102,7 @@ function nightlifeScore(e: Event): number {
   return e.image ? 1 : 0
 }
 
-type AppMode = 'discover' | 'browse' | 'map' | 'favorites'
+type AppMode = 'discover' | 'browse' | 'map' | 'favorites' | 'restaurants'
 type ListStyle = 'feed' | 'grid'
 
 export default function Home() {
@@ -111,8 +117,11 @@ export default function Home() {
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'favorites'>('discover')
+  const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'favorites' | 'restaurants'>('discover')
   const [customDate, setCustomDate] = useState('')
+  const [showEiTieda, setShowEiTieda] = useState(false)
+  const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
+  const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter, customDate, keyword, municipality, activeCategories, bbox: '',
   })
@@ -160,6 +169,7 @@ export default function Home() {
     else if (tab === 'browse') setMode('browse')
     else if (tab === 'map') setMode('map')
     else if (tab === 'favorites') setMode('favorites')
+    else if (tab === 'restaurants') setMode('restaurants')
   }, [])
 
 // Vibe-based client filter on top of API results
@@ -200,6 +210,44 @@ export default function Home() {
   )
 
   const activeCount = activeVibes.length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
+
+  const handleQuickAction = useCallback((id: string) => {
+    switch (id) {
+      case 'ei-tieda':
+        setEiTiedaMode('general')
+        setShowEiTieda(true)
+        break
+      case 'treffi':
+        setEiTiedaMode('treffi')
+        setShowEiTieda(true)
+        break
+      case 'ilmainen':
+        setPriceFilter(p => p === 'free' ? 'all' : 'free')
+        break
+      case 'lapset':
+        setActiveVibes(p => p.includes('lapset') ? p.filter(v => v !== 'lapset') : [...p, 'lapset'])
+        break
+      case 'keikka':
+        setActiveVibes(p => p.includes('keikka') ? p.filter(v => v !== 'keikka') : [...p, 'keikka'])
+        break
+      case 'yksin':
+        setActiveVibes(['museo', 'taide', 'teatteri'])
+        break
+      case 'outo':
+        setActiveVibes(['tyopaja'])
+        break
+      case 'halpa':
+        setPriceFilter(p => p === 'free' ? 'all' : 'free')
+        break
+      case 'viela-ehtii':
+        setDateFilter('tonight')
+        setCustomDate('')
+        break
+      case 'iltasuunnitelma':
+        document.getElementById('iltasuunnitelma')?.scrollIntoView({ behavior: 'smooth' })
+        break
+    }
+  }, [])
 
   return (
     <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#08080c' }}>
@@ -248,10 +296,10 @@ export default function Home() {
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'browse', 'map'] as AppMode[]).map((m) => (
+            {(['discover', 'browse', 'map', 'restaurants'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => setMode(m)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/65'}`}>
-                {m === 'discover' ? '✦ Etusivu' : m === 'browse' ? 'Selaa' : 'Kartta'}
+                {m === 'discover' ? '✦ Etusivu' : m === 'browse' ? 'Selaa' : m === 'map' ? 'Kartta' : '🍽 Ravintolat'}
               </button>
             ))}
           </div>
@@ -376,7 +424,6 @@ export default function Home() {
           <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 items-center">
             {([
               { d: 'today' as DateFilter, label: 'Tänään' },
-              { d: 'tonight' as DateFilter, label: '🌙 Illalla' },
               { d: 'tomorrow' as DateFilter, label: 'Huomenna' },
               { d: 'weekend' as DateFilter, label: '🎉 Viikonloppu' },
               { d: 'week' as DateFilter, label: 'Viikko' },
@@ -399,8 +446,16 @@ export default function Home() {
             setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
           }} />
 
+          {/* Quick action buttons */}
+          <QuickButtons onAction={handleQuickAction} />
+
           {/* Spontaani — best event starting soon */}
           {!loading && <SpontaaniCard events={filteredEvents} onOpen={setSelectedEvent} />}
+
+          {/* Iltasuunnitelma — curated evening plan */}
+          {!loading && filteredEvents.length >= 2 && (
+            <IltasuunnitelmaCard events={filteredEvents} onEventClick={setSelectedEvent} />
+          )}
 
           {/* Loading skeletons */}
           {loading && discoverEvents.length === 0 && (
@@ -484,6 +539,19 @@ export default function Home() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Newsletter signup */}
+          <NewsletterBanner />
+
+          {/* Organizer CTA */}
+          <div className="flex items-center justify-center pb-2">
+            <button
+              onClick={() => setShowJarjestajaForm(true)}
+              className="text-xs text-white/20 hover:text-white/50 transition-all font-bold"
+            >
+              + Lisää tapahtumasi sivulle
+            </button>
           </div>
         </main>
       )}
@@ -628,14 +696,17 @@ export default function Home() {
         </main>
       )}
 
-      {/* ── KYSY KAVEREILTA FAB ── */}
+      {/* ══ RESTAURANTS ══ */}
+      {mode === 'restaurants' && <RestaurantsView />}
+
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/6"
         style={{ background: 'rgba(8,8,12,0.97)', backdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {([
             { tab: 'discover' as const, emoji: '✦', label: 'Etusivu' },
             { tab: 'browse' as const, emoji: '🔍', label: 'Selaa' },
+            { tab: 'restaurants' as const, emoji: '🍽', label: 'Ravintolat' },
             { tab: 'map' as const, emoji: '🗺', label: 'Kartta' },
             { tab: 'favorites' as const, emoji: '♥', label: 'Suosikit' },
           ]).map(({ tab, emoji, label }) => (
@@ -653,6 +724,19 @@ export default function Home() {
 
       <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}/>
       <InstallBanner/>
+
+      {showEiTieda && (
+        <EiTiedaModal
+          events={filteredEvents}
+          mode={eiTiedaMode}
+          onClose={() => setShowEiTieda(false)}
+          onSelect={(e) => { setSelectedEvent(e); setShowEiTieda(false) }}
+        />
+      )}
+
+      {showJarjestajaForm && (
+        <JarjestajaForm onClose={() => setShowJarjestajaForm(false)} />
+      )}
     </div>
   )
 }

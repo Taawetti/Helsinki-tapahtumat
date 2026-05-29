@@ -71,15 +71,13 @@ export const VIBES: Vibe[] = [
   { id: 'keikka',    label: 'Keikka',           emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'] },
   { id: 'yoelama',   label: 'Yöelämä',           emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'] },
   { id: 'baari',     label: 'Baari / Pub',       emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'pint'] },
-  { id: 'teatteri',  label: 'Teatteri & Tanssi', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'] },
-  { id: 'taide',     label: 'Taide',             emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'art', 'gallery', 'exhibition', 'design'] },
+  { id: 'urheilu',   label: 'Urheilu',           emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },
+  { id: 'standup',   label: 'Stand up',          emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'] },
   { id: 'museo',     label: 'Museo',             emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma'] },
   { id: 'lapset',    label: 'Lapset & Perhe',    emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children'] },
   { id: 'tyopaja',   label: 'Työpaja & Kurssi',  emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus'] },
-  { id: 'urheilu',   label: 'Urheilu',           emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },
-  { id: 'ravintola', label: 'Ravintola',         emoji: '🍝', keywords: ['ravintola', 'ruoka', 'food', 'dinner', 'illallinen'] },
-  { id: 'standup',   label: 'Stand up',          emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'] },
-  { id: 'ilmainen',  label: 'Ilmaiseksi',        emoji: '🎁', keywords: [] },
+  { id: 'teatteri',  label: 'Teatteri & Tanssi', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'] },
+  { id: 'taide',     label: 'Taide',             emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'art', 'gallery', 'exhibition', 'design'] },
 ]
 
 // ── COLLECTIONS ────────────────────────────────────────
@@ -127,6 +125,21 @@ export const CATEGORIES: Category[] = [
   { id: 'networking', label: 'Verkostoituminen',   emoji: '💼', color: 'from-slate-800 to-zinc-700',     keywords: ['verkostoituminen', 'networking', 'startup'] },
   { id: 'festival',   label: 'Festivaalit',        emoji: '🎪', color: 'from-yellow-900 to-orange-800',  keywords: ['festivaali', 'festival', 'juhla', 'avajaiset'] },
 ]
+
+// ── RESTAURANTS ────────────────────────────────────────
+export interface Restaurant {
+  id: string
+  name: string
+  description: string
+  address: string
+  city: string
+  lat?: number
+  lon?: number
+  image: string | null
+  www: string | null
+  phone: string | null
+  type: 'ravintola' | 'kahvila' | 'baari' | 'muu'
+}
 
 export const SEARCH_SUGGESTIONS = [
   'keikkoja tänä iltana',

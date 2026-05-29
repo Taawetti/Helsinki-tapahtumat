@@ -32,8 +32,11 @@ export default function MapView({ events, onEventClick }: Props) {
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
+    let mounted = true
 
     import('leaflet').then((L) => {
+      if (!mounted || !containerRef.current || mapRef.current) return
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl
       L.Icon.Default.mergeOptions({
@@ -42,7 +45,7 @@ export default function MapView({ events, onEventClick }: Props) {
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       })
 
-      const map = L.map(containerRef.current!, {
+      const map = L.map(containerRef.current, {
         center: HELSINKI_CENTER,
         zoom: 12,
         zoomControl: true,
@@ -58,6 +61,7 @@ export default function MapView({ events, onEventClick }: Props) {
     })
 
     return () => {
+      mounted = false
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null
