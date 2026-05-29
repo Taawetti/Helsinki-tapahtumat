@@ -27,6 +27,19 @@ function hashGradient(id: string): string {
   return GRADIENT_COLORS[h % GRADIENT_COLORS.length]
 }
 
+type TypeBadge = { label: string; emoji: string; bg: string; text: string }
+
+function getTypeBadge(categories: string[]): TypeBadge | null {
+  const cats = categories.map((c) => c.toLowerCase())
+  const has = (...kws: string[]) => kws.some((kw) => cats.some((c) => c.includes(kw)))
+  if (has('festivaali'))                          return { label: 'Festivaali', emoji: '🎪', bg: 'rgba(245,158,11,0.18)', text: '#fbbf24' }
+  if (has('teatteri', 'ooppera', 'baletti'))      return { label: 'Teatteri',   emoji: '🎭', bg: 'rgba(139,92,246,0.18)', text: '#a78bfa' }
+  if (has('jalkapallo', 'ottelu', 'jääkiekko'))   return { label: 'Ottelu',     emoji: '⚽', bg: 'rgba(16,185,129,0.18)', text: '#34d399' }
+  if (has('urheilu'))                             return { label: 'Urheilu',    emoji: '🏅', bg: 'rgba(16,185,129,0.18)', text: '#34d399' }
+  if (has('näyttely', 'museo'))                   return { label: 'Näyttely',   emoji: '🖼', bg: 'rgba(244,114,182,0.18)', text: '#f9a8d4' }
+  return null
+}
+
 function handleShare(e: React.MouseEvent, event: Event) {
   e.stopPropagation()
   const text = `${event.title} – ${formatDate(event.startTime)}${event.location ? ' @ ' + event.location.name : ''}`
@@ -42,6 +55,7 @@ export default function EventCard({ event, onClick }: Props) {
   const tonight = isTonight(event.startTime)
   const { toggle, isFavorite } = useFavorites()
   const fav = isFavorite(event.id)
+  const typeBadge = getTypeBadge(event.categories)
 
   return (
     <button
@@ -130,11 +144,15 @@ export default function EventCard({ event, onClick }: Props) {
             </div>
           </div>
 
-          {event.categories[0] && (
+          {typeBadge ? (
+            <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: typeBadge.bg, color: typeBadge.text }}>
+              {typeBadge.emoji} {typeBadge.label}
+            </span>
+          ) : event.categories[0] ? (
             <span className="shrink-0 text-[10px] text-white/30 bg-white/5 px-2 py-1 rounded-full">
               {event.categories[0]}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
     </button>

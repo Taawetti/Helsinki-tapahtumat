@@ -19,6 +19,71 @@ import SpontaaniCard from '@/components/SpontaaniCard'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
+interface EmptyStateProps {
+  keyword: string
+  activeVibes: string[]
+  activeCategories: string[]
+  priceFilter: PriceFilter
+  dateFilter: DateFilter
+  onClear: () => void
+  onDateChange: (d: DateFilter) => void
+}
+
+function EmptyState({ keyword, activeVibes, activeCategories, priceFilter, dateFilter, onClear, onDateChange }: EmptyStateProps) {
+  const hasFilters = keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all'
+  const isNarrowDate = dateFilter === 'today' || dateFilter === 'tonight'
+
+  let emoji = '🏙'
+  let heading = 'Ei tapahtumia'
+  let sub = 'Kokeile eri päivää tai laajenna hakua'
+
+  if (keyword) {
+    emoji = '🔍'
+    heading = `Ei tuloksia haulle "${keyword}"`
+    sub = 'Tarkista kirjoitusasu tai kokeile lyhyempää hakusanaa'
+  } else if (priceFilter === 'free' && isNarrowDate) {
+    emoji = '🎁'
+    heading = 'Ei ilmaistapahtumia tänään'
+    sub = 'Ilmaistapahtumia löytyy yleensä enemmän viikonloppuisin'
+  } else if (activeVibes.length > 0 || activeCategories.length > 0) {
+    emoji = '🎯'
+    heading = 'Ei tuloksia valituilla suodattimilla'
+    sub = 'Kokeile poistaa jokin suodatin tai laajenna aikaväliä'
+  } else if (isNarrowDate) {
+    emoji = '📅'
+    heading = 'Ei tapahtumia tänä päivänä'
+    sub = 'Tänään on hiljaista — kokeile laajentaa hakua'
+  }
+
+  return (
+    <div className="flex flex-col items-center py-24 text-center gap-4">
+      <span className="text-5xl">{emoji}</span>
+      <div>
+        <p className="text-white/50 font-bold text-base">{heading}</p>
+        <p className="text-white/25 text-sm mt-1">{sub}</p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2 mt-1">
+        {isNarrowDate && (
+          <button
+            onClick={() => onDateChange('week')}
+            className="text-sm font-bold px-4 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/25 transition-all"
+          >
+            Laajenna viikkoon
+          </button>
+        )}
+        {hasFilters && (
+          <button
+            onClick={onClear}
+            className="text-sm font-bold px-4 py-2 rounded-xl border border-purple-500/30 text-purple-400/70 hover:text-purple-300 hover:border-purple-500/50 transition-all"
+          >
+            Tyhjennä suodattimet
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function nightlifeScore(e: Event): number {
   const text = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
   if (/keikka|konsertti|live[\s-]?musiikki|bändi|gig/.test(text)) return 7
@@ -397,14 +462,15 @@ export default function Home() {
           )}
 
           {!loading && discoverEvents.length === 0 && (
-            <div className="flex flex-col items-center py-28 text-center gap-3">
-              <span className="text-6xl">🏙</span>
-              <p className="text-white/30 font-bold text-lg">Ei tapahtumia</p>
-              <p className="text-white/18 text-sm">Kokeile eri päivää tai poista suodattimet</p>
-              <button onClick={clearFilters} className="mt-2 text-sm font-bold px-5 py-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white hover:border-white/25 transition-all">
-                Tyhjennä suodattimet
-              </button>
-            </div>
+            <EmptyState
+              keyword={keyword}
+              activeVibes={activeVibes}
+              activeCategories={activeCategories}
+              priceFilter={priceFilter}
+              dateFilter={dateFilter}
+              onClear={clearFilters}
+              onDateChange={(d) => { setDateFilter(d); setCustomDate('') }}
+            />
           )}
 
           {/* City selector */}
@@ -531,13 +597,15 @@ export default function Home() {
           )}
 
           {!loading && filteredEvents.length === 0 && !error && (
-            <div className="flex flex-col items-center py-24 text-center gap-4">
-              <span className="text-5xl">🤷</span>
-              <p className="text-white/45 font-bold">Ei löytynyt mitään</p>
-              <button onClick={clearFilters} className="text-sm font-bold px-5 py-2.5 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/25 transition-all">
-                Tyhjennä suodattimet
-              </button>
-            </div>
+            <EmptyState
+              keyword={keyword}
+              activeVibes={activeVibes}
+              activeCategories={activeCategories}
+              priceFilter={priceFilter}
+              dateFilter={dateFilter}
+              onClear={clearFilters}
+              onDateChange={(d) => { setDateFilter(d); setCustomDate('') }}
+            />
           )}
 
           {hasMore && !loading && filteredEvents.length > 0 && (
