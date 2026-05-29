@@ -9,6 +9,8 @@ const RSS_FEEDS = [
   { url: 'https://harjula.fi/feed/', city: 'Helsinki', venueName: 'Harjula' },
   { url: 'https://www.rocks.fi/tapahtumat/feed/', city: 'Helsinki', venueName: 'On the Rocks' },
   { url: 'https://www.dubrovnik.fi/feed/', city: 'Helsinki', venueName: 'Dubrovnik' },
+  { url: 'https://hkt.fi/feed/', city: 'Helsinki', venueName: 'Helsingin Kaupunginteatteri' },
+  { url: 'https://oopperabaletti.fi/feed/', city: 'Helsinki', venueName: 'Kansallisooppera' },
 ]
 
 function parseDate(str: string): string {
