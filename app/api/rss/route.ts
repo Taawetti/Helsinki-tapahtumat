@@ -3,6 +3,7 @@ import { Event } from '@/lib/types'
 
 // RSS-syötteet Helsinki-tapahtumapaikoilta ja kulttuurilaitoksilta
 const RSS_FEEDS = [
+  // Isommat kulttuuripaikat
   { url: 'https://www.korjaamo.fi/feed/', city: 'Helsinki', venueName: 'Kulttuuritehdas Korjaamo' },
   { url: 'https://tavastiaklubi.fi/feed/', city: 'Helsinki', venueName: 'Tavastia' },
   { url: 'https://circushelsinki.fi/feed/', city: 'Helsinki', venueName: 'Circus Helsinki' },
@@ -11,6 +12,16 @@ const RSS_FEEDS = [
   { url: 'https://www.dubrovnik.fi/feed/', city: 'Helsinki', venueName: 'Dubrovnik' },
   { url: 'https://hkt.fi/feed/', city: 'Helsinki', venueName: 'Helsingin Kaupunginteatteri' },
   { url: 'https://oopperabaletti.fi/feed/', city: 'Helsinki', venueName: 'Kansallisooppera' },
+  // Baarit ja live-musiikkipaikat
+  { url: 'https://storyville.fi/feed/', city: 'Helsinki', venueName: 'Storyville' },
+  { url: 'https://williamk.fi/feed/', city: 'Helsinki', venueName: 'William K' },
+  { url: 'https://glivelab.fi/feed/', city: 'Helsinki', venueName: 'G Livelab Helsinki' },
+  { url: 'https://lepakkomies.fi/feed/', city: 'Helsinki', venueName: 'Lepakkomies' },
+  { url: 'https://baarikarpanen.fi/feed/', city: 'Helsinki', venueName: 'Baarikärpänen' },
+  { url: 'https://telakkahelsinki.fi/feed/', city: 'Helsinki', venueName: 'Telakka' },
+  { url: 'https://www.tiivistamo.fi/feed/', city: 'Helsinki', venueName: 'Tiivistämö' },
+  { url: 'https://kaivohuone.fi/feed/', city: 'Helsinki', venueName: 'Kaivohuone' },
+  { url: 'https://kaiku.fi/feed/', city: 'Helsinki', venueName: 'Kaiku' },
 ]
 
 function parseDate(str: string): string {
