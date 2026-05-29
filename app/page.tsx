@@ -685,7 +685,7 @@ export default function Home() {
 
       {/* ══ MAP ══ */}
       {mode === 'map' && (
-        <main className="max-w-6xl mx-auto px-4 py-5">
+        <main className="px-2 pt-2 pb-0">
           <MapView events={filteredEvents} onEventClick={setSelectedEvent}/>
         </main>
       )}

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { Search, MapPin, Globe, Phone, X, ChevronDown } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Search, MapPin, Globe, Phone, X, ChevronDown, Navigation } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 
 const TYPE_OPTIONS = [
@@ -13,8 +13,21 @@ const TYPE_OPTIONS = [
 ] as const
 
 type TypeFilter = (typeof TYPE_OPTIONS)[number]['id']
+type SortMode = 'default' | 'nearby'
 
 const PAGE_SIZE = 48
+
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function fmtDist(km: number): string {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+}
 
 function typeStyle(type: Restaurant['type']) {
   switch (type) {
@@ -26,7 +39,7 @@ function typeStyle(type: Restaurant['type']) {
   }
 }
 
-function RestaurantCard({ r }: { r: Restaurant }) {
+function RestaurantCard({ r, distance }: { r: Restaurant; distance?: number }) {
   const { cls, label } = typeStyle(r.type)
   return (
     <div className="rounded-2xl border border-white/6 overflow-hidden bg-white/3 hover:bg-white/5 transition-colors">
@@ -39,7 +52,14 @@ function RestaurantCard({ r }: { r: Restaurant }) {
       <div className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-bold text-white text-sm leading-tight">{r.name}</h3>
-          <span className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${cls}`}>{label}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {distance !== undefined && (
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300/80">
+                {fmtDist(distance)}
+              </span>
+            )}
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${cls}`}>{label}</span>
+          </div>
         </div>
         {r.description && (
           <p className="text-white/40 text-xs capitalize">{r.description}</p>
@@ -79,6 +99,10 @@ export default function RestaurantsView() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [shown, setShown] = useState(PAGE_SIZE)
+  const [sortMode, setSortMode] = useState<SortMode>('default')
+  const [userPos, setUserPos] = useState<[number, number] | null>(null)
+  const [locating, setLocating] = useState(false)
+  const [locError, setLocError] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -94,7 +118,31 @@ export default function RestaurantsView() {
   }, [])
 
   // Reset pagination when filters change
-  useEffect(() => { setShown(PAGE_SIZE) }, [search, typeFilter])
+  useEffect(() => { setShown(PAGE_SIZE) }, [search, typeFilter, sortMode])
+
+  const locateMe = useCallback(() => {
+    if (!navigator.geolocation) { setLocError(true); return }
+    setLocating(true)
+    setLocError(false)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPos([pos.coords.latitude, pos.coords.longitude])
+        setSortMode('nearby')
+        setLocating(false)
+      },
+      () => { setLocating(false); setLocError(true) },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }, [])
+
+  const distMap = useMemo(() => {
+    if (!userPos) return new Map<string, number>()
+    const m = new Map<string, number>()
+    restaurants.forEach(r => {
+      if (r.lat && r.lon) m.set(r.id, haversine(userPos[0], userPos[1], r.lat, r.lon))
+    })
+    return m
+  }, [userPos, restaurants])
 
   const filtered = useMemo(() => {
     let result = restaurants
@@ -107,8 +155,15 @@ export default function RestaurantsView() {
         r.description.toLowerCase().includes(q)
       )
     }
+    if (sortMode === 'nearby' && userPos) {
+      result = [...result].sort((a, b) => {
+        const da = distMap.get(a.id) ?? Infinity
+        const db = distMap.get(b.id) ?? Infinity
+        return da - db
+      })
+    }
     return result
-  }, [restaurants, typeFilter, search])
+  }, [restaurants, typeFilter, search, sortMode, userPos, distMap])
 
   const visible = filtered.slice(0, shown)
   const hasMore = shown < filtered.length
@@ -142,7 +197,7 @@ export default function RestaurantsView() {
         )}
       </div>
 
-      {/* Type filter */}
+      {/* Type filter + location */}
       <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
         {TYPE_OPTIONS.map(opt => (
           <button key={opt.id} onClick={() => setTypeFilter(opt.id)}
@@ -155,7 +210,28 @@ export default function RestaurantsView() {
             {opt.label}
           </button>
         ))}
+
+        {/* Nearby sort button */}
+        <button
+          onClick={sortMode === 'nearby' ? () => setSortMode('default') : locateMe}
+          disabled={locating}
+          className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-black transition-all ${
+            sortMode === 'nearby'
+              ? 'text-white shadow-lg shadow-blue-500/20'
+              : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
+          }`}
+          style={sortMode === 'nearby' ? { background: 'linear-gradient(135deg,#3b82f6,#06b6d4)' } : {}}>
+          {locating
+            ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            : <Navigation size={12} />}
+          Lähellä minua
+        </button>
       </div>
+
+      {/* Location error */}
+      {locError && (
+        <p className="text-orange-400/70 text-xs">Sijaintia ei saatu — tarkista selaimen lupa</p>
+      )}
 
       {/* Count */}
       {!loading && !error && (
@@ -198,7 +274,7 @@ export default function RestaurantsView() {
       {!loading && visible.length > 0 && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visible.map(r => <RestaurantCard key={r.id} r={r} />)}
+            {visible.map(r => <RestaurantCard key={r.id} r={r} distance={distMap.get(r.id)} />)}
           </div>
 
           {hasMore && (
