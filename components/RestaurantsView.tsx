@@ -1,47 +1,48 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, MapPin, Globe, Phone, X, Loader2 } from 'lucide-react'
+import { Search, MapPin, Globe, Phone, X, ChevronDown } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 
 const TYPE_OPTIONS = [
-  { id: 'all',       label: 'Kaikki'     },
+  { id: 'all',       label: 'Kaikki'       },
   { id: 'ravintola', label: '🍽 Ravintolat' },
-  { id: 'kahvila',   label: '☕ Kahvilat'  },
-  { id: 'baari',     label: '🍺 Baarit'   },
+  { id: 'kahvila',   label: '☕ Kahvilat'   },
+  { id: 'baari',     label: '🍺 Baarit'     },
+  { id: 'pikaruoka', label: '🍔 Pikaruoka'  },
 ] as const
 
 type TypeFilter = (typeof TYPE_OPTIONS)[number]['id']
 
+const PAGE_SIZE = 48
+
+function typeStyle(type: Restaurant['type']) {
+  switch (type) {
+    case 'ravintola': return { cls: 'bg-amber-500/15 text-amber-300/80',   label: 'Ravintola' }
+    case 'kahvila':   return { cls: 'bg-emerald-500/15 text-emerald-300/80', label: 'Kahvila'   }
+    case 'baari':     return { cls: 'bg-fuchsia-500/15 text-fuchsia-300/80', label: 'Baari'     }
+    case 'pikaruoka': return { cls: 'bg-orange-500/15 text-orange-300/80',   label: 'Pikaruoka' }
+    default:          return { cls: 'bg-white/8 text-white/35',              label: 'Paikka'    }
+  }
+}
+
 function RestaurantCard({ r }: { r: Restaurant }) {
-  const typeLabel =
-    r.type === 'ravintola' ? 'Ravintola' :
-    r.type === 'kahvila'   ? 'Kahvila'   :
-    r.type === 'baari'     ? 'Baari'     : 'Paikka'
-
-  const typeClass =
-    r.type === 'ravintola' ? 'bg-amber-500/15 text-amber-300/80' :
-    r.type === 'kahvila'   ? 'bg-emerald-500/15 text-emerald-300/80' :
-    r.type === 'baari'     ? 'bg-fuchsia-500/15 text-fuchsia-300/80' :
-                             'bg-white/8 text-white/35'
-
+  const { cls, label } = typeStyle(r.type)
   return (
     <div className="rounded-2xl border border-white/6 overflow-hidden bg-white/3 hover:bg-white/5 transition-colors">
       {r.image && (
         <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/8' }}>
-          <img src={r.image} alt={r.name} className="w-full h-full object-cover" />
+          <img src={r.image} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(8,8,12,0.5) 0%,transparent 60%)' }} />
         </div>
       )}
       <div className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-bold text-white text-sm leading-tight">{r.name}</h3>
-          <span className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${typeClass}`}>
-            {typeLabel}
-          </span>
+          <span className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full ${cls}`}>{label}</span>
         </div>
         {r.description && (
-          <p className="text-white/35 text-xs line-clamp-2">{r.description}</p>
+          <p className="text-white/40 text-xs capitalize">{r.description}</p>
         )}
         {r.address && (
           <div className="flex items-center gap-1.5 text-white/30 text-xs">
@@ -72,19 +73,28 @@ function RestaurantCard({ r }: { r: Restaurant }) {
 
 export default function RestaurantsView() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [shown, setShown] = useState(PAGE_SIZE)
 
   useEffect(() => {
     setLoading(true)
     fetch('/api/restaurants')
       .then(r => r.json())
-      .then(data => { setRestaurants(data.restaurants ?? []); setError('') })
+      .then(data => {
+        setRestaurants(data.restaurants ?? [])
+        setTotal(data.total ?? 0)
+        setError('')
+      })
       .catch(() => setError('Ravintoloiden lataus epäonnistui'))
       .finally(() => setLoading(false))
   }, [])
+
+  // Reset pagination when filters change
+  useEffect(() => { setShown(PAGE_SIZE) }, [search, typeFilter])
 
   const filtered = useMemo(() => {
     let result = restaurants
@@ -100,15 +110,19 @@ export default function RestaurantsView() {
     return result
   }, [restaurants, typeFilter, search])
 
+  const visible = filtered.slice(0, shown)
+  const hasMore = shown < filtered.length
+
   return (
     <main className="max-w-6xl mx-auto px-4 pt-5 pb-20 space-y-5">
 
       {/* Heading */}
       <div>
-        <h1 className="font-black text-white text-3xl leading-none" style={{ letterSpacing: '-0.03em' }}>
+        <h1 className="font-black text-white leading-none select-none"
+          style={{ fontSize: 'clamp(2rem,8vw,4rem)', letterSpacing: '-0.03em' }}>
           Ravintolat
         </h1>
-        <p className="text-white/25 text-sm mt-1">Helsinki — ravintolat, kahvilat ja baarit</p>
+        <p className="text-white/25 text-sm mt-1">Helsinki-alue — ravintolat, kahvilat ja baarit</p>
       </div>
 
       {/* Search */}
@@ -118,7 +132,7 @@ export default function RestaurantsView() {
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Hae ravintolaa, kahvilaa tai osoitetta…"
+          placeholder="Hae nimellä, osoitteella tai keittiötyylillä…"
           className="w-full pl-9 pr-9 py-3 bg-white/5 border border-white/8 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:border-purple-500/40 transition-colors"
         />
         {search && (
@@ -146,16 +160,19 @@ export default function RestaurantsView() {
       {/* Count */}
       {!loading && !error && (
         <p className="text-white/20 text-xs font-bold">
-          {filtered.length.toLocaleString('fi-FI')} paikkaa{search || typeFilter !== 'all' ? ' hakuehdoilla' : ''}
+          {loading ? '' : `${filtered.length.toLocaleString('fi-FI')} paikkaa`}
+          {!loading && !search && typeFilter === 'all' && total > 0 && (
+            <span className="text-white/12"> ({total.toLocaleString('fi-FI')} yhteensä)</span>
+          )}
         </p>
       )}
 
       {/* Loading skeletons */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="rounded-2xl overflow-hidden bg-white/3">
-              <div className="h-28 bg-white/4 animate-pulse" />
+              <div className="h-24 bg-white/4 animate-pulse" />
               <div className="p-4 space-y-2">
                 <div className="h-4 bg-white/4 rounded animate-pulse w-4/5" />
                 <div className="h-3 bg-white/4 rounded animate-pulse w-1/2" />
@@ -168,16 +185,27 @@ export default function RestaurantsView() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl p-4 bg-red-950/30 border border-red-800/30 text-red-300 text-sm flex items-center gap-2">
-          {error}
-        </div>
+        <div className="rounded-xl p-4 bg-red-950/30 border border-red-800/30 text-red-300 text-sm">{error}</div>
       )}
 
       {/* Grid */}
-      {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(r => <RestaurantCard key={r.id} r={r} />)}
-        </div>
+      {!loading && visible.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {visible.map(r => <RestaurantCard key={r.id} r={r} />)}
+          </div>
+
+          {hasMore && (
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={() => setShown(s => s + PAGE_SIZE)}
+                className="flex items-center gap-2 text-sm font-bold px-8 py-3 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 bg-white/3 transition-all">
+                <ChevronDown size={15} />
+                Lataa lisää ({filtered.length - shown} jäljellä)
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Empty */}

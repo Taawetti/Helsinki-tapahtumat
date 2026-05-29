@@ -138,7 +138,7 @@ export interface Restaurant {
   image: string | null
   www: string | null
   phone: string | null
-  type: 'ravintola' | 'kahvila' | 'baari' | 'muu'
+  type: 'ravintola' | 'kahvila' | 'baari' | 'pikaruoka' | 'muu'
 }
 
 export const SEARCH_SUGGESTIONS = [
