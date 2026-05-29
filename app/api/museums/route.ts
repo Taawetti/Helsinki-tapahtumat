@@ -1,0 +1,179 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { Event } from '@/lib/types'
+
+const LOCATION_IDS =
+  'tprek:8675,tprek:20861,tprek:20444,tprek:7255,tprek:7259,tprek:7256,tprek:8740'
+
+const PLACES: Record<string, string> = {
+  'tprek:8675':  'HAM Helsinki Art Museum',
+  'tprek:20861': 'Kiasma',
+  'tprek:20444': 'Ateneum',
+  'tprek:7255':  'Kanneltalo',
+  'tprek:7259':  'Stoa',
+  'tprek:7256':  'Caisa',
+  'tprek:8740':  'Malmitalo',
+}
+
+const ART_MUSEUMS = new Set(['tprek:8675', 'tprek:20861', 'tprek:20444'])
+
+function venueFromId(atId?: string): string {
+  if (!atId) return ''
+  for (const [key, name] of Object.entries(PLACES)) {
+    if (atId.includes(key)) return name
+  }
+  return ''
+}
+
+function placeKeyFromId(atId?: string): string {
+  if (!atId) return ''
+  for (const key of Object.keys(PLACES)) {
+    if (atId.includes(key)) return key
+  }
+  return ''
+}
+
+interface LinkedEventsImage {
+  url: string
+}
+
+interface LinkedEventsOffer {
+  is_free: boolean
+  price?: { fi?: string; en?: string }
+  info_url?: { fi?: string; en?: string }
+}
+
+interface LinkedEventsLocation {
+  name?: { fi?: string; en?: string }
+  street_address?: { fi?: string; en?: string }
+  address_locality?: { fi?: string; en?: string }
+  position?: { coordinates: [number, number] }
+  '@id'?: string
+}
+
+interface LinkedEventsEvent {
+  id: string
+  name: { fi?: string; en?: string; sv?: string }
+  short_description?: { fi?: string; en?: string }
+  description?: { fi?: string; en?: string }
+  start_time: string
+  end_time?: string
+  images?: LinkedEventsImage[]
+  location?: LinkedEventsLocation
+  offers?: LinkedEventsOffer[]
+  keywords?: { name: { fi?: string; en?: string } }[]
+  info_url?: { fi?: string; en?: string }
+}
+
+function normalize(raw: LinkedEventsEvent): Event {
+  const atId = raw.location?.['@id']
+  const venueName = venueFromId(atId)
+  const placeKey = placeKeyFromId(atId)
+
+  const title = raw.name?.fi || raw.name?.en || raw.name?.sv || 'Tapahtuma'
+
+  const shortDescription =
+    raw.short_description?.fi ||
+    raw.short_description?.en ||
+    venueName
+
+  const rawDesc = raw.description?.fi || raw.description?.en || ''
+  const description = rawDesc.slice(0, 200)
+
+  const loc = raw.location
+  const locationObj = loc
+    ? {
+        name: loc.name?.fi || loc.name?.en || venueName,
+        streetAddress: loc.street_address?.fi || loc.street_address?.en || '',
+        city: loc.address_locality?.fi || loc.address_locality?.en || 'Helsinki',
+        lat: loc.position?.coordinates?.[1],
+        lon: loc.position?.coordinates?.[0],
+      }
+    : null
+
+  const offer = raw.offers?.[0]
+  const isFree = offer?.is_free ?? false
+  const price = isFree ? null : (offer?.price?.fi || offer?.price?.en || null)
+  const ticketUrl = offer?.info_url?.fi || offer?.info_url?.en || null
+  const infoUrl = raw.info_url?.fi || raw.info_url?.en || null
+
+  const image = raw.images?.[0]?.url || null
+
+  const keywordCategories = (raw.keywords || [])
+    .map((k) => k.name?.fi || k.name?.en || '')
+    .filter(Boolean)
+    .slice(0, 4)
+
+  let categories: string[]
+  if (keywordCategories.length > 0) {
+    categories = keywordCategories
+  } else if (ART_MUSEUMS.has(placeKey)) {
+    categories = ['Taide', 'Kulttuuri', 'Näyttely']
+  } else {
+    categories = ['Kulttuuri', 'Tapahtumat']
+  }
+
+  return {
+    id: `museum-${raw.id}`,
+    title,
+    shortDescription,
+    description,
+    startTime: raw.start_time,
+    endTime: raw.end_time || null,
+    location: locationObj,
+    image,
+    isFree,
+    price,
+    ticketUrl,
+    infoUrl,
+    categories,
+    source: 'linked-events',
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = req.nextUrl
+  const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
+  const end = searchParams.get('end') || start
+
+  const params = new URLSearchParams({
+    location: LOCATION_IDS,
+    start,
+    end,
+    format: 'json',
+    page_size: '100',
+    include: 'location,keywords',
+    sort: 'start_time',
+  })
+
+  try {
+    const res = await fetch(
+      `https://api.hel.fi/linkedevents/v1/event/?${params}`,
+      {
+        next: { revalidate: 3600, tags: ['events'] },
+        signal: AbortSignal.timeout(8000),
+      }
+    )
+
+    if (!res.ok) {
+      console.error('Museums API error:', res.status, res.statusText)
+      return NextResponse.json({ events: [] })
+    }
+
+    const data = await res.json()
+
+    const startTs = new Date(start).getTime()
+    const endTs = new Date(end).getTime() + 24 * 60 * 60 * 1000
+
+    const events: Event[] = (data.data || [])
+      .map(normalize)
+      .filter((e: Event) => {
+        const ts = new Date(e.startTime).getTime()
+        return ts >= startTs && ts <= endTs
+      })
+
+    return NextResponse.json({ events })
+  } catch (err) {
+    console.error('Museums route error:', err)
+    return NextResponse.json({ events: [] })
+  }
+}
