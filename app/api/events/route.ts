@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
     const origin = req.nextUrl.origin
 
     // Fetch all sources in parallel — page 1 only for external sources
-    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes] = await Promise.allSettled([
+    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes] = await Promise.allSettled([
       fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] } }),
       page === '1' ? fetch(`${origin}/api/ticketmaster?${extraParams}`) : Promise.resolve(null),
       page === '1' ? fetch(`${origin}/api/eventbrite?${extraParams}`) : Promise.resolve(null),
@@ -132,6 +132,7 @@ export async function GET(req: NextRequest) {
       page === '1' ? fetch(`${origin}/api/finna?${extraParams}`) : Promise.resolve(null),
       page === '1' ? fetch(`${origin}/api/visitfinland?${extraParams}`) : Promise.resolve(null),
       page === '1' ? fetch(`${origin}/api/sports?${extraParams}`) : Promise.resolve(null),
+      page === '1' ? fetch(`${origin}/api/festivals?${extraParams}`) : Promise.resolve(null),
     ])
 
     if (linkedRes.status === 'rejected' || (linkedRes.status === 'fulfilled' && !linkedRes.value.ok)) {
@@ -159,7 +160,7 @@ export async function GET(req: NextRequest) {
     // Merge all external sources — deduplicate by normalized title+date
     const seen = new Set(events.map((e) => dedupKey(e.title, e.startTime.slice(0, 10))))
 
-    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes]) {
+    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes]) {
       if (res.status === 'fulfilled' && res.value) {
         const data = await res.value.json()
         const incoming: Event[] = data.events ?? []
