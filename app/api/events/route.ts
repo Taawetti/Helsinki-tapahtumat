@@ -115,13 +115,22 @@ export async function GET(req: NextRequest) {
     const extraParams = new URLSearchParams({ start, end, ...(keyword ? { keyword } : {}) })
     const origin = req.nextUrl.origin
 
-    // Helper: fetch an internal API route with a hard timeout
-    const src = (path: string) =>
-      fetch(`${origin}/${path}?${extraParams}`, { signal: AbortSignal.timeout(4500) })
+    // Helper: fetch an internal API route — catches ALL errors (incl. AbortSignal.timeout)
+    // so they never escape Promise.allSettled in Node 24+
+    const src = async (path: string): Promise<Response | null> => {
+      try {
+        const res = await fetch(`${origin}/${path}?${extraParams}`, {
+          signal: AbortSignal.timeout(8000),
+        })
+        return res
+      } catch {
+        return null
+      }
+    }
 
     // Fetch all sources in parallel — page 1 only for external sources
     const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes] = await Promise.allSettled([
-      fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] } }),
+      fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(10000) }),
       page === '1' ? src('api/ticketmaster') : Promise.resolve(null),
       page === '1' ? src('api/eventbrite')   : Promise.resolve(null),
       page === '1' ? src('api/meetup')       : Promise.resolve(null),
@@ -174,8 +183,9 @@ export async function GET(req: NextRequest) {
     const seen = new Set(events.map((e) => dedupKey(e.title, e.startTime.slice(0, 10))))
 
     for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes]) {
-      if (res.status === 'fulfilled' && res.value) {
-        const data = await res.value.json()
+      if (res.status === 'fulfilled' && res.value && res.value !== null) {
+        let data: { events?: Event[] }
+        try { data = await (res.value as Response).json() } catch { continue }
         const incoming: Event[] = data.events ?? []
         const unique = incoming.filter((e) => {
           const key = dedupKey(e.title, e.startTime.slice(0, 10))
