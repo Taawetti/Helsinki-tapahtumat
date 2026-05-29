@@ -224,14 +224,8 @@ export default function Home() {
       case 'ilmainen':
         setPriceFilter(p => p === 'free' ? 'all' : 'free')
         break
-      case 'lapset':
-        setActiveVibes(p => p.includes('lapset') ? p.filter(v => v !== 'lapset') : [...p, 'lapset'])
-        break
       case 'keikka':
         setActiveVibes(p => p.includes('keikka') ? p.filter(v => v !== 'keikka') : [...p, 'keikka'])
-        break
-      case 'yksin':
-        setActiveVibes(['museo', 'taide', 'teatteri'])
         break
       case 'outo':
         setActiveVibes(['tyopaja'])

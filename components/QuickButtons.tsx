@@ -3,8 +3,6 @@
 const OPTIONS = [
   { id: 'ei-tieda',    emoji: '🎲', label: 'En tiedä mitä haluan' },
   { id: 'ilmainen',    emoji: '🎁', label: 'Ilmaista tekemistä' },
-  { id: 'yksin',       emoji: '🚶', label: 'Yksin tekemistä' },
-  { id: 'lapset',      emoji: '🧒', label: 'Lasten kanssa' },
   { id: 'outo',        emoji: '🌀', label: 'Jotain outoa' },
   { id: 'viela-ehtii', emoji: '⚡', label: 'Tänään vielä ehtii' },
 ]
