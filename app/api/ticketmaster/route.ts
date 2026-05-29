@@ -102,11 +102,12 @@ export async function GET(req: NextRequest) {
 
   const params = new URLSearchParams({
     apikey: TM_KEY,
-    city: 'Helsinki',
-    countryCode: 'FI',
+    latlong: '60.1699,24.9384',  // Helsinki city center
+    radius: '30',
+    unit: 'km',
     startDateTime: `${start}T00:00:00Z`,
     endDateTime: `${end}T23:59:59Z`,
-    size: '20',
+    size: '50',
     sort: 'date,asc',
   })
   if (keyword) params.set('keyword', keyword)
