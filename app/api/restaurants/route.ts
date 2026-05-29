@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import type { Restaurant } from '@/lib/types'
 
 // ── Types ────────────────────────────────────────────────
@@ -25,10 +26,8 @@ interface PalvelukarttaUnit {
 }
 
 // ── OpenStreetMap Overpass ────────────────────────────────
-// Helsinki+Espoo+Vantaa bounding box: south,west,north,east
 
 const OSM_BBOX = '60.09,24.58,60.41,25.26'
-
 const OSM_QUERY = `[out:json][timeout:30][bbox:${OSM_BBOX}];(node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten)$"]["name"];way["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten)$"]["name"];);out center;`
 
 function osmAmenityToType(amenity?: string): Restaurant['type'] {
@@ -51,13 +50,12 @@ function osmAddress(tags?: Record<string, string>): string {
   return street ? `${street}${num ? ` ${num}` : ''}` : ''
 }
 
-async function fetchOSM(): Promise<Restaurant[]> {
+async function _fetchOSM(): Promise<Restaurant[]> {
   try {
     const res = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
       body: OSM_QUERY,
       headers: { 'Content-Type': 'text/plain' },
-      next: { revalidate: 86400, tags: ['restaurants'] },
       signal: AbortSignal.timeout(35000),
     })
     if (!res.ok) return []
@@ -68,19 +66,14 @@ async function fetchOSM(): Promise<Restaurant[]> {
     for (const el of data.elements ?? []) {
       const name = el.tags?.name || el.tags?.['name:fi'] || ''
       if (!name) continue
-
       const lat = el.type === 'node' ? el.lat : el.center?.lat
       const lon = el.type === 'node' ? el.lon : el.center?.lon
       if (!lat || !lon) continue
 
-      // Build description from cuisine + opening_hours
-      const cuisine = el.tags?.cuisine?.replace(/_/g, ' ') ?? ''
-      const desc = cuisine
-
       results.push({
         id: `osm-${el.type[0]}${el.id}`,
         name,
-        description: desc,
+        description: el.tags?.cuisine?.replace(/_/g, ' ') ?? '',
         address: osmAddress(el.tags),
         city: el.tags?.['addr:city'] ?? '',
         lat,
@@ -91,7 +84,6 @@ async function fetchOSM(): Promise<Restaurant[]> {
         type: osmAmenityToType(el.tags?.amenity),
       })
     }
-
     return results
   } catch (err) {
     console.error('[restaurants] OSM fetch error:', err)
@@ -99,22 +91,16 @@ async function fetchOSM(): Promise<Restaurant[]> {
   }
 }
 
-// ── Palvelukartta (Helsinki city service map) ─────────────
-// Supplements OSM with Finnish descriptions and images.
+// ── Palvelukartta ─────────────────────────────────────────
 
 async function fetchPK(q: string): Promise<PalvelukarttaUnit[]> {
   try {
     const url = `https://api.hel.fi/servicemap/v2/unit/?format=json&municipality=helsinki,espoo,vantaa&q=${encodeURIComponent(q)}&page_size=200`
-    const res = await fetch(url, {
-      next: { revalidate: 86400, tags: ['restaurants'] },
-      signal: AbortSignal.timeout(10000),
-    })
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
     if (!res.ok) return []
     const data = await res.json()
     return data.results ?? []
-  } catch {
-    return []
-  }
+  } catch { return [] }
 }
 
 const PK_KEYWORDS = [
@@ -126,12 +112,12 @@ function pkDetectType(name: string, desc: string): Restaurant['type'] {
   const t = (name + ' ' + desc).toLowerCase()
   if (/kahvila|café|cafe|coffee/.test(t)) return 'kahvila'
   if (/\bbaari\b|\bbar\b|pub|biergarten/.test(t)) return 'baari'
-  if (/pikaruoka|fast.?food|hampurilainen|kebab|pizza/.test(t)) return 'pikaruoka'
+  if (/pikaruoka|fast.?food|hampurilainen/.test(t)) return 'pikaruoka'
   if (/ravintola|restaurant|bistro|grill|lounas|sushi/.test(t)) return 'ravintola'
   return 'muu'
 }
 
-async function fetchAllPK(): Promise<Restaurant[]> {
+async function _fetchAllPK(): Promise<Restaurant[]> {
   const settled = await Promise.allSettled(PK_KEYWORDS.map(fetchPK))
   const units: PalvelukarttaUnit[] = []
   const seen = new Set<number>()
@@ -168,24 +154,32 @@ async function fetchAllPK(): Promise<Restaurant[]> {
     })
 }
 
+// ── Cached wrappers (unstable_cache works for POST + non-fetch sources) ───────
+
+export const fetchOSMCached = unstable_cache(_fetchOSM, ['restaurants-osm'], {
+  revalidate: 86400,
+  tags: ['restaurants'],
+})
+
+export const fetchPKCached = unstable_cache(_fetchAllPK, ['restaurants-pk'], {
+  revalidate: 86400,
+  tags: ['restaurants'],
+})
+
 // ── Route handler ────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = req.nextUrl
-  const q = searchParams.get('q')?.toLowerCase().trim() ?? ''
+  const q = req.nextUrl.searchParams.get('q')?.toLowerCase().trim() ?? ''
 
   const [osmResult, pkResult] = await Promise.allSettled([
-    fetchOSM(),
-    fetchAllPK(),
+    fetchOSMCached(),
+    fetchPKCached(),
   ])
 
   const osmList = osmResult.status === 'fulfilled' ? osmResult.value : []
   const pkList  = pkResult.status  === 'fulfilled' ? pkResult.value  : []
 
-  // Build OSM name lookup for dedup (PK entries with same name are dropped)
   const osmNameSet = new Set(osmList.map(r => r.name.toLowerCase().trim()))
-
-  // Keep PK entries that aren't already covered by OSM
   const pkExtra = pkList.filter(r => !osmNameSet.has(r.name.toLowerCase().trim()))
 
   let restaurants: Restaurant[] = [...osmList, ...pkExtra]
@@ -198,7 +192,6 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  // Sort: places with more complete data first
   restaurants.sort((a, b) => {
     const s = (r: Restaurant) =>
       (r.address ? 2 : 0) + (r.www ? 1 : 0) + (r.phone ? 1 : 0) + (r.image ? 1 : 0)

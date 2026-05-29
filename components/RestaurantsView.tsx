@@ -169,17 +169,23 @@ export default function RestaurantsView() {
 
       {/* Loading skeletons */}
       {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="rounded-2xl overflow-hidden bg-white/3">
-              <div className="h-24 bg-white/4 animate-pulse" />
-              <div className="p-4 space-y-2">
-                <div className="h-4 bg-white/4 rounded animate-pulse w-4/5" />
-                <div className="h-3 bg-white/4 rounded animate-pulse w-1/2" />
-                <div className="h-3 bg-white/3 rounded animate-pulse w-3/4" />
+        <div className="space-y-5">
+          <div className="flex items-center gap-3 text-white/30 text-sm">
+            <div className="w-4 h-4 rounded-full border-2 border-purple-500/40 border-t-purple-400 animate-spin shrink-0" />
+            <span>Haetaan ravintoloita kartalta… Hetken kärsivällisyyttä.</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden bg-white/3">
+                <div className="h-24 bg-white/4 animate-pulse" />
+                <div className="p-4 space-y-2">
+                  <div className="h-4 bg-white/4 rounded animate-pulse w-4/5" />
+                  <div className="h-3 bg-white/4 rounded animate-pulse w-1/2" />
+                  <div className="h-3 bg-white/3 rounded animate-pulse w-3/4" />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
