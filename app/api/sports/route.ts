@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import https from 'node:https'
 import { Event } from '@/lib/types'
 
 // Veikkausliiga (Finnish football) match schedule
@@ -32,15 +33,35 @@ function parseFinnishDate(text: string): string | null {
   return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
 }
 
-async function scrapeVeikkausliiga(): Promise<Match[]> {
-  const res = await fetch(VL_URL, {
-    next: { revalidate: 3600, tags: ['events'] },
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
-    signal: AbortSignal.timeout(8000),
+function fetchHtml(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url)
+    const req = https.get(
+      {
+        hostname: parsed.hostname,
+        path: parsed.pathname + parsed.search,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
+        rejectUnauthorized: false,
+        timeout: 8000,
+      },
+      (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`HTTP ${res.statusCode}`))
+          res.resume()
+          return
+        }
+        const chunks: Buffer[] = []
+        res.on('data', (c: Buffer) => chunks.push(c))
+        res.on('end', () => resolve(Buffer.concat(chunks).toString()))
+      }
+    )
+    req.on('error', reject)
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')) })
   })
-  if (!res.ok) return []
+}
 
-  const html = await res.text()
+async function scrapeVeikkausliiga(): Promise<Match[]> {
+  const html = await fetchHtml(VL_URL)
 
   const tableMatch = html.match(/<table[^>]*>[\s\S]*?<\/table>/g)
   if (!tableMatch) return []
