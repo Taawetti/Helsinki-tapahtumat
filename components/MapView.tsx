@@ -127,6 +127,32 @@ const ACT_SUBS = [
   { key: 'nakopaikka', emoji: '🔭', label: 'Näköalapaikka', color: '#f59e0b' },
 ] as const
 
+type DateFilterKey = 'today' | 'tomorrow' | 'week' | 'month' | 'custom'
+
+const DATE_PILLS: { key: DateFilterKey; label: string }[] = [
+  { key: 'today',    label: 'Tänään'   },
+  { key: 'tomorrow', label: 'Huomenna' },
+  { key: 'week',     label: 'Viikolle' },
+  { key: 'month',    label: 'Kuukausi' },
+]
+
+function filterEventByDate(event: Event, filter: DateFilterKey, customDate: string): boolean {
+  const start = new Date(event.startTime)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const add = (n: number) => new Date(today.getTime() + n * 86400000)
+  switch (filter) {
+    case 'today':    return start >= today && start < add(1)
+    case 'tomorrow': return start >= add(1) && start < add(2)
+    case 'week':     return start >= today && start < add(7)
+    case 'month':    return start >= today && start < add(30)
+    case 'custom': {
+      if (!customDate) return true
+      const cd = new Date(customDate + 'T00:00:00'); const cdn = new Date(cd.getTime() + 86400000)
+      return start >= cd && start < cdn
+    }
+  }
+}
+
 function getEventGroup(event: Event): string {
   const text = [event.title, event.shortDescription, ...event.categories].join(' ').toLowerCase()
   if (event.isFree) return 'ilmainen'
@@ -204,6 +230,14 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
   const [eventGroup, setEventGroup] = useState<string | null>(null)
   const [restType,   setRestType]   = useState<string | null>(null)
   const [actCat,     setActCat]     = useState<string | null>(null)
+
+  const [dateFilter,  setDateFilter]  = useState<DateFilterKey>('today')
+  const [customDate,  setCustomDate]  = useState('')
+  const [calOpen,     setCalOpen]     = useState(false)
+  const [calMonth,    setCalMonth]    = useState<{ year: number; month: number }>(() => {
+    const d = new Date()
+    return { year: d.getFullYear(), month: d.getMonth() }
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userMarkerRef       = useRef<any>(null)
@@ -291,6 +325,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
       events.forEach((event) => {
         if (!event.location?.lat || !event.location?.lon) return
         if (eventGroup && getEventGroup(event) !== eventGroup) return
+        if (!filterEventByDate(event, dateFilter, customDate)) return
         const { color, emoji } = eventColor(event)
         const icon = makePinIcon(L, color, emoji, false)
         const time = new Date(event.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
@@ -307,7 +342,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         eventMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, events, onEventClick, layers.events, eventGroup])
+  }, [mapReady, events, onEventClick, layers.events, eventGroup, dateFilter, customDate])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {
@@ -398,7 +433,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
   }, [])
 
   // ── Counts ────────────────────────────────────────────────
-  const eventsOnMap     = events.filter(e => e.location?.lat).length
+  const eventsOnMap     = events.filter(e => e.location?.lat && filterEventByDate(e, dateFilter, customDate)).length
   const restsOnMap      = restaurants.filter(r => r.lat).length
   const activitiesOnMap = activities.filter(a => a.lat).length
 
@@ -434,50 +469,166 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         ))}
       </div>
 
-      {/* ── Sub-filters ── */}
-      {(layers.events || layers.restaurants || layers.activities) && (
-        <div className="absolute z-[1000]"
-          style={{ top: 60, left: 8, right: 8, borderRadius: 12, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
-            {layers.events && EVENT_SUBS.map(sf => (
-              <button key={sf.key}
-                onClick={() => setEventGroup(eventGroup === sf.key ? null : sf.key)}
-                className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
-                style={eventGroup === sf.key
-                  ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
-                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                {sf.emoji} {sf.label}
-              </button>
-            ))}
-            {layers.events && (layers.restaurants || layers.activities) && (
+      {/* ── Date + sub-filters stack ── */}
+      <div className="absolute z-[1000] flex flex-col gap-1" style={{ top: 60, left: 8, right: 8 }}>
+
+        {/* Date filter row — only when events layer ON */}
+        {layers.events && (
+          <div style={{ borderRadius: 12, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
+              {DATE_PILLS.map(dp => (
+                <button key={dp.key}
+                  onClick={() => { setDateFilter(dp.key); setCustomDate(''); setCalOpen(false) }}
+                  className="shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border"
+                  style={dateFilter === dp.key && customDate === ''
+                    ? { background: '#6366f1', color: '#fff', borderColor: 'transparent' }
+                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                  {dp.label}
+                </button>
+              ))}
               <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
-            )}
-            {layers.restaurants && REST_SUBS.map(sf => (
-              <button key={sf.key}
-                onClick={() => setRestType(restType === sf.key ? null : sf.key)}
-                className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
-                style={restType === sf.key
-                  ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
-                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                {sf.emoji} {sf.label}
+              <button
+                onClick={() => setCalOpen(o => !o)}
+                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border"
+                style={calOpen || (dateFilter === 'custom' && customDate)
+                  ? { background: '#6366f1', color: '#fff', borderColor: 'transparent' }
+                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}>
+                📅 {dateFilter === 'custom' && customDate
+                  ? new Date(customDate + 'T12:00:00').toLocaleDateString('fi-FI', { day: 'numeric', month: 'short' })
+                  : 'Valitse'}
               </button>
-            ))}
-            {layers.restaurants && layers.activities && (
-              <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
-            )}
-            {layers.activities && ACT_SUBS.map(sf => (
-              <button key={sf.key}
-                onClick={() => setActCat(actCat === sf.key ? null : sf.key)}
-                className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
-                style={actCat === sf.key
-                  ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
-                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                {sf.emoji} {sf.label}
-              </button>
-            ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Category sub-filters — when any layer ON */}
+        {(layers.events || layers.restaurants || layers.activities) && (
+          <div style={{ borderRadius: 12, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
+              {layers.events && EVENT_SUBS.map(sf => (
+                <button key={sf.key}
+                  onClick={() => setEventGroup(eventGroup === sf.key ? null : sf.key)}
+                  className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
+                  style={eventGroup === sf.key
+                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
+                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                  {sf.emoji} {sf.label}
+                </button>
+              ))}
+              {layers.events && (layers.restaurants || layers.activities) && (
+                <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              )}
+              {layers.restaurants && REST_SUBS.map(sf => (
+                <button key={sf.key}
+                  onClick={() => setRestType(restType === sf.key ? null : sf.key)}
+                  className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
+                  style={restType === sf.key
+                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
+                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                  {sf.emoji} {sf.label}
+                </button>
+              ))}
+              {layers.restaurants && layers.activities && (
+                <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              )}
+              {layers.activities && ACT_SUBS.map(sf => (
+                <button key={sf.key}
+                  onClick={() => setActCat(actCat === sf.key ? null : sf.key)}
+                  className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
+                  style={actCat === sf.key
+                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
+                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                  {sf.emoji} {sf.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mini calendar popup */}
+        {calOpen && layers.events && (
+          <div style={{ alignSelf: 'center', width: 282 }}>
+            <div style={{ background: '#0d0d10', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.9)' }}>
+              {/* Month navigation */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 8px 8px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month - 1); return { year: d.getFullYear(), month: d.getMonth() } })}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, padding: '0 10px', lineHeight: 1 }}>‹</button>
+                <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'Inter,sans-serif' }}>
+                  {new Date(calMonth.year, calMonth.month).toLocaleDateString('fi-FI', { month: 'long', year: 'numeric' })}
+                </span>
+                <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month + 1); return { year: d.getFullYear(), month: d.getMonth() } })}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, padding: '0 10px', lineHeight: 1 }}>›</button>
+              </div>
+              {/* Weekday headers */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '8px 10px 0' }}>
+                {['Ma','Ti','Ke','To','Pe','La','Su'].map(d => (
+                  <div key={d} style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: 'Inter,sans-serif', paddingBottom: 4 }}>{d}</div>
+                ))}
+              </div>
+              {/* Day cells */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '0 10px 10px', gap: 2 }}>
+                {(() => {
+                  const firstDow = (new Date(calMonth.year, calMonth.month, 1).getDay() + 6) % 7
+                  const daysInMonth = new Date(calMonth.year, calMonth.month + 1, 0).getDate()
+                  const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime() })()
+                  const evCounts: Record<number, number> = {}
+                  events.forEach(ev => {
+                    const s = new Date(ev.startTime)
+                    if (s.getFullYear() === calMonth.year && s.getMonth() === calMonth.month)
+                      evCounts[s.getDate()] = (evCounts[s.getDate()] || 0) + 1
+                  })
+                  const cells: (number | null)[] = []
+                  for (let i = 0; i < firstDow; i++) cells.push(null)
+                  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+                  return cells.map((day, idx) => {
+                    if (day === null) return <div key={`e${idx}`} />
+                    const dateStr = `${calMonth.year}-${String(calMonth.month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                    const cellMs = new Date(calMonth.year, calMonth.month, day).getTime()
+                    const isPast = cellMs < todayMs
+                    const isToday = cellMs === todayMs
+                    const isSel = dateFilter === 'custom' && customDate === dateStr
+                    const dots = evCounts[day] || 0
+                    return (
+                      <button key={day} disabled={isPast}
+                        onClick={() => {
+                          if (isSel) { setDateFilter('today'); setCustomDate('') }
+                          else { setCustomDate(dateStr); setDateFilter('custom'); setCalOpen(false) }
+                        }}
+                        style={{
+                          height: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                          borderRadius: 8, border: isToday && !isSel ? '1px solid rgba(99,102,241,0.5)' : '1px solid transparent',
+                          background: isSel ? '#6366f1' : 'transparent',
+                          color: isPast ? 'rgba(255,255,255,0.18)' : '#fff',
+                          fontSize: 12, fontWeight: isSel || isToday ? 700 : 400,
+                          fontFamily: 'Inter,sans-serif', cursor: isPast ? 'default' : 'pointer',
+                          position: 'relative',
+                        }}>
+                        {day}
+                        {dots > 0 && !isPast && (
+                          <span style={{ position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: '50%', background: isSel ? 'rgba(255,255,255,0.7)' : '#6366f1' }} />
+                        )}
+                      </button>
+                    )
+                  })
+                })()}
+              </div>
+              {/* Footer */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                <button onClick={() => setCalOpen(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', fontSize: 12, fontFamily: 'Inter,sans-serif' }}>
+                  Sulje
+                </button>
+                {dateFilter === 'custom' && customDate && (
+                  <button onClick={() => { setDateFilter('today'); setCustomDate(''); setCalOpen(false) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#818cf8', fontSize: 12, fontWeight: 600, fontFamily: 'Inter,sans-serif' }}>
+                    Tyhjennä
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Locate me ── */}
       <button onClick={locateMe} disabled={locating}
