@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Search, MapPin, Globe, Phone, X, ChevronDown, Navigation,
-  Star, ChevronRight, ChevronLeft,
+  Star, ChevronRight, ChevronLeft, Map as MapIcon,
 } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 import { FEATURED_PICKS, CRITIC_PICKS } from '@/lib/restaurant-awards'
@@ -144,7 +144,11 @@ function AwardBadges({ r }: { r: Restaurant }) {
 
 // ── Restaurant card ───────────────────────────────────────
 
-function RestaurantCard({ r, distance }: { r: Restaurant; distance?: number }) {
+function RestaurantCard({ r, distance, onShowOnMap }: {
+  r: Restaurant
+  distance?: number
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
+}) {
   const { cls, label } = typeStyle(r.type)
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
 
@@ -197,25 +201,30 @@ function RestaurantCard({ r, distance }: { r: Restaurant; distance?: number }) {
         )}
 
         {/* Links */}
-        {(r.www || r.phone) && (
-          <div className="flex items-center gap-3 pt-0.5">
-            {r.www && (
-              <a href={r.www} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-                <Globe size={10} /> Nettisivu
-              </a>
-            )}
-            {r.phone && (
-              <a href={`tel:${r.phone}`}
-                className="flex items-center gap-1 text-[10px] font-bold text-white/30 hover:text-white/60 transition-colors">
-                <Phone size={10} /> {r.phone}
-              </a>
-            )}
-            {r.outdoorSeating && (
-              <span className="text-[10px] text-white/20">🌿 Terassi</span>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-3 pt-0.5 flex-wrap">
+          {r.www && (
+            <a href={r.www} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
+              <Globe size={10} /> Nettisivu
+            </a>
+          )}
+          {r.phone && (
+            <a href={`tel:${r.phone}`}
+              className="flex items-center gap-1 text-[10px] font-bold text-white/30 hover:text-white/60 transition-colors">
+              <Phone size={10} /> {r.phone}
+            </a>
+          )}
+          {r.outdoorSeating && (
+            <span className="text-[10px] text-white/20">🌿 Terassi</span>
+          )}
+          {onShowOnMap && r.lat && r.lon && (
+            <button
+              onClick={() => onShowOnMap(r.lat!, r.lon!, r.name)}
+              className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
+              <MapIcon size={10} /> Näytä kartalla
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -223,10 +232,11 @@ function RestaurantCard({ r, distance }: { r: Restaurant; distance?: number }) {
 
 // ── Featured card (big, for Michelin/awarded) ─────────────
 
-function FeaturedCard({ r, pick, distance }: {
+function FeaturedCard({ r, pick, distance, onShowOnMap }: {
   r?: Restaurant
   pick: (typeof FEATURED_PICKS)[number]
   distance?: number
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   if (!r) return null
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
@@ -269,22 +279,27 @@ function FeaturedCard({ r, pick, distance }: {
           </div>
         )}
 
-        {(r.www || r.phone) && (
-          <div className="flex items-center gap-3 pt-1">
-            {r.www && (
-              <a href={r.www} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[10px] font-bold text-purple-400/80 hover:text-purple-300 transition-colors">
-                <Globe size={10} /> Nettisivu
-              </a>
-            )}
-            {r.phone && (
-              <a href={`tel:${r.phone}`}
-                className="flex items-center gap-1 text-[10px] font-bold text-white/30 hover:text-white/60 transition-colors">
-                <Phone size={10} /> {r.phone}
-              </a>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-3 pt-1 flex-wrap">
+          {r.www && (
+            <a href={r.www} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold text-purple-400/80 hover:text-purple-300 transition-colors">
+              <Globe size={10} /> Nettisivu
+            </a>
+          )}
+          {r.phone && (
+            <a href={`tel:${r.phone}`}
+              className="flex items-center gap-1 text-[10px] font-bold text-white/30 hover:text-white/60 transition-colors">
+              <Phone size={10} /> {r.phone}
+            </a>
+          )}
+          {onShowOnMap && r.lat && r.lon && (
+            <button
+              onClick={() => onShowOnMap(r.lat!, r.lon!, r.name)}
+              className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
+              <MapIcon size={10} /> Näytä kartalla
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -310,7 +325,9 @@ function CriticCard({ pick }: { pick: (typeof CRITIC_PICKS)[number] }) {
 
 // ── Main view ─────────────────────────────────────────────
 
-export default function RestaurantsView() {
+export default function RestaurantsView({ onShowOnMap }: {
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
+}) {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [total, setTotal] = useState(0)
   const [categoryCount, setCategoryCount] = useState<Record<string, number>>({})
@@ -441,7 +458,7 @@ export default function RestaurantsView() {
           </div>
           <div className="flex gap-4 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2" ref={cuisineRowRef}>
             {featuredWithData.map(({ pick, r }) => (
-              <FeaturedCard key={pick.name} pick={pick} r={r} distance={r?.id ? distMap.get(r.id) : undefined} />
+              <FeaturedCard key={pick.name} pick={pick} r={r} distance={r?.id ? distMap.get(r.id) : undefined} onShowOnMap={onShowOnMap} />
             ))}
           </div>
         </section>
@@ -628,7 +645,7 @@ export default function RestaurantsView() {
       {!loading && visible.length > 0 && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visible.map(r => <RestaurantCard key={r.id} r={r} distance={distMap.get(r.id)} />)}
+            {visible.map(r => <RestaurantCard key={r.id} r={r} distance={distMap.get(r.id)} onShowOnMap={onShowOnMap} />)}
           </div>
           {hasMore && (
             <div className="flex justify-center pt-2">

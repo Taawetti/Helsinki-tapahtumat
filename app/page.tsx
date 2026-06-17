@@ -124,6 +124,7 @@ export default function Home() {
   const [showEiTieda, setShowEiTieda] = useState(false)
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
+  const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter, customDate, keyword, municipality, activeCategories, bbox: '',
   })
@@ -145,6 +146,12 @@ export default function Home() {
     setActiveCategories([]); setActiveVibes([]); setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
     setPriceFilter('all'); setCustomDate('')
+  }, [])
+
+  const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
+    setMapTarget({ lat, lon, name, type })
+    setMode('map')
+    setMobileTab('map')
   }, [])
 
   // Local notification: alert about today's events after 8h gap
@@ -721,15 +728,15 @@ export default function Home() {
       {/* ══ MAP ══ */}
       {mode === 'map' && (
         <main className="px-2 pt-2 pb-0">
-          <MapView events={filteredEvents} onEventClick={setSelectedEvent}/>
+          <MapView events={filteredEvents} onEventClick={setSelectedEvent} mapTarget={mapTarget}/>
         </main>
       )}
 
       {/* ══ RESTAURANTS ══ */}
-      {mode === 'restaurants' && <RestaurantsView />}
+      {mode === 'restaurants' && <RestaurantsView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'restaurant')} />}
 
       {/* ══ ACTIVITIES ══ */}
-      {mode === 'activities' && <ActivitiesView />}
+      {mode === 'activities' && <ActivitiesView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'activity')} />}
 
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/6"

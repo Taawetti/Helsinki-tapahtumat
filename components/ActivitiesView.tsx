@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Search, MapPin, Globe, Phone, X, ChevronDown, Navigation, Clock, Ticket, Timer } from 'lucide-react'
+import { Search, MapPin, Globe, Phone, X, ChevronDown, Navigation, Clock, Ticket, Timer, Map as MapIcon } from 'lucide-react'
 import type { Activity, ActivityCategory } from '@/lib/types'
 import {
   type TouristTheme,
@@ -147,11 +147,12 @@ function BadgeChip({ text }: { text: string }) {
 
 // ── Top pick card ─────────────────────────────────────────
 
-function TopPickCard({ pick, activity, distance, highlight }: {
+function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
   pick: TopPick
   activity?: Activity
   distance?: number
   highlight?: AttractionHighlight
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const open = activity?.openingHours ? isOpenNow(activity.openingHours) : undefined
   const cat = activity ? CATEGORY_META[activity.category] : null
@@ -224,8 +225,8 @@ function TopPickCard({ pick, activity, distance, highlight }: {
       )}
 
       {/* Links */}
-      {activity && (activity.www || activity.phone) && (
-        <div className="flex gap-3 pt-0.5">
+      {activity && (
+        <div className="flex gap-3 pt-0.5 flex-wrap">
           {activity.www && (
             <a href={activity.www} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
@@ -238,6 +239,13 @@ function TopPickCard({ pick, activity, distance, highlight }: {
               <Phone size={10} /> {activity.phone}
             </a>
           )}
+          {onShowOnMap && activity.lat && activity.lon && (
+            <button
+              onClick={() => onShowOnMap(activity.lat!, activity.lon!, activity.name)}
+              className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
+              <MapIcon size={10} /> Näytä kartalla
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -246,10 +254,11 @@ function TopPickCard({ pick, activity, distance, highlight }: {
 
 // ── Activity card ─────────────────────────────────────────
 
-function ActivityCard({ activity, distance, highlight }: {
+function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
   activity: Activity
   distance?: number
   highlight?: AttractionHighlight
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const meta = CATEGORY_META[activity.category]
   const open = isOpenNow(activity.openingHours)
@@ -325,36 +334,43 @@ function ActivityCard({ activity, distance, highlight }: {
         </div>
       )}
 
-      {(activity.www || activity.phone) && (
-        <div className="flex items-center gap-3 pt-0.5">
-          {activity.www && (
-            <a href={activity.www} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-              <Globe size={10} /> Nettisivu
-            </a>
-          )}
-          {activity.phone && (
-            <a href={`tel:${activity.phone}`}
-              className="flex items-center gap-1 text-[10px] font-bold text-white/25 hover:text-white/50 transition-colors">
-              <Phone size={10} /> {activity.phone}
-            </a>
-          )}
-          {activity.wikipedia && (
-            <a href={`https://fi.wikipedia.org/wiki/${encodeURIComponent(activity.wikipedia.replace('fi:', ''))}`}
-              target="_blank" rel="noopener noreferrer"
-              className="text-[10px] font-bold text-white/20 hover:text-white/45 transition-colors">
-              Wikipedia
-            </a>
-          )}
-        </div>
-      )}
+      <div className="flex items-center gap-3 pt-0.5 flex-wrap">
+        {activity.www && (
+          <a href={activity.www} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
+            <Globe size={10} /> Nettisivu
+          </a>
+        )}
+        {activity.phone && (
+          <a href={`tel:${activity.phone}`}
+            className="flex items-center gap-1 text-[10px] font-bold text-white/25 hover:text-white/50 transition-colors">
+            <Phone size={10} /> {activity.phone}
+          </a>
+        )}
+        {activity.wikipedia && (
+          <a href={`https://fi.wikipedia.org/wiki/${encodeURIComponent(activity.wikipedia.replace('fi:', ''))}`}
+            target="_blank" rel="noopener noreferrer"
+            className="text-[10px] font-bold text-white/20 hover:text-white/45 transition-colors">
+            Wikipedia
+          </a>
+        )}
+        {onShowOnMap && activity.lat && activity.lon && (
+          <button
+            onClick={() => onShowOnMap(activity.lat!, activity.lon!, activity.name)}
+            className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
+            <MapIcon size={10} /> Näytä kartalla
+          </button>
+        )}
+      </div>
     </div>
   )
 }
 
 // ── Main view ─────────────────────────────────────────────
 
-export default function ActivitiesView() {
+export default function ActivitiesView({ onShowOnMap }: {
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
+}) {
   const [activities, setActivities] = useState<Activity[]>([])
   const [total, setTotal] = useState(0)
   const [categoryCount, setCategoryCount] = useState<Record<string, number>>({})
@@ -551,6 +567,7 @@ export default function ActivitiesView() {
                 activity={activity}
                 highlight={highlight}
                 distance={activity?.id ? distMap.get(activity.id) : undefined}
+                onShowOnMap={onShowOnMap}
               />
             ))}
           </div>
@@ -714,6 +731,7 @@ export default function ActivitiesView() {
                 activity={a}
                 distance={distMap.get(a.id)}
                 highlight={highlightMap.get(a.id)}
+                onShowOnMap={onShowOnMap}
               />
             ))}
           </div>
