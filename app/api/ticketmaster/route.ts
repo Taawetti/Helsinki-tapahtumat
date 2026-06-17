@@ -105,9 +105,10 @@ export async function GET(req: NextRequest) {
     latlong: '60.1699,24.9384',  // Helsinki city center
     radius: '30',
     unit: 'km',
+    countryCode: 'FI',
     startDateTime: `${start}T00:00:00Z`,
     endDateTime: `${end}T23:59:59Z`,
-    size: '50',
+    size: '200',
     sort: 'date,asc',
   })
   if (keyword) params.set('keyword', keyword)
