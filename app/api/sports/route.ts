@@ -7,16 +7,20 @@ import { Event } from '@/lib/types'
 const VL_URL = 'https://www.veikkausliiga.com/tilastot/2026/veikkausliiga/ottelut/'
 
 // Helsinki clubs and their home venues
-const HELSINKI_CLUBS: Record<string, { venueName: string; address: string; ticketUrl: string }> = {
+const HELSINKI_CLUBS: Record<string, { venueName: string; address: string; ticketUrl: string; lat: number; lon: number }> = {
   'HJK': {
-    venueName: 'Bolt Arena',
-    address: 'Paavo Nurmentie 1',
+    venueName: 'Olympiastadion',
+    address: 'Paavo Nurmen tie 1',
     ticketUrl: 'https://www.hjk.fi/liput',
+    lat: 60.1872,
+    lon: 24.9268,
   },
   'IF Gnistan': {
-    venueName: 'Töölön jalkapallostadion',
+    venueName: 'Bolt Arena',
     address: 'Töölönlahdenkatu 1',
     ticketUrl: 'https://www.ifgnistan.fi',
+    lat: 60.1791,
+    lon: 24.9224,
   },
 }
 
@@ -144,6 +148,8 @@ export async function GET(req: NextRequest) {
             name: venue.venueName,
             streetAddress: venue.address,
             city: 'Helsinki',
+            lat: venue.lat,
+            lon: venue.lon,
           },
           image: null,
           isFree: false,

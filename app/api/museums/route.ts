@@ -27,6 +27,31 @@ const LOCATION_IDS = [
   'tprek:24182',  // Cirko - Uuden sirkuksen keskus
   'tprek:21030',  // Semifinal
   'tprek:20888',  // Olympiastadion
+  // Theatres & dance
+  'tprek:9302',   // Helsingin Kaupunginteatteri (HKT)
+  'tprek:46367',  // Arena-näyttämö (HKT toinen näyttämö)
+  'tprek:67887',  // Tanssin talo – Dance House Helsinki
+  'tprek:20668',  // Aleksanterin teatteri
+  'tprek:7258',   // Savoy-teatteri
+  // Community & culture centers
+  'tprek:7260',   // Vuotalo
+  'tprek:9340',   // Studio Pasila
+  // More museums & art spaces
+  'tprek:55959',  // Amos Rex
+  'tprek:20615',  // Bio Rex Lasipalatsi
+  // Additional theatres & clubs with Linked Events data
+  'tprek:20956',  // KOM-teatteri
+  'tprek:20815',  // Kulttuuritehdas Korjaamo
+  'tprek:20566',  // Tavastia-klubi
+  'tprek:9353',   // Lilla Teatern
+  // Libraries & public cultural spaces
+  'tprek:51342',  // Keskustakirjasto Oodi
+  // Historic venues & museums
+  'tprek:8645',   // Hakasalmen huvila
+  'tprek:8663',   // Helsingin kaupunginmuseo
+  'tprek:20465',  // Sinebrychoffin taidemuseo
+  // Arena & sports
+  'tprek:20999',  // Bolt Arena
 ].join(',')
 
 const PLACES: Record<string, string> = {
@@ -50,6 +75,24 @@ const PLACES: Record<string, string> = {
   'tprek:24182': 'Cirko',
   'tprek:21030': 'Semifinal',
   'tprek:20888': 'Olympiastadion',
+  'tprek:9302':  'Helsingin Kaupunginteatteri',
+  'tprek:46367': 'Helsingin Kaupunginteatteri – Arena-näyttämö',
+  'tprek:67887': 'Tanssin talo',
+  'tprek:20668': 'Aleksanterin teatteri',
+  'tprek:7258':  'Savoy-teatteri',
+  'tprek:7260':  'Vuotalo',
+  'tprek:9340':  'Studio Pasila',
+  'tprek:55959': 'Amos Rex',
+  'tprek:20615': 'Bio Rex Lasipalatsi',
+  'tprek:20956': 'KOM-teatteri',
+  'tprek:20815': 'Kulttuuritehdas Korjaamo',
+  'tprek:20566': 'Tavastia-klubi',
+  'tprek:9353':  'Lilla Teatern',
+  'tprek:51342': 'Keskustakirjasto Oodi',
+  'tprek:8645':  'Hakasalmen huvila',
+  'tprek:8663':  'Helsingin kaupunginmuseo',
+  'tprek:20465': 'Sinebrychoffin taidemuseo',
+  'tprek:20999': 'Bolt Arena',
 }
 
 const ART_MUSEUMS = new Set(['tprek:8675', 'tprek:20861', 'tprek:20444'])
@@ -178,7 +221,7 @@ export async function GET(req: NextRequest) {
     start,
     end,
     format: 'json',
-    page_size: '200',
+    page_size: '500',
     include: 'location,keywords',
     sort: 'start_time',
   })

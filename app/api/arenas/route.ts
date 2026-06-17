@@ -257,6 +257,86 @@ async function scrapeFinlandiatalo(): Promise<Event[]> {
   return events
 }
 
+// ── Q-teatteri ────────────────────────────────────────────────────────────────
+// Webflow CMS: shows listed at /esitykset
+// Class: esitykset-sivu-item w-dyn-item
+// Dates in short Finnish format "21.9.26" (D.M.YY with 2-digit year)
+
+function parseQDate(raw: string): string | null {
+  // "21.9.26" → "2026-09-21" (2-digit year → prepend "20")
+  // "21.9.2026" → also valid
+  const m = raw.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/)
+  if (!m) return null
+  const [, d, mo, yr] = m
+  const year = yr.length === 2 ? `20${yr}` : yr
+  return `${year}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}T19:00:00`
+}
+
+async function scrapeQteatteri(): Promise<Event[]> {
+  const res = await fetch('https://www.q-teatteri.fi/esitykset', {
+    headers: HEADERS,
+    next: { revalidate: 3600, tags: ['events'] },
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) return []
+
+  const html = await res.text()
+  const events: Event[] = []
+
+  // Webflow CMS items — each show is a .esitykset-sivu-item.w-dyn-item
+  const itemRe = /class="esitykset-sivu-item[^"]*"[^>]*>([\s\S]*?)(?=class="esitykset-sivu-item|$)/g
+  let m: RegExpExecArray | null
+  while ((m = itemRe.exec(html)) !== null) {
+    const block = m[1]
+
+    // Title in <h2>
+    const titleM = block.match(/<h2[^>]*>([^<]+)<\/h2>/)
+    if (!titleM) continue
+    const title = decodeHtml(titleM[1].trim())
+
+    // Show URL: /esitykset/SLUG
+    const slugM = block.match(/href="(\/esitykset\/[^"]+)"/)
+    const showUrl = slugM ? `https://www.q-teatteri.fi${slugM[1]}` : 'https://www.q-teatteri.fi/esitykset'
+
+    // Tiketti link
+    const tikettiM = block.match(/href="(https:\/\/www\.tiketti\.fi\/[^"]+)"/)
+    const tikettiUrl = tikettiM ? tikettiM[1] : showUrl
+
+    // Dates: two consecutive esityksen-info-teksti divs after "ESITYSKAUSI"
+    const dateDivs = [...block.matchAll(/class="esityksen-info-teksti"[^>]*>([^<]+)<\/div>/g)]
+      .map((d) => d[1].trim())
+      .filter((s) => /^\d{1,2}\.\d{1,2}\.\d{2,4}$/.test(s))
+
+    const startDate = dateDivs[0] ? parseQDate(dateDivs[0]) : null
+    if (!startDate) continue
+
+    events.push({
+      id: `qteatteri-${Buffer.from(title + startDate.slice(0, 10)).toString('base64').slice(0, 18)}`,
+      title,
+      shortDescription: 'Q-teatteri — Punavuori, Helsinki',
+      description: '',
+      startTime: startDate,
+      endTime: dateDivs[1] ? (parseQDate(dateDivs[1]) ?? null) : null,
+      location: {
+        name: 'Q-teatteri',
+        streetAddress: 'Tunturikatu 16',
+        city: 'Helsinki',
+        lat: 60.1651,
+        lon: 24.9237,
+      },
+      image: null,
+      isFree: false,
+      price: null,
+      ticketUrl: tikettiUrl,
+      infoUrl: showUrl,
+      categories: ['Teatteri', 'Esitys'],
+      source: 'linked-events' as const,
+    })
+  }
+
+  return events
+}
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -268,6 +348,7 @@ export async function GET(req: NextRequest) {
     scrapeOlympiastadion(),
     scrapeMessukeskus(),
     scrapeFinlandiatalo(),
+    scrapeQteatteri(),
   ])
 
   // Arena events often span multiple days — look back 3 days so an event
@@ -281,7 +362,10 @@ export async function GET(req: NextRequest) {
     .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
     .filter((e) => {
       const ts = new Date(e.startTime).getTime()
-      if (ts < startTs || ts > endTs) return false
+      // Also include events that are still running (endTime >= query start) — covers theatre seasons
+      const endTime = e.endTime ? new Date(e.endTime).getTime() : null
+      const stillRunning = endTime !== null && endTime >= new Date(start).getTime()
+      if (!stillRunning && (ts < startTs || ts > endTs)) return false
       const key = `${e.title.toLowerCase().slice(0, 40)}|${e.startTime.slice(0, 10)}`
       if (seen.has(key)) return false
       seen.add(key)

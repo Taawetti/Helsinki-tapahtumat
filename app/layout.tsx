@@ -12,9 +12,15 @@ export const viewport: Viewport = {
   maximumScale: 1,
 }
 
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+
 export const metadata: Metadata = {
-  title: 'Mitä tänään — Helsinki tapahtumat',
-  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa. Keikkat, klubit, taide, ruoka, ilmaiset tapahtumat ja paljon muuta.',
+  metadataBase: new URL(BASE),
+  title: {
+    default: 'Mitä tänään — Kaikki Helsinki tapahtumat',
+    template: '%s | Mitä tänään Helsinki',
+  },
+  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikkat, teatterit, festivaalit, näyttelyt, urheilu, ilmaiset tapahtumat ja paljon muuta.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -22,18 +28,46 @@ export const metadata: Metadata = {
     title: 'Mitä tänään',
   },
   openGraph: {
-    title: 'Mitä tänään — Helsinki tapahtumat',
-    description: 'Löydä parhaat tapahtumat pääkaupunkiseudulla tänään.',
+    title: 'Mitä tänään — Kaikki Helsinki tapahtumat',
+    description: 'Löydä parhaat tapahtumat Helsingissä tänään ja tulevinä päivinä. Keikkat, teatterit, festivaalit, näyttelyt, urheilu.',
     type: 'website',
     locale: 'fi_FI',
     siteName: 'Mitä tänään',
+    url: BASE,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Mitä tänään — Helsinki tapahtumat',
-    description: 'Löydä parhaat tapahtumat pääkaupunkiseudulla tänään.',
+    title: 'Mitä tänään — Kaikki Helsinki tapahtumat',
+    description: 'Löydä parhaat tapahtumat Helsingissä tänään ja tulevinä päivinä.',
   },
-  keywords: ['mitä tänään', 'Helsinki tapahtumat', 'tapahtumat Helsinki', 'mitä tehdä Helsinki', 'keikkat Helsinki', 'ilmaiset tapahtumat'],
+  keywords: [
+    'mitä tänään', 'Helsinki tapahtumat', 'tapahtumat Helsinki', 'mitä tehdä Helsinki',
+    'keikkat Helsinki', 'ilmaiset tapahtumat Helsinki', 'teatterit Helsinki',
+    'festivaalit Helsinki', 'näyttelyt Helsinki', 'urheilu Helsinki',
+    'konsertti Helsinki', 'yöelämä Helsinki', 'tapahtumakalenteri Helsinki',
+    'Helsinki tänään', 'mitä tapahtuu Helsingissä',
+  ],
+  alternates: {
+    canonical: BASE,
+    languages: { 'fi-FI': BASE },
+  },
+}
+
+const webAppJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Mitä tänään',
+  url: BASE,
+  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa.',
+  applicationCategory: 'LifestyleApplication',
+  operatingSystem: 'Any',
+  inLanguage: 'fi',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+  areaServed: {
+    '@type': 'City',
+    name: 'Helsinki',
+    sameAs: 'https://www.wikidata.org/wiki/Q1757',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -45,6 +79,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon-180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppJsonLd) }}
+        />
         {adsenseId && (
           <script
             async

@@ -137,6 +137,14 @@ const TRIBE_BARS: BarDef[] = [
     city: 'Helsinki',
     defaultCats: ['Baari', 'Yöelämä'],
   },
+  {
+    base: 'https://barloose.fi',
+    name: 'Bar Loose',
+    address: 'Fredrikinkatu 34',
+    city: 'Helsinki',
+    lat: 60.1635, lon: 24.9358,
+    defaultCats: ['Musiikki', 'Rock', 'Baari'],
+  },
 ]
 
 function detectCategories(title: string, desc: string): string[] {
