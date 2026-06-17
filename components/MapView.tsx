@@ -98,6 +98,47 @@ function makePinIcon(L: any, color: string, emoji: string, round = false) {
   })
 }
 
+// ── Sub-filter definitions ────────────────────────────────
+
+const EVENT_SUBS = [
+  { key: 'keikka',   emoji: '🎸', label: 'Keikka',      color: '#a855f7' },
+  { key: 'yoelama',  emoji: '🌙', label: 'Yöelämä',     color: '#ec4899' },
+  { key: 'baari',    emoji: '🍺', label: 'Baari',        color: '#f59e0b' },
+  { key: 'teatteri', emoji: '🎭', label: 'Teatteri',     color: '#ef4444' },
+  { key: 'taide',    emoji: '🎨', label: 'Taide',        color: '#06b6d4' },
+  { key: 'urheilu',  emoji: '⚽', label: 'Urheilu',      color: '#3b82f6' },
+  { key: 'ilmainen', emoji: '🎁', label: 'Ilmainen',     color: '#10b981' },
+] as const
+
+const REST_SUBS = [
+  { key: 'ravintola', emoji: '🍽', label: 'Ravintola',  color: '#f97316' },
+  { key: 'kahvila',   emoji: '☕', label: 'Kahvila',    color: '#d97706' },
+  { key: 'baari',     emoji: '🍺', label: 'Baari',      color: '#d946ef' },
+  { key: 'pikaruoka', emoji: '🍔', label: 'Pikaruoka',  color: '#ef4444' },
+] as const
+
+const ACT_SUBS = [
+  { key: 'sauna',      emoji: '🧖', label: 'Sauna',         color: '#f97316' },
+  { key: 'museo',      emoji: '🏛', label: 'Museo',         color: '#06b6d4' },
+  { key: 'nahtavyys',  emoji: '📍', label: 'Nähtävyys',     color: '#3b82f6' },
+  { key: 'galleria',   emoji: '🎨', label: 'Galleria',      color: '#a855f7' },
+  { key: 'puisto',     emoji: '🌿', label: 'Puisto',        color: '#22c55e' },
+  { key: 'uimaranta',  emoji: '🏊', label: 'Uimaranta',     color: '#14b8a6' },
+  { key: 'nakopaikka', emoji: '🔭', label: 'Näköalapaikka', color: '#f59e0b' },
+] as const
+
+function getEventGroup(event: Event): string {
+  const text = [event.title, event.shortDescription, ...event.categories].join(' ').toLowerCase()
+  if (event.isFree) return 'ilmainen'
+  if (/keikka|konsertti|live|bändi|musiikki/.test(text)) return 'keikka'
+  if (/yökerho|nightclub|bileet|disko|rave|klubi|dj/.test(text)) return 'yoelama'
+  if (/baari|pub|bar|olut|beer|viini/.test(text)) return 'baari'
+  if (/teatteri|tanssi|näytelmä|ooppera|baletti/.test(text)) return 'teatteri'
+  if (/taide|galleria|näyttely|museo/.test(text)) return 'taide'
+  if (/urheilu|jalkapallo|jääkiekko|ottelu/.test(text)) return 'urheilu'
+  return 'muu'
+}
+
 // ── Legend data ───────────────────────────────────────────
 
 const LEGEND_EVENT = [
@@ -160,6 +201,10 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [locating, setLocating] = useState(false)
 
+  const [eventGroup, setEventGroup] = useState<string | null>(null)
+  const [restType,   setRestType]   = useState<string | null>(null)
+  const [actCat,     setActCat]     = useState<string | null>(null)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userMarkerRef       = useRef<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,6 +216,9 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
 
   const toggleLayer = useCallback((key: keyof Layers) => {
     setLayers(l => ({ ...l, [key]: !l[key] }))
+    if (key === 'events')      setEventGroup(null)
+    if (key === 'restaurants') setRestType(null)
+    if (key === 'activities')  setActCat(null)
   }, [])
 
   // ── Init map ─────────────────────────────────────────────
@@ -242,6 +290,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
       if (!layers.events) return
       events.forEach((event) => {
         if (!event.location?.lat || !event.location?.lon) return
+        if (eventGroup && getEventGroup(event) !== eventGroup) return
         const { color, emoji } = eventColor(event)
         const icon = makePinIcon(L, color, emoji, false)
         const time = new Date(event.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
@@ -258,7 +307,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         eventMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, events, onEventClick, layers.events])
+  }, [mapReady, events, onEventClick, layers.events, eventGroup])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {
@@ -269,6 +318,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
       if (!layers.restaurants) return
       restaurants.forEach((r) => {
         if (!r.lat || !r.lon) return
+        if (restType && r.type !== restType) return
         const { color, emoji } = restaurantColor(r.type)
         const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
         const icon = makePinIcon(L, color, emoji, true)
@@ -286,7 +336,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         restMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, restaurants, layers.restaurants, userPos])
+  }, [mapReady, restaurants, layers.restaurants, userPos, restType])
 
   // ── Activity markers ──────────────────────────────────────
   useEffect(() => {
@@ -297,6 +347,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
       if (!layers.activities) return
       activities.forEach((a) => {
         if (!a.lat || !a.lon) return
+        if (actCat && a.category !== actCat) return
         const { color, emoji } = activityColor(a.category)
         const icon = makePinIcon(L, color, emoji, true)
         const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
@@ -313,7 +364,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         activityMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, activities, layers.activities])
+  }, [mapReady, activities, layers.activities, actCat])
 
   // ── User position marker ──────────────────────────────────
   useEffect(() => {
@@ -382,6 +433,51 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
           </button>
         ))}
       </div>
+
+      {/* ── Sub-filters ── */}
+      {(layers.events || layers.restaurants || layers.activities) && (
+        <div className="absolute z-[1000]"
+          style={{ top: 60, left: 8, right: 8, borderRadius: 12, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
+            {layers.events && EVENT_SUBS.map(sf => (
+              <button key={sf.key}
+                onClick={() => setEventGroup(eventGroup === sf.key ? null : sf.key)}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
+                style={eventGroup === sf.key
+                  ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
+                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                {sf.emoji} {sf.label}
+              </button>
+            ))}
+            {layers.events && (layers.restaurants || layers.activities) && (
+              <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            )}
+            {layers.restaurants && REST_SUBS.map(sf => (
+              <button key={sf.key}
+                onClick={() => setRestType(restType === sf.key ? null : sf.key)}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
+                style={restType === sf.key
+                  ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
+                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                {sf.emoji} {sf.label}
+              </button>
+            ))}
+            {layers.restaurants && layers.activities && (
+              <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
+            )}
+            {layers.activities && ACT_SUBS.map(sf => (
+              <button key={sf.key}
+                onClick={() => setActCat(actCat === sf.key ? null : sf.key)}
+                className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
+                style={actCat === sf.key
+                  ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
+                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                {sf.emoji} {sf.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Locate me ── */}
       <button onClick={locateMe} disabled={locating}
