@@ -24,6 +24,7 @@ import JarjestajaForm from '@/components/JarjestajaForm'
 import NewsletterBanner from '@/components/NewsletterBanner'
 import RestaurantsView from '@/components/RestaurantsView'
 import ActivitiesView from '@/components/ActivitiesView'
+import IdeaView from '@/components/IdeaView'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -104,7 +105,7 @@ function nightlifeScore(e: Event): number {
   return e.image ? 1 : 0
 }
 
-type AppMode = 'discover' | 'browse' | 'map' | 'favorites' | 'restaurants' | 'activities'
+type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities'
 type ListStyle = 'feed' | 'grid'
 
 export default function Home() {
@@ -119,7 +120,7 @@ export default function Home() {
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'favorites' | 'restaurants' | 'activities'>('discover')
+  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities'>('discover')
   const [customDate, setCustomDate] = useState('')
   const [showEiTieda, setShowEiTieda] = useState(false)
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
@@ -175,7 +176,7 @@ export default function Home() {
   const handleMobileTab = useCallback((tab: typeof mobileTab) => {
     setMobileTab(tab)
     if (tab === 'discover') setMode('discover')
-    else if (tab === 'browse') setMode('browse')
+    else if (tab === 'idea') setMode('idea')
     else if (tab === 'map') setMode('map')
     else if (tab === 'favorites') setMode('favorites')
     else if (tab === 'restaurants') setMode('restaurants')
@@ -287,7 +288,7 @@ export default function Home() {
         </div>
         {/* ── Mobile header row 2: search ── */}
         <div className="md:hidden px-4 pb-3">
-          <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('browse'); setMobileTab('browse') } }} />
+          <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }} />
         </div>
 
         {/* ── Desktop header: single row ── */}
@@ -300,19 +301,19 @@ export default function Home() {
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'browse', 'map', 'restaurants', 'activities'] as AppMode[]).map((m) => (
+            {(['discover', 'idea', 'map', 'restaurants', 'activities'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => setMode(m)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/65'}`}>
-                {m === 'discover' ? '✦ Etusivu' : m === 'browse' ? 'Selaa' : m === 'map' ? 'Kartta' : m === 'restaurants' ? '🍽 Ravintolat' : '🧖 Tekemistä'}
+                {m === 'discover' ? '✦ Etusivu' : m === 'idea' ? '🎲 Mitä teen?' : m === 'map' ? 'Kartta' : m === 'restaurants' ? '🍽 Ravintolat' : '🧖 Tekemistä'}
               </button>
             ))}
           </div>
 
           <div className="flex-1 max-w-md">
-            <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('browse'); setMobileTab('browse') } }} />
+            <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }} />
           </div>
 
-          {mode === 'browse' && (
+          {false && (
             <div className="flex bg-white/5 rounded-xl p-1 gap-0.5 shrink-0">
               <button onClick={() => setListStyle('feed')} className={`p-2 rounded-lg transition-all ${listStyle === 'feed' ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/60'}`}><Rss size={14} /></button>
               <button onClick={() => setListStyle('grid')} className={`p-2 rounded-lg transition-all ${listStyle === 'grid' ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/60'}`}><LayoutGrid size={14} /></button>
@@ -592,137 +593,13 @@ export default function Home() {
         </main>
       )}
 
-      {/* ══ BROWSE ══ */}
-      {mode === 'browse' && (
-        <main className="max-w-6xl mx-auto px-4 py-5 space-y-5">
-
-          {/* Context bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            {keyword && (
-              <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border"
-                style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.3)', color: '#c084fc' }}>
-                &ldquo;{keyword}&rdquo; <button onClick={() => setKeyword('')}><X size={11} /></button>
-              </span>
-            )}
-            {activeVibes.filter(v=>v!=='ilmainen').map((id) => {
-              const v = VIBES.find((v) => v.id === id)
-              return v ? (
-                <span key={id} className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full border"
-                  style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.3)', color: '#c084fc' }}>
-                  {v.emoji} {v.label} <button onClick={() => setActiveVibes((p)=>p.filter(x=>x!==id))}><X size={11}/></button>
-                </span>
-              ) : null
-            })}
-            {priceFilter !== 'all' && (
-              <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full border"
-                style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.3)', color: '#c084fc' }}>
-                {priceFilter === 'free' ? '🎁 Ilmaiset' : '🎟 Maksulliset'} <button onClick={() => setPriceFilter('all')}><X size={11}/></button>
-              </span>
-            )}
-            {!loading && total > 0 && (
-              <span className="text-white/20 text-xs font-bold ml-auto">{total.toLocaleString('fi-FI')} tapahtumaa</span>
-            )}
-          </div>
-
-          {/* Vibe bar in browse too */}
-          <VibeBar active={activeVibes} onToggle={handleVibeToggle} />
-
-          {/* City tabs in browse */}
-          <div className="flex gap-2">
-            {[{id:'helsinki',label:'Helsinki'},{id:'espoo',label:'Espoo'},{id:'vantaa',label:'Vantaa'}].map((c) => (
-              <button key={c.id} onClick={() => setMunicipality(c.id)}
-                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${municipality === c.id ? 'bg-white/15 text-white' : 'bg-white/5 text-white/40 hover:text-white/70'}`}>
-                {c.label}
-              </button>
-            ))}
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-3 rounded-xl p-4 text-red-300 bg-red-950/30 border border-red-800/30">
-              <AlertCircle size={18} className="shrink-0" /><p className="text-sm">{error}</p>
-            </div>
-          )}
-
-          {/* Style toggle */}
-          <div className="flex items-center gap-2">
-            {(['feed','grid'] as ListStyle[]).map((s) => (
-              <button key={s} onClick={() => setListStyle(s)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${listStyle === s ? 'bg-white/10 text-white' : 'text-white/25 hover:text-white/55'}`}>
-                {s === 'feed' ? <><Rss size={11} /> Feed</> : <><LayoutGrid size={11} /> Grid</>}
-              </button>
-            ))}
-          </div>
-
-          {/* Skeleton */}
-          {loading && events.length === 0 && (
-            listStyle === 'feed'
-              ? <div className="space-y-4 max-w-2xl mx-auto">{Array.from({length:5}).map((_,i)=>(
-                  <div key={i} className="rounded-2xl overflow-hidden bg-white/3">
-                    <div className="w-full bg-white/4 animate-pulse" style={{aspectRatio:'16/9'}}/>
-                    <div className="p-4 space-y-2">
-                      <div className="h-4 bg-white/4 rounded animate-pulse w-3/4"/>
-                      <div className="h-3 bg-white/4 rounded animate-pulse w-full"/>
-                    </div>
-                  </div>
-                ))}</div>
-              : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({length:9}).map((_,i)=>(
-                  <div key={i} className="rounded-2xl overflow-hidden bg-white/3">
-                    <div className="h-44 bg-white/4 animate-pulse"/>
-                    <div className="p-4 space-y-2">
-                      <div className="h-4 bg-white/4 rounded animate-pulse w-4/5"/>
-                      <div className="h-3 bg-white/4 rounded animate-pulse w-1/2"/>
-                    </div>
-                  </div>
-                ))}</div>
-          )}
-
-          {filteredEvents.length > 0 && (
-            listStyle === 'feed'
-              ? <div className="space-y-4 max-w-2xl mx-auto">
-                  {filteredEvents.map((e, i) => (
-                    <Fragment key={e.id}>
-                      <FeedCard event={e} onClick={setSelectedEvent} index={i} />
-                      {i === 7 && <AdBanner slot="0987654321" format="rectangle" />}
-                    </Fragment>
-                  ))}
-                </div>
-              : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredEvents.map((e, i) => (
-                    <Fragment key={e.id}>
-                      <EventCard event={e} onClick={setSelectedEvent} />
-                      {i === 5 && (
-                        <div className="col-span-full">
-                          <AdBanner slot="1122334455" format="horizontal" />
-                        </div>
-                      )}
-                    </Fragment>
-                  ))}
-                </div>
-          )}
-
-          {!loading && filteredEvents.length === 0 && !error && (
-            <EmptyState
-              keyword={keyword}
-              activeVibes={activeVibes}
-              activeCategories={activeCategories}
-              priceFilter={priceFilter}
-              dateFilter={dateFilter}
-              onClear={clearFilters}
-              onDateChange={(d) => { setDateFilter(d); setCustomDate('') }}
-            />
-          )}
-
-          {hasMore && !loading && filteredEvents.length > 0 && (
-            <div className="flex justify-center pt-2">
-              <button onClick={loadMore} className="text-sm font-bold px-8 py-3 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 bg-white/3 transition-all">
-                Lataa lisää
-              </button>
-            </div>
-          )}
-          {loading && events.length > 0 && (
-            <div className="flex justify-center pt-4"><Loader2 size={20} className="animate-spin text-purple-400"/></div>
-          )}
-        </main>
+      {/* ══ IDEA ══ */}
+      {mode === 'idea' && (
+        <IdeaView
+          events={filteredEvents}
+          onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name)}
+          onEventClick={setSelectedEvent}
+        />
       )}
 
       {/* ══ MAP ══ */}
@@ -744,7 +621,7 @@ export default function Home() {
         <div className="grid grid-cols-6">
           {([
             { tab: 'discover' as const, emoji: '✦', label: 'Etusivu' },
-            { tab: 'browse' as const, emoji: '🔍', label: 'Selaa' },
+            { tab: 'idea' as const, emoji: '🎲', label: 'Mitä teen?' },
             { tab: 'restaurants' as const, emoji: '🍽', label: 'Ravintolat' },
             { tab: 'activities' as const, emoji: '🧖', label: 'Tekemistä' },
             { tab: 'map' as const, emoji: '🗺', label: 'Kartta' },
