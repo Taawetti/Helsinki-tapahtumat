@@ -39,6 +39,8 @@ const LOCATION_IDS = [
   // More museums & art spaces
   'tprek:55959',  // Amos Rex
   'tprek:20615',  // Bio Rex Lasipalatsi
+  'tprek:20929',  // Lasipalatsin aukio (ulkotapahtumat)
+  'tprek:58438',  // Lasipalatsi-kompleksi
   // Additional theatres & clubs with Linked Events data
   'tprek:20956',  // KOM-teatteri
   'tprek:20815',  // Kulttuuritehdas Korjaamo
@@ -84,6 +86,8 @@ const PLACES: Record<string, string> = {
   'tprek:9340':  'Studio Pasila',
   'tprek:55959': 'Amos Rex',
   'tprek:20615': 'Bio Rex Lasipalatsi',
+  'tprek:20929': 'Lasipalatsin aukio',
+  'tprek:58438': 'Lasipalatsi',
   'tprek:20956': 'KOM-teatteri',
   'tprek:20815': 'Kulttuuritehdas Korjaamo',
   'tprek:20566': 'Tavastia-klubi',
