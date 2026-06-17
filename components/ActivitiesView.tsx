@@ -131,18 +131,31 @@ function TopPickCard({ pick, activity, distance }: {
           </span>
         )}
       </div>
+      {activity?.address && (
+        <div className="flex items-center gap-1.5 text-white/30 text-[10px]">
+          <MapPin size={9} className="shrink-0" />
+          <span>{activity.address}{activity.city && activity.city !== 'Helsinki' ? `, ${activity.city}` : ''}</span>
+        </div>
+      )}
+      {activity?.openingHours && (
+        <div className="flex items-center gap-1.5 text-white/25 text-[10px]">
+          <Clock size={9} className="shrink-0" />
+          <span>{activity.openingHours.split(';')[0]}</span>
+        </div>
+      )}
       {activity && (activity.www || activity.phone) && (
-        <div className="flex gap-3 pt-1">
+        <div className="flex gap-3 pt-0.5">
           {activity.www && (
             <a href={activity.www} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
               <Globe size={10} /> Nettisivu
             </a>
           )}
-          {activity.openingHours && (
-            <span className="flex items-center gap-1 text-[10px] text-white/25">
-              <Clock size={9} /> {activity.openingHours.split(';')[0]}
-            </span>
+          {activity.phone && (
+            <a href={`tel:${activity.phone}`}
+              className="flex items-center gap-1 text-[10px] font-bold text-white/25 hover:text-white/50 transition-colors">
+              <Phone size={10} /> {activity.phone}
+            </a>
           )}
         </div>
       )}
