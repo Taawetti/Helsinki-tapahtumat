@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
 import type { Restaurant } from '@/lib/types'
+import {
+  MICHELIN_STARS,
+  BIB_GOURMAND,
+  GREEN_MICHELIN,
+  RESTAURANT_OF_YEAR,
+} from '@/lib/restaurant-awards'
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -13,13 +19,155 @@ interface OSMElement {
   tags?: Record<string, string>
 }
 
+// ── Cuisine mapping ───────────────────────────────────────
+
+// Maps lowercase OSM cuisine values to category IDs used by the UI filter
+const OSM_TO_CATEGORY: Record<string, string> = {
+  'nordic': 'nordisk', 'scandinavian': 'nordisk', 'finnish': 'nordisk',
+  'new nordic': 'nordisk', 'modern european': 'nordisk',
+  'japanese': 'japanese', 'sushi': 'japanese', 'ramen': 'japanese',
+  'izakaya': 'japanese', 'tonkatsu': 'japanese', 'udon': 'japanese',
+  'pizza': 'pizza',
+  'italian': 'italian', 'pasta': 'italian', 'sicilian': 'italian',
+  'burger': 'burger', 'american': 'burger', 'bbq': 'burger',
+  'asian': 'asian', 'chinese': 'asian', 'thai': 'asian', 'vietnamese': 'asian',
+  'korean': 'asian', 'taiwanese': 'asian', 'noodle': 'asian', 'pan asian': 'asian',
+  'malaysian': 'asian', 'singaporean': 'asian', 'indonesian': 'asian', 'burmese': 'asian',
+  'kebab': 'kebab', 'turkish': 'kebab', 'middle eastern': 'kebab',
+  'arabic': 'kebab', 'persian': 'kebab', 'lebanese': 'kebab', 'shawarma': 'kebab',
+  'indian': 'indian', 'bangladeshi': 'indian', 'nepali': 'indian', 'pakistani': 'indian',
+  'sri lankan': 'indian',
+  'mediterranean': 'mediterranean', 'greek': 'mediterranean', 'spanish': 'mediterranean',
+  'portuguese': 'mediterranean', 'french': 'mediterranean', 'catalan': 'mediterranean',
+  'vegetarian': 'veggie', 'vegan': 'veggie', 'plant based': 'veggie', 'organic': 'veggie',
+  'seafood': 'seafood', 'fish': 'seafood', 'fish and chips': 'seafood', 'sashimi': 'seafood',
+  'coffee shop': 'cafe', 'cake': 'cafe', 'dessert': 'cafe',
+  'ice cream': 'cafe', 'bakery': 'cafe', 'brunch': 'cafe',
+  'steak': 'steak', 'steak house': 'steak', 'argentinian': 'steak', 'grill': 'steak',
+  'mexican': 'mexican', 'tex mex': 'mexican', 'latin american': 'mexican',
+}
+
+function parseCuisines(raw: string): string[] {
+  if (!raw) return []
+  return raw.split(';').map(c => c.trim().replace(/_/g, ' ')).filter(Boolean)
+}
+
+function parseCuisineCategories(raw: string): string[] {
+  if (!raw) return []
+  const cats = new Set<string>()
+  for (const c of raw.split(';')) {
+    const key = c.trim().replace(/_/g, ' ').toLowerCase()
+    const cat = OSM_TO_CATEGORY[key]
+    if (cat) cats.add(cat)
+  }
+  return [...cats]
+}
+
+// ── Price range helpers ───────────────────────────────────
+
+function parsePriceRange(tags?: Record<string, string>): 1 | 2 | 3 | 4 | undefined {
+  const raw = tags?.price_level ?? tags?.['check_in:price_range']
+  if (raw) {
+    const n = parseInt(raw)
+    if (n >= 1 && n <= 4) return n as 1 | 2 | 3 | 4
+  }
+  // Infer from amenity type and cuisine
+  const amenity = tags?.amenity
+  const cuisine = (tags?.cuisine ?? '').toLowerCase()
+  if (amenity === 'fast_food' || amenity === 'food_court') return 1
+  if (cuisine.includes('kebab') || cuisine.includes('pizza')) return 1
+  if (amenity === 'cafe') return 2
+  return undefined
+}
+
+// ── Opening hours ─────────────────────────────────────────
+
+function isOpenNow(hours: string): boolean | undefined {
+  if (!hours) return undefined
+  if (hours === '24/7') return true
+  try {
+    const now = new Date()
+    const dayIdx = now.getDay() // 0=Sun, 1=Mon … 6=Sat
+    const cur = now.getHours() * 60 + now.getMinutes()
+
+    // Day abbreviation → day indices
+    const D: Record<string, number[]> = {
+      Mo: [1], Tu: [2], We: [3], Th: [4], Fr: [5], Sa: [6], Su: [0],
+    }
+    function expandRange(spec: string): number[] {
+      if (D[spec]) return D[spec]
+      const m = spec.match(/^([A-Z][a-z])-([A-Z][a-z])$/)
+      if (m) {
+        const keys = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+        const a = keys.indexOf(m[1]), b = keys.indexOf(m[2])
+        if (a >= 0 && b >= 0) {
+          const result: number[] = []
+          for (let i = a; i <= b; i++) result.push(D[keys[i]][0])
+          return result
+        }
+      }
+      return []
+    }
+
+    for (const part of hours.split(';')) {
+      const m = part.trim().match(/^([\w-]+(?:,[\w-]+)*)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
+      if (!m) continue
+      const daySpec = m[1], fromStr = m[2], toStr = m[3]
+      const days = daySpec.split(',').flatMap(expandRange)
+      if (!days.includes(dayIdx)) continue
+      const [fh, fm] = fromStr.split(':').map(Number)
+      const [th, tm] = toStr.split(':').map(Number)
+      const from = fh * 60 + fm
+      const to = th * 60 + tm
+      if (cur >= from && cur <= (to < from ? to + 1440 : to)) return true
+    }
+    return false
+  } catch {
+    return undefined
+  }
+}
+
+// ── Awards enrichment ─────────────────────────────────────
+
+function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
+  const stars = MICHELIN_STARS[name]
+  if (stars) {
+    result.michelinStars = stars
+    result.priceRange = 4
+    result.featured = true
+    const awards = result.awards ?? []
+    awards.push(`${stars === 1 ? '⭐' : stars === 2 ? '⭐⭐' : '⭐⭐⭐'} Michelin ${stars === 1 ? 'tähti' : 'tähteä'} 2025`)
+    result.awards = awards
+  }
+  if (BIB_GOURMAND.has(name)) {
+    result.bibGourmand = true
+    result.featured = true
+    const awards = result.awards ?? []
+    awards.push('😊 Bib Gourmand 2025')
+    result.awards = awards
+  }
+  if (GREEN_MICHELIN.has(name)) {
+    result.greenMichelin = true
+    const awards = result.awards ?? []
+    awards.push('🌿 Michelin Green Star')
+    result.awards = awards
+  }
+  for (const [year, winner] of Object.entries(RESTAURANT_OF_YEAR)) {
+    if (winner === name) {
+      const awards = result.awards ?? []
+      awards.push(`🏆 Vuoden ravintola ${year}`)
+      result.awards = awards
+      result.featured = true
+    }
+  }
+}
+
 // ── OpenStreetMap Overpass ────────────────────────────────
 // Helsinki+Espoo+Vantaa bounding box (south,west,north,east)
 
 const OSM_BBOX = '60.09,24.58,60.41,25.26'
 const OSM_QUERY = `[out:json][timeout:30][bbox:${OSM_BBOX}];(node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten)$"]["name"];way["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten)$"]["name"];);out center;`
 
-// Mirrors in priority order — main Overpass is behind CloudFlare and blocks some IPs
 const OVERPASS_MIRRORS = [
   'https://overpass.openstreetmap.fr/api/interpreter',
   'https://z.overpass-api.de/api/interpreter',
@@ -34,11 +182,8 @@ const OSM_HEADERS = {
 function osmAmenityToType(amenity?: string): Restaurant['type'] {
   switch (amenity) {
     case 'cafe': return 'kahvila'
-    case 'bar':
-    case 'pub':
-    case 'biergarten': return 'baari'
-    case 'fast_food':
-    case 'food_court': return 'pikaruoka'
+    case 'bar': case 'pub': case 'biergarten': return 'baari'
+    case 'fast_food': case 'food_court': return 'pikaruoka'
     case 'restaurant': return 'ravintola'
     default: return 'muu'
   }
@@ -72,10 +217,13 @@ async function _fetchOSM(): Promise<Restaurant[]> {
         const lon = el.type === 'node' ? el.lon : el.center?.lon
         if (!lat || !lon) continue
 
-        results.push({
+        const cuisineRaw = el.tags?.cuisine ?? ''
+        const partial: Partial<Restaurant> = {
           id: `osm-${el.type[0]}${el.id}`,
           name,
-          description: el.tags?.cuisine?.replace(/_/g, ' ') ?? '',
+          description: cuisineRaw.replace(/_/g, ' '),
+          cuisines: parseCuisines(cuisineRaw),
+          cuisineCategories: parseCuisineCategories(cuisineRaw),
           address: osmAddress(el.tags),
           city: el.tags?.['addr:city'] ?? '',
           lat,
@@ -83,8 +231,19 @@ async function _fetchOSM(): Promise<Restaurant[]> {
           image: null,
           www: el.tags?.website ?? el.tags?.url ?? el.tags?.['contact:website'] ?? null,
           phone: el.tags?.phone ?? el.tags?.['contact:phone'] ?? null,
+          email: el.tags?.email ?? el.tags?.['contact:email'] ?? null,
+          instagram: el.tags?.['contact:instagram'] ?? null,
           type: osmAmenityToType(el.tags?.amenity),
-        })
+          priceRange: parsePriceRange(el.tags),
+          openingHours: el.tags?.opening_hours ?? undefined,
+          awards: [],
+          outdoorSeating: el.tags?.outdoor_seating === 'yes' || undefined,
+          takeaway: el.tags?.takeaway === 'yes' || el.tags?.takeaway === 'only' || undefined,
+        }
+
+        enrichWithAwards(name, partial)
+
+        results.push(partial as Restaurant)
       }
 
       console.log(`[restaurants] OSM: ${results.length} results from ${mirror}`)
@@ -100,25 +259,41 @@ async function _fetchOSM(): Promise<Restaurant[]> {
 
 // ── Cached wrapper ────────────────────────────────────────
 
-export const fetchOSMCached = unstable_cache(_fetchOSM, ['restaurants-osm-v4'], {
+export const fetchOSMCached = unstable_cache(_fetchOSM, ['restaurants-osm-v6'], {
   revalidate: 86400,
   tags: ['restaurants'],
 })
 
-// Palvelukartta intentionally removed:
-// its q-search returns city services (nursing homes, schools) not restaurants.
-// OSM Overpass is the canonical source for restaurant POIs.
 export const fetchPKCached = async () => [] as Restaurant[]
 
 // ── Route handler ─────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.toLowerCase().trim() ?? ''
+  const category = req.nextUrl.searchParams.get('category') ?? ''
+  const type = req.nextUrl.searchParams.get('type') ?? ''
+  const priceMax = parseInt(req.nextUrl.searchParams.get('priceMax') ?? '0') || 0
+  const featured = req.nextUrl.searchParams.get('featured') === '1'
 
   const osmList = await fetchOSMCached()
-
   let restaurants = osmList
 
+  if (featured) {
+    restaurants = restaurants.filter(r => r.featured)
+  }
+  if (category && category !== 'all') {
+    if (category === 'awarded') {
+      restaurants = restaurants.filter(r => r.featured)
+    } else {
+      restaurants = restaurants.filter(r => r.cuisineCategories.includes(category))
+    }
+  }
+  if (type && type !== 'all') {
+    restaurants = restaurants.filter(r => r.type === type)
+  }
+  if (priceMax > 0) {
+    restaurants = restaurants.filter(r => !r.priceRange || r.priceRange <= priceMax)
+  }
   if (q) {
     restaurants = restaurants.filter(r =>
       r.name.toLowerCase().includes(q) ||
@@ -128,10 +303,27 @@ export async function GET(req: NextRequest) {
   }
 
   restaurants.sort((a, b) => {
-    const s = (r: Restaurant) =>
-      (r.address ? 2 : 0) + (r.www ? 1 : 0) + (r.phone ? 1 : 0)
-    return s(b) - s(a)
+    // Michelin first, then featured, then by data completeness
+    const starsA = a.michelinStars ?? 0, starsB = b.michelinStars ?? 0
+    if (starsA !== starsB) return starsB - starsA
+    const featA = a.featured ? 1 : 0, featB = b.featured ? 1 : 0
+    if (featA !== featB) return featB - featA
+    const score = (r: Restaurant) =>
+      (r.address ? 2 : 0) + (r.www ? 1 : 0) + (r.phone ? 1 : 0) + (r.description ? 1 : 0)
+    return score(b) - score(a)
   })
 
-  return NextResponse.json({ restaurants, total: restaurants.length })
+  // Build cuisine category distribution for the frontend
+  const categoryCount: Record<string, number> = {}
+  for (const r of osmList) {
+    for (const cat of r.cuisineCategories) {
+      categoryCount[cat] = (categoryCount[cat] ?? 0) + 1
+    }
+  }
+
+  return NextResponse.json({
+    restaurants,
+    total: restaurants.length,
+    categoryCount,
+  })
 }

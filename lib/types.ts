@@ -130,7 +130,9 @@ export const CATEGORIES: Category[] = [
 export interface Restaurant {
   id: string
   name: string
-  description: string
+  description: string       // raw OSM cuisine string (human-readable)
+  cuisines: string[]        // parsed cuisine values, e.g. ['pizza', 'italian']
+  cuisineCategories: string[] // mapped category IDs for filtering
   address: string
   city: string
   lat?: number
@@ -138,7 +140,18 @@ export interface Restaurant {
   image: string | null
   www: string | null
   phone: string | null
+  email?: string | null
+  instagram?: string | null
   type: 'ravintola' | 'kahvila' | 'baari' | 'pikaruoka' | 'muu'
+  priceRange?: 1 | 2 | 3 | 4   // 1=€ 2=€€ 3=€€€ 4=€€€€
+  openingHours?: string         // raw OSM opening_hours value
+  michelinStars?: number        // 1, 2 or 3
+  bibGourmand?: boolean
+  greenMichelin?: boolean
+  awards?: string[]             // e.g. ['Vuoden ravintola 2024']
+  featured?: boolean
+  outdoorSeating?: boolean
+  takeaway?: boolean
 }
 
 export const SEARCH_SUGGESTIONS = [
