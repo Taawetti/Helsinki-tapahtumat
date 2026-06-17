@@ -1,19 +1,10 @@
 import type { MetadataRoute } from 'next'
+import { VIBES, NEIGHBORHOODS } from '@/lib/types'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
-
-  // Category query URLs — these are anchor links that deep-link into filters
-  const categories = [
-    { slug: '#keikka',       label: 'Keikka' },
-    { slug: '#teatteri',     label: 'Teatteri' },
-    { slug: '#festivaali',   label: 'Festivaali' },
-    { slug: '#urheilu',      label: 'Urheilu' },
-    { slug: '#nayttely',     label: 'Näyttely' },
-    { slug: '#ilmainen',     label: 'Ilmainen' },
-  ]
 
   return [
     {
@@ -28,13 +19,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 0.4,
     },
-    // Festival-specific pages (future)
-    // Keep here as stubs so crawlers revisit
-    ...categories.map((c) => ({
-      url: `${BASE}/${c.slug}`,
+    // Category landing pages — one per VIBE
+    ...VIBES.map((v) => ({
+      url: `${BASE}/tapahtumat/${v.id}`,
       lastModified: now,
       changeFrequency: 'daily' as const,
-      priority: 0.7,
+      priority: 0.8,
+    })),
+    // Neighborhood landing pages
+    ...NEIGHBORHOODS.map((n) => ({
+      url: `${BASE}/tapahtumat/${n.id}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.75,
     })),
   ]
 }
