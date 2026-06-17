@@ -117,6 +117,23 @@ const REST_SUBS = [
   { key: 'pikaruoka', emoji: '🍔', label: 'Pikaruoka',  color: '#ef4444' },
 ] as const
 
+const REST_CUISINE_SUBS = [
+  { key: 'awarded',       emoji: '🏆', label: 'Palkitut',       color: '#f59e0b' },
+  { key: 'nordisk',       emoji: '🇫🇮', label: 'Pohjoismainen', color: '#3b82f6' },
+  { key: 'japanese',      emoji: '🍣', label: 'Japanilainen',   color: '#ef4444' },
+  { key: 'pizza',         emoji: '🍕', label: 'Pizza',          color: '#f97316' },
+  { key: 'italian',       emoji: '🍝', label: 'Italialainen',   color: '#10b981' },
+  { key: 'asian',         emoji: '🍜', label: 'Aasialainen',    color: '#d946ef' },
+  { key: 'burger',        emoji: '🍔', label: 'Hampurilaiset',  color: '#d97706' },
+  { key: 'veggie',        emoji: '🌱', label: 'Kasvis',         color: '#22c55e' },
+  { key: 'kebab',         emoji: '🌯', label: 'Kebab',          color: '#f59e0b' },
+  { key: 'mediterranean', emoji: '🫒', label: 'Välimeri',       color: '#14b8a6' },
+  { key: 'indian',        emoji: '🍛', label: 'Intialainen',    color: '#a78bfa' },
+  { key: 'seafood',       emoji: '🐟', label: 'Kala & meri',    color: '#06b6d4' },
+  { key: 'steak',         emoji: '🥩', label: 'Pihvi & grilli', color: '#ef4444' },
+  { key: 'mexican',       emoji: '🌮', label: 'Meksikolainen',  color: '#22c55e' },
+] as const
+
 const ACT_SUBS = [
   { key: 'sauna',      emoji: '🧖', label: 'Sauna',         color: '#f97316' },
   { key: 'museo',      emoji: '🏛', label: 'Museo',         color: '#06b6d4' },
@@ -227,9 +244,10 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [locating, setLocating] = useState(false)
 
-  const [eventGroup, setEventGroup] = useState<string | null>(null)
-  const [restType,   setRestType]   = useState<string | null>(null)
-  const [actCat,     setActCat]     = useState<string | null>(null)
+  const [eventGroup,   setEventGroup]   = useState<string | null>(null)
+  const [restType,     setRestType]     = useState<string | null>(null)
+  const [restCuisine,  setRestCuisine]  = useState<string | null>(null)
+  const [actCat,       setActCat]       = useState<string | null>(null)
 
   const [dateFilter,  setDateFilter]  = useState<DateFilterKey>('today')
   const [customDate,  setCustomDate]  = useState('')
@@ -251,7 +269,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
   const toggleLayer = useCallback((key: keyof Layers) => {
     setLayers(l => ({ ...l, [key]: !l[key] }))
     if (key === 'events')      setEventGroup(null)
-    if (key === 'restaurants') setRestType(null)
+    if (key === 'restaurants') { setRestType(null); setRestCuisine(null) }
     if (key === 'activities')  setActCat(null)
   }, [])
 
@@ -354,6 +372,10 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
       restaurants.forEach((r) => {
         if (!r.lat || !r.lon) return
         if (restType && r.type !== restType) return
+        if (restCuisine) {
+          if (restCuisine === 'awarded' && !r.featured) return
+          if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return
+        }
         const { color, emoji } = restaurantColor(r.type)
         const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
         const icon = makePinIcon(L, color, emoji, true)
@@ -371,7 +393,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         restMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, restaurants, layers.restaurants, userPos, restType])
+  }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine])
 
   // ── Activity markers ──────────────────────────────────────
   useEffect(() => {
@@ -434,7 +456,15 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
 
   // ── Counts ────────────────────────────────────────────────
   const eventsOnMap     = events.filter(e => e.location?.lat && filterEventByDate(e, dateFilter, customDate)).length
-  const restsOnMap      = restaurants.filter(r => r.lat).length
+  const restsOnMap      = restaurants.filter(r => {
+    if (!r.lat) return false
+    if (restType && r.type !== restType) return false
+    if (restCuisine) {
+      if (restCuisine === 'awarded' && !r.featured) return false
+      if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return false
+    }
+    return true
+  }).length
   const activitiesOnMap = activities.filter(a => a.lat).length
 
   const countParts = [
@@ -516,6 +546,19 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
                 </button>
               ))}
               {layers.events && (layers.restaurants || layers.activities) && (
+                <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              )}
+              {layers.restaurants && REST_CUISINE_SUBS.map(sf => (
+                <button key={sf.key}
+                  onClick={() => setRestCuisine(restCuisine === sf.key ? null : sf.key)}
+                  className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
+                  style={restCuisine === sf.key
+                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
+                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                  {sf.emoji} {sf.label}
+                </button>
+              ))}
+              {layers.restaurants && (
                 <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
               )}
               {layers.restaurants && REST_SUBS.map(sf => (
