@@ -15,6 +15,8 @@ interface Props {
 
 export default function JarjestajaForm({ onClose }: Props) {
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     nimi: '', kuvaus: '', pvm: '', aika: '',
     paikka: '', hinta: '', kategoria: '', linkki: '', email: '',
@@ -24,10 +26,24 @@ export default function JarjestajaForm({ onClose }: Props) {
   const set = (key: Field) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [key]: e.target.value }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: connect to backend / Airtable / email
-    setSent(true)
+    if (loading) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/submit-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error()
+      setSent(true)
+    } catch {
+      setError('Lähetys epäonnistui. Tarkista tiedot ja yritä uudelleen.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const inputClass = "w-full bg-white/5 border border-white/8 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-purple-500/40 transition-colors"
@@ -117,10 +133,12 @@ export default function JarjestajaForm({ onClose }: Props) {
               <input required type="email" value={form.email} onChange={set('email')} placeholder="info@tapahtuma.fi" className={inputClass} />
             </div>
 
-            <button type="submit"
-              className="w-full py-3.5 rounded-xl font-black text-sm text-white hover:opacity-90 active:scale-[0.98] transition-all mt-1"
+            {error && <p className="text-red-400/80 text-xs text-center">{error}</p>}
+            <button type="submit" disabled={loading}
+              className="w-full py-3.5 rounded-xl font-black text-sm text-white hover:opacity-90 active:scale-[0.98] transition-all mt-1 disabled:opacity-60 flex items-center justify-center gap-2"
               style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>
-              Lähetä ehdotus
+              {loading && <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
+              {loading ? 'Lähetetään…' : 'Lähetä ehdotus'}
             </button>
           </form>
         )}
