@@ -19,6 +19,7 @@ interface Props {
   events: Event[]
   onEventClick: (event: Event) => void
   mapTarget?: MapTarget | null
+  onTargetConsumed?: () => void
 }
 
 type Layers = { events: boolean; restaurants: boolean; activities: boolean }
@@ -82,6 +83,16 @@ function activityColor(category: string): { color: string; emoji: string } {
     case 'urheilu':    return { color: '#ef4444', emoji: '⚽' }
     default:           return { color: '#6b7280', emoji: '✨' }
   }
+}
+
+function safeUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  return /^https?:\/\//i.test(url) ? url : null
+}
+
+function esc(s: string | null | undefined): string {
+  if (!s) return ''
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -209,7 +220,7 @@ const LEGEND_ACT = [
 
 // ── Component ─────────────────────────────────────────────
 
-export default function MapView({ events, onEventClick, mapTarget }: Props) {
+export default function MapView({ events, onEventClick, mapTarget, onTargetConsumed }: Props) {
   const { t } = useLanguage()
 
   const LEGEND_KEYS: Record<string, TranslationKey> = {
@@ -268,7 +279,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
 
   const toggleLayer = useCallback((key: keyof Layers) => {
     setLayers(l => ({ ...l, [key]: !l[key] }))
-    if (key === 'events')      setEventGroup(null)
+    if (key === 'events')      { setEventGroup(null); setCalOpen(false) }
     if (key === 'restaurants') { setRestType(null); setRestCuisine(null) }
     if (key === 'activities')  setActCat(null)
   }, [])
@@ -302,7 +313,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
     if (mapTarget.type === 'restaurant') setLayers(l => ({ ...l, restaurants: true }))
     else if (mapTarget.type === 'activity') setLayers(l => ({ ...l, activities: true }))
 
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (!mapRef.current) return
       mapRef.current.flyTo([mapTarget.lat, mapTarget.lon], mapTarget.zoom ?? 16, { duration: 1.2, easeLinearity: 0.5 })
       import('leaflet').then(L => {
@@ -311,10 +322,11 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
           .setLatLng([mapTarget.lat, mapTarget.lon])
           .setContent(`<p style="color:#fff;font-family:Inter,sans-serif;font-size:13px;font-weight:700;margin:0;padding:2px 0">📍 ${mapTarget.name}</p>`)
           .openOn(mapRef.current)
+        onTargetConsumed?.()
       })
     }, 350)
-    return () => clearTimeout(t)
-  }, [mapReady, mapTarget])
+    return () => clearTimeout(timer)
+  }, [mapReady, mapTarget, onTargetConsumed])
 
   // ── Fetch data on demand ──────────────────────────────────
   useEffect(() => {
@@ -349,9 +361,9 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         const time = new Date(event.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
         const popup = `<div style="font-family:Inter,sans-serif;min-width:180px;max-width:220px">
           ${event.image ? `<img src="${event.image}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:8px" loading="lazy"/>` : ''}
-          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff;line-height:1.3">${event.title}</p>
+          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff;line-height:1.3">${esc(event.title)}</p>
           <p style="font-size:11px;color:${color};margin:0 0 2px;font-weight:600">${time}${event.isFree ? ' · 🎁 Maksuton' : ''}</p>
-          <p style="font-size:11px;color:#777;margin:0">${event.location?.name || ''}</p>
+          <p style="font-size:11px;color:#777;margin:0">${esc(event.location?.name)}</p>
         </div>`
         const marker = L.marker([event.location.lat, event.location.lon], { icon })
         marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 240 })
@@ -380,12 +392,12 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
         const icon = makePinIcon(L, color, emoji, true)
         const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
-          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${r.name}</p>
-          ${r.description ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${r.description}</p>` : ''}
-          ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${r.address}${r.city && r.city !== 'Helsinki' ? `, ${r.city}` : ''}</p>` : ''}
+          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(r.name)}</p>
+          ${r.description ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(r.description)}</p>` : ''}
+          ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(r.address)}${r.city && r.city !== 'Helsinki' ? `, ${esc(r.city)}` : ''}</p>` : ''}
           ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} päässä</p>` : ''}
-          ${r.www ? `<a href="${r.www}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
-          ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${r.www ? '3px' : '0'} 0 0">${r.phone}</p>` : ''}
+          ${safeUrl(r.www) ? `<a href="${safeUrl(r.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
+          ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${safeUrl(r.www) ? '3px' : '0'} 0 0">${r.phone}</p>` : ''}
         </div>`
         const marker = L.marker([r.lat, r.lon], { icon })
         marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
@@ -393,7 +405,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         restMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine])
+  }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine, t])
 
   // ── Activity markers ──────────────────────────────────────
   useEffect(() => {
@@ -408,12 +420,12 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         const { color, emoji } = activityColor(a.category)
         const icon = makePinIcon(L, color, emoji, true)
         const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
-          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${a.name}</p>
-          <p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${a.description}</p>
-          ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${a.address}</p>` : ''}
+          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(a.name)}</p>
+          <p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(a.description)}</p>
+          ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(a.address)}</p>` : ''}
           ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">🎁 Ilmainen</p>` : ''}
           ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${a.openingHours.split(';')[0]}</p>` : ''}
-          ${a.www ? `<a href="${a.www}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
+          ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
         </div>`
         const marker = L.marker([a.lat, a.lon], { icon })
         marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
@@ -421,7 +433,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         activityMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, activities, layers.activities, actCat])
+  }, [mapReady, activities, layers.activities, actCat, t])
 
   // ── User position marker ──────────────────────────────────
   useEffect(() => {
@@ -436,7 +448,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         .bindPopup(`<p style="color:#fff;font-family:Inter;font-size:12px;margin:0;font-weight:600">${t('map.you_are_here')}</p>`, { className: 'dark-popup' })
         .addTo(mapRef.current)
     })
-  }, [mapReady, userPos])
+  }, [mapReady, userPos, t])
 
   // ── Locate me ─────────────────────────────────────────────
   const locateMe = useCallback(() => {
@@ -455,7 +467,11 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
   }, [])
 
   // ── Counts ────────────────────────────────────────────────
-  const eventsOnMap     = events.filter(e => e.location?.lat && filterEventByDate(e, dateFilter, customDate)).length
+  const eventsOnMap     = events.filter(e =>
+    e.location?.lat &&
+    filterEventByDate(e, dateFilter, customDate) &&
+    (!eventGroup || getEventGroup(e) === eventGroup)
+  ).length
   const restsOnMap      = restaurants.filter(r => {
     if (!r.lat) return false
     if (restType && r.type !== restType) return false
@@ -465,7 +481,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
     }
     return true
   }).length
-  const activitiesOnMap = activities.filter(a => a.lat).length
+  const activitiesOnMap = activities.filter(a => a.lat && (!actCat || a.category === actCat)).length
 
   const countParts = [
     layers.events      && eventsOnMap     > 0 && `${eventsOnMap} ${t('map.events_count')}`,
@@ -480,23 +496,26 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
   ]
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-white/8"
-      style={{ height: 'calc(100dvh - 148px)', minHeight: 480 }}>
+    <div className="relative w-full rounded-2xl border border-white/8"
+      style={{ height: 'calc(100dvh - 148px)', minHeight: 480, clipPath: 'inset(0 round 1rem)' }}>
       <div ref={containerRef} className="w-full h-full" />
 
       {/* ── Layer toggles ── */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/85 backdrop-blur-md rounded-xl p-1.5 z-[1000] shadow-xl border border-white/8"
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000]"
         style={{ maxWidth: 'calc(100vw - 130px)' }}>
-        {LAYER_META.map(opt => (
-          <button key={opt.key} onClick={() => toggleLayer(opt.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all whitespace-nowrap ${
-              layers[opt.key] ? 'text-white shadow-sm' : 'text-white/35 hover:text-white/60'
-            }`}
-            style={layers[opt.key] ? { background: opt.bg } : {}}>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${layers[opt.key] ? 'bg-white' : 'bg-white/20'}`} />
-            {opt.key === 'events' ? t('map.layer_events') : opt.key === 'restaurants' ? t('map.layer_restaurants') : t('map.layer_activities')}
-          </button>
-        ))}
+        <div className="flex gap-1.5 bg-black/85 backdrop-blur-md rounded-xl p-1.5 shadow-xl border border-white/8 overflow-x-auto"
+          style={{ scrollbarWidth: 'none' }}>
+          {LAYER_META.map(opt => (
+            <button key={opt.key} onClick={() => toggleLayer(opt.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0 whitespace-nowrap ${
+                layers[opt.key] ? 'text-white shadow-sm' : 'text-white/35 hover:text-white/60'
+              }`}
+              style={layers[opt.key] ? { background: opt.bg } : {}}>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${layers[opt.key] ? 'bg-white' : 'bg-white/20'}`} />
+              {opt.key === 'events' ? t('map.layer_events') : opt.key === 'restaurants' ? t('map.layer_restaurants') : t('map.layer_activities')}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Date + sub-filters stack ── */}

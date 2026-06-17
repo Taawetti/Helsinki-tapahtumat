@@ -151,7 +151,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 interface Props {
   events: Event[]
-  onShowOnMap?: (lat: number, lon: number, name: string) => void
+  onShowOnMap?: (lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => void
   onEventClick?: (event: Event) => void
 }
 
@@ -436,7 +436,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             )}
             {onShowOnMap && current.lat && current.lon && (
               <button
-                onClick={() => onShowOnMap(current.lat!, current.lon!, current.title)}
+                onClick={() => onShowOnMap(current.lat!, current.lon!, current.title, current.type)}
                 className="flex items-center gap-1.5 text-xs font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
                 <MapIcon size={12} /> {t('common.show_on_map')}
               </button>

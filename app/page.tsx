@@ -308,7 +308,7 @@ export default function Home() {
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
             {(['discover', 'idea', 'map', 'restaurants', 'activities'] as AppMode[]).map((m) => (
-              <button key={m} onClick={() => setMode(m)}
+              <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab) }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/65'}`}>
                 {m === 'discover' ? `✦ ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'map' ? t('nav.map') : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🧖 ${t('nav.activities')}`}
               </button>
@@ -341,7 +341,7 @@ export default function Home() {
           </button>
 
           <button
-            onClick={() => setMode(mode === 'favorites' ? 'discover' : 'favorites')}
+            onClick={() => { const m = mode === 'favorites' ? 'discover' : 'favorites'; setMode(m); setMobileTab(m as typeof mobileTab) }}
             className={`relative shrink-0 p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-pink-500/60 text-pink-400 bg-pink-500/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-pink-400'}`}
             title="Suosikit"
           >
@@ -608,7 +608,7 @@ export default function Home() {
       {mode === 'idea' && (
         <IdeaView
           events={filteredEvents}
-          onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name)}
+          onShowOnMap={(lat, lon, name, type) => handleShowOnMap(lat, lon, name, type)}
           onEventClick={setSelectedEvent}
         />
       )}
@@ -616,7 +616,7 @@ export default function Home() {
       {/* ══ MAP ══ */}
       {mode === 'map' && (
         <main className="px-2 pt-2 pb-0">
-          <MapView events={filteredEvents} onEventClick={setSelectedEvent} mapTarget={mapTarget}/>
+          <MapView events={filteredEvents} onEventClick={setSelectedEvent} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}/>
         </main>
       )}
 

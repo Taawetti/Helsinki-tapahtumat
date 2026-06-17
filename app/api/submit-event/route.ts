@@ -14,6 +14,21 @@ interface EventSubmission {
   email: string
 }
 
+function escHtml(s: string | undefined): string {
+  if (!s) return ''
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function safeLink(url: string | undefined): string | null {
+  if (!url) return null
+  return /^https?:\/\//i.test(url) ? url : null
+}
+
 export async function POST(req: NextRequest) {
   const body: EventSubmission = await req.json().catch(() => null)
 
@@ -30,17 +45,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Palvelinvirhe' }, { status: 500 })
   }
 
+  const link = safeLink(body.linkki)
   const htmlContent = `
     <h2 style="font-family:sans-serif;color:#a855f7;">Uusi tapahtumaehdotus — helsinki-tapahtumat</h2>
     <table style="font-family:sans-serif;font-size:14px;border-collapse:collapse;width:100%;max-width:600px;">
-      <tr><td style="padding:6px 12px;font-weight:bold;color:#666;width:140px;">Nimi</td><td style="padding:6px 12px;">${body.nimi}</td></tr>
-      <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Päivämäärä</td><td style="padding:6px 12px;">${body.pvm}${body.aika ? ' klo ' + body.aika : ''}</td></tr>
-      <tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Paikka</td><td style="padding:6px 12px;">${body.paikka}</td></tr>
-      ${body.hinta ? `<tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Hinta</td><td style="padding:6px 12px;">${body.hinta}</td></tr>` : ''}
-      ${body.kategoria ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kategoria</td><td style="padding:6px 12px;">${body.kategoria}</td></tr>` : ''}
-      ${body.linkki ? `<tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Linkki</td><td style="padding:6px 12px;"><a href="${body.linkki}">${body.linkki}</a></td></tr>` : ''}
-      ${body.kuvaus ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kuvaus</td><td style="padding:6px 12px;">${body.kuvaus}</td></tr>` : ''}
-      <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Järjestäjä</td><td style="padding:6px 12px;"><a href="mailto:${body.email}">${body.email}</a></td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold;color:#666;width:140px;">Nimi</td><td style="padding:6px 12px;">${escHtml(body.nimi)}</td></tr>
+      <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Päivämäärä</td><td style="padding:6px 12px;">${escHtml(body.pvm)}${body.aika ? ' klo ' + escHtml(body.aika) : ''}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Paikka</td><td style="padding:6px 12px;">${escHtml(body.paikka)}</td></tr>
+      ${body.hinta ? `<tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Hinta</td><td style="padding:6px 12px;">${escHtml(body.hinta)}</td></tr>` : ''}
+      ${body.kategoria ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kategoria</td><td style="padding:6px 12px;">${escHtml(body.kategoria)}</td></tr>` : ''}
+      ${link ? `<tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Linkki</td><td style="padding:6px 12px;"><a href="${link}">${escHtml(body.linkki)}</a></td></tr>` : ''}
+      ${body.kuvaus ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kuvaus</td><td style="padding:6px 12px;">${escHtml(body.kuvaus)}</td></tr>` : ''}
+      <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Järjestäjä</td><td style="padding:6px 12px;"><a href="mailto:${escHtml(body.email)}">${escHtml(body.email)}</a></td></tr>
     </table>
     <p style="font-family:sans-serif;font-size:12px;color:#999;margin-top:24px;">Lähetetty osoitteesta helsinki-tapahtumat.fi</p>
   `
@@ -57,7 +73,7 @@ export async function POST(req: NextRequest) {
         sender: { name: 'Helsinki Tapahtumat', email: senderEmail },
         to: [{ email: adminEmail }],
         replyTo: { email: body.email },
-        subject: `Tapahtumaehdotus: ${body.nimi} — ${body.pvm}`,
+        subject: `Tapahtumaehdotus: ${escHtml(body.nimi)} — ${body.pvm}`,
         htmlContent,
       }),
     })

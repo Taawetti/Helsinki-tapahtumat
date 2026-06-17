@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import https from 'node:https'
 import { Event } from '@/lib/types'
 
 // Veikkausliiga (Finnish football) match schedule
 // Server-rendered HTML from veikkausliiga.com — no API key needed
-const VL_URL = 'https://www.veikkausliiga.com/tilastot/2026/veikkausliiga/ottelut/'
+const VL_URL = `https://www.veikkausliiga.com/tilastot/${new Date().getFullYear()}/veikkausliiga/ottelut/`
 
 // Helsinki clubs and their home venues
 const HELSINKI_CLUBS: Record<string, { venueName: string; address: string; ticketUrl: string; lat: number; lon: number }> = {
@@ -37,31 +36,13 @@ function parseFinnishDate(text: string): string | null {
   return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
 }
 
-function fetchHtml(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(url)
-    const req = https.get(
-      {
-        hostname: parsed.hostname,
-        path: parsed.pathname + parsed.search,
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
-        rejectUnauthorized: false,
-        timeout: 8000,
-      },
-      (res) => {
-        if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode}`))
-          res.resume()
-          return
-        }
-        const chunks: Buffer[] = []
-        res.on('data', (c: Buffer) => chunks.push(c))
-        res.on('end', () => resolve(Buffer.concat(chunks).toString()))
-      }
-    )
-    req.on('error', reject)
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')) })
+async function fetchHtml(url: string): Promise<string> {
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(8000),
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
   })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.text()
 }
 
 async function scrapeVeikkausliiga(): Promise<Match[]> {

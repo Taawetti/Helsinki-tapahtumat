@@ -116,7 +116,6 @@ async function _fetchAllImages(): Promise<{ venues: Record<string, string>; cate
     }
   }
 
-  console.log(`[venue-images] fetched ${Object.keys(venues).length} venue + ${Object.keys(categories).length} category images`)
   return { venues, categories }
 }
 

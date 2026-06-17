@@ -57,15 +57,15 @@ export async function GET(req: NextRequest) {
   const keyword = searchParams.get('keyword') || ''
 
   const query = `
-    query {
+    query SearchEvents($kw: String!, $start: String!, $end: String!) {
       keywordSearch(
         filter: {
-          query: "${keyword || 'Helsinki'}"
+          query: $kw
           lat: 60.1699
           lon: 24.9384
           radius: 30
-          startDateRange: "${start}T00:00:00"
-          endDateRange: "${end}T23:59:59"
+          startDateRange: $start
+          endDateRange: $end
           source: EVENTS
         }
         first: 40
@@ -96,7 +96,10 @@ export async function GET(req: NextRequest) {
     const res = await fetch(MEETUP_GQL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({
+        query,
+        variables: { kw: keyword || 'Helsinki', start: `${start}T00:00:00`, end: `${end}T23:59:59` },
+      }),
       next: { revalidate: 300, tags: ['events'] },
     })
     if (!res.ok) return NextResponse.json({ events: [] })

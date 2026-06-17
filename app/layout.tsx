@@ -10,7 +10,6 @@ export const viewport: Viewport = {
   themeColor: '#0072C6',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
 }
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'

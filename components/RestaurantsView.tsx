@@ -205,7 +205,7 @@ function RestaurantCard({ r, distance, onShowOnMap }: {
         {/* Links */}
         <div className="flex items-center gap-3 pt-0.5 flex-wrap">
           {r.www && (
-            <a href={r.www} target="_blank" rel="noopener noreferrer"
+            <a href={/^https?:\/\//i.test(r.www ?? '') ? r.www! : '#'} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
               <Globe size={10} /> {t('common.website')}
             </a>
@@ -284,7 +284,7 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
 
         <div className="flex items-center gap-3 pt-1 flex-wrap">
           {r.www && (
-            <a href={r.www} target="_blank" rel="noopener noreferrer"
+            <a href={/^https?:\/\//i.test(r.www ?? '') ? r.www! : '#'} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold text-purple-400/80 hover:text-purple-300 transition-colors">
               <Globe size={10} /> {t('common.website')}
             </a>

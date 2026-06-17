@@ -56,7 +56,7 @@ function normalize(raw: TMEvent): Event {
 
   const price = raw.priceRanges?.[0]
   const priceStr = price ? `${price.min}–${price.max} ${price.currency ?? '€'}` : null
-  const isFree = !price
+  const isFree = price ? (price.min === 0 && price.max === 0) : false
 
   const genre = raw.classifications?.[0]?.genre?.name ?? ''
   const segment = raw.classifications?.[0]?.segment?.name ?? ''
