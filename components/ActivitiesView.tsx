@@ -1,43 +1,78 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Search, MapPin, Globe, Phone, X, ChevronDown, Navigation, Clock, Ticket } from 'lucide-react'
+import { Search, MapPin, Globe, Phone, X, ChevronDown, Navigation, Clock, Ticket, Timer } from 'lucide-react'
 import type { Activity, ActivityCategory } from '@/lib/types'
+import {
+  type TouristTheme,
+  type AttractionHighlight,
+  TOURIST_THEME_META,
+  THEME_CATEGORIES,
+  getHighlight,
+} from '@/lib/activity-highlights'
 
 // ── Constants ─────────────────────────────────────────────
 
 const PAGE_SIZE = 48
 
-const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string; description: string }> = {
-  sauna:      { label: 'Saunat',           emoji: '🧖', description: 'Julkiset saunat' },
-  museo:      { label: 'Museot',           emoji: '🏛', description: 'Museot ja historia' },
-  nahtavyys:  { label: 'Nähtävyydet',      emoji: '📍', description: 'Kohteet ja monumentit' },
-  galleria:   { label: 'Galleriat',        emoji: '🎨', description: 'Taide ja galleriat' },
-  nakopaikka: { label: 'Näköalapaikat',    emoji: '🔭', description: 'Panoraamanäkymät' },
-  uimaranta:  { label: 'Uimarannat',       emoji: '🏊', description: 'Uimarannat ja -paikat' },
-  puisto:     { label: 'Puistot',          emoji: '🌿', description: 'Puistot ja luonto' },
-  markkina:   { label: 'Torit & hallit',   emoji: '🏪', description: 'Kauppahallit ja torit' },
-  urheilu:    { label: 'Urheilu',          emoji: '⚽', description: 'Urheilupaikat' },
-  muu:        { label: 'Muut',             emoji: '✨', description: 'Muut aktiviteetit' },
+const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string }> = {
+  sauna:      { label: 'Sauna',           emoji: '🧖' },
+  museo:      { label: 'Museo',           emoji: '🏛' },
+  nahtavyys:  { label: 'Nähtävyys',       emoji: '📍' },
+  galleria:   { label: 'Galleria',        emoji: '🎨' },
+  nakopaikka: { label: 'Näköalapaikka',   emoji: '🔭' },
+  uimaranta:  { label: 'Uimaranta',       emoji: '🏊' },
+  puisto:     { label: 'Puisto',          emoji: '🌿' },
+  markkina:   { label: 'Tori & halli',    emoji: '🏪' },
+  urheilu:    { label: 'Urheilu',         emoji: '⚽' },
+  muu:        { label: 'Muu',             emoji: '✨' },
 }
 
-// Ordered chip list (omit 'muu' from chips — it'll show in "Kaikki")
 const CHIP_CATEGORIES: ActivityCategory[] = [
   'sauna', 'museo', 'nahtavyys', 'galleria', 'nakopaikka',
   'uimaranta', 'puisto', 'markkina', 'urheilu',
 ]
 
-// Curated top picks — shown as a featured horizontal row
-const TOP_PICKS = [
-  { name: 'Löyly', emoji: '🔥', note: 'Design-sauna merellä, Hernesaaressa. Ravintola, terassi & lautas.' },
-  { name: 'Allas Sea Pool', emoji: '🌊', note: 'Meressä uiminen Etelärannassa — kolme allasta, sauna, ravintola.' },
-  { name: 'Kotiharjun sauna', emoji: '🪵', note: 'Helsingin vanhin julkinen puusauna (1928). Kallio.' },
-  { name: 'Kansallismuseo', emoji: '🏛', note: 'Suomen historian kattavin kokoelma Töölössä.' },
-  { name: 'HAM Helsinki', emoji: '🎨', note: 'Helsingin taidemuseo — nykytaide Tennispalatsissa.' },
-  { name: 'Suomenlinna', emoji: '⛵', note: 'Unescon maailmanperintökohde — lautalla 15 min Kauppatorilta.' },
-  { name: 'Kauppahalli', emoji: '🧅', note: 'Helsingin Kauppahalli — ruokakulttuuria vuodesta 1889.' },
-  { name: 'Temppeliaukion kirkko', emoji: '⛪', note: 'Kallioon louhittu kirkko, yksi Helsingin tunnetuimmista kohteista.' },
+// Expanded top picks with theme tags
+type TopPick = {
+  name: string; emoji: string; note: string
+  themes: TouristTheme[]; defaultPick?: boolean
+}
+
+const TOP_PICKS: TopPick[] = [
+  { name: 'Löyly',                emoji: '🔥', note: 'Design-sauna merellä, Hernesaaressa. Ravintola, terassi & lounas.', themes: ['sauna'], defaultPick: true },
+  { name: 'Allas Sea Pool',        emoji: '🌊', note: 'Meressä uiminen Etelärannassa — kolme allasta, sauna, ravintola.', themes: ['sauna', 'ulkoilu'], defaultPick: true },
+  { name: 'Kotiharjun sauna',      emoji: '🪵', note: 'Helsingin vanhin julkinen puusauna (1928). Kallio.', themes: ['sauna'], defaultPick: true },
+  { name: 'Suomenlinna',           emoji: '⛵', note: 'Unescon maailmanperintökohde — lautalla 15 min Kauppatorilta.', themes: ['historia', 'ulkoilu'], defaultPick: true },
+  { name: 'Temppeliaukion kirkko', emoji: '⛪', note: 'Kallioon louhittu kirkko — yksi Helsingin tunnetuimmista.', themes: ['historia'], defaultPick: true },
+  { name: 'Kansallismuseo',        emoji: '🏛', note: 'Suomen historian kattavin kokoelma Töölössä.', themes: ['historia', 'taide'], defaultPick: true },
+  { name: 'HAM Helsinki',          emoji: '🎨', note: 'Helsingin taidemuseo — nykytaide Tennispalatsissa.', themes: ['taide'], defaultPick: true },
+  { name: 'Kauppahalli',           emoji: '🧅', note: 'Helsingin Kauppahalli — ruokakulttuuria vuodesta 1889.', themes: ['historia', 'ilmainen'], defaultPick: true },
+  // Taide-lisäykset
+  { name: 'Ateneum',               emoji: '🖼',  note: 'Suomen suurin taidekokoelma — kultakausi ja mestarit.', themes: ['taide'] },
+  { name: 'Kiasma',                emoji: '🌀',  note: 'Nykytaidemuseo Steven Hollin ikonisessa kaarirakenuksessa.', themes: ['taide'] },
+  { name: 'Amos Rex',              emoji: '🎭',  note: 'Kokeellinen taidemuseo maan alla Lasipalatsin alla.', themes: ['taide'] },
+  // Perhe
+  { name: 'Linnanmäki',            emoji: '🎢',  note: 'Suomen suosituin huvipuisto, yli 40 laitetta (1950).', themes: ['perhe'] },
+  { name: 'Korkeasaari',           emoji: '🦁',  note: 'Saarieläintarha — lautalla 20 min Kauppatorilta (1889).', themes: ['perhe', 'ulkoilu'] },
+  { name: 'Heureka',               emoji: '🔬',  note: 'Interaktiivinen tiedekeskus koko perheelle Vantaalla.', themes: ['perhe'] },
+  // Ulkoilu
+  { name: 'Pihlajasaari',          emoji: '🏖',  note: 'Helsinkiläisten kesäsuosikki — hiekkaranta lautalla 10 min.', themes: ['ulkoilu'] },
+  { name: 'Sibelius-monumentti',   emoji: '🎵',  note: '600 teräsputkea Sibelius-puistossa — maksuton käynti.', themes: ['ulkoilu', 'ilmainen'] },
+  { name: 'Seurasaari',            emoji: '🌲',  note: 'Ulkoilmamuseo 87 historiallisella rakennuksella.', themes: ['historia', 'ulkoilu', 'ilmainen'] },
+  // Ilmainen
+  { name: 'Helsingin tuomiokirkko', emoji: '🕍', note: 'Ikoninen valkoinen katedraali Senaatintorilla (1852).', themes: ['historia', 'ilmainen'] },
+  { name: 'Uspenski-katedraali',    emoji: '🔵', note: 'Pohjois-Euroopan suurin ortodoksinen kirkko.', themes: ['historia', 'ilmainen'] },
 ]
+
+const THEME_SECTION_TITLE: Record<TouristTheme, string> = {
+  historia: '🏛 Historiaa & arkkitehtuuria',
+  sauna:    '🧖 Saunakokemuksia',
+  taide:    '🎨 Taidetta & museoja',
+  ulkoilu:  '🌿 Ulkoilua & luontoa',
+  perhe:    '🎠 Perheelle & lapsille',
+  ilmainen: '🆓 Ilmaiseksi Helsingissä',
+}
 
 type SortMode = 'default' | 'nearby' | 'open'
 
@@ -92,12 +127,31 @@ function isOpenNow(hours?: string): boolean | undefined {
   }
 }
 
-// ── Top pick card (horizontal scroll, curated) ────────────
+// ── Badge chip ────────────────────────────────────────────
 
-function TopPickCard({ pick, activity, distance }: {
-  pick: typeof TOP_PICKS[number]
+function BadgeChip({ text }: { text: string }) {
+  const isUnesco = text === 'UNESCO'
+  const isVanhin = text.includes('vanhin') || text.includes('Vanhin')
+  const isAinutlaatuinen = text === 'Ainutlaatuinen'
+  const cls = isUnesco
+    ? 'bg-blue-500/15 text-blue-300/90 border border-blue-500/20'
+    : isVanhin || isAinutlaatuinen
+      ? 'bg-amber-500/15 text-amber-300/90 border border-amber-500/20'
+      : 'bg-purple-500/10 text-purple-300/80 border border-purple-500/15'
+  return (
+    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 ${cls}`}>
+      {text}
+    </span>
+  )
+}
+
+// ── Top pick card ─────────────────────────────────────────
+
+function TopPickCard({ pick, activity, distance, highlight }: {
+  pick: TopPick
   activity?: Activity
   distance?: number
+  highlight?: AttractionHighlight
 }) {
   const open = activity?.openingHours ? isOpenNow(activity.openingHours) : undefined
   const cat = activity ? CATEGORY_META[activity.category] : null
@@ -105,6 +159,8 @@ function TopPickCard({ pick, activity, distance }: {
   return (
     <div className="shrink-0 w-64 rounded-2xl border border-white/8 bg-gradient-to-b from-white/6 to-white/2 hover:from-white/8 hover:to-white/4 transition-all p-4 space-y-2">
       <div className="text-3xl leading-none">{pick.emoji}</div>
+
+      {/* Name + open badge */}
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-black text-white text-sm leading-tight">{pick.name}</h3>
         {open !== undefined && (
@@ -113,10 +169,24 @@ function TopPickCard({ pick, activity, distance }: {
           </span>
         )}
       </div>
-      <p className="text-white/45 text-xs leading-relaxed">{pick.note}</p>
-      <div className="flex gap-2 flex-wrap">
+
+      {/* Hook text (superlative) — highlighted */}
+      {highlight?.hook ? (
+        <p className="text-amber-300/70 text-[11px] leading-snug font-semibold">{highlight.hook}</p>
+      ) : (
+        <p className="text-white/45 text-xs leading-relaxed">{pick.note}</p>
+      )}
+
+      {/* Badges row */}
+      <div className="flex flex-wrap gap-1.5 items-center">
+        {highlight?.badge && <BadgeChip text={highlight.badge} />}
+        {highlight?.duration && (
+          <span className="flex items-center gap-1 text-[10px] text-white/35 font-medium">
+            <Timer size={9} className="shrink-0" /> {highlight.duration}
+          </span>
+        )}
         {cat && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/6 text-white/35">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/6 text-white/30">
             {cat.emoji} {cat.label}
           </span>
         )}
@@ -131,18 +201,29 @@ function TopPickCard({ pick, activity, distance }: {
           </span>
         )}
       </div>
+
+      {/* Practical tip */}
+      {highlight?.tip && (
+        <p className="text-white/25 text-[10px] italic leading-relaxed">{highlight.tip}</p>
+      )}
+
+      {/* Address */}
       {activity?.address && (
-        <div className="flex items-center gap-1.5 text-white/30 text-[10px]">
+        <div className="flex items-center gap-1.5 text-white/25 text-[10px]">
           <MapPin size={9} className="shrink-0" />
           <span>{activity.address}{activity.city && activity.city !== 'Helsinki' ? `, ${activity.city}` : ''}</span>
         </div>
       )}
+
+      {/* Opening hours */}
       {activity?.openingHours && (
-        <div className="flex items-center gap-1.5 text-white/25 text-[10px]">
+        <div className="flex items-center gap-1.5 text-white/20 text-[10px]">
           <Clock size={9} className="shrink-0" />
           <span>{activity.openingHours.split(';')[0]}</span>
         </div>
       )}
+
+      {/* Links */}
       {activity && (activity.www || activity.phone) && (
         <div className="flex gap-3 pt-0.5">
           {activity.www && (
@@ -165,13 +246,16 @@ function TopPickCard({ pick, activity, distance }: {
 
 // ── Activity card ─────────────────────────────────────────
 
-function ActivityCard({ activity, distance }: { activity: Activity; distance?: number }) {
+function ActivityCard({ activity, distance, highlight }: {
+  activity: Activity
+  distance?: number
+  highlight?: AttractionHighlight
+}) {
   const meta = CATEGORY_META[activity.category]
   const open = isOpenNow(activity.openingHours)
 
   return (
     <div className="rounded-2xl border border-white/6 bg-white/3 hover:bg-white/[0.05] transition-colors p-4 space-y-2">
-      {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xl shrink-0">{meta.emoji}</span>
@@ -191,11 +275,21 @@ function ActivityCard({ activity, distance }: { activity: Activity; distance?: n
         </div>
       </div>
 
-      {/* Category + description */}
-      <p className="text-white/40 text-xs">{activity.description}</p>
+      {/* Hook text if available, otherwise generic description */}
+      {highlight?.hook ? (
+        <p className="text-amber-300/65 text-xs leading-snug font-medium">{highlight.hook}</p>
+      ) : (
+        <p className="text-white/40 text-xs">{activity.description}</p>
+      )}
 
-      {/* Details row */}
-      <div className="flex flex-wrap gap-2 text-[10px]">
+      {/* Badges + details */}
+      <div className="flex flex-wrap gap-1.5 text-[10px] items-center">
+        {highlight?.badge && <BadgeChip text={highlight.badge} />}
+        {highlight?.duration && (
+          <span className="flex items-center gap-1 text-white/30 font-medium">
+            <Timer size={9} /> {highlight.duration}
+          </span>
+        )}
         {activity.fee === false && (
           <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400/80">Ilmainen</span>
         )}
@@ -212,7 +306,11 @@ function ActivityCard({ activity, distance }: { activity: Activity; distance?: n
         )}
       </div>
 
-      {/* Opening hours */}
+      {/* Practical tip */}
+      {highlight?.tip && (
+        <p className="text-white/25 text-[10px] italic leading-relaxed">{highlight.tip}</p>
+      )}
+
       {activity.openingHours && (
         <div className="flex items-start gap-1.5 text-white/25 text-xs">
           <Clock size={10} className="shrink-0 mt-0.5" />
@@ -220,7 +318,6 @@ function ActivityCard({ activity, distance }: { activity: Activity; distance?: n
         </div>
       )}
 
-      {/* Address */}
       {activity.address && (
         <div className="flex items-center gap-1.5 text-white/25 text-xs">
           <MapPin size={10} className="shrink-0" />
@@ -228,7 +325,6 @@ function ActivityCard({ activity, distance }: { activity: Activity; distance?: n
         </div>
       )}
 
-      {/* Links */}
       {(activity.www || activity.phone) && (
         <div className="flex items-center gap-3 pt-0.5">
           {activity.www && (
@@ -266,6 +362,7 @@ export default function ActivitiesView() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<ActivityCategory | 'all'>('all')
+  const [selectedTheme, setSelectedTheme] = useState<TouristTheme | null>(null)
   const [sortMode, setSortMode] = useState<SortMode>('default')
   const [freeOnly, setFreeOnly] = useState(false)
   const [shown, setShown] = useState(PAGE_SIZE)
@@ -287,7 +384,7 @@ export default function ActivitiesView() {
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { setShown(PAGE_SIZE) }, [search, catFilter, sortMode, freeOnly])
+  useEffect(() => { setShown(PAGE_SIZE) }, [search, catFilter, selectedTheme, sortMode, freeOnly])
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) { setLocError(true); return }
@@ -312,16 +409,55 @@ export default function ActivitiesView() {
     return m
   }, [userPos, activities])
 
-  // Top picks with matched activity data
+  // Pre-compute highlight for each activity
+  const highlightMap = useMemo(() => {
+    const m = new Map<string, AttractionHighlight>()
+    activities.forEach(a => {
+      const h = getHighlight(a.name)
+      if (h) m.set(a.id, h)
+    })
+    return m
+  }, [activities])
+
+  // Top picks filtered by selected theme
+  const shownPicks = useMemo(() => {
+    return selectedTheme
+      ? TOP_PICKS.filter(p => p.themes.includes(selectedTheme))
+      : TOP_PICKS.filter(p => p.defaultPick)
+  }, [selectedTheme])
+
+  // Match top picks with OSM activity data
   const topPicksWithData = useMemo(() => {
     const byName = new Map(activities.map(a => [a.name.toLowerCase(), a]))
-    return TOP_PICKS.map(p => ({ pick: p, activity: byName.get(p.name.toLowerCase()) }))
-  }, [activities])
+    return shownPicks.map(p => ({
+      pick: p,
+      activity: byName.get(p.name.toLowerCase()),
+      highlight: getHighlight(p.name),
+    }))
+  }, [activities, shownPicks])
 
   const filtered = useMemo(() => {
     let result = activities
+
+    // Theme filter
+    if (selectedTheme) {
+      const cats = THEME_CATEGORIES[selectedTheme]
+      result = result.filter(a => {
+        const h = getHighlight(a.name)
+        if (h?.themes.includes(selectedTheme)) return true
+        if (cats.length > 0 && cats.includes(a.category)) return true
+        if (selectedTheme === 'ilmainen') return a.fee === false
+        return false
+      })
+    }
+
+    // Category chip filter
     if (catFilter !== 'all') result = result.filter(a => a.category === catFilter)
+
+    // Free-only filter
     if (freeOnly) result = result.filter(a => a.fee === false)
+
+    // Search
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(a =>
@@ -330,6 +466,8 @@ export default function ActivitiesView() {
         a.description.toLowerCase().includes(q)
       )
     }
+
+    // Sort
     if (sortMode === 'nearby' && userPos) {
       result = [...result].sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     } else if (sortMode === 'open') {
@@ -341,11 +479,17 @@ export default function ActivitiesView() {
         return 0
       })
     }
+
     return result
-  }, [activities, catFilter, freeOnly, search, sortMode, userPos, distMap])
+  }, [activities, selectedTheme, catFilter, freeOnly, search, sortMode, userPos, distMap])
 
   const visible = filtered.slice(0, shown)
   const hasMore = shown < filtered.length
+
+  const handleTheme = (theme: TouristTheme) => {
+    setSelectedTheme(t => t === theme ? null : theme)
+    setCatFilter('all')
+  }
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-5 pb-24 space-y-6">
@@ -357,22 +501,55 @@ export default function ActivitiesView() {
           Tekemistä
         </h1>
         <p className="text-white/25 text-sm mt-1">
-          Saunat, museot, nähtävyydet, galleriat ja paljon muuta — Helsinki-alue
+          Sauna-elämys, historiaa, taidetta tai ulkoilua — Helsinki kaikille
         </p>
       </div>
 
-      {/* ── Top picks (curated) ── */}
+      {/* ── Mitä haet tänään? ── */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-white/70 font-black text-sm tracking-wide uppercase">Mitä haet tänään?</h2>
+          <p className="text-white/25 text-xs mt-0.5">Valitse kiinnostuksesi — näet parhaat kohteet heti</p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {(Object.entries(TOURIST_THEME_META) as [TouristTheme, typeof TOURIST_THEME_META[TouristTheme]][]).map(([theme, meta]) => {
+            const isSelected = selectedTheme === theme
+            return (
+              <button key={theme} onClick={() => handleTheme(theme)}
+                className={`rounded-2xl p-3.5 text-left transition-all border ${
+                  isSelected
+                    ? 'border-purple-500/50 shadow-lg shadow-purple-500/10'
+                    : 'border-white/6 bg-white/3 hover:bg-white/6 hover:border-white/12 active:scale-[0.98]'
+                }`}
+                style={isSelected ? { background: 'linear-gradient(135deg,rgba(168,85,247,0.15),rgba(236,72,153,0.1))', borderColor: 'rgba(168,85,247,0.4)' } : {}}>
+                <div className="text-2xl mb-1.5 leading-none">{meta.emoji}</div>
+                <div className={`font-black text-xs leading-tight ${isSelected ? 'text-white' : 'text-white/80'}`}>{meta.label}</div>
+                <div className="text-white/30 text-[10px] mt-0.5 leading-tight">{meta.shortDesc}</div>
+              </button>
+            )
+          })}
+        </div>
+        {selectedTheme && (
+          <button onClick={() => setSelectedTheme(null)}
+            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/55 transition-colors">
+            <X size={11} /> Tyhjennä valinta
+          </button>
+        )}
+      </section>
+
+      {/* ── Top picks ── */}
       {!loading && (
         <section>
-          <h2 className="text-white/80 font-black text-sm tracking-wide uppercase mb-3">
-            ⭐ Paras Helsingistä
+          <h2 className="text-white/70 font-black text-sm tracking-wide uppercase mb-3">
+            {selectedTheme ? THEME_SECTION_TITLE[selectedTheme] : '⭐ Paras Helsingistä'}
           </h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2">
-            {topPicksWithData.map(({ pick, activity }) => (
+            {topPicksWithData.map(({ pick, activity, highlight }) => (
               <TopPickCard
                 key={pick.name}
                 pick={pick}
                 activity={activity}
+                highlight={highlight}
                 distance={activity?.id ? distMap.get(activity.id) : undefined}
               />
             ))}
@@ -399,8 +576,7 @@ export default function ActivitiesView() {
 
       {/* ── Category chips ── */}
       <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-        <button
-          onClick={() => setCatFilter('all')}
+        <button onClick={() => setCatFilter('all')}
           className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-black transition-all whitespace-nowrap ${
             catFilter === 'all'
               ? 'text-white shadow-lg'
@@ -408,15 +584,14 @@ export default function ActivitiesView() {
           }`}
           style={catFilter === 'all' ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
           🌍 Kaikki
-          {catFilter !== 'all' && <span className="text-white/20 text-[10px] font-normal">{total}</span>}
+          {catFilter !== 'all' && <span className="text-white/20 text-[10px] font-normal">{selectedTheme ? filtered.length : total}</span>}
         </button>
         {CHIP_CATEGORIES.map(cat => {
           const count = categoryCount[cat] ?? 0
           if (count === 0) return null
           const meta = CATEGORY_META[cat]
           return (
-            <button key={cat}
-              onClick={() => setCatFilter(cat)}
+            <button key={cat} onClick={() => setCatFilter(cat)}
               className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-black transition-all whitespace-nowrap ${
                 catFilter === cat
                   ? 'text-white shadow-lg'
@@ -500,6 +675,7 @@ export default function ActivitiesView() {
       {!loading && !error && (
         <p className="text-white/20 text-xs font-bold">
           {filtered.length.toLocaleString('fi-FI')} kohdetta
+          {selectedTheme && ` — ${TOURIST_THEME_META[selectedTheme].label}`}
         </p>
       )}
 
@@ -532,7 +708,14 @@ export default function ActivitiesView() {
       {!loading && visible.length > 0 && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visible.map(a => <ActivityCard key={a.id} activity={a} distance={distMap.get(a.id)} />)}
+            {visible.map(a => (
+              <ActivityCard
+                key={a.id}
+                activity={a}
+                distance={distMap.get(a.id)}
+                highlight={highlightMap.get(a.id)}
+              />
+            ))}
           </div>
           {hasMore && (
             <div className="flex justify-center pt-2">
@@ -554,7 +737,7 @@ export default function ActivitiesView() {
             <p className="text-white/50 font-bold">Ei tuloksia</p>
             <p className="text-white/25 text-sm mt-1">Kokeile eri hakusanaa tai tyhjennä suodattimet</p>
           </div>
-          <button onClick={() => { setSearch(''); setCatFilter('all'); setFreeOnly(false) }}
+          <button onClick={() => { setSearch(''); setCatFilter('all'); setFreeOnly(false); setSelectedTheme(null) }}
             className="text-sm font-bold px-4 py-2 rounded-xl border border-purple-500/30 text-purple-400/70 hover:text-purple-300 hover:border-purple-500/50 transition-all">
             Tyhjennä suodattimet
           </button>
