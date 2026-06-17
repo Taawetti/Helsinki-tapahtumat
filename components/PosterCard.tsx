@@ -34,16 +34,17 @@ export default function PosterCard({ event, onClick, large }: Props) {
     >
       {/* Poster image */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: large ? '16/9' : '3/4' }}>
-        {event.image ? (
+        {/* Gradient always behind as fallback */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${hashGradient(event.id)} flex items-center justify-center`}>
+          <span className="text-4xl opacity-30">🎫</span>
+        </div>
+        {event.image && (
           <img
             src={event.image}
             alt={event.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${hashGradient(event.id)} flex items-center justify-center`}>
-            <span className="text-4xl opacity-30">🎫</span>
-          </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 

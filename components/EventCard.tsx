@@ -64,14 +64,15 @@ export default function EventCard({ event, onClick }: Props) {
     >
       {/* Image */}
       <div className="relative h-44 w-full overflow-hidden bg-[#1a1f2e]">
-        {event.image ? (
+        {/* Gradient always behind as fallback */}
+        <div className={`absolute inset-0 h-full w-full bg-gradient-to-br ${gradient}`} />
+        {event.image && (
           <img
             src={event.image}
             alt={event.title}
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
-        ) : (
-          <div className={`h-full w-full bg-gradient-to-br ${gradient}`} />
         )}
 
         {/* Gradient overlay */}
