@@ -154,6 +154,41 @@ export interface Restaurant {
   takeaway?: boolean
 }
 
+// ── ACTIVITIES ─────────────────────────────────────────
+export type ActivityCategory =
+  | 'sauna'
+  | 'museo'
+  | 'nahtavyys'
+  | 'galleria'
+  | 'nakopaikka'
+  | 'uimaranta'
+  | 'puisto'
+  | 'markkina'
+  | 'urheilu'
+  | 'muu'
+
+export interface Activity {
+  id: string
+  name: string
+  description: string        // short human-readable summary
+  category: ActivityCategory
+  address: string
+  city: string
+  lat?: number
+  lon?: number
+  www: string | null
+  phone: string | null
+  openingHours?: string
+  image: string | null
+  fee?: boolean
+  charge?: string
+  wheelchair?: boolean
+  saunaFuel?: string         // 'wood' | 'electric' etc. (for saunas)
+  outdoor?: boolean
+  wikidata?: string
+  wikipedia?: string
+}
+
 export const SEARCH_SUGGESTIONS = [
   'keikkoja tänä iltana',
   'ilmainen tapahtuma',

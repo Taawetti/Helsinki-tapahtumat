@@ -23,6 +23,7 @@ import IltasuunnitelmaCard from '@/components/IltasuunnitelmaCard'
 import JarjestajaForm from '@/components/JarjestajaForm'
 import NewsletterBanner from '@/components/NewsletterBanner'
 import RestaurantsView from '@/components/RestaurantsView'
+import ActivitiesView from '@/components/ActivitiesView'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -103,7 +104,7 @@ function nightlifeScore(e: Event): number {
   return e.image ? 1 : 0
 }
 
-type AppMode = 'discover' | 'browse' | 'map' | 'favorites' | 'restaurants'
+type AppMode = 'discover' | 'browse' | 'map' | 'favorites' | 'restaurants' | 'activities'
 type ListStyle = 'feed' | 'grid'
 
 export default function Home() {
@@ -118,7 +119,7 @@ export default function Home() {
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'favorites' | 'restaurants'>('discover')
+  const [mobileTab, setMobileTab] = useState<'discover' | 'browse' | 'map' | 'favorites' | 'restaurants' | 'activities'>('discover')
   const [customDate, setCustomDate] = useState('')
   const [showEiTieda, setShowEiTieda] = useState(false)
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
@@ -171,6 +172,7 @@ export default function Home() {
     else if (tab === 'map') setMode('map')
     else if (tab === 'favorites') setMode('favorites')
     else if (tab === 'restaurants') setMode('restaurants')
+    else if (tab === 'activities') setMode('activities')
   }, [])
 
 // Vibe-based client filter on top of API results
@@ -291,10 +293,10 @@ export default function Home() {
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'browse', 'map', 'restaurants'] as AppMode[]).map((m) => (
+            {(['discover', 'browse', 'map', 'restaurants', 'activities'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => setMode(m)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/65'}`}>
-                {m === 'discover' ? '✦ Etusivu' : m === 'browse' ? 'Selaa' : m === 'map' ? 'Kartta' : '🍽 Ravintolat'}
+                {m === 'discover' ? '✦ Etusivu' : m === 'browse' ? 'Selaa' : m === 'map' ? 'Kartta' : m === 'restaurants' ? '🍽 Ravintolat' : '🧖 Tekemistä'}
               </button>
             ))}
           </div>
@@ -726,14 +728,18 @@ export default function Home() {
       {/* ══ RESTAURANTS ══ */}
       {mode === 'restaurants' && <RestaurantsView />}
 
+      {/* ══ ACTIVITIES ══ */}
+      {mode === 'activities' && <ActivitiesView />}
+
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/6"
         style={{ background: 'rgba(8,8,12,0.97)', backdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {([
             { tab: 'discover' as const, emoji: '✦', label: 'Etusivu' },
             { tab: 'browse' as const, emoji: '🔍', label: 'Selaa' },
             { tab: 'restaurants' as const, emoji: '🍽', label: 'Ravintolat' },
+            { tab: 'activities' as const, emoji: '🧖', label: 'Tekemistä' },
             { tab: 'map' as const, emoji: '🗺', label: 'Kartta' },
             { tab: 'favorites' as const, emoji: '♥', label: 'Suosikit' },
           ]).map(({ tab, emoji, label }) => (
