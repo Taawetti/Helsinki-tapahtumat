@@ -25,6 +25,7 @@ import NewsletterBanner from '@/components/NewsletterBanner'
 import RestaurantsView from '@/components/RestaurantsView'
 import ActivitiesView from '@/components/ActivitiesView'
 import IdeaView from '@/components/IdeaView'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -109,6 +110,7 @@ type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'acti
 type ListStyle = 'feed' | 'grid'
 
 export default function Home() {
+  const { lang, setLang, t } = useLanguage()
   const { favorites, count: favCount } = useFavorites()
   const [mode, setMode] = useState<AppMode>('discover')
   const [dateFilter, setDateFilter] = useState<DateFilter>('today')
@@ -268,6 +270,10 @@ export default function Home() {
             </span>
           </button>
           <div className="flex items-center gap-2">
+            <button onClick={() => setLang(lang === 'fi' ? 'en' : 'fi')}
+              className="text-[11px] font-black px-2.5 py-1.5 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 transition-all bg-white/3">
+              {lang === 'fi' ? 'EN' : 'FI'}
+            </button>
             <button
               onClick={() => { setMode(mode === 'favorites' ? 'discover' : 'favorites'); setMobileTab(mode === 'favorites' ? 'discover' : 'favorites') }}
               className={`relative p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-pink-500/60 text-pink-400 bg-pink-500/15' : 'border-white/8 text-white/40 bg-white/4'}`}
@@ -304,7 +310,7 @@ export default function Home() {
             {(['discover', 'idea', 'map', 'restaurants', 'activities'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => setMode(m)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/65'}`}>
-                {m === 'discover' ? '✦ Etusivu' : m === 'idea' ? '🎲 Mitä teen?' : m === 'map' ? 'Kartta' : m === 'restaurants' ? '🍽 Ravintolat' : '🧖 Tekemistä'}
+                {m === 'discover' ? `✦ ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'map' ? t('nav.map') : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🧖 ${t('nav.activities')}`}
               </button>
             ))}
           </div>
@@ -320,6 +326,11 @@ export default function Home() {
               <button onClick={() => setMode('map')} className="p-2 rounded-lg transition-all text-white/35 hover:text-white/60"><Map size={14} /></button>
             </div>
           )}
+
+          <button onClick={() => setLang(lang === 'fi' ? 'en' : 'fi')}
+            className="shrink-0 text-[11px] font-black px-3 py-1.5 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/25 transition-all bg-white/3">
+            {lang === 'fi' ? '🇬🇧 EN' : '🇫🇮 FI'}
+          </button>
 
           <button
             onClick={async () => { if (typeof Notification === 'undefined') return; await Notification.requestPermission() }}
@@ -620,17 +631,17 @@ export default function Home() {
         style={{ background: 'rgba(8,8,12,0.97)', backdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="grid grid-cols-6">
           {([
-            { tab: 'discover' as const, emoji: '✦', label: 'Etusivu' },
-            { tab: 'idea' as const, emoji: '🎲', label: 'Mitä teen?' },
-            { tab: 'restaurants' as const, emoji: '🍽', label: 'Ravintolat' },
-            { tab: 'activities' as const, emoji: '🧖', label: 'Tekemistä' },
-            { tab: 'map' as const, emoji: '🗺', label: 'Kartta' },
-            { tab: 'favorites' as const, emoji: '♥', label: 'Suosikit' },
-          ]).map(({ tab, emoji, label }) => (
+            { tab: 'discover' as const,     emoji: '✦',  labelKey: 'nav.home'        },
+            { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
+            { tab: 'restaurants' as const,   emoji: '🍽', labelKey: 'nav.restaurants' },
+            { tab: 'activities' as const,    emoji: '🧖', labelKey: 'nav.activities'  },
+            { tab: 'map' as const,           emoji: '🗺', labelKey: 'nav.map'         },
+            { tab: 'favorites' as const,     emoji: '♥',  labelKey: 'nav.favorites'   },
+          ] as const).map(({ tab, emoji, labelKey }) => (
             <button key={tab} onClick={() => handleMobileTab(tab)}
               className={`relative flex flex-col items-center gap-0.5 py-3 transition-all ${mobileTab === tab ? 'text-purple-400' : 'text-white/25 hover:text-white/50'}`}>
               <span className="text-lg leading-none">{emoji}</span>
-              <span className="text-[10px] font-bold">{label}</span>
+              <span className="text-[10px] font-bold">{t(labelKey)}</span>
               {tab === 'favorites' && favCount > 0 && (
                 <span className="absolute top-2 right-[calc(50%-18px)] w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center bg-pink-500 text-white">{favCount}</span>
               )}

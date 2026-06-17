@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 import { FEATURED_PICKS, CRITIC_PICKS } from '@/lib/restaurant-awards'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -149,6 +150,7 @@ function RestaurantCard({ r, distance, onShowOnMap }: {
   distance?: number
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const { cls, label } = typeStyle(r.type)
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
 
@@ -177,7 +179,7 @@ function RestaurantCard({ r, distance, onShowOnMap }: {
             )}
             {open !== undefined && (
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-green-500/15 text-green-400' : 'bg-red-500/10 text-red-400/60'}`}>
-                {open ? 'Avoinna' : 'Suljettu'}
+                {open ? t('common.open') : t('common.closed')}
               </span>
             )}
             <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${cls}`}>{label}</span>
@@ -205,7 +207,7 @@ function RestaurantCard({ r, distance, onShowOnMap }: {
           {r.www && (
             <a href={r.www} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-              <Globe size={10} /> Nettisivu
+              <Globe size={10} /> {t('common.website')}
             </a>
           )}
           {r.phone && (
@@ -215,13 +217,13 @@ function RestaurantCard({ r, distance, onShowOnMap }: {
             </a>
           )}
           {r.outdoorSeating && (
-            <span className="text-[10px] text-white/20">🌿 Terassi</span>
+            <span className="text-[10px] text-white/20">{t('common.terrace')}</span>
           )}
           {onShowOnMap && r.lat && r.lon && (
             <button
               onClick={() => onShowOnMap(r.lat!, r.lon!, r.name)}
               className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-              <MapIcon size={10} /> Näytä kartalla
+              <MapIcon size={10} /> {t('common.show_on_map')}
             </button>
           )}
         </div>
@@ -238,6 +240,7 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
   distance?: number
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   if (!r) return null
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
 
@@ -254,7 +257,7 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
           <div className="flex gap-1">
             {open !== undefined && (
               <span className={`text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 ${open ? 'bg-green-500/15 text-green-400' : 'bg-red-500/10 text-red-400/60'}`}>
-                {open ? 'Avoinna' : 'Suljettu'}
+                {open ? t('common.open') : t('common.closed')}
               </span>
             )}
           </div>
@@ -283,7 +286,7 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
           {r.www && (
             <a href={r.www} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold text-purple-400/80 hover:text-purple-300 transition-colors">
-              <Globe size={10} /> Nettisivu
+              <Globe size={10} /> {t('common.website')}
             </a>
           )}
           {r.phone && (
@@ -296,7 +299,7 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
             <button
               onClick={() => onShowOnMap(r.lat!, r.lon!, r.name)}
               className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-              <MapIcon size={10} /> Näytä kartalla
+              <MapIcon size={10} /> {t('common.show_on_map')}
             </button>
           )}
         </div>
@@ -328,6 +331,18 @@ function CriticCard({ pick }: { pick: (typeof CRITIC_PICKS)[number] }) {
 export default function RestaurantsView({ onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
+
+  function typeLabel(id: TypeFilter): string {
+    switch (id) {
+      case 'all':       return t('restaurants.type_all')
+      case 'ravintola': return t('restaurants.type_restaurant')
+      case 'kahvila':   return t('restaurants.type_cafe')
+      case 'baari':     return t('restaurants.type_bar')
+      case 'pikaruoka': return t('restaurants.type_fastfood')
+    }
+  }
+
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [total, setTotal] = useState(0)
   const [categoryCount, setCategoryCount] = useState<Record<string, number>>({})
@@ -353,7 +368,7 @@ export default function RestaurantsView({ onShowOnMap }: {
         setCategoryCount(data.categoryCount ?? {})
         setError('')
       })
-      .catch(() => setError('Ravintoloiden lataus epäonnistui'))
+      .catch(() => setError(t('restaurants.error')))
       .finally(() => setLoading(false))
   }, [])
 
@@ -435,9 +450,9 @@ export default function RestaurantsView({ onShowOnMap }: {
       <div>
         <h1 className="font-black text-white leading-none select-none"
           style={{ fontSize: 'clamp(2rem,8vw,4rem)', letterSpacing: '-0.03em' }}>
-          Ravintolat
+          {t('restaurants.heading')}
         </h1>
-        <p className="text-white/25 text-sm mt-1">Helsinki-alue — ravintolat, kahvilat ja baarit</p>
+        <p className="text-white/25 text-sm mt-1">{t('restaurants.subtitle')}</p>
       </div>
 
       {/* ── Featured/Palkitut section ── */}
@@ -445,7 +460,7 @@ export default function RestaurantsView({ onShowOnMap }: {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-white/80 font-black text-sm tracking-wide uppercase">
-              🏆 Michelin &amp; palkinnot
+              {t('restaurants.michelin')}
             </h2>
             <div className="flex gap-1">
               <button onClick={() => scrollCuisine('left')} className="p-1.5 rounded-lg bg-white/5 text-white/30 hover:text-white/70 hover:bg-white/10 transition-all">
@@ -468,7 +483,7 @@ export default function RestaurantsView({ onShowOnMap }: {
       {!loading && (
         <section>
           <h2 className="text-white/80 font-black text-sm tracking-wide uppercase mb-3">
-            💬 Kriitikkojen arviot
+            {t('restaurants.critics')}
           </h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2">
             {CRITIC_PICKS.map(pick => <CriticCard key={`${pick.name}-${pick.source}`} pick={pick} />)}
@@ -483,7 +498,7 @@ export default function RestaurantsView({ onShowOnMap }: {
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Hae nimellä, osoitteella tai keittiötyylillä…"
+          placeholder={t('restaurants.search_ph')}
           className="w-full pl-9 pr-9 py-3 bg-white/5 border border-white/8 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:border-purple-500/40 transition-colors"
         />
         {search && (
@@ -530,7 +545,7 @@ export default function RestaurantsView({ onShowOnMap }: {
                   ? 'bg-white/15 text-white'
                   : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/60'
               }`}>
-              {opt.label}
+              {typeLabel(opt.id)}
             </button>
           ))}
         </div>
@@ -590,7 +605,7 @@ export default function RestaurantsView({ onShowOnMap }: {
           {typeFilter !== 'all' && (
             <button onClick={() => setTypeFilter('all')}
               className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-white/8 text-white/50 hover:bg-white/12 transition-colors">
-              {TYPE_OPTIONS.find(t => t.id === typeFilter)?.label}
+              {typeLabel(typeFilter)}
               <X size={10} />
             </button>
           )}
@@ -652,7 +667,7 @@ export default function RestaurantsView({ onShowOnMap }: {
               <button onClick={() => setShown(s => s + PAGE_SIZE)}
                 className="flex items-center gap-2 text-sm font-bold px-8 py-3 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 bg-white/3 transition-all">
                 <ChevronDown size={15} />
-                Lataa lisää ({filtered.length - shown} jäljellä)
+                {t('restaurants.load_more')} ({filtered.length - shown} jäljellä)
               </button>
             </div>
           )}

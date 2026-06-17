@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Event, Restaurant, Activity } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -124,6 +126,26 @@ const LEGEND_ACT = [
 // ── Component ─────────────────────────────────────────────
 
 export default function MapView({ events, onEventClick, mapTarget }: Props) {
+  const { t } = useLanguage()
+
+  const LEGEND_KEYS: Record<string, TranslationKey> = {
+    'Keikka':     'legend.concert',
+    'Yöelämä':   'legend.nightlife',
+    'Baari':      'legend.bar',
+    'Teatteri':   'legend.theatre',
+    'Taide':      'legend.art',
+    'Ilmainen':   'legend.free',
+    'Ravintola':  'legend.restaurant',
+    'Kahvila':    'legend.cafe',
+    'Pikaruoka':  'legend.fastfood',
+    'Sauna':      'legend.sauna',
+    'Museo':      'legend.museum',
+    'Nähtävyys':  'legend.sight',
+    'Galleria':   'legend.gallery',
+    'Puisto':     'legend.park',
+    'Uimaranta':  'legend.beach',
+  }
+
   const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null)
@@ -255,7 +277,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
           ${r.description ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${r.description}</p>` : ''}
           ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${r.address}${r.city && r.city !== 'Helsinki' ? `, ${r.city}` : ''}</p>` : ''}
           ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} päässä</p>` : ''}
-          ${r.www ? `<a href="${r.www}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">Nettisivu →</a>` : ''}
+          ${r.www ? `<a href="${r.www}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
           ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${r.www ? '3px' : '0'} 0 0">${r.phone}</p>` : ''}
         </div>`
         const marker = L.marker([r.lat, r.lon], { icon })
@@ -283,7 +305,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
           ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${a.address}</p>` : ''}
           ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">🎁 Ilmainen</p>` : ''}
           ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${a.openingHours.split(';')[0]}</p>` : ''}
-          ${a.www ? `<a href="${a.www}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">Nettisivu →</a>` : ''}
+          ${a.www ? `<a href="${a.www}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
         </div>`
         const marker = L.marker([a.lat, a.lon], { icon })
         marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
@@ -303,7 +325,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         className: '', iconSize: [18, 18], iconAnchor: [9, 9],
       })
       userMarkerRef.current = L.marker(userPos, { icon, zIndexOffset: 2000 })
-        .bindPopup('<p style="color:#fff;font-family:Inter;font-size:12px;margin:0;font-weight:600">📍 Olet tässä</p>', { className: 'dark-popup' })
+        .bindPopup(`<p style="color:#fff;font-family:Inter;font-size:12px;margin:0;font-weight:600">${t('map.you_are_here')}</p>`, { className: 'dark-popup' })
         .addTo(mapRef.current)
     })
   }, [mapReady, userPos])
@@ -330,9 +352,9 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
   const activitiesOnMap = activities.filter(a => a.lat).length
 
   const countParts = [
-    layers.events      && eventsOnMap     > 0 && `${eventsOnMap} tapahtumaa`,
-    layers.restaurants && restsOnMap      > 0 && `${restsOnMap} ravintolaa`,
-    layers.activities  && activitiesOnMap > 0 && `${activitiesOnMap} kohdetta`,
+    layers.events      && eventsOnMap     > 0 && `${eventsOnMap} ${t('map.events_count')}`,
+    layers.restaurants && restsOnMap      > 0 && `${restsOnMap} ${t('map.rests_count')}`,
+    layers.activities  && activitiesOnMap > 0 && `${activitiesOnMap} ${t('map.acts_count')}`,
   ].filter(Boolean).join(' · ')
 
   const activeLegend = [
@@ -356,7 +378,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
             }`}
             style={layers[opt.key] ? { background: opt.bg } : {}}>
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${layers[opt.key] ? 'bg-white' : 'bg-white/20'}`} />
-            {opt.label}
+            {opt.key === 'events' ? t('map.layer_events') : opt.key === 'restaurants' ? t('map.layer_restaurants') : t('map.layer_activities')}
           </button>
         ))}
       </div>
@@ -367,14 +389,14 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
         {locating
           ? <span className="w-3 h-3 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
           : <span>📍</span>}
-        {userPos ? 'Päivitä' : 'Missä olen?'}
+        {userPos ? t('common.update_loc') : t('common.locate_me')}
       </button>
 
       {/* ── Loading indicators ── */}
       {(restsLoading || activitiesLoading) && (
         <div className="absolute top-14 right-3 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
           <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white/70 animate-spin" />
-          {restsLoading ? 'Haetaan ravintoloita…' : 'Haetaan kohteita…'}
+          {restsLoading ? t('map.loading_rests') : t('map.loading_acts')}
         </div>
       )}
 
@@ -384,7 +406,7 @@ export default function MapView({ events, onEventClick, mapTarget }: Props) {
           {activeLegend.slice(0, 12).map(({ color, label }) => (
             <div key={label} className="flex items-center gap-1.5">
               <div style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}` }} />
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>{label}</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>{t((LEGEND_KEYS[label] ?? label) as TranslationKey)}</span>
             </div>
           ))}
         </div>

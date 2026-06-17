@@ -10,6 +10,8 @@ import {
   THEME_CATEGORIES,
   getHighlight,
 } from '@/lib/activity-highlights'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -154,6 +156,7 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
   highlight?: AttractionHighlight
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const open = activity?.openingHours ? isOpenNow(activity.openingHours) : undefined
   const cat = activity ? CATEGORY_META[activity.category] : null
 
@@ -166,7 +169,7 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
         <h3 className="font-black text-white text-sm leading-tight">{pick.name}</h3>
         {open !== undefined && (
           <span className={`text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 ${open ? 'bg-green-500/15 text-green-400' : 'bg-red-500/10 text-red-400/60'}`}>
-            {open ? 'Avoinna' : 'Suljettu'}
+            {open ? t('common.open') : t('common.closed')}
           </span>
         )}
       </div>
@@ -198,7 +201,7 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
         )}
         {activity?.fee === false && (
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400/70">
-            Ilmainen
+            {t('common.free')}
           </span>
         )}
       </div>
@@ -230,7 +233,7 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
           {activity.www && (
             <a href={activity.www} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-              <Globe size={10} /> Nettisivu
+              <Globe size={10} /> {t('common.website')}
             </a>
           )}
           {activity.phone && (
@@ -243,7 +246,7 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
             <button
               onClick={() => onShowOnMap(activity.lat!, activity.lon!, activity.name)}
               className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-              <MapIcon size={10} /> Näytä kartalla
+              <MapIcon size={10} /> {t('common.show_on_map')}
             </button>
           )}
         </div>
@@ -260,6 +263,7 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
   highlight?: AttractionHighlight
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const meta = CATEGORY_META[activity.category]
   const open = isOpenNow(activity.openingHours)
 
@@ -273,7 +277,7 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
         <div className="flex gap-1 shrink-0 flex-wrap justify-end">
           {open !== undefined && (
             <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-green-500/15 text-green-400' : 'bg-red-500/10 text-red-400/60'}`}>
-              {open ? 'Avoinna' : 'Suljettu'}
+              {open ? t('common.open') : t('common.closed')}
             </span>
           )}
           {distance !== undefined && (
@@ -300,7 +304,7 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
           </span>
         )}
         {activity.fee === false && (
-          <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400/80">Ilmainen</span>
+          <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400/80">{t('common.free')}</span>
         )}
         {activity.fee === true && activity.charge && (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400/80">
@@ -338,7 +342,7 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
         {activity.www && (
           <a href={activity.www} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-            <Globe size={10} /> Nettisivu
+            <Globe size={10} /> {t('common.website')}
           </a>
         )}
         {activity.phone && (
@@ -351,14 +355,14 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
           <a href={`https://fi.wikipedia.org/wiki/${encodeURIComponent(activity.wikipedia.replace('fi:', ''))}`}
             target="_blank" rel="noopener noreferrer"
             className="text-[10px] font-bold text-white/20 hover:text-white/45 transition-colors">
-            Wikipedia
+            {t('common.wikipedia')}
           </a>
         )}
         {onShowOnMap && activity.lat && activity.lon && (
           <button
             onClick={() => onShowOnMap(activity.lat!, activity.lon!, activity.name)}
             className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-            <MapIcon size={10} /> Näytä kartalla
+            <MapIcon size={10} /> {t('common.show_on_map')}
           </button>
         )}
       </div>
@@ -371,6 +375,8 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
 export default function ActivitiesView({ onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
+
   const [activities, setActivities] = useState<Activity[]>([])
   const [total, setTotal] = useState(0)
   const [categoryCount, setCategoryCount] = useState<Record<string, number>>({})
@@ -396,7 +402,7 @@ export default function ActivitiesView({ onShowOnMap }: {
         setCategoryCount(data.categoryCount ?? {})
         setError('')
       })
-      .catch(() => setError('Aktiviteettien lataus epäonnistui'))
+      .catch(() => setError(t('activities.error')))
       .finally(() => setLoading(false))
   }, [])
 
@@ -514,17 +520,17 @@ export default function ActivitiesView({ onShowOnMap }: {
       <div>
         <h1 className="font-black text-white leading-none select-none"
           style={{ fontSize: 'clamp(2rem,8vw,4rem)', letterSpacing: '-0.03em' }}>
-          Tekemistä
+          {t('activities.heading')}
         </h1>
         <p className="text-white/25 text-sm mt-1">
-          Sauna-elämys, historiaa, taidetta tai ulkoilua — Helsinki kaikille
+          {t('activities.subtitle')}
         </p>
       </div>
 
       {/* ── Mitä haet tänään? ── */}
       <section className="space-y-3">
         <div>
-          <h2 className="text-white/70 font-black text-sm tracking-wide uppercase">Mitä haet tänään?</h2>
+          <h2 className="text-white/70 font-black text-sm tracking-wide uppercase">{t('activities.what_looking')}</h2>
           <p className="text-white/25 text-xs mt-0.5">Valitse kiinnostuksesi — näet parhaat kohteet heti</p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -539,7 +545,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                 }`}
                 style={isSelected ? { background: 'linear-gradient(135deg,rgba(168,85,247,0.15),rgba(236,72,153,0.1))', borderColor: 'rgba(168,85,247,0.4)' } : {}}>
                 <div className="text-2xl mb-1.5 leading-none">{meta.emoji}</div>
-                <div className={`font-black text-xs leading-tight ${isSelected ? 'text-white' : 'text-white/80'}`}>{meta.label}</div>
+                <div className={`font-black text-xs leading-tight ${isSelected ? 'text-white' : 'text-white/80'}`}>{t(('theme.' + theme) as TranslationKey)}</div>
                 <div className="text-white/30 text-[10px] mt-0.5 leading-tight">{meta.shortDesc}</div>
               </button>
             )
@@ -557,7 +563,7 @@ export default function ActivitiesView({ onShowOnMap }: {
       {!loading && (
         <section>
           <h2 className="text-white/70 font-black text-sm tracking-wide uppercase mb-3">
-            {selectedTheme ? THEME_SECTION_TITLE[selectedTheme] : '⭐ Paras Helsingistä'}
+            {selectedTheme ? THEME_SECTION_TITLE[selectedTheme] : t('activities.top_picks')}
           </h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2">
             {topPicksWithData.map(({ pick, activity, highlight }) => (
@@ -600,7 +606,7 @@ export default function ActivitiesView({ onShowOnMap }: {
               : 'text-white/40 bg-white/5 hover:bg-white/8 hover:text-white/70'
           }`}
           style={catFilter === 'all' ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
-          🌍 Kaikki
+          🌍 {t('restaurants.type_all')}
           {catFilter !== 'all' && <span className="text-white/20 text-[10px] font-normal">{selectedTheme ? filtered.length : total}</span>}
         </button>
         {CHIP_CATEGORIES.map(cat => {
@@ -615,7 +621,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                   : 'text-white/40 bg-white/5 hover:bg-white/8 hover:text-white/70'
               }`}
               style={catFilter === cat ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
-              {meta.emoji} {meta.label}
+              {meta.emoji} {t(('cat.' + cat) as TranslationKey)}
               {catFilter !== cat && <span className="text-white/20 text-[10px] font-normal">{count}</span>}
             </button>
           )
@@ -644,7 +650,7 @@ export default function ActivitiesView({ onShowOnMap }: {
               ? 'bg-green-500/20 text-green-300 border border-green-500/30'
               : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/60'
           }`}>
-          <Clock size={11} /> Avoinna nyt
+          <Clock size={11} /> {t('activities.sort_open')}
         </button>
 
         <button onClick={() => setFreeOnly(f => !f)}
@@ -653,7 +659,7 @@ export default function ActivitiesView({ onShowOnMap }: {
               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
               : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/60'
           }`}>
-          🎁 Ilmaiseksi
+          🎁 {t('activities.free_only')}
         </button>
       </div>
 
@@ -666,7 +672,7 @@ export default function ActivitiesView({ onShowOnMap }: {
           {catFilter !== 'all' && (
             <button onClick={() => setCatFilter('all')}
               className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-300/80 hover:bg-purple-500/25">
-              {CATEGORY_META[catFilter].emoji} {CATEGORY_META[catFilter].label} <X size={10} />
+              {CATEGORY_META[catFilter].emoji} {t(('cat.' + catFilter) as TranslationKey)} <X size={10} />
             </button>
           )}
           {freeOnly && (
@@ -740,7 +746,7 @@ export default function ActivitiesView({ onShowOnMap }: {
               <button onClick={() => setShown(s => s + PAGE_SIZE)}
                 className="flex items-center gap-2 text-sm font-bold px-8 py-3 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 bg-white/3 transition-all">
                 <ChevronDown size={15} />
-                Lataa lisää ({filtered.length - shown} jäljellä)
+                {t('activities.load_more')} ({filtered.length - shown} jäljellä)
               </button>
             </div>
           )}

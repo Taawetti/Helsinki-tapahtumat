@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Globe, MapPin, Clock, Ticket, ChevronRight, Map as MapIcon } from 'lucide-react'
 import type { Event, Activity, Restaurant } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { FEATURED_PICKS } from '@/lib/restaurant-awards'
 import { ATTRACTION_HIGHLIGHTS, getHighlight } from '@/lib/activity-highlights'
 
@@ -157,6 +158,8 @@ interface Props {
 // ── Main view ─────────────────────────────────────────────
 
 export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
+  const { t } = useLanguage()
+
   const [filter, setFilter] = useState<Filter>('all')
   const [idx, setIdx] = useState(0)
   const [animState, setAnimState] = useState<'idle' | 'out' | 'in'>('idle')
@@ -280,7 +283,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   if (!current) return (
     <main className="flex flex-col items-center justify-center min-h-[60vh] text-white/25 text-sm">
-      Ladataan ideoita…
+      {t('idea.loading')}
     </main>
   )
 
@@ -293,9 +296,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       <div>
         <h1 className="font-black text-white leading-none select-none"
           style={{ fontSize: 'clamp(2rem,8vw,3.5rem)', letterSpacing: '-0.03em' }}>
-          Mitä teen?
+          {t('idea.heading')}
         </h1>
-        <p className="text-white/25 text-sm mt-1">Napauta idean vieressä olevaa nuolta →</p>
+        <p className="text-white/25 text-sm mt-1">{t('idea.subtitle')}</p>
       </div>
 
       {/* ── Filters ── */}
@@ -307,7 +310,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 ? 'bg-white/15 text-white'
                 : 'bg-white/5 text-white/35 hover:text-white/60'
             }`}>
-            {f.label}
+            {f.id === 'all' ? t('idea.filter_all') : f.id === 'event' ? t('idea.filter_event') : f.id === 'restaurant' ? t('idea.filter_rest') : t('idea.filter_act')}
           </button>
         ))}
       </div>
@@ -345,7 +348,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           {/* Type badge */}
           <div className="absolute top-3 left-3">
             <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/90 bg-black/40 backdrop-blur-sm">
-              {meta.label}
+              {current.type === 'event' ? t('idea.type_event') : current.type === 'activity' ? t('idea.type_activity') : t('idea.type_rest')}
             </span>
           </div>
 
@@ -353,7 +356,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           {current.isFree && (
             <div className="absolute top-3 right-3">
               <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-500/90 text-white">
-                ILMAINEN
+                {t('common.free_badge')}
               </span>
             </div>
           )}
@@ -383,7 +386,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           {/* Why go */}
           <div className="rounded-xl p-3.5 space-y-1.5" style={{ background: `${meta.accent}0d`, border: `1px solid ${meta.accent}22` }}>
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${meta.accent}99` }}>
-              💡 Miksi juuri tähän?
+              {t('idea.why')}
             </p>
             <p className="text-sm leading-relaxed font-medium" style={{ color: meta.accent }}>
               {current.why}
@@ -398,14 +401,14 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             {current.time && (
               <div className="flex items-center gap-2 text-white/45 text-xs">
                 <Clock size={12} className="shrink-0" />
-                <span>Tänään klo {current.time}</span>
+                <span>{t('idea.today_at')} {current.time}</span>
               </div>
             )}
             {current.isOpen !== undefined && (
               <div className="flex items-center gap-2 text-xs">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${current.isOpen ? 'bg-emerald-400' : 'bg-red-400/60'}`} />
                 <span className={current.isOpen ? 'text-emerald-400/80' : 'text-red-400/50'}>
-                  {current.isOpen ? 'Avoinna nyt' : 'Suljettu'}
+                  {current.isOpen ? t('idea.open_now') : t('common.closed')}
                 </span>
               </div>
             )}
@@ -428,14 +431,14 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             {current.url && (
               <a href={current.url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-xs font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-                <Globe size={12} /> Avaa
+                <Globe size={12} /> {t('common.new_tab')}
               </a>
             )}
             {onShowOnMap && current.lat && current.lon && (
               <button
                 onClick={() => onShowOnMap(current.lat!, current.lon!, current.title)}
                 className="flex items-center gap-1.5 text-xs font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-                <MapIcon size={12} /> Näytä kartalla
+                <MapIcon size={12} /> {t('common.show_on_map')}
               </button>
             )}
             {onEventClick && current.type === 'event' && (
@@ -445,7 +448,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                   if (ev) onEventClick(ev)
                 }}
                 className="flex items-center gap-1.5 text-xs font-bold text-white/30 hover:text-white/60 transition-colors">
-                Lisätiedot →
+                {t('common.more_info')} →
               </button>
             )}
           </div>
@@ -461,7 +464,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           color: '#fff',
           letterSpacing: '-0.01em',
         }}>
-        🎲 Seuraava idea
+        {t('idea.next')}
         <ChevronRight size={18} />
       </button>
 
