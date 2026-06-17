@@ -17,7 +17,7 @@ interface SportsDBEvent {
 }
 
 const HARTWALL_ARENA = {
-  name: 'Hartwall Arena',
+  name: 'Veikkaus Arena',
   streetAddress: 'Arenankuja 1',
   city: 'Helsinki',
   lat: 60.2052,
@@ -50,7 +50,7 @@ function toEvent(e: SportsDBEvent): Event {
     image: e.strThumb || e.strHomeTeamBadge || null,
     isFree: false,
     price: null,
-    ticketUrl: 'https://www.hartwall-arena.fi/',
+    ticketUrl: 'https://www.veikkausarena.fi/',
     infoUrl: 'https://www.liiga.fi/',
     categories: ['Jääkiekko', 'Urheilu', 'Liiga'],
     source: 'linked-events' as const,
@@ -63,18 +63,20 @@ export async function GET(req: NextRequest) {
   const end = searchParams.get('end') || start
 
   try {
-    const res = await fetch(
-      'https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=4931&s=2025-2026',
-      {
-        next: { revalidate: 86400, tags: ['events'] },
-        signal: AbortSignal.timeout(8000),
-      }
+    // Query current and upcoming season — Liiga 2025-26 ends spring 2026, 2026-27 starts fall 2026
+    const currentYear = new Date().getFullYear()
+    const seasons = [`${currentYear}-${currentYear + 1}`, `${currentYear - 1}-${currentYear}`]
+    const seasonResults = await Promise.allSettled(
+      seasons.map((s) =>
+        fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=4931&s=${s}`, {
+          next: { revalidate: 86400, tags: ['events'] },
+          signal: AbortSignal.timeout(8000),
+        }).then((r) => r.json())
+      )
     )
 
-    if (!res.ok) return NextResponse.json({ events: [] })
-
-    const data = await res.json()
-    const raw: SportsDBEvent[] = data.events ?? []
+    const raw: SportsDBEvent[] = seasonResults
+      .flatMap((r) => (r.status === 'fulfilled' ? (r.value.events ?? []) : []))
 
     const startTs = new Date(start).getTime()
     const endTs = new Date(end).getTime() + 24 * 60 * 60 * 1000

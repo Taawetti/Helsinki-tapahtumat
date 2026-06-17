@@ -1,8 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
 
-const LOCATION_IDS =
-  'tprek:8675,tprek:20861,tprek:20444,tprek:7255,tprek:7259,tprek:7256,tprek:8740'
+const LOCATION_IDS = [
+  // Art museums
+  'tprek:8675',   // HAM Helsinki Art Museum
+  'tprek:20861',  // Kiasma
+  'tprek:20444',  // Ateneum
+  // Cultural centers
+  'tprek:7255',   // Kanneltalo
+  'tprek:7259',   // Stoa
+  'tprek:7256',   // Caisa
+  'tprek:8740',   // Malmitalo
+  'tprek:7254',   // Annantalo (lasten kulttuurikeskus)
+  // Major cultural venues
+  'tprek:9355',   // Kaapelitehdas
+  'tprek:20633',  // Musiikkitalo
+  'tprek:20784',  // Kansallisooppera ja -baletti
+  'tprek:20879',  // Suomen Kansallisteatteri
+  'tprek:9294',   // Finlandia-talo
+  // Suomenlinna
+  'tprek:20909',  // Suomenlinnan merilinnoitus
+  'tprek:21190',  // Suomenlinna-museo
+  // Other museums & venues
+  'tprek:21319',  // Arkkitehtuuri- ja designmuseo
+  'tprek:20996',  // Helsingin Taidehalli
+  'tprek:24182',  // Cirko - Uuden sirkuksen keskus
+  'tprek:21030',  // Semifinal
+  'tprek:20888',  // Olympiastadion
+].join(',')
 
 const PLACES: Record<string, string> = {
   'tprek:8675':  'HAM Helsinki Art Museum',
@@ -12,6 +37,19 @@ const PLACES: Record<string, string> = {
   'tprek:7259':  'Stoa',
   'tprek:7256':  'Caisa',
   'tprek:8740':  'Malmitalo',
+  'tprek:7254':  'Annantalo',
+  'tprek:9355':  'Kaapelitehdas',
+  'tprek:20633': 'Musiikkitalo',
+  'tprek:20784': 'Suomen kansallisooppera ja -baletti',
+  'tprek:20879': 'Suomen Kansallisteatteri',
+  'tprek:9294':  'Finlandia-talo',
+  'tprek:20909': 'Suomenlinnan merilinnoitus',
+  'tprek:21190': 'Suomenlinna-museo',
+  'tprek:21319': 'Arkkitehtuuri- ja designmuseo',
+  'tprek:20996': 'Helsingin Taidehalli',
+  'tprek:24182': 'Cirko',
+  'tprek:21030': 'Semifinal',
+  'tprek:20888': 'Olympiastadion',
 }
 
 const ART_MUSEUMS = new Set(['tprek:8675', 'tprek:20861', 'tprek:20444'])
@@ -140,7 +178,7 @@ export async function GET(req: NextRequest) {
     start,
     end,
     format: 'json',
-    page_size: '100',
+    page_size: '200',
     include: 'location,keywords',
     sort: 'start_time',
   })

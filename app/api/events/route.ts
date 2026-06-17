@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch all sources in parallel — page 1 only for external sources
-    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes] = await Promise.allSettled([
+    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes] = await Promise.allSettled([
       fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(10000) }),
       page === '1' ? src('api/ticketmaster') : Promise.resolve(null),
       page === '1' ? src('api/eventbrite')   : Promise.resolve(null),
@@ -152,6 +152,7 @@ export async function GET(req: NextRequest) {
       page === '1' ? src('api/museums')      : Promise.resolve(null),
       page === '1' ? src('api/liiga')        : Promise.resolve(null),
       page === '1' ? src('api/kide')         : Promise.resolve(null),
+      page === '1' ? src('api/arenas')       : Promise.resolve(null),
     ])
 
     if (linkedRes.status === 'rejected' || (linkedRes.status === 'fulfilled' && !linkedRes.value.ok)) {
@@ -182,7 +183,7 @@ export async function GET(req: NextRequest) {
     // Merge all external sources — deduplicate by normalized title+date
     const seen = new Set(events.map((e) => dedupKey(e.title, e.startTime.slice(0, 10))))
 
-    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes]) {
+    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, palvelukarttaRes, lipasRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes]) {
       if (res.status === 'fulfilled' && res.value && res.value !== null) {
         let data: { events?: Event[] }
         try { data = await (res.value as Response).json() } catch { continue }

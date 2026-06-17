@@ -22,6 +22,11 @@ const RSS_FEEDS = [
   { url: 'https://www.tiivistamo.fi/feed/', city: 'Helsinki', venueName: 'Tiivistämö' },
   { url: 'https://kaivohuone.fi/feed/', city: 'Helsinki', venueName: 'Kaivohuone' },
   { url: 'https://kaiku.fi/feed/', city: 'Helsinki', venueName: 'Kaiku' },
+  // Suomenlinna – maailmanperintökohde
+  { url: 'https://suomenlinna.fi/tapahtumat/feed/', city: 'Helsinki', venueName: 'Suomenlinna' },
+  // Teatterit
+  { url: 'https://www.ryhmateatteri.fi/feed/', city: 'Helsinki', venueName: 'Ryhmäteatteri' },
+  { url: 'https://www.svenskateatern.fi/feed/', city: 'Helsinki', venueName: 'Svenska Teatern' },
 ]
 
 function parseDate(str: string): string {
