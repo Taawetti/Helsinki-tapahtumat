@@ -1,115 +1,144 @@
-// Wikimedia Commons Special:FilePath URLs work without knowing the MD5 hash path.
-// Format: https://commons.wikimedia.org/wiki/Special:FilePath/FILENAME?width=N
-// Browser follows the redirect; if the file doesn't exist the img onError fallback handles it.
+import { unstable_cache } from 'next/cache'
 
-const WC = (file: string, w = 900) =>
-  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${w}`
+// ── Wikipedia thumbnail fetcher ───────────────────────────
+// Wikipedia REST API always returns a correct CDN thumbnail URL.
+// Much more reliable than guessing Wikimedia Commons filenames.
 
-// ── Venue image map ───────────────────────────────────────
-// Keys are lowercase venue name substrings — longest match wins.
-
-export const VENUE_IMAGES: [string, string][] = [
-  // ── Sports & arenas
-  ['olympiastadion',           WC('Helsinki_Olympic_Stadium.jpg')],
-  ['olympic stadium',          WC('Helsinki_Olympic_Stadium.jpg')],
-  ['hartwall',                 WC('Hartwall_Arena.jpg')],
-  ['bolt arena',               WC('Bolt_Arena_Helsinki.jpg')],
-  ['markku.fi areena',         WC('Metro_Areena_2010.jpg')],
-  ['espoo metro areena',       WC('Metro_Areena_2010.jpg')],
-  ['hietalahden uimastadion',  WC('Hietaniemi_beach_Helsinki.jpg')],
-
-  // ── Live music
-  ['tavastia',                 WC('Tavastia_Helsinki.jpg')],
-  ['nosturi',                  WC('Nosturi_Helsinki.jpg')],
-  ['kaapelitehdas',            WC('Kaapelitehdas_Helsinki.jpg')],
-  ['cable factory',            WC('Kaapelitehdas_Helsinki.jpg')],
-  ['circus helsinki',          WC('Circus_Helsinki.jpg')],
-  ['on the rocks',             WC('On_The_Rocks_Helsinki.jpg')],
-  ['korjaamo',                 WC('Korjaamo_Helsinki.jpg')],
-  ['kulttuuritalo',            WC('Kulttuuritalo_Helsinki.jpg')],
-  ['savoy',                    WC('Savoy_Theatre_Helsinki.jpg')],
-  ['logomo',                   WC('Logomo_Turku.jpg')],
-
-  // ── Classical & theatre
-  ['kansallisteatteri',        WC('Finnish_National_Theatre.jpg')],
-  ['national theatre',         WC('Finnish_National_Theatre.jpg')],
-  ['kansallisooppera',         WC('Finnish_National_Opera_House.jpg')],
-  ['ooppera',                  WC('Finnish_National_Opera_House.jpg')],
-  ['musiikkitalo',             WC('Helsinki_Music_Centre.jpg')],
-  ['music centre',             WC('Helsinki_Music_Centre.jpg')],
-  ['kaupunginteatteri',        WC('Helsinki_City_Theatre.jpg')],
-  ['city theatre',             WC('Helsinki_City_Theatre.jpg')],
-  ['svenska teatern',          WC('Swedish_Theatre_Helsinki.jpg')],
-  ['svenska theater',          WC('Swedish_Theatre_Helsinki.jpg')],
-  ['aleksanterin teatteri',    WC('Alexander_Theatre_Helsinki.jpg')],
-  ['alexander theatre',        WC('Alexander_Theatre_Helsinki.jpg')],
-  ['finlandia-talo',           WC('Finlandia_Hall_Helsinki.jpg')],
-  ['finlandia hall',           WC('Finlandia_Hall_Helsinki.jpg')],
-
-  // ── Museums & art
-  ['kiasma',                   WC('Kiasma_Museum_Helsinki.jpg')],
-  ['ateneum',                  WC('Ateneum_Helsinki.jpg')],
-  ['kansallismuseo',           WC('National_Museum_of_Finland.jpg')],
-  ['national museum',          WC('National_Museum_of_Finland.jpg')],
-  ['designmuseo',              WC('Design_Museum_Helsinki.jpg')],
-  ['design museum',            WC('Design_Museum_Helsinki.jpg')],
-  ['ham helsinki',             WC('Tennispalatsi_Helsinki.jpg')],
-  ['tennispalatsi',            WC('Tennispalatsi_Helsinki.jpg')],
-  ['sinebrychoff',             WC('Sinebrychoff_Art_Museum_Helsinki.jpg')],
-  ['espoo museo',              WC('Espoo_Museum_of_Modern_Art.jpg')],
-  ['emma',                     WC('Espoo_Museum_of_Modern_Art.jpg')],
-  ['wäinö aaltosen museo',     WC('Wäinö_Aaltosen_museo.jpg')],
-
-  // ── Attractions & outdoor
-  ['linnanmäki',               WC('Linnanmäki_Helsinki.jpg')],
-  ['korkeasaari',              WC('Korkeasaari_zoo.jpg')],
-  ['suomenlinna',              WC('Suomenlinna_Helsinki_aerial.jpg')],
-  ['sea life',                 WC('Sea_Life_Helsinki.jpg')],
-  ['heureka',                  WC('Heureka_science_center.jpg')],
-  ['kauppatori',               WC('Helsinki_Market_Square.jpg')],
-
-  // ── Markets
-  ['kauppahalli',              WC('Helsinki_Old_Market_Hall.jpg')],
-  ['old market hall',          WC('Helsinki_Old_Market_Hall.jpg')],
-  ['hakaniemen',               WC('Hakaniemi_market_hall_Helsinki.jpg')],
-  ['hietalahden',              WC('Hietalahti_Market_Hall_Helsinki.jpg')],
-
-  // ── Conference & exhibition
-  ['messukeskus',              WC('Messukeskus_Helsinki.jpg')],
-  ['exhibition centre',        WC('Messukeskus_Helsinki.jpg')],
-  ['dipoli',                   WC('Dipoli_Espoo.jpg')],
-]
-
-// ── Category fallback images ──────────────────────────────
-// Keyed by CATEGORIES id from lib/types.ts
-
-export const CATEGORY_IMAGES: Record<string, string> = {
-  music:      WC('Musiikkitalo_Helsinki.jpg'),
-  club:       WC('Helsinki_night_city.jpg'),
-  classical:  WC('Helsinki_Music_Centre.jpg'),
-  theatre:    WC('Finnish_National_Theatre.jpg'),
-  standup:    WC('Kaapelitehdas_Helsinki.jpg'),
-  art:        WC('Kiasma_Museum_Helsinki.jpg'),
-  food:       WC('Helsinki_Old_Market_Hall.jpg'),
-  sports:     WC('Helsinki_Olympic_Stadium.jpg'),
-  outdoor:    WC('Helsinki_harbour_panorama.jpg'),
-  kids:       WC('Linnanmäki_Helsinki.jpg'),
-  networking: WC('Messukeskus_Helsinki.jpg'),
-  festival:   WC('Helsinki_Market_Square.jpg'),
+async function fetchWikiThumb(article: string): Promise<string | null> {
+  for (const lang of ['en', 'fi']) {
+    try {
+      const res = await fetch(
+        `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(article)}`,
+        {
+          headers: { 'User-Agent': 'Helsinki-tapahtumat/1.0 (https://github.com/Taawetti/Helsinki-tapahtumat)' },
+          signal: AbortSignal.timeout(6000),
+        }
+      )
+      if (!res.ok) continue
+      const d = await res.json()
+      const url = d.originalimage?.source ?? d.thumbnail?.source ?? null
+      if (url) return url
+    } catch { /* try next lang */ }
+  }
+  return null
 }
 
-// ── Lookup function ───────────────────────────────────────
+// ── Venue → Wikipedia article title ──────────────────────
+// Keys are lowercase venue name substrings (longest match wins).
+// Values are English Wikipedia article titles (URL-encoded spaces as _).
+
+const VENUE_WIKI: [string, string][] = [
+  // Sports & arenas
+  ['olympiastadion',           'Olympic_Stadium_(Helsinki)'],
+  ['olympic stadium',          'Olympic_Stadium_(Helsinki)'],
+  ['hartwall',                 'Hartwall_Arena'],
+  ['bolt arena',               'Bolt_Arena_(Helsinki)'],
+  ['markku.fi areena',         'Metro_Areena'],
+  ['espoo metro areena',       'Metro_Areena'],
+
+  // Live music
+  ['tavastia',                 'Tavastia_Club'],
+  ['kaapelitehdas',            'Cable_Factory,_Helsinki'],
+  ['cable factory',            'Cable_Factory,_Helsinki'],
+  ['korjaamo',                 'Korjaamo'],
+  ['kulttuuritalo',            'Helsinki_Workers%27_Hall'],
+  ['on the rocks',             'On_the_Rocks_(nightclub)'],
+  ['nosturi',                  'Nosturi'],
+
+  // Classical & theatre
+  ['kansallisteatteri',        'Finnish_National_Theatre'],
+  ['national theatre',         'Finnish_National_Theatre'],
+  ['kansallisooppera',         'Finnish_National_Opera'],
+  ['ooppera',                  'Finnish_National_Opera'],
+  ['musiikkitalo',             'Helsinki_Music_Centre'],
+  ['music centre',             'Helsinki_Music_Centre'],
+  ['kaupunginteatteri',        'Helsinki_City_Theatre'],
+  ['svenska teatern',          'Swedish_Theatre,_Helsinki'],
+  ['aleksanterin teatteri',    'Alexander_Theatre_(Helsinki)'],
+  ['finlandia',                'Finlandia_Hall'],
+
+  // Museums & art
+  ['kiasma',                   'Kiasma'],
+  ['ateneum',                  'Ateneum'],
+  ['kansallismuseo',           'National_Museum_of_Finland'],
+  ['designmuseo',              'Design_Museum_(Helsinki)'],
+  ['tennispalatsi',            'Tennispalatsi'],
+  ['sinebrychoff',             'Sinebrychoff_Art_Museum'],
+  ['amos rex',                 'Amos_Rex'],
+
+  // Attractions
+  ['linnanmäki',               'Linnanmäki'],
+  ['korkeasaari',              'Korkeasaari'],
+  ['suomenlinna',              'Suomenlinna'],
+  ['heureka',                  'Heureka_(science_centre)'],
+  ['messukeskus',              'Helsinki_Exhibition_%26_Convention_Centre'],
+
+  // Markets
+  ['kauppahalli',              'Old_Market_Hall,_Helsinki'],
+  ['hakaniemen',               'Hakaniemi_market_hall'],
+]
+
+// Category fallback: Wikipedia articles for well-known Helsinki landmarks
+const CATEGORY_WIKI: [string, string][] = [
+  ['music',      'Helsinki_Music_Centre'],
+  ['club',       'Tavastia_Club'],
+  ['classical',  'Helsinki_Music_Centre'],
+  ['theatre',    'Finnish_National_Theatre'],
+  ['standup',    'Cable_Factory,_Helsinki'],
+  ['art',        'Kiasma'],
+  ['food',       'Old_Market_Hall,_Helsinki'],
+  ['sports',     'Olympic_Stadium_(Helsinki)'],
+  ['outdoor',    'Suomenlinna'],
+  ['kids',       'Linnanmäki'],
+  ['networking', 'Helsinki_Exhibition_%26_Convention_Centre'],
+  ['festival',   'Senate_Square'],
+]
+
+// ── Cached fetch of all venue + category images ───────────
+
+async function _fetchAllImages(): Promise<{ venues: Record<string, string>; categories: Record<string, string> }> {
+  const allEntries = [
+    ...VENUE_WIKI.map(([k, a]) => ({ key: k, article: a, type: 'venue' as const })),
+    ...CATEGORY_WIKI.map(([k, a]) => ({ key: k, article: a, type: 'category' as const })),
+  ]
+
+  const results = await Promise.allSettled(
+    allEntries.map(async e => ({ ...e, url: await fetchWikiThumb(e.article) }))
+  )
+
+  const venues: Record<string, string> = {}
+  const categories: Record<string, string> = {}
+
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value.url) {
+      if (r.value.type === 'venue') venues[r.value.key] = r.value.url
+      else categories[r.value.key] = r.value.url
+    }
+  }
+
+  console.log(`[venue-images] fetched ${Object.keys(venues).length} venue + ${Object.keys(categories).length} category images`)
+  return { venues, categories }
+}
+
+// Cache for 7 days — Wikipedia thumbnails are stable
+export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v2'], {
+  revalidate: 604800,
+  tags: ['venue-images'],
+})
+
+// ── Sync lookup (uses pre-fetched cache) ──────────────────
 
 export function getEventImage(
   venueName: string | null | undefined,
   categories: string[],
+  venueMap: Record<string, string>,
+  categoryMap: Record<string, string>,
 ): string | null {
   if (venueName) {
     const key = venueName.toLowerCase().trim()
-    // Find the longest matching venue key
     let best: string | null = null
     let bestLen = 0
-    for (const [pattern, url] of VENUE_IMAGES) {
+    for (const [pattern, url] of Object.entries(venueMap)) {
       if (key.includes(pattern) && pattern.length > bestLen) {
         best = url
         bestLen = pattern.length
@@ -118,9 +147,8 @@ export function getEventImage(
     if (best) return best
   }
 
-  // Category fallback
   for (const cat of categories) {
-    if (CATEGORY_IMAGES[cat]) return CATEGORY_IMAGES[cat]
+    if (categoryMap[cat]) return categoryMap[cat]
   }
 
   return null

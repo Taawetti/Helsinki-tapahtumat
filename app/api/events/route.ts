@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
-import { getEventImage } from '@/lib/venue-images'
+import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
 
 interface LinkedEventsImage {
   url: string
@@ -206,10 +206,11 @@ export async function GET(req: NextRequest) {
 
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
-    // Enrich events without images: venue map first, then category fallback
+    // Enrich events without images using Wikipedia thumbnails (cached 7 days)
+    const { venues: venueMap, categories: categoryMap } = await fetchImagesCached()
     for (const e of events) {
       if (!e.image) {
-        const fallback = getEventImage(e.location?.name, e.categories)
+        const fallback = getEventImage(e.location?.name, e.categories, venueMap, categoryMap)
         if (fallback) e.image = fallback
       }
     }
