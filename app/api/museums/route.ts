@@ -41,6 +41,14 @@ const LOCATION_IDS = [
   'tprek:20615',  // Bio Rex Lasipalatsi
   'tprek:20929',  // Lasipalatsin aukio (ulkotapahtumat)
   'tprek:58438',  // Lasipalatsi-kompleksi
+  // Outdoor stages & squares
+  'tprek:7265',   // Espan lava (128+ kesätapahtumaa)
+  'tprek:75229',  // Töölönlahden Kesäpuiston tapahtumalava
+  'tprek:9356',   // Suvilahti
+  'tprek:20636',  // Senaatintori
+  // Live music clubs
+  'tprek:21132',  // Kuudes Linja
+  'tprek:45307',  // Ääniwalli
   // Additional theatres & clubs with Linked Events data
   'tprek:20956',  // KOM-teatteri
   'tprek:20815',  // Kulttuuritehdas Korjaamo
@@ -88,6 +96,12 @@ const PLACES: Record<string, string> = {
   'tprek:20615': 'Bio Rex Lasipalatsi',
   'tprek:20929': 'Lasipalatsin aukio',
   'tprek:58438': 'Lasipalatsi',
+  'tprek:7265':  'Espan lava',
+  'tprek:75229': 'Töölönlahden Kesäpuiston tapahtumalava',
+  'tprek:9356':  'Suvilahti',
+  'tprek:20636': 'Senaatintori',
+  'tprek:21132': 'Kuudes Linja',
+  'tprek:45307': 'Ääniwalli',
   'tprek:20956': 'KOM-teatteri',
   'tprek:20815': 'Kulttuuritehdas Korjaamo',
   'tprek:20566': 'Tavastia-klubi',
