@@ -121,10 +121,30 @@ async function _fetchAllImages(): Promise<{ venues: Record<string, string>; cate
 }
 
 // Cache for 7 days — Wikipedia thumbnails are stable
-export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v2'], {
+export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v3'], {
   revalidate: 604800,
   tags: ['venue-images'],
 })
+
+// Finnish LinkedEvents keyword → English category key
+const FI_TO_CAT: Record<string, string> = {
+  'musiikki': 'music', 'konsertti': 'music', 'jazz': 'music', 'rock': 'music',
+  'pop': 'music', 'keikka': 'music',
+  'teatteri': 'theatre', 'sirkus': 'theatre', 'näyttely': 'theatre',
+  'tanssi': 'classical', 'ooppera': 'classical', 'klassinen': 'classical',
+  'baleetti': 'classical',
+  'stand-up': 'standup', 'komedia': 'standup', 'huumori': 'standup',
+  'kuvataide': 'art', 'taide': 'art', 'galleria': 'art', 'elokuvat': 'art',
+  'kirjallisuus': 'art', 'valokuva': 'art',
+  'ruoka': 'food', 'juoma': 'food', 'ravintola': 'food',
+  'urheilu': 'sports', 'liikunta': 'sports', 'jääkiekko': 'sports',
+  'jalkapallo': 'sports', 'juoksu': 'sports', 'kilpailu': 'sports',
+  'ulkoilu': 'outdoor', 'luonto': 'outdoor', 'retkeily': 'outdoor',
+  'lapset': 'kids', 'perhe': 'kids', 'nuoret': 'kids',
+  'festivaali': 'festival', 'juhla': 'festival',
+  'messut': 'networking', 'seminaari': 'networking', 'verkostoituminen': 'networking',
+  'klubit': 'club', 'yöelämä': 'club', 'dj': 'club',
+}
 
 // ── Sync lookup (uses pre-fetched cache) ──────────────────
 
@@ -148,7 +168,16 @@ export function getEventImage(
   }
 
   for (const cat of categories) {
-    if (categoryMap[cat]) return categoryMap[cat]
+    const lower = cat.toLowerCase()
+    // 1. Direct match (English keys)
+    if (categoryMap[lower]) return categoryMap[lower]
+    // 2. Finnish → English mapping
+    const mapped = FI_TO_CAT[lower]
+    if (mapped && categoryMap[mapped]) return categoryMap[mapped]
+    // 3. Substring match against Finnish keywords
+    for (const [fi, en] of Object.entries(FI_TO_CAT)) {
+      if (lower.includes(fi) && categoryMap[en]) return categoryMap[en]
+    }
   }
 
   return null
