@@ -84,6 +84,11 @@ function fmtDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
+function fmtReviews(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`
+  return String(n)
+}
+
 function isOpenNow(hours?: string): boolean | undefined {
   if (!hours) return undefined
   if (hours === '24/7') return true
@@ -140,11 +145,12 @@ function BadgeChip({ text }: { text: string }) {
 
 // ── Top pick card ─────────────────────────────────────────
 
-function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
+function TopPickCard({ pick, activity, distance, highlight, rating, onShowOnMap }: {
   pick: TopPick
   activity?: Activity
   distance?: number
   highlight?: AttractionHighlight
+  rating?: { rating: number; reviewCount: number; priceLevel: string | null }
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const { t, lang } = useLanguage()
@@ -178,6 +184,11 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
         {highlight?.duration && (
           <span className="flex items-center gap-1 text-[10px] text-white/35 font-medium">
             <Timer size={9} className="shrink-0" /> {highlight.duration}
+          </span>
+        )}
+        {rating && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300/80 font-semibold">
+            ★ {rating.rating.toFixed(1)} · {fmtReviews(rating.reviewCount)}
           </span>
         )}
         {cat && activity && (
@@ -248,10 +259,11 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
 
 // ── Activity card ─────────────────────────────────────────
 
-function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
+function ActivityCard({ activity, distance, highlight, rating, onShowOnMap }: {
   activity: Activity
   distance?: number
   highlight?: AttractionHighlight
+  rating?: { rating: number; reviewCount: number; priceLevel: string | null }
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const { t, lang } = useLanguage()
@@ -292,6 +304,11 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
         {highlight?.duration && (
           <span className="flex items-center gap-1 text-white/30 font-medium">
             <Timer size={9} /> {highlight.duration}
+          </span>
+        )}
+        {rating && (
+          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300/80 font-semibold">
+            ★ {rating.rating.toFixed(1)} · {fmtReviews(rating.reviewCount)}
           </span>
         )}
         {activity.fee === false && (
@@ -382,6 +399,7 @@ export default function ActivitiesView({ onShowOnMap }: {
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [locating, setLocating] = useState(false)
   const [locError, setLocError] = useState(false)
+  const [venueRatings, setVenueRatings] = useState<Record<string, { rating: number; reviewCount: number; priceLevel: string | null }>>({})
 
   useEffect(() => {
     setLoading(true)
@@ -395,6 +413,13 @@ export default function ActivitiesView({ onShowOnMap }: {
       })
       .catch(() => setError(t('activities.error')))
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/venue-ratings')
+      .then(r => r.json())
+      .then(data => setVenueRatings(data.ratings ?? {}))
+      .catch(() => {})
   }, [])
 
   useEffect(() => { setShown(PAGE_SIZE) }, [search, catFilter, selectedTheme, sortMode, freeOnly])
@@ -563,6 +588,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                 pick={pick}
                 activity={activity}
                 highlight={highlight}
+                rating={highlight?.nameKey ? venueRatings[highlight.nameKey] : undefined}
                 distance={activity?.id ? distMap.get(activity.id) : undefined}
                 onShowOnMap={onShowOnMap}
               />
@@ -728,6 +754,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                 activity={a}
                 distance={distMap.get(a.id)}
                 highlight={highlightMap.get(a.id)}
+                rating={highlightMap.get(a.id)?.nameKey ? venueRatings[highlightMap.get(a.id)!.nameKey] : undefined}
                 onShowOnMap={onShowOnMap}
               />
             ))}

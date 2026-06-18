@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { supabase, isSupabaseConfigured, DbRecurringEvent } from '@/lib/supabase'
 
 // ── Recurring / weekly events ────────────────────────────────────────────────
 // Events that repeat on a fixed weekday but aren't in any API.
@@ -208,11 +209,48 @@ export async function GET(req: NextRequest) {
   const endDate = new Date(end)
   endDate.setHours(23, 59, 59, 999)
 
-  const events: Event[] = RECURRING.flatMap((def) =>
+  let defs: RecurringDef[] = RECURRING
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('recurring_events')
+        .select('*')
+        .eq('active', true)
+      if (!error && data && data.length > 0) {
+        defs = (data as DbRecurringEvent[]).map(fromDb)
+      }
+    } catch {
+      // Supabase unavailable — use static fallback
+    }
+  }
+
+  const events: Event[] = defs.flatMap((def) =>
     generateEvents(def, startDate, endDate)
   )
 
   events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
   return NextResponse.json({ events })
+}
+
+function fromDb(row: DbRecurringEvent): RecurringDef {
+  return {
+    id: row.id,
+    title: row.title,
+    shortDescription: row.short_description,
+    venue: row.venue,
+    address: row.address,
+    lat: row.lat ?? undefined,
+    lon: row.lon ?? undefined,
+    weekday: row.weekday as RecurringDef['weekday'],
+    startHour: row.start_hour,
+    startMinute: row.start_minute,
+    durationMinutes: row.duration_minutes,
+    isFree: row.is_free,
+    price: row.price ?? undefined,
+    ticketUrl: row.ticket_url ?? undefined,
+    infoUrl: row.info_url ?? undefined,
+    categories: row.categories,
+    activeMonths: row.active_months ?? undefined,
+  }
 }
