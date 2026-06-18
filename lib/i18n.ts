@@ -115,6 +115,9 @@ const t = {
     'legend.park':       'Puisto',
     'legend.beach':      'Uimaranta',
     'legend.sport':      'Urheilu',
+    'legend.festival':   'Festivaali',
+    'legend.match':      'Ottelu',
+    'legend.exhibition': 'Näyttely',
 
     // ── Cuisine categories ────────────────────────────────────
     'cuisine.all':           'Kaikki',
@@ -225,6 +228,18 @@ const t = {
     'idea.loading':      'Ladataan ideoita…',
     'idea.today_at':     'Tänään klo',
 
+    // ── Vibes ─────────────────────────────────────────────────
+    'vibe.keikka':   'Keikka',
+    'vibe.yoelama':  'Yöelämä',
+    'vibe.baari':    'Baari / Pub',
+    'vibe.urheilu':  'Urheilu',
+    'vibe.standup':  'Stand up',
+    'vibe.museo':    'Museo',
+    'vibe.lapset':   'Lapset & Perhe',
+    'vibe.tyopaja':  'Työpaja & Kurssi',
+    'vibe.teatteri': 'Teatteri & Tanssi',
+    'vibe.taide':    'Taide',
+
     // ── EventDetailPanel ─────────────────────────────────────
     'detail.tickets':    'Osta liput',
     'detail.more_info':  'Lisätiedot',
@@ -327,6 +342,43 @@ const t = {
     'filter.all_price':     'Kaikki',
     'filter.free':          '🎁 Ilmaiset',
     'filter.paid':          '🎟 Maksulliset',
+
+    // ── Discover extras ──────────────────────────────────────
+    'discover.recommendation': '✦ SUOSITUS',
+    'discover.city':           'Kaupunki',
+    'discover.by_category':    'Tapahtumat kategorioittain',
+    'discover.by_area':        'Tapahtumat alueittain',
+    'discover.add_event':      '+ Lisää tapahtumasi sivulle',
+
+    // ── Favorites sidebar ─────────────────────────────────────
+    'fav.title':  'Suosikit',
+    'fav.saved':  'tallennettu',
+    'fav.empty':  'Ei vielä suosikkeja',
+    'fav.hint':   'Paina ♥ tapahtumakortissa tallentaaksesi',
+
+    // ── Notification ──────────────────────────────────────────
+    'notif.events_today': 'tapahtumaa tänään — katso mitä on tarjolla!',
+
+    // ── Common extras ─────────────────────────────────────────
+    'common.show_all':      'Näytä kaikki',
+    'common.event_default': 'Tapahtuma',
+
+    // ── Hero card ─────────────────────────────────────────────
+    'hero.recommended': 'Suositellaan',
+
+    // ── Spontaani ─────────────────────────────────────────────
+    'spontaani.title':      'Spontaani ilta',
+    'spontaani.different':  'Näytä eri tapahtuma',
+    'spontaani.go_tonight': 'Mene tänä iltana →',
+    'spontaani.away':       'päästä',
+    'spontaani.min_away':   'min päästä',
+
+    // ── Illan suunnitelma ─────────────────────────────────────
+    'plan.title':  'Tämän illan ohjelma',
+    'plan.badge':  '✦ Valmis ehdotus',
+    'plan.main':   'Pääohjelma',
+    'plan.before': 'Ennen pääohjelmaa',
+    'plan.after':  'Illan jatkoksi',
 
     // ── Misc ─────────────────────────────────────────────────
     'misc.distance_away': 'päässä',
@@ -447,6 +499,9 @@ const t = {
     'legend.park':       'Park',
     'legend.beach':      'Beach',
     'legend.sport':      'Sport',
+    'legend.festival':   'Festival',
+    'legend.match':      'Match',
+    'legend.exhibition': 'Exhibition',
 
     // ── Cuisine categories ────────────────────────────────────
     'cuisine.all':           'All',
@@ -557,6 +612,18 @@ const t = {
     'idea.loading':      'Loading ideas…',
     'idea.today_at':     'Today at',
 
+    // ── Vibes ─────────────────────────────────────────────────
+    'vibe.keikka':   'Gig',
+    'vibe.yoelama':  'Nightlife',
+    'vibe.baari':    'Bar / Pub',
+    'vibe.urheilu':  'Sport',
+    'vibe.standup':  'Stand-up',
+    'vibe.museo':    'Museum',
+    'vibe.lapset':   'Kids & Family',
+    'vibe.tyopaja':  'Workshop',
+    'vibe.teatteri': 'Theatre & Dance',
+    'vibe.taide':    'Art',
+
     // ── EventDetailPanel ─────────────────────────────────────
     'detail.tickets':    'Buy tickets',
     'detail.more_info':  'More info',
@@ -659,6 +726,43 @@ const t = {
     'filter.all_price':     'All',
     'filter.free':          '🎁 Free',
     'filter.paid':          '🎟 Paid',
+
+    // ── Discover extras ──────────────────────────────────────
+    'discover.recommendation': '✦ PICK',
+    'discover.city':           'City',
+    'discover.by_category':    'Events by category',
+    'discover.by_area':        'Events by area',
+    'discover.add_event':      '+ Add your event',
+
+    // ── Favorites sidebar ─────────────────────────────────────
+    'fav.title':  'Favourites',
+    'fav.saved':  'saved',
+    'fav.empty':  'No favourites yet',
+    'fav.hint':   'Tap ♥ on a card to save it',
+
+    // ── Notification ──────────────────────────────────────────
+    'notif.events_today': "events today — see what's on!",
+
+    // ── Common extras ─────────────────────────────────────────
+    'common.show_all':      'Show all',
+    'common.event_default': 'Event',
+
+    // ── Hero card ─────────────────────────────────────────────
+    'hero.recommended': 'Recommended',
+
+    // ── Spontaani ─────────────────────────────────────────────
+    'spontaani.title':      'Spontaneous evening',
+    'spontaani.different':  'Show different event',
+    'spontaani.go_tonight': 'Go tonight →',
+    'spontaani.away':       'away',
+    'spontaani.min_away':   'min away',
+
+    // ── Illan suunnitelma ─────────────────────────────────────
+    'plan.title':  "Tonight's plan",
+    'plan.badge':  '✦ Ready plan',
+    'plan.main':   'Main event',
+    'plan.before': 'Before the main event',
+    'plan.after':  'Continue the evening',
 
     // ── Misc ─────────────────────────────────────────────────
     'misc.distance_away': 'away',

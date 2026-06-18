@@ -5,6 +5,7 @@ import { Event } from '@/lib/types'
 import { formatDate, formatTime, truncate, isTonight } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 interface Props {
   event: Event
@@ -28,16 +29,16 @@ function hashGradient(id: string): string {
   return GRADIENT_COLORS[h % GRADIENT_COLORS.length]
 }
 
-type TypeBadge = { label: string; emoji: string; bg: string; text: string }
+type TypeBadge = { tKey: TranslationKey; emoji: string; bg: string; text: string }
 
 function getTypeBadge(categories: string[]): TypeBadge | null {
   const cats = categories.map((c) => c.toLowerCase())
   const has = (...kws: string[]) => kws.some((kw) => cats.some((c) => c.includes(kw)))
-  if (has('festivaali'))                          return { label: 'Festivaali', emoji: '🎪', bg: 'rgba(245,158,11,0.18)', text: '#fbbf24' }
-  if (has('teatteri', 'ooppera', 'baletti'))      return { label: 'Teatteri',   emoji: '🎭', bg: 'rgba(139,92,246,0.18)', text: '#a78bfa' }
-  if (has('jalkapallo', 'ottelu', 'jääkiekko'))   return { label: 'Ottelu',     emoji: '⚽', bg: 'rgba(16,185,129,0.18)', text: '#34d399' }
-  if (has('urheilu'))                             return { label: 'Urheilu',    emoji: '🏅', bg: 'rgba(16,185,129,0.18)', text: '#34d399' }
-  if (has('näyttely', 'museo'))                   return { label: 'Näyttely',   emoji: '🖼', bg: 'rgba(244,114,182,0.18)', text: '#f9a8d4' }
+  if (has('festivaali'))                          return { tKey: 'legend.festival', emoji: '🎪', bg: 'rgba(245,158,11,0.18)', text: '#fbbf24' }
+  if (has('teatteri', 'ooppera', 'baletti'))      return { tKey: 'legend.theatre',  emoji: '🎭', bg: 'rgba(139,92,246,0.18)', text: '#a78bfa' }
+  if (has('jalkapallo', 'ottelu', 'jääkiekko'))   return { tKey: 'legend.match',    emoji: '⚽', bg: 'rgba(16,185,129,0.18)', text: '#34d399' }
+  if (has('urheilu'))                             return { tKey: 'legend.sport',    emoji: '🏅', bg: 'rgba(16,185,129,0.18)', text: '#34d399' }
+  if (has('näyttely', 'museo'))                   return { tKey: 'legend.exhibition',emoji: '🖼', bg: 'rgba(244,114,182,0.18)', text: '#f9a8d4' }
   return null
 }
 
@@ -89,7 +90,7 @@ export default function EventCard({ event, onClick }: Props) {
           )}
           {tonight && (
             <span className="text-white text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>
-              Tänä iltana
+              {t('date.tonight')}
             </span>
           )}
         </div>
@@ -98,7 +99,7 @@ export default function EventCard({ event, onClick }: Props) {
         <div
           onClick={(e) => { e.stopPropagation(); toggle(event) }}
           role="button"
-          aria-label="Tallenna suosikkeihin"
+          aria-label={t('detail.save_fav')}
           style={{
             position: 'absolute', top: 8, right: 8, zIndex: 10,
             width: 32, height: 32, borderRadius: '50%',
@@ -149,7 +150,7 @@ export default function EventCard({ event, onClick }: Props) {
 
           {typeBadge ? (
             <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: typeBadge.bg, color: typeBadge.text }}>
-              {typeBadge.emoji} {typeBadge.label}
+              {typeBadge.emoji} {t(typeBadge.tKey)}
             </span>
           ) : event.categories[0] ? (
             <span className="shrink-0 text-[10px] text-white/30 bg-white/5 px-2 py-1 rounded-full">

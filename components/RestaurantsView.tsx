@@ -17,11 +17,11 @@ const PAGE_SIZE = 48
 const PRICE_LABELS = ['', '€', '€€', '€€€', '€€€€']
 
 const TYPE_OPTIONS = [
-  { id: 'all',       label: 'Kaikki'        },
-  { id: 'ravintola', label: '🍽 Ravintolat'  },
-  { id: 'kahvila',   label: '☕ Kahvilat'    },
-  { id: 'baari',     label: '🍺 Baarit'      },
-  { id: 'pikaruoka', label: '🍔 Pikaruoka'   },
+  { id: 'all',       tKey: 'restaurants.type_all'        },
+  { id: 'ravintola', tKey: 'restaurants.type_restaurant' },
+  { id: 'kahvila',   tKey: 'restaurants.type_cafe'       },
+  { id: 'baari',     tKey: 'restaurants.type_bar'        },
+  { id: 'pikaruoka', tKey: 'restaurants.type_fastfood'   },
 ] as const
 type TypeFilter = (typeof TYPE_OPTIONS)[number]['id']
 

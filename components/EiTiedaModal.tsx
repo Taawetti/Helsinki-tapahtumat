@@ -36,7 +36,7 @@ interface Props {
 }
 
 export default function EiTiedaModal({ events, mode = 'general', onClose, onSelect }: Props) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [refreshKey, setRefreshKey] = useState(0)
 
   if (events.length === 0) {
@@ -152,7 +152,7 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
                   <p className="text-white font-bold text-sm leading-tight line-clamp-1">{event.title}</p>
                   <p className="text-white/40 text-xs mt-0.5">
                     {event.location?.name && `${event.location.name} · `}
-                    {new Date(event.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
                     {event.isFree ? ' · ' + t('common.free_ticket') : event.price ? ` · ${event.price}` : ''}
                   </p>
                   <p className="text-white/20 text-xs mt-0.5">{t(descKey)}</p>

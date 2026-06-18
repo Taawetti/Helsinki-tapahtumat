@@ -46,8 +46,8 @@ export default function SpontaaniCard({ events, onOpen }: Props) {
   const minsUntil = Math.round((new Date(event.startTime).getTime() - Date.now()) / 60000)
   const hoursUntil = Math.floor(minsUntil / 60)
   const timeLabel = hoursUntil >= 1
-    ? `${hoursUntil}h ${minsUntil % 60 > 0 ? (minsUntil % 60) + 'min ' : ''}päästä`
-    : `${minsUntil} min päästä`
+    ? `${hoursUntil}h ${minsUntil % 60 > 0 ? (minsUntil % 60) + 'min ' : ''}${t('spontaani.away')}`
+    : `${minsUntil} ${t('spontaani.min_away')}`
 
   return (
     <div
@@ -71,13 +71,13 @@ export default function SpontaaniCard({ events, onOpen }: Props) {
           style={{ background: 'linear-gradient(135deg,#f59e0b,#ef4444)' }}
         >
           <Zap size={10} />
-          Spontaani ilta
+          {t('spontaani.title')}
         </div>
 
         <button
           onClick={(e) => { e.stopPropagation(); setIdx(i => i + 1) }}
           className="absolute top-3 right-3 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white/60 hover:text-white transition-colors"
-          aria-label="Näytä eri tapahtuma"
+          aria-label={t('spontaani.different')}
         >
           <RefreshCw size={13} />
         </button>
@@ -105,7 +105,7 @@ export default function SpontaaniCard({ events, onOpen }: Props) {
           className="flex items-center justify-center gap-2 py-3 text-white text-sm font-black"
           style={{ background: 'linear-gradient(135deg,#f59e0b,#ef4444)' }}
         >
-          Mene tänä iltana →
+          {t('spontaani.go_tonight')}
         </a>
       )}
     </div>

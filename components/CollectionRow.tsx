@@ -31,7 +31,7 @@ export default function CollectionRow({ collection, events, onEventClick, onSeeA
           onClick={() => onSeeAll(collection)}
           className="flex items-center gap-1 text-xs font-bold text-white/30 hover:text-white/60 transition-colors"
         >
-          Kaikki <ArrowRight size={12} />
+          {t('common.all')} <ArrowRight size={12} />
         </button>
       </div>
 
@@ -83,7 +83,7 @@ export default function CollectionRow({ collection, events, onEventClick, onSeeA
           className={`shrink-0 w-40 rounded-xl bg-gradient-to-br ${collection.color} border border-white/10 flex flex-col items-center justify-center gap-2 hover:border-white/25 transition-all p-4`}
         >
           <span className="text-3xl">{collection.emoji}</span>
-          <span className="text-white/70 text-xs font-medium text-center">Näytä kaikki</span>
+          <span className="text-white/70 text-xs font-medium text-center">{t('common.show_all')}</span>
           <ArrowRight size={14} className="text-white/40" />
         </button>
       </div>

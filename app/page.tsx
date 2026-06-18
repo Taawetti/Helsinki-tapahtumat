@@ -26,6 +26,7 @@ import RestaurantsView from '@/components/RestaurantsView'
 import ActivitiesView from '@/components/ActivitiesView'
 import IdeaView from '@/components/IdeaView'
 import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 
@@ -168,7 +169,7 @@ export default function Home() {
       if (Date.now() - last < 8 * 60 * 60 * 1000) return
       localStorage.setItem('hki-notif-ts', String(Date.now()))
       new Notification('Helsinki Tapahtumat', {
-        body: `${events.length} tapahtumaa tänään — katso mitä on tarjolla!`,
+        body: `${events.length} ${t('notif.events_today')}`,
         icon: '/icon-192.png',
         tag: 'hki-daily',
       })
@@ -414,14 +415,14 @@ export default function Home() {
         <main className="max-w-6xl mx-auto px-4 pt-5 pb-20 space-y-5">
           <div className="flex items-center gap-3">
             <Heart size={20} fill="currentColor" className="text-pink-400" />
-            <h2 className="text-lg font-black text-white">Suosikit</h2>
-            <span className="text-white/30 text-sm">{favCount} tallennettu</span>
+            <h2 className="text-lg font-black text-white">{t('fav.title')}</h2>
+            <span className="text-white/30 text-sm">{favCount} {t('fav.saved')}</span>
           </div>
           {favorites.length === 0 ? (
             <div className="text-center py-20 space-y-3">
               <Heart size={40} className="text-white/10 mx-auto" />
-              <p className="text-white/30 text-sm">Ei vielä suosikkeja</p>
-              <p className="text-white/20 text-xs">Paina ♥ tapahtumakortissa tallentaaksesi</p>
+              <p className="text-white/30 text-sm">{t('fav.empty')}</p>
+              <p className="text-white/20 text-xs">{t('fav.hint')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -444,18 +445,18 @@ export default function Home() {
               {municipality.toUpperCase()}
             </h1>
             <p className="text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
-              {new Date().toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
 
           {/* Date strip */}
           <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 items-center">
             {([
-              { d: 'today' as DateFilter, label: 'Tänään' },
-              { d: 'tomorrow' as DateFilter, label: 'Huomenna' },
-              { d: 'weekend' as DateFilter, label: '🎉 Viikonloppu' },
-              { d: 'week' as DateFilter, label: 'Viikko' },
-              { d: 'month' as DateFilter, label: 'Kuukausi' },
+              { d: 'today' as DateFilter, label: t('date.today') },
+              { d: 'tomorrow' as DateFilter, label: t('date.tomorrow') },
+              { d: 'weekend' as DateFilter, label: '🎉 ' + t('date.weekend') },
+              { d: 'week' as DateFilter, label: t('date.week_short') },
+              { d: 'month' as DateFilter, label: t('date.month') },
             ]).map(({ d, label }) => (
               <button key={d} onClick={() => { setDateFilter(d); setCustomDate('') }}
                 className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
@@ -510,7 +511,7 @@ export default function Home() {
                 <img src={hero.image!} alt={hero.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(8,8,12,0.95) 0%,rgba(8,8,12,0.3) 50%,transparent 100%)' }} />
                 <div className="absolute top-4 left-4">
-                  <span className="text-[10px] font-black px-2.5 py-1 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>✦ SUOSITUS</span>
+                  <span className="text-[10px] font-black px-2.5 py-1 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>{t('discover.recommendation')}</span>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7">
                   <h2 className="font-black text-white leading-tight mb-1.5" style={{ fontSize: 'clamp(1.3rem,3.5vw,2.2rem)', letterSpacing: '-0.02em' }}>
@@ -519,7 +520,7 @@ export default function Home() {
                   <div className="flex flex-wrap items-center gap-3 text-sm">
                     {hero.location?.name && <span className="text-white/50">{hero.location.name}</span>}
                     <span className="font-bold" style={{ color: '#c084fc' }}>
-                      {new Date(hero.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(hero.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {hero.isFree && <span className="text-emerald-400 font-bold">{t('common.free_ticket')}</span>}
                     {!hero.isFree && hero.price && <span className="text-white/40">{hero.price}</span>}
@@ -558,7 +559,7 @@ export default function Home() {
 
           {/* City selector */}
           <div className="pt-4 border-t border-white/5">
-            <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">Kaupunki</p>
+            <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">{t('discover.city')}</p>
             <div className="flex gap-2">
               {[{id:'helsinki',label:'Helsinki'},{id:'espoo',label:'Espoo'},{id:'vantaa',label:'Vantaa'}].map((c) => (
                 <button key={c.id} onClick={() => setMunicipality(c.id)}
@@ -572,7 +573,7 @@ export default function Home() {
           {/* Category & neighborhood links — SEO internal linking */}
           <div className="pt-4 border-t border-white/5 space-y-5">
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">Tapahtumat kategorioittain</p>
+              <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">{t('discover.by_category')}</p>
               <div className="flex flex-wrap gap-2">
                 {VIBES.map((v) => (
                   <Link
@@ -580,13 +581,13 @@ export default function Home() {
                     href={`/tapahtumat/${v.id}`}
                     className="px-3 py-1.5 rounded-full text-xs font-bold bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all border border-white/6 hover:border-white/15"
                   >
-                    {v.emoji} {v.label}
+                    {v.emoji} {t(v.tKey as TranslationKey)}
                   </Link>
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">Tapahtumat alueittain</p>
+              <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">{t('discover.by_area')}</p>
               <div className="flex flex-wrap gap-2">
                 {NEIGHBORHOODS.filter((n) => n.municipality === 'helsinki').map((n) => (
                   <Link
@@ -610,7 +611,7 @@ export default function Home() {
               onClick={() => setShowJarjestajaForm(true)}
               className="text-xs text-white/20 hover:text-white/50 transition-all font-bold"
             >
-              + Lisää tapahtumasi sivulle
+              {t('discover.add_event')}
             </button>
           </div>
         </main>

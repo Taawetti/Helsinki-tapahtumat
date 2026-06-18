@@ -3,6 +3,7 @@
 import { ChevronRight, MapPin } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 function eventScore(e: Event): number {
   const text = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export default function IltasuunnitelmaCard({ events, onEventClick }: Props) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const evening = events
     .filter(e => {
       const h = new Date(e.startTime).getHours()
@@ -33,7 +34,7 @@ export default function IltasuunnitelmaCard({ events, onEventClick }: Props) {
 
   // Build a diverse 2–3 event plan
   const mainEvent = evening[0]
-  const plan: { step: string; event: Event }[] = [{ step: 'Pääohjelma', event: mainEvent }]
+  const plan: { step: TranslationKey; event: Event }[] = [{ step: 'plan.main', event: mainEvent }]
 
   const secondary = evening.find(e => {
     const scoreDiff = Math.abs(eventScore(e) - eventScore(mainEvent))
@@ -44,9 +45,9 @@ export default function IltasuunnitelmaCard({ events, onEventClick }: Props) {
     const mainTs = new Date(mainEvent.startTime).getTime()
     const secTs = new Date(secondary.startTime).getTime()
     if (secTs < mainTs) {
-      plan.unshift({ step: 'Ennen pääohjelmaa', event: secondary })
+      plan.unshift({ step: 'plan.before', event: secondary })
     } else {
-      plan.push({ step: 'Illan jatkoksi', event: secondary })
+      plan.push({ step: 'plan.after', event: secondary })
     }
   }
 
@@ -59,9 +60,9 @@ export default function IltasuunnitelmaCard({ events, onEventClick }: Props) {
       <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-white/5">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: '#a855f7' }}>
-            ✦ Valmis ehdotus
+            {t('plan.badge')}
           </p>
-          <p className="text-white font-black text-sm">Tämän illan ohjelma</p>
+          <p className="text-white font-black text-sm">{t('plan.title')}</p>
         </div>
         <span className="text-2xl">🌆</span>
       </div>
@@ -74,11 +75,11 @@ export default function IltasuunnitelmaCard({ events, onEventClick }: Props) {
             >
               <div className="w-14 text-right shrink-0">
                 <p className="text-xs font-black" style={{ color: '#c084fc' }}>
-                  {new Date(event.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-white/25">{step}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-white/25">{t(step)}</p>
                 <p className="text-white font-bold text-sm truncate">{event.title}</p>
                 {event.location?.name && (
                   <p className="flex items-center gap-1 text-white/30 text-xs mt-0.5">

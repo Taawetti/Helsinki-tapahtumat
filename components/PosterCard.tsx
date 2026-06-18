@@ -2,6 +2,7 @@
 
 import { Event } from '@/lib/types'
 import { formatTime } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 // 12 distinct dark gradients with varied angles
 const GRADIENTS = [
@@ -67,6 +68,7 @@ export default function PosterCard({ event, onClick, large }: Props) {
   const accent = ACCENT_COLORS[idx]
   const emoji = getCategoryEmoji(event.categories)
   const hasImage = !!event.image
+  const { t } = useLanguage()
 
   return (
     <button
@@ -114,7 +116,7 @@ export default function PosterCard({ event, onClick, large }: Props) {
               <div
                 className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-60"
                 style={{ color: accent }}>
-                {event.categories[0] || 'Tapahtuma'}
+                {event.categories[0] || t('common.event_default')}
               </div>
               <h3
                 className={`font-black text-white leading-tight ${large ? 'text-3xl' : 'text-xl'}`}
@@ -143,7 +145,7 @@ export default function PosterCard({ event, onClick, large }: Props) {
         <div className="absolute top-2.5 left-2.5 flex gap-1.5 flex-wrap">
           {event.isFree && (
             <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500 text-white tracking-wide">
-              ILMAINEN
+              {t('common.free_badge')}
             </span>
           )}
         </div>

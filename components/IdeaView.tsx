@@ -100,11 +100,11 @@ function eventEmoji(event: Event): string {
   return '📅'
 }
 
-function eventWhy(event: Event): string {
+function eventWhy(event: Event, lang: string): string {
   const desc = event.shortDescription || event.description || ''
   if (desc.length > 20) return desc.slice(0, 140).replace(/\s\w+$/, '…')
   const cats = event.categories.slice(0, 2).join(' · ')
-  return cats || 'Ainutlaatuinen kokemus Helsingissä'
+  return cats || (lang === 'fi' ? 'Ainutlaatuinen kokemus Helsingissä' : 'A unique Helsinki experience')
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -140,11 +140,11 @@ const TYPE_META: Record<SuggestionType, { label: string; gradient: string; accen
 
 type Filter = 'all' | SuggestionType
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'all',        label: '🌟 Kaikki'      },
-  { id: 'event',      label: '📅 Tapahtumat'  },
-  { id: 'restaurant', label: '🍽 Ravintolat'  },
-  { id: 'activity',   label: '🧖 Tekemistä'   },
+const FILTERS: { id: Filter }[] = [
+  { id: 'all'        },
+  { id: 'event'      },
+  { id: 'restaurant' },
+  { id: 'activity'   },
 ]
 
 // ── Props ─────────────────────────────────────────────────
@@ -158,7 +158,7 @@ interface Props {
 // ── Main view ─────────────────────────────────────────────
 
 export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   const [filter, setFilter] = useState<Filter>('all')
   const [idx, setIdx] = useState(0)
@@ -183,26 +183,28 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     return CURATED_NAMES.map(({ name, emoji }) => {
       const activity = byName.get(name.toLowerCase())
       const highlight = getHighlight(name)
-      const fallbackHook = ATTRACTION_HIGHLIGHTS.find(h => name.toLowerCase().includes(h.nameKey))?.hook
+      const h = ATTRACTION_HIGHLIGHTS.find(h => name.toLowerCase().includes(h.nameKey))
+      const fallbackHook = lang === 'en' && h?.hookEn ? h.hookEn : h?.hook
       const open = activity ? isOpenNow(activity.openingHours) : undefined
+      const defaultWhy = lang === 'fi' ? 'Yksi Helsingin parhaista kohteista' : 'One of Helsinki\'s best spots'
       return {
         id: `activity-${name}`,
         type: 'activity' as const,
         title: name,
-        why: highlight?.hook || fallbackHook || 'Yksi Helsingin parhaista kohteista',
-        subWhy: highlight?.tip,
+        why: (lang === 'en' && highlight?.hookEn ? highlight.hookEn : highlight?.hook) || fallbackHook || defaultWhy,
+        subWhy: lang === 'en' && highlight?.tipEn ? highlight.tipEn : highlight?.tip,
         image: null,
         address: activity?.address,
         lat: activity?.lat,
         lon: activity?.lon,
         url: activity?.www ?? undefined,
-        badge: highlight?.badge,
+        badge: (lang === 'en' && highlight?.badgeEn ? highlight.badgeEn : highlight?.badge),
         isFree: activity?.fee === false,
         isOpen: open,
         emoji,
       }
     })
-  }, [activities])
+  }, [activities, lang])
 
   const restaurantSuggestions = useMemo((): Suggestion[] => {
     const byName = new Map(restaurants.map(r => [r.name.toLowerCase(), r]))
@@ -214,12 +216,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       const badge = r.michelinStars === 2 ? '⭐⭐ Michelin'
         : r.michelinStars === 1 ? '⭐ Michelin'
         : r.bibGourmand ? '😊 Bib Gourmand'
-        : pick.badge
+        : (lang === 'en' && pick.badgeEn ? pick.badgeEn : pick.badge)
       results.push({
         id: `restaurant-${r.id}`,
         type: 'restaurant',
         title: r.name,
-        why: pick.note,
+        why: lang === 'en' && pick.noteEn ? pick.noteEn : pick.note,
         image: r.image ?? null,
         address: r.address,
         lat: r.lat,
@@ -233,7 +235,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       })
     }
     return results
-  }, [restaurants])
+  }, [restaurants, lang])
 
   const eventSuggestions = useMemo((): Suggestion[] => {
     return events
@@ -243,7 +245,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         id: `event-${e.id}`,
         type: 'event' as const,
         title: e.title,
-        why: eventWhy(e),
+        why: eventWhy(e, lang),
         image: e.image,
         address: e.location?.name || e.location?.streetAddress,
         lat: e.location?.lat,
@@ -251,10 +253,10 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         url: e.ticketUrl ?? e.infoUrl ?? undefined,
         isFree: e.isFree,
         price: e.price ?? undefined,
-        time: new Date(e.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' }),
+        time: new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' }),
         emoji: eventEmoji(e),
       }))
-  }, [events])
+  }, [events, lang])
 
   // Combined & shuffled pool (memoized, shuffled once per filter change)
   const pool = useMemo(() => {

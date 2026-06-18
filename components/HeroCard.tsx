@@ -38,12 +38,12 @@ export default function HeroCard({ event, onClick }: Props) {
       {/* Label + heart */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
         <span className="bg-[#0072C6] text-white text-xs font-bold px-3 py-1 rounded-full tracking-wide uppercase">
-          Suositellaan
+          {t('hero.recommended')}
         </span>
         <div
           onClick={(e) => { e.stopPropagation(); toggle(event) }}
           role="button"
-          aria-label="Tallenna suosikkeihin"
+          aria-label={t('detail.save_fav')}
           style={{
             width: 36, height: 36, borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -88,7 +88,7 @@ export default function HeroCard({ event, onClick }: Props) {
           )}
 
           <div className="ml-auto flex items-center gap-1.5 text-white/50 group-hover:text-white text-sm font-medium transition-colors">
-            <span>Lue lisää</span>
+            <span>{t('detail.read_more')}</span>
             <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
           </div>
         </div>

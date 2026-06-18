@@ -1,6 +1,8 @@
 'use client'
 
-import { VIBES, Vibe } from '@/lib/types'
+import { VIBES } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 interface Props {
   active: string[]
@@ -8,6 +10,7 @@ interface Props {
 }
 
 export default function VibeBar({ active, onToggle }: Props) {
+  const { t } = useLanguage()
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
       {VIBES.map((v) => {
@@ -23,7 +26,7 @@ export default function VibeBar({ active, onToggle }: Props) {
             }`}
           >
             <span className="text-base leading-none">{v.emoji}</span>
-            {v.label}
+            {t(v.tKey as TranslationKey)}
           </button>
         )
       })}
