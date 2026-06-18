@@ -205,6 +205,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Enforce date boundaries for all sources — external APIs may ignore the date params
+    // and return events from wrong dates (e.g. past events, future events, wrong month).
+    // Use the ISO date prefix (first 10 chars) for comparison; Finnish APIs store times
+    // with +03:00 offset so the date part is Helsinki local date.
+    events = events.filter((e: Event) => {
+      const d = e.startTime.slice(0, 10)
+      return d >= start && d <= end
+    })
+
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
     // Enrich events without images using Wikipedia thumbnails (cached 7 days)

@@ -3,6 +3,7 @@
 import { ArrowRight } from 'lucide-react'
 import { Event, Collection } from '@/lib/types'
 import { formatDate, formatTime } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   collection: Collection
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function CollectionRow({ collection, events, onEventClick, onSeeAll }: Props) {
+  const { t } = useLanguage()
   if (events.length === 0) return null
 
   return (
@@ -55,7 +57,7 @@ export default function CollectionRow({ collection, events, onEventClick, onSeeA
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
               {event.isFree && (
                 <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  Maksuton
+                  {t('common.free_ticket')}
                 </span>
               )}
             </div>

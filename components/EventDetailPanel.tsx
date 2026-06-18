@@ -5,17 +5,11 @@ import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCirc
 import { Event } from '@/lib/types'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   event: Event | null
   onClose: () => void
-}
-
-function buildShareText(event: Event): string {
-  const date = `${formatDate(event.startTime)} klo ${formatTime(event.startTime)}`
-  const loc = event.location?.name ? ` @ ${event.location.name}` : ''
-  const free = event.isFree ? ' 🎁 Maksuton' : ''
-  return `${event.title}\n${date}${loc}${free}\n\nLöysin tämän Helsinki Tapahtumat -sovelluksesta 👉`
 }
 
 export default function EventDetailPanel({ event, onClose }: Props) {
@@ -23,7 +17,15 @@ export default function EventDetailPanel({ event, onClose }: Props) {
   const [copied, setCopied] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const { toggle, isFavorite } = useFavorites()
+  const { t, lang } = useLanguage()
   const fav = event ? isFavorite(event.id) : false
+
+  function buildShareText(event: Event): string {
+    const date = `${formatDate(event.startTime)} ${t('share.at_time')} ${formatTime(event.startTime)}`
+    const loc = event.location?.name ? ` @ ${event.location.name}` : ''
+    const free = event.isFree ? ` 🎁 ${t('common.free_ticket')}` : ''
+    return `${event.title}\n${date}${loc}${free}\n\n${t('share.found_in')}`
+  }
 
   useEffect(() => {
     if (!event) return
@@ -107,7 +109,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
             <button
               onClick={handleNativeShare}
               className="p-2 bg-black/50 hover:bg-black/80 backdrop-blur-sm rounded-full text-white/70 hover:text-white transition-colors"
-              aria-label="Jaa"
+              aria-label={t('detail.share_label')}
             >
               <Share2 size={16} />
             </button>
@@ -118,14 +120,14 @@ export default function EventDetailPanel({ event, onClose }: Props) {
                 color: fav ? '#fff' : 'rgba(255,255,255,0.7)',
               }}
               className="p-2 backdrop-blur-sm rounded-full transition-all"
-              aria-label="Tallenna suosikkeihin"
+              aria-label={t('detail.save_fav')}
             >
               <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
             </button>
             <button
               onClick={onClose}
               className="p-2 bg-black/50 hover:bg-black/80 backdrop-blur-sm rounded-full text-white transition-colors"
-              aria-label="Sulje"
+              aria-label={t('detail.close')}
             >
               <X size={16} />
             </button>
@@ -133,7 +135,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
 
           {event.isFree && (
             <span className="absolute top-4 left-4 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-              🎁 Maksuton
+              🎁 {t('common.free_ticket')}
             </span>
           )}
         </div>
@@ -197,7 +199,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
 
           {/* Share section */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">Jaa kavereille</p>
+            <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">{t('detail.share_with')}</p>
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={handleWhatsApp}
@@ -221,7 +223,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
               >
                 {copied ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} className="text-white/50" />}
                 <span className={`text-[11px] font-semibold ${copied ? 'text-emerald-400' : 'text-white/40'}`}>
-                  {copied ? 'Kopioitu!' : 'Kopioi'}
+                  {copied ? t('detail.copied') : t('detail.copy')}
                 </span>
               </button>
             </div>
@@ -237,7 +239,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
                 className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
               >
                 <Ticket size={15} />
-                {event.ticketUrl ? 'Osta liput' : 'Lue lisää'}
+                {event.ticketUrl ? t('detail.buy_tickets') : t('detail.read_more')}
                 <ExternalLink size={13} className="opacity-70" />
               </a>
             )}
@@ -251,7 +253,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
                     className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/8 text-white/60 font-medium text-sm py-3 rounded-xl border border-white/8 transition-colors"
                   >
                     <Navigation size={14} />
-                    Kartta
+                    {t('detail.map')}
                   </a>
                 )}
                 {transitUrl && (
@@ -262,7 +264,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
                     className="flex items-center justify-center gap-1.5 bg-[#0072C6]/10 hover:bg-[#0072C6]/20 text-[#4da6e8] font-medium text-sm py-3 rounded-xl border border-[#0072C6]/20 transition-colors"
                   >
                     <Navigation size={14} />
-                    Reittiohjeet
+                    {t('detail.directions')}
                   </a>
                 )}
               </div>

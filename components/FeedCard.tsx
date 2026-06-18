@@ -4,6 +4,7 @@ import { MapPin, Clock, Share2, ArrowUpRight, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   event: Event
@@ -33,6 +34,7 @@ async function shareEvent(e: React.MouseEvent, event: Event) {
 export default function FeedCard({ event, onClick, index }: Props) {
   const gradient = GRADIENTS[index % GRADIENTS.length]
   const { toggle, isFavorite } = useFavorites()
+  const { t } = useLanguage()
   const fav = isFavorite(event.id)
 
   return (
@@ -63,7 +65,7 @@ export default function FeedCard({ event, onClick, index }: Props) {
         <div className="absolute top-3 left-3 flex gap-2">
           {event.isFree && (
             <span className="bg-emerald-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
-              🎁 Maksuton
+              🎁 {t('common.free_ticket')}
             </span>
           )}
           {event.categories[0] && (

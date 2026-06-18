@@ -8,6 +8,7 @@ import {
 import type { Restaurant } from '@/lib/types'
 import { FEATURED_PICKS, CRITIC_PICKS } from '@/lib/restaurant-awards'
 import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -28,22 +29,22 @@ type SortMode = 'default' | 'nearby' | 'price_asc' | 'price_desc'
 
 // Cuisine category chips (Wolt-style)
 const CUISINE_CATEGORIES = [
-  { id: 'all',           label: 'Kaikki',         emoji: '🌍' },
-  { id: 'awarded',       label: 'Palkitut',        emoji: '🏆' },
-  { id: 'nordisk',       label: 'Pohjoismainen',   emoji: '🇫🇮' },
-  { id: 'japanese',      label: 'Japanilainen',    emoji: '🍣' },
-  { id: 'pizza',         label: 'Pizza',           emoji: '🍕' },
-  { id: 'italian',       label: 'Italialainen',    emoji: '🍝' },
-  { id: 'asian',         label: 'Aasialainen',     emoji: '🍜' },
-  { id: 'burger',        label: 'Hampurilaiset',   emoji: '🍔' },
-  { id: 'veggie',        label: 'Kasvis',          emoji: '🌱' },
-  { id: 'kebab',         label: 'Kebab',           emoji: '🌯' },
-  { id: 'mediterranean', label: 'Välimeri',        emoji: '🫒' },
-  { id: 'indian',        label: 'Intialainen',     emoji: '🍛' },
-  { id: 'seafood',       label: 'Kala & meri',     emoji: '🐟' },
-  { id: 'steak',         label: 'Pihvi & grilli',  emoji: '🥩' },
-  { id: 'mexican',       label: 'Meksikolainen',   emoji: '🌮' },
-  { id: 'cafe',          label: 'Kahvila & dessert',emoji: '☕' },
+  { id: 'all',           label: 'Kaikki',          emoji: '🌍', tKey: 'cuisine.all' },
+  { id: 'awarded',       label: 'Palkitut',         emoji: '🏆', tKey: 'cuisine.awarded' },
+  { id: 'nordisk',       label: 'Pohjoismainen',    emoji: '🇫🇮', tKey: 'cuisine.nordisk' },
+  { id: 'japanese',      label: 'Japanilainen',     emoji: '🍣', tKey: 'cuisine.japanese' },
+  { id: 'pizza',         label: 'Pizza',            emoji: '🍕', tKey: 'cuisine.pizza' },
+  { id: 'italian',       label: 'Italialainen',     emoji: '🍝', tKey: 'cuisine.italian' },
+  { id: 'asian',         label: 'Aasialainen',      emoji: '🍜', tKey: 'cuisine.asian' },
+  { id: 'burger',        label: 'Hampurilaiset',    emoji: '🍔', tKey: 'cuisine.burger' },
+  { id: 'veggie',        label: 'Kasvis',           emoji: '🌱', tKey: 'cuisine.veggie' },
+  { id: 'kebab',         label: 'Kebab',            emoji: '🌯', tKey: 'cuisine.kebab' },
+  { id: 'mediterranean', label: 'Välimeri',         emoji: '🫒', tKey: 'cuisine.mediterranean' },
+  { id: 'indian',        label: 'Intialainen',      emoji: '🍛', tKey: 'cuisine.indian' },
+  { id: 'seafood',       label: 'Kala & meri',      emoji: '🐟', tKey: 'cuisine.seafood' },
+  { id: 'steak',         label: 'Pihvi & grilli',   emoji: '🥩', tKey: 'cuisine.steak' },
+  { id: 'mexican',       label: 'Meksikolainen',    emoji: '🌮', tKey: 'cuisine.mexican' },
+  { id: 'cafe',          label: 'Kahvila & dessert', emoji: '☕', tKey: 'cuisine.cafe_dessert' },
 ] as const
 type CuisineFilter = (typeof CUISINE_CATEGORIES)[number]['id']
 
@@ -62,13 +63,13 @@ function fmtDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
-function typeStyle(type: Restaurant['type']) {
+function typeStyle(type: Restaurant['type']): { cls: string; tKey: TranslationKey } {
   switch (type) {
-    case 'ravintola': return { cls: 'bg-amber-500/15 text-amber-300/80', label: 'Ravintola' }
-    case 'kahvila':   return { cls: 'bg-emerald-500/15 text-emerald-300/80', label: 'Kahvila' }
-    case 'baari':     return { cls: 'bg-fuchsia-500/15 text-fuchsia-300/80', label: 'Baari' }
-    case 'pikaruoka': return { cls: 'bg-orange-500/15 text-orange-300/80', label: 'Pikaruoka' }
-    default:          return { cls: 'bg-white/8 text-white/35', label: 'Paikka' }
+    case 'ravintola': return { cls: 'bg-amber-500/15 text-amber-300/80', tKey: 'rest.type.ravintola' }
+    case 'kahvila':   return { cls: 'bg-emerald-500/15 text-emerald-300/80', tKey: 'rest.type.kahvila' }
+    case 'baari':     return { cls: 'bg-fuchsia-500/15 text-fuchsia-300/80', tKey: 'rest.type.baari' }
+    case 'pikaruoka': return { cls: 'bg-orange-500/15 text-orange-300/80', tKey: 'rest.type.pikaruoka' }
+    default:          return { cls: 'bg-white/8 text-white/35', tKey: 'rest.type.place' }
   }
 }
 
@@ -111,12 +112,13 @@ function isOpenNow(hours: string): boolean | undefined {
 // ── Award badges ──────────────────────────────────────────
 
 function AwardBadges({ r }: { r: Restaurant }) {
+  const { t } = useLanguage()
   if (!r.michelinStars && !r.bibGourmand && !r.greenMichelin && !r.awards?.length) return null
   return (
     <div className="flex flex-wrap gap-1 mt-1">
       {r.michelinStars === 2 && (
         <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/20">
-          ⭐⭐ 2 tähteä
+          ⭐⭐ {t('rest.award.stars2')}
         </span>
       )}
       {r.michelinStars === 1 && (
@@ -151,7 +153,7 @@ function RestaurantCard({ r, distance, onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const { t } = useLanguage()
-  const { cls, label } = typeStyle(r.type)
+  const { cls, tKey } = typeStyle(r.type)
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
 
   return (
@@ -182,7 +184,7 @@ function RestaurantCard({ r, distance, onShowOnMap }: {
                 {open ? t('common.open') : t('common.closed')}
               </span>
             )}
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${cls}`}>{label}</span>
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${cls}`}>{t(tKey)}</span>
           </div>
         </div>
 
@@ -240,7 +242,7 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
   distance?: number
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   if (!r) return null
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
 
@@ -248,7 +250,7 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
     <div className="shrink-0 w-72 rounded-2xl border border-white/8 overflow-hidden bg-gradient-to-b from-white/6 to-white/2 hover:from-white/8 hover:to-white/4 transition-all group">
       {/* Top badge */}
       <div className="px-4 pt-3 pb-2">
-        <span className="text-[11px] font-black text-red-300/90 leading-none">{pick.badge}</span>
+        <span className="text-[11px] font-black text-red-300/90 leading-none">{lang === 'en' && pick.badgeEn ? pick.badgeEn : pick.badge}</span>
       </div>
 
       <div className="px-4 pb-4 space-y-2">
@@ -263,10 +265,10 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
           </div>
         </div>
 
-        <p className="text-white/50 text-xs leading-relaxed">{pick.note}</p>
+        <p className="text-white/50 text-xs leading-relaxed">{lang === 'en' && pick.noteEn ? pick.noteEn : pick.note}</p>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] text-white/35 bg-white/5 px-2 py-0.5 rounded-full">{pick.cuisineHint}</span>
+          <span className="text-[10px] text-white/35 bg-white/5 px-2 py-0.5 rounded-full">{lang === 'en' && pick.cuisineHintEn ? pick.cuisineHintEn : pick.cuisineHint}</span>
           {r.priceRange && (
             <span className="text-[10px] text-white/35 bg-white/5 px-2 py-0.5 rounded-full">{PRICE_LABELS[r.priceRange]}</span>
           )}
@@ -311,6 +313,7 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
 // ── Critic review card ────────────────────────────────────
 
 function CriticCard({ pick }: { pick: (typeof CRITIC_PICKS)[number] }) {
+  const { lang } = useLanguage()
   return (
     <div className="shrink-0 w-64 rounded-2xl border border-white/6 bg-white/[0.025] p-4 space-y-2">
       <div className="flex items-center gap-1.5">
@@ -319,7 +322,7 @@ function CriticCard({ pick }: { pick: (typeof CRITIC_PICKS)[number] }) {
         ))}
         <span className="text-white/30 text-[10px] ml-1">{pick.source}</span>
       </div>
-      <p className="text-white/55 text-xs leading-relaxed italic">&ldquo;{pick.snippet}&rdquo;</p>
+      <p className="text-white/55 text-xs leading-relaxed italic">&ldquo;{lang === 'en' && pick.snippetEn ? pick.snippetEn : pick.snippet}&rdquo;</p>
       <p className="text-white/80 text-sm font-bold">{pick.name}</p>
       <p className="text-white/20 text-[10px]">{pick.year}</p>
     </div>
@@ -525,7 +528,7 @@ export default function RestaurantsView({ onShowOnMap }: {
               }`}
               style={cuisineFilter === cat.id ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
               <span>{cat.emoji}</span>
-              <span>{cat.label}</span>
+              <span>{t(cat.tKey as TranslationKey)}</span>
               {count > 0 && cuisineFilter !== cat.id && (
                 <span className="text-white/20 text-[10px] font-normal">{count}</span>
               )}
@@ -566,7 +569,7 @@ export default function RestaurantsView({ onShowOnMap }: {
             {locating
               ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
               : <Navigation size={11} />}
-            Lähellä
+            {t('restaurants.nearby')}
           </button>
           <button onClick={() => setSortMode(m => m === 'price_asc' ? 'default' : 'price_asc')}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-black transition-all ${
@@ -574,7 +577,7 @@ export default function RestaurantsView({ onShowOnMap }: {
                 ? 'bg-white/15 text-white'
                 : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/60'
             }`}>
-            Hinta €↑
+            {t('restaurants.price_asc')}
           </button>
           <button onClick={() => setSortMode(m => m === 'price_desc' ? 'default' : 'price_desc')}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-black transition-all ${
@@ -582,23 +585,23 @@ export default function RestaurantsView({ onShowOnMap }: {
                 ? 'bg-white/15 text-white'
                 : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/60'
             }`}>
-            Hinta €↓
+            {t('restaurants.price_desc')}
           </button>
         </div>
       </div>
 
       {/* Location error */}
-      {locError && <p className="text-orange-400/70 text-xs">Sijaintia ei saatu — tarkista selaimen lupa</p>}
+      {locError && <p className="text-orange-400/70 text-xs">{t('common.location_error')}</p>}
 
       {/* Active filters */}
       {(search || typeFilter !== 'all' || cuisineFilter !== 'all' || sortMode !== 'default') && (
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-white/25 text-xs">Suodattimet:</span>
+          <span className="text-white/25 text-xs">{t('common.filters')}</span>
           {cuisineFilter !== 'all' && (
             <button onClick={() => setCuisineFilter('all')}
               className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-300/80 hover:bg-purple-500/25 transition-colors">
               {CUISINE_CATEGORIES.find(c => c.id === cuisineFilter)?.emoji}{' '}
-              {CUISINE_CATEGORIES.find(c => c.id === cuisineFilter)?.label}
+              {t((CUISINE_CATEGORIES.find(c => c.id === cuisineFilter)?.tKey ?? 'cuisine.all') as TranslationKey)}
               <X size={10} />
             </button>
           )}
@@ -617,7 +620,7 @@ export default function RestaurantsView({ onShowOnMap }: {
           )}
           <button onClick={() => { setSearch(''); setTypeFilter('all'); setCuisineFilter('all'); setSortMode('default') }}
             className="text-xs text-white/25 hover:text-white/50 transition-colors underline underline-offset-2">
-            Tyhjennä kaikki
+            {t('common.clear_all')}
           </button>
         </div>
       )}
@@ -625,9 +628,9 @@ export default function RestaurantsView({ onShowOnMap }: {
       {/* Count */}
       {!loading && !error && (
         <p className="text-white/20 text-xs font-bold">
-          {filtered.length.toLocaleString('fi-FI')} paikkaa
+          {filtered.length.toLocaleString()} {t('restaurants.places')}
           {!search && cuisineFilter === 'all' && typeFilter === 'all' && total > 0 && (
-            <span className="text-white/12"> ({total.toLocaleString('fi-FI')} yhteensä)</span>
+            <span className="text-white/12"> ({total.toLocaleString()} {t('restaurants.total_count')})</span>
           )}
         </p>
       )}
@@ -637,7 +640,7 @@ export default function RestaurantsView({ onShowOnMap }: {
         <div className="space-y-5">
           <div className="flex items-center gap-3 text-white/30 text-sm">
             <div className="w-4 h-4 rounded-full border-2 border-purple-500/40 border-t-purple-400 animate-spin shrink-0" />
-            <span>Haetaan ravintoloita kartalta… Hetken kärsivällisyyttä.</span>
+            <span>{t('restaurants.loading')}</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
@@ -667,7 +670,7 @@ export default function RestaurantsView({ onShowOnMap }: {
               <button onClick={() => setShown(s => s + PAGE_SIZE)}
                 className="flex items-center gap-2 text-sm font-bold px-8 py-3 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 bg-white/3 transition-all">
                 <ChevronDown size={15} />
-                {t('restaurants.load_more')} ({filtered.length - shown} jäljellä)
+                {t('restaurants.load_more')} ({filtered.length - shown} {t('common.remaining')})
               </button>
             </div>
           )}
@@ -679,12 +682,12 @@ export default function RestaurantsView({ onShowOnMap }: {
         <div className="flex flex-col items-center py-24 text-center gap-4">
           <span className="text-5xl">🍽</span>
           <div>
-            <p className="text-white/50 font-bold">Ei tuloksia</p>
-            <p className="text-white/25 text-sm mt-1">Kokeile eri hakusanaa tai tyhjennä suodattimet</p>
+            <p className="text-white/50 font-bold">{t('common.no_results')}</p>
+            <p className="text-white/25 text-sm mt-1">{t('common.try_search')}</p>
           </div>
           <button onClick={() => { setSearch(''); setTypeFilter('all'); setCuisineFilter('all') }}
             className="text-sm font-bold px-4 py-2 rounded-xl border border-purple-500/30 text-purple-400/70 hover:text-purple-300 hover:border-purple-500/50 transition-all">
-            Tyhjennä suodattimet
+            {t('common.clear_filters')}
           </button>
         </div>
       )}

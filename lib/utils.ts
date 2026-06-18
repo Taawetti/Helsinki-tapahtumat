@@ -2,7 +2,14 @@ import { DateFilter } from './types'
 
 export function getDateRange(filter: DateFilter, customDate?: string): { start: string; end: string; startAfter?: string } {
   const now = new Date()
-  const fmt = (d: Date) => d.toISOString().split('T')[0]
+  // Use local date components (not UTC) — avoids returning yesterday's date for Helsinki
+  // users between midnight and 3 AM when UTC is still on the previous day.
+  const fmt = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
 
   switch (filter) {
     case 'today':

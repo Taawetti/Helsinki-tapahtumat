@@ -143,9 +143,15 @@ const RECURRING: RecurringDef[] = [
 ]
 
 function toISO(date: Date, hour: number, minute: number): string {
-  const d = new Date(date)
-  d.setHours(hour, minute, 0, 0)
-  return d.toISOString()
+  // Vercel servers run in UTC. Build an explicit Helsinki local-time ISO string
+  // (+03:00 = EEST summer / +02:00 = EET winter).  Using +03:00 year-round is a
+  // safe approximation: recurring events are mainly summer-season anyway.
+  const y = date.getFullYear()
+  const mo = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(hour).padStart(2, '0')
+  const mi = String(minute).padStart(2, '0')
+  return `${y}-${mo}-${d}T${h}:${mi}:00+03:00`
 }
 
 function generateEvents(def: RecurringDef, startDate: Date, endDate: Date): Event[] {

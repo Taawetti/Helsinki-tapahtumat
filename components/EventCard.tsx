@@ -4,6 +4,7 @@ import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime, truncate, isTonight } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   event: Event
@@ -54,6 +55,7 @@ export default function EventCard({ event, onClick }: Props) {
   const gradient = hashGradient(event.id)
   const tonight = isTonight(event.startTime)
   const { toggle, isFavorite } = useFavorites()
+  const { t } = useLanguage()
   const fav = isFavorite(event.id)
   const typeBadge = getTypeBadge(event.categories)
 
@@ -82,7 +84,7 @@ export default function EventCard({ event, onClick }: Props) {
         <div className="absolute top-3 left-3 flex gap-1.5">
           {event.isFree && (
             <span className="bg-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-              Maksuton
+              {t('common.free_ticket')}
             </span>
           )}
           {tonight && (

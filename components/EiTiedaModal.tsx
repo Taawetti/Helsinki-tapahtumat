@@ -3,6 +3,8 @@
 import { X, RefreshCw } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { useState } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 function eventScore(e: Event): number {
   const text = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
@@ -19,9 +21,9 @@ function eventScore(e: Event): number {
 export type EiTiedaMode = 'general' | 'treffi'
 
 interface Suggestion {
-  label: string
+  labelKey: TranslationKey
   emoji: string
-  desc: string
+  descKey: TranslationKey
   event: Event
   color: string
 }
@@ -34,6 +36,7 @@ interface Props {
 }
 
 export default function EiTiedaModal({ events, mode = 'general', onClose, onSelect }: Props) {
+  const { t } = useLanguage()
   const [refreshKey, setRefreshKey] = useState(0)
 
   if (events.length === 0) {
@@ -43,10 +46,10 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
         <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-8 text-center space-y-3"
           style={{ background: '#111118', border: '1px solid rgba(255,255,255,0.08)' }}>
           <p className="text-4xl">🏙</p>
-          <p className="text-white font-bold">Ei tapahtumia juuri nyt</p>
-          <p className="text-white/30 text-sm">Kokeile laajentaa päivämäärähakua</p>
+          <p className="text-white font-bold">{t('modal.no_events')}</p>
+          <p className="text-white/30 text-sm">{t('modal.no_events_sub')}</p>
           <button onClick={onClose} className="px-5 py-2 rounded-xl text-sm font-bold text-white/50 border border-white/10 hover:text-white transition-all mt-2">
-            Sulje
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -69,27 +72,27 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
       /baari|pub|cocktail|jatko/.test([e.title, ...e.categories].join(' ').toLowerCase())
     ) ?? evening[Math.min(1, evening.length - 1)]
 
-    if (foodEvent) suggestions.push({ label: 'Illallistaa ensin', emoji: '🍷', desc: 'Hyvä aloitus treffeille', event: foodEvent, color: '#f59e0b' })
-    if (showEvent) suggestions.push({ label: 'Pääohjelma', emoji: '✨', desc: 'Elämys kahdelle', event: showEvent, color: '#a855f7' })
-    if (barEvent && barEvent.id !== showEvent?.id) suggestions.push({ label: 'Jatkoille', emoji: '🍸', desc: 'Rentouttava lopetus', event: barEvent, color: '#ec4899' })
+    if (foodEvent) suggestions.push({ labelKey: 'suggest.dinner_first', emoji: '🍷', descKey: 'suggest.dinner_desc', event: foodEvent, color: '#f59e0b' })
+    if (showEvent) suggestions.push({ labelKey: 'suggest.main_event', emoji: '✨', descKey: 'suggest.main_desc', event: showEvent, color: '#a855f7' })
+    if (barEvent && barEvent.id !== showEvent?.id) suggestions.push({ labelKey: 'suggest.after', emoji: '🍸', descKey: 'suggest.after_desc', event: barEvent, color: '#ec4899' })
 
     if (suggestions.length === 0) {
       sorted.slice(0, 3).forEach((e, i) => {
         const opts: Suggestion[] = [
-          { label: 'Varma valinta', emoji: '⭐', desc: 'Tänään paras', event: e, color: '#a855f7' },
-          { label: 'Yllättävä idea', emoji: '🎲', desc: 'Jotain erilaista', event: e, color: '#ec4899' },
-          { label: 'Lähellä', emoji: '📍', desc: 'Helppo pääsy', event: e, color: '#6366f1' },
+          { labelKey: 'suggest.safe_choice', emoji: '⭐', descKey: 'suggest.safe_desc1', event: e, color: '#a855f7' },
+          { labelKey: 'suggest.surprise1', emoji: '🎲', descKey: 'suggest.surprise_desc', event: e, color: '#ec4899' },
+          { labelKey: 'suggest.nearby1', emoji: '📍', descKey: 'suggest.nearby_desc1', event: e, color: '#6366f1' },
         ]
         if (i < 3) suggestions.push(opts[i])
       })
     }
   } else {
     const varma = sorted[0]
-    if (varma) suggestions.push({ label: 'Varma valinta', emoji: '⭐', desc: 'Tänään eniten suositeltu', event: varma, color: '#a855f7' })
+    if (varma) suggestions.push({ labelKey: 'suggest.safe_choice', emoji: '⭐', descKey: 'suggest.safe_desc2', event: varma, color: '#a855f7' })
 
     const others = events.filter(e => e.id !== varma?.id)
     const yllattyva = others[(refreshKey * 7 + 3) % Math.max(others.length, 1)]
-    if (yllattyva) suggestions.push({ label: 'Yllättävä valinta', emoji: '🎲', desc: 'Jotain erilaista ja odottamatonta', event: yllattyva, color: '#ec4899' })
+    if (yllattyva) suggestions.push({ labelKey: 'suggest.surprise2', emoji: '🎲', descKey: 'suggest.surprise_desc2', event: yllattyva, color: '#ec4899' })
 
     const central = events.filter(e => {
       const loc = ((e.location?.name ?? '') + (e.location?.streetAddress ?? '')).toLowerCase()
@@ -101,11 +104,11 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
     const lahellaSafe = (lahella?.id !== varma?.id && lahella?.id !== yllattyva?.id)
       ? lahella
       : sorted[2]
-    if (lahellaSafe) suggestions.push({ label: 'Lähellä oleva', emoji: '📍', desc: 'Helposti saavutettavissa', event: lahellaSafe, color: '#6366f1' })
+    if (lahellaSafe) suggestions.push({ labelKey: 'suggest.nearby2', emoji: '📍', descKey: 'suggest.nearby_desc2', event: lahellaSafe, color: '#6366f1' })
   }
 
-  const title = mode === 'treffi' ? 'Treffi-idea' : 'En tiedä mitä haluan'
-  const subtitle = mode === 'treffi' ? 'Valmis iltaohjelma kahdelle' : 'Valitse kolmesta ehdotuksesta'
+  const title = t(mode === 'treffi' ? 'modal.date_title' : 'modal.dont_know_title')
+  const subtitle = t(mode === 'treffi' ? 'modal.date_sub' : 'modal.dont_know_sub')
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -122,7 +125,7 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
             <button
               onClick={() => setRefreshKey(k => k + 1)}
               className="p-2 rounded-xl border border-white/8 text-white/30 hover:text-white/70 transition-all"
-              title="Arvoi uudelleen"
+              title={t('modal.shuffle')}
             >
               <RefreshCw size={14} />
             </button>
@@ -133,9 +136,9 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
         </div>
 
         <div className="p-4 space-y-3">
-          {suggestions.map(({ label, emoji, desc, event, color }) => (
+          {suggestions.map(({ labelKey, emoji, descKey, event, color }) => (
             <button
-              key={label}
+              key={labelKey}
               onClick={() => { onSelect(event); onClose() }}
               className="w-full text-left rounded-xl p-4 border border-white/6 bg-white/3 hover:bg-white/6 active:scale-[0.98] transition-all group"
             >
@@ -145,14 +148,14 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
                   {emoji}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-wide mb-1" style={{ color }}>{label}</p>
+                  <p className="text-[10px] font-black uppercase tracking-wide mb-1" style={{ color }}>{t(labelKey)}</p>
                   <p className="text-white font-bold text-sm leading-tight line-clamp-1">{event.title}</p>
                   <p className="text-white/40 text-xs mt-0.5">
                     {event.location?.name && `${event.location.name} · `}
                     {new Date(event.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}
-                    {event.isFree ? ' · Maksuton' : event.price ? ` · ${event.price}` : ''}
+                    {event.isFree ? ' · ' + t('common.free_ticket') : event.price ? ` · ${event.price}` : ''}
                   </p>
-                  <p className="text-white/20 text-xs mt-0.5">{desc}</p>
+                  <p className="text-white/20 text-xs mt-0.5">{t(descKey)}</p>
                 </div>
                 {event.image && (
                   <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0">

@@ -1,6 +1,8 @@
 'use client'
 
 import { DateFilter, PriceFilter, CATEGORIES } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 interface Props {
   dateFilter: DateFilter
@@ -13,13 +15,13 @@ interface Props {
   onPriceChange: (p: PriceFilter) => void
 }
 
-const DATE_OPTIONS: { value: DateFilter; label: string; sub?: string }[] = [
-  { value: 'today', label: 'Tänään' },
-  { value: 'tonight', label: 'Illalla', sub: '17→' },
-  { value: 'tomorrow', label: 'Huomenna' },
-  { value: 'weekend', label: 'Viikonloppu' },
-  { value: 'week', label: 'Viikko' },
-  { value: 'month', label: 'Kuukausi' },
+const DATE_OPTIONS: { value: DateFilter; tKey: TranslationKey; sub?: string }[] = [
+  { value: 'today',   tKey: 'date.today' },
+  { value: 'tonight', tKey: 'filter.tonight_short', sub: '17→' },
+  { value: 'tomorrow',tKey: 'date.tomorrow' },
+  { value: 'weekend', tKey: 'date.weekend' },
+  { value: 'week',    tKey: 'filter.week_short' },
+  { value: 'month',   tKey: 'date.month' },
 ]
 
 const MUNICIPALITIES = [
@@ -28,10 +30,10 @@ const MUNICIPALITIES = [
   { value: 'vantaa', label: 'Vantaa' },
 ]
 
-const PRICE_OPTIONS: { value: PriceFilter; label: string }[] = [
-  { value: 'all', label: 'Kaikki' },
-  { value: 'free', label: '🎁 Ilmaiset' },
-  { value: 'paid', label: '🎟 Maksulliset' },
+const PRICE_OPTIONS: { value: PriceFilter; tKey: TranslationKey }[] = [
+  { value: 'all',  tKey: 'filter.all_price' },
+  { value: 'free', tKey: 'filter.free' },
+  { value: 'paid', tKey: 'filter.paid' },
 ]
 
 export default function FilterBar({
@@ -44,6 +46,7 @@ export default function FilterBar({
   priceFilter,
   onPriceChange,
 }: Props) {
+  const { t } = useLanguage()
   return (
     <div className="space-y-3">
       {/* Row 1: Date + City + Price */}
@@ -60,7 +63,7 @@ export default function FilterBar({
                   : 'text-white/50 hover:text-white/80'
               }`}
             >
-              {opt.label}
+              {t(opt.tKey)}
               {opt.sub && (
                 <span className={`ml-1 text-[10px] ${dateFilter === opt.value ? 'text-white/70' : 'text-white/30'}`}>
                   {opt.sub}
@@ -99,7 +102,7 @@ export default function FilterBar({
                   : 'text-white/50 hover:text-white/80'
               }`}
             >
-              {p.label}
+              {t(p.tKey)}
             </button>
           ))}
         </div>
@@ -131,7 +134,7 @@ export default function FilterBar({
             onClick={() => activeCategories.forEach((id) => onCategoryToggle(id))}
             className="px-3 py-1.5 rounded-full text-xs text-white/30 hover:text-white/60 border border-white/8 hover:border-white/20 transition-all"
           >
-            Tyhjennä
+            {t('common.clear')}
           </button>
         )}
       </div>

@@ -4,6 +4,7 @@ import { Clock, MapPin, ArrowRight, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   event: Event
@@ -12,6 +13,7 @@ interface Props {
 
 export default function HeroCard({ event, onClick }: Props) {
   const { toggle, isFavorite } = useFavorites()
+  const { t } = useLanguage()
   const fav = isFavorite(event.id)
   return (
     <button
@@ -81,7 +83,7 @@ export default function HeroCard({ event, onClick }: Props) {
           )}
           {event.isFree && (
             <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold px-2.5 py-1 rounded-full">
-              Maksuton
+              {t('common.free_ticket')}
             </span>
           )}
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   slot: string
@@ -11,6 +12,7 @@ interface Props {
 // Google AdSense -mainos. Näkyy vain kun NEXT_PUBLIC_ADSENSE_ID on asetettu.
 // Rekisteröidy: https://adsense.google.com
 export default function AdBanner({ slot, format = 'auto', className = '' }: Props) {
+  const { t } = useLanguage()
   const publisherId = process.env.NEXT_PUBLIC_ADSENSE_ID
   if (!publisherId) return null
 
@@ -24,7 +26,7 @@ export default function AdBanner({ slot, format = 'auto', className = '' }: Prop
 
   return (
     <div className={`overflow-hidden rounded-xl ${className}`}>
-      <p className="text-[9px] text-white/15 text-center mb-1 font-bold tracking-widest uppercase">Mainos</p>
+      <p className="text-[9px] text-white/15 text-center mb-1 font-bold tracking-widest uppercase">{t('common.ad')}</p>
       <ins
         className="adsbygoogle"
         style={{ display: 'block' }}

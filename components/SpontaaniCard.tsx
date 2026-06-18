@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { Zap, RefreshCw, Clock, MapPin } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatTime, affiliateUrl } from '@/lib/utils'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 function score(e: Event): number {
   const text = [e.title, e.shortDescription ?? '', ...e.categories].join(' ').toLowerCase()
@@ -25,6 +26,7 @@ interface Props {
 
 export default function SpontaaniCard({ events, onOpen }: Props) {
   const [idx, setIdx] = useState(0)
+  const { t } = useLanguage()
 
   const candidates = useMemo(() => {
     const now = new Date()
@@ -87,7 +89,7 @@ export default function SpontaaniCard({ events, onOpen }: Props) {
             <span className="flex items-center gap-1"><Clock size={10} />{formatTime(event.startTime)}</span>
             {event.location?.name && <span className="flex items-center gap-1"><MapPin size={10} />{event.location.name}</span>}
             {event.isFree
-              ? <span className="text-emerald-400 font-bold">Maksuton</span>
+              ? <span className="text-emerald-400 font-bold">{t('common.free_ticket')}</span>
               : event.price && <span>{event.price}</span>
             }
           </div>

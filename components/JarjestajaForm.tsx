@@ -2,11 +2,20 @@
 
 import { X, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
-const KATEGORIAT = [
-  'Musiikki', 'Teatteri & Sirkus', 'Taide & Kulttuuri', 'Urheilu',
-  'Ruoka & Juoma', 'Puisto & Ulkoilu', 'Lapset & Perhe',
-  'Klubit & Yöelämä', 'Stand-up & Komedia', 'Muu',
+const FORM_CATEGORIES: { fi: string; tKey: TranslationKey }[] = [
+  { fi: 'Musiikki',          tKey: 'form.cat.music' },
+  { fi: 'Teatteri & Sirkus', tKey: 'form.cat.theatre' },
+  { fi: 'Taide & Kulttuuri', tKey: 'form.cat.art' },
+  { fi: 'Urheilu',           tKey: 'form.cat.sport' },
+  { fi: 'Ruoka & Juoma',     tKey: 'form.cat.food' },
+  { fi: 'Puisto & Ulkoilu',  tKey: 'form.cat.outdoor' },
+  { fi: 'Lapset & Perhe',    tKey: 'form.cat.family' },
+  { fi: 'Klubit & Yöelämä',  tKey: 'form.cat.clubs' },
+  { fi: 'Stand-up & Komedia',tKey: 'form.cat.standup' },
+  { fi: 'Muu',               tKey: 'form.cat.other' },
 ]
 
 interface Props {
@@ -14,6 +23,7 @@ interface Props {
 }
 
 export default function JarjestajaForm({ onClose }: Props) {
+  const { t } = useLanguage()
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -40,7 +50,7 @@ export default function JarjestajaForm({ onClose }: Props) {
       if (!res.ok) throw new Error()
       setSent(true)
     } catch {
-      setError('Lähetys epäonnistui. Tarkista tiedot ja yritä uudelleen.')
+      setError(t('form.error'))
     } finally {
       setLoading(false)
     }
@@ -57,8 +67,8 @@ export default function JarjestajaForm({ onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/6 shrink-0">
           <div>
-            <h2 className="text-base font-black text-white">Lisää tapahtuma</h2>
-            <p className="text-white/30 text-xs mt-0.5">Täytä tiedot ja lähetä ehdotus</p>
+            <h2 className="text-base font-black text-white">{t('form.add_event')}</h2>
+            <p className="text-white/30 text-xs mt-0.5">{t('form.fill_submit')}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl border border-white/8 text-white/30 hover:text-white/70 transition-all">
             <X size={14} />
@@ -69,67 +79,67 @@ export default function JarjestajaForm({ onClose }: Props) {
           <div className="p-8 flex flex-col items-center gap-4 text-center">
             <CheckCircle size={40} className="text-emerald-400" />
             <div>
-              <p className="font-black text-white text-base">Kiitos ilmoituksesta!</p>
-              <p className="text-white/40 text-sm mt-1">Tarkistamme tapahtuman ja otamme sinuun yhteyttä pian.</p>
+              <p className="font-black text-white text-base">{t('form.success_title')}</p>
+              <p className="text-white/40 text-sm mt-1">{t('form.success_sub')}</p>
             </div>
             <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-bold text-white/60 border border-white/10 hover:text-white transition-all mt-2">
-              Sulje
+              {t('common.close')}
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 space-y-3 overflow-y-auto">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Tapahtuman nimi *</label>
+              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_name')} *</label>
               <input required value={form.nimi} onChange={set('nimi')} placeholder="esim. Flow Festival 2026" className={inputClass} />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Kuvaus</label>
-              <textarea value={form.kuvaus} onChange={set('kuvaus')} placeholder="Kerro lyhyesti tapahtumasta…" rows={3}
+              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_desc')}</label>
+              <textarea value={form.kuvaus} onChange={set('kuvaus')} placeholder={t('form.field_desc_ph')} rows={3}
                 className={`${inputClass} resize-none`} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Päivämäärä *</label>
+                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_date')} *</label>
                 <input required type="date" value={form.pvm} onChange={set('pvm')}
                   className={`${inputClass} [color-scheme:dark]`} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Kellonaika</label>
+                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_time')}</label>
                 <input type="time" value={form.aika} onChange={set('aika')}
                   className={`${inputClass} [color-scheme:dark]`} />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Paikka *</label>
-              <input required value={form.paikka} onChange={set('paikka')} placeholder="esim. Tavastia, Helsinki" className={inputClass} />
+              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_venue')} *</label>
+              <input required value={form.paikka} onChange={set('paikka')} placeholder={t('form.field_venue_ph')} className={inputClass} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Hinta</label>
-                <input value={form.hinta} onChange={set('hinta')} placeholder="esim. 15 € / Maksuton" className={inputClass} />
+                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_price')}</label>
+                <input value={form.hinta} onChange={set('hinta')} placeholder={t('form.field_price_ph')} className={inputClass} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Kategoria</label>
+                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_category')}</label>
                 <select value={form.kategoria} onChange={set('kategoria')} className={inputClass}>
-                  <option value="">Valitse…</option>
-                  {KATEGORIAT.map(k => (
-                    <option key={k} value={k} className="bg-[#111118]">{k}</option>
+                  <option value="">{t('form.field_category_ph')}</option>
+                  {FORM_CATEGORIES.map(cat => (
+                    <option key={cat.fi} value={cat.fi} className="bg-[#111118]">{t(cat.tKey)}</option>
                   ))}
                 </select>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Linkki lisätietoihin tai lipunmyyntiin</label>
+              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_link')}</label>
               <input type="url" value={form.linkki} onChange={set('linkki')} placeholder="https://…" className={inputClass} />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">Järjestäjän sähköposti *</label>
+              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_email')} *</label>
               <input required type="email" value={form.email} onChange={set('email')} placeholder="info@tapahtuma.fi" className={inputClass} />
             </div>
 
@@ -138,7 +148,7 @@ export default function JarjestajaForm({ onClose }: Props) {
               className="w-full py-3.5 rounded-xl font-black text-sm text-white hover:opacity-90 active:scale-[0.98] transition-all mt-1 disabled:opacity-60 flex items-center justify-center gap-2"
               style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>
               {loading && <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
-              {loading ? 'Lähetetään…' : 'Lähetä ehdotus'}
+              {loading ? t('form.sending') : t('form.submit')}
             </button>
           </form>
         )}

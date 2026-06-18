@@ -112,56 +112,56 @@ function makePinIcon(L: any, color: string, emoji: string, round = false) {
 // ── Sub-filter definitions ────────────────────────────────
 
 const EVENT_SUBS = [
-  { key: 'keikka',   emoji: '🎸', label: 'Keikka',      color: '#a855f7' },
-  { key: 'yoelama',  emoji: '🌙', label: 'Yöelämä',     color: '#ec4899' },
-  { key: 'baari',    emoji: '🍺', label: 'Baari',        color: '#f59e0b' },
-  { key: 'teatteri', emoji: '🎭', label: 'Teatteri',     color: '#ef4444' },
-  { key: 'taide',    emoji: '🎨', label: 'Taide',        color: '#06b6d4' },
-  { key: 'urheilu',  emoji: '⚽', label: 'Urheilu',      color: '#3b82f6' },
-  { key: 'ilmainen', emoji: '🎁', label: 'Ilmainen',     color: '#10b981' },
+  { key: 'keikka',   emoji: '🎸', label: 'Keikka',      color: '#a855f7', tKey: 'legend.concert' as const },
+  { key: 'yoelama',  emoji: '🌙', label: 'Yöelämä',     color: '#ec4899', tKey: 'legend.nightlife' as const },
+  { key: 'baari',    emoji: '🍺', label: 'Baari',        color: '#f59e0b', tKey: 'legend.bar' as const },
+  { key: 'teatteri', emoji: '🎭', label: 'Teatteri',     color: '#ef4444', tKey: 'legend.theatre' as const },
+  { key: 'taide',    emoji: '🎨', label: 'Taide',        color: '#06b6d4', tKey: 'legend.art' as const },
+  { key: 'urheilu',  emoji: '⚽', label: 'Urheilu',      color: '#3b82f6', tKey: 'legend.sport' as const },
+  { key: 'ilmainen', emoji: '🎁', label: 'Ilmainen',     color: '#10b981', tKey: 'legend.free' as const },
 ] as const
 
 const REST_SUBS = [
-  { key: 'ravintola', emoji: '🍽', label: 'Ravintola',  color: '#f97316' },
-  { key: 'kahvila',   emoji: '☕', label: 'Kahvila',    color: '#d97706' },
-  { key: 'baari',     emoji: '🍺', label: 'Baari',      color: '#d946ef' },
-  { key: 'pikaruoka', emoji: '🍔', label: 'Pikaruoka',  color: '#ef4444' },
+  { key: 'ravintola', emoji: '🍽', label: 'Ravintola',  color: '#f97316', tKey: 'legend.restaurant' as const },
+  { key: 'kahvila',   emoji: '☕', label: 'Kahvila',    color: '#d97706', tKey: 'legend.cafe' as const },
+  { key: 'baari',     emoji: '🍺', label: 'Baari',      color: '#d946ef', tKey: 'legend.bar' as const },
+  { key: 'pikaruoka', emoji: '🍔', label: 'Pikaruoka',  color: '#ef4444', tKey: 'legend.fastfood' as const },
 ] as const
 
 const REST_CUISINE_SUBS = [
-  { key: 'awarded',       emoji: '🏆', label: 'Palkitut',       color: '#f59e0b' },
-  { key: 'nordisk',       emoji: '🇫🇮', label: 'Pohjoismainen', color: '#3b82f6' },
-  { key: 'japanese',      emoji: '🍣', label: 'Japanilainen',   color: '#ef4444' },
-  { key: 'pizza',         emoji: '🍕', label: 'Pizza',          color: '#f97316' },
-  { key: 'italian',       emoji: '🍝', label: 'Italialainen',   color: '#10b981' },
-  { key: 'asian',         emoji: '🍜', label: 'Aasialainen',    color: '#d946ef' },
-  { key: 'burger',        emoji: '🍔', label: 'Hampurilaiset',  color: '#d97706' },
-  { key: 'veggie',        emoji: '🌱', label: 'Kasvis',         color: '#22c55e' },
-  { key: 'kebab',         emoji: '🌯', label: 'Kebab',          color: '#f59e0b' },
-  { key: 'mediterranean', emoji: '🫒', label: 'Välimeri',       color: '#14b8a6' },
-  { key: 'indian',        emoji: '🍛', label: 'Intialainen',    color: '#a78bfa' },
-  { key: 'seafood',       emoji: '🐟', label: 'Kala & meri',    color: '#06b6d4' },
-  { key: 'steak',         emoji: '🥩', label: 'Pihvi & grilli', color: '#ef4444' },
-  { key: 'mexican',       emoji: '🌮', label: 'Meksikolainen',  color: '#22c55e' },
+  { key: 'awarded',       emoji: '🏆', label: 'Palkitut',       color: '#f59e0b', tKey: 'cuisine.awarded' as const },
+  { key: 'nordisk',       emoji: '🇫🇮', label: 'Pohjoismainen', color: '#3b82f6', tKey: 'cuisine.nordisk' as const },
+  { key: 'japanese',      emoji: '🍣', label: 'Japanilainen',   color: '#ef4444', tKey: 'cuisine.japanese' as const },
+  { key: 'pizza',         emoji: '🍕', label: 'Pizza',          color: '#f97316', tKey: 'cuisine.pizza' as const },
+  { key: 'italian',       emoji: '🍝', label: 'Italialainen',   color: '#10b981', tKey: 'cuisine.italian' as const },
+  { key: 'asian',         emoji: '🍜', label: 'Aasialainen',    color: '#d946ef', tKey: 'cuisine.asian' as const },
+  { key: 'burger',        emoji: '🍔', label: 'Hampurilaiset',  color: '#d97706', tKey: 'cuisine.burger' as const },
+  { key: 'veggie',        emoji: '🌱', label: 'Kasvis',         color: '#22c55e', tKey: 'cuisine.veggie' as const },
+  { key: 'kebab',         emoji: '🌯', label: 'Kebab',          color: '#f59e0b', tKey: 'cuisine.kebab' as const },
+  { key: 'mediterranean', emoji: '🫒', label: 'Välimeri',       color: '#14b8a6', tKey: 'cuisine.mediterranean' as const },
+  { key: 'indian',        emoji: '🍛', label: 'Intialainen',    color: '#a78bfa', tKey: 'cuisine.indian' as const },
+  { key: 'seafood',       emoji: '🐟', label: 'Kala & meri',    color: '#06b6d4', tKey: 'cuisine.seafood' as const },
+  { key: 'steak',         emoji: '🥩', label: 'Pihvi & grilli', color: '#ef4444', tKey: 'cuisine.steak' as const },
+  { key: 'mexican',       emoji: '🌮', label: 'Meksikolainen',  color: '#22c55e', tKey: 'cuisine.mexican' as const },
 ] as const
 
 const ACT_SUBS = [
-  { key: 'sauna',      emoji: '🧖', label: 'Sauna',         color: '#f97316' },
-  { key: 'museo',      emoji: '🏛', label: 'Museo',         color: '#06b6d4' },
-  { key: 'nahtavyys',  emoji: '📍', label: 'Nähtävyys',     color: '#3b82f6' },
-  { key: 'galleria',   emoji: '🎨', label: 'Galleria',      color: '#a855f7' },
-  { key: 'puisto',     emoji: '🌿', label: 'Puisto',        color: '#22c55e' },
-  { key: 'uimaranta',  emoji: '🏊', label: 'Uimaranta',     color: '#14b8a6' },
-  { key: 'nakopaikka', emoji: '🔭', label: 'Näköalapaikka', color: '#f59e0b' },
+  { key: 'sauna',      emoji: '🧖', label: 'Sauna',         color: '#f97316', tKey: 'cat.sauna' as const },
+  { key: 'museo',      emoji: '🏛', label: 'Museo',         color: '#06b6d4', tKey: 'cat.museo' as const },
+  { key: 'nahtavyys',  emoji: '📍', label: 'Nähtävyys',     color: '#3b82f6', tKey: 'cat.nahtavyys' as const },
+  { key: 'galleria',   emoji: '🎨', label: 'Galleria',      color: '#a855f7', tKey: 'cat.galleria' as const },
+  { key: 'puisto',     emoji: '🌿', label: 'Puisto',        color: '#22c55e', tKey: 'cat.puisto' as const },
+  { key: 'uimaranta',  emoji: '🏊', label: 'Uimaranta',     color: '#14b8a6', tKey: 'cat.uimaranta' as const },
+  { key: 'nakopaikka', emoji: '🔭', label: 'Näköalapaikka', color: '#f59e0b', tKey: 'cat.nakopaikka' as const },
 ] as const
 
 type DateFilterKey = 'today' | 'tomorrow' | 'week' | 'month' | 'custom'
 
-const DATE_PILLS: { key: DateFilterKey; label: string }[] = [
-  { key: 'today',    label: 'Tänään'   },
-  { key: 'tomorrow', label: 'Huomenna' },
-  { key: 'week',     label: 'Viikolle' },
-  { key: 'month',    label: 'Kuukausi' },
+const DATE_PILLS: { key: DateFilterKey; tKey: TranslationKey }[] = [
+  { key: 'today',    tKey: 'date.today' },
+  { key: 'tomorrow', tKey: 'map.date_tomorrow' },
+  { key: 'week',     tKey: 'map.date_week' },
+  { key: 'month',    tKey: 'map.date_month' },
 ]
 
 function filterEventByDate(event: Event, filter: DateFilterKey, customDate: string): boolean {
@@ -221,7 +221,7 @@ const LEGEND_ACT = [
 // ── Component ─────────────────────────────────────────────
 
 export default function MapView({ events, onEventClick, mapTarget, onTargetConsumed }: Props) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   const LEGEND_KEYS: Record<string, TranslationKey> = {
     'Keikka':     'legend.concert',
@@ -358,11 +358,11 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         if (!filterEventByDate(event, dateFilter, customDate)) return
         const { color, emoji } = eventColor(event)
         const icon = makePinIcon(L, color, emoji, false)
-        const time = new Date(event.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
+        const time = new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
         const popup = `<div style="font-family:Inter,sans-serif;min-width:180px;max-width:220px">
           ${event.image ? `<img src="${event.image}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:8px" loading="lazy"/>` : ''}
           <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff;line-height:1.3">${esc(event.title)}</p>
-          <p style="font-size:11px;color:${color};margin:0 0 2px;font-weight:600">${time}${event.isFree ? ' · 🎁 Maksuton' : ''}</p>
+          <p style="font-size:11px;color:${color};margin:0 0 2px;font-weight:600">${time}${event.isFree ? ' · ' + t('map.free_popup') : ''}</p>
           <p style="font-size:11px;color:#777;margin:0">${esc(event.location?.name)}</p>
         </div>`
         const marker = L.marker([event.location.lat, event.location.lon], { icon })
@@ -372,7 +372,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         eventMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, events, onEventClick, layers.events, eventGroup, dateFilter, customDate])
+  }, [mapReady, events, onEventClick, layers.events, eventGroup, dateFilter, customDate, t, lang])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {
@@ -395,7 +395,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
           <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(r.name)}</p>
           ${r.description ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(r.description)}</p>` : ''}
           ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(r.address)}${r.city && r.city !== 'Helsinki' ? `, ${esc(r.city)}` : ''}</p>` : ''}
-          ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} päässä</p>` : ''}
+          ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} ${t('map.dist_away')}</p>` : ''}
           ${safeUrl(r.www) ? `<a href="${safeUrl(r.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
           ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${safeUrl(r.www) ? '3px' : '0'} 0 0">${r.phone}</p>` : ''}
         </div>`
@@ -405,7 +405,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         restMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine, t])
+  }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine, t, lang])
 
   // ── Activity markers ──────────────────────────────────────
   useEffect(() => {
@@ -423,7 +423,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
           <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(a.name)}</p>
           <p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(a.description)}</p>
           ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(a.address)}</p>` : ''}
-          ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">🎁 Ilmainen</p>` : ''}
+          ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">🎁 ${t('map.free_act')}</p>` : ''}
           ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${a.openingHours.split(';')[0]}</p>` : ''}
           ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
         </div>`
@@ -433,7 +433,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         activityMarkersRef.current.push(marker)
       })
     })
-  }, [mapReady, activities, layers.activities, actCat, t])
+  }, [mapReady, activities, layers.activities, actCat, t, lang])
 
   // ── User position marker ──────────────────────────────────
   useEffect(() => {
@@ -532,7 +532,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   style={dateFilter === dp.key && customDate === ''
                     ? { background: '#6366f1', color: '#fff', borderColor: 'transparent' }
                     : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                  {dp.label}
+                  {t(dp.tKey)}
                 </button>
               ))}
               <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
@@ -543,8 +543,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   ? { background: '#6366f1', color: '#fff', borderColor: 'transparent' }
                   : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}>
                 📅 {dateFilter === 'custom' && customDate
-                  ? new Date(customDate + 'T12:00:00').toLocaleDateString('fi-FI', { day: 'numeric', month: 'short' })
-                  : 'Valitse'}
+                  ? new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'short' })
+                  : t('map.select_date')}
               </button>
             </div>
           </div>
@@ -561,7 +561,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   style={eventGroup === sf.key
                     ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
                     : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {sf.label}
+                  {sf.emoji} {t(sf.tKey)}
                 </button>
               ))}
               {layers.events && (layers.restaurants || layers.activities) && (
@@ -574,7 +574,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   style={restCuisine === sf.key
                     ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
                     : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {sf.label}
+                  {sf.emoji} {t(sf.tKey)}
                 </button>
               ))}
               {layers.restaurants && (
@@ -587,7 +587,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   style={restType === sf.key
                     ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
                     : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {sf.label}
+                  {sf.emoji} {t(sf.tKey)}
                 </button>
               ))}
               {layers.restaurants && layers.activities && (
@@ -600,7 +600,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   style={actCat === sf.key
                     ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
                     : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {sf.label}
+                  {sf.emoji} {t(sf.tKey)}
                 </button>
               ))}
             </div>
@@ -616,14 +616,17 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                 <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month - 1); return { year: d.getFullYear(), month: d.getMonth() } })}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, padding: '0 10px', lineHeight: 1 }}>‹</button>
                 <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'Inter,sans-serif' }}>
-                  {new Date(calMonth.year, calMonth.month).toLocaleDateString('fi-FI', { month: 'long', year: 'numeric' })}
+                  {new Date(calMonth.year, calMonth.month).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { month: 'long', year: 'numeric' })}
                 </span>
                 <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month + 1); return { year: d.getFullYear(), month: d.getMonth() } })}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, padding: '0 10px', lineHeight: 1 }}>›</button>
               </div>
               {/* Weekday headers */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '8px 10px 0' }}>
-                {['Ma','Ti','Ke','To','Pe','La','Su'].map(d => (
+                {(lang === 'fi'
+                  ? ['Ma','Ti','Ke','To','Pe','La','Su']
+                  : ['Mo','Tu','We','Th','Fr','Sa','Su']
+                ).map(d => (
                   <div key={d} style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: 'Inter,sans-serif', paddingBottom: 4 }}>{d}</div>
                 ))}
               </div>
@@ -678,12 +681,12 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                 <button onClick={() => setCalOpen(false)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', fontSize: 12, fontFamily: 'Inter,sans-serif' }}>
-                  Sulje
+                  {t('map.cal_close')}
                 </button>
                 {dateFilter === 'custom' && customDate && (
                   <button onClick={() => { setDateFilter('today'); setCustomDate(''); setCalOpen(false) }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#818cf8', fontSize: 12, fontWeight: 600, fontFamily: 'Inter,sans-serif' }}>
-                    Tyhjennä
+                    {t('map.cal_clear')}
                   </button>
                 )}
               </div>

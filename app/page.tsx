@@ -40,29 +40,30 @@ interface EmptyStateProps {
 }
 
 function EmptyState({ keyword, activeVibes, activeCategories, priceFilter, dateFilter, onClear, onDateChange }: EmptyStateProps) {
+  const { t } = useLanguage()
   const hasFilters = keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all'
   const isNarrowDate = dateFilter === 'today' || dateFilter === 'tonight'
 
   let emoji = '🏙'
-  let heading = 'Ei tapahtumia'
-  let sub = 'Kokeile eri päivää tai laajenna hakua'
+  let heading = t('discover.no_events')
+  let sub = t('discover.no_events_sub')
 
   if (keyword) {
     emoji = '🔍'
-    heading = `Ei tuloksia haulle "${keyword}"`
-    sub = 'Tarkista kirjoitusasu tai kokeile lyhyempää hakusanaa'
+    heading = `${t('discover.no_results')} "${keyword}"`
+    sub = t('discover.no_results_sub')
   } else if (priceFilter === 'free' && isNarrowDate) {
     emoji = '🎁'
-    heading = 'Ei ilmaistapahtumia tänään'
-    sub = 'Ilmaistapahtumia löytyy yleensä enemmän viikonloppuisin'
+    heading = t('discover.no_free_today')
+    sub = t('discover.no_free_today_sub')
   } else if (activeVibes.length > 0 || activeCategories.length > 0) {
     emoji = '🎯'
-    heading = 'Ei tuloksia valituilla suodattimilla'
-    sub = 'Kokeile poistaa jokin suodatin tai laajenna aikaväliä'
+    heading = t('discover.no_filter_match')
+    sub = t('discover.no_filter_sub')
   } else if (isNarrowDate) {
     emoji = '📅'
-    heading = 'Ei tapahtumia tänä päivänä'
-    sub = 'Tänään on hiljaista — kokeile laajentaa hakua'
+    heading = t('discover.quiet_today')
+    sub = t('discover.quiet_sub')
   }
 
   return (
@@ -78,7 +79,7 @@ function EmptyState({ keyword, activeVibes, activeCategories, priceFilter, dateF
             onClick={() => onDateChange('week')}
             className="text-sm font-bold px-4 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/25 transition-all"
           >
-            Laajenna viikkoon
+            {t('discover.expand_week')}
           </button>
         )}
         {hasFilters && (
@@ -86,7 +87,7 @@ function EmptyState({ keyword, activeVibes, activeCategories, priceFilter, dateF
             onClick={onClear}
             className="text-sm font-bold px-4 py-2 rounded-xl border border-purple-500/30 text-purple-400/70 hover:text-purple-300 hover:border-purple-500/50 transition-all"
           >
-            Tyhjennä suodattimet
+            {t('common.clear_filters')}
           </button>
         )}
       </div>
@@ -365,12 +366,19 @@ export default function Home() {
             {/* Date row */}
             <div className="flex flex-wrap gap-2 items-center">
               {(['today','tonight','tomorrow','weekend','week','month'] as DateFilter[]).map((d) => {
-                const labels: Record<string,string> = { today:'Tänään', tonight:'🌙 Illalla', tomorrow:'Huomenna', weekend:'🎉 Viikonloppu', week:'Viikko', month:'Kuukausi' }
+                const dateLabels: Record<string, string> = {
+                  today:   t('date.today'),
+                  tonight: `🌙 ${t('filter.tonight_short')}`,
+                  tomorrow:t('date.tomorrow'),
+                  weekend: `🎉 ${t('date.weekend')}`,
+                  week:    t('filter.week_short'),
+                  month:   t('date.month'),
+                }
                 return (
                   <button key={d} onClick={() => { setDateFilter(d); setCustomDate('') }}
                     className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${dateFilter === d && !customDate ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
                     style={dateFilter === d && !customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}>
-                    {labels[d]}
+                    {dateLabels[d]}
                   </button>
                 )
               })}
@@ -379,17 +387,21 @@ export default function Home() {
             {/* Price row */}
             <div className="flex gap-2">
               {(['all','free','paid'] as PriceFilter[]).map((p) => {
-                const labels = { all: 'Kaikki', free: '🎁 Ilmaiset', paid: '🎟 Maksulliset' }
+                const priceLabels: Record<string, string> = {
+                  all:  t('filter.all_price'),
+                  free: t('filter.free'),
+                  paid: t('filter.paid'),
+                }
                 return (
                   <button key={p} onClick={() => setPriceFilter(p)}
                     className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${priceFilter === p ? 'bg-white/12 border-white/20 text-white' : 'text-white/40 border-white/8 hover:text-white/60'}`}>
-                    {labels[p]}
+                    {priceLabels[p]}
                   </button>
                 )
               })}
               {activeCount > 0 && (
                 <button onClick={clearFilters} className="ml-auto px-3 py-1.5 rounded-full text-xs font-bold text-white/30 border border-white/8 hover:text-white/60 transition-all">
-                  Tyhjennä kaikki
+                  {t('common.clear_all')}
                 </button>
               )}
             </div>
@@ -509,7 +521,7 @@ export default function Home() {
                     <span className="font-bold" style={{ color: '#c084fc' }}>
                       {new Date(hero.startTime).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    {hero.isFree && <span className="text-emerald-400 font-bold">Maksuton</span>}
+                    {hero.isFree && <span className="text-emerald-400 font-bold">{t('common.free_ticket')}</span>}
                     {!hero.isFree && hero.price && <span className="text-white/40">{hero.price}</span>}
                   </div>
                 </div>

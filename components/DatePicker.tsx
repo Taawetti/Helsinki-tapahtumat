@@ -3,10 +3,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
-const MONTHS = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu',
-                 'Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu']
-const DAYS = ['Ma','Ti','Ke','To','Pe','La','Su']
+const MONTHS_FI = ['Tammikuu','Helmikuu','Maaliskuu','Huhtikuu','Toukokuu','Kesäkuu',
+                   'Heinäkuu','Elokuu','Syyskuu','Lokakuu','Marraskuu','Joulukuu']
+const MONTHS_EN = ['January','February','March','April','May','June',
+                   'July','August','September','October','November','December']
+const DAYS_FI = ['Ma','Ti','Ke','To','Pe','La','Su']
+const DAYS_EN = ['Mo','Tu','We','Th','Fr','Sa','Su']
 
 interface Props {
   value: string
@@ -20,6 +24,9 @@ function toLocalDate(iso: string) {
 }
 
 export default function DatePicker({ value, onChange, size = 'md' }: Props) {
+  const { t, lang } = useLanguage()
+  const MONTHS = lang === 'fi' ? MONTHS_FI : MONTHS_EN
+  const DAYS = lang === 'fi' ? DAYS_FI : DAYS_EN
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -78,7 +85,7 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
   const next = () => setView(v => v.month === 11 ? { year: v.year + 1, month: 0 } : { ...v, month: v.month + 1 })
 
   const label = value
-    ? toLocalDate(value).toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric' })
+    ? toLocalDate(value).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
     : null
 
   const btnSm = size === 'sm'
@@ -163,7 +170,7 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
             onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
           >
-            Tyhjennä valinta
+            {t('common.clear_selection')}
           </button>
         </div>
       )}
@@ -182,7 +189,7 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
         style={value ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}
       >
         <Calendar size={btnSm ? 11 : 13} />
-        {label ?? (btnSm ? 'Päivä' : 'Valitse päivä')}
+        {label ?? t('date.custom')}
       </button>
       {dropdown}
     </>

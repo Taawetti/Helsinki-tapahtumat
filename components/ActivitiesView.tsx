@@ -37,44 +37,35 @@ const CHIP_CATEGORIES: ActivityCategory[] = [
 
 // Expanded top picks with theme tags
 type TopPick = {
-  name: string; emoji: string; note: string
+  name: string; emoji: string; note: string; noteEn?: string
   themes: TouristTheme[]; defaultPick?: boolean
 }
 
 const TOP_PICKS: TopPick[] = [
-  { name: 'Löyly',                emoji: '🔥', note: 'Design-sauna merellä, Hernesaaressa. Ravintola, terassi & lounas.', themes: ['sauna'], defaultPick: true },
-  { name: 'Allas Sea Pool',        emoji: '🌊', note: 'Meressä uiminen Etelärannassa — kolme allasta, sauna, ravintola.', themes: ['sauna', 'ulkoilu'], defaultPick: true },
-  { name: 'Kotiharjun sauna',      emoji: '🪵', note: 'Helsingin vanhin julkinen puusauna (1928). Kallio.', themes: ['sauna'], defaultPick: true },
-  { name: 'Suomenlinna',           emoji: '⛵', note: 'Unescon maailmanperintökohde — lautalla 15 min Kauppatorilta.', themes: ['historia', 'ulkoilu'], defaultPick: true },
-  { name: 'Temppeliaukion kirkko', emoji: '⛪', note: 'Kallioon louhittu kirkko — yksi Helsingin tunnetuimmista.', themes: ['historia'], defaultPick: true },
-  { name: 'Kansallismuseo',        emoji: '🏛', note: 'Suomen historian kattavin kokoelma Töölössä.', themes: ['historia', 'taide'], defaultPick: true },
-  { name: 'HAM Helsinki',          emoji: '🎨', note: 'Helsingin taidemuseo — nykytaide Tennispalatsissa.', themes: ['taide'], defaultPick: true },
-  { name: 'Kauppahalli',           emoji: '🧅', note: 'Helsingin Kauppahalli — ruokakulttuuria vuodesta 1889.', themes: ['historia', 'ilmainen'], defaultPick: true },
+  { name: 'Löyly',                emoji: '🔥', note: 'Design-sauna merellä, Hernesaaressa. Ravintola, terassi & lounas.', noteEn: 'Award-winning design sauna by the sea in Hernesaari. Restaurant, terrace & lunch.', themes: ['sauna'], defaultPick: true },
+  { name: 'Allas Sea Pool',        emoji: '🌊', note: 'Meressä uiminen Etelärannassa — kolme allasta, sauna, ravintola.', noteEn: 'Sea swimming at South Harbour — three pools, sauna and restaurant.', themes: ['sauna', 'ulkoilu'], defaultPick: true },
+  { name: 'Kotiharjun sauna',      emoji: '🪵', note: 'Helsingin vanhin julkinen puusauna (1928). Kallio.', noteEn: "Helsinki's oldest public wood-fired sauna (1928). In Kallio.", themes: ['sauna'], defaultPick: true },
+  { name: 'Suomenlinna',           emoji: '⛵', note: 'Unescon maailmanperintökohde — lautalla 15 min Kauppatorilta.', noteEn: 'UNESCO World Heritage fortress island — 15 min ferry from Market Square.', themes: ['historia', 'ulkoilu'], defaultPick: true },
+  { name: 'Temppeliaukion kirkko', emoji: '⛪', note: 'Kallioon louhittu kirkko — yksi Helsingin tunnetuimmista.', noteEn: "Church carved into solid rock — one of Helsinki's most iconic sights.", themes: ['historia'], defaultPick: true },
+  { name: 'Kansallismuseo',        emoji: '🏛', note: 'Suomen historian kattavin kokoelma Töölössä.', noteEn: "Finland's most comprehensive history collection in Töölö.", themes: ['historia', 'taide'], defaultPick: true },
+  { name: 'HAM Helsinki',          emoji: '🎨', note: 'Helsingin taidemuseo — nykytaide Tennispalatsissa.', noteEn: 'Helsinki Art Museum — contemporary art in the Tennis Palace.', themes: ['taide'], defaultPick: true },
+  { name: 'Kauppahalli',           emoji: '🧅', note: 'Helsingin Kauppahalli — ruokakulttuuria vuodesta 1889.', noteEn: 'Helsinki Market Hall — food culture since 1889.', themes: ['historia', 'ilmainen'], defaultPick: true },
   // Taide-lisäykset
-  { name: 'Ateneum',               emoji: '🖼',  note: 'Suomen suurin taidekokoelma — kultakausi ja mestarit.', themes: ['taide'] },
-  { name: 'Kiasma',                emoji: '🌀',  note: 'Nykytaidemuseo Steven Hollin ikonisessa kaarirakenuksessa.', themes: ['taide'] },
-  { name: 'Amos Rex',              emoji: '🎭',  note: 'Kokeellinen taidemuseo maan alla Lasipalatsin alla.', themes: ['taide'] },
+  { name: 'Ateneum',               emoji: '🖼',  note: 'Suomen suurin taidekokoelma — kultakausi ja mestarit.', noteEn: "Finland's largest art collection — Golden Age and masters.", themes: ['taide'] },
+  { name: 'Kiasma',                emoji: '🌀',  note: 'Nykytaidemuseo Steven Hollin ikonisessa kaarirakenuksessa.', noteEn: "Contemporary art museum in Steven Holl's iconic curved building.", themes: ['taide'] },
+  { name: 'Amos Rex',              emoji: '🎭',  note: 'Kokeellinen taidemuseo maan alla Lasipalatsin alla.', noteEn: 'Experimental art museum underground beneath the Lasipalatsi.', themes: ['taide'] },
   // Perhe
-  { name: 'Linnanmäki',            emoji: '🎢',  note: 'Suomen suosituin huvipuisto, yli 40 laitetta (1950).', themes: ['perhe'] },
-  { name: 'Korkeasaari',           emoji: '🦁',  note: 'Saarieläintarha — lautalla 20 min Kauppatorilta (1889).', themes: ['perhe', 'ulkoilu'] },
-  { name: 'Heureka',               emoji: '🔬',  note: 'Interaktiivinen tiedekeskus koko perheelle Vantaalla.', themes: ['perhe'] },
+  { name: 'Linnanmäki',            emoji: '🎢',  note: 'Suomen suosituin huvipuisto, yli 40 laitetta (1950).', noteEn: "Finland's most popular amusement park, 40+ rides (since 1950).", themes: ['perhe'] },
+  { name: 'Korkeasaari',           emoji: '🦁',  note: 'Saarieläintarha — lautalla 20 min Kauppatorilta (1889).', noteEn: 'Island zoo — 20 min ferry from Market Square (since 1889).', themes: ['perhe', 'ulkoilu'] },
+  { name: 'Heureka',               emoji: '🔬',  note: 'Interaktiivinen tiedekeskus koko perheelle Vantaalla.', noteEn: 'Interactive science centre for the whole family in Vantaa.', themes: ['perhe'] },
   // Ulkoilu
-  { name: 'Pihlajasaari',          emoji: '🏖',  note: 'Helsinkiläisten kesäsuosikki — hiekkaranta lautalla 10 min.', themes: ['ulkoilu'] },
-  { name: 'Sibelius-monumentti',   emoji: '🎵',  note: '600 teräsputkea Sibelius-puistossa — maksuton käynti.', themes: ['ulkoilu', 'ilmainen'] },
-  { name: 'Seurasaari',            emoji: '🌲',  note: 'Ulkoilmamuseo 87 historiallisella rakennuksella.', themes: ['historia', 'ulkoilu', 'ilmainen'] },
+  { name: 'Pihlajasaari',          emoji: '🏖',  note: 'Helsinkiläisten kesäsuosikki — hiekkaranta lautalla 10 min.', noteEn: "Helsinkians' summer favourite — sandy beach, 10 min ferry.", themes: ['ulkoilu'] },
+  { name: 'Sibelius-monumentti',   emoji: '🎵',  note: '600 teräsputkea Sibelius-puistossa — maksuton käynti.', noteEn: '600 steel pipes in Sibelius Park — free entry.', themes: ['ulkoilu', 'ilmainen'] },
+  { name: 'Seurasaari',            emoji: '🌲',  note: 'Ulkoilmamuseo 87 historiallisella rakennuksella.', noteEn: 'Open-air museum with 87 historical buildings.', themes: ['historia', 'ulkoilu', 'ilmainen'] },
   // Ilmainen
-  { name: 'Helsingin tuomiokirkko', emoji: '🕍', note: 'Ikoninen valkoinen katedraali Senaatintorilla (1852).', themes: ['historia', 'ilmainen'] },
-  { name: 'Uspenski-katedraali',    emoji: '🔵', note: 'Pohjois-Euroopan suurin ortodoksinen kirkko.', themes: ['historia', 'ilmainen'] },
+  { name: 'Helsingin tuomiokirkko', emoji: '🕍', note: 'Ikoninen valkoinen katedraali Senaatintorilla (1852).', noteEn: 'Iconic white cathedral at Senate Square (1852).', themes: ['historia', 'ilmainen'] },
+  { name: 'Uspenski-katedraali',    emoji: '🔵', note: 'Pohjois-Euroopan suurin ortodoksinen kirkko.', noteEn: "Northern Europe's largest Orthodox cathedral.", themes: ['historia', 'ilmainen'] },
 ]
-
-const THEME_SECTION_TITLE: Record<TouristTheme, string> = {
-  historia: '🏛 Historiaa & arkkitehtuuria',
-  sauna:    '🧖 Saunakokemuksia',
-  taide:    '🎨 Taidetta & museoja',
-  ulkoilu:  '🌿 Ulkoilua & luontoa',
-  perhe:    '🎠 Perheelle & lapsille',
-  ilmainen: '🆓 Ilmaiseksi Helsingissä',
-}
 
 type SortMode = 'default' | 'nearby' | 'open'
 
@@ -156,7 +147,7 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
   highlight?: AttractionHighlight
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const open = activity?.openingHours ? isOpenNow(activity.openingHours) : undefined
   const cat = activity ? CATEGORY_META[activity.category] : null
 
@@ -176,22 +167,22 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
 
       {/* Hook text (superlative) — highlighted */}
       {highlight?.hook ? (
-        <p className="text-amber-300/70 text-[11px] leading-snug font-semibold">{highlight.hook}</p>
+        <p className="text-amber-300/70 text-[11px] leading-snug font-semibold">{lang === 'en' && highlight.hookEn ? highlight.hookEn : highlight.hook}</p>
       ) : (
-        <p className="text-white/45 text-xs leading-relaxed">{pick.note}</p>
+        <p className="text-white/45 text-xs leading-relaxed">{lang === 'en' && pick.noteEn ? pick.noteEn : pick.note}</p>
       )}
 
       {/* Badges row */}
       <div className="flex flex-wrap gap-1.5 items-center">
-        {highlight?.badge && <BadgeChip text={highlight.badge} />}
+        {highlight?.badge && <BadgeChip text={lang === 'en' && highlight.badgeEn ? highlight.badgeEn : highlight.badge} />}
         {highlight?.duration && (
           <span className="flex items-center gap-1 text-[10px] text-white/35 font-medium">
             <Timer size={9} className="shrink-0" /> {highlight.duration}
           </span>
         )}
-        {cat && (
+        {cat && activity && (
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/6 text-white/30">
-            {cat.emoji} {cat.label}
+            {cat.emoji} {t(('cat.' + activity.category) as TranslationKey)}
           </span>
         )}
         {distance !== undefined && (
@@ -208,7 +199,7 @@ function TopPickCard({ pick, activity, distance, highlight, onShowOnMap }: {
 
       {/* Practical tip */}
       {highlight?.tip && (
-        <p className="text-white/25 text-[10px] italic leading-relaxed">{highlight.tip}</p>
+        <p className="text-white/25 text-[10px] italic leading-relaxed">{lang === 'en' && highlight.tipEn ? highlight.tipEn : highlight.tip}</p>
       )}
 
       {/* Address */}
@@ -263,7 +254,7 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
   highlight?: AttractionHighlight
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const meta = CATEGORY_META[activity.category]
   const open = isOpenNow(activity.openingHours)
 
@@ -290,14 +281,14 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
 
       {/* Hook text if available, otherwise generic description */}
       {highlight?.hook ? (
-        <p className="text-amber-300/65 text-xs leading-snug font-medium">{highlight.hook}</p>
+        <p className="text-amber-300/65 text-xs leading-snug font-medium">{lang === 'en' && highlight.hookEn ? highlight.hookEn : highlight.hook}</p>
       ) : (
         <p className="text-white/40 text-xs">{activity.description}</p>
       )}
 
       {/* Badges + details */}
       <div className="flex flex-wrap gap-1.5 text-[10px] items-center">
-        {highlight?.badge && <BadgeChip text={highlight.badge} />}
+        {highlight?.badge && <BadgeChip text={lang === 'en' && highlight.badgeEn ? highlight.badgeEn : highlight.badge} />}
         {highlight?.duration && (
           <span className="flex items-center gap-1 text-white/30 font-medium">
             <Timer size={9} /> {highlight.duration}
@@ -312,16 +303,16 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
           </span>
         )}
         {activity.saunaFuel === 'wood' && (
-          <span className="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400/70">🪵 Puusauna</span>
+          <span className="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400/70">{t('common.wood_sauna')}</span>
         )}
         {activity.wheelchair === true && (
-          <span className="px-2 py-0.5 rounded-full bg-blue-500/8 text-blue-300/50">♿ Esteetön</span>
+          <span className="px-2 py-0.5 rounded-full bg-blue-500/8 text-blue-300/50">{t('common.accessible')}</span>
         )}
       </div>
 
       {/* Practical tip */}
       {highlight?.tip && (
-        <p className="text-white/25 text-[10px] italic leading-relaxed">{highlight.tip}</p>
+        <p className="text-white/25 text-[10px] italic leading-relaxed">{lang === 'en' && highlight.tipEn ? highlight.tipEn : highlight.tip}</p>
       )}
 
       {activity.openingHours && (
@@ -375,7 +366,7 @@ function ActivityCard({ activity, distance, highlight, onShowOnMap }: {
 export default function ActivitiesView({ onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   const [activities, setActivities] = useState<Activity[]>([])
   const [total, setTotal] = useState(0)
@@ -531,7 +522,7 @@ export default function ActivitiesView({ onShowOnMap }: {
       <section className="space-y-3">
         <div>
           <h2 className="text-white/70 font-black text-sm tracking-wide uppercase">{t('activities.what_looking')}</h2>
-          <p className="text-white/25 text-xs mt-0.5">Valitse kiinnostuksesi — näet parhaat kohteet heti</p>
+          <p className="text-white/25 text-xs mt-0.5">{t('activities.interest_hint')}</p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {(Object.entries(TOURIST_THEME_META) as [TouristTheme, typeof TOURIST_THEME_META[TouristTheme]][]).map(([theme, meta]) => {
@@ -546,7 +537,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                 style={isSelected ? { background: 'linear-gradient(135deg,rgba(168,85,247,0.15),rgba(236,72,153,0.1))', borderColor: 'rgba(168,85,247,0.4)' } : {}}>
                 <div className="text-2xl mb-1.5 leading-none">{meta.emoji}</div>
                 <div className={`font-black text-xs leading-tight ${isSelected ? 'text-white' : 'text-white/80'}`}>{t(('theme.' + theme) as TranslationKey)}</div>
-                <div className="text-white/30 text-[10px] mt-0.5 leading-tight">{meta.shortDesc}</div>
+                <div className="text-white/30 text-[10px] mt-0.5 leading-tight">{lang === 'en' ? meta.shortDescEn : meta.shortDesc}</div>
               </button>
             )
           })}
@@ -554,7 +545,7 @@ export default function ActivitiesView({ onShowOnMap }: {
         {selectedTheme && (
           <button onClick={() => setSelectedTheme(null)}
             className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/55 transition-colors">
-            <X size={11} /> Tyhjennä valinta
+            <X size={11} /> {t('common.clear_selection')}
           </button>
         )}
       </section>
@@ -563,7 +554,7 @@ export default function ActivitiesView({ onShowOnMap }: {
       {!loading && (
         <section>
           <h2 className="text-white/70 font-black text-sm tracking-wide uppercase mb-3">
-            {selectedTheme ? THEME_SECTION_TITLE[selectedTheme] : t('activities.top_picks')}
+            {selectedTheme ? t(('theme.' + selectedTheme + '_title') as TranslationKey) : t('activities.top_picks')}
           </h2>
           <div className="flex gap-4 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2">
             {topPicksWithData.map(({ pick, activity, highlight }) => (
@@ -587,7 +578,7 @@ export default function ActivitiesView({ onShowOnMap }: {
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Hae nimellä tai osoitteella…"
+          placeholder={t('restaurants.search_ph')}
           className="w-full pl-9 pr-9 py-3 bg-white/5 border border-white/8 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:border-purple-500/40 transition-colors"
         />
         {search && (
@@ -641,7 +632,7 @@ export default function ActivitiesView({ onShowOnMap }: {
           {locating
             ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
             : <Navigation size={11} />}
-          Lähellä minua
+          {t('activities.nearby_me')}
         </button>
 
         <button onClick={() => setSortMode(m => m === 'open' ? 'default' : 'open')}
@@ -663,12 +654,12 @@ export default function ActivitiesView({ onShowOnMap }: {
         </button>
       </div>
 
-      {locError && <p className="text-orange-400/70 text-xs">Sijaintia ei saatu — tarkista selaimen lupa</p>}
+      {locError && <p className="text-orange-400/70 text-xs">{t('common.location_error')}</p>}
 
       {/* Active filters */}
       {(search || catFilter !== 'all' || freeOnly || sortMode !== 'default') && (
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-white/25 text-xs">Suodattimet:</span>
+          <span className="text-white/25 text-xs">{t('common.filters')}</span>
           {catFilter !== 'all' && (
             <button onClick={() => setCatFilter('all')}
               className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-300/80 hover:bg-purple-500/25">
@@ -678,7 +669,7 @@ export default function ActivitiesView({ onShowOnMap }: {
           {freeOnly && (
             <button onClick={() => setFreeOnly(false)}
               className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300/80 hover:bg-emerald-500/25">
-              Ilmainen <X size={10} />
+              {t('common.free')} <X size={10} />
             </button>
           )}
           {search && (
@@ -689,7 +680,7 @@ export default function ActivitiesView({ onShowOnMap }: {
           )}
           <button onClick={() => { setSearch(''); setCatFilter('all'); setFreeOnly(false); setSortMode('default') }}
             className="text-xs text-white/25 hover:text-white/50 underline underline-offset-2">
-            Tyhjennä kaikki
+            {t('common.clear_all')}
           </button>
         </div>
       )}
@@ -697,8 +688,8 @@ export default function ActivitiesView({ onShowOnMap }: {
       {/* Count */}
       {!loading && !error && (
         <p className="text-white/20 text-xs font-bold">
-          {filtered.length.toLocaleString('fi-FI')} kohdetta
-          {selectedTheme && ` — ${TOURIST_THEME_META[selectedTheme].label}`}
+          {filtered.length.toLocaleString()} {t('activities.total')}
+          {selectedTheme && ` — ${t(('theme.' + selectedTheme) as TranslationKey)}`}
         </p>
       )}
 
@@ -707,7 +698,7 @@ export default function ActivitiesView({ onShowOnMap }: {
         <div className="space-y-5">
           <div className="flex items-center gap-3 text-white/30 text-sm">
             <div className="w-4 h-4 rounded-full border-2 border-purple-500/40 border-t-purple-400 animate-spin shrink-0" />
-            <span>Haetaan aktiviteetteja kartalta…</span>
+            <span>{t('activities.loading')}</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 9 }).map((_, i) => (
@@ -746,7 +737,7 @@ export default function ActivitiesView({ onShowOnMap }: {
               <button onClick={() => setShown(s => s + PAGE_SIZE)}
                 className="flex items-center gap-2 text-sm font-bold px-8 py-3 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 bg-white/3 transition-all">
                 <ChevronDown size={15} />
-                {t('activities.load_more')} ({filtered.length - shown} jäljellä)
+                {t('activities.load_more')} ({filtered.length - shown} {t('common.remaining')})
               </button>
             </div>
           )}
@@ -758,12 +749,12 @@ export default function ActivitiesView({ onShowOnMap }: {
         <div className="flex flex-col items-center py-24 text-center gap-4">
           <span className="text-5xl">🔭</span>
           <div>
-            <p className="text-white/50 font-bold">Ei tuloksia</p>
-            <p className="text-white/25 text-sm mt-1">Kokeile eri hakusanaa tai tyhjennä suodattimet</p>
+            <p className="text-white/50 font-bold">{t('common.no_results')}</p>
+            <p className="text-white/25 text-sm mt-1">{t('common.try_search')}</p>
           </div>
           <button onClick={() => { setSearch(''); setCatFilter('all'); setFreeOnly(false); setSelectedTheme(null) }}
             className="text-sm font-bold px-4 py-2 rounded-xl border border-purple-500/30 text-purple-400/70 hover:text-purple-300 hover:border-purple-500/50 transition-all">
-            Tyhjennä suodattimet
+            {t('common.clear_filters')}
           </button>
         </div>
       )}

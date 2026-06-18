@@ -2,6 +2,7 @@
 
 import { ChevronRight, MapPin } from 'lucide-react'
 import { Event } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 function eventScore(e: Event): number {
   const text = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export default function IltasuunnitelmaCard({ events, onEventClick }: Props) {
+  const { t } = useLanguage()
   const evening = events
     .filter(e => {
       const h = new Date(e.startTime).getHours()
@@ -82,7 +84,7 @@ export default function IltasuunnitelmaCard({ events, onEventClick }: Props) {
                   <p className="flex items-center gap-1 text-white/30 text-xs mt-0.5">
                     <MapPin size={9} className="shrink-0" />
                     {event.location.name}
-                    {event.isFree && <span className="text-emerald-400/70 ml-1">· Maksuton</span>}
+                    {event.isFree && <span className="text-emerald-400/70 ml-1">· {t('common.free_ticket')}</span>}
                     {!event.isFree && event.price && <span className="ml-1">· {event.price}</span>}
                   </p>
                 )}
