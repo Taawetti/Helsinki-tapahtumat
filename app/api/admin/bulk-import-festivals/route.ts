@@ -19,6 +19,22 @@ function generateId(url: string, startDate: string): string {
   }
 }
 
+const JUNK_NAMES = new Set([
+  'etusivu', 'koti', 'home', 'tapahtumat', 'tapahtumakalenteri', 'kalenteri',
+  'events', 'calendar', 'ladataan', 'loading', 'uutiset', 'news',
+  'näyttelyt', 'ohjelma', 'ajankohtaista', 'helsinki', 'error', '404',
+  'hakutulokset', 'search results', 'kirjaudu', 'login',
+])
+
+function isQualityName(name: string): boolean {
+  if (!name || name.trim().length < 5) return false
+  if (name.trim().endsWith('...')) return false
+  if (/&[a-z#0-9]+;/i.test(name)) return false
+  const lower = name.toLowerCase().trim()
+  if (JUNK_NAMES.has(lower)) return false
+  return true
+}
+
 interface ImportCandidate {
   title: string
   url: string
@@ -55,6 +71,7 @@ export async function POST(req: NextRequest) {
     const e = c.event
     // Must have name, future startDate, and venue to auto-import
     if (!e?.startDate || !e?.name || !e?.venue) { skipped.push(c.title); continue }
+    if (!isQualityName(e.name)) { skipped.push(c.title); continue }
     if (e.startDate < today) { skipped.push(c.title); continue }
 
     let domain = ''

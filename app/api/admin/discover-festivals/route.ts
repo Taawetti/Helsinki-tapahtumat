@@ -567,11 +567,26 @@ async function serpSearch(query: string): Promise<{ title: string; url: string; 
   }
 }
 
+const AGGREGATOR_TRIGGERS = [
+  'etusivu', 'koti', 'home', 'tapahtumat', 'events', 'tapahtumakalenteri',
+  'calendar', 'kalenteri', 'ohjelma', 'programme', 'ajankohtaista',
+  'uutiset', 'news', 'näyttelyt', 'exhibitions', 'hakutulokset',
+  'ladataan', 'loading', 'tapahtumakalenteri',
+]
+
+function looksLikeAggregator(title: string): boolean {
+  if (!title || title.length < 3) return true
+  if (title.endsWith('...')) return true
+  const lower = title.toLowerCase()
+  return AGGREGATOR_TRIGGERS.some(t => lower === t || lower.startsWith(t + ' ') || lower.endsWith(' ' + t) || lower.includes(' ' + t + ' '))
+}
+
 async function crawlSeedSource(
   seedUrl: string,
   knownDomains: Set<string>,
   seenDomains: Set<string>,
-  festivals: Record<string, unknown>[]
+  festivals: Record<string, unknown>[],
+  maxInternalPages = 60
 ): Promise<Candidate[]> {
   const html = await fetchPage(seedUrl)
   if (!html) return []
@@ -620,7 +635,7 @@ async function crawlSeedSource(
   }
 
   // ── Internal pages: find official website, then fetch ───────────────────────
-  const uniqueInternal = [...new Set(internalUrls)].slice(0, 60)
+  const uniqueInternal = [...new Set(internalUrls)].slice(0, maxInternalPages)
   for (let i = 0; i < uniqueInternal.length; i += BATCH) {
     const batch = uniqueInternal.slice(i, i + BATCH)
     const batchResults = await Promise.all(batch.map(async (internalUrl) => {
@@ -755,8 +770,12 @@ export async function POST(req: NextRequest) {
           ticketUrl: jsonEvent.ticketUrl,
         }
         candidates.push({ title: event.name || pTitle, url, snippet, event })
+      } else if (html && looksLikeAggregator(pTitle)) {
+        // Kalenterisivu — ryömi sisäiset tapahtumasivut kuten siemenlähteet
+        const subResults = await crawlSeedSource(url, knownDomains, seenDomains, festivals, 15)
+        candidates.push(...subResults)
       } else {
-        // Ei JSON-LD — kokeile HTML-fallback, sitten snippet
+        // Yksittäinen tapahtumusivu — HTML-fallback, sitten snippet
         const fallback = html ? await extractEventFromHtmlFallback(html, pTitle) : null
         const event: EventData | null = fallback ?? (snippetData.startDate ? {
           name: pTitle,
