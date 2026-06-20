@@ -200,6 +200,7 @@ function FestivalsTab() {
   const [updating, setUpdating] = useState(false)
   const [updateResult, setUpdateResult] = useState<{ name: string; changes: Record<string, string> }[]>([])
   const [discovering, setDiscovering] = useState(false)
+  const [autoImported, setAutoImported] = useState<{ name: string; startDate: string }[]>([])
   const [discoverResult, setDiscoverResult] = useState<{
     updated: { name: string; changes: Record<string, string> }[]
     candidates: { title: string; url: string; snippet: string; event: { name?: string; startDate?: string; endDate?: string; venue?: string; address?: string; ticketUrl?: string } | null }[]
@@ -243,6 +244,7 @@ function FestivalsTab() {
   async function handleDiscover() {
     setDiscovering(true)
     setDiscoverResult(null)
+    setAutoImported([])
     const res = await fetch('/api/admin/discover-festivals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -250,6 +252,22 @@ function FestivalsTab() {
     })
     const data = await res.json()
     if (data.error) { alert('Virhe: ' + data.error); setDiscovering(false); return }
+
+    // Auto-import candidates with complete data
+    if (data.candidates?.length > 0) {
+      const importRes = await fetch('/api/admin/bulk-import-festivals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidates: data.candidates }),
+      })
+      const importData = await importRes.json()
+      if (importData.imported?.length > 0) {
+        setAutoImported(importData.imported)
+        setAddedUrls(new Set(data.candidates.map((c: { url: string }) => c.url)))
+        load()
+      }
+    }
+
     setDiscoverResult(data)
     setDiscovering(false)
   }
@@ -330,6 +348,20 @@ function FestivalsTab() {
           </div>
         </div>
       )}
+      {/* Auto-imported */}
+      {autoImported.length > 0 && (
+        <div className="mb-4 bg-green-500/8 border border-green-500/20 rounded-xl p-4">
+          <div className="font-semibold text-green-400 mb-2">✓ Lisätty automaattisesti ({autoImported.length} kpl)</div>
+          <div className="space-y-0.5">
+            {autoImported.map((f, i) => (
+              <div key={i} className="text-sm text-gray-300">
+                {f.name} <span className="text-gray-500 text-xs">{f.startDate}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Discover results */}
       {discoverResult && (
         <div className="mb-6 space-y-4">

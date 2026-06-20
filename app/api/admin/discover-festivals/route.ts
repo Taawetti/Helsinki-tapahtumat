@@ -152,9 +152,10 @@ function parseDatesFromSnippet(snippet: string): Pick<EventData, 'startDate' | '
   return result
 }
 
-function extractEventFromHtml(html: string): EventData | null {
+function extractEventsFromHtml(html: string): EventData[] {
   const ldMatches = [...html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)]
   const eventTypes = ['Event', 'MusicEvent', 'Festival', 'SportsEvent', 'TheaterEvent', 'DanceEvent']
+  const results: EventData[] = []
 
   for (const match of ldMatches) {
     try {
@@ -185,18 +186,306 @@ function extractEventFromHtml(html: string): EventData | null {
           ? addr
           : (addr as Record<string, unknown> | undefined)?.streetAddress as string | undefined
 
-        return {
+        results.push({
           name: obj.name as string | undefined,
           startDate: (obj.startDate as string | undefined)?.slice(0, 10),
           endDate: ((obj.endDate || obj.startDate) as string | undefined)?.slice(0, 10),
           venue: location?.name as string | undefined,
           address: streetAddress,
           ticketUrl,
-        }
+        })
       }
     } catch { /* malformed JSON-LD */ }
   }
-  return null
+  return results
+}
+
+function extractEventFromHtml(html: string): EventData | null {
+  const events = extractEventsFromHtml(html)
+  return events[0] ?? null
+}
+
+// ── HTML Fallback Parser ─────────────────────────────────────────────────────
+
+const FINNISH_MONTHS: Record<string, number> = {
+  tammikuu: 1, tammikuuta: 1,
+  helmikuu: 2, helmikuuta: 2,
+  maaliskuu: 3, maaliskuuta: 3,
+  huhtikuu: 4, huhtikuuta: 4,
+  toukokuu: 5, toukokuuta: 5,
+  'kesäkuu': 6, 'kesäkuuta': 6,
+  'heinäkuu': 7, 'heinäkuuta': 7,
+  elokuu: 8, elokuuta: 8,
+  syyskuu: 9, syyskuuta: 9,
+  lokakuu: 10, lokakuuta: 10,
+  marraskuu: 11, marraskuuta: 11,
+  joulukuu: 12, joulukuuta: 12,
+}
+
+const ENGLISH_MONTHS: Record<string, number> = {
+  january: 1, jan: 1, february: 2, feb: 2,
+  march: 3, mar: 3, april: 4, apr: 4, may: 5,
+  june: 6, jun: 6, july: 7, jul: 7,
+  august: 8, aug: 8, september: 9, sep: 9, sept: 9,
+  october: 10, oct: 10, november: 11, nov: 11,
+  december: 12, dec: 12,
+}
+
+const KNOWN_VENUES = [
+  'Suvilahti', 'Hiekkasärkkä', 'Rautatientori', 'Esplanadi', 'Kauppatori',
+  'Olympiastadion', 'Hartwall Arena', 'Veikkaus Arena', 'Messukeskus',
+  'Kaapelitehdas', 'Finlandia-talo', 'Musiikkitalo', 'Sanomatalo',
+  'Kansallisteatteri', 'Kansallisooppera', 'Tavastia', 'Circus',
+  'Annantalo', 'Casinolaituri', 'Hernesaari', 'Töölönlahti',
+  'Linnanmäki', 'Korkeasaari', 'Seurasaari', 'Pihlajasaari',
+  'Alppipuisto', 'Senaatintori', 'Kulttuuritehdas', 'Storyville',
+  'Korjaamo', 'Malmitalo', 'Vuotalo', 'Savoy-teatteri',
+  'Dipoli', 'Otaniemi', 'Tapiola', 'Lauttasaari',
+]
+
+function toIsoDate(day: number, month: number, year: number): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&[a-z#0-9]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function extractMetaContent(html: string, ...names: string[]): string | undefined {
+  for (const name of names) {
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const m =
+      html.match(new RegExp(`<meta[^>]+(?:property|name)="${esc}"[^>]+content="([^"]{3,200})"`, 'i')) ??
+      html.match(new RegExp(`<meta[^>]+content="([^"]{3,200})"[^>]+(?:property|name)="${esc}"`, 'i'))
+    if (m) return m[1]
+  }
+}
+
+interface ParsedDateRange { startDate: string; endDate: string }
+
+function findDatesInText(text: string, today: string): ParsedDateRange[] {
+  const found: ParsedDateRange[] = []
+  const seen = new Set<string>()
+
+  function add(startDate: string, endDate: string) {
+    const yr = parseInt(startDate.slice(0, 4))
+    if (startDate < today || seen.has(startDate) || yr < 2025 || yr > 2030) return
+    seen.add(startDate)
+    found.push({ startDate, endDate })
+  }
+
+  // Finnish range: D.–D.M.YYYY (en-dash, hyphen, or dot between days)
+  for (const m of text.matchAll(/\b(\d{1,2})\s*[.–-]\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\b/g)) {
+    const [, sd, ed, mo, yr] = m
+    const month = parseInt(mo), year = parseInt(yr)
+    if (month < 1 || month > 12) continue
+    add(toIsoDate(parseInt(sd), month, year), toIsoDate(parseInt(ed), month, year))
+  }
+
+  // Finnish single: D.M.YYYY
+  for (const m of text.matchAll(/\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b/g)) {
+    const [, d, mo, yr] = m
+    const month = parseInt(mo), year = parseInt(yr)
+    if (month < 1 || month > 12) continue
+    const date = toIsoDate(parseInt(d), month, year)
+    add(date, date)
+  }
+
+  // Finnish with month name: "3. heinäkuuta 2026"
+  const fiKeys = Object.keys(FINNISH_MONTHS).join('|')
+  for (const m of text.matchAll(new RegExp(`\\b(\\d{1,2})\\.?\\s*(${fiKeys})\\s+(\\d{4})\\b`, 'gi'))) {
+    const [, d, monthStr, yr] = m
+    const month = FINNISH_MONTHS[monthStr.toLowerCase()]
+    const year = parseInt(yr)
+    if (!month) continue
+    const date = toIsoDate(parseInt(d), month, year)
+    add(date, date)
+  }
+
+  // ISO: YYYY-MM-DD
+  for (const m of text.matchAll(/\b(202[5-9]|2030)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b/g)) {
+    const date = m[0].slice(0, 10)
+    add(date, date)
+  }
+
+  // English: "July 3–4, 2026" or "July 3, 2026"
+  const enKeys = Object.keys(ENGLISH_MONTHS).join('|')
+  for (const m of text.matchAll(new RegExp(`\\b(${enKeys})\\s+(\\d{1,2})(?:[\\u2013-](\\d{1,2}))?[,.]?\\s*(\\d{4})\\b`, 'gi'))) {
+    const [, monthStr, sd, ed, yr] = m
+    const month = ENGLISH_MONTHS[monthStr.toLowerCase()]
+    const year = parseInt(yr)
+    if (!month) continue
+    const startDate = toIsoDate(parseInt(sd), month, year)
+    const endDate = ed ? toIsoDate(parseInt(ed), month, year) : startDate
+    add(startDate, endDate)
+  }
+
+  // English: "3 July 2026" or "3rd July 2026"
+  for (const m of text.matchAll(new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${enKeys})\\s+(\\d{4})\\b`, 'gi'))) {
+    const [, d, monthStr, yr] = m
+    const month = ENGLISH_MONTHS[monthStr.toLowerCase()]
+    const year = parseInt(yr)
+    if (!month) continue
+    const date = toIsoDate(parseInt(d), month, year)
+    add(date, date)
+  }
+
+  return found.sort((a, b) => a.startDate.localeCompare(b.startDate))
+}
+
+function findVenueInText(text: string): string | undefined {
+  // Look for explicit venue labels
+  const labelMatch = text.match(
+    /(?:paikka|tapahtumapaikka|tapahtumapaikkana|venue|location|missä|where|osoite)\s*:?\s+([A-ZÄÖÅ][^\n.!?]{4,60})/i
+  )
+  if (labelMatch) {
+    const candidate = labelMatch[1].trim().split(/\s{2,}|\n/)[0].trim()
+    if (candidate.length >= 4 && candidate.length <= 60) return candidate
+  }
+
+  // Known Helsinki venues
+  for (const venue of KNOWN_VENUES) {
+    if (text.includes(venue)) return venue
+  }
+
+  // Finnish street address: "Kalevankatu 5" or "Mannerheimintie 34"
+  const streetMatch = text.match(
+    /\b([A-ZÄÖÅ][a-zäöå]+(?:katu|tie|tori|puisto|laituri|ranta|väylä|polku|kaari|raitti)\s+\d+[A-Z]?)\b/
+  )
+  if (streetMatch) return streetMatch[1]
+
+  return undefined
+}
+
+async function extractEventFromHtmlFallback(html: string, title: string): Promise<EventData | null> {
+  const today = new Date().toISOString().slice(0, 10)
+
+  // 1. HTML5 <time datetime="YYYY-MM-DD"> elements
+  const timeMatches = [...html.matchAll(/<time[^>]+datetime="(\d{4}-\d{2}-\d{2})[^"]*"[^>]*>/gi)]
+  const futureTimes = timeMatches.map(m => m[1]).filter(d => d >= today).sort()
+  if (futureTimes.length > 0) {
+    const text = stripHtml(html)
+    return {
+      name: title,
+      startDate: futureTimes[0],
+      endDate: futureTimes[futureTimes.length - 1],
+      venue: findVenueInText(text),
+    }
+  }
+
+  // 2. Schema.org Microdata itemprop="startDate"
+  const microdataStart = (
+    html.match(/itemprop="startDate"[^>]*content="(\d{4}-\d{2}-\d{2})[^"]*"/i) ??
+    html.match(/itemprop="startDate"[^>]*datetime="(\d{4}-\d{2}-\d{2})[^"]*"/i) ??
+    html.match(/content="(\d{4}-\d{2}-\d{2})[^"]*"[^>]*itemprop="startDate"/i)
+  )?.[1]
+
+  if (microdataStart && microdataStart >= today) {
+    const microdataEnd = (
+      html.match(/itemprop="endDate"[^>]*content="(\d{4}-\d{2}-\d{2})[^"]*"/i) ??
+      html.match(/itemprop="endDate"[^>]*datetime="(\d{4}-\d{2}-\d{2})[^"]*"/i) ??
+      html.match(/content="(\d{4}-\d{2}-\d{2})[^"]*"[^>]*itemprop="endDate"/i)
+    )?.[1]
+    const venueFromMicrodata = html.match(
+      /itemprop="location"[\s\S]{0,300}?itemprop="name"[^>]*>([^<]{3,60})</
+    )?.[1]?.trim()
+    const text = stripHtml(html)
+    return {
+      name: title,
+      startDate: microdataStart,
+      endDate: microdataEnd ?? microdataStart,
+      venue: venueFromMicrodata ?? findVenueInText(text),
+    }
+  }
+
+  // 3. Event meta tags
+  const metaStart = extractMetaContent(html, 'event:start_time', 'og:start_time', 'startDate', 'event-date')
+  if (metaStart) {
+    const startDate = metaStart.slice(0, 10)
+    if (startDate >= today && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+      const metaEnd = extractMetaContent(html, 'event:end_time', 'og:end_time', 'endDate')
+      const text = stripHtml(html)
+      return {
+        name: title,
+        startDate,
+        endDate: metaEnd?.slice(0, 10) ?? startDate,
+        venue: findVenueInText(text),
+      }
+    }
+  }
+
+  // 4. Text-based date extraction
+  const text = stripHtml(html)
+  const dates = findDatesInText(text, today)
+  if (dates.length === 0) {
+    // 5. LLM-fallback: luonnollinen kieli ja epätavalliset päivämääräformaatit
+    return extractEventWithLlm(text, title)
+  }
+
+  const startDate = dates[0].startDate
+  const endDate = dates.reduce((latest, d) => d.endDate > latest ? d.endDate : latest, dates[0].endDate)
+  return { name: title, startDate, endDate, venue: findVenueInText(text) }
+}
+
+async function extractEventWithLlm(text: string, title: string): Promise<EventData | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return null
+
+  const today = new Date().toISOString().slice(0, 10)
+  const truncated = text.slice(0, 3000)
+
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 150,
+        messages: [{
+          role: 'user',
+          content: `Extract event details from this webpage text. Today is ${today}. Reply ONLY with valid JSON or the word null.
+
+Title: ${title}
+Text: ${truncated}
+
+JSON: {"name":"event name","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD","venue":"venue or null"}
+Rules: startDate must be >= ${today}. Only Helsinki-area events. If no future event found: null`,
+        }],
+      }),
+    })
+    clearTimeout(timer)
+    const data = await res.json()
+    const raw = (data.content?.[0]?.text ?? '').trim()
+    if (!raw || raw === 'null') return null
+    const parsed = JSON.parse(raw)
+    if (!parsed?.startDate || parsed.startDate < today) return null
+    return {
+      name: parsed.name || title,
+      startDate: parsed.startDate,
+      endDate: parsed.endDate || parsed.startDate,
+      venue: parsed.venue || undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
+// JSON-LD ensin, HTML-regex toisena, LLM viimeisenä
+async function extractBestEvent(html: string, title: string): Promise<EventData | null> {
+  return extractEventFromHtml(html) ?? await extractEventFromHtmlFallback(html, title)
 }
 
 function pageTitle(html: string, fallback: string): string {
@@ -322,9 +611,9 @@ async function crawlSeedSource(
       seenDomains.add(domain)
       const pageHtml = await fetchPage(url)
       if (!pageHtml) return null
-      const event = extractEventFromHtml(pageHtml)
       const title = pageTitle(pageHtml, domain)
       if (matchesFestival(domain, title, festivals)) return null
+      const event = await extractBestEvent(pageHtml, title)
       return { title, url, snippet: '', event } satisfies Candidate
     }))
     results.push(...batchResults.filter((r): r is Candidate => r !== null))
@@ -360,14 +649,14 @@ async function crawlSeedSource(
 
         const officialHtml = await fetchPage(officialUrl)
         if (!officialHtml) return null
-        const event = extractEventFromHtml(officialHtml)
         const title = internalTitle || pageTitle(officialHtml, officialDomain)
         if (matchesFestival(officialDomain, title, festivals)) return null
+        const event = await extractBestEvent(officialHtml, title)
         return { title, url: officialUrl, snippet: '', event } satisfies Candidate
       }
 
-      // No official link found — try JSON-LD from the internal page itself
-      const event = extractEventFromHtml(pageHtml)
+      // No official link found — try JSON-LD + HTML fallback from the internal page itself
+      const event = await extractBestEvent(pageHtml, internalTitle)
       if (!event) return null
       return { title: internalTitle, url: internalUrl, snippet: '', event } satisfies Candidate
     }))
@@ -445,19 +734,38 @@ export async function POST(req: NextRequest) {
       seenDomains.add(domain)
 
       const html = await fetchPage(url)
-      const jsonEvent = html ? extractEventFromHtml(html) : null
+      const jsonEvents = html ? extractEventsFromHtml(html) : []
       const snippetData = parseDatesFromSnippet(snippet)
+      const pTitle = html ? pageTitle(html, title) : title
 
-      const event: EventData | null = (jsonEvent || snippetData.startDate) ? {
-        name: jsonEvent?.name,
-        startDate: jsonEvent?.startDate || snippetData.startDate,
-        endDate: jsonEvent?.endDate || snippetData.endDate,
-        venue: jsonEvent?.venue || snippetData.venue,
-        address: jsonEvent?.address,
-        ticketUrl: jsonEvent?.ticketUrl,
-      } : null
-
-      candidates.push({ title, url, snippet, event })
+      if (jsonEvents.length > 1) {
+        // Useita tapahtumia samalla sivulla (esim. tapahtumakalenteri)
+        for (const e of jsonEvents) {
+          candidates.push({ title: e.name || pTitle, url, snippet: '', event: e })
+        }
+      } else if (jsonEvents.length === 1) {
+        // Yksi JSON-LD tapahtuma — täydennä snippet-tiedoilla tarvittaessa
+        const jsonEvent = jsonEvents[0]
+        const event: EventData = {
+          name: jsonEvent.name,
+          startDate: jsonEvent.startDate || snippetData.startDate,
+          endDate: jsonEvent.endDate || snippetData.endDate,
+          venue: jsonEvent.venue || snippetData.venue,
+          address: jsonEvent.address,
+          ticketUrl: jsonEvent.ticketUrl,
+        }
+        candidates.push({ title: event.name || pTitle, url, snippet, event })
+      } else {
+        // Ei JSON-LD — kokeile HTML-fallback, sitten snippet
+        const fallback = html ? await extractEventFromHtmlFallback(html, pTitle) : null
+        const event: EventData | null = fallback ?? (snippetData.startDate ? {
+          name: pTitle,
+          startDate: snippetData.startDate,
+          endDate: snippetData.endDate,
+          venue: snippetData.venue,
+        } : null)
+        candidates.push({ title: pTitle, url, snippet, event })
+      }
     }
   }
 
