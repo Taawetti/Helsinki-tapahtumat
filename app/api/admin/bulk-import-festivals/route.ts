@@ -24,15 +24,38 @@ const JUNK_NAMES = new Set([
   'events', 'calendar', 'ladataan', 'loading', 'uutiset', 'news',
   'näyttelyt', 'ohjelma', 'ajankohtaista', 'helsinki', 'error', '404',
   'hakutulokset', 'search results', 'kirjaudu', 'login',
+  'frontpage', 'koulutus', 'tekstiili', 'tilaa uutiskirje',
+  'kurssit ja ilmoittautuminen', 'miksi messuille?', 'yhteystiedot',
+  'contact', 'about', 'tietoa meistä', 'ota yhteyttä',
+  'privacy notice', 'privacy policy', 'cookie policy', 'terms of service',
+  'terms and conditions', 'xfn 1.1 profile', 'xfn profile',
 ])
+
+const JUNK_SUBSTRINGS = [
+  'analytics', 'marketing attribution', 'cookie consent', 'privacy notice',
+  'gdpr', 'tracking', 'utm_', 'utm campaign',
+]
+
+const NON_HELSINKI_CITIES = [
+  ', lahti', ', tampere', ', turku', ', oulu', ', jyväskylä', ', kuopio',
+  ', rovaniemi', ', seinäjoki', ', joensuu', ', vaasa', ', pori',
+  ', hämeenlinna', ', kotka', ', kouvola', ', lappeenranta', ', lahden',
+]
 
 function isQualityName(name: string): boolean {
   if (!name || name.trim().length < 5) return false
   if (name.trim().endsWith('...')) return false
   if (/&[a-z#0-9]+;/i.test(name)) return false
+  if (/\.(fi|com|net|org|co\.|eu|io)\b/i.test(name)) return false
   const lower = name.toLowerCase().trim()
   if (JUNK_NAMES.has(lower)) return false
+  if (JUNK_SUBSTRINGS.some(s => lower.includes(s))) return false
   return true
+}
+
+function isHelsinkiArea(name?: string, venue?: string, address?: string): boolean {
+  const combined = `${name ?? ''} ${venue ?? ''} ${address ?? ''}`.toLowerCase()
+  return !NON_HELSINKI_CITIES.some(city => combined.includes(city))
 }
 
 interface ImportCandidate {
@@ -72,6 +95,7 @@ export async function POST(req: NextRequest) {
     // Must have name, future startDate, and venue to auto-import
     if (!e?.startDate || !e?.name || !e?.venue) { skipped.push(c.title); continue }
     if (!isQualityName(e.name)) { skipped.push(c.title); continue }
+    if (!isHelsinkiArea(e.name, e.venue, e.address)) { skipped.push(c.title); continue }
     if (e.startDate < today) { skipped.push(c.title); continue }
 
     let domain = ''
