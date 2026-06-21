@@ -645,8 +645,8 @@ async function crawlSeedSource(
 
       if (domain === seedDomain) {
         const parts = u.pathname.split('/').filter(Boolean)
-        // Only 1-level deep paths that aren't the seed page itself
-        if (parts.length === 1 && full !== seedUrl) internalUrls.push(full)
+        // Ohita hakutulos-, kategoria- ja sivutussivut (query-parametrit viittaavat aggregaattori-sivuihin)
+        if (parts.length === 1 && full !== seedUrl && !u.search) internalUrls.push(full)
       } else if (!SKIP_DOMAINS.has(domain) && !knownDomains.has(domain) && !seenDomains.has(domain)) {
         if (!externalByDomain.has(domain)) externalByDomain.set(domain, full)
       }
