@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import ShareButton from '@/components/ShareButton'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
@@ -195,16 +196,19 @@ export default async function EventPage({ params }: Props) {
               <p className="text-gray-300 leading-relaxed">{shortDesc || desc.slice(0, 600)}</p>
             )}
 
-            {ticketUrl && (
-              <a
-                href={ticketUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
-              >
-                Osta liput
-              </a>
-            )}
+            <div className="flex flex-wrap gap-3 pt-2">
+              {ticketUrl && (
+                <a
+                  href={ticketUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
+                >
+                  Osta liput
+                </a>
+              )}
+              <ShareButton title={title} url={`${BASE}/e/${id}`} />
+            </div>
           </div>
         </div>
       </main>

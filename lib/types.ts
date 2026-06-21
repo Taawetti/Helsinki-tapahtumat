@@ -20,7 +20,7 @@ export interface Event {
   ticketUrl: string | null
   infoUrl: string | null
   categories: string[]
-  source: 'linked-events'
+  source: string
 }
 
 export type DateFilter = 'today' | 'tonight' | 'tomorrow' | 'weekend' | 'week' | 'month' | 'custom'
