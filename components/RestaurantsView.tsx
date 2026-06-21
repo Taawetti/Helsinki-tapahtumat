@@ -228,6 +228,16 @@ function RestaurantCard({ r, distance, onShowOnMap }: {
               <MapIcon size={10} /> {t('common.show_on_map')}
             </button>
           )}
+          {((r.lat && r.lon) || r.address) && (
+            <a
+              href={r.lat && r.lon
+                ? `https://maps.google.com/maps?daddr=${r.lat},${r.lon}&travelmode=transit`
+                : `https://maps.google.com/maps?daddr=${encodeURIComponent(r.address + ', ' + (r.city || 'Helsinki'))}&travelmode=transit`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
+              <Navigation size={10} /> {t('detail.directions')}
+            </a>
+          )}
         </div>
       </div>
     </div>
@@ -303,6 +313,16 @@ function FeaturedCard({ r, pick, distance, onShowOnMap }: {
               className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
               <MapIcon size={10} /> {t('common.show_on_map')}
             </button>
+          )}
+          {((r.lat && r.lon) || r.address) && (
+            <a
+              href={r.lat && r.lon
+                ? `https://maps.google.com/maps?daddr=${r.lat},${r.lon}&travelmode=transit`
+                : `https://maps.google.com/maps?daddr=${encodeURIComponent(r.address + ', ' + (r.city || 'Helsinki'))}&travelmode=transit`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
+              <Navigation size={10} /> {t('detail.directions')}
+            </a>
           )}
         </div>
       </div>

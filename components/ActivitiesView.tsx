@@ -251,6 +251,16 @@ function TopPickCard({ pick, activity, distance, highlight, rating, onShowOnMap 
               <MapIcon size={10} /> {t('common.show_on_map')}
             </button>
           )}
+          {((activity.lat && activity.lon) || activity.address) && (
+            <a
+              href={activity.lat && activity.lon
+                ? `https://maps.google.com/maps?daddr=${activity.lat},${activity.lon}&travelmode=transit`
+                : `https://maps.google.com/maps?daddr=${encodeURIComponent(activity.address + ', ' + (activity.city || 'Helsinki'))}&travelmode=transit`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
+              <Navigation size={10} /> {t('detail.directions')}
+            </a>
+          )}
         </div>
       )}
     </div>
@@ -372,6 +382,16 @@ function ActivityCard({ activity, distance, highlight, rating, onShowOnMap }: {
             className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
             <MapIcon size={10} /> {t('common.show_on_map')}
           </button>
+        )}
+        {((activity.lat && activity.lon) || activity.address) && (
+          <a
+            href={activity.lat && activity.lon
+              ? `https://maps.google.com/maps?daddr=${activity.lat},${activity.lon}&travelmode=transit`
+              : `https://maps.google.com/maps?daddr=${encodeURIComponent(activity.address + ', ' + (activity.city || 'Helsinki'))}&travelmode=transit`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
+            <Navigation size={10} /> {t('detail.directions')}
+          </a>
         )}
       </div>
     </div>
