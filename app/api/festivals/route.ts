@@ -55,6 +55,9 @@ export async function GET(req: NextRequest) {
     const festDays = daysBetween(fest.startDate, fest.endDate)
     const totalDays = festDays.length
 
+    // Skip bogus AI-generated "festivals" that span months — real festivals are ≤ 30 days
+    if (totalDays > 30) continue
+
     for (const day of festDays) {
       const ts = new Date(`${day}T${fest.time}:00`).getTime()
       if (ts < startTs || ts >= endTs) continue
