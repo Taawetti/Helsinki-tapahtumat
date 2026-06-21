@@ -70,6 +70,28 @@ const webAppJsonLd = {
   },
 }
 
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Mitä tänään',
+  url: BASE,
+  logo: { '@type': 'ImageObject', url: `${BASE}/icon-512.png` },
+  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikkat, festivaalit, teatterit, näyttelyt ja paljon muuta.',
+  areaServed: { '@type': 'City', name: 'Helsinki', sameAs: 'https://www.wikidata.org/wiki/Q1757' },
+  inLanguage: 'fi-FI',
+}
+
+const webSiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Mitä tänään',
+  alternateName: ['Mitä tänään Helsinki', 'mitatanaan.fi'],
+  url: BASE,
+  inLanguage: 'fi-FI',
+  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa.',
+  publisher: { '@type': 'Organization', name: 'Mitä tänään', url: BASE },
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_ID
   return (
@@ -79,10 +101,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon-180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppJsonLd) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }} />
         {adsenseId && (
           <script
             async

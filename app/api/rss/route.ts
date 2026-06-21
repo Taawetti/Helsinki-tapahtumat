@@ -42,11 +42,35 @@ function extractText(xml: string, tag: string): string {
   return (match?.[1] || match?.[2] || '').trim()
 }
 
+// Kaivaa oikean tapahtumapäivän RSS-kentän tekstisisällöstä.
+// Useilla tapahtumapaikoilla (esim. On the Rocks) pubDate = syötteen
+// uusintahetki, ei tapahtuman päivä. Oikea päivä on kuvauksessa
+// muodossa "Ke 24.6.2026" tai "24.6.2026".
+function extractEventDate(rawContent: string, pubDate: string): string {
+  const text = rawContent.replace(/<[^>]+>/g, ' ')
+  const dateMatch = text.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/)
+  if (!dateMatch) return parseDate(pubDate)
+
+  const day = parseInt(dateMatch[1], 10)
+  const month = parseInt(dateMatch[2], 10)
+  const year = parseInt(dateMatch[3], 10)
+  if (month < 1 || month > 12 || day < 1 || day > 31 || year < 2024 || year > 2030) {
+    return parseDate(pubDate)
+  }
+
+  const timeMatch = text.match(/klo\s+(\d{1,2})[.:](\d{2})/)
+  const hour = timeMatch ? parseInt(timeMatch[1], 10) : 19
+  const minute = timeMatch ? parseInt(timeMatch[2], 10) : 0
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00+03:00`
+}
+
 function parseRssItems(xml: string, city: string, feedUrl: string, venueName?: string): Event[] {
   const items = xml.match(/<item[\s>][\s\S]*?<\/item>/g) ?? []
   return items.slice(0, 15).map((item, i) => {
     const title = extractText(item, 'title') || 'Tapahtuma'
-    const description = extractText(item, 'description').replace(/<[^>]+>/g, '').slice(0, 200)
+    const fullContent = extractText(item, 'content:encoded') || extractText(item, 'description')
+    const description = fullContent.replace(/<[^>]+>/g, '').slice(0, 200)
     const link = extractText(item, 'link') || feedUrl
     const pubDate = extractText(item, 'pubDate') || extractText(item, 'dc:date')
     const image = item.match(/url="([^"]+\.(jpg|jpeg|png|webp))"/i)?.[1]
@@ -59,7 +83,7 @@ function parseRssItems(xml: string, city: string, feedUrl: string, venueName?: s
       title,
       shortDescription: description,
       description,
-      startTime: parseDate(pubDate),
+      startTime: extractEventDate(fullContent, pubDate),
       endTime: null,
       location: { name: venueName || '', streetAddress: '', city },
       image,

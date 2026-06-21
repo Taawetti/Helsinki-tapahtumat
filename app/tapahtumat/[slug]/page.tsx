@@ -149,6 +149,19 @@ function formatDate(iso: string): string {
   })
 }
 
+const VIBE_DESCRIPTIONS: Record<string, string> = {
+  keikka:   'Helsingin parhaat live-keikkat ja konsertit yhdessä paikassa. Tavastia, Circus Helsinki, On the Rocks, G Livelab ja kaikki muut keikkapaikat — ohjelma päivitetään automaattisesti päivittäin.',
+  yoelama:  'Helsinki yöelämä — yökerhot, klubit, disko ja afterpartyt. Löydä parhaat bileet tänä iltana ja tulevina viikonloppuina Helsingissä.',
+  baari:    'Pubikeikat, pubivisat, karaoke-illat ja baaritapahtumat Helsingissä. Löydä tänään paras baari- tai pub-ilta pääkaupunkiseudulla.',
+  urheilu:  'Urheilutapahtumat Helsingissä: jalkapallopelit, jääkiekko-ottelut (HIFK, Jokerit), juoksukilpailut ja muut urheilutapahtumat. Ottelukalenteri aina ajan tasalla.',
+  standup:  'Stand up -keikat ja komediaesitykset Helsingissä. Parhaat suomalaiset ja kansainväliset koomikot sekä avoin mikki -illat.',
+  museo:    'Museot ja näyttelyt Helsingissä — Ateneum, Kiasma, HAM, Suomen kansallismuseo ja paljon muuta. Löydä ilmaiset ja maksulliset näyttelyt aukioloaikoineen.',
+  lapset:   'Tapahtumat lapsille ja perheille Helsingissä: ilmaiset lastentapahtumat, satutunnit, luovuuspajat, lasten teatteriesitykset ja perhekonsertit.',
+  tyopaja:  'Kurssit, työpajat ja koulutustapahtumat Helsingissä. Kuvaamataitoa, kokkikursseja, tanssia, käsitöitä — uusia taitoja ja elämyksiä kaikille.',
+  teatteri: 'Teatteriesitykset ja tanssiesitykset Helsingissä. Kansallisteatteri, Helsingin kaupunginteatteri, Svenska Teatern, itsenäiset teatterit ja vierailevat ryhmät.',
+  taide:    'Taidenäyttelyt ja galleriat Helsingissä. Kuvataidetta, valokuvaa, designia ja nykytaidetta — aukioloajat ja tapahtumat päivitetään automaattisesti.',
+}
+
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateStaticParams() {
@@ -207,7 +220,7 @@ export default async function TapahtumaSivu({ params }: Props) {
     ? `${events.length} tapahtumaa seuraavan 30 päivän aikana`
     : neighborhood!.vibe
 
-  const jsonLd = {
+  const itemListLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: pageTitle,
@@ -238,9 +251,24 @@ export default async function TapahtumaSivu({ params }: Props) {
     })),
   }
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Mitä tänään', item: BASE },
+      { '@type': 'ListItem', position: 2, name: 'Tapahtumat', item: `${BASE}/tapahtumat` },
+      { '@type': 'ListItem', position: 3, name: vibe ? vibe.label : neighborhood!.name, item: `${BASE}/tapahtumat/${slug}` },
+    ],
+  }
+
+  const staticDesc = vibe
+    ? VIBE_DESCRIPTIONS[vibe.id]
+    : `Kaikki tapahtumat ${LOCATIVE[slug] || neighborhood!.name + 'ssa'} — ${neighborhood!.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${neighborhood!.name}sta.`
+
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <main className="min-h-screen bg-gray-950 text-white">
         <div className="max-w-2xl mx-auto px-4 py-8">
           {/* Breadcrumb */}
@@ -255,7 +283,10 @@ export default async function TapahtumaSivu({ params }: Props) {
           {/* Page header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">{pageTitle}</h1>
-            <p className="text-gray-400">{pageSubtitle}</p>
+            <p className="text-gray-400 mb-3">{pageSubtitle}</p>
+            {staticDesc && (
+              <p className="text-sm text-gray-500 leading-relaxed">{staticDesc}</p>
+            )}
           </div>
 
           {/* Category chips */}

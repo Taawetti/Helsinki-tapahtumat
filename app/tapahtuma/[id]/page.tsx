@@ -97,6 +97,16 @@ export default async function FestivalPage({ params }: Props) {
   const dateRange = formatDateRange(fest.startDate, fest.endDate)
   const isPast = new Date(fest.endDate) < new Date()
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Mitä tänään', item: BASE },
+      { '@type': 'ListItem', position: 2, name: 'Festivaalit', item: `${BASE}/tapahtumat/festivaalit` },
+      { '@type': 'ListItem', position: 3, name: fest.name, item: pageUrl },
+    ],
+  }
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Festival',
@@ -135,10 +145,8 @@ export default async function FestivalPage({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="min-h-screen bg-gray-950 text-white">
         <div className="max-w-2xl mx-auto px-4 py-8">
           <Link href="/" className="text-blue-400 hover:text-blue-300 text-sm mb-6 inline-block">
