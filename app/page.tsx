@@ -126,14 +126,21 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false)
   const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities'>('discover')
   const [customDate, setCustomDate] = useState('')
+  const [customDateEnd, setCustomDateEnd] = useState('')
   const [showEiTieda, setShowEiTieda] = useState(false)
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
-    customDate, keyword, municipality, activeCategories, bbox: '',
+    customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
   })
+
+  const handleRangeChange = useCallback((start: string, end: string) => {
+    setCustomDate(start)
+    setCustomDateEnd(end)
+    setDateFilter(start ? 'range' : 'today')
+  }, [])
 
   const handleVibeToggle = useCallback((id: string) => {
     setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
@@ -151,7 +158,7 @@ export default function Home() {
   const clearFilters = useCallback(() => {
     setActiveCategories([]); setActiveVibes([]); setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
-    setPriceFilter('all'); setCustomDate('')
+    setPriceFilter('all'); setCustomDate(''); setCustomDateEnd('')
   }, [])
 
   const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
@@ -377,14 +384,14 @@ export default function Home() {
                   month:   t('date.month'),
                 }
                 return (
-                  <button key={d} onClick={() => { setDateFilter(d); setCustomDate('') }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${dateFilter === d && !customDate ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
-                    style={dateFilter === d && !customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}>
+                  <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${dateFilter === d && !customDate && !customDateEnd ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
+                    style={dateFilter === d && !customDate && !customDateEnd ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}>
                     {dateLabels[d]}
                   </button>
                 )
               })}
-              <DatePicker size="sm" value={customDate} onChange={(v) => { setCustomDate(v); setDateFilter(v ? 'custom' : 'today') }} />
+              <DatePicker size="sm" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
             </div>
             {/* Price row */}
             <div className="flex gap-2">
@@ -459,15 +466,15 @@ export default function Home() {
               { d: 'week' as DateFilter, label: t('date.week_short') },
               { d: 'month' as DateFilter, label: t('date.month') },
             ]).map(({ d, label }) => (
-              <button key={d} onClick={() => { setDateFilter(d); setCustomDate('') }}
+              <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
                 className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
-                  dateFilter === d && !customDate ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
+                  dateFilter === d && !customDate && !customDateEnd ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
                 }`}
-                style={dateFilter === d && !customDate ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
+                style={dateFilter === d && !customDate && !customDateEnd ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
                 {label}
               </button>
             ))}
-            <DatePicker size="md" value={customDate} onChange={(v) => { setCustomDate(v); setDateFilter(v ? 'custom' : 'today') }} />
+            <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
           </div>
 
           {/* Vibe pills */}

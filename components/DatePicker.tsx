@@ -15,6 +15,8 @@ const DAYS_EN = ['Mo','Tu','We','Th','Fr','Sa','Su']
 interface Props {
   value: string
   onChange: (v: string) => void
+  valueEnd?: string
+  onChangeRange?: (start: string, end: string) => void
   size?: 'sm' | 'md'
 }
 
@@ -23,12 +25,18 @@ function toLocalDate(iso: string) {
   return new Date(y, m - 1, d)
 }
 
-export default function DatePicker({ value, onChange, size = 'md' }: Props) {
+function fmtIso(year: number, month: number, day: number) {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+export default function DatePicker({ value, onChange, valueEnd, onChangeRange, size = 'md' }: Props) {
   const { t, lang } = useLanguage()
   const MONTHS = lang === 'fi' ? MONTHS_FI : MONTHS_EN
   const DAYS = lang === 'fi' ? DAYS_FI : DAYS_EN
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+
+  const rangeMode = !!onChangeRange
 
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
@@ -36,6 +44,9 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
     if (value) { const d = toLocalDate(value); return { year: d.getFullYear(), month: d.getMonth() } }
     return { year: today.getFullYear(), month: today.getMonth() }
   })
+  // Range picking state: pendingStart is set after first click, cleared after second
+  const [pendingStart, setPendingStart] = useState<string | null>(null)
+  const [hoverDate, setHoverDate] = useState<string | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
 
@@ -46,7 +57,7 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
       if (
         btnRef.current && !btnRef.current.contains(e.target as Node) &&
         dropRef.current && !dropRef.current.contains(e.target as Node)
-      ) setOpen(false)
+      ) { setOpen(false); setPendingStart(null); setHoverDate(null) }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -62,9 +73,7 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
     setOpen(o => !o)
   }, [])
 
-  const selected = value ? toLocalDate(value) : null
   const { year, month } = view
-
   const firstDay = new Date(year, month, 1)
   const startDow = (firstDay.getDay() + 6) % 7
   const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -75,20 +84,59 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
   while (cells.length % 7 !== 0) cells.push(null)
 
   const select = (day: number) => {
-    const mm = String(month + 1).padStart(2, '0')
-    const dd = String(day).padStart(2, '0')
-    onChange(`${year}-${mm}-${dd}`)
-    setOpen(false)
+    const dateStr = fmtIso(year, month, day)
+
+    if (!rangeMode) {
+      onChange(dateStr)
+      setOpen(false)
+      return
+    }
+
+    if (!pendingStart) {
+      // First click: set pending start, keep calendar open
+      setPendingStart(dateStr)
+      setHoverDate(null)
+    } else {
+      if (dateStr >= pendingStart) {
+        // Second click: commit range
+        onChangeRange!(pendingStart, dateStr)
+        setPendingStart(null)
+        setHoverDate(null)
+        setOpen(false)
+      } else {
+        // Clicked before pending start: reset start to this day
+        setPendingStart(dateStr)
+        setHoverDate(null)
+      }
+    }
   }
 
   const prev = () => setView(v => v.month === 0 ? { year: v.year - 1, month: 11 } : { ...v, month: v.month - 1 })
   const next = () => setView(v => v.month === 11 ? { year: v.year + 1, month: 0 } : { ...v, month: v.month + 1 })
 
-  const label = value
-    ? toLocalDate(value).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
-    : null
+  // Determine the effective range for highlighting (committed or in-progress)
+  const effectiveStart = pendingStart || value
+  const effectiveEnd = pendingStart ? (hoverDate || pendingStart) : valueEnd
 
   const btnSm = size === 'sm'
+
+  // Button label
+  let label: string | null = null
+  if (rangeMode) {
+    if (value && valueEnd) {
+      const s = toLocalDate(value).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
+      const e = toLocalDate(valueEnd).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
+      label = `${s} – ${e}`
+    } else if (value) {
+      label = toLocalDate(value).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
+    }
+  } else {
+    label = value
+      ? toLocalDate(value).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
+      : null
+  }
+
+  const hasSelection = rangeMode ? !!(value || valueEnd) : !!value
 
   const dropdown = open && typeof document !== 'undefined' ? createPortal(
     <div
@@ -107,6 +155,13 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
         overflow: 'hidden',
       }}
     >
+      {/* Hint when picking range end */}
+      {rangeMode && pendingStart && (
+        <div style={{ padding: '10px 16px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(168,85,247,0.8)' }}>
+          {lang === 'fi' ? 'Valitse loppupäivä' : 'Select end date'}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px' }}>
         <button onClick={prev} style={{ padding: 6, borderRadius: 8, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
@@ -135,25 +190,58 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '0 12px 16px', gap: '2px 0' }}>
         {cells.map((day, i) => {
           if (!day) return <div key={i} />
+          const dateStr = fmtIso(year, month, day)
           const thisDate = new Date(year, month, day)
           const isToday = thisDate.getTime() === today.getTime()
-          const isSel = selected && thisDate.getTime() === selected.getTime()
           const isPast = thisDate < today
+
+          // Range highlight logic
+          const isStart = !!(effectiveStart && dateStr === effectiveStart)
+          const isEnd = !!(effectiveEnd && dateStr === effectiveEnd && effectiveEnd !== effectiveStart)
+          const isInRange = !!(effectiveStart && effectiveEnd && dateStr > effectiveStart && dateStr < effectiveEnd)
+
+          // Single-mode: just selected
+          const isSel = !rangeMode && value === dateStr
+
+          let bg = 'transparent'
+          let color = isPast ? 'rgba(255,255,255,0.15)' : isToday ? '#c084fc' : 'rgba(255,255,255,0.7)'
+          let borderRadius = 10
+          let boxShadow = 'none'
+
+          if (isSel) {
+            bg = 'linear-gradient(135deg,#a855f7,#ec4899)'
+            color = '#fff'
+            boxShadow = '0 4px 12px rgba(168,85,247,0.4)'
+          } else if (isStart || isEnd) {
+            bg = 'linear-gradient(135deg,#a855f7,#ec4899)'
+            color = '#fff'
+            boxShadow = '0 4px 12px rgba(168,85,247,0.4)'
+          } else if (isInRange) {
+            bg = 'rgba(168,85,247,0.2)'
+            color = '#fff'
+            borderRadius = 0
+          }
+
+          const isPlain = !isPast && !isSel && !isStart && !isEnd && !isInRange
           return (
             <button
               key={i}
               onClick={() => !isPast && select(day)}
+              onMouseEnter={e => {
+                if (rangeMode && pendingStart && !isPast) setHoverDate(dateStr)
+                if (isPlain) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+              }}
+              onMouseLeave={e => {
+                if (rangeMode && pendingStart) setHoverDate(null)
+                if (isPlain) e.currentTarget.style.background = bg
+              }}
               disabled={isPast}
               style={{
                 width: 36, height: 36, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 10, border: 'none', cursor: isPast ? 'default' : 'pointer',
-                fontSize: 13, fontWeight: 700, transition: 'all 0.15s',
-                color: isPast ? 'rgba(255,255,255,0.15)' : isSel ? '#fff' : isToday ? '#c084fc' : 'rgba(255,255,255,0.7)',
-                background: isSel ? 'linear-gradient(135deg,#a855f7,#ec4899)' : 'transparent',
-                boxShadow: isSel ? '0 4px 12px rgba(168,85,247,0.4)' : 'none',
+                borderRadius, border: 'none', cursor: isPast ? 'default' : 'pointer',
+                fontSize: 13, fontWeight: 700, transition: 'all 0.12s',
+                color, background: bg, boxShadow,
               }}
-              onMouseEnter={e => { if (!isPast && !isSel) e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-              onMouseLeave={e => { if (!isPast && !isSel) e.currentTarget.style.background = 'transparent' }}
             >
               {day}
             </button>
@@ -162,10 +250,14 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
       </div>
 
       {/* Clear */}
-      {value && (
+      {hasSelection && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '10px 16px' }}>
           <button
-            onClick={() => { onChange(''); setOpen(false) }}
+            onClick={() => {
+              if (rangeMode) { onChangeRange!('', ''); setPendingStart(null) }
+              else onChange('')
+              setOpen(false)
+            }}
             style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
             onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
@@ -185,8 +277,8 @@ export default function DatePicker({ value, onChange, size = 'md' }: Props) {
         onClick={openCalendar}
         className={`shrink-0 flex items-center gap-1.5 font-black transition-all border-0 rounded-full cursor-pointer ${
           btnSm ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'
-        } ${value ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/10 hover:text-white/65'}`}
-        style={value ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}
+        } ${hasSelection ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/10 hover:text-white/65'}`}
+        style={hasSelection ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}
       >
         <Calendar size={btnSm ? 11 : 13} />
         {label ?? t('date.custom')}

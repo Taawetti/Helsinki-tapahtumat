@@ -1,6 +1,6 @@
 import { DateFilter } from './types'
 
-export function getDateRange(filter: DateFilter, customDate?: string): { start: string; end: string; startAfter?: string } {
+export function getDateRange(filter: DateFilter, customDate?: string, customDateEnd?: string): { start: string; end: string; startAfter?: string } {
   const now = new Date()
   // Use local date components (not UTC) — avoids returning yesterday's date for Helsinki
   // users between midnight and 3 AM when UTC is still on the previous day.
@@ -52,6 +52,12 @@ export function getDateRange(filter: DateFilter, customDate?: string): { start: 
     case 'custom': {
       const date = customDate || fmt(now)
       return { start: date, end: date }
+    }
+
+    case 'range': {
+      const start = customDate || fmt(now)
+      const end = customDateEnd || customDate || fmt(now)
+      return { start, end }
     }
   }
 }

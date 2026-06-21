@@ -5,6 +5,7 @@ import { getDateRange } from '@/lib/utils'
 interface UseEventsOptions {
   dateFilter: DateFilter
   customDate?: string
+  customDateEnd?: string
   keyword: string
   municipality: string
   activeCategories: string[]
@@ -23,6 +24,7 @@ interface UseEventsResult {
 export function useEvents({
   dateFilter,
   customDate,
+  customDateEnd,
   keyword,
   municipality,
   activeCategories,
@@ -47,7 +49,7 @@ export function useEvents({
       setLoading(true)
       setError(null)
 
-      const { start, end, startAfter } = getDateRange(dateFilter, customDate)
+      const { start, end, startAfter } = getDateRange(dateFilter, customDate, customDateEnd)
 
       const keywordsFromCategories = activeCategories
         .flatMap((id) => CATEGORIES.find((c) => c.id === id)?.keywords ?? [])
@@ -82,7 +84,7 @@ export function useEvents({
         setLoading(false)
       }
     },
-    [dateFilter, customDate, keyword, municipality, activeCategories, bbox]
+    [dateFilter, customDate, customDateEnd, keyword, municipality, activeCategories, bbox]
   )
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export function useEvents({
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateFilter, customDate, keyword, municipality, activeCategories.join(','), bbox ?? ''])
+  }, [dateFilter, customDate, customDateEnd ?? '', keyword, municipality, activeCategories.join(','), bbox ?? ''])
 
   const loadMore = useCallback(() => {
     const next = page + 1
