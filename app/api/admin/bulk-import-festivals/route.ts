@@ -19,21 +19,16 @@ function generateId(url: string, startDate: string): string {
   }
 }
 
+// Viimeinen suodatin — pisteytysalgoritmi hylkää useimmat roskat jo discover-vaiheessa
 const JUNK_NAMES = new Set([
   'etusivu', 'koti', 'home', 'tapahtumat', 'tapahtumakalenteri', 'kalenteri',
   'events', 'calendar', 'ladataan', 'loading', 'uutiset', 'news',
   'näyttelyt', 'ohjelma', 'ajankohtaista', 'helsinki', 'error', '404',
   'hakutulokset', 'search results', 'kirjaudu', 'login',
-  'frontpage', 'koulutus', 'tekstiili', 'tilaa uutiskirje',
-  'kurssit ja ilmoittautuminen', 'miksi messuille?', 'yhteystiedot',
-  'contact', 'about', 'tietoa meistä', 'ota yhteyttä',
-  'privacy notice', 'privacy policy', 'cookie policy', 'terms of service',
-  'terms and conditions', 'xfn 1.1 profile', 'xfn profile',
 ])
 
 const JUNK_SUBSTRINGS = [
-  'analytics', 'marketing attribution', 'cookie consent', 'privacy notice',
-  'gdpr', 'tracking', 'utm_', 'utm campaign',
+  'analytics', 'cookie consent', 'privacy notice', 'gdpr', 'tracking',
 ]
 
 const NON_HELSINKI_CITIES = [

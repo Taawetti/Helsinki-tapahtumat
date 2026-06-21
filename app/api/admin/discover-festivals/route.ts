@@ -105,13 +105,23 @@ const SEED_SOURCES = [
   'https://festivals.fi/festivaalit/',
   'https://www.visithelsinki.fi/fi/nahdavaa-ja-tehtavaa/festivaalit/',
   'https://kohokohdat.fi/helsinki/',
+  'https://www.helsinki-lit.fi',
+  'https://www.menonhki.fi',
+  'https://www.hel.fi/fi/tapahtumat',
+  'https://www.stadissa.fi/',
 ]
 
 const SKIP_DOMAINS = new Set([
   'wikipedia.org', 'facebook.com', 'instagram.com', 'youtube.com',
   'twitter.com', 'x.com', 'visithelsinki.fi', 'hel.fi', 'google.com',
   'tiketti.fi', 'lippu.fi', 'livenation.fi', 'ticketmaster.fi',
-  'festivals.fi',
+  'festivals.fi', 'stadissa.fi',
+])
+
+// Tunnetut roskadomainit — saavat -10 pistettä pisteytysalgoritmissa
+const JUNK_DOMAINS = new Set([
+  'gaug.es', 'osano.com', 'gmpg.org', 'legendsglobal.com',
+  'cmp.osano.com', 'w3.org',
 ])
 
 interface EventData {
@@ -242,6 +252,35 @@ const KNOWN_VENUES = [
   'Korjaamo', 'Malmitalo', 'Vuotalo', 'Savoy-teatteri',
   'Dipoli', 'Otaniemi', 'Tapiola', 'Lauttasaari',
 ]
+
+const EVENT_KEYWORDS = [
+  'festival', 'festivaali', 'markkinat', 'näyttely', 'konsertti',
+  'juhla', 'karnavaali', 'messut', 'open air', 'expo',
+  'exhibition', 'gala', 'market',
+]
+
+// Laskee pisteytyksen ehdokkaalle — tunnettuihin positiivisiin signaaleihin pohjautuva.
+// Kynnys ≥ 6 pistettä ennen kuin kandidaatti hyväksytään.
+function scoreCandidate(url: string, html: string | null, event: EventData | null, name: string): number {
+  let score = 0
+  try {
+    const domain = new URL(url).hostname.replace('www.', '')
+    if (JUNK_DOMAINS.has(domain)) return -10
+    if (domain.endsWith('.fi')) score += 1
+  } catch { /* virheellinen URL */ }
+  if (/\/(event|tapahtumat?|festival|festivaali)\//i.test(url)) score += 2
+  if (html) {
+    if (/<script[^>]*type="application\/ld\+json"[^>]*>[\s\S]{0,8000}?"@type"\s*:\s*"(?:Event|MusicEvent|Festival|SportsEvent|TheaterEvent|DanceEvent)"/i.test(html)) score += 5
+    if (/<time[^>]+datetime="202\d-\d{2}-\d{2}"/i.test(html)) score += 3
+    if (/itemprop="startDate"/i.test(html)) score += 3
+    const lowerHtml = html.toLowerCase()
+    if (KNOWN_VENUES.some(v => lowerHtml.includes(v.toLowerCase()))) score += 2
+  }
+  if (name.length >= 8 && name.length <= 80) score += 1
+  const lowerName = name.toLowerCase()
+  if (EVENT_KEYWORDS.some(k => lowerName.includes(k))) score += 1
+  return score
+}
 
 function toIsoDate(day: number, month: number, year: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -753,10 +792,14 @@ export async function POST(req: NextRequest) {
       const snippetData = parseDatesFromSnippet(snippet)
       const pTitle = html ? pageTitle(html, title) : title
 
+      const pageScore = scoreCandidate(url, html, jsonEvents[0] ?? null, pTitle)
+
       if (jsonEvents.length > 1) {
         // Useita tapahtumia samalla sivulla (esim. tapahtumakalenteri)
-        for (const e of jsonEvents) {
-          candidates.push({ title: e.name || pTitle, url, snippet: '', event: e })
+        if (pageScore >= 6) {
+          for (const e of jsonEvents) {
+            candidates.push({ title: e.name || pTitle, url, snippet: '', event: e })
+          }
         }
       } else if (jsonEvents.length === 1) {
         // Yksi JSON-LD tapahtuma — täydennä snippet-tiedoilla tarvittaessa
@@ -769,7 +812,8 @@ export async function POST(req: NextRequest) {
           address: jsonEvent.address,
           ticketUrl: jsonEvent.ticketUrl,
         }
-        candidates.push({ title: event.name || pTitle, url, snippet, event })
+        if (scoreCandidate(url, html, event, event.name || pTitle) >= 6)
+          candidates.push({ title: event.name || pTitle, url, snippet, event })
       } else if (html && looksLikeAggregator(pTitle)) {
         // Kalenterisivu — ryömi sisäiset tapahtumasivut kuten siemenlähteet
         const subResults = await crawlSeedSource(url, knownDomains, seenDomains, festivals, 15)
@@ -783,16 +827,17 @@ export async function POST(req: NextRequest) {
           endDate: snippetData.endDate,
           venue: snippetData.venue,
         } : null)
-        candidates.push({ title: pTitle, url, snippet, event })
+        if (pageScore >= 6)
+          candidates.push({ title: pTitle, url, snippet, event })
       }
     }
   }
 
-  // Vaihe 2: Siemenlähteiden ryömintä
-  for (const seedUrl of SEED_SOURCES) {
-    const seedResults = await crawlSeedSource(seedUrl, knownDomains, seenDomains, festivals)
-    candidates.push(...seedResults)
-  }
+  // Vaihe 2: Siemenlähteiden ryömintä rinnakkain
+  const seedBatches = await Promise.all(
+    SEED_SOURCES.map(seedUrl => crawlSeedSource(seedUrl, knownDomains, seenDomains, festivals))
+  )
+  candidates.push(...seedBatches.flat())
 
   return NextResponse.json({ updated: [], candidates })
 }
