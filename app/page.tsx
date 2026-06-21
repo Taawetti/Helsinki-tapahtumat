@@ -131,7 +131,8 @@ export default function Home() {
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
-    dateFilter, customDate, keyword, municipality, activeCategories, bbox: '',
+    dateFilter: mode === 'map' ? 'month' : dateFilter,
+    customDate, keyword, municipality, activeCategories, bbox: '',
   })
 
   const handleVibeToggle = useCallback((id: string) => {
