@@ -131,6 +131,7 @@ export default function Home() {
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
+  const [visibleCount, setVisibleCount] = useState(24)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
@@ -159,7 +160,11 @@ export default function Home() {
     setActiveCategories([]); setActiveVibes([]); setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
     setPriceFilter('all'); setCustomDate(''); setCustomDateEnd('')
+    setVisibleCount(24)
   }, [])
+
+  // Reset visible count when any filter changes
+  useEffect(() => { setVisibleCount(24) }, [dateFilter, customDate, customDateEnd, keyword, municipality, activeCategories.join(','), activeVibes.join(','), priceFilter])
 
   const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
     setMapTarget({ lat, lon, name, type })
@@ -542,16 +547,35 @@ export default function Home() {
           <AdBanner slot="1234567890" format="horizontal" className="my-1" />
 
           {/* Event grid */}
-          {discoverEvents.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {discoverEvents
-                .filter((e) => !discoverEvents.find((h) => nightlifeScore(h) >= 3 && h.image)?.id || e.id !== discoverEvents.find((h) => nightlifeScore(h) >= 3 && h.image)?.id)
-                .slice(0, 24)
-                .map((e) => (
-                  <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
-                ))}
-            </div>
-          )}
+          {(() => {
+            const heroId = discoverEvents.find((h) => nightlifeScore(h) >= 3 && h.image)?.id
+            const gridEvents = discoverEvents.filter((e) => e.id !== heroId)
+            const visible = gridEvents.slice(0, visibleCount)
+            const canShowMore = visibleCount < gridEvents.length || hasMore
+            return discoverEvents.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {visible.map((e) => (
+                    <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
+                  ))}
+                </div>
+                {canShowMore && (
+                  <button
+                    onClick={() => {
+                      const next = visibleCount + 24
+                      setVisibleCount(next)
+                      if (next >= gridEvents.length && hasMore) loadMore()
+                    }}
+                    disabled={loading}
+                    className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 bg-white/5 hover:bg-white/8 transition-all flex items-center justify-center gap-2"
+                  >
+                    {loading ? <Loader2 size={14} className="animate-spin" /> : null}
+                    {t('common.load_more')} ({gridEvents.length - visibleCount > 0 ? gridEvents.length - visibleCount : '+'})
+                  </button>
+                )}
+              </>
+            ) : null
+          })()}
 
           {!loading && discoverEvents.length === 0 && (
             <EmptyState
