@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { MapPin, Clock, Share2, ArrowUpRight, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime } from '@/lib/utils'
@@ -38,9 +39,10 @@ export default function FeedCard({ event, onClick, index }: Props) {
   const fav = isFavorite(event.id)
 
   return (
-    <article
-      onClick={() => onClick(event)}
-      className="group cursor-pointer bg-[#0e1218] rounded-2xl overflow-hidden border border-white/7 hover:border-white/18 transition-all duration-200 hover:shadow-2xl hover:shadow-black/40"
+    <Link
+      href={`/e/${encodeURIComponent(event.id)}`}
+      onClick={(e) => { e.preventDefault(); onClick(event) }}
+      className="group cursor-pointer bg-[#0e1218] rounded-2xl overflow-hidden border border-white/7 hover:border-white/18 transition-all duration-200 hover:shadow-2xl hover:shadow-black/40 block"
     >
       {/* Full-width image */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/9' }}>
@@ -128,6 +130,6 @@ export default function FeedCard({ event, onClick, index }: Props) {
           )}
         </div>
       </div>
-    </article>
+    </Link>
   )
 }

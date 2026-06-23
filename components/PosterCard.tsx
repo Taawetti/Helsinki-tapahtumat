@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Event } from '@/lib/types'
 import { formatTime } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -71,9 +72,10 @@ export default function PosterCard({ event, onClick, large }: Props) {
   const { t } = useLanguage()
 
   return (
-    <button
-      onClick={() => onClick(event)}
-      className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+    <Link
+      href={`/e/${encodeURIComponent(event.id)}`}
+      onClick={(e) => { e.preventDefault(); onClick(event) }}
+      className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 block"
     >
       {/* Image / text poster area */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: large ? '16/9' : '3/4' }}>
@@ -170,6 +172,6 @@ export default function PosterCard({ event, onClick, large }: Props) {
           <p className="text-white/30 text-[11px]">{event.price}</p>
         )}
       </div>
-    </button>
+    </Link>
   )
 }

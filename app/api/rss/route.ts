@@ -1,32 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
 
-// RSS-syötteet Helsinki-tapahtumapaikoilta ja kulttuurilaitoksilta
+// RSS-syötteet Helsinki-tapahtumapaikoilta
+// Mukana vain syötteet joissa on jäsennettävät tapahtumatiedot (DD.MM.YYYY -päivät sisällössä).
+// Poistettu: circushelsinki, harjula, williamk, baarikarpanen, telakka, tiivistamo,
+//            kaivohuone, kaiku, svenskateatern (ei vastausta), storyville/lepakkomies/glivelab
+//            (vanhentunut data), tavastia/hkt/ooppera/ryhmateatteri/suomenlinna (blogiposts, ei tapahtumasivuja).
+// On the Rocks poistettu: nyt katettu api/cron/scrape-venues -cronilla (tarkempi kelloaika).
 const RSS_FEEDS = [
-  // Isommat kulttuuripaikat
-  { url: 'https://www.korjaamo.fi/feed/', city: 'Helsinki', venueName: 'Kulttuuritehdas Korjaamo' },
-  { url: 'https://tavastiaklubi.fi/feed/', city: 'Helsinki', venueName: 'Tavastia' },
-  { url: 'https://circushelsinki.fi/feed/', city: 'Helsinki', venueName: 'Circus Helsinki' },
-  { url: 'https://harjula.fi/feed/', city: 'Helsinki', venueName: 'Harjula' },
-  { url: 'https://www.rocks.fi/tapahtumat/feed/', city: 'Helsinki', venueName: 'On the Rocks' },
   { url: 'https://www.dubrovnik.fi/feed/', city: 'Helsinki', venueName: 'Dubrovnik' },
-  { url: 'https://hkt.fi/feed/', city: 'Helsinki', venueName: 'Helsingin Kaupunginteatteri' },
-  { url: 'https://oopperabaletti.fi/feed/', city: 'Helsinki', venueName: 'Kansallisooppera' },
-  // Baarit ja live-musiikkipaikat
-  { url: 'https://storyville.fi/feed/', city: 'Helsinki', venueName: 'Storyville' },
-  { url: 'https://williamk.fi/feed/', city: 'Helsinki', venueName: 'William K' },
-  { url: 'https://glivelab.fi/feed/', city: 'Helsinki', venueName: 'G Livelab Helsinki' },
-  { url: 'https://lepakkomies.fi/feed/', city: 'Helsinki', venueName: 'Lepakkomies' },
-  { url: 'https://baarikarpanen.fi/feed/', city: 'Helsinki', venueName: 'Baarikärpänen' },
-  { url: 'https://telakkahelsinki.fi/feed/', city: 'Helsinki', venueName: 'Telakka' },
-  { url: 'https://www.tiivistamo.fi/feed/', city: 'Helsinki', venueName: 'Tiivistämö' },
-  { url: 'https://kaivohuone.fi/feed/', city: 'Helsinki', venueName: 'Kaivohuone' },
-  { url: 'https://kaiku.fi/feed/', city: 'Helsinki', venueName: 'Kaiku' },
-  // Suomenlinna – maailmanperintökohde
-  { url: 'https://suomenlinna.fi/tapahtumat/feed/', city: 'Helsinki', venueName: 'Suomenlinna' },
-  // Teatterit
-  { url: 'https://www.ryhmateatteri.fi/feed/', city: 'Helsinki', venueName: 'Ryhmäteatteri' },
-  { url: 'https://www.svenskateatern.fi/feed/', city: 'Helsinki', venueName: 'Svenska Teatern' },
 ]
 
 function parseDate(str: string): string {
@@ -42,13 +24,22 @@ function extractText(xml: string, tag: string): string {
   return (match?.[1] || match?.[2] || '').trim()
 }
 
-// Kaivaa oikean tapahtumapäivän RSS-kentän tekstisisällöstä.
-// Useilla tapahtumapaikoilla (esim. On the Rocks) pubDate = syötteen
-// uusintahetki, ei tapahtuman päivä. Oikea päivä on kuvauksessa
-// muodossa "Ke 24.6.2026" tai "24.6.2026".
-function extractEventDate(rawContent: string, pubDate: string): string {
+// Kaivaa oikean tapahtumapäivän RSS-sisällöstä.
+// pubDate = syötteen rakentamisaika (esim. On the Rocks), ei tapahtuman päivä.
+// Oikea päivä löytyy content:encoded -tekstistä (DD.MM.YYYY) tai description -kentästä
+// (esim. Dubrovnik: "KE 25.11.2026").
+function extractEventDate(rawContent: string, pubDate: string, rawDescription?: string): string {
   const text = rawContent.replace(/<[^>]+>/g, ' ')
-  const dateMatch = text.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/)
+
+  // Etsitään päivä content:encoded -tekstistä ensin
+  let dateMatch = text.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/)
+
+  // Fallback: description -kenttä (esim. Dubrovnik laittaa päivän sinne)
+  if (!dateMatch && rawDescription) {
+    const descText = rawDescription.replace(/<[^>]+>/g, ' ')
+    dateMatch = descText.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/)
+  }
+
   if (!dateMatch) return parseDate(pubDate)
 
   const day = parseInt(dateMatch[1], 10)
@@ -58,7 +49,11 @@ function extractEventDate(rawContent: string, pubDate: string): string {
     return parseDate(pubDate)
   }
 
-  const timeMatch = text.match(/klo\s+(\d{1,2})[.:](\d{2})/)
+  // Ajanparsinta: "klo 19:00" → "Aikataulu: 19:00" → "19:00 Ovet" → oletus 19:00
+  let timeMatch = text.match(/klo\s+(\d{1,2})[.:](\d{2})/)
+  if (!timeMatch) timeMatch = text.match(/[Aa]ikataulu:[\s\S]{0,60}?(\d{1,2}):(\d{2})/)
+  if (!timeMatch) timeMatch = text.match(/(\d{1,2}):(\d{2})\s+[Oo]vet/)
+
   const hour = timeMatch ? parseInt(timeMatch[1], 10) : 19
   const minute = timeMatch ? parseInt(timeMatch[2], 10) : 0
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -69,7 +64,8 @@ function parseRssItems(xml: string, city: string, feedUrl: string, venueName?: s
   const items = xml.match(/<item[\s>][\s\S]*?<\/item>/g) ?? []
   return items.slice(0, 15).map((item, i) => {
     const title = extractText(item, 'title') || 'Tapahtuma'
-    const fullContent = extractText(item, 'content:encoded') || extractText(item, 'description')
+    const rawDescription = extractText(item, 'description')
+    const fullContent = extractText(item, 'content:encoded') || rawDescription
     const description = fullContent.replace(/<[^>]+>/g, '').slice(0, 200)
     const link = extractText(item, 'link') || feedUrl
     const pubDate = extractText(item, 'pubDate') || extractText(item, 'dc:date')
@@ -83,7 +79,7 @@ function parseRssItems(xml: string, city: string, feedUrl: string, venueName?: s
       title,
       shortDescription: description,
       description,
-      startTime: extractEventDate(fullContent, pubDate),
+      startTime: extractEventDate(fullContent, pubDate, rawDescription),
       endTime: null,
       location: { name: venueName || '', streetAddress: '', city },
       image,
