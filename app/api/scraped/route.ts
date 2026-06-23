@@ -9,6 +9,8 @@ const VENUE_LOCATIONS: Record<string, { streetAddress: string; city: string }> =
   semifinal:       { streetAddress: 'Urho Kekkosen katu 4-6', city: 'Helsinki' },
   korjaamo:        { streetAddress: 'Töölönkatu 51 b', city: 'Helsinki' },
   kaiku:           { streetAddress: 'Kaikukatu 4', city: 'Helsinki' },
+  storyville:      { streetAddress: 'Eerikinkatu 2', city: 'Helsinki' },
+  raflaamo:        { streetAddress: '', city: 'Helsinki' },
 }
 
 export async function GET(req: NextRequest) {

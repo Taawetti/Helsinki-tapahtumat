@@ -430,6 +430,76 @@ async function scrapeKaiku(): Promise<ScrapedEvent[]> {
   return results
 }
 
+// ── Storyville ───────────────────────────────────────────────────────────────
+// Ohjelmasivu: itemprop-attribuutit schema.org Event -blokeissa + JSON-LD startDate.
+// startDate-formaatti: "2026-6-23T19-19-00-00" — tunti on ensimmäinen pari (T{HH}-).
+
+async function scrapeStoryville(): Promise<ScrapedEvent[]> {
+  const res = await fetch('https://www.storyville.fi/ohjelma/', {
+    headers: { 'User-Agent': UA },
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Storyville HTTP ${res.status}`)
+  const html = await res.text()
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const results: ScrapedEvent[] = []
+  const seen = new Set<string>()
+
+  const blocks = html.split('<div class="evo_event_schema"').slice(1)
+
+  for (const block of blocks) {
+    // URL
+    const urlMatch = block.match(/href='(https:\/\/storyville\.fi\/events\/[^'?]+)/)
+    if (!urlMatch) continue
+    const eventUrl = urlMatch[1]
+
+    // Nimi
+    const nameMatch = block.match(/itemprop='name'\s*>([\s\S]*?)</)
+    if (!nameMatch) continue
+    const title = decodeHtml(nameMatch[1].trim())
+    if (!title) continue
+
+    // Päivämäärä + kelloaika JSON-LD:stä: "2026-6-23T19-19-00-00"
+    const startMatch = block.match(/"startDate":\s*"(\d{4})-(\d{1,2})-(\d{1,2})T(\d{2})-/)
+    if (!startMatch) continue
+    const [, year, month, day, hour] = startMatch
+    const dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    if (dateStr < todayStr) continue
+
+    const id = `storyville-${dateStr}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 35)}`
+    if (seen.has(id)) continue
+    seen.add(id)
+
+    // Kuva — poistetaan thumbnail-suffiksi
+    const imgMatch = block.match(/itemprop='image'\s+content='(https:\/\/[^']+)'/)
+    const image_url = imgMatch
+      ? imgMatch[1].replace(/-\d+x\d+(\.[a-z]+)$/, '$1')
+      : null
+
+    // Hinta / vapaa pääsy
+    const descMatch = block.match(/itemprop='description'\s+content='([\s\S]*?)'/)
+    const desc = descMatch?.[1] ?? ''
+    const is_free = /vapaa\s+pääsy/i.test(desc)
+    const priceMatch = !is_free ? desc.match(/(\d+)\s*€/) : null
+    const price_info = is_free ? null : (priceMatch ? `${priceMatch[1]} €` : null)
+
+    results.push({
+      id,
+      venue_id: 'storyville',
+      venue_name: 'Storyville',
+      title,
+      start_datetime: `${dateStr}T${hour}:00:00+03:00`,
+      image_url,
+      ticket_url: eventUrl,
+      price_info,
+      is_free,
+    })
+  }
+
+  return results
+}
+
 // ── Cron handler ─────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -442,15 +512,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Supabase admin client not configured' }, { status: 500 })
   }
 
-  const counts = { otr: 0, tavastia: 0, semifinal: 0, korjaamo: 0, kaiku: 0 }
+  const counts = { otr: 0, tavastia: 0, semifinal: 0, korjaamo: 0, kaiku: 0, storyville: 0 }
   const errors: string[] = []
 
   // Scrapataan kaikki paikat rinnakkain
-  const [otrResult, tavastiaResult, korjaamoResult, kaikuResult] = await Promise.allSettled([
+  const [otrResult, tavastiaResult, korjaamoResult, kaikuResult, storyvilleResult] = await Promise.allSettled([
     scrapeOnTheRocks(),
     scrapeTavastia(),
     scrapeKorjaamo(),
     scrapeKaiku(),
+    scrapeStoryville(),
   ])
 
   const allEvents: ScrapedEvent[] = []
@@ -484,6 +555,13 @@ export async function GET(req: NextRequest) {
     errors.push(`Kaiku: ${String(kaikuResult.reason)}`)
   }
 
+  if (storyvilleResult.status === 'fulfilled') {
+    allEvents.push(...storyvilleResult.value)
+    counts.storyville = storyvilleResult.value.length
+  } else {
+    errors.push(`Storyville: ${String(storyvilleResult.reason)}`)
+  }
+
   // Upsert Supabaseen
   if (allEvents.length > 0) {
     const { error } = await supabaseAdmin
@@ -508,7 +586,7 @@ export async function GET(req: NextRequest) {
     ok: true,
     scraped: counts,
     total: allEvents.length,
-    errors,
+    errors: errors.length > 0 ? errors : undefined,
     at: new Date().toISOString(),
   })
 }
