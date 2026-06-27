@@ -1,38 +1,38 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { Globe, MapPin, Clock, Ticket, ChevronRight, Map as MapIcon } from 'lucide-react'
+import { Globe, MapPin, Ticket, Map as MapIcon, Heart, X, Clock } from 'lucide-react'
 import type { Event, Activity, Restaurant } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useFavorites } from '@/contexts/FavoritesContext'
 import { FEATURED_PICKS } from '@/lib/restaurant-awards'
 import { ATTRACTION_HIGHLIGHTS, getHighlight } from '@/lib/activity-highlights'
 
-// Curated activity names to include in the idea pool
+// ── Curated activity names ───────────────────────────────
+
 const CURATED_NAMES = [
-  { name: 'Löyly',                 emoji: '🔥' },
-  { name: 'Allas Sea Pool',        emoji: '🌊' },
-  { name: 'Kotiharjun sauna',      emoji: '🪵' },
-  { name: 'Suomenlinna',           emoji: '⛵' },
-  { name: 'Temppeliaukion kirkko', emoji: '⛪' },
-  { name: 'Kansallismuseo',        emoji: '🏛' },
-  { name: 'HAM Helsinki',          emoji: '🎨' },
-  { name: 'Kauppahalli',           emoji: '🧅' },
-  { name: 'Ateneum',               emoji: '🖼' },
-  { name: 'Kiasma',                emoji: '🌀' },
-  { name: 'Amos Rex',              emoji: '🎭' },
-  { name: 'Linnanmäki',            emoji: '🎢' },
-  { name: 'Korkeasaari',           emoji: '🦁' },
-  { name: 'Heureka',               emoji: '🔬' },
-  { name: 'Pihlajasaari',          emoji: '🏖' },
-  { name: 'Sibelius-monumentti',   emoji: '🎵' },
-  { name: 'Seurasaari',            emoji: '🌲' },
-  { name: 'Helsingin tuomiokirkko',emoji: '🕍' },
-  { name: 'Uspenski-katedraali',   emoji: '🔵' },
+  { name: 'Löyly',                  emoji: '🔥' },
+  { name: 'Allas Sea Pool',         emoji: '🌊' },
+  { name: 'Kotiharjun sauna',       emoji: '🪵' },
+  { name: 'Suomenlinna',            emoji: '⛵' },
+  { name: 'Temppeliaukion kirkko',  emoji: '⛪' },
+  { name: 'Kansallismuseo',         emoji: '🏛' },
+  { name: 'HAM Helsinki',           emoji: '🎨' },
+  { name: 'Ateneum',                emoji: '🖼' },
+  { name: 'Kiasma',                 emoji: '🌀' },
+  { name: 'Amos Rex',               emoji: '🎭' },
+  { name: 'Linnanmäki',             emoji: '🎢' },
+  { name: 'Korkeasaari',            emoji: '🦁' },
+  { name: 'Heureka',                emoji: '🔬' },
+  { name: 'Pihlajasaari',           emoji: '🏖' },
+  { name: 'Seurasaari',             emoji: '🌲' },
+  { name: 'Helsingin tuomiokirkko', emoji: '🕍' },
 ]
 
-// ── Suggestion model ──────────────────────────────────────
+// ── Types ────────────────────────────────────────────────
 
 type SuggestionType = 'event' | 'activity' | 'restaurant'
+type IdeaMode = 'nyt' | 'ilta'
 
 interface Suggestion {
   id: string
@@ -47,13 +47,15 @@ interface Suggestion {
   url?: string
   badge?: string
   time?: string
+  minutesUntil?: number
   isFree?: boolean
   price?: string
   isOpen?: boolean
   emoji: string
+  eventRef?: Event
 }
 
-// ── Helpers ───────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────
 
 function isOpenNow(hours?: string): boolean | undefined {
   if (!hours) return undefined
@@ -87,24 +89,20 @@ function isOpenNow(hours?: string): boolean | undefined {
   } catch { return undefined }
 }
 
-function eventEmoji(event: Event): string {
-  const t = [event.title, ...event.categories].join(' ').toLowerCase()
-  if (/konsertti|keikka|musiikki/.test(t)) return '🎸'
-  if (/teatteri|näytelmä|ooppera/.test(t)) return '🎭'
-  if (/taide|galleria|näyttely/.test(t)) return '🎨'
-  if (/urheilu|ottelu|jalkapallo|jääkiekko/.test(t)) return '⚽'
-  if (/stand-up|komedia/.test(t)) return '🎤'
-  if (/elokuv/.test(t)) return '🎬'
-  if (/ruoka|viini|ravintola/.test(t)) return '🍷'
-  if (/festival/.test(t)) return '🎪'
-  return '📅'
+function minutesUntilStart(startTime: string): number {
+  return Math.round((new Date(startTime).getTime() - Date.now()) / 60000)
 }
 
-function eventWhy(event: Event, lang: string): string {
-  const desc = event.shortDescription || event.description || ''
-  if (desc.length > 20) return desc.slice(0, 140).replace(/\s\w+$/, '…')
-  const cats = event.categories.slice(0, 2).join(' · ')
-  return cats || (lang === 'fi' ? 'Ainutlaatuinen kokemus Helsingissä' : 'A unique Helsinki experience')
+function eventEmoji(event: Event): string {
+  const text = [event.title, ...event.categories].join(' ').toLowerCase()
+  if (/konsertti|keikka|musiikki/.test(text)) return '🎸'
+  if (/teatteri|näytelmä|ooppera/.test(text)) return '🎭'
+  if (/taide|galleria|näyttely/.test(text)) return '🎨'
+  if (/urheilu|ottelu|jalkapallo|jääkiekko/.test(text)) return '⚽'
+  if (/stand-up|komedia/.test(text)) return '🎤'
+  if (/elokuv/.test(text)) return '🎬'
+  if (/ruoka|viini/.test(text)) return '🍷'
+  return '📅'
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -116,38 +114,15 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-// ── Type label/colors ─────────────────────────────────────
+// ── Type visual meta ─────────────────────────────────────
 
 const TYPE_META: Record<SuggestionType, { label: string; gradient: string; accent: string }> = {
-  event: {
-    label: '📅 Tapahtuma',
-    gradient: 'linear-gradient(160deg,#1e1b4b 0%,#4c1d95 60%,#7c3aed 100%)',
-    accent: '#a78bfa',
-  },
-  activity: {
-    label: '🧖 Aktiviteetti',
-    gradient: 'linear-gradient(160deg,#042f2e 0%,#065f46 60%,#0f766e 100%)',
-    accent: '#2dd4bf',
-  },
-  restaurant: {
-    label: '🍽 Ravintola',
-    gradient: 'linear-gradient(160deg,#431407 0%,#9a3412 60%,#c2410c 100%)',
-    accent: '#fb923c',
-  },
+  event:      { label: '📅 Tapahtuma',  gradient: 'linear-gradient(160deg,#1e1b4b,#4c1d95,#7c3aed)', accent: '#a78bfa' },
+  activity:   { label: '🧖 Aktiviteetti',gradient: 'linear-gradient(160deg,#042f2e,#065f46,#0f766e)', accent: '#2dd4bf' },
+  restaurant: { label: '🍽 Ravintola',  gradient: 'linear-gradient(160deg,#431407,#9a3412,#c2410c)', accent: '#fb923c' },
 }
 
-// ── Filter options ────────────────────────────────────────
-
-type Filter = 'all' | SuggestionType
-
-const FILTERS: { id: Filter }[] = [
-  { id: 'all'        },
-  { id: 'event'      },
-  { id: 'restaurant' },
-  { id: 'activity'   },
-]
-
-// ── Props ─────────────────────────────────────────────────
+// ── Props ────────────────────────────────────────────────
 
 interface Props {
   events: Event[]
@@ -155,71 +130,73 @@ interface Props {
   onEventClick?: (event: Event) => void
 }
 
-// ── Main view ─────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────
 
 export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
-  const { t, lang } = useLanguage()
+  const { lang } = useLanguage()
+  const { toggle, isFavorite } = useFavorites()
 
-  const [filter, setFilter] = useState<Filter>('all')
+  const [ideaMode, setIdeaMode] = useState<IdeaMode>('ilta')
   const [idx, setIdx] = useState(0)
-  const [animState, setAnimState] = useState<'idle' | 'out' | 'in'>('idle')
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+
+  // Swipe state
+  const [dragX, setDragX] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const dragStartX = useRef(0)
   const cardRef = useRef<HTMLDivElement>(null)
 
-  // Fetch data
+  // Exit animation
+  const [exitDir, setExitDir] = useState<'left' | 'right' | null>(null)
+
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+
   useEffect(() => {
-    fetch('/api/activities').then(r => r.json())
-      .then(d => setActivities(d.activities ?? [])).catch(() => {})
-  }, [])
-  useEffect(() => {
-    fetch('/api/restaurants').then(r => r.json())
-      .then(d => setRestaurants(d.restaurants ?? [])).catch(() => {})
+    fetch('/api/activities').then(r => r.json()).then(d => setActivities(d.activities ?? [])).catch(() => {})
+    fetch('/api/restaurants').then(r => r.json()).then(d => setRestaurants(d.restaurants ?? [])).catch(() => {})
   }, [])
 
-  // Build pools
-  const activitySuggestions = useMemo((): Suggestion[] => {
+  // ── Build pools ──────────────────────────────────────
+
+  const activityPool = useMemo((): Suggestion[] => {
     const byName = new Map(activities.map(a => [a.name.toLowerCase(), a]))
     return CURATED_NAMES.map(({ name, emoji }) => {
       const activity = byName.get(name.toLowerCase())
       const highlight = getHighlight(name)
       const h = ATTRACTION_HIGHLIGHTS.find(h => name.toLowerCase().includes(h.nameKey))
-      const fallbackHook = lang === 'en' && h?.hookEn ? h.hookEn : h?.hook
-      const open = activity ? isOpenNow(activity.openingHours) : undefined
-      const defaultWhy = lang === 'fi' ? 'Yksi Helsingin parhaista kohteista' : 'One of Helsinki\'s best spots'
+      const fallback = lang === 'en' && h?.hookEn ? h.hookEn : h?.hook
+      const why = (lang === 'en' && highlight?.hookEn ? highlight.hookEn : highlight?.hook) || fallback || 'Yksi Helsingin parhaista kohteista'
       return {
         id: `activity-${name}`,
         type: 'activity' as const,
         title: name,
-        why: (lang === 'en' && highlight?.hookEn ? highlight.hookEn : highlight?.hook) || fallbackHook || defaultWhy,
+        why,
         subWhy: lang === 'en' && highlight?.tipEn ? highlight.tipEn : highlight?.tip,
-        image: null,
+        image: activity?.image ?? null,
         address: activity?.address,
         lat: activity?.lat,
         lon: activity?.lon,
         url: activity?.www ?? undefined,
-        badge: (lang === 'en' && highlight?.badgeEn ? highlight.badgeEn : highlight?.badge),
+        badge: lang === 'en' && highlight?.badgeEn ? highlight.badgeEn : highlight?.badge,
         isFree: activity?.fee === false,
-        isOpen: open,
+        isOpen: activity ? isOpenNow(activity.openingHours) : undefined,
         emoji,
       }
     })
   }, [activities, lang])
 
-  const restaurantSuggestions = useMemo((): Suggestion[] => {
+  const restaurantPool = useMemo((): Suggestion[] => {
     const byName = new Map(restaurants.map(r => [r.name.toLowerCase(), r]))
-    const results: Suggestion[] = []
-    for (const pick of FEATURED_PICKS) {
+    return FEATURED_PICKS.flatMap(pick => {
       const r = byName.get(pick.name.toLowerCase())
-      if (!r) continue
-      const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
-      const badge = r.michelinStars === 2 ? '⭐⭐ Michelin'
-        : r.michelinStars === 1 ? '⭐ Michelin'
-        : r.bibGourmand ? '😊 Bib Gourmand'
-        : (lang === 'en' && pick.badgeEn ? pick.badgeEn : pick.badge)
-      results.push({
+      if (!r) return []
+      const badge = r.michelinStars === 2 ? '⭐⭐ Michelin' : r.michelinStars === 1 ? '⭐ Michelin'
+        : r.bibGourmand ? '😊 Bib Gourmand' : (lang === 'en' && pick.badgeEn ? pick.badgeEn : pick.badge)
+      return [{
         id: `restaurant-${r.id}`,
-        type: 'restaurant',
+        type: 'restaurant' as const,
         title: r.name,
         why: lang === 'en' && pick.noteEn ? pick.noteEn : pick.note,
         image: r.image ?? null,
@@ -230,245 +207,357 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         badge,
         isFree: false,
         price: r.priceRange ? ['','€','€€','€€€','€€€€'][r.priceRange] : undefined,
-        isOpen: open,
+        isOpen: r.openingHours ? isOpenNow(r.openingHours) : undefined,
         emoji: '🍽',
-      })
-    }
-    return results
+      }]
+    })
   }, [restaurants, lang])
 
-  const eventSuggestions = useMemo((): Suggestion[] => {
+  const eventPool = useMemo((): Suggestion[] => {
     return events
       .filter(e => (e.shortDescription?.length ?? 0) > 15 || (e.description?.length ?? 0) > 15)
       .slice(0, 40)
-      .map(e => ({
-        id: `event-${e.id}`,
-        type: 'event' as const,
-        title: e.title,
-        why: eventWhy(e, lang),
-        image: e.image,
-        address: e.location?.name || e.location?.streetAddress,
-        lat: e.location?.lat,
-        lon: e.location?.lon,
-        url: e.ticketUrl ?? e.infoUrl ?? undefined,
-        isFree: e.isFree,
-        price: e.price ?? undefined,
-        time: new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' }),
-        emoji: eventEmoji(e),
-      }))
+      .map(e => {
+        const mins = minutesUntilStart(e.startTime)
+        return {
+          id: `event-${e.id}`,
+          type: 'event' as const,
+          title: e.title,
+          why: e.shortDescription || e.description || '',
+          image: e.image,
+          address: e.location?.name || e.location?.streetAddress,
+          lat: e.location?.lat,
+          lon: e.location?.lon,
+          url: e.ticketUrl ?? e.infoUrl ?? undefined,
+          isFree: e.isFree,
+          price: e.price ?? undefined,
+          time: new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' }),
+          minutesUntil: mins,
+          emoji: eventEmoji(e),
+          eventRef: e,
+        }
+      })
   }, [events, lang])
 
-  // Combined & shuffled pool (memoized, shuffled once per filter change)
   const pool = useMemo(() => {
-    let all: Suggestion[] = []
-    if (filter === 'all' || filter === 'activity')   all = [...all, ...activitySuggestions]
-    if (filter === 'all' || filter === 'restaurant') all = [...all, ...restaurantSuggestions]
-    if (filter === 'all' || filter === 'event')      all = [...all, ...eventSuggestions]
-    return shuffle(all)
+    let all = shuffle([...activityPool, ...restaurantPool, ...eventPool])
+      .filter(s => !skippedIds.has(s.id))
+    if (ideaMode === 'nyt') {
+      // "Juuri nyt": prefer items starting soon (< 3h) or open now
+      all = [
+        ...all.filter(s => s.minutesUntil !== undefined && s.minutesUntil >= 0 && s.minutesUntil < 180),
+        ...all.filter(s => s.isOpen === true && s.minutesUntil === undefined),
+        ...all.filter(s => s.minutesUntil === undefined && s.isOpen !== true),
+      ]
+    }
+    return all
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, activitySuggestions.length, restaurantSuggestions.length, eventSuggestions.length])
+  }, [ideaMode, activityPool.length, restaurantPool.length, eventPool.length, skippedIds])
+
+  useEffect(() => { setIdx(0) }, [ideaMode])
 
   const current = pool[idx % Math.max(pool.length, 1)]
+  const meta = current ? TYPE_META[current.type] : TYPE_META.event
 
-  const next = useCallback(() => {
-    if (animState !== 'idle' || pool.length < 2) return
-    setAnimState('out')
+  // ── Swipe logic ──────────────────────────────────────
+
+  const SWIPE_THRESHOLD = 80
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (pool.length < 2) return
+    dragStartX.current = e.clientX
+    setDragging(true)
+    cardRef.current?.setPointerCapture(e.pointerId)
+  }, [pool.length])
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging) return
+    setDragX(e.clientX - dragStartX.current)
+  }, [dragging])
+
+  const commit = useCallback((dir: 'left' | 'right') => {
+    if (!current) return
+    setExitDir(dir)
+    if (dir === 'right') {
+      setSavedIds(s => new Set([...s, current.id]))
+      if (current.eventRef) toggle(current.eventRef)
+    } else {
+      setSkippedIds(s => new Set([...s, current.id]))
+    }
     setTimeout(() => {
-      setIdx(i => (i + 1) % pool.length)
-      setAnimState('in')
-      setTimeout(() => setAnimState('idle'), 280)
+      setIdx(i => (i + 1) % Math.max(pool.length - 1, 1))
+      setDragX(0)
+      setExitDir(null)
     }, 220)
-  }, [animState, pool.length])
+  }, [current, pool.length, toggle])
 
-  // Reset idx when filter changes
-  useEffect(() => { setIdx(0) }, [filter])
+  const onPointerUp = useCallback(() => {
+    if (!dragging) return
+    setDragging(false)
+    if (dragX > SWIPE_THRESHOLD) commit('right')
+    else if (dragX < -SWIPE_THRESHOLD) commit('left')
+    else setDragX(0)
+  }, [dragging, dragX, commit])
+
+  const handleSkip = useCallback(() => commit('left'), [commit])
+  const handleSave = useCallback(() => commit('right'), [commit])
+
+  // Card transform
+  const cardTransform = exitDir === 'right'
+    ? 'translateX(110%) rotate(12deg)'
+    : exitDir === 'left'
+    ? 'translateX(-110%) rotate(-12deg)'
+    : `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`
+
+  const swipeOpacity = Math.min(Math.abs(dragX) / SWIPE_THRESHOLD, 1)
+  const swipeRight = dragX > 20
+  const swipeLeft = dragX < -20
 
   if (!current) return (
     <main className="flex flex-col items-center justify-center min-h-[60vh] text-white/25 text-sm">
-      {t('idea.loading')}
+      Ladataan ehdotuksia…
     </main>
   )
 
-  const meta = TYPE_META[current.type]
+  const savedCount = savedIds.size
 
   return (
-    <main className="max-w-lg mx-auto px-4 pt-5 pb-28 space-y-4">
+    <main className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4">
 
-      {/* ── Title ── */}
-      <div>
-        <h1 className="font-black text-white leading-none select-none"
-          style={{ fontSize: 'clamp(2rem,8vw,3.5rem)', letterSpacing: '-0.03em' }}>
-          {t('idea.heading')}
-        </h1>
-        <p className="text-white/25 text-sm mt-1">{t('idea.subtitle')}</p>
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
+          <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.6rem,6vw,2.6rem)', letterSpacing: '-0.03em' }}>
+            Etkö tiedä mitä tehdä?
+          </h1>
+          <p className="text-white/30 text-xs mt-1">Kaikki ehdotukset tapahtuvat tänä iltana</p>
+        </div>
+        {savedCount > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full shrink-0"
+            style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.2)' }}>
+            <Heart size={12} fill="#6b76ff" style={{ color: '#6b76ff' }} />
+            <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount} listalla</span>
+          </div>
+        )}
       </div>
 
-      {/* ── Filters ── */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-        {FILTERS.map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap ${
-              filter === f.id
-                ? 'bg-white/15 text-white'
-                : 'bg-white/5 text-white/35 hover:text-white/60'
-            }`}>
-            {f.id === 'all' ? t('idea.filter_all') : f.id === 'event' ? t('idea.filter_event') : f.id === 'restaurant' ? t('idea.filter_rest') : t('idea.filter_act')}
+      {/* ── Segmented control ── */}
+      <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,.06)' }}>
+        {([
+          { id: 'nyt' as IdeaMode,  label: '⚡ Juuri nyt' },
+          { id: 'ilta' as IdeaMode, label: '🌙 Koko ilta' },
+        ]).map(opt => (
+          <button key={opt.id} onClick={() => setIdeaMode(opt.id)}
+            className="flex-1 py-2 rounded-lg text-sm font-black transition-all"
+            style={ideaMode === opt.id
+              ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff', boxShadow: '0 4px 12px -4px rgba(91,101,230,.5)' }
+              : { color: 'rgba(255,255,255,.4)' }}>
+            {opt.label}
           </button>
         ))}
       </div>
 
-      {/* ── Main idea card ── */}
-      <div
-        ref={cardRef}
-        className="relative rounded-3xl overflow-hidden border border-white/8 shadow-2xl"
-        style={{
-          transition: 'opacity 220ms ease, transform 220ms ease',
-          opacity: animState === 'out' ? 0 : 1,
-          transform: animState === 'out' ? 'translateY(-16px)' : animState === 'in' ? 'translateY(8px)' : 'translateY(0)',
-        }}>
+      {/* ── Swipeable card ── */}
+      <div className="relative select-none"
+        style={{ touchAction: 'pan-y' }}>
 
-        {/* Image / gradient hero */}
-        <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3', maxHeight: 340 }}>
-          <div className="absolute inset-0" style={{ background: meta.gradient }} />
-          {current.image && (
-            <>
-              <img src={current.image} alt={current.title}
-                className="absolute inset-0 w-full h-full object-cover"
-                onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0.15) 60%,transparent 100%)' }} />
-            </>
-          )}
+        {/* Shadow card behind */}
+        {pool.length > 1 && (
+          <div className="absolute inset-x-3 bottom-0 top-2 rounded-3xl z-0"
+            style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.06)' }} />
+        )}
 
-          {/* Faded big emoji when no image */}
-          {!current.image && (
-            <div className="absolute inset-0 flex items-center justify-center"
-              style={{ fontSize: '8rem', opacity: 0.18, filter: `drop-shadow(0 0 40px ${meta.accent})` }}>
-              {current.emoji}
-            </div>
-          )}
+        {/* Main card */}
+        <div ref={cardRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
+          className="relative z-10 rounded-3xl overflow-hidden cursor-grab active:cursor-grabbing"
+          style={{
+            border: '1px solid rgba(255,255,255,.1)',
+            transform: cardTransform,
+            transition: dragging ? 'none' : 'transform 220ms cubic-bezier(.34,1.56,.64,1)',
+            boxShadow: '0 24px 60px -20px rgba(0,0,0,.9)',
+          }}>
 
-          {/* Type badge */}
-          <div className="absolute top-3 left-3">
-            <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/90 bg-black/40 backdrop-blur-sm">
-              {current.type === 'event' ? t('idea.type_event') : current.type === 'activity' ? t('idea.type_activity') : t('idea.type_rest')}
-            </span>
-          </div>
-
-          {/* Free badge */}
-          {current.isFree && (
-            <div className="absolute top-3 right-3">
-              <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-500/90 text-white">
-                {t('common.free_badge')}
-              </span>
-            </div>
-          )}
-
-          {/* Counter */}
-          <div className="absolute bottom-3 right-3 text-[10px] text-white/35 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full font-bold">
-            {(idx % Math.max(pool.length, 1)) + 1} / {pool.length}
-          </div>
-        </div>
-
-        {/* Card body */}
-        <div className="bg-[#0d0d12] p-5 space-y-3">
-
-          {/* Title + badge */}
-          <div className="space-y-1">
-            {current.badge && (
-              <span className="inline-block text-[10px] font-black px-2 py-0.5 rounded-full mb-1"
-                style={{ background: `${meta.accent}22`, color: meta.accent, border: `1px solid ${meta.accent}40` }}>
-                {current.badge}
-              </span>
+          {/* Image / gradient */}
+          <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/13' }}>
+            <div className="absolute inset-0" style={{ background: meta.gradient }} />
+            {current.image && (
+              <>
+                <img src={current.image} alt={current.title}
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                  onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.1) 55%,transparent 100%)' }} />
+              </>
             )}
-            <h2 className="font-black text-white text-2xl leading-tight" style={{ letterSpacing: '-0.02em' }}>
-              {current.title}
-            </h2>
-          </div>
-
-          {/* Why go */}
-          <div className="rounded-xl p-3.5 space-y-1.5" style={{ background: `${meta.accent}0d`, border: `1px solid ${meta.accent}22` }}>
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${meta.accent}99` }}>
-              {t('idea.why')}
-            </p>
-            <p className="text-sm leading-relaxed font-medium" style={{ color: meta.accent }}>
-              {current.why}
-            </p>
-            {current.subWhy && (
-              <p className="text-xs text-white/35 italic leading-relaxed pt-0.5">{current.subWhy}</p>
-            )}
-          </div>
-
-          {/* Practical info */}
-          <div className="space-y-1.5">
-            {current.time && (
-              <div className="flex items-center gap-2 text-white/45 text-xs">
-                <Clock size={12} className="shrink-0" />
-                <span>{t('idea.today_at')} {current.time}</span>
+            {!current.image && (
+              <div className="absolute inset-0 flex items-center justify-center"
+                style={{ fontSize: '8rem', opacity: 0.18, filter: `drop-shadow(0 0 40px ${meta.accent})` }}>
+                {current.emoji}
               </div>
             )}
-            {current.isOpen !== undefined && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className={`w-2 h-2 rounded-full shrink-0 ${current.isOpen ? 'bg-emerald-400' : 'bg-red-400/60'}`} />
-                <span className={current.isOpen ? 'text-emerald-400/80' : 'text-red-400/50'}>
-                  {current.isOpen ? t('idea.open_now') : t('common.closed')}
+
+            {/* Swipe overlays */}
+            {swipeRight && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: swipeOpacity }}>
+                <div className="flex flex-col items-center gap-2 bg-emerald-500/20 backdrop-blur-sm rounded-3xl px-8 py-6 border-2 border-emerald-400">
+                  <Heart size={40} fill="#4ade80" style={{ color: '#4ade80' }} />
+                  <span className="text-emerald-300 font-black text-xl">Tallennettu!</span>
+                </div>
+              </div>
+            )}
+            {swipeLeft && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: swipeOpacity }}>
+                <div className="flex flex-col items-center gap-2 bg-red-500/20 backdrop-blur-sm rounded-3xl px-8 py-6 border-2 border-red-400">
+                  <X size={40} style={{ color: '#f87171' }} />
+                  <span className="text-red-300 font-black text-xl">Ohitettu</span>
+                </div>
+              </div>
+            )}
+
+            {/* Type badge + progress */}
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+              <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/90 bg-black/40 backdrop-blur-sm">
+                {current.type === 'event' ? '📅 Tapahtuma' : current.type === 'activity' ? '🧖 Aktiviteetti' : '🍽 Ravintola'}
+              </span>
+              <span className="text-[11px] font-bold text-white/40 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                {(idx % Math.max(pool.length, 1)) + 1} / {Math.min(pool.length, 12)}
+              </span>
+            </div>
+
+            {/* Time indicator ("Alkaa X min") */}
+            {current.minutesUntil !== undefined && current.minutesUntil >= 0 && current.minutesUntil < 240 && (
+              <div className="absolute top-14 left-4">
+                <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-500/90 text-white">
+                  ⏱ alkaa {current.minutesUntil < 60
+                    ? `${current.minutesUntil} min`
+                    : `${Math.round(current.minutesUntil / 60)} h`}
                 </span>
               </div>
             )}
-            {current.address && (
-              <div className="flex items-center gap-2 text-white/35 text-xs">
-                <MapPin size={12} className="shrink-0" />
-                <span>{current.address}</span>
+
+            {/* Open status */}
+            {current.isOpen !== undefined && current.minutesUntil === undefined && (
+              <div className="absolute top-14 left-4">
+                <span className={`text-[11px] font-black px-2.5 py-1 rounded-full ${current.isOpen ? 'bg-emerald-500/90' : 'bg-white/20'} text-white`}>
+                  {current.isOpen ? '● Avoinna nyt' : '○ Suljettu'}
+                </span>
               </div>
             )}
-            {!current.isFree && current.price && (
-              <div className="flex items-center gap-2 text-white/35 text-xs">
-                <Ticket size={12} className="shrink-0" />
-                <span>{current.price}</span>
+
+            {/* Free badge */}
+            {current.isFree && (
+              <div className="absolute top-4 right-4">
+                <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-500 text-white">ILMAINEN</span>
               </div>
             )}
+
+            {/* Bottom info overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-5">
+              {current.badge && (
+                <span className="inline-block text-[10px] font-black px-2 py-0.5 rounded-full mb-2"
+                  style={{ background: `${meta.accent}22`, color: meta.accent, border: `1px solid ${meta.accent}40` }}>
+                  {current.badge}
+                </span>
+              )}
+              <h2 className="font-black text-white text-2xl leading-tight mb-1" style={{ letterSpacing: '-0.02em' }}>
+                {current.title}
+              </h2>
+              {current.time && (
+                <p className="text-white/60 text-sm font-bold">
+                  Tänään {current.time}{current.price ? ` · alk. ${current.price}` : ''}
+                </p>
+              )}
+              {current.address && (
+                <p className="text-white/40 text-xs mt-0.5 flex items-center gap-1">
+                  <MapPin size={10} className="shrink-0" /> {current.address}
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Action links */}
-          <div className="flex items-center gap-3 pt-1 flex-wrap">
-            {current.url && (
-              <a href={current.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-                <Globe size={12} /> {t('common.new_tab')}
-              </a>
-            )}
-            {onShowOnMap && current.lat && current.lon && (
-              <button
-                onClick={() => onShowOnMap(current.lat!, current.lon!, current.title, current.type)}
-                className="flex items-center gap-1.5 text-xs font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-                <MapIcon size={12} /> {t('common.show_on_map')}
-              </button>
-            )}
-            {onEventClick && current.type === 'event' && (
-              <button
-                onClick={() => {
-                  const ev = events.find(e => `event-${e.id}` === current.id)
-                  if (ev) onEventClick(ev)
-                }}
-                className="flex items-center gap-1.5 text-xs font-bold text-white/30 hover:text-white/60 transition-colors">
-                {t('common.more_info')} →
-              </button>
-            )}
+          {/* Card body */}
+          <div className="bg-[#0d0d12] p-5 space-y-3">
+            {/* Why */}
+            <div className="rounded-xl p-3.5 space-y-1" style={{ background: `${meta.accent}0d`, border: `1px solid ${meta.accent}22` }}>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${meta.accent}88` }}>Miksi juuri tämä?</p>
+              <p className="text-sm leading-relaxed font-medium line-clamp-3" style={{ color: meta.accent }}>{current.why}</p>
+              {current.subWhy && (
+                <p className="text-xs text-white/30 italic">{current.subWhy}</p>
+              )}
+            </div>
+
+            {/* Links */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {current.url && (
+                <a href={/^https?:\/\//i.test(current.url) ? current.url : '#'} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity"
+                  style={{ color: '#a3abff' }}>
+                  <Globe size={12} />
+                  {current.type === 'event' ? 'Osta liput →' : 'Nettisivu →'}
+                </a>
+              )}
+              {onShowOnMap && current.lat && current.lon && (
+                <button onClick={() => onShowOnMap(current.lat!, current.lon!, current.title, current.type)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
+                  <MapIcon size={12} /> Kartalla
+                </button>
+              )}
+              {onEventClick && current.eventRef && (
+                <button onClick={() => onEventClick(current.eventRef!)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-white/30 hover:text-white/60 transition-colors">
+                  Lisätietoja →
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Next idea button ── */}
-      <button onClick={next} disabled={pool.length < 2}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-base transition-all active:scale-[0.97] disabled:opacity-30"
-        style={{
-          background: meta.gradient,
-          boxShadow: `0 4px 24px ${meta.accent}33`,
-          color: '#fff',
-          letterSpacing: '-0.01em',
-        }}>
-        {t('idea.next')}
-        <ChevronRight size={18} />
-      </button>
+      {/* ── Action buttons ── */}
+      <div className="flex items-center justify-center gap-5">
+        {/* Skip */}
+        <button onClick={handleSkip}
+          className="w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
+          style={{ background: 'rgba(248,113,113,.12)', border: '2px solid rgba(248,113,113,.3)' }}>
+          <X size={24} style={{ color: '#f87171' }} />
+        </button>
+
+        {/* Save */}
+        <button onClick={handleSave}
+          className="w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105 shadow-lg"
+          style={{
+            background: savedIds.has(current.id)
+              ? 'linear-gradient(150deg,#6b76ff,#5059e6)'
+              : 'rgba(107,118,255,.12)',
+            border: '2px solid rgba(107,118,255,.4)',
+            boxShadow: savedIds.has(current.id) ? '0 8px 24px -8px rgba(91,101,230,.8)' : 'none',
+          }}>
+          <Heart size={28} fill={savedIds.has(current.id) ? '#fff' : 'none'} style={{ color: savedIds.has(current.id) ? '#fff' : '#6b76ff' }} />
+        </button>
+
+        {/* Link / tickets */}
+        {current.url ? (
+          <a href={/^https?:\/\//i.test(current.url) ? current.url : '#'} target="_blank" rel="noopener noreferrer"
+            className="w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
+            style={{ background: 'rgba(250,146,60,.12)', border: '2px solid rgba(250,146,60,.3)' }}>
+            <Clock size={22} style={{ color: '#fb923c' }} />
+          </a>
+        ) : (
+          <div className="w-16 h-16 rounded-full flex items-center justify-center opacity-20"
+            style={{ background: 'rgba(255,255,255,.05)', border: '2px solid rgba(255,255,255,.1)' }}>
+            <Clock size={22} className="text-white/40" />
+          </div>
+        )}
+      </div>
+
+      {/* Swipe hint */}
+      <p className="text-center text-white/20 text-[11px] font-bold">
+        Pyyhkäise ♥ oikealle tai ✕ vasemmalle
+      </p>
 
     </main>
   )

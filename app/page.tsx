@@ -491,23 +491,78 @@ export default function Home() {
 
       {/* ══ FAVORITES ══ */}
       {mode === 'favorites' && (
-        <main className="max-w-6xl mx-auto px-4 pt-5 pb-20 space-y-5">
-          <div className="flex items-center gap-3">
-            <Heart size={20} fill="currentColor" style={{ color: '#6b76ff' }} />
-            <h2 className="text-lg font-black text-white">{t('fav.title')}</h2>
-            <span className="text-white/30 text-sm">{favCount} {t('fav.saved')}</span>
+        <main className="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-4">
+          {/* Heading */}
+          <div>
+            <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
+            <div className="flex items-center gap-3">
+              <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
+                {t('fav.title')}
+              </h1>
+              {favCount > 0 && (
+                <span className="px-2.5 py-1 rounded-full text-sm font-black" style={{ background: 'rgba(107,118,255,.12)', color: '#6b76ff' }}>
+                  {favCount}
+                </span>
+              )}
+            </div>
           </div>
+
           {favorites.length === 0 ? (
-            <div className="text-center py-20 space-y-3">
-              <Heart size={40} className="text-white/10 mx-auto" />
-              <p className="text-white/30 text-sm">{t('fav.empty')}</p>
-              <p className="text-white/20 text-xs">{t('fav.hint')}</p>
+            <div className="flex flex-col items-center py-20 gap-4 text-center">
+              <Heart size={48} className="text-white/8" />
+              <p className="text-white/30 font-bold">{t('fav.empty')}</p>
+              <p className="text-white/15 text-sm">{t('fav.hint')}</p>
+              <button onClick={() => { setMode('discover'); setMobileTab('discover') }}
+                className="px-5 py-2.5 rounded-full text-sm font-black text-white"
+                style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                Selaa tapahtumia →
+              </button>
             </div>
           ) : (
             <div className="space-y-3">
-              {[...favorites].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()).map((e, i) => (
-                <FeedCard key={e.id} event={e} onClick={setSelectedEvent} index={i} />
-              ))}
+              {[...favorites]
+                .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                .map((e) => {
+                  const isToday = new Date(e.startTime).toDateString() === new Date().toDateString()
+                  const timeStr = new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+                  const dateStr = isToday ? 'Tänään' : new Date(e.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+                  return (
+                    <button key={e.id} onClick={() => setSelectedEvent(e)}
+                      className="w-full text-left rounded-2xl overflow-hidden flex gap-0 transition-all active:scale-[.99]"
+                      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
+                      {e.image && (
+                        <div className="relative shrink-0 w-28" style={{ aspectRatio: '3/4' }}>
+                          <img src={e.image} alt={e.title} className="absolute inset-0 w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex-1 p-4 space-y-1.5 min-w-0">
+                        <div className="flex items-start gap-2 justify-between">
+                          <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(107,118,255,.12)', color: '#a3abff' }}>
+                            {dateStr} {timeStr}
+                          </span>
+                          {e.isFree && (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0">ILMAINEN</span>
+                          )}
+                        </div>
+                        <h3 className="font-black text-white text-sm leading-tight line-clamp-2" style={{ letterSpacing: '-0.01em' }}>{e.title}</h3>
+                        {e.location?.name && (
+                          <p className="text-white/35 text-xs truncate">{e.location.name}</p>
+                        )}
+                        {!e.isFree && e.price && (
+                          <p className="text-white/30 text-xs">{e.price}</p>
+                        )}
+                        {(e.ticketUrl || e.infoUrl) && (
+                          <a href={e.ticketUrl ?? e.infoUrl ?? '#'} target="_blank" rel="noopener noreferrer"
+                            onClick={ev => ev.stopPropagation()}
+                            className="inline-block text-[11px] font-black px-3 py-1 rounded-full text-white"
+                            style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                            {e.ticketUrl ? 'Osta liput →' : 'Lisätietoja →'}
+                          </a>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
             </div>
           )}
         </main>
