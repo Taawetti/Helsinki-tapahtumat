@@ -21,7 +21,14 @@ export async function GET(req: NextRequest) {
   const cookieHeader = `admin_session=${sessionValue}`
 
   try {
-    // 1. Discover new events
+    // 1. Update existing festivals from their own pages
+    await fetch(`${baseUrl}/api/admin/discover-festivals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
+      body: JSON.stringify({ mode: 'update' }),
+    })
+
+    // 2. Discover new events
     const discoverRes = await fetch(`${baseUrl}/api/admin/discover-festivals`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },

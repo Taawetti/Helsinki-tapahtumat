@@ -12,93 +12,226 @@ function checkAuth(req: NextRequest) {
 }
 
 const SERP_QUERIES = [
-  // Festivaalit
+  // Festivaalit 2026 & 2027
   'Helsinki festival 2026',
   'Helsinki festivaali 2026',
   'Helsinki festival 2027',
   'Helsinki festivaali 2027',
-  // Ulkoilma & kesä
+
+  // Keikat & konsertit — tärkein puuttuva kategoria
+  'Helsinki keikka 2026',
+  'Helsinki keikka 2027',
+  'ug keikat Helsinki 2026',
+  'ug keikat Helsinki 2027',
+  'Helsinki konsertti 2026',
+  'Helsinki konsertti 2027',
+  'Helsinki rock konsertti 2026',
+  'Helsinki rock konsertti 2027',
+  'Helsinki jazz 2026',
+  'Helsinki jazz 2027',
+  'Helsinki klassinen 2026',
+  'Helsinki klassinen 2027',
+  'Helsinki hip hop 2026',
+  'Helsinki elektroninen 2026',
+  'Helsinki techno 2026',
+  'Helsinki metal 2026',
+  'Helsinki pop keikka 2026',
+  'Helsinki klubi 2026',
+  'Helsinki DJ 2026',
+
+  // Venue-kohtaiset haut
+  'Veikkaus Arena 2026',
+  'Veikkaus Arena 2027',
+  'Hartwall Arena 2026',
+  'Hartwall Arena 2027',
+  'Kaapelitehdas 2026',
+  'Kaapelitehdas 2027',
+  'Finlandia-talo 2026',
+  'Musiikkitalo 2026',
+  'Kansallisooppera 2026',
+  'Kansallisteatteri 2026',
+  'Savoy-teatteri 2026',
+  'Kulttuuritalo Helsinki 2026',
+
+  // Ulkoilma & kesä 2026 & 2027
   'Helsinki open air 2026',
+  'Helsinki open air 2027',
   'Helsinki kesätapahtuma 2026',
+  'Helsinki kesätapahtuma 2027',
   'Helsinki ulkoilmakonsertti 2026',
   'Helsinki puistotapahtuma 2026',
-  // Markkinat & messut
+  'Helsinki ulkoilmatapahtuma 2026',
+  'Helsinki kesämarkkinat 2026',
+  'Helsinki kevättapahtuma 2026',
+  'Helsinki syystapahtuma 2026',
+
+  // Markkinat & messut 2026 & 2027
   'Helsinki markkinat 2026',
+  'Helsinki markkinat 2027',
   'Helsinki joulutori 2026',
+  'Helsinki joulutori 2027',
   'Helsinki messut 2026',
   'Helsinki ruokamarkkinat 2026',
-  // Kulttuuri
+  'Helsinki käsityömessut 2026',
+  'Helsinki antiikkimessut 2026',
+  'Helsinki kirpputori 2026',
+  'Helsinki pop-up markkinat 2026',
+
+  // Kulttuuri & taide 2026 & 2027
   'Helsinki näyttely 2026',
+  'Helsinki näyttely 2027',
   'Helsinki kulttuuritapahtuma 2026',
+  'Helsinki kulttuuritapahtuma 2027',
   'Helsinki taidetapahtuma 2026',
-  'Helsinki design tapahtuma 2026',
-  // Ravintolat & baarit
+  'Helsinki design 2026',
+  'Helsinki galleria avajaiset 2026',
+  'Helsinki taidenäyttely 2026',
+  'Helsinki valokuvanäyttely 2026',
+  'Helsinki arkkitehtuuri 2026',
+  'Helsinki muotoilu 2026',
+  'Helsinki sarjakuva 2026',
+
+  // Teatteri & esittävä taide 2026
+  'Helsinki teatteri 2026',
+  'Helsinki tanssi 2026',
+  'Helsinki tanssi 2027',
+  'Helsinki tanssifestivaali 2026',
+  'Helsinki improvisaatioteatteri 2026',
+  'Helsinki sirkus 2026',
+  'Helsinki varietee 2026',
+  'Helsinki spoken word 2026',
+  'Helsinki performanssi 2026',
+
+  // Ravintolat, baarit & ruokatapahtumat
+  'avajaiset Helsinki 2026',
+  'avajaiset Helsinki 2027',
   'uusi ravintola Helsinki 2026',
   'Helsinki ravintola avajaiset 2026',
   'Helsinki baari avajaiset 2026',
   'Helsinki pop-up ravintola 2026',
-  // Kaupunkitapahtumat
-  'Helsinki kaupunkitapahtuma 2026',
-  'Helsinki juhla 2026',
+  'Helsinki pop-up dinner 2026',
+  'Helsinki ruokailta 2026',
+  'Helsinki uusi kahvila 2026',
+  'Helsinki yökerho avajaiset 2026',
+  'Helsinki pop-up 2026',
+
+  // Ruoka & juoma 2026 & 2027
   'Helsinki ruokafestivaali 2026',
+  'Helsinki ruokafestivaali 2027',
   'Helsinki street food 2026',
-  // Kausitapahtumat
-  'Helsinki Vappu 2026',
-  'Helsinki Juhannus 2026',
-  'Helsinki joulu 2026',
-  'Helsinki talvitapahtuma 2026',
-  'Helsinki uusivuosi 2026',
-  'Helsinki valotapahtuma 2026',
-  // Musiikki
-  'Helsinki jazz 2026',
-  'Helsinki klassinen musiikki 2026',
-  'Helsinki rock konsertti 2026',
-  'Helsinki hip hop 2026',
-  // Elokuva
-  'Helsinki elokuvafestivaali 2026',
-  'Helsinki lyhytelokuva 2026',
-  'Helsinki dokumenttielokuva 2026',
-  // Kirjallisuus & tieto
-  'Helsinki kirjamessut 2026',
-  'Helsinki kirjallisuustapahtuma 2026',
-  'Helsinki luento 2026',
-  'Helsinki konferenssi 2026',
-  // Urheilu
-  'Helsinki maraton 2026',
-  'Helsinki juoksutapahtuma 2026',
-  'Helsinki pyöräily tapahtuma 2026',
-  'Helsinki urheilu 2026',
-  'Helsinki tennis 2026',
-  // Viihde
-  'Helsinki stand-up 2026',
-  'Helsinki comedy 2026',
-  'Helsinki sirkus 2026',
-  // Ruoka & juoma
   'Helsinki viinifestivaali 2026',
   'Helsinki oluenfestivaali 2026',
   'Helsinki food event 2026',
-  // Erityistapahtumat
+  'Helsinki viinijuhla 2026',
+  'Helsinki whisky 2026',
+  'Helsinki cocktail 2026',
+  'Helsinki brunssi 2026',
+
+  // Kaupunkitapahtumat 2026 & 2027
+  'Helsinki kaupunkitapahtuma 2026',
+  'Helsinki kaupunkitapahtuma 2027',
+  'Helsinki juhla 2026',
+  'Helsinki katufestarit 2026',
+  'Helsinki lähiöfestivaali 2026',
+  'Kallio tapahtumat 2026',
+  'Kallio tapahtumat 2027',
+  'Sörnäinen tapahtuma 2026',
+  'Punavuori tapahtuma 2026',
+
+  // Kausitapahtumat 2026 & 2027
+  'Helsinki Vappu 2026',
+  'Helsinki Juhannus 2026',
+  'Helsinki joulu 2026',
+  'Helsinki joulu 2027',
+  'Helsinki talvitapahtuma 2026',
+  'Helsinki talvitapahtuma 2027',
+  'Helsinki uusivuosi 2026',
+  'Helsinki uusivuosi 2027',
+  'Helsinki valotapahtuma 2026',
+  'Helsinki valotapahtuma 2027',
+  'Helsinki halloween 2026',
+  'Helsinki itsenäisyyspäivä 2026',
+
+  // Urheilu 2026 & 2027
+  'Helsinki maraton 2026',
+  'Helsinki maraton 2027',
+  'Helsinki juoksutapahtuma 2026',
+  'Helsinki pyöräily 2026',
+  'Helsinki urheilu 2026',
+  'Helsinki tennis 2026',
+  'Helsinki triathlon 2026',
+  'Helsinki uinti 2026',
+  'Helsinki jalkapallo 2026',
+  'Helsinki jääkiekko 2026',
+  'Helsinki e-urheilu 2026',
+
+  // Viihde & elämys 2026
+  'Helsinki stand-up 2026',
+  'Helsinki stand-up 2027',
+  'Helsinki comedy 2026',
+  'Helsinki pakohuone 2026',
+  'Helsinki afterwork 2026',
+  'Helsinki yöelämä 2026',
+
+  // Elokuva 2026 & 2027
+  'Helsinki elokuvafestivaali 2026',
+  'Helsinki elokuvafestivaali 2027',
+  'Helsinki lyhytelokuva 2026',
+  'Helsinki dokumenttielokuva 2026',
+
+  // Kirjallisuus & tieto 2026 & 2027
+  'Helsinki kirjamessut 2026',
+  'Helsinki kirjamessut 2027',
+  'Helsinki kirjallisuustapahtuma 2026',
+  'Helsinki luento 2026',
+  'Helsinki konferenssi 2026',
+  'Helsinki konferenssi 2027',
+  'Helsinki hackathon 2026',
+  'Helsinki startup 2026',
+  'Helsinki seminaari 2026',
+
+  // Perhe & lapset 2026
+  'Helsinki lastentapahtuma 2026',
+  'Helsinki perhetapahtuma 2026',
+  'Helsinki lastenkulttuuri 2026',
+
+  // Erityistapahtumat 2026 & 2027
   'Helsinki Pride 2026',
+  'Helsinki Pride 2027',
   'Helsinki gaming 2026',
   'Helsinki comic con 2026',
-  'Helsinki muoti 2026',
+  'Helsinki muotiviikko 2026',
+  'Helsinki muotishow 2026',
   'Helsinki hyvinvointi 2026',
-  // Opiskelijatapahtumat
-  'Helsinki opiskelija tapahtuma 2026',
+  'Helsinki wellness 2026',
+
+  // Opiskelijatapahtumat 2026 & 2027
+  'Helsinki opiskelijatapahtuma 2026',
   'Helsinki opiskelijajuhla 2026',
   'Helsinki fuksi 2026',
-  'Helsinki yliopisto tapahtuma 2026',
+  'Helsinki yliopisto 2026',
   'Helsinki teekkarit 2026',
-  'Aalto yliopisto tapahtuma 2026',
-  'HYY tapahtuma 2026',
-  // Englanninkieliset
+  'Aalto tapahtuma 2026',
+  'HYY 2026',
+  'AYY 2026',
+
+  // Englanninkieliset 2026 & 2027
   'Helsinki event 2026',
+  'Helsinki event 2027',
   'Helsinki concert 2026',
+  'Helsinki concert 2027',
   'Helsinki exhibition 2026',
   'Helsinki market 2026',
   'Helsinki conference 2026',
   'Helsinki night event 2026',
   'Helsinki art event 2026',
+  'Helsinki art event 2027',
+  'Helsinki food festival 2026',
+  'Helsinki music event 2026',
+  'Helsinki sports event 2026',
+  'Helsinki family event 2026',
+  'Helsinki outdoor event 2026',
+  'Helsinki free event 2026',
 ]
 
 const SEED_SOURCES = [
@@ -109,6 +242,9 @@ const SEED_SOURCES = [
   'https://www.menonhki.fi',
   'https://www.hel.fi/fi/tapahtumat',
   'https://www.stadissa.fi/',
+  'https://www.annantalo.fi/tapahtumat',
+  'https://www.kaapelitehdas.fi/tapahtumat',
+  'https://www.kulttuurikeskus.fi/tapahtumat',
 ]
 
 const SKIP_DOMAINS = new Set([
