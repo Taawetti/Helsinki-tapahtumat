@@ -1,73 +1,54 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Search, MapPin, Globe, Phone, X, ChevronDown, Navigation, Clock, Ticket, Timer, Map as MapIcon } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { MapPin, Globe, Phone, Navigation, Clock, Ticket, Timer, Map as MapIcon, X } from 'lucide-react'
 import type { Activity, ActivityCategory } from '@/lib/types'
-import {
-  type TouristTheme,
-  type AttractionHighlight,
-  TOURIST_THEME_META,
-  THEME_CATEGORIES,
-  getHighlight,
-} from '@/lib/activity-highlights'
+import { getHighlight } from '@/lib/activity-highlights'
 import { useLanguage } from '@/contexts/LanguageContext'
-import type { TranslationKey } from '@/lib/i18n'
 
 // ── Constants ─────────────────────────────────────────────
 
-const PAGE_SIZE = 48
-
 const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string }> = {
-  sauna:      { label: 'Sauna',           emoji: '🧖' },
-  museo:      { label: 'Museo',           emoji: '🏛' },
-  nahtavyys:  { label: 'Nähtävyys',       emoji: '📍' },
-  galleria:   { label: 'Galleria',        emoji: '🎨' },
-  nakopaikka: { label: 'Näköalapaikka',   emoji: '🔭' },
-  uimaranta:  { label: 'Uimaranta',       emoji: '🏊' },
-  puisto:     { label: 'Puisto',          emoji: '🌿' },
-  markkina:   { label: 'Tori & halli',    emoji: '🏪' },
-  urheilu:    { label: 'Urheilu',         emoji: '⚽' },
-  muu:        { label: 'Muu',             emoji: '✨' },
+  sauna:      { label: 'Saunat',         emoji: '🧖' },
+  museo:      { label: 'Museot',         emoji: '🏛' },
+  nahtavyys:  { label: 'Nähtävyydet',    emoji: '🌄' },
+  galleria:   { label: 'Galleriat',      emoji: '🖼' },
+  nakopaikka: { label: 'Näköpaikat',     emoji: '🔭' },
+  uimaranta:  { label: 'Uimarannat',     emoji: '🏖' },
+  puisto:     { label: 'Puistot',        emoji: '🌳' },
+  markkina:   { label: 'Markkinat',      emoji: '🛍' },
+  urheilu:    { label: 'Urheilu',        emoji: '⚽' },
+  muu:        { label: 'Muut',           emoji: '✨' },
 }
 
-const CHIP_CATEGORIES: ActivityCategory[] = [
-  'sauna', 'museo', 'nahtavyys', 'galleria', 'nakopaikka',
-  'uimaranta', 'puisto', 'markkina', 'urheilu',
+const SUB_TABS: { id: ActivityCategory | 'all'; label: string; emoji: string }[] = [
+  { id: 'all',       label: 'Kaikki',      emoji: '' },
+  { id: 'sauna',     label: 'Saunat',      emoji: '🧖' },
+  { id: 'nakopaikka',label: 'Näköpaikat',  emoji: '🌄' },
+  { id: 'museo',     label: 'Museot',      emoji: '🏛' },
+  { id: 'uimaranta', label: 'Uimarannat',  emoji: '🏖' },
+  { id: 'puisto',    label: 'Puistot',     emoji: '🌳' },
+  { id: 'markkina',  label: 'Markkinat',   emoji: '🛍' },
+  { id: 'galleria',  label: 'Galleriat',   emoji: '🖼' },
+  { id: 'muu',       label: 'Muut',        emoji: '🛠' },
 ]
 
-// Expanded top picks with theme tags
-type TopPick = {
-  name: string; emoji: string; note: string; noteEn?: string
-  themes: TouristTheme[]; defaultPick?: boolean
-}
-
-const TOP_PICKS: TopPick[] = [
-  { name: 'Löyly',                emoji: '🔥', note: 'Design-sauna merellä, Hernesaaressa. Ravintola, terassi & lounas.', noteEn: 'Award-winning design sauna by the sea in Hernesaari. Restaurant, terrace & lunch.', themes: ['sauna'], defaultPick: true },
-  { name: 'Allas Sea Pool',        emoji: '🌊', note: 'Meressä uiminen Etelärannassa — kolme allasta, sauna, ravintola.', noteEn: 'Sea swimming at South Harbour — three pools, sauna and restaurant.', themes: ['sauna', 'ulkoilu'], defaultPick: true },
-  { name: 'Kotiharjun sauna',      emoji: '🪵', note: 'Helsingin vanhin julkinen puusauna (1928). Kallio.', noteEn: "Helsinki's oldest public wood-fired sauna (1928). In Kallio.", themes: ['sauna'], defaultPick: true },
-  { name: 'Suomenlinna',           emoji: '⛵', note: 'Unescon maailmanperintökohde — lautalla 15 min Kauppatorilta.', noteEn: 'UNESCO World Heritage fortress island — 15 min ferry from Market Square.', themes: ['historia', 'ulkoilu'], defaultPick: true },
-  { name: 'Temppeliaukion kirkko', emoji: '⛪', note: 'Kallioon louhittu kirkko — yksi Helsingin tunnetuimmista.', noteEn: "Church carved into solid rock — one of Helsinki's most iconic sights.", themes: ['historia'], defaultPick: true },
-  { name: 'Kansallismuseo',        emoji: '🏛', note: 'Suomen historian kattavin kokoelma Töölössä.', noteEn: "Finland's most comprehensive history collection in Töölö.", themes: ['historia', 'taide'], defaultPick: true },
-  { name: 'HAM Helsinki',          emoji: '🎨', note: 'Helsingin taidemuseo — nykytaide Tennispalatsissa.', noteEn: 'Helsinki Art Museum — contemporary art in the Tennis Palace.', themes: ['taide'], defaultPick: true },
-  { name: 'Kauppahalli',           emoji: '🧅', note: 'Helsingin Kauppahalli — ruokakulttuuria vuodesta 1889.', noteEn: 'Helsinki Market Hall — food culture since 1889.', themes: ['historia', 'ilmainen'], defaultPick: true },
-  // Taide-lisäykset
-  { name: 'Ateneum',               emoji: '🖼',  note: 'Suomen suurin taidekokoelma — kultakausi ja mestarit.', noteEn: "Finland's largest art collection — Golden Age and masters.", themes: ['taide'] },
-  { name: 'Kiasma',                emoji: '🌀',  note: 'Nykytaidemuseo Steven Hollin ikonisessa kaarirakenuksessa.', noteEn: "Contemporary art museum in Steven Holl's iconic curved building.", themes: ['taide'] },
-  { name: 'Amos Rex',              emoji: '🎭',  note: 'Kokeellinen taidemuseo maan alla Lasipalatsin alla.', noteEn: 'Experimental art museum underground beneath the Lasipalatsi.', themes: ['taide'] },
-  // Perhe
-  { name: 'Linnanmäki',            emoji: '🎢',  note: 'Suomen suosituin huvipuisto, yli 40 laitetta (1950).', noteEn: "Finland's most popular amusement park, 40+ rides (since 1950).", themes: ['perhe'] },
-  { name: 'Korkeasaari',           emoji: '🦁',  note: 'Saarieläintarha — lautalla 20 min Kauppatorilta (1889).', noteEn: 'Island zoo — 20 min ferry from Market Square (since 1889).', themes: ['perhe', 'ulkoilu'] },
-  { name: 'Heureka',               emoji: '🔬',  note: 'Interaktiivinen tiedekeskus koko perheelle Vantaalla.', noteEn: 'Interactive science centre for the whole family in Vantaa.', themes: ['perhe'] },
-  // Ulkoilu
-  { name: 'Pihlajasaari',          emoji: '🏖',  note: 'Helsinkiläisten kesäsuosikki — hiekkaranta lautalla 10 min.', noteEn: "Helsinkians' summer favourite — sandy beach, 10 min ferry.", themes: ['ulkoilu'] },
-  { name: 'Sibelius-monumentti',   emoji: '🎵',  note: '600 teräsputkea Sibelius-puistossa — maksuton käynti.', noteEn: '600 steel pipes in Sibelius Park — free entry.', themes: ['ulkoilu', 'ilmainen'] },
-  { name: 'Seurasaari',            emoji: '🌲',  note: 'Ulkoilmamuseo 87 historiallisella rakennuksella.', noteEn: 'Open-air museum with 87 historical buildings.', themes: ['historia', 'ulkoilu', 'ilmainen'] },
-  // Ilmainen
-  { name: 'Helsingin tuomiokirkko', emoji: '🕍', note: 'Ikoninen valkoinen katedraali Senaatintorilla (1852).', noteEn: 'Iconic white cathedral at Senate Square (1852).', themes: ['historia', 'ilmainen'] },
-  { name: 'Uspenski-katedraali',    emoji: '🔵', note: 'Pohjois-Euroopan suurin ortodoksinen kirkko.', noteEn: "Northern Europe's largest Orthodox cathedral.", themes: ['historia', 'ilmainen'] },
+// Helsinki's must-see attractions — used for "Helsingin helmet" row
+const HELMET_NAMES = [
+  'Suomenlinna', 'Temppeliaukion kirkko', 'Helsingin tuomiokirkko',
+  'Amos Rex', 'Löyly', 'Allas Sea Pool', 'Kansallismuseo', 'Ateneum',
+  'Kiasma', 'HAM Helsinki', 'Linnanmäki', 'Korkeasaari', 'Oodi',
 ]
 
-type SortMode = 'default' | 'nearby' | 'open'
+const QUICK_SORTS = [
+  { id: 'default',  label: 'Kaikki' },
+  { id: 'open',     label: '🟢 Avoinna nyt' },
+  { id: 'yllatys',  label: '✨ Ylläty' },
+]
+type QuickSort = 'default' | 'open' | 'yllatys'
+
+// Indoor categories (for "Sateen sattuessa")
+const INDOOR_CATS: ActivityCategory[] = ['museo', 'galleria', 'muu']
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -85,8 +66,7 @@ function fmtDist(km: number): string {
 }
 
 function fmtReviews(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`
-  return String(n)
+  return n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n)
 }
 
 function isOpenNow(hours?: string): boolean | undefined {
@@ -96,14 +76,12 @@ function isOpenNow(hours?: string): boolean | undefined {
     const now = new Date()
     const dayIdx = now.getDay()
     const cur = now.getHours() * 60 + now.getMinutes()
-    const D: Record<string, number[]> = {
-      Mo: [1], Tu: [2], We: [3], Th: [4], Fr: [5], Sa: [6], Su: [0],
-    }
+    const D: Record<string, number[]> = { Mo:[1],Tu:[2],We:[3],Th:[4],Fr:[5],Sa:[6],Su:[0] }
     function expandRange(spec: string): number[] {
       if (D[spec]) return D[spec]
       const m = spec.match(/^([A-Z][a-z])-([A-Z][a-z])$/)
       if (m) {
-        const keys = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+        const keys = ['Mo','Tu','We','Th','Fr','Sa','Su']
         const a = keys.indexOf(m[1]), b = keys.indexOf(m[2])
         if (a >= 0 && b >= 0) return keys.slice(a, b + 1).map(k => D[k][0])
       }
@@ -120,279 +98,284 @@ function isOpenNow(hours?: string): boolean | undefined {
       if (cur >= from && cur <= (to < from ? to + 1440 : to)) return true
     }
     return false
-  } catch {
-    return undefined
-  }
+  } catch { return undefined }
 }
 
-// ── Badge chip ────────────────────────────────────────────
-
-function BadgeChip({ text }: { text: string }) {
-  const isUnesco = text === 'UNESCO'
-  const isVanhin = text.includes('vanhin') || text.includes('Vanhin')
-  const isAinutlaatuinen = text === 'Ainutlaatuinen'
-  const cls = isUnesco
-    ? 'bg-blue-500/15 text-blue-300/90 border border-blue-500/20'
-    : isVanhin || isAinutlaatuinen
-      ? 'bg-amber-500/15 text-amber-300/90 border border-amber-500/20'
-      : 'bg-purple-500/10 text-purple-300/80 border border-purple-500/15'
-  return (
-    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 ${cls}`}>
-      {text}
-    </span>
-  )
+function ctaLabel(a: Activity): string {
+  if (a.category === 'sauna') return 'Varaa vuoro →'
+  if (a.category === 'museo' || a.category === 'galleria') return 'Osta liput →'
+  return 'Lisätietoja →'
 }
 
-// ── Top pick card ─────────────────────────────────────────
+// ── Hero card ─────────────────────────────────────────────
 
-function TopPickCard({ pick, activity, distance, highlight, rating, onShowOnMap }: {
-  pick: TopPick
-  activity?: Activity
+function ActivityHero({ a, distance, rating, onShowOnMap }: {
+  a: Activity
   distance?: number
-  highlight?: AttractionHighlight
-  rating?: { rating: number; reviewCount: number; priceLevel: string | null }
+  rating?: { rating: number; reviewCount: number }
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
-  const { t, lang } = useLanguage()
-  const open = activity?.openingHours ? isOpenNow(activity.openingHours) : undefined
-  const cat = activity ? CATEGORY_META[activity.category] : null
+  const open = isOpenNow(a.openingHours)
+  const highlight = getHighlight(a.name)
+  const meta = CATEGORY_META[a.category]
 
   return (
-    <div className="shrink-0 w-64 rounded-2xl border border-white/8 bg-gradient-to-b from-white/6 to-white/2 hover:from-white/8 hover:to-white/4 transition-all p-4 space-y-2">
-      <div className="text-3xl leading-none">{pick.emoji}</div>
-
-      {/* Name + open badge */}
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-black text-white text-sm leading-tight">{pick.name}</h3>
-        {open !== undefined && (
-          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 ${open ? 'bg-green-500/15 text-green-400' : 'bg-red-500/10 text-red-400/60'}`}>
-            {open ? t('common.open') : t('common.closed')}
-          </span>
-        )}
-      </div>
-
-      {/* Hook text (superlative) — highlighted */}
-      {highlight?.hook ? (
-        <p className="text-amber-300/70 text-[11px] leading-snug font-semibold">{lang === 'en' && highlight.hookEn ? highlight.hookEn : highlight.hook}</p>
+    <div className="relative w-full rounded-[22px] overflow-hidden" style={{ aspectRatio: '16/9', boxShadow: '0 22px 50px -20px rgba(10,10,12,.8)' }}>
+      {a.image ? (
+        <img src={a.image} alt={a.name} className="absolute inset-0 w-full h-full object-cover" />
       ) : (
-        <p className="text-white/45 text-xs leading-relaxed">{lang === 'en' && pick.noteEn ? pick.noteEn : pick.note}</p>
+        <div className="absolute inset-0 flex items-center justify-center text-6xl" style={{ background: 'linear-gradient(135deg,#042f2e,#0f4c35,#065f46)' }}>
+          {meta.emoji}
+        </div>
       )}
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.15) 55%,transparent 100%)' }} />
 
-      {/* Badges row */}
-      <div className="flex flex-wrap gap-1.5 items-center">
-        {highlight?.badge && <BadgeChip text={lang === 'en' && highlight.badgeEn ? highlight.badgeEn : highlight.badge} />}
-        {highlight?.duration && (
-          <span className="flex items-center gap-1 text-[10px] text-white/35 font-medium">
-            <Timer size={9} className="shrink-0" /> {highlight.duration}
+      {open !== undefined && (
+        <div className="absolute top-4 right-4">
+          <span className={`text-[11px] font-black px-3 py-1 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-white/20 text-white/60'}`}>
+            {open ? 'Avoinna' : 'Suljettu'}
           </span>
-        )}
-        {rating && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300/80 font-semibold">
-            ★ {rating.rating.toFixed(1)} · {fmtReviews(rating.reviewCount)}
-          </span>
-        )}
-        {cat && activity && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/6 text-white/30">
-            {cat.emoji} {t(('cat.' + activity.category) as TranslationKey)}
-          </span>
-        )}
-        {distance !== undefined && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300/70">
-            {fmtDist(distance)}
-          </span>
-        )}
-        {activity?.fee === false && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400/70">
-            {t('common.free')}
-          </span>
-        )}
-      </div>
-
-      {/* Practical tip */}
-      {highlight?.tip && (
-        <p className="text-white/25 text-[10px] italic leading-relaxed">{lang === 'en' && highlight.tipEn ? highlight.tipEn : highlight.tip}</p>
-      )}
-
-      {/* Address */}
-      {activity?.address && (
-        <div className="flex items-center gap-1.5 text-white/25 text-[10px]">
-          <MapPin size={9} className="shrink-0" />
-          <span>{activity.address}{activity.city && activity.city !== 'Helsinki' ? `, ${activity.city}` : ''}</span>
         </div>
       )}
 
-      {/* Opening hours */}
-      {activity?.openingHours && (
-        <div className="flex items-center gap-1.5 text-white/20 text-[10px]">
-          <Clock size={9} className="shrink-0" />
-          <span>{activity.openingHours.split(';')[0]}</span>
-        </div>
-      )}
-
-      {/* Links */}
-      {activity && (
-        <div className="flex gap-3 pt-0.5 flex-wrap">
-          {activity.www && (
-            <a href={/^https?:\/\//i.test(activity.www ?? '') ? activity.www! : '#'} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-              <Globe size={10} /> {t('common.website')}
+      <div className="absolute bottom-0 left-0 right-0 p-5">
+        <p className="text-[11px] font-black uppercase tracking-[.1em] mb-1" style={{ color: 'rgba(255,255,255,.5)' }}>
+          {meta.emoji} {meta.label.toUpperCase()}{a.address ? ` · ${a.address.split(',')[0].toUpperCase()}` : ''}
+        </p>
+        <h2 className="font-black text-white text-2xl leading-tight mb-3" style={{ letterSpacing: '-0.02em' }}>{a.name}</h2>
+        <div className="flex items-center gap-3 flex-wrap">
+          {a.www ? (
+            <a href={/^https?:\/\//i.test(a.www) ? a.www : '#'} target="_blank" rel="noopener noreferrer"
+              className="px-4 py-2 rounded-full text-white text-[13px] font-black"
+              style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
+              {ctaLabel(a)}
             </a>
+          ) : (
+            <span className="px-4 py-2 rounded-full text-white text-[13px] font-black" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+              {ctaLabel(a)}
+            </span>
           )}
-          {activity.phone && (
-            <a href={`tel:${activity.phone}`}
-              className="flex items-center gap-1 text-[10px] font-bold text-white/25 hover:text-white/50 transition-colors">
-              <Phone size={10} /> {activity.phone}
-            </a>
-          )}
-          {onShowOnMap && activity.lat && activity.lon && (
-            <button
-              onClick={() => onShowOnMap(activity.lat!, activity.lon!, activity.name)}
-              className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-              <MapIcon size={10} /> {t('common.show_on_map')}
+          <div className="flex items-center gap-2">
+            {rating && (
+              <span className="text-[13px] font-bold" style={{ color: '#e8c06a' }}>
+                ★ {rating.rating.toFixed(1)}
+              </span>
+            )}
+            {distance !== undefined && (
+              <span className="text-white/50 text-[13px] font-bold">· {fmtDist(distance)}</span>
+            )}
+          </div>
+          {onShowOnMap && a.lat && a.lon && (
+            <button onClick={() => onShowOnMap(a.lat!, a.lon!, a.name)}
+              className="text-[12px] font-bold text-white/40 hover:text-white/70 transition-colors">
+              🗺 Kartalla
             </button>
           )}
-          {((activity.lat && activity.lon) || activity.address) && (
-            <a
-              href={activity.lat && activity.lon
-                ? `https://maps.google.com/maps?daddr=${activity.lat},${activity.lon}&travelmode=transit`
-                : `https://maps.google.com/maps?daddr=${encodeURIComponent(activity.address + ', ' + (activity.city || 'Helsinki'))}&travelmode=transit`}
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
-              <Navigation size={10} /> {t('detail.directions')}
-            </a>
-          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
-// ── Activity card ─────────────────────────────────────────
+// ── Row card (horizontal carousels) ──────────────────────
 
-function ActivityCard({ activity, distance, highlight, rating, onShowOnMap }: {
-  activity: Activity
+function ActivityRowCard({ a, distance, rating, onClick }: {
+  a: Activity
   distance?: number
-  highlight?: AttractionHighlight
-  rating?: { rating: number; reviewCount: number; priceLevel: string | null }
+  rating?: { rating: number; reviewCount: number }
+  onClick: (a: Activity) => void
+}) {
+  const open = isOpenNow(a.openingHours)
+  const meta = CATEGORY_META[a.category]
+  return (
+    <button onClick={() => onClick(a)}
+      className="group shrink-0 w-40 text-left rounded-[18px] overflow-hidden"
+      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
+        {a.image ? (
+          <img src={a.image} alt={a.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: 'linear-gradient(135deg,#042f2e,#0f4c35)' }}>
+            {meta.emoji}
+          </div>
+        )}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.8) 0%,transparent 60%)' }} />
+        {open !== undefined && (
+          <div className="absolute top-2 right-2">
+            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-black/50 text-white/50'}`}>
+              {open ? '● Auki' : '○ Kiinni'}
+            </span>
+          </div>
+        )}
+        {a.fee === false && (
+          <div className="absolute top-2 left-2">
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">ILMAINEN</span>
+          </div>
+        )}
+      </div>
+      <div className="p-3">
+        <p className="text-white font-black text-[13px] leading-tight line-clamp-1" style={{ letterSpacing: '-0.01em' }}>{a.name}</p>
+        {rating ? (
+          <p className="text-[11px] mt-0.5 font-bold" style={{ color: '#e8c06a' }}>★ {rating.rating.toFixed(1)} · {fmtReviews(rating.reviewCount)}</p>
+        ) : (
+          <p className="text-white/40 text-[11px] mt-0.5">{meta.label}{distance !== undefined ? ` · ${fmtDist(distance)}` : ''}</p>
+        )}
+      </div>
+    </button>
+  )
+}
+
+// ── Row section ───────────────────────────────────────────
+
+function ActRow({ title, items, distMap, ratingMap, onCardClick }: {
+  title: string
+  items: Activity[]
+  distMap: Map<string, number>
+  ratingMap: Map<string, { rating: number; reviewCount: number }>
+  onCardClick: (a: Activity) => void
+}) {
+  if (items.length === 0) return null
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-black text-white text-[17px] tracking-tight" style={{ letterSpacing: '-0.02em' }}>{title}</h2>
+        <button className="text-[13px] font-bold" style={{ color: '#6b76ff' }}>Kaikki ›</button>
+      </div>
+      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+        {items.slice(0, 10).map(a => (
+          <ActivityRowCard key={a.id} a={a} distance={distMap.get(a.id)} rating={ratingMap.get(a.name.toLowerCase())} onClick={onCardClick} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ── Underline tabs ─────────────────────────────────────────
+
+function UnderlineTabs<T extends string>({ tabs, active, onChange }: {
+  tabs: { id: T; label: string; emoji?: string }[]
+  active: T
+  onChange: (id: T) => void
+}) {
+  return (
+    <div className="flex overflow-x-auto scrollbar-none -mx-4 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+      {tabs.map(tab => (
+        <button key={tab.id} onClick={() => onChange(tab.id)}
+          className="shrink-0 flex items-center gap-1.5 px-4 py-3 text-[13px] font-black transition-all relative"
+          style={{ color: active === tab.id ? '#6b76ff' : 'rgba(255,255,255,.4)' }}>
+          {tab.emoji && <span>{tab.emoji}</span>}
+          {tab.label}
+          {active === tab.id && (
+            <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }} />
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ── List card (vertical, for category view) ───────────────
+
+function ActivityListCard({ a, distance, rating, onShowOnMap }: {
+  a: Activity
+  distance?: number
+  rating?: { rating: number; reviewCount: number }
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
-  const { t, lang } = useLanguage()
-  const meta = CATEGORY_META[activity.category]
-  const open = isOpenNow(activity.openingHours)
+  const { t } = useLanguage()
+  const open = isOpenNow(a.openingHours)
+  const highlight = getHighlight(a.name)
+  const meta = CATEGORY_META[a.category]
 
   return (
-    <div className="rounded-2xl border border-white/6 bg-white/3 hover:bg-white/[0.05] transition-colors p-4 space-y-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xl shrink-0">{meta.emoji}</span>
-          <h3 className="font-bold text-white text-sm leading-tight truncate">{activity.name}</h3>
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
+      {a.image && (
+        <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/7' }}>
+          <img src={a.image} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.5) 0%,transparent 60%)' }} />
         </div>
-        <div className="flex gap-1 shrink-0 flex-wrap justify-end">
-          {open !== undefined && (
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-green-500/15 text-green-400' : 'bg-red-500/10 text-red-400/60'}`}>
-              {open ? t('common.open') : t('common.closed')}
-            </span>
-          )}
-          {distance !== undefined && (
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300/80">
-              {fmtDist(distance)}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Hook text if available, otherwise generic description */}
-      {highlight?.hook ? (
-        <p className="text-amber-300/65 text-xs leading-snug font-medium">{lang === 'en' && highlight.hookEn ? highlight.hookEn : highlight.hook}</p>
-      ) : (
-        <p className="text-white/40 text-xs">{activity.description}</p>
       )}
+      <div className="p-4 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xl shrink-0">{meta.emoji}</span>
+            <h3 className="font-black text-white text-sm leading-tight">{a.name}</h3>
+          </div>
+          <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+            {open !== undefined && (
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
+                {open ? '● Avoinna' : '○ Suljettu'}
+              </span>
+            )}
+            {a.fee === false && (
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">ILMAINEN</span>
+            )}
+            {distance !== undefined && (
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-[#a3abff]" style={{ background: 'rgba(107,118,255,.12)' }}>
+                {fmtDist(distance)}
+              </span>
+            )}
+          </div>
+        </div>
 
-      {/* Badges + details */}
-      <div className="flex flex-wrap gap-1.5 text-[10px] items-center">
-        {highlight?.badge && <BadgeChip text={lang === 'en' && highlight.badgeEn ? highlight.badgeEn : highlight.badge} />}
-        {highlight?.duration && (
-          <span className="flex items-center gap-1 text-white/30 font-medium">
-            <Timer size={9} /> {highlight.duration}
-          </span>
-        )}
         {rating && (
-          <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300/80 font-semibold">
-            ★ {rating.rating.toFixed(1)} · {fmtReviews(rating.reviewCount)}
-          </span>
+          <p className="text-[12px] font-bold" style={{ color: '#e8c06a' }}>★ {rating.rating.toFixed(1)} · {fmtReviews(rating.reviewCount)} arvostelua</p>
         )}
-        {activity.fee === false && (
-          <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400/80">{t('common.free')}</span>
-        )}
-        {activity.fee === true && activity.charge && (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400/80">
-            <Ticket size={9} /> {activity.charge}
-          </span>
-        )}
-        {activity.saunaFuel === 'wood' && (
-          <span className="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400/70">{t('common.wood_sauna')}</span>
-        )}
-        {activity.wheelchair === true && (
-          <span className="px-2 py-0.5 rounded-full bg-blue-500/8 text-blue-300/50">{t('common.accessible')}</span>
-        )}
-      </div>
 
-      {/* Practical tip */}
-      {highlight?.tip && (
-        <p className="text-white/25 text-[10px] italic leading-relaxed">{lang === 'en' && highlight.tipEn ? highlight.tipEn : highlight.tip}</p>
-      )}
+        {highlight?.hook ? (
+          <p className="text-amber-300/70 text-xs leading-snug font-medium">{highlight.hook}</p>
+        ) : a.description ? (
+          <p className="text-white/40 text-xs">{a.description}</p>
+        ) : null}
 
-      {activity.openingHours && (
-        <div className="flex items-start gap-1.5 text-white/25 text-xs">
-          <Clock size={10} className="shrink-0 mt-0.5" />
-          <span className="break-all">{activity.openingHours}</span>
+        {highlight?.duration && (
+          <p className="text-white/30 text-xs flex items-center gap-1">
+            <Timer size={10} /> {highlight.duration}
+          </p>
+        )}
+
+        {a.address && (
+          <div className="flex items-center gap-1.5 text-white/30 text-xs">
+            <MapPin size={10} className="shrink-0" />
+            <span>{a.address}{a.city && a.city !== 'Helsinki' ? `, ${a.city}` : ''}</span>
+          </div>
+        )}
+
+        {a.fee === true && a.charge && (
+          <div className="flex items-center gap-1 text-xs text-amber-400/70">
+            <Ticket size={10} /> {a.charge}
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 pt-0.5 flex-wrap">
+          {a.www && (
+            <a href={/^https?:\/\//i.test(a.www) ? a.www : '#'} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold hover:opacity-80 transition-opacity"
+              style={{ color: '#a3abff' }}>
+              <Globe size={10} /> {t('common.website')}
+            </a>
+          )}
+          {a.phone && (
+            <a href={`tel:${a.phone}`} className="flex items-center gap-1 text-[10px] font-bold text-white/30 hover:text-white/60 transition-colors">
+              <Phone size={10} /> {a.phone}
+            </a>
+          )}
+          {onShowOnMap && a.lat && a.lon && (
+            <button onClick={() => onShowOnMap(a.lat!, a.lon!, a.name)}
+              className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
+              <MapIcon size={10} /> Kartalla
+            </button>
+          )}
+          {((a.lat && a.lon) || a.address) && (
+            <a href={a.lat && a.lon
+              ? `https://maps.google.com/maps?daddr=${a.lat},${a.lon}&travelmode=transit`
+              : `https://maps.google.com/maps?daddr=${encodeURIComponent(a.address + ', Helsinki')}&travelmode=transit`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
+              <Navigation size={10} /> Reittiohjeet
+            </a>
+          )}
         </div>
-      )}
-
-      {activity.address && (
-        <div className="flex items-center gap-1.5 text-white/25 text-xs">
-          <MapPin size={10} className="shrink-0" />
-          <span>{activity.address}{activity.city && activity.city !== 'Helsinki' ? `, ${activity.city}` : ''}</span>
-        </div>
-      )}
-
-      <div className="flex items-center gap-3 pt-0.5 flex-wrap">
-        {activity.www && (
-          <a href={activity.www} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[10px] font-bold text-purple-400/70 hover:text-purple-300 transition-colors">
-            <Globe size={10} /> {t('common.website')}
-          </a>
-        )}
-        {activity.phone && (
-          <a href={`tel:${activity.phone}`}
-            className="flex items-center gap-1 text-[10px] font-bold text-white/25 hover:text-white/50 transition-colors">
-            <Phone size={10} /> {activity.phone}
-          </a>
-        )}
-        {activity.wikipedia && (
-          <a href={`https://fi.wikipedia.org/wiki/${encodeURIComponent(activity.wikipedia.replace('fi:', ''))}`}
-            target="_blank" rel="noopener noreferrer"
-            className="text-[10px] font-bold text-white/20 hover:text-white/45 transition-colors">
-            {t('common.wikipedia')}
-          </a>
-        )}
-        {onShowOnMap && activity.lat && activity.lon && (
-          <button
-            onClick={() => onShowOnMap(activity.lat!, activity.lon!, activity.name)}
-            className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-            <MapIcon size={10} /> {t('common.show_on_map')}
-          </button>
-        )}
-        {((activity.lat && activity.lon) || activity.address) && (
-          <a
-            href={activity.lat && activity.lon
-              ? `https://maps.google.com/maps?daddr=${activity.lat},${activity.lon}&travelmode=transit`
-              : `https://maps.google.com/maps?daddr=${encodeURIComponent(activity.address + ', ' + (activity.city || 'Helsinki'))}&travelmode=transit`}
-            target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
-            <Navigation size={10} /> {t('detail.directions')}
-          </a>
-        )}
       </div>
     </div>
   )
@@ -403,35 +386,19 @@ function ActivityCard({ activity, distance, highlight, rating, onShowOnMap }: {
 export default function ActivitiesView({ onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
-  const { t, lang } = useLanguage()
-
   const [activities, setActivities] = useState<Activity[]>([])
-  const [total, setTotal] = useState(0)
-  const [categoryCount, setCategoryCount] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState<ActivityCategory | 'all'>('all')
-  const [selectedTheme, setSelectedTheme] = useState<TouristTheme | null>(null)
-  const [sortMode, setSortMode] = useState<SortMode>('default')
-  const [freeOnly, setFreeOnly] = useState(false)
-  const [shown, setShown] = useState(PAGE_SIZE)
+  const [quickSort, setQuickSort] = useState<QuickSort>('default')
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
-  const [locating, setLocating] = useState(false)
-  const [locError, setLocError] = useState(false)
   const [venueRatings, setVenueRatings] = useState<Record<string, { rating: number; reviewCount: number; priceLevel: string | null }>>({})
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
 
   useEffect(() => {
-    setLoading(true)
     fetch('/api/activities')
       .then(r => r.json())
-      .then(data => {
-        setActivities(data.activities ?? [])
-        setTotal(data.total ?? 0)
-        setCategoryCount(data.categoryCount ?? {})
-        setError('')
-      })
-      .catch(() => setError(t('activities.error')))
+      .then(data => setActivities(data.activities ?? []))
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
@@ -442,367 +409,251 @@ export default function ActivitiesView({ onShowOnMap }: {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { setShown(PAGE_SIZE) }, [search, catFilter, selectedTheme, sortMode, freeOnly])
-
-  const locateMe = useCallback(() => {
-    if (!navigator.geolocation) { setLocError(true); return }
-    setLocating(true); setLocError(false)
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        setUserPos([pos.coords.latitude, pos.coords.longitude])
-        setSortMode('nearby')
-        setLocating(false)
-      },
-      () => { setLocating(false); setLocError(true) },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }, [])
+  useEffect(() => { setQuickSort('default') }, [catFilter])
 
   const distMap = useMemo(() => {
     if (!userPos) return new Map<string, number>()
     const m = new Map<string, number>()
-    activities.forEach(a => {
-      if (a.lat && a.lon) m.set(a.id, haversine(userPos[0], userPos[1], a.lat, a.lon))
-    })
+    activities.forEach(a => { if (a.lat && a.lon) m.set(a.id, haversine(userPos[0], userPos[1], a.lat, a.lon)) })
     return m
   }, [userPos, activities])
 
-  // Pre-compute highlight for each activity
-  const highlightMap = useMemo(() => {
-    const m = new Map<string, AttractionHighlight>()
-    activities.forEach(a => {
-      const h = getHighlight(a.name)
-      if (h) m.set(a.id, h)
-    })
+  const ratingMap = useMemo(() => {
+    const m = new Map<string, { rating: number; reviewCount: number }>()
+    Object.entries(venueRatings).forEach(([key, val]) => { if (val) m.set(key.toLowerCase(), val) })
     return m
-  }, [activities])
+  }, [venueRatings])
 
-  // Top picks filtered by selected theme
-  const shownPicks = useMemo(() => {
-    return selectedTheme
-      ? TOP_PICKS.filter(p => p.themes.includes(selectedTheme))
-      : TOP_PICKS.filter(p => p.defaultPick)
-  }, [selectedTheme])
+  // Pool for current category
+  const catPool = useMemo(() => {
+    if (catFilter === 'all') return activities
+    return activities.filter(a => a.category === catFilter)
+  }, [activities, catFilter])
 
-  // Match top picks with OSM activity data
-  const topPicksWithData = useMemo(() => {
-    const byName = new Map(activities.map(a => [a.name.toLowerCase(), a]))
-    return shownPicks.map(p => ({
-      pick: p,
-      activity: byName.get(p.name.toLowerCase()),
-      highlight: getHighlight(p.name),
-    }))
-  }, [activities, shownPicks])
-
-  const filtered = useMemo(() => {
-    let result = activities
-
-    // Theme filter
-    if (selectedTheme) {
-      const cats = THEME_CATEGORIES[selectedTheme]
-      result = result.filter(a => {
-        const h = getHighlight(a.name)
-        if (h?.themes.includes(selectedTheme)) return true
-        if (cats.length > 0 && cats.includes(a.category)) return true
-        if (selectedTheme === 'ilmainen') return a.fee === false
-        return false
+  // Apply quick sort
+  const sortedPool = useMemo(() => {
+    let result = [...catPool]
+    if (quickSort === 'open') {
+      result = result.filter(a => isOpenNow(a.openingHours) === true)
+    } else if (quickSort === 'yllatys') {
+      // Shuffle for "surprise" effect (stable across renders via id hash)
+      result = result.sort((a, b) => {
+        const ha = a.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) % 997
+        const hb = b.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) % 997
+        return ha - hb
       })
+    } else if (userPos && distMap.size > 0) {
+      // No sort change unless nearby was selected via RestaurantsView pattern
     }
-
-    // Category chip filter
-    if (catFilter !== 'all') result = result.filter(a => a.category === catFilter)
-
-    // Free-only filter
-    if (freeOnly) result = result.filter(a => a.fee === false)
-
-    // Search
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter(a =>
-        a.name.toLowerCase().includes(q) ||
-        a.address.toLowerCase().includes(q) ||
-        a.description.toLowerCase().includes(q)
-      )
-    }
-
-    // Sort
-    if (sortMode === 'nearby' && userPos) {
-      result = [...result].sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
-    } else if (sortMode === 'open') {
-      result = [...result].sort((a, b) => {
-        const aO = isOpenNow(a.openingHours)
-        const bO = isOpenNow(b.openingHours)
-        if (aO && !bO) return -1
-        if (!aO && bO) return 1
-        return 0
-      })
-    }
-
     return result
-  }, [activities, selectedTheme, catFilter, freeOnly, search, sortMode, userPos, distMap])
+  }, [catPool, quickSort, userPos, distMap])
 
-  const visible = filtered.slice(0, shown)
-  const hasMore = shown < filtered.length
+  // Hero: preferred sauna or first with image
+  const heroActivity = useMemo(() => {
+    if (catFilter !== 'all') return null
+    const pool = catFilter === 'all' ? activities : catPool
+    return pool.find(a => a.category === 'sauna' && a.image && isOpenNow(a.openingHours))
+      ?? pool.find(a => a.image && isOpenNow(a.openingHours))
+      ?? pool.find(a => a.image)
+      ?? pool[0]
+      ?? null
+  }, [activities, catPool, catFilter])
 
-  const handleTheme = (theme: TouristTheme) => {
-    setSelectedTheme(t => t === theme ? null : theme)
-    setCatFilter('all')
-  }
+  // Curated rows
+  const rows = useMemo(() => {
+    if (catFilter !== 'all') return []
+    const helmetSet = new Set(HELMET_NAMES.map(n => n.toLowerCase()))
+    return [
+      { title: '❤️ Helsingin helmet',     items: activities.filter(a => helmetSet.has(a.name.toLowerCase())) },
+      { title: '☔ Sateen sattuessa',      items: activities.filter(a => INDOOR_CATS.includes(a.category)) },
+      { title: '🆓 Ilmaiseksi',            items: activities.filter(a => a.fee === false) },
+      { title: '🧖 Saunat',               items: activities.filter(a => a.category === 'sauna') },
+      { title: '🌄 Näköpaikat',           items: activities.filter(a => a.category === 'nakopaikka') },
+      { title: '📅 Tänään auki',           items: activities.filter(a => isOpenNow(a.openingHours) === true) },
+    ]
+  }, [activities, catFilter])
+
+  const isHomepageView = catFilter === 'all' && quickSort === 'default'
 
   return (
-    <main className="max-w-6xl mx-auto px-4 pt-5 pb-24 space-y-6">
+    <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
 
       {/* ── Heading ── */}
       <div>
-        <h1 className="font-black text-white leading-none select-none"
-          style={{ fontSize: 'clamp(2rem,8vw,4rem)', letterSpacing: '-0.03em' }}>
-          {t('activities.heading')}
+        <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
+        <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
+          Aktiviteetit
         </h1>
-        <p className="text-white/25 text-sm mt-1">
-          {t('activities.subtitle')}
-        </p>
       </div>
 
-      {/* ── Mitä haet tänään? ── */}
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-white/70 font-black text-sm tracking-wide uppercase">{t('activities.what_looking')}</h2>
-          <p className="text-white/25 text-xs mt-0.5">{t('activities.interest_hint')}</p>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {(Object.entries(TOURIST_THEME_META) as [TouristTheme, typeof TOURIST_THEME_META[TouristTheme]][]).map(([theme, meta]) => {
-            const isSelected = selectedTheme === theme
-            return (
-              <button key={theme} onClick={() => handleTheme(theme)}
-                className={`rounded-2xl p-3.5 text-left transition-all border ${
-                  isSelected
-                    ? 'border-purple-500/50 shadow-lg shadow-purple-500/10'
-                    : 'border-white/6 bg-white/3 hover:bg-white/6 hover:border-white/12 active:scale-[0.98]'
-                }`}
-                style={isSelected ? { background: 'linear-gradient(135deg,rgba(168,85,247,0.15),rgba(236,72,153,0.1))', borderColor: 'rgba(168,85,247,0.4)' } : {}}>
-                <div className="text-2xl mb-1.5 leading-none">{meta.emoji}</div>
-                <div className={`font-black text-xs leading-tight ${isSelected ? 'text-white' : 'text-white/80'}`}>{t(('theme.' + theme) as TranslationKey)}</div>
-                <div className="text-white/30 text-[10px] mt-0.5 leading-tight">{lang === 'en' ? meta.shortDescEn : meta.shortDesc}</div>
-              </button>
-            )
-          })}
-        </div>
-        {selectedTheme && (
-          <button onClick={() => setSelectedTheme(null)}
-            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/55 transition-colors">
-            <X size={11} /> {t('common.clear_selection')}
-          </button>
-        )}
-      </section>
+      {/* ── Category tabs ── */}
+      <UnderlineTabs
+        tabs={SUB_TABS}
+        active={catFilter}
+        onChange={(id) => setCatFilter(id as ActivityCategory | 'all')}
+      />
 
-      {/* ── Top picks ── */}
-      {!loading && (
-        <section>
-          <h2 className="text-white/70 font-black text-sm tracking-wide uppercase mb-3">
-            {selectedTheme ? t(('theme.' + selectedTheme + '_title') as TranslationKey) : t('activities.top_picks')}
-          </h2>
-          <div className="flex gap-4 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2">
-            {topPicksWithData.map(({ pick, activity, highlight }) => (
-              <TopPickCard
-                key={pick.name}
-                pick={pick}
-                activity={activity}
-                highlight={highlight}
-                rating={highlight?.nameKey ? venueRatings[highlight.nameKey] : undefined}
-                distance={activity?.id ? distMap.get(activity.id) : undefined}
-                onShowOnMap={onShowOnMap}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Search ── */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
-        <input
-          type="search"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder={t('restaurants.search_ph')}
-          className="w-full pl-9 pr-9 py-3 bg-white/5 border border-white/8 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:border-purple-500/40 transition-colors"
-        />
-        {search && (
-          <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
-            <X size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* ── Category chips ── */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-        <button onClick={() => setCatFilter('all')}
-          className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-black transition-all whitespace-nowrap ${
-            catFilter === 'all'
-              ? 'text-white shadow-lg'
-              : 'text-white/40 bg-white/5 hover:bg-white/8 hover:text-white/70'
-          }`}
-          style={catFilter === 'all' ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
-          🌍 {t('restaurants.type_all')}
-          {catFilter !== 'all' && <span className="text-white/20 text-[10px] font-normal">{selectedTheme ? filtered.length : total}</span>}
-        </button>
-        {CHIP_CATEGORIES.map(cat => {
-          const count = categoryCount[cat] ?? 0
-          if (count === 0) return null
-          const meta = CATEGORY_META[cat]
-          return (
-            <button key={cat} onClick={() => setCatFilter(cat)}
-              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-black transition-all whitespace-nowrap ${
-                catFilter === cat
-                  ? 'text-white shadow-lg'
-                  : 'text-white/40 bg-white/5 hover:bg-white/8 hover:text-white/70'
-              }`}
-              style={catFilter === cat ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
-              {meta.emoji} {t(('cat.' + cat) as TranslationKey)}
-              {catFilter !== cat && <span className="text-white/20 text-[10px] font-normal">{count}</span>}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* ── Sort & filter row ── */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <button onClick={sortMode === 'nearby' ? () => setSortMode('default') : locateMe}
-          disabled={locating}
-          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-            sortMode === 'nearby'
-              ? 'text-white shadow-lg shadow-blue-500/20'
-              : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/60'
-          }`}
-          style={sortMode === 'nearby' ? { background: 'linear-gradient(135deg,#3b82f6,#06b6d4)' } : {}}>
-          {locating
-            ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-            : <Navigation size={11} />}
-          {t('activities.nearby_me')}
-        </button>
-
-        <button onClick={() => setSortMode(m => m === 'open' ? 'default' : 'open')}
-          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-            sortMode === 'open'
-              ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-              : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/60'
-          }`}>
-          <Clock size={11} /> {t('activities.sort_open')}
-        </button>
-
-        <button onClick={() => setFreeOnly(f => !f)}
-          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-            freeOnly
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-              : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/60'
-          }`}>
-          🎁 {t('activities.free_only')}
-        </button>
-      </div>
-
-      {locError && <p className="text-orange-400/70 text-xs">{t('common.location_error')}</p>}
-
-      {/* Active filters */}
-      {(search || catFilter !== 'all' || freeOnly || sortMode !== 'default') && (
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-white/25 text-xs">{t('common.filters')}</span>
-          {catFilter !== 'all' && (
-            <button onClick={() => setCatFilter('all')}
-              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-300/80 hover:bg-purple-500/25">
-              {CATEGORY_META[catFilter].emoji} {t(('cat.' + catFilter) as TranslationKey)} <X size={10} />
-            </button>
-          )}
-          {freeOnly && (
-            <button onClick={() => setFreeOnly(false)}
-              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300/80 hover:bg-emerald-500/25">
-              {t('common.free')} <X size={10} />
-            </button>
-          )}
-          {search && (
-            <button onClick={() => setSearch('')}
-              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-white/8 text-white/50 hover:bg-white/12">
-              &ldquo;{search}&rdquo; <X size={10} />
-            </button>
-          )}
-          <button onClick={() => { setSearch(''); setCatFilter('all'); setFreeOnly(false); setSortMode('default') }}
-            className="text-xs text-white/25 hover:text-white/50 underline underline-offset-2">
-            {t('common.clear_all')}
-          </button>
-        </div>
-      )}
-
-      {/* Count */}
-      {!loading && !error && (
-        <p className="text-white/20 text-xs font-bold">
-          {filtered.length.toLocaleString()} {t('activities.total')}
-          {selectedTheme && ` — ${t(('theme.' + selectedTheme) as TranslationKey)}`}
-        </p>
-      )}
-
-      {/* Loading */}
+      {/* ── Loading ── */}
       {loading && (
-        <div className="space-y-5">
-          <div className="flex items-center gap-3 text-white/30 text-sm">
-            <div className="w-4 h-4 rounded-full border-2 border-purple-500/40 border-t-purple-400 animate-spin shrink-0" />
-            <span>{t('activities.loading')}</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="rounded-2xl bg-white/3 p-4 space-y-2">
-                <div className="flex gap-2">
-                  <div className="w-6 h-6 bg-white/5 rounded animate-pulse" />
-                  <div className="h-4 bg-white/4 rounded animate-pulse w-3/4" />
-                </div>
-                <div className="h-3 bg-white/3 rounded animate-pulse w-1/2" />
-                <div className="h-3 bg-white/3 rounded animate-pulse w-2/3" />
-              </div>
-            ))}
-          </div>
+        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden bg-white/4 animate-pulse" style={{ aspectRatio: '4/3' }} />
+          ))}
         </div>
       )}
 
-      {/* Error */}
-      {error && <div className="rounded-xl p-4 bg-red-950/30 border border-red-800/30 text-red-300 text-sm">{error}</div>}
-
-      {/* Grid */}
-      {!loading && visible.length > 0 && (
+      {/* ── Homepage view ── */}
+      {!loading && isHomepageView && (
         <>
+          {/* Hero */}
+          {heroActivity && (
+            <ActivityHero
+              a={heroActivity}
+              distance={distMap.get(heroActivity.id)}
+              rating={ratingMap.get(heroActivity.name.toLowerCase())}
+              onShowOnMap={onShowOnMap}
+            />
+          )}
+
+          {/* Quick sort pills */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
+            {QUICK_SORTS.map(s => {
+              const isActive = quickSort === s.id
+              return (
+                <button key={s.id} onClick={() => setQuickSort(s.id as QuickSort)}
+                  className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+                  style={isActive
+                    ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
+                    : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
+                  }>
+                  {s.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Curated rows */}
+          {rows.filter(r => r.items.length > 0).map(row => (
+            <ActRow key={row.title} title={row.title} items={row.items} distMap={distMap} ratingMap={ratingMap} onCardClick={setSelectedActivity} />
+          ))}
+        </>
+      )}
+
+      {/* ── List view (category selected or quick sort active) ── */}
+      {!loading && !isHomepageView && (
+        <>
+          {/* Quick sort pills */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
+            {QUICK_SORTS.map(s => {
+              const isActive = quickSort === s.id
+              return (
+                <button key={s.id} onClick={() => setQuickSort(s.id as QuickSort)}
+                  className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+                  style={isActive
+                    ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
+                    : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
+                  }>
+                  {s.label}
+                </button>
+              )
+            })}
+            {catFilter !== 'all' && (
+              <button onClick={() => { setCatFilter('all'); setQuickSort('default') }}
+                className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-full text-sm font-bold text-white/30"
+                style={{ background: 'rgba(255,255,255,.04)' }}>
+                <X size={12} /> Tyhjennä
+              </button>
+            )}
+          </div>
+
+          <p className="text-white/20 text-xs font-bold">{sortedPool.length} kohdetta</p>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visible.map(a => (
-              <ActivityCard
+            {sortedPool.slice(0, 48).map(a => (
+              <ActivityListCard
                 key={a.id}
-                activity={a}
+                a={a}
                 distance={distMap.get(a.id)}
-                highlight={highlightMap.get(a.id)}
-                rating={highlightMap.get(a.id)?.nameKey ? venueRatings[highlightMap.get(a.id)!.nameKey] : undefined}
+                rating={ratingMap.get(a.name.toLowerCase())}
                 onShowOnMap={onShowOnMap}
               />
             ))}
           </div>
-          {hasMore && (
-            <div className="flex justify-center pt-2">
-              <button onClick={() => setShown(s => s + PAGE_SIZE)}
-                className="flex items-center gap-2 text-sm font-bold px-8 py-3 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 bg-white/3 transition-all">
-                <ChevronDown size={15} />
-                {t('activities.load_more')} ({filtered.length - shown} {t('common.remaining')})
+
+          {sortedPool.length === 0 && (
+            <div className="flex flex-col items-center py-16 text-center gap-3">
+              <span className="text-5xl">🔭</span>
+              <p className="text-white/40 font-bold">Ei kohteita tällä suodatuksella</p>
+              <button onClick={() => { setCatFilter('all'); setQuickSort('default') }}
+                className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
+                style={{ borderColor: 'rgba(107,118,255,.3)' }}>
+                Näytä kaikki
               </button>
             </div>
           )}
         </>
       )}
 
-      {/* Empty */}
-      {!loading && !error && filtered.length === 0 && (
-        <div className="flex flex-col items-center py-24 text-center gap-4">
-          <span className="text-5xl">🔭</span>
-          <div>
-            <p className="text-white/50 font-bold">{t('common.no_results')}</p>
-            <p className="text-white/25 text-sm mt-1">{t('common.try_search')}</p>
+      {/* ── Detail panel ── */}
+      {selectedActivity && (
+        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setSelectedActivity(null)}>
+          <div className="w-full max-w-2xl mx-auto rounded-t-[28px] overflow-hidden animate-sheet-up"
+            style={{ background: '#0f0f13', border: '1px solid rgba(255,255,255,.1)' }}
+            onClick={e => e.stopPropagation()}>
+            {selectedActivity.image && (
+              <div className="relative w-full" style={{ aspectRatio: '16/7' }}>
+                <img src={selectedActivity.image} alt={selectedActivity.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(15,15,19,.9) 0%,transparent 60%)' }} />
+              </div>
+            )}
+            <div className="p-5 space-y-3">
+              <div className="flex items-start justify-between">
+                <h2 className="font-black text-white text-xl leading-tight">{selectedActivity.name}</h2>
+                <button onClick={() => setSelectedActivity(null)} className="p-2 rounded-full text-white/40 hover:text-white"
+                  style={{ background: 'rgba(255,255,255,.08)' }}>
+                  <X size={16} />
+                </button>
+              </div>
+              {selectedActivity.description && <p className="text-white/50 text-sm">{selectedActivity.description}</p>}
+              {selectedActivity.address && (
+                <div className="flex items-center gap-2 text-white/30 text-sm">
+                  <MapPin size={13} /> {selectedActivity.address}
+                </div>
+              )}
+              {selectedActivity.openingHours && (
+                <div className="flex items-center gap-2 text-white/30 text-sm">
+                  <Clock size={13} /> {selectedActivity.openingHours}
+                </div>
+              )}
+              <div className="flex gap-3 pt-1 flex-wrap">
+                {selectedActivity.www && (
+                  <a href={/^https?:\/\//i.test(selectedActivity.www) ? selectedActivity.www : '#'} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
+                    style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                    <Globe size={13} /> {ctaLabel(selectedActivity)}
+                  </a>
+                )}
+                {onShowOnMap && selectedActivity.lat && selectedActivity.lon && (
+                  <button onClick={() => { onShowOnMap(selectedActivity.lat!, selectedActivity.lon!, selectedActivity.name); setSelectedActivity(null) }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
+                    style={{ background: 'rgba(255,255,255,.08)' }}>
+                    <MapIcon size={13} /> Kartalla
+                  </button>
+                )}
+                {((selectedActivity.lat && selectedActivity.lon) || selectedActivity.address) && (
+                  <a href={selectedActivity.lat && selectedActivity.lon
+                    ? `https://maps.google.com/maps?daddr=${selectedActivity.lat},${selectedActivity.lon}&travelmode=transit`
+                    : `https://maps.google.com/maps?daddr=${encodeURIComponent(selectedActivity.address + ', Helsinki')}&travelmode=transit`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
+                    style={{ background: 'rgba(255,255,255,.08)' }}>
+                    <Navigation size={13} /> Reittiohjeet
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
-          <button onClick={() => { setSearch(''); setCatFilter('all'); setFreeOnly(false); setSelectedTheme(null) }}
-            className="text-sm font-bold px-4 py-2 rounded-xl border border-purple-500/30 text-purple-400/70 hover:text-purple-300 hover:border-purple-500/50 transition-all">
-            {t('common.clear_filters')}
-          </button>
         </div>
       )}
     </main>
