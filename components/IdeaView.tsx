@@ -141,9 +141,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
 
-  // Swipe state
+  // Swipe state — use refs for synchronous drag tracking (useState closures would lose updates)
   const [dragX, setDragX] = useState(0)
-  const [dragging, setDragging] = useState(false)
+  const isDragging = useRef(false)
   const dragStartX = useRef(0)
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -264,16 +264,15 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const SWIPE_THRESHOLD = 80
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (pool.length < 2) return
     dragStartX.current = e.clientX
-    setDragging(true)
+    isDragging.current = true
     cardRef.current?.setPointerCapture(e.pointerId)
-  }, [pool.length])
+  }, [])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging) return
+    if (!isDragging.current) return
     setDragX(e.clientX - dragStartX.current)
-  }, [dragging])
+  }, [])
 
   const commit = useCallback((dir: 'left' | 'right') => {
     if (!current) return
@@ -291,13 +290,14 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     }, 220)
   }, [current, pool.length, toggle])
 
-  const onPointerUp = useCallback(() => {
-    if (!dragging) return
-    setDragging(false)
-    if (dragX > SWIPE_THRESHOLD) commit('right')
-    else if (dragX < -SWIPE_THRESHOLD) commit('left')
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return
+    isDragging.current = false
+    const dx = e.clientX - dragStartX.current
+    if (dx > SWIPE_THRESHOLD) commit('right')
+    else if (dx < -SWIPE_THRESHOLD) commit('left')
     else setDragX(0)
-  }, [dragging, dragX, commit])
+  }, [commit])
 
   const handleSkip = useCallback(() => commit('left'), [commit])
   const handleSave = useCallback(() => commit('right'), [commit])
@@ -359,8 +359,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       </div>
 
       {/* ── Swipeable card ── */}
-      <div className="relative select-none"
-        style={{ touchAction: 'pan-y' }}>
+      <div className="relative select-none">
 
         {/* Shadow card behind */}
         {pool.length > 1 && (
@@ -368,17 +367,17 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.06)' }} />
         )}
 
-        {/* Main card */}
+        {/* Main card — touch-action:none so browser doesn't steal the horizontal drag */}
         <div ref={cardRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
           className="relative z-10 rounded-3xl overflow-hidden cursor-grab active:cursor-grabbing"
           style={{
+            touchAction: 'none',
             border: '1px solid rgba(255,255,255,.1)',
             transform: cardTransform,
-            transition: dragging ? 'none' : 'transform 220ms cubic-bezier(.34,1.56,.64,1)',
+            transition: isDragging.current ? 'none' : 'transform 220ms cubic-bezier(.34,1.56,.64,1)',
             boxShadow: '0 24px 60px -20px rgba(0,0,0,.9)',
           }}>
 
