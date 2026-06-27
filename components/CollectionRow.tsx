@@ -67,7 +67,7 @@ export default function CollectionRow({ collection, events, onEventClick, onSeeA
               <p className="text-white text-xs font-semibold line-clamp-2 leading-snug mb-1.5">
                 {event.title}
               </p>
-              <p className="text-purple-400 text-[11px] font-medium">
+              <p className="text-[#a3abff] text-[11px] font-medium">
                 {formatDate(event.startTime)} · {formatTime(event.startTime)}
               </p>
               {event.location && (

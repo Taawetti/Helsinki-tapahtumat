@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect } from 'react'
-import { LayoutGrid, Map, Loader2, AlertCircle, SlidersHorizontal, X, Rss, Heart, Bell } from 'lucide-react'
+import { Loader2, SlidersHorizontal, Heart, Bell } from 'lucide-react'
 import { Event, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS } from '@/lib/types'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents } from '@/hooks/useEvents'
@@ -14,12 +14,8 @@ import SearchBar from '@/components/SearchBar'
 import PosterCard from '@/components/PosterCard'
 import InstallBanner from '@/components/InstallBanner'
 import VibeBar from '@/components/VibeBar'
-import AdBanner from '@/components/AdBanner'
 import DatePicker from '@/components/DatePicker'
-import SpontaaniCard from '@/components/SpontaaniCard'
-import QuickButtons from '@/components/QuickButtons'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
-import IltasuunnitelmaCard from '@/components/IltasuunnitelmaCard'
 import JarjestajaForm from '@/components/JarjestajaForm'
 import NewsletterBanner from '@/components/NewsletterBanner'
 import RestaurantsView from '@/components/RestaurantsView'
@@ -38,6 +34,70 @@ interface EmptyStateProps {
   dateFilter: DateFilter
   onClear: () => void
   onDateChange: (d: DateFilter) => void
+}
+
+// ── Horizontal carousel card ─────────────────────────────
+function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void }) {
+  const { lang } = useLanguage()
+  const now = Date.now()
+  const start = new Date(event.startTime)
+  const msUntil = start.getTime() - now
+  const todayStr = new Date().toDateString()
+  const isToday = start.toDateString() === todayStr
+  const time = start.toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+  let dateLabel = isToday
+    ? `Tänään ${time}`
+    : start.toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric' }) + ' ' + time
+  if (msUntil > 0 && msUntil < 90 * 60 * 1000) dateLabel = `⏱ ${Math.round(msUntil / 60000)} min`
+  return (
+    <button
+      onClick={() => onClick(event)}
+      className="group shrink-0 w-40 text-left rounded-[18px] overflow-hidden"
+      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}
+    >
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '3/4' }}>
+        {event.image ? (
+          <img src={event.image} alt={event.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
+        ) : (
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }} />
+        )}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.9) 0%,rgba(10,10,12,.1) 50%,transparent 100%)' }} />
+        <div className="absolute top-2 left-2">
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white/90" style={{ background: 'rgba(10,10,12,.7)', backdropFilter: 'blur(8px)' }}>{dateLabel}</span>
+        </div>
+        {event.isFree && (
+          <div className="absolute top-2 right-2">
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white bg-emerald-500">ILMAINEN</span>
+          </div>
+        )}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <p className="text-white font-black text-[13px] leading-tight line-clamp-2" style={{ letterSpacing: '-0.01em' }}>{event.title}</p>
+          {event.location?.name && <p className="text-white/50 text-[11px] truncate mt-0.5">{event.location.name}</p>}
+        </div>
+      </div>
+      {!event.isFree && event.price && (
+        <div className="px-3 py-2.5">
+          <span className="text-[11px] font-black" style={{ color: '#a3abff' }}>Osta → {event.price}</span>
+        </div>
+      )}
+    </button>
+  )
+}
+
+// ── Carousel row ─────────────────────────────────────────
+function CarouselRow({ title, events, onClick, seeAllLabel }: { title: string; events: Event[]; onClick: (e: Event) => void; seeAllLabel?: string }) {
+  if (events.length === 0) return null
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-black text-white text-[17px] tracking-tight" style={{ letterSpacing: '-0.02em' }}>{title}</h2>
+        <button className="text-[13px] font-bold" style={{ color: '#6b76ff' }}>{seeAllLabel ?? 'Kaikki ›'}</button>
+      </div>
+      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+        {events.slice(0, 10).map(e => <RowCard key={e.id} event={e} onClick={onClick} />)}
+      </div>
+    </section>
+  )
 }
 
 function EmptyState({ keyword, activeVibes, activeCategories, priceFilter, dateFilter, onClear, onDateChange }: EmptyStateProps) {
@@ -94,6 +154,18 @@ function EmptyState({ keyword, activeVibes, activeCategories, priceFilter, dateF
       </div>
     </div>
   )
+}
+
+// ── Event category helpers ────────────────────────────────
+function matchesText(e: Event, pattern: RegExp): boolean {
+  return pattern.test([e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase())
+}
+const isKeikka  = (e: Event) => matchesText(e, /keikka|konsertti|live[\s-]?musiikki|bändi|gig/)
+const isUrheilu = (e: Event) => matchesText(e, /urheilu|jääkiekko|jalkapallo|koripallo|ottelu|sm-liiga|khl|nba|liiga/)
+const isSurprise = (e: Event) => matchesText(e, /sauna|melont|jooga|silent|pop.?up|taikur|sirkus|impro|flash|yömelont|saunavene/)
+function isAlkaaPian(e: Event): boolean {
+  const ms = new Date(e.startTime).getTime() - Date.now()
+  return ms > 0 && ms < 3 * 60 * 60 * 1000
 }
 
 function nightlifeScore(e: Event): number {
@@ -232,6 +304,23 @@ export default function Home() {
     [filteredEvents]
   )
 
+  // Base events for carousels — date/keyword filtered but NOT vibe/category filtered
+  // so rows always show content even when a specific vibe is active
+  const baseEvents = useMemo(
+    () => [...events].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
+    [events]
+  )
+
+  const heroEvent = useMemo(() => discoverEvents.find((e) => nightlifeScore(e) >= 3 && e.image) ?? null, [discoverEvents])
+
+  const carousels = useMemo(() => [
+    { id: 'keikka',    title: 'Illan keikat 🎸',         events: baseEvents.filter(isKeikka) },
+    { id: 'pian',      title: 'Alkaa pian ⏱',            events: baseEvents.filter(isAlkaaPian) },
+    { id: 'urheilu',   title: 'Urheilu tänään ⚽',        events: baseEvents.filter(isUrheilu) },
+    { id: 'ilmainen',  title: 'Ilmaiseksi tänään 🎁',    events: baseEvents.filter(e => e.isFree) },
+    { id: 'ylatys',    title: 'Jotain yllättävää ✨',     events: baseEvents.filter(isSurprise) },
+  ].filter(r => r.events.length > 0), [baseEvents])
+
   const activeCount = activeVibes.length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
 
   const handleQuickAction = useCallback((id: string) => {
@@ -267,15 +356,15 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#08080c' }}>
+    <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#0a0a0c' }}>
 
       {/* ── HEADER ── */}
-      <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(8,8,12,0.96)', backdropFilter: 'blur(20px)' }}>
+      <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(10,10,12,0.96)', backdropFilter: 'blur(20px)' }}>
         {/* ── Mobile header row 1: logo + actions ── */}
         <div className="md:hidden flex items-center justify-between px-4 pt-3 pb-2">
           <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>M</div>
-            <span className="font-black text-sm tracking-tight" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>M</div>
+            <span className="font-black text-sm tracking-tight" style={{ color: '#a3abff' }}>
               Mitä tänään
             </span>
           </button>
@@ -285,19 +374,17 @@ export default function Home() {
               {lang === 'fi' ? 'EN' : 'FI'}
             </button>
             <button
-              onClick={() => { setMode(mode === 'favorites' ? 'discover' : 'favorites'); setMobileTab(mode === 'favorites' ? 'discover' : 'favorites') }}
-              className={`relative p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-pink-500/60 text-pink-400 bg-pink-500/15' : 'border-white/8 text-white/40 bg-white/4'}`}
+              onClick={async () => { if (typeof Notification === 'undefined') return; await Notification.requestPermission() }}
+              className="p-2 rounded-xl border border-white/8 text-white/40 bg-white/4 hover:text-white/70 transition-all"
             >
-              <Heart size={15} fill={mode === 'favorites' ? 'currentColor' : 'none'} />
-              {favCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center bg-pink-500 text-white">{favCount}</span>
-              )}
+              <Bell size={15} />
             </button>
             <button onClick={() => setShowFilters((p) => !p)}
-              className={`relative p-2 rounded-xl border transition-all ${showFilters ? 'border-purple-500/60 text-purple-400 bg-purple-500/15' : 'border-white/8 text-white/40 bg-white/4'}`}>
+              className={`relative p-2 rounded-xl border transition-all ${showFilters ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4'}`}
+              style={showFilters ? { color: '#6b76ff' } : {}}>
               <SlidersHorizontal size={15} />
               {activeCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>{activeCount}</span>
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{activeCount}</span>
               )}
             </button>
           </div>
@@ -310,17 +397,18 @@ export default function Home() {
         {/* ── Desktop header: single row ── */}
         <div className="hidden md:flex max-w-6xl mx-auto px-4 py-3 items-center gap-3">
           <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="shrink-0 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>M</div>
-            <span className="font-black text-sm tracking-tight" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0 text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>M</div>
+            <span className="font-black text-sm tracking-tight" style={{ color: '#a3abff' }}>
               Mitä tänään
             </span>
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'idea', 'map', 'restaurants', 'activities'] as AppMode[]).map((m) => (
+            {(['discover', 'idea', 'restaurants', 'activities', 'map', 'favorites'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab) }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/65'}`}>
-                {m === 'discover' ? `✦ ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'map' ? t('nav.map') : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🧖 ${t('nav.activities')}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
+                style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
+                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'map' ? `🗺 ${t('nav.map')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : m === 'activities' ? `🧖 ${t('nav.activities')}` : `♥ ${t('nav.favorites')}`}
               </button>
             ))}
           </div>
@@ -328,14 +416,6 @@ export default function Home() {
           <div className="flex-1 max-w-md">
             <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }} />
           </div>
-
-          {false && (
-            <div className="flex bg-white/5 rounded-xl p-1 gap-0.5 shrink-0">
-              <button onClick={() => setListStyle('feed')} className={`p-2 rounded-lg transition-all ${listStyle === 'feed' ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/60'}`}><Rss size={14} /></button>
-              <button onClick={() => setListStyle('grid')} className={`p-2 rounded-lg transition-all ${listStyle === 'grid' ? 'bg-white/12 text-white' : 'text-white/35 hover:text-white/60'}`}><LayoutGrid size={14} /></button>
-              <button onClick={() => setMode('map')} className="p-2 rounded-lg transition-all text-white/35 hover:text-white/60"><Map size={14} /></button>
-            </div>
-          )}
 
           <button onClick={() => setLang(lang === 'fi' ? 'en' : 'fi')}
             className="shrink-0 text-[11px] font-black px-3 py-1.5 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/25 transition-all bg-white/3">
@@ -350,22 +430,12 @@ export default function Home() {
             <Bell size={15} />
           </button>
 
-          <button
-            onClick={() => { const m = mode === 'favorites' ? 'discover' : 'favorites'; setMode(m); setMobileTab(m as typeof mobileTab) }}
-            className={`relative shrink-0 p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-pink-500/60 text-pink-400 bg-pink-500/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-pink-400'}`}
-            title="Suosikit"
-          >
-            <Heart size={15} fill={mode === 'favorites' ? 'currentColor' : 'none'} />
-            {favCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center bg-pink-500 text-white">{favCount}</span>
-            )}
-          </button>
-
           <button onClick={() => setShowFilters((p) => !p)}
-            className={`relative shrink-0 p-2 rounded-xl border transition-all ${showFilters ? 'border-purple-500/60 text-purple-400 bg-purple-500/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}>
+            className={`relative shrink-0 p-2 rounded-xl border transition-all ${showFilters ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
+            style={showFilters ? { color: '#6b76ff' } : {}}>
             <SlidersHorizontal size={15} />
             {activeCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>{activeCount}</span>
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{activeCount}</span>
             )}
           </button>
         </div>
@@ -383,10 +453,11 @@ export default function Home() {
                   week:    t('filter.week_short'),
                   month:   t('date.month'),
                 }
+                const isActive = dateFilter === d && !customDate && !customDateEnd
                 return (
                   <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${dateFilter === d && !customDate && !customDateEnd ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
-                    style={dateFilter === d && !customDate && !customDateEnd ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)', borderColor: 'transparent' } : {}}>
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${isActive ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
+                    style={isActive ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', borderColor: 'transparent' } : {}}>
                     {dateLabels[d]}
                   </button>
                 )
@@ -422,7 +493,7 @@ export default function Home() {
       {mode === 'favorites' && (
         <main className="max-w-6xl mx-auto px-4 pt-5 pb-20 space-y-5">
           <div className="flex items-center gap-3">
-            <Heart size={20} fill="currentColor" className="text-pink-400" />
+            <Heart size={20} fill="currentColor" style={{ color: '#6b76ff' }} />
             <h2 className="text-lg font-black text-white">{t('fav.title')}</h2>
             <span className="text-white/30 text-sm">{favCount} {t('fav.saved')}</span>
           </div>
@@ -464,107 +535,115 @@ export default function Home() {
               { d: 'tomorrow' as DateFilter, label: t('date.tomorrow') },
               { d: 'weekend' as DateFilter, label: '🎉 ' + t('date.weekend') },
               { d: 'week' as DateFilter, label: t('date.week_short') },
-              { d: 'month' as DateFilter, label: t('date.month') },
-            ]).map(({ d, label }) => (
-              <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
-                className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
-                  dateFilter === d && !customDate && !customDateEnd ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
-                }`}
-                style={dateFilter === d && !customDate && !customDateEnd ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}>
-                {label}
-              </button>
-            ))}
+            ]).map(({ d, label }) => {
+              const isActive = dateFilter === d && !customDate && !customDateEnd
+              return (
+                <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
+                    isActive ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
+                  }`}
+                  style={isActive ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,.4)' } : {}}>
+                  {label}
+                </button>
+              )
+            })}
             <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
           </div>
 
           {/* Vibe pills */}
-          <VibeBar active={activeVibes} onToggle={(id) => {
-            if (id === 'ilmainen') { setPriceFilter((p) => p === 'free' ? 'all' : 'free'); return }
-            setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
-          }} />
-
-          {/* Quick action buttons */}
-          <QuickButtons onAction={handleQuickAction} />
-
-          {/* Spontaani — best event starting soon */}
-          {!loading && <SpontaaniCard events={filteredEvents} onOpen={setSelectedEvent} />}
-
-          {/* Iltasuunnitelma — curated evening plan */}
-          {!loading && filteredEvents.length >= 2 && (
-            <IltasuunnitelmaCard events={filteredEvents} onEventClick={setSelectedEvent} />
-          )}
+          <VibeBar
+            active={activeVibes}
+            onClearAll={() => { setActiveVibes([]); setPriceFilter('all') }}
+            onToggle={(id) => {
+              if (id === 'ilmainen') { setPriceFilter((p) => p === 'free' ? 'all' : 'free'); return }
+              setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
+            }}
+          />
 
           {/* Loading skeletons */}
-          {loading && discoverEvents.length === 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="rounded-xl overflow-hidden bg-white/4 animate-pulse">
-                  <div className="w-full bg-white/5" style={{ aspectRatio: '3/4' }} />
-                  <div className="p-3 space-y-1.5">
-                    <div className="h-3.5 bg-white/6 rounded w-4/5" />
-                    <div className="h-3 bg-white/4 rounded w-1/2" />
-                  </div>
-                </div>
+          {loading && baseEvents.length === 0 && (
+            <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden bg-white/4 animate-pulse" style={{ aspectRatio: '3/4' }} />
               ))}
             </div>
           )}
 
-          {/* Hero event — only if score ≥ 3 (actual nightlife) */}
-          {(() => {
-            const hero = discoverEvents.find((e) => nightlifeScore(e) >= 3 && e.image)
-            if (!hero) return null
-            return (
-              <button onClick={() => setSelectedEvent(hero)}
-                className="group relative w-full rounded-2xl overflow-hidden text-left" style={{ aspectRatio: '16/7' }}>
-                <img src={hero.image!} alt={hero.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(8,8,12,0.95) 0%,rgba(8,8,12,0.3) 50%,transparent 100%)' }} />
-                <div className="absolute top-4 left-4">
-                  <span className="text-[10px] font-black px-2.5 py-1 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>{t('discover.recommendation')}</span>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7">
-                  <h2 className="font-black text-white leading-tight mb-1.5" style={{ fontSize: 'clamp(1.3rem,3.5vw,2.2rem)', letterSpacing: '-0.02em' }}>
-                    {hero.title}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
-                    {hero.location?.name && <span className="text-white/50">{hero.location.name}</span>}
-                    <span className="font-bold" style={{ color: '#c084fc' }}>
-                      {new Date(hero.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    {hero.isFree && <span className="text-emerald-400 font-bold">{t('common.free_ticket')}</span>}
-                    {!hero.isFree && hero.price && <span className="text-white/40">{hero.price}</span>}
-                  </div>
-                </div>
+          {/* ── Hero "ILLAN NOSTO" ── */}
+          {heroEvent && (
+            <button onClick={() => setSelectedEvent(heroEvent)}
+              className="group relative w-full rounded-[22px] overflow-hidden text-left"
+              style={{ aspectRatio: '16/10', boxShadow: '0 22px 50px -20px rgba(91,101,230,.4)' }}>
+              <img src={heroEvent.image!} alt={heroEvent.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,0.97) 0%,rgba(10,10,12,0.2) 55%,transparent 100%)' }} />
+              {/* Badges row */}
+              <div className="absolute top-4 left-4 flex gap-2">
+                <span className="text-[9px] font-black px-2.5 py-1 rounded-full text-white tracking-[.08em] uppercase" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>✦ ILLAN NOSTO</span>
+                {heroEvent.categories[0] && (
+                  <span className="text-[9px] font-black px-2.5 py-1 rounded-full text-white/80 uppercase tracking-[.08em]" style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.15)' }}>
+                    {heroEvent.categories[0]}
+                  </span>
+                )}
+              </div>
+              {/* Heart */}
+              <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.15)' }}
+                onClick={e => { e.stopPropagation(); /* handled via EventDetailPanel heart */ }}>
+                <Heart size={14} className="text-white/70" />
               </button>
-            )
-          })()}
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                {heroEvent.location?.name && (
+                  <p className="text-[11px] font-black uppercase tracking-[.1em] mb-1" style={{ color: 'rgba(255,255,255,.5)' }}>
+                    {heroEvent.categories[0] ? `${heroEvent.categories[0].toUpperCase()} · ` : ''}{heroEvent.location.name.toUpperCase()}
+                  </p>
+                )}
+                <h2 className="font-black text-white leading-tight mb-3" style={{ fontSize: 'clamp(1.4rem,5vw,2rem)', letterSpacing: '-0.02em' }}>
+                  {heroEvent.title}
+                </h2>
+                <div className="flex items-center gap-3">
+                  {!heroEvent.isFree && heroEvent.price ? (
+                    <span className="px-4 py-2 rounded-full text-white text-[13px] font-black" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
+                      Liput alk. {heroEvent.price} →
+                    </span>
+                  ) : heroEvent.isFree ? (
+                    <span className="px-4 py-2 rounded-full text-white text-[13px] font-black bg-emerald-500">Ilmainen →</span>
+                  ) : null}
+                  <span className="text-white/50 text-[13px] font-bold">
+                    Tänään {new Date(heroEvent.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            </button>
+          )}
 
-          {/* Ad slot — between hero and event grid */}
-          <AdBanner slot="1234567890" format="horizontal" className="my-1" />
+          {/* ── Carousel rows ── */}
+          {!loading && carousels.map(row => (
+            <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent} />
+          ))}
 
-          {/* Event grid */}
-          {discoverEvents.length > 0 && (
-            <>
+          {/* ── Kaikki tapahtumat -grid (jos vibe/kategoria valittu tai ei karusellirivejä) ── */}
+          {!loading && (activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-black text-white text-[17px] tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                  {activeVibes[0] ? VIBES.find(v => v.id === activeVibes[0])?.emoji : ''} {activeVibes[0] ? VIBES.find(v => v.id === activeVibes[0])?.label : 'Suodatetut'}
+                </h2>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {discoverEvents
-                  .filter((e) => e.id !== discoverEvents.find((h) => nightlifeScore(h) >= 3 && h.image)?.id)
-                  .map((e) => (
-                    <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
-                  ))}
+                {discoverEvents.filter(e => e.id !== heroEvent?.id).map(e => (
+                  <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
+                ))}
               </div>
               {hasMore && (
-                <button
-                  onClick={loadMore}
-                  disabled={loading}
-                  className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 bg-white/5 hover:bg-white/8 transition-all flex items-center justify-center gap-2"
-                >
+                <button onClick={loadMore} disabled={loading}
+                  className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 bg-white/5 hover:bg-white/8 transition-all flex items-center justify-center gap-2 mt-3">
                   {loading ? <Loader2 size={14} className="animate-spin" /> : null}
                   {t('common.load_more')}
                 </button>
               )}
-            </>
+            </section>
           )}
 
-          {!loading && discoverEvents.length === 0 && (
+          {!loading && baseEvents.length === 0 && (
             <EmptyState
               keyword={keyword}
               activeVibes={activeVibes}
@@ -659,26 +738,30 @@ export default function Home() {
       {mode === 'activities' && <ActivitiesView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'activity')} />}
 
       {/* ── MOBILE NAV ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/6"
-        style={{ background: 'rgba(8,8,12,0.97)', backdropFilter: 'blur(20px)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-6">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
+        style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="grid grid-cols-6 h-full">
           {([
-            { tab: 'discover' as const,     emoji: '✦',  labelKey: 'nav.home'        },
+            { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
             { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
             { tab: 'restaurants' as const,   emoji: '🍽', labelKey: 'nav.restaurants' },
             { tab: 'activities' as const,    emoji: '🧖', labelKey: 'nav.activities'  },
             { tab: 'map' as const,           emoji: '🗺', labelKey: 'nav.map'         },
             { tab: 'favorites' as const,     emoji: '♥',  labelKey: 'nav.favorites'   },
-          ] as const).map(({ tab, emoji, labelKey }) => (
-            <button key={tab} onClick={() => handleMobileTab(tab)}
-              className={`relative flex flex-col items-center gap-0.5 py-3 transition-all ${mobileTab === tab ? 'text-purple-400' : 'text-white/25 hover:text-white/50'}`}>
-              <span className="text-lg leading-none">{emoji}</span>
-              <span className="text-[10px] font-bold">{t(labelKey)}</span>
-              {tab === 'favorites' && favCount > 0 && (
-                <span className="absolute top-2 right-[calc(50%-18px)] w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center bg-pink-500 text-white">{favCount}</span>
-              )}
-            </button>
-          ))}
+          ] as const).map(({ tab, emoji, labelKey }) => {
+            const isActive = mobileTab === tab
+            return (
+              <button key={tab} onClick={() => handleMobileTab(tab)}
+                className="relative flex flex-col items-center justify-center gap-0.5 transition-all"
+                style={{ color: isActive ? '#6b76ff' : 'rgba(255,255,255,0.4)' }}>
+                <span className="text-lg leading-none" style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(91,101,230,.5))' } : {}}>{emoji}</span>
+                <span className="text-[10px] font-bold">{t(labelKey)}</span>
+                {tab === 'favorites' && favCount > 0 && (
+                  <span className="absolute top-2 right-[calc(50%-18px)] w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{favCount}</span>
+                )}
+              </button>
+            )
+          })}
         </div>
       </nav>
 

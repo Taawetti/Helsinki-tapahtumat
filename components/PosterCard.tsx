@@ -75,7 +75,7 @@ export default function PosterCard({ event, onClick, large }: Props) {
     <Link
       href={`/e/${encodeURIComponent(event.id)}`}
       onClick={(e) => { e.preventDefault(); onClick(event) }}
-      className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 block"
+      className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff] block"
     >
       {/* Image / text poster area */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: large ? '16/9' : '3/4' }}>
@@ -162,7 +162,7 @@ export default function PosterCard({ event, onClick, large }: Props) {
 
       {/* Info row — only show venue/price here to avoid title duplication on text posters */}
       <div className="px-3 pt-2.5 pb-3 space-y-0.5">
-        <p className="text-white font-bold text-[13px] leading-snug line-clamp-2 group-hover:text-purple-200 transition-colors">
+        <p className="text-white font-bold text-[13px] leading-snug line-clamp-2 group-hover:text-[#c7caff] transition-colors">
           {event.title}
         </p>
         {event.location?.name && (

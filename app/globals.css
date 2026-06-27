@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #08080c;
-  --accent: #c026d3;
-  --accent2: #7c3aed;
+  --bg: #0a0a0c;
+  --accent: #6b76ff;
+  --accent2: #5059e6;
+  --accent-grad: linear-gradient(150deg, #6b76ff, #5059e6);
 }
 
 @theme inline {
@@ -20,24 +21,32 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Accent gradient utility */
+.gradient-accent {
+  background: var(--accent-grad);
+}
+
 /* Gradient text utility */
 .gradient-text {
-  background: linear-gradient(135deg, #a855f7, #ec4899, #f97316);
+  background: var(--accent-grad);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-cool {
-  background: linear-gradient(135deg, #818cf8, #c084fc);
+  background: linear-gradient(135deg, #a3abff, #6b76ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 /* Glow effects */
-.glow-purple { box-shadow: 0 0 40px rgba(168, 85, 247, 0.25); }
-.glow-pink   { box-shadow: 0 0 40px rgba(236, 72, 153, 0.25); }
+.glow-accent { box-shadow: 0 10px 24px -8px rgba(91,101,230,.85); }
+.glow-indigo  { box-shadow: 0 0 40px rgba(107, 118, 255, 0.25); }
+
+/* Active nav icon glow */
+.nav-active-glow { filter: drop-shadow(0 0 8px rgba(91,101,230,.5)); }
 
 /* Grain texture overlay */
 .grain::after {
@@ -50,6 +59,31 @@ body {
 }
 
 /* Animations */
+@keyframes mtfade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-mtfade { animation: mtfade 0.25s ease; }
+
+@keyframes mtpop {
+  from { transform: scale(0.94); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.animate-mtpop { animation: mtpop 0.22s ease; }
+
+@keyframes mtdrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(20px, -15px) scale(1.05); }
+  66%       { transform: translate(-10px, 10px) scale(0.97); }
+}
+.animate-mtdrift { animation: mtdrift 18s ease infinite; }
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.animate-sheet-up { animation: sheetUp 0.32s cubic-bezier(0.32, 0.72, 0, 1); }
+
 @keyframes slide-in {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
