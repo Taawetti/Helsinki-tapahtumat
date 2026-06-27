@@ -29,9 +29,9 @@ type Layers = { events: boolean; restaurants: boolean; activities: boolean }
 const HELSINKI_CENTER: [number, number] = [60.1699, 24.9384]
 
 const LAYER_META = [
-  { key: 'events'      as const, label: '📅 Tapahtumat', bg: 'linear-gradient(135deg,#7c3aed,#a855f7)' },
-  { key: 'restaurants' as const, label: '🍽 Ravintolat',  bg: 'linear-gradient(135deg,#c2410c,#f97316)' },
-  { key: 'activities'  as const, label: '🧖 Tekemistä',   bg: 'linear-gradient(135deg,#0f766e,#14b8a6)' },
+  { key: 'events'      as const, label: '🎟 Tapahtumat', bg: 'linear-gradient(150deg,#6b76ff,#5059e6)' },
+  { key: 'restaurants' as const, label: '🍽 Ravintolat',  bg: 'linear-gradient(150deg,#2563eb,#5f96ff)' },
+  { key: 'activities'  as const, label: '🧖 Tekemistä',   bg: 'linear-gradient(150deg,#10b981,#5fd9a6)' },
 ]
 
 // ── Color helpers ─────────────────────────────────────────
@@ -298,6 +298,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         subdomains: 'abcd', maxZoom: 20,
       }).addTo(map)
       mapRef.current = map
+      // invalidateSize after CSS transition (tab switch may not have settled)
+      setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize() }, 120)
       setMapReady(true)
     })
     return () => {
@@ -396,7 +398,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
           ${r.description ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(r.description)}</p>` : ''}
           ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(r.address)}${r.city && r.city !== 'Helsinki' ? `, ${esc(r.city)}` : ''}</p>` : ''}
           ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} ${t('map.dist_away')}</p>` : ''}
-          ${safeUrl(r.www) ? `<a href="${safeUrl(r.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
+          ${safeUrl(r.www) ? `<a href="${safeUrl(r.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
           ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${safeUrl(r.www) ? '3px' : '0'} 0 0">${r.phone}</p>` : ''}
         </div>`
         const marker = L.marker([r.lat, r.lon], { icon })
@@ -425,7 +427,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
           ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(a.address)}</p>` : ''}
           ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">🎁 ${t('map.free_act')}</p>` : ''}
           ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${a.openingHours.split(';')[0]}</p>` : ''}
-          ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a78bfa;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
+          ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
         </div>`
         const marker = L.marker([a.lat, a.lon], { icon })
         marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
@@ -530,7 +532,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   onClick={() => { setDateFilter(dp.key); setCustomDate(''); setCalOpen(false) }}
                   className="shrink-0 px-3 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border"
                   style={dateFilter === dp.key && customDate === ''
-                    ? { background: '#6366f1', color: '#fff', borderColor: 'transparent' }
+                    ? { background: '#6b76ff', color: '#fff', borderColor: 'transparent' }
                     : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}>
                   {t(dp.tKey)}
                 </button>
@@ -540,7 +542,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                 onClick={() => setCalOpen(o => !o)}
                 className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border"
                 style={calOpen || (dateFilter === 'custom' && customDate)
-                  ? { background: '#6366f1', color: '#fff', borderColor: 'transparent' }
+                  ? { background: '#6b76ff', color: '#fff', borderColor: 'transparent' }
                   : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}>
                 📅 {dateFilter === 'custom' && customDate
                   ? new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'short' })
@@ -550,7 +552,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
           </div>
         )}
 
-        {/* Category sub-filters — when any layer ON */}
+        {/* Row 1: event subs + restaurant type row + activity subs */}
         {(layers.events || layers.restaurants || layers.activities) && (
           <div style={{ borderRadius: 12, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
@@ -567,22 +569,9 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
               {layers.events && (layers.restaurants || layers.activities) && (
                 <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
               )}
-              {layers.restaurants && REST_CUISINE_SUBS.map(sf => (
-                <button key={sf.key}
-                  onClick={() => setRestCuisine(restCuisine === sf.key ? null : sf.key)}
-                  className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
-                  style={restCuisine === sf.key
-                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
-                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {t(sf.tKey)}
-                </button>
-              ))}
-              {layers.restaurants && (
-                <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
-              )}
               {layers.restaurants && REST_SUBS.map(sf => (
                 <button key={sf.key}
-                  onClick={() => setRestType(restType === sf.key ? null : sf.key)}
+                  onClick={() => { setRestType(restType === sf.key ? null : sf.key); setRestCuisine(null) }}
                   className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
                   style={restType === sf.key
                     ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
@@ -598,6 +587,25 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   onClick={() => setActCat(actCat === sf.key ? null : sf.key)}
                   className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
                   style={actCat === sf.key
+                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
+                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                  {sf.emoji} {t(sf.tKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Row 2: restaurant cuisine sub-filter (↳ appears only when a rest type is selected) */}
+        {layers.restaurants && restType && (
+          <div style={{ borderRadius: 12, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)', border: '1px solid rgba(95,150,255,0.25)' }}>
+            <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
+              <span className="shrink-0 text-[10px] font-black self-center pr-1" style={{ color: '#5f96ff' }}>↳</span>
+              {REST_CUISINE_SUBS.map(sf => (
+                <button key={sf.key}
+                  onClick={() => setRestCuisine(restCuisine === sf.key ? null : sf.key)}
+                  className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
+                  style={restCuisine === sf.key
                     ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
                     : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
                   {sf.emoji} {t(sf.tKey)}
@@ -662,7 +670,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                         style={{
                           height: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                           borderRadius: 8, border: isToday && !isSel ? '1px solid rgba(99,102,241,0.5)' : '1px solid transparent',
-                          background: isSel ? '#6366f1' : 'transparent',
+                          background: isSel ? '#6b76ff' : 'transparent',
                           color: isPast ? 'rgba(255,255,255,0.18)' : '#fff',
                           fontSize: 12, fontWeight: isSel || isToday ? 700 : 400,
                           fontFamily: 'Inter,sans-serif', cursor: isPast ? 'default' : 'pointer',
@@ -670,7 +678,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                         }}>
                         {day}
                         {dots > 0 && !isPast && (
-                          <span style={{ position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: '50%', background: isSel ? 'rgba(255,255,255,0.7)' : '#6366f1' }} />
+                          <span style={{ position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: '50%', background: isSel ? 'rgba(255,255,255,0.7)' : '#6b76ff' }} />
                         )}
                       </button>
                     )
@@ -685,7 +693,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                 </button>
                 {dateFilter === 'custom' && customDate && (
                   <button onClick={() => { setDateFilter('today'); setCustomDate(''); setCalOpen(false) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#818cf8', fontSize: 12, fontWeight: 600, fontFamily: 'Inter,sans-serif' }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a3abff', fontSize: 12, fontWeight: 600, fontFamily: 'Inter,sans-serif' }}>
                     {t('map.cal_clear')}
                   </button>
                 )}
@@ -699,7 +707,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       <button onClick={locateMe} disabled={locating}
         className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 text-white/60 hover:text-white text-xs font-bold transition-all shadow-lg disabled:opacity-60">
         {locating
-          ? <span className="w-3 h-3 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+          ? <span className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'rgba(107,118,255,.5)', borderTopColor: '#6b76ff' }} />
           : <span>📍</span>}
         {userPos ? t('common.update_loc') : t('common.locate_me')}
       </button>
