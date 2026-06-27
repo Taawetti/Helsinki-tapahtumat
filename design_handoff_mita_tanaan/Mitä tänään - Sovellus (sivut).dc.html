@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.nsb{scrollbar-width:none;-ms-overflow-style:none}
+.nsb::-webkit-scrollbar{display:none}
+@keyframes mtpulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.25)}}
+@keyframes mtdrift{0%{transform:translate3d(0,0,0)}50%{transform:translate3d(14px,-10px,0)}100%{transform:translate3d(0,0,0)}}
+@keyframes mtpop{0%{transform:scale(.94);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes mtfade{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes sheetUp{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
+.leaflet-container{background:#0a0d16!important;font-family:Inter,sans-serif}
+.mt-popup .leaflet-popup-content-wrapper{background:#15121c;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+.mt-popup .leaflet-popup-tip{background:#15121c;border:1px solid rgba(255,255,255,.12)}
+.mt-popup .leaflet-popup-content{margin:11px 13px}
+.leaflet-bar a{background:#1a1620!important;color:#fff!important;border-color:rgba(255,255,255,.12)!important}
+.leaflet-bar a:hover{background:#241f2c!important}
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</helmet>
+
+<x-import component-from-global-scope="image-slot" from="./image-slot.js" hint-size="1px,1px"></x-import>
+<template id="__bundler_thumbnail"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="22" fill="#0a0a0c"/><circle cx="50" cy="42" r="20" fill="none" stroke="#6b76ff" stroke-width="4"/><path d="M50 33v9l6 4" stroke="#6b76ff" stroke-width="4" fill="none" stroke-linecap="round"/><text x="50" y="80" font-family="Inter,sans-serif" font-size="13" font-weight="800" fill="#a3abff" text-anchor="middle">Mitä tänään</text></svg></template>
+
+<div style="min-width:100%;min-height:100vh;width:max-content;box-sizing:border-box;padding:48px;background:#e7e5df">
+
+  <div style="margin-bottom:32px;max-width:860px">
+    <div style="font-weight:900;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#9a9488">Mitä tänään — sovellus, oikea rakenne</div>
+    <div style="font-weight:800;font-size:27px;letter-spacing:-.02em;color:#1c1a16;margin-top:6px;line-height:1.1">Omat sivut + alanavigaatio (toimii)</div>
+    <div style="font-weight:500;font-size:14px;color:#6b665c;margin-top:8px;line-height:1.5">Napauta alanavigaatiota: ✦ Koti (Tapahtumat &amp; keikat) · 🎲 Idea · 🍽 Ravintolat · 🧖 Aktiviteetit · 🗺 Kartta · ♥ Suosikit. Koti-sivulla alakategoriat koodin mukaan (Keikka, Yöelämä, Baari, Urheilu…). Fiilis-rivi poistettu. Liput edellä konversiolle.</div>
+  </div>
+
+  <div style="display:flex;gap:48px;align-items:flex-start">
+
+  <div style="flex:none;width:392px">
+    <div style="position:relative;width:392px;height:900px;border-radius:48px;overflow:hidden;background:#0a0a0c;display:flex;flex-direction:column;box-shadow:0 40px 90px -28px rgba(0,0,0,.7),0 0 0 10px #050506,0 0 0 11px rgba(255,255,255,.06),inset 0 0 0 1px rgba(255,255,255,.03)">
+
+      <div style="position:absolute;top:-90px;right:-110px;width:420px;height:460px;z-index:0;pointer-events:none;mix-blend-mode:screen;animation:mtdrift 18s ease-in-out infinite;background:radial-gradient(closest-side, rgba(91,101,230,.26), rgba(91,101,230,.07) 52%, transparent 78%)"></div>
+
+      <!-- status bar -->
+      <div style="height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 30px 0 32px;flex:none;position:relative;z-index:3"><span style="font-size:12.5px;font-weight:700;color:#fff">20.45</span><span style="display:flex;gap:5px;align-items:center"><span style="font-size:11px;color:#fff">📶</span><span style="width:17px;height:10px;border:1.5px solid rgba(255,255,255,.65);border-radius:2.5px;display:inline-block;position:relative"><span style="position:absolute;inset:1.5px;right:5px;background:#fff;border-radius:1px"></span></span></span></div>
+
+      <div class="nsb" style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;position:relative;z-index:1">
+
+        <!-- ============ KOTI ============ -->
+        <sc-if value="{{ isKoti }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;animation:mtfade .25s ease both">
+          <!-- header -->
+          <div style="display:flex;align-items:center;gap:9px;padding:10px 16px 4px;flex:none">
+            <div style="flex:1;display:flex;align-items:center;gap:8px">
+              <div style="width:27px;height:27px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6)">M</div>
+              <span style="font-weight:900;font-size:14px;letter-spacing:-.02em;color:rgba(255,255,255,.85)">Mitä tänään</span>
+            </div>
+            <div style="width:38px;height:38px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;position:relative">🔔<span style="position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:999px;background:#6b76ff;border:1.5px solid #0a0a0c"></span></div>
+            <div style="width:38px;height:38px;border-radius:999px;background:linear-gradient(150deg,#6b76ff,#5059e6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:800;box-shadow:0 6px 16px -5px rgba(91,101,230,.7)">A</div>
+          </div>
+          <!-- big city wordmark -->
+          <div style="padding:6px 16px 2px;flex:none">
+            <div style="font-size:58px;font-weight:900;letter-spacing:-.05em;line-height:.86;color:#fff">HELSINKI</div>
+            <div style="font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-top:8px">{{ todayLabel }}</div>
+          </div>
+          <!-- search -->
+          <div style="padding:2px 16px 6px;flex:none">
+            <div style="display:flex;align-items:center;gap:10px;height:46px;padding:0 16px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09)"><span style="font-size:17px;color:rgba(255,255,255,.5)">⌕</span><span style="font-size:14px;font-weight:500;color:rgba(255,255,255,.45);flex:1">Etsi keikkoja, tapahtumia, artisteja…</span></div>
+          </div>
+          <!-- date strip -->
+          <div class="nsb" style="display:flex;gap:7px;overflow-x:auto;padding:6px 16px 4px;flex:none">
+            <span style="{{ calBtn.style }}" onClick="{{ calBtn.onClick }}">{{ calBtn.label }}</span>
+            <sc-for list="{{ koDayChips }}" as="d" hint-placeholder-count="4"><span style="{{ d.style }}" onClick="{{ d.onClick }}">{{ d.label }}</span></sc-for>
+          </div>
+          <!-- VIBE subcategories -->
+          <div style="padding:12px 0 2px;flex:none">
+            <div class="nsb" style="display:flex;gap:20px;overflow-x:auto;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+              <sc-for list="{{ vibes }}" as="v" hint-placeholder-count="8">
+                <span style="{{ v.style }}" onClick="{{ v.onClick }}">{{ v.label }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <!-- hero gig -->
+          <div style="padding:12px 16px 4px;flex:none">
+            <div onClick="{{ oe_olavi }}" style="position:relative;border-radius:22px;overflow:hidden;aspect-ratio:16/10;border:1px solid rgba(255,255,255,.1);box-shadow:0 22px 50px -20px rgba(91,101,230,.4),inset 0 1px 0 rgba(255,255,255,.1);cursor:pointer" style-hover="transform:scale(1.012)">
+              <image-slot id="app-koti-hero" shape="rect" fit="cover" placeholder="Raahaa keikan kuva" style="position:absolute;inset:0;width:100%;height:100%;z-index:0"></image-slot>
+              <div style="position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(120% 80% at 84% -6%, rgba(91,101,230,.26), transparent 52%)"></div>
+              <div style="position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to top,rgba(8,8,11,.96),rgba(8,8,11,.22) 52%,transparent 86%)"></div>
+              <div style="position:absolute;top:12px;left:12px;display:flex;gap:7px;align-items:center;z-index:2"><span style="font-size:9px;font-weight:900;letter-spacing:.1em;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:5px 10px;border-radius:999px;box-shadow:0 6px 16px -5px rgba(91,101,230,.9)">✦ ILLAN NOSTO</span><span style="font-size:9.5px;font-weight:800;color:#c7caff;background:rgba(91,101,230,.2);border:1px solid rgba(120,128,255,.3);padding:5px 9px;border-radius:999px">Keikka</span></div>
+              <div style="position:absolute;top:11px;right:11px;width:34px;height:34px;border-radius:999px;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;z-index:2">♡</div>
+              <div style="position:absolute;left:0;right:0;bottom:0;padding:16px 16px;z-index:2"><div style="font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#aab2ff;margin-bottom:5px">Keikka · Tavastia</div><div style="font-size:32px;font-weight:900;color:#fff;line-height:.9;letter-spacing:-.04em">Olavi Uusivirta</div><div style="display:flex;align-items:center;gap:9px;margin-top:13px"><span style="font-size:13px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:11px 18px;border-radius:999px;box-shadow:0 10px 24px -8px rgba(91,101,230,.85)">Liput alk. 32€ →</span><span style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75);margin-left:auto">Tänään 21.00</span></div></div>
+            </div>
+          </div>
+          <!-- Illan keikat -->
+          <div style="padding:22px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">Illan keikat 🎸</span><span style="font-size:11px;font-weight:800;color:#a3abff">Kaikki ›</span></div>
+            <div class="nsb" style="display:flex;gap:12px;overflow-x:auto;padding:0 16px">
+              <div onClick="{{ oe_behm }}" style="flex:none;width:172px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7);cursor:pointer" style-hover="transform:translateY(-5px)"><div style="position:relative;aspect-ratio:16/10;background:radial-gradient(120% 100% at 30% 0%,rgba(255,111,96,.4),transparent 62%),#16121a"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.85">🎤</div><span style="position:absolute;top:8px;left:8px;font-size:8.5px;font-weight:900;color:#fff;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);padding:4px 8px;border-radius:7px">La 19.00</span></div><div style="padding:11px 12px 13px"><div style="font-size:14px;font-weight:800;color:#fff;line-height:1.15">Behm</div><div style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,.5);margin-top:3px">Kaapelitehdas · La 19.00</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px"><span style="font-size:12px;font-weight:800;color:#fff">alk. 39€</span><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 13px;border-radius:999px;box-shadow:0 6px 16px -6px rgba(91,101,230,.8)">Osta →</span></div></div></div>
+              <div onClick="{{ oe_hifk }}" style="flex:none;width:172px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7);cursor:pointer" style-hover="transform:translateY(-5px)"><div style="position:relative;aspect-ratio:16/10;background:radial-gradient(120% 100% at 30% 0%,rgba(95,150,255,.4),transparent 62%),#10131a"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.85">🏒</div><span style="position:absolute;top:8px;left:8px;font-size:8.5px;font-weight:900;color:#fff;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);padding:4px 8px;border-radius:7px">Tänään</span></div><div style="padding:11px 12px 13px"><div style="font-size:14px;font-weight:800;color:#fff;line-height:1.15">HIFK – Tappara</div><div style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,.5);margin-top:3px">Helsinki-halli · 18.30</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px"><span style="font-size:12px;font-weight:800;color:#fff">alk. 29€</span><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 13px;border-radius:999px;box-shadow:0 6px 16px -6px rgba(91,101,230,.8)">Osta →</span></div></div></div>
+              <div onClick="{{ oe_kaikuklubi }}" style="flex:none;width:172px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7);cursor:pointer" style-hover="transform:translateY(-5px)"><div style="position:relative;aspect-ratio:16/10;background:radial-gradient(120% 100% at 30% 0%,rgba(175,130,255,.4),transparent 62%),#13111a"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.85">🎧</div><span style="position:absolute;top:8px;left:8px;font-size:8.5px;font-weight:900;color:#fff;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);padding:4px 8px;border-radius:7px">Su 23.00</span></div><div style="padding:11px 12px 13px"><div style="font-size:14px;font-weight:800;color:#fff;line-height:1.15">Klubi: Kaiku</div><div style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,.5);margin-top:3px">Suvilahti · 23.00</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px"><span style="font-size:12px;font-weight:800;color:#fff">alk. 12€</span><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 13px;border-radius:999px;box-shadow:0 6px 16px -6px rgba(91,101,230,.8)">Osta →</span></div></div></div>
+            </div>
+          </div>
+          <!-- Alkaa pian lähelläsi -->
+          <div style="padding:22px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">Alkaa pian lähelläsi ⏱</span><span style="font-size:11px;font-weight:800;color:#a3abff">Kartalla ›</span></div>
+            <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px">
+              <div style="display:flex;align-items:center;gap:12px;padding:9px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)" style-hover="background:rgba(255,255,255,.07)"><div style="width:60px;height:60px;border-radius:12px;flex:none;background:radial-gradient(120% 100% at 30% 0%,rgba(95,210,160,.4),transparent 62%),#0f1513;display:flex;align-items:center;justify-content:center;font-size:28px">😂</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;font-weight:900;color:#a3abff;background:rgba(91,101,230,.16);padding:3px 7px;border-radius:6px">⏱ 45 min</span><span style="font-size:10px;font-weight:600;color:rgba(255,255,255,.45)">0.8 km</span></div><div style="font-size:14px;font-weight:800;color:#fff;margin-top:5px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Stand-up: Comedy Café</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-top:2px">Kallio · 21.30 · alk. 15€</div></div><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:9px 13px;border-radius:999px;white-space:nowrap">Liput →</span></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:9px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)" style-hover="background:rgba(255,255,255,.07)"><div style="width:60px;height:60px;border-radius:12px;flex:none;background:radial-gradient(120% 100% at 30% 0%,rgba(175,130,255,.4),transparent 62%),#120f16;display:flex;align-items:center;justify-content:center;font-size:28px">🎧</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:9px;font-weight:900;color:#a3abff;background:rgba(91,101,230,.16);padding:3px 7px;border-radius:6px">⏱ 1 h 10 min</span><span style="font-size:10px;font-weight:600;color:rgba(255,255,255,.45)">1.4 km</span></div><div style="font-size:14px;font-weight:800;color:#fff;margin-top:5px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">DJ-ilta: Kaiku</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-top:2px">Suvilahti · 22.00 · alk. 12€</div></div><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:9px 13px;border-radius:999px;white-space:nowrap">Liput →</span></div>
+            </div>
+          </div>
+
+          <!-- Top 10 -->
+          <div style="padding:22px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">Top 10 tänään</span><span style="font-size:11px;font-weight:800;color:#a3abff">Kaikki ›</span></div>
+            <div class="nsb" style="display:flex;gap:4px;overflow-x:auto;padding:0 16px 4px;align-items:flex-end">
+              <div style="flex:none;position:relative;width:150px;height:166px;display:flex;align-items:flex-end;justify-content:flex-end" style-hover="transform:translateY(-5px)"><span style="position:absolute;left:-6px;bottom:-22px;font-size:148px;font-weight:900;line-height:.7;color:#0a0a0c;-webkit-text-stroke:2.5px rgba(120,128,255,.6);z-index:0">1</span><div style="position:relative;z-index:1;width:108px;height:150px;border-radius:14px;overflow:hidden;background:radial-gradient(130% 80% at 100% 0%,rgba(255,111,96,.32),transparent 58%),#14111a;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -12px rgba(0,0,0,.7)"><div style="position:absolute;top:-6px;right:-4px;font-size:70px;opacity:.18">🎸</div><div style="position:absolute;left:0;right:0;bottom:0;padding:9px;background:linear-gradient(to top,rgba(0,0,0,.92),transparent);font-size:11px;font-weight:800;color:#fff;line-height:1.1">Tavastia: Litku</div></div></div>
+              <div style="flex:none;position:relative;width:150px;height:166px;display:flex;align-items:flex-end;justify-content:flex-end" style-hover="transform:translateY(-5px)"><span style="position:absolute;left:-6px;bottom:-22px;font-size:148px;font-weight:900;line-height:.7;color:#0a0a0c;-webkit-text-stroke:2.5px rgba(120,128,255,.6);z-index:0">2</span><div style="position:relative;z-index:1;width:108px;height:150px;border-radius:14px;overflow:hidden;background:radial-gradient(130% 80% at 100% 0%,rgba(95,150,255,.32),transparent 58%),#10121a;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -12px rgba(0,0,0,.7)"><div style="position:absolute;top:-6px;right:-4px;font-size:70px;opacity:.18">😂</div><div style="position:absolute;left:0;right:0;bottom:0;padding:9px;background:linear-gradient(to top,rgba(0,0,0,.92),transparent);font-size:11px;font-weight:800;color:#fff;line-height:1.1">Stand up: Kallio</div></div></div>
+              <div style="flex:none;position:relative;width:150px;height:166px;display:flex;align-items:flex-end;justify-content:flex-end" style-hover="transform:translateY(-5px)"><span style="position:absolute;left:-6px;bottom:-22px;font-size:148px;font-weight:900;line-height:.7;color:#0a0a0c;-webkit-text-stroke:2.5px rgba(120,128,255,.6);z-index:0">3</span><div style="position:relative;z-index:1;width:108px;height:150px;border-radius:14px;overflow:hidden;background:radial-gradient(130% 80% at 100% 0%,rgba(95,210,160,.32),transparent 58%),#0f1513;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -12px rgba(0,0,0,.7)"><div style="position:absolute;top:-6px;right:-4px;font-size:70px;opacity:.18">🎭</div><div style="position:absolute;left:0;right:0;bottom:0;padding:9px;background:linear-gradient(to top,rgba(0,0,0,.92),transparent);font-size:11px;font-weight:800;color:#fff;line-height:1.1">Kansallisteatteri</div></div></div>
+            </div>
+          </div>
+          <!-- Urheilu tänään -->
+          <div style="padding:22px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">Urheilu tänään ⚽</span><span style="font-size:11px;font-weight:800;color:#a3abff">Kaikki ›</span></div>
+            <div class="nsb" style="display:flex;gap:12px;overflow-x:auto;padding:0 16px">
+              <div style="flex:none;width:200px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7)" style-hover="transform:translateY(-5px)"><div style="position:relative;aspect-ratio:16/10;background:radial-gradient(120% 100% at 30% 0%,rgba(95,150,255,.42),transparent 62%),#0f1119"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:46px;opacity:.85">🏒</div><span style="position:absolute;top:8px;left:8px;font-size:8.5px;font-weight:900;color:#fff;background:rgba(91,101,230,.92);padding:4px 8px;border-radius:7px">Tänään 18.30</span></div><div style="padding:11px 12px 13px"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#a9c2ff">Jääkiekko · Liiga</div><div style="font-size:14.5px;font-weight:800;color:#fff;line-height:1.15;margin-top:3px">HIFK – Tappara</div><div style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,.5);margin-top:3px">Helsinki-halli</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px"><span style="font-size:12px;font-weight:800;color:#fff">alk. 29€</span><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 13px;border-radius:999px;box-shadow:0 6px 16px -6px rgba(91,101,230,.8)">Liput →</span></div></div></div>
+              <div style="flex:none;width:200px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7)" style-hover="transform:translateY(-5px)"><div style="position:relative;aspect-ratio:16/10;background:radial-gradient(120% 100% at 30% 0%,rgba(95,210,160,.42),transparent 62%),#0f1513"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:46px;opacity:.85">⚽</div><span style="position:absolute;top:8px;left:8px;font-size:8.5px;font-weight:900;color:#fff;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);padding:4px 8px;border-radius:7px">La 16.00</span></div><div style="padding:11px 12px 13px"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#a7e8c8">Jalkapallo · Veikkausliiga</div><div style="font-size:14.5px;font-weight:800;color:#fff;line-height:1.15;margin-top:3px">HJK – KuPS</div><div style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,.5);margin-top:3px">Bolt Arena</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px"><span style="font-size:12px;font-weight:800;color:#fff">alk. 24€</span><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 13px;border-radius:999px;box-shadow:0 6px 16px -6px rgba(91,101,230,.8)">Liput →</span></div></div></div>
+              <div style="flex:none;width:200px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7)" style-hover="transform:translateY(-5px)"><div style="position:relative;aspect-ratio:16/10;background:radial-gradient(120% 100% at 30% 0%,rgba(255,150,90,.42),transparent 62%),#161009"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:46px;opacity:.85">🏀</div><span style="position:absolute;top:8px;left:8px;font-size:8.5px;font-weight:900;color:#fff;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);padding:4px 8px;border-radius:7px">Su 17.00</span></div><div style="padding:11px 12px 13px"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#f0d49e">Koripallo · Korisliiga</div><div style="font-size:14.5px;font-weight:800;color:#fff;line-height:1.15;margin-top:3px">Helsinki Seagulls</div><div style="font-size:10.5px;font-weight:600;color:rgba(255,255,255,.5);margin-top:3px">Helsingin halli</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px"><span style="font-size:12px;font-weight:800;color:#fff">alk. 18€</span><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 13px;border-radius:999px;box-shadow:0 6px 16px -6px rgba(91,101,230,.8)">Liput →</span></div></div></div>
+            </div>
+          </div>
+
+          <!-- Tämän viikonlopun kohokohdat -->
+          <div style="padding:22px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">{{ weekendTitle }}</span><span style="font-size:11px;font-weight:800;color:#a3abff">Kaikki ›</span></div>
+            <div class="nsb" style="display:flex;gap:12px;overflow-x:auto;padding:0 16px">
+              <div style="flex:none;width:250px;border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/11;background:radial-gradient(120% 100% at 25% 0%,rgba(95,150,255,.42),transparent 60%),#0f1119;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7)" style-hover="transform:translateY(-5px)"><div style="position:absolute;bottom:-8px;right:-4px;font-size:120px;opacity:.16">🏟</div><div style="position:absolute;top:9px;left:9px;font-size:8.5px;font-weight:900;letter-spacing:.06em;color:#04222a;background:#5fd9c0;padding:4px 8px;border-radius:7px">LA 19.00</div><div style="position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,rgba(8,8,11,.95),transparent)"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#a9c2ff">Stadion · iso keikka</div><div style="font-size:20px;font-weight:900;color:#fff;margin-top:2px;letter-spacing:-.02em">Haloo Helsinki!</div><div style="display:flex;align-items:center;gap:8px;margin-top:10px"><span style="font-size:12px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 14px;border-radius:999px">Liput alk. 49€ →</span></div></div></div>
+              <div style="flex:none;width:250px;border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/11;background:radial-gradient(120% 100% at 25% 0%,rgba(255,150,90,.42),transparent 60%),#161009;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7)" style-hover="transform:translateY(-5px)"><div style="position:absolute;bottom:-8px;right:-4px;font-size:120px;opacity:.16">🍺</div><div style="position:absolute;top:9px;left:9px;font-size:8.5px;font-weight:900;letter-spacing:.06em;color:#1c1407;background:#e8c06a;padding:4px 8px;border-radius:7px">SU 12–18</div><div style="position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,rgba(8,8,11,.95),transparent)"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#f0d49e">Festivaali · Suvilahti</div><div style="font-size:20px;font-weight:900;color:#fff;margin-top:2px;letter-spacing:-.02em">Craft-olutfestari</div><div style="display:flex;align-items:center;gap:8px;margin-top:10px"><span style="font-size:12px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 14px;border-radius:999px">Liput alk. 22€ →</span></div></div></div>
+            </div>
+          </div>
+
+          <!-- Ilmaiseksi tänään -->
+          <div style="padding:22px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">Ilmaiseksi tänään 🎁</span><span style="font-size:11px;font-weight:800;color:#a3abff">Kaikki ›</span></div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <div style="flex:none;width:138px;position:relative;aspect-ratio:3/4;border-radius:15px;overflow:hidden;background:radial-gradient(140% 90% at 100% 0%,rgba(95,210,160,.28),transparent 60%),#0c130f;border:1px solid rgba(255,255,255,.07)" style-hover="transform:translateY(-4px)"><div style="position:absolute;top:-8px;right:-4px;font-size:84px;opacity:.16">🎵</div><div style="position:absolute;top:8px;left:8px;font-size:8px;font-weight:900;letter-spacing:.04em;color:#04231a;background:#5fd9a6;padding:3px 8px;border-radius:999px">ILMAINEN</div><div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:10px;background:linear-gradient(to top,rgba(0,0,0,.82),transparent 62%)"><div style="font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:3px">Ilmaiskeikka</div><div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.01em">Esplanadin lava</div><div style="font-size:9.5px;color:rgba(255,255,255,.42);margin-top:3px">Esplanadi · 19.00</div></div></div>
+              <div style="flex:none;width:138px;position:relative;aspect-ratio:3/4;border-radius:15px;overflow:hidden;background:radial-gradient(140% 90% at 100% 0%,rgba(95,150,255,.28),transparent 60%),#0c0f15;border:1px solid rgba(255,255,255,.07)" style-hover="transform:translateY(-4px)"><div style="position:absolute;top:-8px;right:-4px;font-size:84px;opacity:.16">🖼</div><div style="position:absolute;top:8px;left:8px;font-size:8px;font-weight:900;letter-spacing:.04em;color:#04231a;background:#5fd9a6;padding:3px 8px;border-radius:999px">ILMAINEN</div><div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:10px;background:linear-gradient(to top,rgba(0,0,0,.82),transparent 62%)"><div style="font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:3px">Näyttely</div><div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.01em">Kiasma · ilta</div><div style="font-size:9.5px;color:rgba(255,255,255,.42);margin-top:3px">Keskusta · 17–20</div></div></div>
+              <div style="flex:none;width:138px;position:relative;aspect-ratio:3/4;border-radius:15px;overflow:hidden;background:radial-gradient(140% 90% at 100% 0%,rgba(175,130,255,.3),transparent 60%),#0d0b14;border:1px solid rgba(255,255,255,.07)" style-hover="transform:translateY(-4px)"><div style="position:absolute;top:-8px;right:-4px;font-size:84px;opacity:.16">✨</div><div style="position:absolute;top:8px;left:8px;font-size:8px;font-weight:900;letter-spacing:.04em;color:#04231a;background:#5fd9a6;padding:3px 8px;border-radius:999px">ILMAINEN</div><div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:10px;background:linear-gradient(to top,rgba(0,0,0,.82),transparent 62%)"><div style="font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:3px">Valotaide</div><div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12;letter-spacing:-.01em">Lux Helsinki</div><div style="font-size:9.5px;color:rgba(255,255,255,.42);margin-top:3px">Keskusta · 17.00</div></div></div>
+            </div>
+          </div>
+
+          <!-- Jotain yllättävää -->
+          <div style="padding:22px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">Jotain yllättävää ✨</span><span style="font-size:11px;font-weight:800;color:#a3abff">Yllätä minut ›</span></div>
+            <div class="nsb" style="display:flex;gap:12px;overflow-x:auto;padding:0 16px">
+              <div style="flex:none;width:210px;border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/11;background:radial-gradient(120% 110% at 20% 0%,rgba(175,130,255,.5),transparent 58%),radial-gradient(120% 110% at 100% 100%,rgba(95,210,235,.32),transparent 55%),#100d1a;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7)" style-hover="transform:translateY(-5px)"><div style="position:absolute;bottom:-6px;right:-4px;font-size:108px;opacity:.18">🧘</div><div style="position:absolute;top:9px;left:9px;font-size:8.5px;font-weight:900;letter-spacing:.06em;color:#1a0f2a;background:linear-gradient(135deg,#c9a8ff,#9d7cff);padding:4px 8px;border-radius:7px">HARVINAINEN</div><div style="position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,rgba(8,8,11,.95),transparent)"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#c9a8ff">Sauna + jooga · Sompasauna</div><div style="font-size:18px;font-weight:900;color:#fff;margin-top:2px;letter-spacing:-.02em;line-height:1.05">Auringonlasku­jooga löylyissä</div><div style="display:flex;align-items:center;gap:8px;margin-top:9px"><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:7px 12px;border-radius:999px">Liput 19€ →</span><span style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);margin-left:auto">Tänään 21.30</span></div></div></div>
+              <div style="flex:none;width:210px;border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/11;background:radial-gradient(120% 110% at 20% 0%,rgba(95,210,235,.5),transparent 58%),radial-gradient(120% 110% at 100% 100%,rgba(255,111,96,.3),transparent 55%),#0c1318;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7)" style-hover="transform:translateY(-5px)"><div style="position:absolute;bottom:-6px;right:-4px;font-size:108px;opacity:.18">🎧</div><div style="position:absolute;top:9px;left:9px;font-size:8.5px;font-weight:900;letter-spacing:.06em;color:#042a30;background:linear-gradient(135deg,#9aeef8,#5fd9e8);padding:4px 8px;border-radius:7px">VAIN TÄNÄÄN</div><div style="position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,rgba(8,8,11,.95),transparent)"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9aeef8">Silent disco · Senaatintori</div><div style="font-size:18px;font-weight:900;color:#fff;margin-top:2px;letter-spacing:-.02em;line-height:1.05">Hiljainen disco tähtien alla</div><div style="display:flex;align-items:center;gap:8px;margin-top:9px"><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:7px 12px;border-radius:999px">Liput 14€ →</span><span style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);margin-left:auto">Tänään 22.00</span></div></div></div>
+              <div style="flex:none;width:210px;border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/11;background:radial-gradient(120% 110% at 20% 0%,rgba(95,210,160,.5),transparent 58%),radial-gradient(120% 110% at 100% 100%,rgba(175,130,255,.3),transparent 55%),#0c140f;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -16px rgba(0,0,0,.7)" style-hover="transform:translateY(-5px)"><div style="position:absolute;bottom:-6px;right:-4px;font-size:108px;opacity:.18">🛶</div><div style="position:absolute;top:9px;left:9px;font-size:8.5px;font-weight:900;letter-spacing:.06em;color:#04231a;background:linear-gradient(135deg,#a7e8c8,#5fd9a6);padding:4px 8px;border-radius:7px">SEIKKAILU</div><div style="position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,rgba(8,8,11,.95),transparent)"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#a7e8c8">Melonta · Töölönlahti</div><div style="font-size:18px;font-weight:900;color:#fff;margin-top:2px;letter-spacing:-.02em;line-height:1.05">Yömelonta kaupungin valoissa</div><div style="display:flex;align-items:center;gap:8px;margin-top:9px"><span style="font-size:11.5px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:7px 12px;border-radius:999px">Liput 39€ →</span><span style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);margin-left:auto">Tänään 23.00</span></div></div></div>
+            </div>
+          </div>
+
+          <div style="height:22px;flex:none"></div>
+        </div>
+        </sc-if>
+
+        <!-- ============ RAVINTOLAT ============ -->
+        <sc-if value="{{ isRavintolat }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;animation:mtfade .25s ease both">
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 16px 8px;flex:none">
+            <div style="flex:1"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4)">Helsinki</div><div style="font-size:22px;font-weight:900;letter-spacing:-.03em;color:#fff;margin-top:1px">Ravintolat</div></div>
+            <div style="width:38px;height:38px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px">⌕</div>
+          </div>
+          <!-- type segmented control -->
+          <div style="padding:8px 0 2px;flex:none"><div class="nsb" style="display:flex;gap:8px;overflow-x:auto;padding:0 16px">
+            <sc-for list="{{ restTypes }}" as="rt" hint-placeholder-count="4"><span style="{{ rt.style }}" onClick="{{ rt.onClick }}">{{ rt.label }}</span></sc-for>
+          </div></div>
+          <!-- sub-category row (per type) -->
+          <div style="padding:10px 0 2px;flex:none"><div class="nsb" style="display:flex;gap:20px;overflow-x:auto;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+            <sc-for list="{{ restSubChips }}" as="c" hint-placeholder-count="5"><span style="{{ c.style }}" onClick="{{ c.onClick }}">{{ c.label }}</span></sc-for>
+          </div></div>
+          <sc-if value="{{ ravShowRails }}" hint-placeholder-val="{{ true }}">
+          <!-- hero carousel -->
+          <div style="padding:14px 0 0;flex:none">
+            <div class="nsb" ref="{{ dragScrollRef }}" onScroll="{{ onHeroRavScroll }}" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;cursor:grab;touch-action:pan-y">
+              <sc-for list="{{ heroRavCards }}" as="h" hint-placeholder-count="3">
+              <div style="flex:none;width:100%;box-sizing:border-box;padding:0 16px;scroll-snap-align:center">
+                <div onClick="{{ h.onOpen }}" style="position:relative;border-radius:22px;overflow:hidden;aspect-ratio:16/10;border:1px solid rgba(255,255,255,.1);box-shadow:0 22px 50px -20px rgba(0,0,0,.6);cursor:pointer;background:radial-gradient(120% 110% at 28% 0%, rgba({{ h.tint }},.5), transparent 60%), linear-gradient(165deg,#1b1922,#0e0d13)">
+                  <div style="position:absolute;bottom:-14px;right:2px;font-size:150px;line-height:1;opacity:.2;filter:drop-shadow(0 0 40px rgba({{ h.tint }},.8))">{{ h.emoji }}</div>
+                  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(8,8,11,.95),rgba(8,8,11,.2) 54%,transparent 86%)"></div>
+                  <div style="position:absolute;top:12px;left:12px;display:flex;gap:7px"><span style="{{ h.badgeStyle }}">{{ h.badge }}</span><span style="font-size:9.5px;font-weight:800;color:#fff;background:rgba(0,0,0,.42);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);padding:5px 9px;border-radius:999px">{{ h.status }}</span></div>
+                  <div style="position:absolute;left:0;right:0;bottom:0;padding:16px"><div style="font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:5px">{{ h.cat }}</div><div style="font-size:30px;font-weight:900;color:#fff;line-height:.92;letter-spacing:-.03em">{{ h.name }}</div><div style="display:flex;align-items:center;gap:9px;margin-top:12px"><span style="font-size:13px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:11px 18px;border-radius:999px;box-shadow:0 10px 24px -8px rgba(91,101,230,.85)">{{ h.cta }} →</span><span style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75);margin-left:auto">{{ h.meta }}</span></div></div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:center;padding:11px 0 0">
+              <sc-for list="{{ ravDots }}" as="d" hint-placeholder-count="3"><span style="{{ d.style }}"></span></sc-for>
+            </div>
+          </div>
+          <!-- restaurant list -->
+          <!-- filter chips -->
+          <div style="padding:14px 0 2px;flex:none"><div class="nsb" style="display:flex;gap:8px;overflow-x:auto;padding:0 16px">
+            <sc-for list="{{ restFilterChips }}" as="f" hint-placeholder-count="3"><span style="{{ f.style }}" onClick="{{ f.onClick }}">{{ f.label }}</span></sc-for>
+          </div></div>
+          <!-- Lähelläsi rail -->
+          <div style="padding:16px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">Lähelläsi nyt</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ rRail }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ ravIsRuokaFront }}" hint-placeholder-val="{{ true }}">
+          <!-- Pöytä vapaana → Suosituimmat, Lounas, Uutta, Palkitut, Suomalaiset -->
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🔥 Suosituimmat juuri nyt</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railSuosittuRuoka }}" as="c" hint-placeholder-count="4">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(120,128,255,.3);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🍴 Lounaspaikat</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railBudget }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🆕 Uutta Helsingissä</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railNew }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#a7e8c8;padding:4px 8px;border-radius:999px">UUSI</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🏆 Palkitut & Michelin</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railAward }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(232,192,106,.4);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#1c1407;background:#e8c06a;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🇫🇮 Suomalaiset ravintolat</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railSuomi }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          <sc-if value="{{ ravIsKahvilaFront }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🎩 Arvostetut klassikot</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railKlassikko }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(232,192,106,.4);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#1c1407;background:#e8c06a;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🥖 Ranskalaistunnelmaa</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railRanska }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">📖 Boheemi & rauhallinen</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railBoheemi }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          <sc-if value="{{ ravIsBaariFront }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🍸 Tyylikkäät cocktailbaarit</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railCocktail }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🍺 Laadukkaat olutravintolat</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railOlut }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🏟 Sporttibaarit</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railSport }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">💎 Piilotetut helmet</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railGem }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(120,210,180,.35);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#04231a;background:#a7e8c8;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          <sc-if value="{{ ravIsYokerhoFront }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🎤 Tänään esiintyy</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railLive }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🆓 Vapaa sisäänpääsy</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railVapaa }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(120,210,180,.35);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#04231a;background:#a7e8c8;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🏙 Kattoterassit</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railKatto }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🔥 Suositut yökerhot</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ railSuosittu }}" as="c" hint-placeholder-count="4">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(120,128,255,.3);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          <!-- Viikon poiminnat (kumppani) -->
+          <div style="padding:18px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 11px"><span style="font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">✦ Viikon poiminnat</span><span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.35)">Kumppanisisältöä</span></div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ weekPicks }}" as="c" hint-placeholder-count="4">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:212px;position:relative;aspect-ratio:16/11;border-radius:16px;overflow:hidden;background:radial-gradient(130% 100% at 25% 0%,rgba({{ c.tint }},.5),transparent 60%),#141019;border:1px solid rgba(120,128,255,.35);cursor:pointer;box-shadow:0 14px 30px -16px rgba(91,101,230,.45)" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;bottom:-10px;right:-2px;font-size:96px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:8.5px;font-weight:900;letter-spacing:.06em;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:4px 9px;border-radius:999px">✦ KUMPPANI</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:13px;background:linear-gradient(to top,rgba(0,0,0,.88),transparent 60%)">
+                  <div style="font-size:15px;font-weight:800;color:#fff;line-height:1.1">{{ c.name }}</div>
+                  <div style="font-size:10px;color:rgba(255,255,255,.55);margin-top:3px">{{ c.cat }}</div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:9px"><span style="font-size:11px;font-weight:800;color:#0a0a0c;background:#fff;padding:6px 11px;border-radius:999px">{{ c.chip }}</span><span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.6)">Katso →</span></div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          <sc-if value="{{ ravShowList }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:20px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">{{ rListTitle }}</span><span style="font-size:11px;font-weight:800;color:#a3abff">Kartalla ›</span></div>
+            <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px">
+              <sc-for list="{{ rItems }}" as="r" hint-placeholder-count="3">
+              <div onClick="{{ r.onOpen }}" style="border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);padding:13px 14px;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">
+                <div style="display:flex;align-items:flex-start;gap:11px">
+                  <div style="width:48px;height:48px;border-radius:12px;flex:none;background:radial-gradient(120% 100% at 30% 0%,rgba({{ r.tint }},.4),transparent 62%),#141019;display:flex;align-items:center;justify-content:center;font-size:24px">{{ r.emoji }}</div>
+                  <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.01em">{{ r.name }}</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-top:2px">{{ r.cat }}</div></div>
+                  <span style="{{ r.statusStyle }}">● {{ r.status }}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:11px">
+                  <span style="font-size:11px;font-weight:800;color:rgba(255,255,255,.7)">{{ r.price }}</span>
+                  <sc-for list="{{ r.badges }}" as="b" hint-placeholder-count="1"><span style="{{ b.style }}">{{ b.label }}</span></sc-for>
+                  <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5)">🕐 {{ r.hours }}</span>
+                </div>
+                <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-top:7px">📍 {{ r.addr }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.07)">
+                  <span onClick="{{ stopRow }}" style="font-size:11.5px;font-weight:800;color:#a3abff;cursor:pointer">🌐 Nettisivu</span>
+                  <span onClick="{{ stopRow }}" style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer">Wikipedia</span>
+                  <span onClick="{{ goKartta }}" style="font-size:11.5px;font-weight:800;color:#5fd9c0;cursor:pointer">🗺 Näytä kartalla</span>
+                  <span onClick="{{ stopRow }}" style="font-size:11.5px;font-weight:800;color:#6fa8ff;cursor:pointer">➤ Reittiohjeet</span>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          <div style="height:22px;flex:none"></div>
+        </div>
+        </sc-if>
+
+        <!-- ============ AKTIVITEETIT ============ -->
+        <sc-if value="{{ isAktiviteetit }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;animation:mtfade .25s ease both">
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 16px 8px;flex:none">
+            <div style="flex:1"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4)">Helsinki</div><div style="font-size:22px;font-weight:900;letter-spacing:-.03em;color:#fff;margin-top:1px">Aktiviteetit</div></div>
+            <div style="width:38px;height:38px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px">⌕</div>
+          </div>
+          <div style="padding:6px 0 2px;flex:none"><div class="nsb" style="display:flex;gap:20px;overflow-x:auto;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+            <sc-for list="{{ acts }}" as="a" hint-placeholder-count="7"><span style="{{ a.style }}" onClick="{{ a.onClick }}">{{ a.label }}</span></sc-for>
+          </div></div>
+          <sc-if value="{{ actIsKaikki }}" hint-placeholder-val="{{ true }}">
+          <!-- hero carousel -->
+          <div style="padding:12px 0 0;flex:none">
+            <div class="nsb" ref="{{ dragScrollRef }}" onScroll="{{ onHeroAktScroll }}" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;cursor:grab;touch-action:pan-y">
+              <sc-for list="{{ heroAktCards }}" as="h" hint-placeholder-count="4">
+              <div style="flex:none;width:100%;box-sizing:border-box;padding:0 16px;scroll-snap-align:center">
+                <div onClick="{{ h.onOpen }}" style="position:relative;border-radius:22px;overflow:hidden;aspect-ratio:16/10;border:1px solid rgba(255,255,255,.1);box-shadow:0 22px 50px -20px rgba(0,0,0,.6);cursor:pointer;background:radial-gradient(120% 110% at 28% 0%, rgba({{ h.tint }},.5), transparent 60%), linear-gradient(165deg,#1b1922,#0e0d13)">
+                  <div style="position:absolute;bottom:-14px;right:2px;font-size:150px;line-height:1;opacity:.2;filter:drop-shadow(0 0 40px rgba({{ h.tint }},.8))">{{ h.emoji }}</div>
+                  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(8,8,11,.95),rgba(8,8,11,.2) 54%,transparent 86%)"></div>
+                  <div style="position:absolute;top:12px;left:12px;display:flex;gap:7px"><span style="{{ h.badgeStyle }}">{{ h.badge }}</span><span style="font-size:9.5px;font-weight:800;color:#fff;background:rgba(0,0,0,.42);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);padding:5px 9px;border-radius:999px">{{ h.status }}</span></div>
+                  <div style="position:absolute;left:0;right:0;bottom:0;padding:16px"><div style="font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:5px">{{ h.cat }}</div><div style="font-size:30px;font-weight:900;color:#fff;line-height:.92;letter-spacing:-.03em">{{ h.name }}</div><div style="display:flex;align-items:center;gap:9px;margin-top:12px"><span style="font-size:13px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:11px 18px;border-radius:999px;box-shadow:0 10px 24px -8px rgba(91,101,230,.85)">{{ h.cta }} →</span><span style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.75);margin-left:auto">{{ h.meta }}</span></div></div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:center;padding:11px 0 0">
+              <sc-for list="{{ actDots }}" as="d" hint-placeholder-count="4"><span style="{{ d.style }}"></span></sc-for>
+            </div>
+          </div>
+          <!-- filter chips + yllätä -->
+          <div style="display:flex;align-items:center;gap:8px;padding:14px 16px 2px;flex:none">
+            <div class="nsb" style="display:flex;gap:8px;overflow-x:auto;flex:1">
+              <sc-for list="{{ actFilterChips }}" as="f" hint-placeholder-count="3"><span style="{{ f.style }}" onClick="{{ f.onClick }}">{{ f.label }}</span></sc-for>
+            </div>
+            <span onClick="{{ surprise }}" style="flex:none;font-size:12px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:8px 13px;border-radius:999px;white-space:nowrap;cursor:pointer;box-shadow:0 8px 20px -7px rgba(91,101,230,.8)">🎲 Yllätä</span>
+          </div>
+          <!-- Lähelläsi rail -->
+          <div style="padding:16px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">Lähelläsi nyt</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ actRail }}" as="c" hint-placeholder-count="4">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- Sateen sattuessa rail -->
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">☔ Sateen sattuessa</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ actRain }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- Ilmaiseksi rail -->
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">🆓 Ilmaiseksi tänään</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ actFree }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- Helsingin helmet rail (evergreen, alempana) -->
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">❤️ Helsingin helmet</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ actHelmet }}" as="c" hint-placeholder-count="5">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:164px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.5),transparent 60%),#141019;border:1px solid rgba(120,128,255,.3);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:88px;line-height:1;opacity:.24">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;background:linear-gradient(to top,rgba(0,0,0,.88),transparent 56%)">
+                  <div style="font-size:14.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- Treffi rail -->
+          <div style="padding:18px 0 0;flex:none">
+            <div style="padding:0 16px 11px;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em">❤️ Treffi-illaksi</div>
+            <div class="nsb" style="display:flex;gap:11px;overflow-x:auto;padding:0 16px">
+              <sc-for list="{{ actDate }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="flex:none;width:150px;position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:radial-gradient(130% 90% at 30% 0%,rgba({{ c.tint }},.45),transparent 60%),#141019;border:1px solid rgba(255,255,255,.08);cursor:pointer" style-hover="transform:translateY(-5px)">
+                <div style="position:absolute;top:-4px;right:-2px;font-size:80px;line-height:1;opacity:.22">{{ c.emoji }}</div>
+                <span style="position:absolute;top:9px;left:9px;font-size:9px;font-weight:800;color:#0a0a0c;background:#c7caff;padding:4px 8px;border-radius:999px">{{ c.chip }}</span>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:11px;background:linear-gradient(to top,rgba(0,0,0,.86),transparent 58%)">
+                  <div style="font-size:13.5px;font-weight:800;color:#fff;line-height:1.12">{{ c.name }}</div>
+                  <div style="font-size:9.5px;color:rgba(255,255,255,.5);margin-top:3px">{{ c.cat }}</div>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          <sc-if value="{{ actNotKaikki }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:20px 0 0;flex:none">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 12px"><span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-.015em">{{ actListTitle }}</span><span style="font-size:11px;font-weight:800;color:#a3abff">Kartalla ›</span></div>
+            <div style="display:flex;flex-direction:column;gap:10px;padding:0 16px">
+              <sc-for list="{{ actItems }}" as="r" hint-placeholder-count="3">
+              <div onClick="{{ r.onOpen }}" style="border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);padding:13px 14px;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">
+                <div style="display:flex;align-items:flex-start;gap:11px">
+                  <div style="width:48px;height:48px;border-radius:12px;flex:none;background:radial-gradient(120% 100% at 30% 0%,rgba({{ r.tint }},.4),transparent 62%),#141019;display:flex;align-items:center;justify-content:center;font-size:24px">{{ r.emoji }}</div>
+                  <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.01em">{{ r.name }}</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-top:2px">{{ r.cat }}</div></div>
+                  <span style="{{ r.statusStyle }}">● {{ r.status }}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:11px">
+                  <span style="font-size:11px;font-weight:800;color:rgba(255,255,255,.7)">{{ r.price }}</span>
+                  <sc-for list="{{ r.badges }}" as="b" hint-placeholder-count="1"><span style="{{ b.style }}">{{ b.label }}</span></sc-for>
+                  <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5)">🕐 {{ r.hours }}</span>
+                </div>
+                <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);margin-top:7px">📍 {{ r.addr }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.07)">
+                  <span onClick="{{ stopRow }}" style="font-size:11.5px;font-weight:800;color:#a3abff;cursor:pointer">🌐 Nettisivu</span>
+                  <span onClick="{{ stopRow }}" style="font-size:11.5px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer">Wikipedia</span>
+                  <span onClick="{{ goKartta }}" style="font-size:11.5px;font-weight:800;color:#5fd9c0;cursor:pointer">🗺 Näytä kartalla</span>
+                  <span onClick="{{ stopRow }}" style="font-size:11.5px;font-weight:800;color:#6fa8ff;cursor:pointer">➤ Reittiohjeet</span>
+                </div>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+          <div style="height:22px;flex:none"></div>
+        </div>
+        </sc-if>
+
+        <!-- ============ IDEA (swipe) ============ -->
+        <sc-if value="{{ isIdea }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;animation:mtfade .25s ease both">
+          <div style="padding:12px 18px 2px;flex:none"><div style="font-size:22px;font-weight:900;letter-spacing:-.03em;color:#fff">Etkö tiedä mitä tehdä? 🎲</div><div style="font-size:12.5px;font-weight:600;color:rgba(255,255,255,.55);margin-top:3px">Kaikki ehdotukset tapahtuvat <span style="color:#aab2ff;font-weight:800">tänä iltana</span> — pyyhkäise, ♥ tallentaa.</div></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 0">
+            <div style="display:flex;gap:6px;flex:1;background:rgba(255,255,255,.04);border-radius:14px;padding:3px">
+              <span onClick="{{ setNyt }}" style="{{ nytStyle }}">⚡ Juuri nyt</span>
+              <span onClick="{{ setKaikki }}" style="{{ kaikkiStyle }}">Koko ilta</span>
+            </div>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:#a3abff;background:rgba(91,101,230,.14);padding:8px 11px;border-radius:999px;white-space:nowrap">♥ {{ saved }}</span>
+          </div>
+          <div style="padding:10px 16px 0">
+            <sc-if value="{{ deckActive }}" hint-placeholder-val="{{ true }}">
+              <div onPointerDown="{{ onDown }}" onPointerMove="{{ onMove }}" onPointerUp="{{ onUp }}" onPointerCancel="{{ onUp }}" style="{{ dragStyle }}">
+              <div style="position:relative;border-radius:22px;overflow:hidden;aspect-ratio:16/13;background:radial-gradient(120% 92% at 50% 0%, rgba({{ cur.tint }},.55), transparent 62%), linear-gradient(165deg,#181620,#0e0d13);border:1px solid rgba(255,255,255,.1);box-shadow:0 22px 48px -20px rgba(0,0,0,.7);animation:mtpop .22s ease both;cursor:grab;touch-action:pan-y;user-select:none">
+                <div style="{{ likeBadge }}">TYKKÄÄN ♥</div>
+                <div style="{{ nopeBadge }}">OHITA ✕</div>
+                <div style="position:absolute;bottom:18px;right:-6px;font-size:150px;line-height:1;opacity:.2;filter:drop-shadow(0 0 40px rgba({{ cur.tint }},.8));pointer-events:none">{{ cur.emoji }}</div>
+                <div style="position:absolute;top:13px;left:13px;display:flex;gap:7px"><span style="font-size:9px;font-weight:900;letter-spacing:.08em;color:#fff;background:rgba(0,0,0,.42);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);padding:5px 9px;border-radius:999px">{{ cur.tag }}</span><span style="font-size:9.5px;font-weight:800;color:#fff;background:rgba(0,0,0,.42);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);padding:5px 9px;border-radius:999px">★ {{ cur.rating }}</span></div>
+                <div style="position:absolute;top:13px;right:14px;font-size:11px;font-weight:800;color:rgba(255,255,255,.7);pointer-events:none">{{ progress }}</div>
+                <div style="position:absolute;left:0;right:0;bottom:0;padding:16px;background:linear-gradient(to top,rgba(8,8,11,.95),transparent 88%);pointer-events:none"><div style="display:inline-flex;align-items:center;gap:6px;margin-bottom:9px;font-size:10px;font-weight:900;letter-spacing:.02em;color:#0a0a0c;background:#c7caff;padding:5px 10px;border-radius:999px">⏱ {{ cur.startsLabel }} · {{ cur.dist }}</div><div style="font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#aab2ff;margin-bottom:4px">{{ cur.venue }}</div><div style="font-size:27px;font-weight:900;color:#fff;line-height:.95;letter-spacing:-.03em">{{ cur.title }}</div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-top:6px">{{ cur.when }} · alk. {{ cur.price }}</div><div style="font-size:12.5px;font-weight:500;color:rgba(255,255,255,.72);line-height:1.45;margin-top:9px;max-width:380px">{{ cur.blurb }}</div></div>
+              </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 0 12px"><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4)">← Pyyhkäise ohittaaksesi · tallenna oikealle →</span></div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:2px 0 2px">
+                <span onClick="{{ skip }}" style="width:54px;height:54px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:22px;color:rgba(255,255,255,.7)" style-hover="background:rgba(255,255,255,.12);transform:scale(1.06)">✕</span>
+                <span onClick="{{ tickets }}" style="height:54px;padding:0 22px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:800;color:#fff" style-hover="background:rgba(255,255,255,.16)">Liput →</span>
+                <span onClick="{{ like }}" style="width:62px;height:62px;border-radius:999px;background:linear-gradient(150deg,#6b76ff,#5059e6);display:flex;align-items:center;justify-content:center;font-size:27px;color:#fff;box-shadow:0 12px 28px -8px rgba(91,101,230,.85)" style-hover="transform:scale(1.08)">♥</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ deckEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="position:relative;border-radius:22px;overflow:hidden;aspect-ratio:16/13;background:radial-gradient(120% 92% at 50% 0%, rgba(91,101,230,.3), transparent 62%), linear-gradient(165deg,#181620,#0e0d13);border:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px"><div style="font-size:48px;margin-bottom:10px">🎉</div><div style="font-size:21px;font-weight:900;color:#fff;letter-spacing:-.02em">Kävit illan läpi!</div><div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6);margin-top:5px;max-width:230px"><span style="color:#aab2ff;font-weight:800">{{ saved }} suosikkia</span> tallessa — katso listasi ja varaa liput.</div><div style="display:flex;gap:10px;margin-top:16px"><span style="font-size:13px;font-weight:800;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:11px 18px;border-radius:999px;box-shadow:0 10px 24px -8px rgba(91,101,230,.85)">Katso listani →</span><span onClick="{{ reset }}" style="font-size:13px;font-weight:800;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:11px 16px;border-radius:999px">Alusta</span></div></div>
+            </sc-if>
+          </div>
+          <div style="height:22px;flex:none"></div>
+        </div>
+        </sc-if>
+
+        <!-- ============ KARTTA ============ -->
+        <sc-if value="{{ isKartta }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;height:100%;animation:mtfade .25s ease both">
+          <div style="display:flex;align-items:center;gap:9px;padding:12px 16px 8px;flex:none">
+            <div style="font-size:22px;font-weight:900;letter-spacing:-.03em;color:#fff;flex:1">Kartta</div>
+            <span onClick="{{ locateMe }}" style="display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:8px 13px;border-radius:999px;cursor:pointer">📍 Paikanna</span>
+          </div>
+          <div style="display:flex;gap:7px;padding:0 16px 8px;flex:none">
+            <sc-for list="{{ mapLayerChips }}" as="c" hint-placeholder-count="3"><span style="{{ c.style }}" onClick="{{ c.onClick }}">{{ c.label }}</span></sc-for>
+          </div>
+          <div class="nsb" style="display:flex;gap:6px;overflow-x:auto;padding:0 16px 8px;flex:none">
+            <span style="{{ mapDateChip.style }}" onClick="{{ mapDateChip.onClick }}">{{ mapDateChip.label }}</span>
+            <span style="flex:none;width:1px;align-self:stretch;background:rgba(255,255,255,.12);margin:2px 2px"></span>
+            <sc-for list="{{ mapSubChips }}" as="c" hint-placeholder-count="6"><span style="{{ c.style }}" onClick="{{ c.onClick }}">{{ c.label }}</span></sc-for>
+          </div>
+          <sc-if value="{{ mapRestType }}" hint-placeholder-val="{{ false }}">
+          <div class="nsb" style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding:0 16px 10px;flex:none">
+            <span style="flex:none;font-size:13px;color:rgba(95,150,255,.9);font-weight:800">↳</span>
+            <sc-for list="{{ mapRestSubChips }}" as="c" hint-placeholder-count="5"><span style="{{ c.style }}" onClick="{{ c.onClick }}">{{ c.label }}</span></sc-for>
+          </div>
+          </sc-if>
+          <div style="flex:1;position:relative;margin:0 16px 16px;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,.1);min-height:520px">
+            <div ref="{{ mapBind }}" style="position:absolute;inset:0"></div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ SUOSIKIT ============ -->
+        <sc-if value="{{ isSuosikit }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;animation:mtfade .25s ease both">
+          <div style="padding:12px 18px 10px;flex:none"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:20px;color:#6b76ff">♥</span><span style="font-size:22px;font-weight:900;letter-spacing:-.03em;color:#fff">Suosikit</span><span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.4)">· {{ saved }} tallennettu</span></div></div>
+          <div style="padding:4px 16px 0;display:flex;flex-direction:column;gap:11px">
+            <div style="position:relative;border-radius:18px;overflow:hidden;height:120px;background:radial-gradient(120% 120% at 90% 0%,rgba(255,111,96,.34),transparent 60%),#15111a;border:1px solid rgba(255,255,255,.08)"><div style="position:absolute;top:-6px;right:6px;font-size:96px;opacity:.18">🎸</div><div style="position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,rgba(0,0,0,.85),transparent)"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#aab2ff">Keikka · Tavastia</div><div style="font-size:18px;font-weight:900;color:#fff;margin-top:3px;letter-spacing:-.02em">Litku</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6);margin-top:2px">Tänään 21.00 · alk. 28€</div></div><div style="position:absolute;top:11px;right:11px;width:32px;height:32px;border-radius:999px;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#6b76ff;font-size:14px">♥</div></div>
+            <div style="position:relative;border-radius:18px;overflow:hidden;height:120px;background:radial-gradient(120% 120% at 90% 0%,rgba(95,210,160,.3),transparent 60%),#0f1513;border:1px solid rgba(255,255,255,.08)"><div style="position:absolute;top:-6px;right:6px;font-size:96px;opacity:.18">🧖</div><div style="position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,rgba(0,0,0,.85),transparent)"><div style="font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#a7e8dd">Sauna · Hernesaari</div><div style="font-size:18px;font-weight:900;color:#fff;margin-top:3px;letter-spacing:-.02em">Löyly</div><div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6);margin-top:2px">Avoinna · 2.1 km</div></div><div style="position:absolute;top:11px;right:11px;width:32px;height:32px;border-radius:999px;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#6b76ff;font-size:14px">♥</div></div>
+          </div>
+          <div style="height:22px;flex:none"></div>
+        </div>
+        </sc-if>
+
+      </div>
+
+      <!-- CALENDAR OVERLAY -->
+      <sc-if value="{{ koCalOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:40;display:flex;align-items:flex-start;justify-content:center;padding-top:120px">
+        <div onClick="{{ closeCal }}" style="position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);animation:mtfade .2s ease both"></div>
+        <div style="position:relative;width:288px;background:#13101a;border:1px solid rgba(120,128,255,.28);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow:hidden;animation:mtpop .2s ease both">
+          <div style="padding:12px 16px 0;text-align:center;font-size:11px;font-weight:800;color:#aab2ff">{{ calHint }}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px 8px">
+            <span onClick="{{ calPrev }}" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer">‹</span>
+            <span style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.02em">{{ calMonthLabel }}</span>
+            <span onClick="{{ calNext }}" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer">›</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px 4px">
+            <sc-for list="{{ calDayLabels }}" as="w" hint-placeholder-count="7"><div style="text-align:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.25);padding:4px 0">{{ w.l }}</div></sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px 16px;gap:2px 0">
+            <sc-for list="{{ calCells }}" as="c" hint-placeholder-count="35">
+              <sc-if value="{{ c.blank }}" hint-placeholder-val="{{ false }}"><div></div></sc-if>
+              <sc-if value="{{ c.day }}" hint-placeholder-val="{{ true }}"><div style="{{ c.style }}" onClick="{{ c.onClick }}">{{ c.day }}</div></sc-if>
+            </sc-for>
+          </div>
+          <sc-if value="{{ calHasSel }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid rgba(255,255,255,.06);padding:10px 16px;text-align:center">
+            <span onClick="{{ clearRange }}" style="font-size:12px;font-weight:700;color:rgba(255,255,255,.4);cursor:pointer">Tyhjennä valinta</span>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- DETAIL SHEET -->
+      <sc-if value="{{ detailActive }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:30">
+        <div onClick="{{ closeDetail }}" style="position:absolute;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(3px);animation:mtfade .2s ease both"></div>
+        <div class="nsb" style="position:absolute;left:0;right:0;bottom:0;top:44px;background:#0e1117;border-radius:26px 26px 0 0;overflow-y:auto;animation:sheetUp .32s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 -20px 60px rgba(0,0,0,.6)">
+          <div style="display:flex;justify-content:center;padding:9px 0 2px"><div style="width:38px;height:4px;border-radius:999px;background:rgba(255,255,255,.2)"></div></div>
+          <div style="position:relative;height:184px;overflow:hidden;background:radial-gradient(120% 110% at 30% 0%, rgba({{ d.tint }},.6), transparent 60%), linear-gradient(165deg,#1b1922,#0e0d13)">
+            <div style="position:absolute;bottom:-12px;right:8px;font-size:150px;line-height:1;opacity:.22;filter:drop-shadow(0 0 40px rgba({{ d.tint }},.8))">{{ d.emoji }}</div>
+            <div style="position:absolute;inset:0;background:linear-gradient(to top,#0e1117,transparent 72%)"></div>
+            <div style="position:absolute;top:12px;right:12px;display:flex;gap:8px">
+              <span onClick="{{ toggleSaveDetail }}" style="width:36px;height:36px;border-radius:999px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#6b76ff;font-size:16px;cursor:pointer">♥</span>
+              <span onClick="{{ closeDetail }}" style="width:36px;height:36px;border-radius:999px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;cursor:pointer">✕</span>
+            </div>
+            <div style="position:absolute;left:16px;right:16px;bottom:14px"><div style="font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6)">{{ d.cat }}</div><div style="font-size:27px;font-weight:900;color:#fff;letter-spacing:-.03em;line-height:1.02;margin-top:4px">{{ d.name }}</div></div>
+          </div>
+          <div style="padding:16px 16px 26px">
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px">
+              <span style="{{ d.statusStyle }}">● {{ d.status }}</span>
+              <sc-for list="{{ d.badges }}" as="b" hint-placeholder-count="1"><span style="{{ b.style }}">{{ b.label }}</span></sc-for>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:13px 15px;display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ d.facts }}" as="f" hint-placeholder-count="3"><div style="font-size:12.5px;font-weight:600;color:rgba(255,255,255,.72)">{{ f.t }}</div></sc-for>
+            </div>
+            <p style="font-size:12.5px;font-weight:500;color:rgba(255,255,255,.55);line-height:1.6;margin:15px 2px 16px">{{ d.desc }}</p>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <span style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(150deg,#6b76ff,#5059e6);color:#fff;font-weight:800;font-size:14px;padding:13px;border-radius:14px;box-shadow:0 12px 26px -8px rgba(91,101,230,.8);cursor:pointer">{{ d.ctaLabel }} →</span>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <span onClick="{{ goKartta }}" style="display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.82);font-weight:800;font-size:13px;padding:12px;border-radius:14px;cursor:pointer">🗺 Kartalla</span>
+                <span style="display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(111,168,255,.12);border:1px solid rgba(111,168,255,.25);color:#9cc4ff;font-weight:800;font-size:13px;padding:12px;border-radius:14px;cursor:pointer">➤ Reittiohjeet</span>
+              </div>
+              <span style="display:flex;align-items:center;justify-content:center;gap:7px;color:#a3abff;font-weight:800;font-size:12.5px;padding:7px;cursor:pointer">🌐 Nettisivu</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- bottom nav -->
+      <div style="height:72px;flex:none;position:relative;z-index:3;border-top:1px solid rgba(255,255,255,.07);background:rgba(10,10,12,.94);backdrop-filter:blur(18px);display:grid;grid-template-columns:repeat(6,1fr)">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="6">
+          <div onClick="{{ n.onClick }}" style="{{ n.style }}"><span style="line-height:0">{{ n.icon }}</span><span style="font-size:9px;font-weight:800">{{ n.label }}</span></div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { page: 'koti', vibe: 'kaikki', cuisine: 'kaikki', act: 'kaikki', idx: 0, saved: 0, dragX: 0, dragging: false, detail: null, restType: 'ruoka', restFilter: 'kaikki', actFilter: 'kaikki', heroRav: 0, heroAkt: 0, restSub: 'kaikki', koDay: 'tanaan', koCalOpen: false, koStart: null, koEnd: null, koPending: null, koView: null, mapLayers: { events: true, rest: true, act: true }, mapSub: null, mapRestType: null };
+
+  advance(liked) {
+    this.setState((s) => ({ idx: s.idx + 1, saved: s.saved + (liked ? 1 : 0), dragX: 0, dragging: false }));
+  }
+
+  mapPoints() {
+    return [
+      // Tapahtumat (ember pin, teardrop)
+      { layer: 'events', tag: 'keikka', lat: 60.1657, lon: 24.9320, name: 'Olavi Uusivirta', sub: 'Keikka · Tavastia · 21.00', emoji: '🎤', color: '#6b76ff', detail: 'olavi' },
+      { layer: 'events', tag: 'urheilu', lat: 60.1880, lon: 24.9230, name: 'HIFK – Tappara', sub: 'Jääkiekko · Jäähalli · 18.30', emoji: '🏒', color: '#6b76ff', detail: 'hifk' },
+      { layer: 'events', tag: 'keikka', lat: 60.1610, lon: 24.9020, name: 'Behm', sub: 'Keikka · Kaapelitehdas · La', emoji: '🎤', color: '#6b76ff', detail: 'behm' },
+      { layer: 'events', tag: 'yoelama', lat: 60.1882, lon: 24.9592, name: 'Klubi: Kaiku', sub: 'Yöelämä · Suvilahti · 23.00', emoji: '🎧', color: '#6b76ff', detail: 'kaikuklubi' },
+      // Ravintolat (sininen, pyöreä)
+      { layer: 'rest', rtype: 'ruoka', tag: 'pizza', lat: 60.1635, lon: 24.9460, name: 'Via Tribunali', sub: 'Pizza · Kallio', emoji: '🍕', color: '#5f96ff', detail: 'via' },
+      { layer: 'rest', rtype: 'ruoka', tag: 'fine', lat: 60.1675, lon: 24.9530, name: 'Olo', sub: 'Michelin · Ullanlinna', emoji: '🍽', color: '#5f96ff', detail: 'olo' },
+      { layer: 'rest', rtype: 'ruoka', tag: 'aasia', lat: 60.1640, lon: 24.9410, name: "Fafa's & Ramen", sub: 'Aasialainen · Punavuori', emoji: '🍜', color: '#5f96ff', detail: 'fafa' },
+      { layer: 'rest', rtype: 'baari', tag: 'cocktail', lat: 60.1730, lon: 24.9460, name: 'Trillby & Chadwick', sub: 'Cocktail · Kluuvi', emoji: '🍸', color: '#5f96ff', detail: 'trillby' },
+      { layer: 'rest', rtype: 'kahvila', tag: 'erikois', lat: 60.1565, lon: 24.9380, name: 'Kaffa Roastery', sub: 'Kahvila · Punavuori', emoji: '☕', color: '#5f96ff', detail: 'kaffa' },
+      // Aktiviteetit (vihreä, pyöreä)
+      { layer: 'act', tag: 'sauna', lat: 60.1490, lon: 24.9270, name: 'Löyly', sub: 'Sauna · Hernesaari', emoji: '🧖', color: '#5fd9a6', detail: 'loyly' },
+      { layer: 'act', tag: 'museo', lat: 60.1454, lon: 24.9881, name: 'Suomenlinna', sub: 'Unesco · merilinnoitus', emoji: '🏰', color: '#5fd9a6', detail: 'suomenlinna' },
+      { layer: 'act', tag: 'sauna', lat: 60.1675, lon: 24.9560, name: 'Allas Sea Pool', sub: 'Merikylpylä · Kauppatori', emoji: '🏊', color: '#5fd9a6', detail: 'allas' },
+      { layer: 'act', tag: 'nahtavyys', lat: 60.1699, lon: 24.9525, name: 'Tuomiokirkko', sub: 'Maamerkki · Senaatintori', emoji: '⛪', color: '#5fd9a6', detail: 'tuomiokirkko' },
+      { layer: 'act', tag: 'nahtavyys', lat: 60.1726, lon: 24.9255, name: 'Temppeliaukion kirkko', sub: 'Nähtävyys · Töölö', emoji: '⛪', color: '#5fd9a6', detail: 'temppeliaukio' },
+      { layer: 'act', tag: 'nahtavyys', lat: 60.1735, lon: 24.9380, name: 'Oodi', sub: 'Kirjasto · Töölönlahti', emoji: '📚', color: '#5fd9a6', detail: 'oodi' },
+      { layer: 'act', tag: 'museo', lat: 60.1693, lon: 24.9370, name: 'Amos Rex', sub: 'Taidemuseo · Keskusta', emoji: '🏛', color: '#5fd9a6', detail: 'amos' },
+    ];
+  }
+
+  mapSubDefs() {
+    return {
+      events: [
+        { k: 'keikka', l: '🎸 Keikka' }, { k: 'yoelama', l: '🌙 Yöelämä' }, { k: 'baari', l: '🍺 Baari' },
+        { k: 'urheilu', l: '⚽ Urheilu' }, { k: 'standup', l: '😂 Stand up' }, { k: 'museo', l: '🏛 Museo' },
+        { k: 'lapset', l: '👨\u200d👩\u200d👧 Lapset & Perhe' }, { k: 'tyopaja', l: '🛠 Työpaja' },
+        { k: 'teatteri', l: '🎭 Teatteri & Tanssi' }, { k: 'taide', l: '🎨 Taide' },
+      ],
+      rest: [
+        { k: 'palkitut', l: '🏆 Palkitut' }, { k: 'fine', l: '⭐ Fine dining' }, { k: 'pohjoismainen', l: '🇫🇮 Pohjoismainen' },
+        { k: 'pizza', l: '🍕 Pizza' }, { k: 'italia', l: '🍝 Italialainen' }, { k: 'japani', l: '🍣 Japanilainen' },
+        { k: 'aasia', l: '🍜 Aasialainen' }, { k: 'burger', l: '🍔 Burgerit' }, { k: 'kebab', l: '🌯 Kebab' },
+        { k: 'valimeri', l: '🫒 Välimeri' }, { k: 'intia', l: '🍛 Intialainen' }, { k: 'kala', l: '🐟 Kala & meri' },
+        { k: 'pihvi', l: '🥩 Pihvi & grilli' }, { k: 'meksiko', l: '🌮 Meksikolainen' }, { k: 'kasvis', l: '🌱 Kasvis' },
+        { k: 'kahvila', l: '☕ Kahvilat' }, { k: 'baari', l: '🍸 Baarit' }, { k: 'yokerho', l: '🌃 Yökerhot' },
+      ],
+      act: [
+        { k: 'sauna', l: '🧖 Saunat' }, { k: 'museo', l: '🏛 Museot' }, { k: 'nahtavyys', l: '📍 Nähtävyydet' },
+        { k: 'galleria', l: '🖼 Galleriat' }, { k: 'puisto', l: '🌳 Puistot' }, { k: 'uimaranta', l: '🏖 Uimarannat' },
+        { k: 'nakopaikka', l: '🌄 Näköpaikat' }, { k: 'markkina', l: '🛍 Markkinat' },
+      ],
+    };
+  }
+
+  subRowBind = (el) => { this._subRow = el; };
+
+  mapBind = (el) => {
+    if (!el) return;
+    if (this._map && this._map.getContainer() === el) { setTimeout(() => { try { this._map.invalidateSize(); } catch (e) {} }, 60); return; }
+    if (this._map) { try { this._map.remove(); } catch (e) {} this._map = null; }
+    this._mapEl = el; this.tryInitMap();
+  };
+
+  tryInitMap() {
+    if (this._map || !this._mapEl) return;
+    if (!window.L) { setTimeout(() => this.tryInitMap(), 120); return; }
+    const L = window.L;
+    const map = L.map(this._mapEl, { center: [60.1699, 24.9384], zoom: 13, zoomControl: true, attributionControl: false });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 20 }).addTo(map);
+    this._map = map; this._markers = [];
+    setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 220);
+    setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 650);
+    this.renderMapMarkers();
+  }
+
+  renderMapMarkers() {
+    if (!this._map || !window.L) return;
+    const L = window.L;
+    (this._markers || []).forEach((m) => { try { this._map.removeLayer(m); } catch (e) {} });
+    this._markers = [];
+    const layers = this.state.mapLayers || { events: true, rest: false, act: false };
+    const sub = this.state.mapSub;
+    const rt = this.state.mapRestType;
+    this.mapPoints().forEach((p) => {
+      if (!layers[p.layer]) return;
+      if (rt && p.layer === 'rest' && p.rtype !== rt) return;
+      if (sub && p.tag !== sub) return;
+      const round = p.layer !== 'events';
+      const shape = round ? 'border-radius:50%' : 'border-radius:50% 50% 50% 4px;transform:rotate(-45deg)';
+      const inner = round ? p.emoji : '<span style="transform:rotate(45deg);display:block">' + p.emoji + '</span>';
+      const html = '<div style="width:30px;height:30px;' + shape + ';background:' + p.color + ';border:2px solid rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(0,0,0,.6),0 0 10px ' + p.color + '66;display:flex;align-items:center;justify-content:center;font-size:14px">' + inner + '</div>';
+      const icon = L.divIcon({ html, className: '', iconSize: [30, 30], iconAnchor: round ? [15, 15] : [15, 26] });
+      const marker = L.marker([p.lat, p.lon], { icon });
+      marker.bindPopup('<div style="min-width:150px"><p style="font-weight:800;font-size:13px;margin:0 0 3px;color:#fff;line-height:1.3">' + p.name + '</p><p style="font-size:11px;color:' + p.color + ';margin:0;font-weight:700">' + p.sub + '</p><p style="font-size:10.5px;color:#9a94a8;margin:6px 0 0;font-weight:700">Avaa tiedot →</p></div>', { className: 'mt-popup', maxWidth: 220 });
+      marker.on('click', () => { if (p.detail) this.setState({ detail: p.detail }); });
+      marker.addTo(this._map);
+      this._markers.push(marker);
+    });
+  }
+
+  locateMe = () => {
+    if (!this._map || !window.L) return;
+    const L = window.L;
+    if (!navigator.geolocation) { this._map.setView([60.1699, 24.9384], 14); return; }
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const c = [pos.coords.latitude, pos.coords.longitude];
+      if (this._userMarker) { try { this._map.removeLayer(this._userMarker); } catch (e) {} }
+      this._userMarker = L.marker(c, { icon: L.divIcon({ html: '<div style="width:18px;height:18px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 5px rgba(59,130,246,.25)"></div>', className: '', iconSize: [18, 18], iconAnchor: [9, 9] }) }).addTo(this._map);
+      this._map.setView(c, 15);
+    }, () => { this._map.setView([60.1699, 24.9384], 14); }, { enableHighAccuracy: true, timeout: 10000 });
+  };
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.page === 'kartta' && this._map) {
+      if (prevState.mapLayers !== this.state.mapLayers || prevState.mapSub !== this.state.mapSub || prevState.mapRestType !== this.state.mapRestType) this.renderMapMarkers();
+
+      if (prevState.page !== 'kartta') setTimeout(() => { try { this._map.invalidateSize(); } catch (e) {} }, 120);
+    }
+  }
+
+  placeData() {
+    return {
+      via:  { kind: 'rav', emoji: '🍕', tint: '240,180,90', rcat: 'pizza', name: 'Via Tribunali', cat: 'Napolilainen pizza · Kallio', status: 'Avoinna', open: true, price: '€€', award: '🌿 Terassi', hours: 'Ma–Su 11:00–23:00', address: 'Korkeavuorenkatu 23', dist: '1.1 km', phone: '+358 9 123 4567', desc: 'Aito napolilainen puu-uunipizza ohuella pohjalla. Kallion suosituin — ruuhka-aikaan voi olla jonoa, mutta pöydän saa varaamalla.', cta: 'Varaa pöytä' },
+      fafa: { kind: 'rav', emoji: '🍜', tint: '255,120,90', rcat: 'aasia', name: "Fafa's & Ramen", cat: 'Aasialainen · Punavuori', status: 'Avoinna', open: true, price: '€€', award: '', hours: 'Ma–Su 11:00–22:00', address: 'Iso Roobertinkatu 4', dist: '0.9 km', phone: '+358 9 765 4321', desc: 'Tuoretta ramenia ja Lähi-idän klassikoita samassa paikassa. Reilut annokset, nopea palvelu ja runsaasti kasvisvaihtoehtoja.', cta: 'Varaa pöytä' },
+      bar:  { kind: 'rav', emoji: '🍷', tint: '175,130,255', rcat: 'valimeri', name: 'Bar Cón', cat: 'Viinibaari · tapas · Kruununhaka', status: 'Sulkeutuu 23', open: false, price: '€€€', award: '😊 Bib Gourmand', hours: 'Ti–La 17:00–23:00', address: 'Maurinkatu 8–12', dist: '1.3 km', phone: '+358 9 222 3344', desc: 'Luonnonviinejä ja eteläeurooppalaisia tapaksia. Bib Gourmand -tunnustus laadukkaasta mutta hinnaltaan järkevästä tarjonnasta.', cta: 'Varaa pöytä' },
+      nako: { kind: 'akt', emoji: '🌄', tint: '95,150,255', acat: 'nako', name: 'Näkötorni Ateljee', cat: 'Näköpaikka · Keskusta', status: 'Avoinna', open: true, rating: '4.5', reviews: '3.1k', free: true, duration: '~30 min', hours: 'Ma–Su 10:00–22:00', address: 'Yrjönkatu 18', dist: '0.4 km', desc: 'Hotelli Tornin kattotason näköalapaikka — yksi Helsingin parhaista näkymistä kaupungin ylle. Ilmainen sisäänpääsy.', cta: 'Lisätietoja' },
+      amos: { kind: 'akt', emoji: '🏛', tint: '95,210,160', acat: 'museo', name: 'Amos Rex', cat: 'Taidemuseo · Keskusta', status: 'Avoinna', open: true, rating: '4.4', reviews: '4.7k', accessible: true, price: '18€', duration: '1.5–2 h', hours: 'Ma, Ke–Pe 11–20; Ti suljettu', address: 'Mannerheimintie 22–24', dist: '0.5 km', desc: 'Maanalainen elämysmuseo, joka tunnetaan kokeellisista ja immersiivisistä näyttelyistä. Suosittu — varaa liput etukäteen ruuhka-aikoina.', cta: 'Osta liput' },
+      hieta:{ kind: 'akt', emoji: '🏖', tint: '95,210,235', acat: 'ranta', name: 'Hietaniemen ranta', cat: 'Uimaranta · Etu-Töölö', status: 'Auki', open: true, rating: '4.6', reviews: '5.2k', free: true, hours: 'Ympäri vuorokauden', address: 'Hiekkarannantie 6', dist: '1.6 km', desc: 'Helsingin suosituin kaupunkiranta hiekkarantoineen ja auringonlaskunäkymineen. Kesäisin täynnä elämää, talvella rauhallinen kävelypaikka.', cta: 'Lisätietoja' },
+      // Ruokapaikat
+      olo:  { kind: 'rav', emoji: '🍽', rcat: 'fine', tint: '240,180,90', name: 'Olo', cat: 'Uusi pohjoismainen · Ullanlinna', status: 'Avoinna', open: true, price: '€€€€', award: '⭐ Michelin', hours: 'Ke–La 18:00–24:00', address: 'Pohjoisesplanadi 5', dist: '0.6 km', phone: '+358 10 320 6250', desc: 'Michelin-tähden ravintola, joka tarjoilee monipuolisen pohjoismaisen makumatkan kausiraaka-aineista. Varaa pöytä hyvissä ajoin.', cta: 'Varaa pöytä' },
+      gron: { kind: 'rav', emoji: '🌱', rcat: 'fine', tint: '120,190,120', name: 'Grön', cat: 'Luomu fine dining · Punavuori', status: 'Avoinna', open: true, price: '€€€€', award: '⭐ Michelin', hours: 'Ti–La 17:00–24:00', address: 'Albertinkatu 36', dist: '0.9 km', phone: '+358 50 328 9181', desc: 'Michelin-tähden luomuravintola, joka korostaa kasviksia ja lähiraaka-aineita kekseliäissä menuissa.', cta: 'Varaa pöytä' },
+      lounas:{ kind: 'rav', emoji: '🍛', rcat: 'budjetti', tint: '95,210,160', name: 'Soup & More', cat: 'Lounaskeittiö · Kamppi', status: 'Avoinna', open: true, price: '€', budget: true, hours: 'Ma–Pe 10:30–15:00', address: 'Fredrikinkatu 46', dist: '0.5 km', desc: 'Reilu päivän lounas alle 13 €: keitot, kasvisvaihtoehdot ja salaattipöytä. Nopea ja edullinen.', cta: 'Lisätietoja' },
+      katukeittio:{ kind: 'rav', emoji: '🌯', rcat: 'budjetti', tint: '255,150,90', name: 'Fafa\'s Kamppi', cat: 'Pitaleivät · Kamppi', status: 'Avoinna', open: true, price: '€', budget: true, hours: 'Ma–Su 10:30–22:00', address: 'Salomonkatu 5', dist: '0.4 km', desc: 'Suosittu pita- ja falafelpaikka. Täyttävä annos alle 12 € — opiskelijoiden ja kiireisten suosikki.', cta: 'Lisätietoja' },
+      story:{ kind: 'rav', emoji: '🍳', rcat: 'budjetti', tint: '240,180,120', name: 'Story Kauppahalli', cat: 'Brunssi & lounas · Keskusta', status: 'Avoinna', open: true, price: '€€', budget: true, hours: 'Ma–La 8:00–17:00', address: 'Eteläranta / Vanha kauppahalli', dist: '0.7 km', desc: 'Päivän lounas ja brunssi historiallisessa kauppahallissa. Lounas alle 15 €.', cta: 'Lisätietoja' },
+      uusi1:{ kind: 'rav', emoji: '🍝', rcat: 'uusi', tint: '255,120,90', name: 'Trattoria Nuovo', cat: 'Italialainen · Kruununhaka', status: 'Avoinna', open: true, price: '€€', isNew: true, hours: 'Ti–Su 16:00–23:00', address: 'Mariankatu 26', dist: '1.1 km', desc: 'Juuri avattu napolilais-italialainen trattoria. Tuoreet pastat ja viikoittain vaihtuva menu.', cta: 'Varaa pöytä' },
+      uusi2:{ kind: 'rav', emoji: '🍣', rcat: 'uusi', tint: '95,180,235', name: 'Hanami', cat: 'Japanilainen izakaya · Kallio', status: 'Avoinna', open: true, price: '€€€', isNew: true, hours: 'Ke–La 17:00–24:00', address: 'Toinen linja 7', dist: '1.4 km', desc: 'Uusi izakaya, jossa sushia, ramenia ja sakea. Avattu tänä keväänä — kova suosio jo nyt.', cta: 'Varaa pöytä' },
+      uusi3:{ kind: 'rav', emoji: '🌮', rcat: 'uusi', tint: '255,150,90', name: 'Cholo Cantina', cat: 'Meksikolainen · Punavuori', status: 'Avoinna', open: true, price: '€€', isNew: true, hours: 'Ma–Su 15:00–24:00', address: 'Iso Roobertinkatu 12', dist: '0.8 km', desc: 'Tuore taqueria autenttisilla tacoilla ja margaritoilla. Uusin tulokas Punavuoressa.', cta: 'Varaa pöytä' },
+      suomi1:{ kind: 'rav', emoji: '🇫🇮', rcat: 'suomi', tint: '95,150,255', name: 'Savotta', cat: 'Suomalainen perinneruoka · Senaatintori', status: 'Avoinna', open: true, price: '€€€', award: '🇫🇮 Perinne', hours: 'Ma–Su 12:00–23:00', address: 'Aleksanterinkatu 22', dist: '0.6 km', desc: 'Perinteistä suomalaista ruokaa: poroa, muikkuja ja leipäjuustoa. Suosittu turistien keskuudessa.', cta: 'Varaa pöytä' },
+      suomi2:{ kind: 'rav', emoji: '🦌', rcat: 'suomi', tint: '175,130,90', name: 'Saaga', cat: 'Lappilainen · Punavuori', status: 'Avoinna', open: true, price: '€€€', award: '🇫🇮 Perinne', hours: 'Ma–La 16:00–23:00', address: 'Bulevardi 34', dist: '0.9 km', desc: 'Lappilaista keittiötä poroineen ja paikallisine raaka-aineineen lämpimässä tunnelmassa.', cta: 'Varaa pöytä' },
+      suomi3:{ kind: 'rav', emoji: '🐟', rcat: 'suomi', tint: '95,200,235', name: 'Kolme Kruunua', cat: 'Kotiruoka · Kruununhaka', status: 'Avoinna', open: true, price: '€€', hours: 'Ma–Su 11:00–22:00', address: 'Liisankatu 5', dist: '1.2 km', desc: 'Perinteinen helsinkiläinen ruokaravintola vuodelta 1952 — lihapullat ja silakat kuin kotona.', cta: 'Lisätietoja' },
+      // Kahvilat
+      kaffa:{ kind: 'rav', scat: 'paahtimo', emoji: '☕', tint: '210,150,90', name: 'Kaffa Roastery', cat: 'Paahtimo & kahvila · Punavuori', status: 'Avoinna', open: true, price: '€€', award: '🌿 Terassi', hours: 'Ma–Su 8:00–18:00', address: 'Pursimiehenkatu 29', dist: '0.8 km', phone: '+358 40 311 4554', desc: 'Helsingin tunnetuin paahtimo-kahvila. Tuoreita papuja, taitavat baristat ja rento tunnelma keskellä Punavuorta.', cta: 'Lisätietoja' },
+      johan:{ kind: 'rav', scat: 'erikois', emoji: '☕', tint: '180,130,90', name: 'Johan & Nyström', cat: 'Erikoiskahvila · Katajanokka', status: 'Avoinna', open: true, price: '€€', hours: 'Ma–Su 9:00–19:00', address: 'Kanavaranta 7 C', dist: '1.2 km', desc: 'Konseptikahvila kanavan varrella. Laaja valikoima erikoiskahveja ja teetä, sekä leivonnaisia paikan päällä.', cta: 'Lisätietoja' },
+      good: { kind: 'rav', scat: 'erikois', emoji: '☕', tint: '120,180,120', name: 'Good Life Coffee', cat: 'Kolmannen aallon kahvila · Kallio', status: 'Avoinna', open: true, price: '€', hours: 'Ma–Su 8:00–18:00', address: 'Kolmas linja 17', dist: '1.5 km', desc: 'Kallion sydämessä sijaitseva pieni mutta rakastettu kahvila. Erinomaista suodatinkahvia ja korvapuusteja.', cta: 'Lisätietoja' },
+      andante:{ kind: 'rav', scat: 'paahtimo', emoji: '☕', tint: '190,140,90', name: 'Paahtimo Andante', cat: 'Mikropaahtimo · Kruununhaka', status: 'Avoinna', open: true, price: '€€', hours: 'Ma–Pe 8:00–17:00', address: 'Liisankatu 17', dist: '1.3 km', desc: 'Pieni mikropaahtimo, jossa kahvi paahdetaan paikan päällä. Vaihtuvia erikoispapuja ja leivonnaisia.', cta: 'Lisätietoja' },
+      sandro:{ kind: 'rav', scat: 'brunssi', emoji: '🥐', tint: '240,180,120', name: 'Sandro', cat: 'Välimerellinen brunssi · Kallio', status: 'Avoinna', open: true, price: '€€', hours: 'Ma–Su 9:00–22:00', address: 'Vaasankatu 15', dist: '1.5 km', desc: 'Pohjois-afrikkalais-välimerellinen brunssi runsain annoksin. Suosittu viikonloppuisin — varaa pöytä.', cta: 'Varaa pöytä' },
+      brod:{ kind: 'rav', scat: 'brunssi', emoji: '🥐', tint: '210,160,110', name: 'Bröd Taberna', cat: 'Brunssi & leivonnaiset · Punavuori', status: 'Avoinna', open: true, price: '€€', hours: 'Ma–Su 8:00–18:00', address: 'Uudenmaankatu 23', dist: '0.9 km', desc: 'Tuoreita leivonnaisia ja runsas brunssi koko päivän. Kodikas paikka aamiaiselle tai lounaalle.', cta: 'Lisätietoja' },
+      ekberg:{ kind: 'rav', scat: 'klassikko', emoji: '🎩', tint: '210,150,90', name: 'Café Ekberg', cat: 'Klassikkokahvila · est. 1852 · Bulevardi', status: 'Avoinna', open: true, price: '€€', award: '🎩 Klassikko', hours: 'Ma–Su 8:00–19:00', address: 'Bulevardi 9', dist: '0.7 km', desc: 'Helsingin vanhin kahvila vuodelta 1852 — perinteiset leivokset ja arvokas tunnelma. Kaupungin instituutio.', cta: 'Lisätietoja' },
+      fazer:{ kind: 'rav', scat: 'klassikko', emoji: '🎩', tint: '95,150,255', name: 'Karl Fazer Café', cat: 'Klassikkokahvila · est. 1891 · Keskusta', status: 'Avoinna', open: true, price: '€€', award: '🎩 Klassikko', hours: 'Ma–La 7:30–22:00', address: 'Kluuvikatu 3', dist: '0.5 km', desc: 'Legendaarinen Fazerin lippulaivakahvila — leivokset, suklaa ja kupolisali. Pakollinen pysähdys.', cta: 'Lisätietoja' },
+      strindberg:{ kind: 'rav', scat: 'klassikko', emoji: '🎩', tint: '175,130,90', name: 'Café Strindberg', cat: 'Klassikkokahvila · Esplanadi', status: 'Avoinna', open: true, price: '€€€', award: '🎩 Klassikko', hours: 'Ma–Su 9:00–23:00', address: 'Pohjoisesplanadi 33', dist: '0.4 km', desc: 'Esplanadin tunnelmallinen kahvila-klassikko isoine ikkunoineen — kahvit, viinit ja ihmisten katselu.', cta: 'Lisätietoja' },
+      cafelin:{ kind: 'rav', scat: 'ranska', emoji: '🥖', tint: '230,170,110', name: 'Café Lyon', cat: 'Ranskalainen pikkukahvila · Punavuori', status: 'Avoinna', open: true, price: '€€', award: '🥖 Ranska', hours: 'Ti–Su 8:00–17:00', address: 'Tehtaankatu 14', dist: '0.9 km', desc: 'Pieni ranskalaishenkinen kahvila marmoripöydin — croissantit, café au lait ja aamiaiset à la française.', cta: 'Lisätietoja' },
+      patisserie:{ kind: 'rav', scat: 'ranska', emoji: '🥐', tint: '240,180,120', name: 'Patisserie Teurastamo', cat: 'Ranskalainen patisserie · Hermanni', status: 'Avoinna', open: true, price: '€€', award: '🥖 Ranska', hours: 'Ke–Su 9:00–17:00', address: 'Työpajankatu 2', dist: '2.3 km', desc: 'Aito ranskalainen patisserie: macaronit, éclairit ja voicroissantit leivotaan paikan päällä.', cta: 'Lisätietoja' },
+      maison:{ kind: 'rav', scat: 'ranska', emoji: '🥖', tint: '210,160,110', name: 'Maison du Pain', cat: 'Boulangerie & kahvila · Kruununhaka', status: 'Avoinna', open: true, price: '€€', hours: 'Ti–La 8:00–16:00', address: 'Mariankatu 3', dist: '1.1 km', desc: 'Pieni boulangerie ranskalaisin leivin ja kahvein — hapanjuurileipä ja croissantit.', cta: 'Lisätietoja' },
+      kahvilatorni:{ kind: 'rav', scat: 'boheemi', emoji: '📖', tint: '170,120,230', name: 'Kafe Klaus', cat: 'Boheemi kirjakahvila · Kallio', status: 'Avoinna', open: true, price: '€', award: '📖 Boheemi', hours: 'Ma–Su 9:00–20:00', address: 'Vaasankatu 27', dist: '1.6 km', desc: 'Hämärä, kodikas kirjakahvila Kalliossa — antikvariaattihyllyt, hidas tunnelma ja vahva kahvi.', cta: 'Lisätietoja' },
+      sointu:{ kind: 'rav', scat: 'boheemi', emoji: '📖', tint: '120,180,120', name: 'Kahvila Sointu', cat: 'Rauhallinen pikkukahvila · Punavuori', status: 'Avoinna', open: true, price: '€', award: '📖 Boheemi', hours: 'Ma–Su 9:00–18:00', address: 'Korkeavuorenkatu 4', dist: '0.8 km', desc: 'Pieni rauhallinen kahvila, jossa saa istua tuntikausia kirjan kanssa. Kasvivoittoiset leivonnaiset.', cta: 'Lisätietoja' },
+      taikalamppu:{ kind: 'rav', scat: 'boheemi', emoji: '🕯', tint: '190,140,90', name: 'Taikalamppu', cat: 'Tunnelmakahvila · Kallio', status: 'Avoinna', open: true, price: '€', hours: 'Ma–Su 10:00–21:00', address: 'Helsinginkatu 15', dist: '1.7 km', desc: 'Kynttilänvalossa kylpevä boheemi kahvila — sohvat, levyt seinillä ja hidas, lämmin tunnelma.', cta: 'Lisätietoja' },
+      // Baarit
+      trillby:{ kind: 'rav', scat: 'cocktail', emoji: '🍸', tint: '175,130,255', name: 'Trillby & Chadwick', cat: 'Speakeasy-cocktailbaari · Kluuvi', status: 'Avoinna', open: true, price: '€€€', award: '🏆 Top 10 baari', hours: 'Ti–La 18:00–02:00', address: 'Kaisaniemenkatu 1 B', dist: '0.5 km', desc: 'Piilotettu speakeasy-cocktailbaari, joka tunnetaan tarkasti viimeistellyistä drinkeistä ja intiimistä tunnelmasta. Varaaminen suositeltavaa.', cta: 'Varaa pöytä' },
+      liberty:{ kind: 'rav', scat: 'cocktail', emoji: '🍸', tint: '95,150,255', name: 'Liberty or Death', cat: 'Cocktailbaari · Punavuori', status: 'Avoinna', open: true, price: '€€', hours: 'Ke–La 17:00–02:00', address: 'Erottajankatu 5', dist: '0.7 km', desc: 'Leikkisä ja luova cocktailbaari, jossa drinkit tarjoillaan yllättävissä astioissa. Yksi Helsingin puhutuimmista.', cta: 'Lisätietoja' },
+      sori: { kind: 'rav', scat: 'olut', emoji: '🍺', tint: '240,180,90', name: 'Sori Taproom', cat: 'Olutbaari · 30 hanaa · Keskusta', status: 'Avoinna', open: true, price: '€€', award: '🌿 Terassi', hours: 'Ma–La 15:00–01:00', address: 'Kaisaniemenkatu 4', dist: '0.6 km', desc: 'Käsityöoluen ystävän paratiisi: 30 vaihtuvaa hanaa, oma panimo ja iloinen meininki. Terassi kesäisin.', cta: 'Lisätietoja' },
+      oluthuone:{ kind: 'rav', scat: 'olut', emoji: '🍺', tint: '230,170,80', name: 'Oluthuone Panimomestari', cat: 'Olutbaari · 40 hanaa · Kamppi', status: 'Avoinna', open: true, price: '€€', hours: 'Ma–La 14:00–02:00', address: 'Kalevankatu 25', dist: '0.6 km', desc: 'Laaja valikoima koti- ja ulkomaisia hanaoluita rennossa ympäristössä. Olutystävän peruspaikka.', cta: 'Lisätietoja' },
+      vinkkeli:{ kind: 'rav', scat: 'viini', emoji: '🍷', tint: '170,120,230', name: 'Viinikellari Vinkkeli', cat: 'Viinibaari · Punavuori', status: 'Avoinna', open: true, price: '€€€', hours: 'Ti–La 16:00–24:00', address: 'Fredrikinkatu 22', dist: '0.8 km', desc: 'Tunnelmallinen viinibaari laajalla lasilistalla ja pienillä lautasilla. Asiantunteva henkilökunta.', cta: 'Varaa pöytä' },
+      apotek:{ kind: 'rav', scat: 'viini', emoji: '🍷', tint: '150,110,210', name: 'Bar Apotek', cat: 'Luonnonviinibaari · Kruununhaka', status: 'Avoinna', open: true, price: '€€€', hours: 'Ke–La 17:00–01:00', address: 'Mariankatu 12', dist: '1.1 km', desc: 'Luonnonviineihin erikoistunut baari pienpanimo-oluin täydennettynä. Vaihtuva valikoima.', cta: 'Lisätietoja' },
+      pikkulintu:{ kind: 'rav', scat: 'olut', emoji: '🍺', tint: '240,180,90', name: 'Bryggeri Helsinki', cat: 'Panimoravintola · Keskusta', status: 'Avoinna', open: true, price: '€€€', award: '🍺 Oma panimo', hours: 'Ma–La 11:00–24:00', address: 'Sofiankatu 2', dist: '0.5 km', desc: 'Panimoravintola, jossa oluet pannaan paikan päällä. Laadukasta ruokaa ja tuoreita tap-oluita.', cta: 'Varaa pöytä' },
+      kaisla:{ kind: 'rav', scat: 'olut', emoji: '🍺', tint: '230,170,80', name: 'Kaisla', cat: 'Olutravintola · Kluuvi', status: 'Avoinna', open: true, price: '€€', award: '🏅 Olutravintola', hours: 'Ma–La 14:00–02:00', address: 'Vilhonkatu 4', dist: '0.4 km', desc: 'Arvostettu olutravintola laajalla erikoisolutvalikoimalla ja tietävällä henkilökunnalla.', cta: 'Lisätietoja' },
+      son:{ kind: 'rav', scat: 'cocktail', emoji: '🍸', tint: '160,120,255', name: 'A21 Cocktail Lounge', cat: 'Tyylikäs cocktaillounge · Kamppi', status: 'Avoinna', open: true, price: '€€€', award: '🏆 Palkittu', hours: 'Ke–La 18:00–02:00', address: 'Annankatu 21', dist: '0.6 km', desc: 'Hienostunut cocktaillounge, joka tunnetaan kekseliäistä signature-drinkeistä ja tyylikkäästä sisustuksesta.', cta: 'Varaa pöytä' },
+      sport1:{ kind: 'rav', scat: 'sport', emoji: '🏟', tint: '95,150,255', name: "O'Connells", cat: 'Sporttibaari · isot screenit · Keskusta', status: 'Avoinna', open: true, price: '€€', award: '📺 Kaikki pelit', hours: 'Ma–Su 14:00–02:00', address: 'Rauhankatu 11', dist: '0.7 km', desc: 'Irlantilaishenkinen sporttibaari isoilla screeneillä — jääkiekko, jalkapallo ja olutta tunnelmalla.', cta: 'Lisätietoja' },
+      sport2:{ kind: 'rav', scat: 'sport', emoji: '🏟', tint: '95,200,235', name: 'William K Arena', cat: 'Sporttibaari · Pasila', status: 'Avoinna', open: true, price: '€€', award: '📺 Kaikki pelit', hours: 'Ma–Su 13:00–24:00', address: 'Asemapäällikönkatu 1', dist: '2.4 km', desc: 'Tilava sporttibaari areenan vieressä — ottelupäivinä täynnä tunnelmaa ja hanaoluita.', cta: 'Lisätietoja' },
+      sport3:{ kind: 'rav', scat: 'sport', emoji: '🎯', tint: '255,150,90', name: 'Pelimesta', cat: 'Peli- & sporttibaari · Kallio', status: 'Avoinna', open: true, price: '€', hours: 'Ma–Su 15:00–02:00', address: 'Hämeentie 29', dist: '1.3 km', desc: 'Biljardia, tikkaa ja pelit screeneiltä. Rento meininki ja edullinen hinta.', cta: 'Lisätietoja' },
+      gem1:{ kind: 'rav', scat: 'cocktail', emoji: '💎', tint: '175,130,255', name: 'Holiday Bar', cat: 'Piilotettu helmi · merinäköala · Kaivopuisto', status: 'Avoinna', open: true, price: '€€', award: '💎 Piilohelmi', hours: 'Ti–La 16:00–24:00', address: 'Merikatu 23', dist: '1.9 km', desc: 'Pieni rantabaari piilossa merinäköalalla — paikallisten suosikki, jota turistit eivät löydä.', cta: 'Lisätietoja' },
+      gem2:{ kind: 'rav', scat: 'cocktail', emoji: '💎', tint: '95,210,160', name: 'Sivuhuone', cat: 'Piilotettu helmi · takapihabaari · Kallio', status: 'Avoinna', open: true, price: '€€', award: '💎 Piilohelmi', hours: 'Ke–La 18:00–02:00', address: 'Fleminginkatu 4 (sisäpiha)', dist: '1.5 km', desc: 'Sisäpihalta löytyvä pieni baari ilman kylttiä — tunnelmallinen ja vain vihkiytyneiden tiedossa.', cta: 'Lisätietoja' },
+      gem3:{ kind: 'rav', scat: 'viini', emoji: '💎', tint: '170,120,230', name: 'Kellari 21', cat: 'Piilotettu helmi · viiniluola · Kruununhaka', status: 'Avoinna', open: true, price: '€€€', award: '💎 Piilohelmi', hours: 'To–La 17:00–01:00', address: 'Meritullinkatu 21', dist: '1.0 km', desc: 'Maanalainen viiniluola kivimuurein — intiimi ja vähän tunnettu helmi viinin ystäville.', cta: 'Lisätietoja' },
+      // Yökerhot
+      kaiku:{ kind: 'rav', scat: 'tekno', emoji: '🎧', tint: '175,130,255', name: 'Kaiku', cat: 'Klubi · tekno · Suvilahti', status: 'Auki 23–04', open: true, price: '€€', award: '🎟 Liput', hours: 'Pe–La 23:00–04:00', address: 'Kaikukatu 4', dist: '1.1 km', desc: 'Helsingin arvostetuin klubi elektroniselle musiikille. Kansainvälisiä DJ-vieraita ja huippuäänentoisto.', cta: 'Osta liput' },
+      post:{ kind: 'rav', scat: 'tekno', emoji: '🎧', tint: '160,120,255', name: 'Post Bar', cat: 'Klubi · indie & elektro · Asema-aukio', status: 'Auki 22–04', open: true, price: '€€', hours: 'Pe–La 22:00–04:00', address: 'Mannerheimintie 5', dist: '0.3 km', desc: 'Keskeinen klubi, jossa soi indie, elektro ja vaihtuvat DJ-illat. Helppo tulla aseman vierestä.', cta: 'Osta liput' },
+      kerma:{ kind: 'rav', scat: 'pop', emoji: '🪩', tint: '255,90,77', name: 'Kerma', cat: 'Yökerho · house · Kallio', status: 'Auki 22–04', open: true, price: '€€', hours: 'Pe–La 22:00–04:00', address: 'Hämeentie 2', dist: '1.3 km', desc: 'Rento yökerho Kalliossa, jossa soi house ja disco. Vapaa pukukoodi ja monipuolinen yleisö.', cta: 'Osta liput' },
+      kaivohuone:{ kind: 'rav', scat: 'pop', emoji: '🪩', tint: '255,110,90', name: 'Kaivohuone', cat: 'Kesäklubi · pop · Kaivopuisto', status: 'Auki 22–04', open: true, price: '€€€', hours: 'Pe–La 22:00–04:00', address: 'Iso Puistotie 1', dist: '1.8 km', desc: 'Legendaarinen kesäklubi puiston laidalla — isot pop-illat ja artistivieraat.', cta: 'Osta liput' },
+      maxine:{ kind: 'rav', scat: 'katto', emoji: '🌃', tint: '95,150,255', name: 'Maxine', cat: 'Kattoklubi · pop & house · Kamppi', status: 'Auki 22–04', open: true, price: '€€€', hours: 'Pe–La 22:00–04:00', address: 'Urho Kekkosen katu 1', dist: '0.4 km', desc: 'Näyttävä kattoklubi kaupungin ytimessä upein näköaloin. Pop- ja house-musiikkia sekä isoja iltoja.', cta: 'Osta liput' },
+      loiste:{ kind: 'rav', scat: 'katto', emoji: '🌃', tint: '95,160,255', name: 'Loiste Rooftop', cat: 'Kattoklubi · house · Kluuvi', status: 'Auki 22–04', open: true, price: '€€€', hours: 'Pe–La 22:00–04:00', address: 'Kaisaniemenkatu 7', dist: '0.5 km', desc: 'Tyylikäs kattoklubi ja baari kaupungin ylle — house-musiikkia ja näköalat.', cta: 'Osta liput' },
+      live1:{ kind: 'rav', scat: 'tekno', emoji: '🎤', tint: '255,90,77', name: 'Tiivistämö', cat: 'Klubi · live & DJ · Suvilahti', status: 'Tänään 22.00', open: true, price: '€€', award: '🎤 Tänään live', hours: 'Pe 22:00–03:00', address: 'Tiivistämö, Suvilahti', dist: '1.2 km', desc: 'Tänään lavalla kotimainen DJ-kokoonpano ja live-esiintyjä. Intiimi klubitila Suvilahdessa.', cta: 'Osta liput' },
+      live2:{ kind: 'rav', scat: 'pop', emoji: '🎤', tint: '175,130,255', name: 'On the Rocks', cat: 'Live-klubi · rock & pop · Keskusta', status: 'Tänään 21.00', open: true, price: '€€', award: '🎤 Tänään live', hours: 'To–La 21:00–04:00', address: 'Mikonkatu 15', dist: '0.4 km', desc: 'Live-keikkojen ja klubi-iltojen klassikko. Tänään lavalla nouseva kotimainen bändi.', cta: 'Osta liput' },
+      vapaa1:{ kind: 'rav', scat: 'pop', emoji: '🆓', tint: '95,210,160', name: 'Kuudes Linja', cat: 'Klubi · vapaa sisäänpääsy · Kallio', status: 'Auki 22–04', open: true, price: '€', free: true, hours: 'Pe–La 22:00–04:00', address: 'Hämeentie 13', dist: '1.4 km', desc: 'Kallion klubi vaihtuvin DJ-illoin — usein vapaa sisäänpääsy ennen pultta. Rento ja monipuolinen.', cta: 'Lisätietoja' },
+      vapaa2:{ kind: 'rav', scat: 'tekno', emoji: '🆓', tint: '95,180,235', name: 'Siltanen', cat: 'Klubi & terassi · vapaa pääsy · Kallio', status: 'Auki 21–04', open: true, price: '€', free: true, hours: 'Ke–La 21:00–04:00', address: 'Hämeentie 13 B', dist: '1.4 km', desc: 'Klubi, baari ja kattoterassi saman katon alla. Usein ilmainen sisäänpääsy ja vaihtuvat DJ:t.', cta: 'Lisätietoja' },
+      katto3:{ kind: 'rav', scat: 'katto', emoji: '🏙', tint: '255,150,90', name: 'Sky Room', cat: 'Kattoterassi & klubi · Kamppi', status: 'Auki 22–04', open: true, price: '€€€', award: '🏙 Kattoterassi', hours: 'Pe–La 22:00–04:00', address: 'Sokos Hotel Torni, Yrjönkatu 26', dist: '0.5 km', desc: 'Tornin legendaarinen kattoterassi — panoraamanäkymät Helsinkiin ja drinkit pilvien rajalla.', cta: 'Osta liput' },
+      // Aktiviteetit
+      loyly:      { kind: 'akt', acat: 'sauna', emoji: '🧖', tint: '95,210,192', name: 'Löyly', cat: 'Sauna & meri · Hernesaari', status: 'Avoinna', open: true, rating: '4.6', reviews: '6.8k', price: '21€', duration: '2 h', hours: 'Ma–Su 13:00–22:00', address: 'Hernesaarenranta 4', dist: '2.1 km', desc: 'Arkkitehtuuripalkittu yleinen sauna meren äärellä — löylyt, avantouinti ja ravintola samassa. Varaa vuoro etukäteen.', cta: 'Varaa vuoro' },
+      suomenlinna:{ kind: 'akt', acat: 'museo', emoji: '🏰', tint: '120,180,120', name: 'Suomenlinna', cat: 'Merilinnoitus · Unesco-kohde', status: 'Avoinna', open: true, rating: '4.7', reviews: '12k', free: true, duration: '3–4 h', hours: 'Avoinna ympäri vuoden', address: 'Suomenlinna (lautta Kauppatorilta)', dist: '4.0 km', desc: 'Unescon maailmanperintökohde meren saarilla. Museot, kahvilat ja upeat maisemat — kokonainen päiväretki.', cta: 'Lisätietoja' },
+      allas:      { kind: 'akt', acat: 'sauna', emoji: '🏊', tint: '95,180,235', name: 'Allas Sea Pool', cat: 'Merikylpylä & sauna · Kauppatori', status: 'Avoinna', open: true, rating: '4.4', reviews: '5.6k', price: '14€', duration: '1–2 h', hours: 'Ma–Su 9:00–21:00', address: 'Katajanokanlaituri 2a', dist: '0.9 km', desc: 'Merikylpylä aivan keskustassa: lämmin allas, merivesiallas ja saunat. Näköala Kauppatorille ja Tuomiokirkolle.', cta: 'Lisätietoja' },
+      skywheel:   { kind: 'akt', acat: 'nako', emoji: '🎡', tint: '255,150,90', name: 'SkyWheel Helsinki', cat: 'Maailmanpyörä · Kauppatori', status: 'Suljettu', open: false, rating: '4.3', reviews: '2.9k', price: '15€', duration: '~20 min', hours: 'Ma–Su 11:00–21:00', address: 'Katajanokanlaituri 2', dist: '0.9 km', desc: 'Maailmanpyörä sataman äärellä — näkymät yli Helsingin. Yhdessä gondolissa on jopa sauna.', cta: 'Osta liput' },
+      kotiharju:  { kind: 'akt', acat: 'sauna', emoji: '🧖', tint: '95,210,192', name: 'Kotiharjun sauna', cat: 'Yleinen puusauna · Kallio', status: 'Avoinna', open: true, rating: '4.7', reviews: '2.4k', price: '16€', duration: '2 h', hours: 'Ti–Su 14:00–20:00', address: 'Harjutorinkatu 1', dist: '1.4 km', desc: 'Perinteinen puulämmitteinen yleinen sauna vuodelta 1928 — aito helsinkiläinen saunakokemus.', cta: 'Lisätietoja' },
+      ham:        { kind: 'akt', acat: 'museo', emoji: '🖼', tint: '175,130,255', name: 'HAM Helsingin taidemuseo', cat: 'Taidemuseo · Tennispalatsi', status: 'Avoinna', open: true, rating: '4.5', reviews: '3.3k', accessible: true, price: '17€', duration: '1.5 h', hours: 'Ti–Su 11:30–19:00', address: 'Eteläinen Rautatiekatu 8', dist: '0.7 km', desc: 'Helsingin kaupungin taidemuseo — Tove Janssonin seinämaalaukset ja vaihtuvat näyttelyt.', cta: 'Osta liput' },
+      kaivopuisto:{ kind: 'akt', acat: 'puisto', emoji: '🌳', tint: '120,190,120', name: 'Kaivopuisto', cat: 'Puisto & merinäköala · Ullanlinna', status: 'Avoinna', open: true, rating: '4.7', reviews: '4.1k', free: true, hours: 'Auki ympäri vuorokauden', address: 'Kaivopuisto', dist: '1.8 km', desc: 'Helsingin klassikkopuisto meren äärellä — piknikit, auringonlasku ja avara näköala merelle.', cta: 'Lisätietoja' },
+      hakaniemi:  { kind: 'akt', acat: 'markkina', emoji: '🛍', tint: '255,150,90', name: 'Hakaniemen kauppahalli', cat: 'Kauppahalli · Hakaniemi', status: 'Avoinna', open: true, rating: '4.6', reviews: '5.8k', hours: 'Ma–La 8:00–18:00', address: 'Hämeentie 1a', dist: '1.2 km', desc: 'Historiallinen kauppahalli täynnä lähiruokaa, herkkuja ja kahviloita. Loistava aamupäivän kohde.', cta: 'Lisätietoja' },
+      tuomiokirkko:{ kind: 'akt', acat: 'museo', emoji: '⛪', tint: '95,150,255', name: 'Tuomiokirkko & Senaatintori', cat: 'Maamerkki · Kruununhaka', status: 'Avoinna', open: true, rating: '4.7', reviews: '21k', free: true, duration: '~30 min', hours: 'Ma–Su 9:00–18:00', address: 'Unioninkatu 29', dist: '0.6 km', desc: 'Helsingin tunnetuin maamerkki — valkoinen empire-kirkko ja Senaatintori. Kaupungin sydän ja pakollinen valokuvauskohde.', cta: 'Lisätietoja' },
+      temppeliaukio:{ kind: 'akt', acat: 'museo', emoji: '⛪', tint: '95,210,160', name: 'Temppeliaukion kirkko', cat: 'Kallioon louhittu kirkko · Etu-Töölö', status: 'Avoinna', open: true, rating: '4.6', reviews: '14k', price: '8€', duration: '~30 min', hours: 'Ma–Su 10:00–17:00', address: 'Lutherinkatu 3', dist: '1.0 km', desc: 'Kallioon louhittu kirkko ainutlaatuisella akustiikalla ja kupolilla — yksi Helsingin ikonisimmista kohteista.', cta: 'Lisätietoja' },
+      oodi:{ kind: 'akt', acat: 'museo', emoji: '📚', tint: '255,150,90', name: 'Oodi — keskustakirjasto', cat: 'Arkkitehtuuri & kirjasto · Töölönlahti', status: 'Avoinna', open: true, rating: '4.7', reviews: '9.3k', free: true, duration: '1 h', hours: 'Ma–Pe 8:00–21:00', address: 'Töölönlahdenkatu 4', dist: '0.7 km', desc: 'Palkittu keskustakirjasto — arkkitehtuurihelmi, kattoterassi ja näkymä Eduskuntatalolle. Ilmainen.', cta: 'Lisätietoja' },
+      // Etusivun tapahtumat
+      olavi:     { kind: 'event', emoji: '🎤', tint: '255,90,77', name: 'Olavi Uusivirta', cat: 'Keikka · Tavastia', status: 'Liput myynnissä', open: true, price: 'alk. 32€', hours: 'Tänään 21.00', address: 'Tavastia, Urho Kekkosen katu 4–6', dist: '0.4 km', desc: 'Kotimaisen rockin suosikki livenä Tavastialla — illan kohokohta keikkaystäville.', long: 'Olavi Uusivirta tuo Tavastialle illan, jossa kuullaan sekä uutta materiaalia että rakastetut klassikot. Intiimi klubikeikka legendaarisella lavalla — tunnelma on lähellä ja äänentoisto huippuluokkaa. Saavu ajoissa, sillä keikat Tavastialla myydään usein loppuun.', doors: '20.00', duration: '~2 h', agelimit: 'K-18', org: 'Live Nation', lineup: 'Lämmittelijä: Litku Klemetti', cta: 'Osta liput' },
+      behm:      { kind: 'event', emoji: '🎤', tint: '255,111,96', name: 'Behm', cat: 'Keikka · Kaapelitehdas', status: 'Liput myynnissä', open: true, price: 'alk. 39€', hours: 'La 19.00', address: 'Kaapelitehdas, Tallberginkatu 1', dist: '2.6 km', desc: 'Suosittu poptähti isolla lavalla. Energinen show, joka täyttää salin.', long: 'Behm nousee Kaapelitehtaan suurelle lavalle täyden bändin kanssa. Luvassa suurimmat hitit, näyttävä valoshow ja yhteislaulua koko salin voimin. Sopii koko porukalle — yksi kevään puhutuimmista keikoista.', doors: '18.00', duration: '~1 h 45 min', agelimit: 'K-15', org: 'Fullsteam Agency', lineup: 'Lämmittelijä: Etta', cta: 'Osta liput' },
+      hifk:      { kind: 'event', emoji: '🏒', tint: '95,150,255', name: 'HIFK – Tappara', cat: 'Jääkiekko · Liiga', status: 'Liput myynnissä', open: true, price: 'alk. 29€', hours: 'Tänään 18.30', address: 'Helsingin jäähalli, Nordenskiöldinkatu 11–13', dist: '2.1 km', desc: 'Liigan kärkiottelu kotiyleisön edessä — tunnelma katossa.', long: 'HIFK kohtaa Tapparan Liigan kärkitaistossa kotihallissaan. Luvassa kovaa vauhtia, täysi katsomo ja sähköinen tunnelma ensimmäisestä aloituksesta loppusummeriin. Perinteikäs paikallispeli, jota ei kannata jättää väliin.', doors: '17.30', duration: '~2 h 30 min', agelimit: 'Kaikenikäiset', org: 'HIFK Hockey', lineup: 'Liigan runkosarja', cta: 'Osta liput' },
+      kaikuklubi:{ kind: 'event', emoji: '🎧', tint: '175,130,255', name: 'Klubi: Kaiku', cat: 'Yöelämä · Suvilahti', status: 'Auki 23–04', open: true, price: 'alk. 12€', hours: 'Tänään 23.00', address: 'Kaikukatu 4', dist: '1.1 km', desc: 'Elektronisen musiikin klubi-ilta vaihtuvin DJ-vierain.', long: 'Kaiku on Helsingin arvostetuin osoite elektroniselle musiikille. Illan aikana lavalla nähdään sekä kotimaisia että kansainvälisiä DJ-vieraita, ja äänentoisto on rakennettu tanssimista varten. Yö venyy aamuun — pukeudu rennosti ja varaudu jonoon.', doors: '23.00', duration: 'klo 04 asti', agelimit: 'K-20', org: 'Kaiku Helsinki', lineup: 'DJ-vieraat: vaihtuu viikoittain', cta: 'Osta liput' },
+      standup:   { kind: 'event', emoji: '🎙', tint: '95,210,160', name: 'Stand-up: Comedy Café', cat: 'Stand up · Kallio', status: 'Liput myynnissä', open: true, price: 'alk. 15€', hours: 'Tänään 21.30', address: 'Comedy Café, Hämeentie 2', dist: '1.2 km', desc: 'Illan stand-up-show nousevien ja tunnettujen koomikoiden voimin.', long: 'Comedy Cafén illassa lavalle nousee useita koomikkoja — sekä tuttuja nimiä että nousevia kykyjä. Intiimi klubitila takaa, että jokainen vitsi osuu lähelle. Baari auki koko illan, joten ota juoma mukaan ja nauti.', doors: '21.00', duration: '~1 h 30 min', agelimit: 'K-18', org: 'Comedy Café Helsinki', lineup: '4 esiintyjää + juontaja', cta: 'Osta liput' },
+    };
+  }
+
+  restConfig() {
+    return {
+      ruoka:   { hero: 'olo',     badge: '⭐ MICHELIN',        badgeStyle: 'font-size:9px;font-weight:900;letter-spacing:.08em;color:#1c1407;background:#e8c06a;padding:5px 10px;border-radius:999px',                          items: ['via', 'fafa', 'bar', 'olo', 'gron', 'lounas', 'katukeittio', 'story', 'uusi1', 'uusi2', 'uusi3', 'suomi1', 'suomi2', 'suomi3'], title: 'Suosittua nyt' },
+      kahvila: { hero: 'kaffa',   badge: '☕ SUOSITTU KAHVILA', badgeStyle: 'font-size:9px;font-weight:900;letter-spacing:.08em;color:#2a1c0a;background:#e8b87a;padding:5px 10px;border-radius:999px',                          items: ['kaffa', 'johan', 'good', 'andante', 'sandro', 'brod', 'ekberg', 'fazer', 'strindberg', 'cafelin', 'patisserie', 'maison', 'kahvilatorni', 'sointu', 'taikalamppu'], title: 'Parhaat kahvilat' },
+      baari:   { hero: 'trillby', badge: '🍸 HUIPPUBAARI',      badgeStyle: 'font-size:9px;font-weight:900;letter-spacing:.08em;color:#fff;background:rgba(175,130,255,.92);padding:5px 10px;border-radius:999px',                  items: ['trillby', 'liberty', 'son', 'sori', 'oluthuone', 'pikkulintu', 'kaisla', 'vinkkeli', 'apotek', 'sport1', 'sport2', 'sport3', 'gem1', 'gem2', 'gem3'], title: 'Illan baarit' },
+      yokerho: { hero: 'kaiku',   badge: '🌃 ILLAN KUUMIN',     badgeStyle: 'font-size:9px;font-weight:900;letter-spacing:.08em;color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);padding:5px 10px;border-radius:999px', items: ['kaiku', 'post', 'kerma', 'kaivohuone', 'maxine', 'loiste', 'live1', 'live2', 'vapaa1', 'vapaa2', 'katto3'], title: 'Yökerhot tänään' },
+    };
+  }
+
+  subCatDefs() {
+    return {
+      ruoka: [{ key: 'kaikki', label: 'Kaikki' }, { key: 'palkitut', label: '🏆 Palkitut' }, { key: 'pohjoismainen', label: '🇫🇮 Pohjoismainen' }, { key: 'japani', label: '🍣 Japanilainen' }, { key: 'pizza', label: '🍕 Pizza' }, { key: 'italia', label: '🍝 Italialainen' }, { key: 'aasia', label: '🍜 Aasialainen' }, { key: 'burger', label: '🍔 Hampurilaiset' }, { key: 'kasvis', label: '🌱 Kasvis' }, { key: 'kebab', label: '🌯 Kebab' }, { key: 'valimeri', label: '🫒 Välimeri' }, { key: 'intia', label: '🍛 Intialainen' }, { key: 'kala', label: '🐟 Kala & meri' }, { key: 'pihvi', label: '🥩 Pihvi & grilli' }, { key: 'meksiko', label: '🌮 Meksikolainen' }, { key: 'dessert', label: '🍰 Dessert' }],
+      kahvila: [{ key: 'kaikki', label: 'Kaikki' }, { key: 'klassikko', label: '🎩 Klassikot' }, { key: 'ranska', label: '🥖 Ranskalaiset' }, { key: 'boheemi', label: '📖 Boheemit' }, { key: 'erikois', label: '☕ Erikoiskahvilat' }, { key: 'paahtimo', label: '🔥 Paahtimot' }, { key: 'brunssi', label: '🥐 Brunssi' }],
+      baari: [{ key: 'kaikki', label: 'Kaikki' }, { key: 'cocktail', label: '🍸 Cocktail' }, { key: 'olut', label: '🍺 Olutbaarit' }, { key: 'viini', label: '🍷 Viinibaarit' }, { key: 'sport', label: '🏟 Sporttibaarit' }],
+      yokerho: [{ key: 'kaikki', label: 'Kaikki' }, { key: 'tekno', label: '🎧 Tekno' }, { key: 'pop', label: '🪩 Pop & hitit' }, { key: 'katto', label: '🌃 Kattoklubit' }],
+    };
+  }
+
+  cardVM(key) {
+    const r = this.placeData()[key];
+    const badges = [];
+    if (r.rating) badges.push({ label: '★ ' + r.rating + ' · ' + r.reviews, style: 'font-size:10px;font-weight:800;color:#1c1407;background:#e8c06a;padding:4px 8px;border-radius:7px' });
+    if (r.free) badges.push({ label: 'Ilmainen', style: 'font-size:9.5px;font-weight:800;color:#04231a;background:#5fd9a6;padding:4px 9px;border-radius:999px' });
+    if (r.accessible) badges.push({ label: '♿ Esteetön', style: 'font-size:9.5px;font-weight:800;color:#04223a;background:#7cc4ff;padding:4px 9px;border-radius:999px' });
+    if (r.award) {
+      const green = /Terassi/.test(r.award);
+      badges.push({ label: r.award, style: 'font-size:9.5px;font-weight:800;padding:4px 9px;border-radius:999px;' + (green ? 'color:#a7e8dd;background:rgba(95,217,192,.16)' : 'color:#1c1407;background:#e8c06a') });
+    }
+    const statusStyle = 'flex:none;font-size:9.5px;font-weight:800;padding:4px 9px;border-radius:999px;' + (r.open ? 'color:#5fd9a6;background:rgba(95,217,166,.14)' : 'color:#ffb86b;background:rgba(255,184,107,.14)');
+    return { emoji: r.emoji, tint: r.tint, name: r.name, cat: r.cat, status: r.status, statusStyle, price: r.price || '', badges, hours: r.hours, addr: r.address + ' · ' + r.dist, chip: r.rating ? '★ ' + r.rating : (r.price || ''), onOpen: () => this.setState({ detail: key }) };
+  }
+
+  applyFilter(keys, filter) {
+    const pd = this.placeData();
+    let arr = keys.slice();
+    if (filter === 'avoinna') arr = arr.filter((k) => pd[k].open);
+    if (filter === 'lahin') arr = arr.slice().sort((a, b) => parseFloat(pd[a].dist) - parseFloat(pd[b].dist));
+    return arr;
+  }
+
+  heroCardVM(key) {
+    const r = this.placeData()[key];
+    const award = r.award;
+    const badge = award ? award : '✦ Suosittu';
+    const badgeStyle = (award && !/Terassi/.test(award))
+      ? 'font-size:8.5px;font-weight:900;letter-spacing:.06em;color:#1c1407;background:#e8c06a;padding:5px 10px;border-radius:999px'
+      : 'font-size:8.5px;font-weight:900;letter-spacing:.06em;color:#04222a;background:#5fd9c0;padding:5px 10px;border-radius:999px';
+    const meta = r.rating ? ('★ ' + r.rating + ' · ' + r.dist) : ((r.price ? r.price + ' · ' : '') + r.dist);
+    return { tint: r.tint, emoji: r.emoji, status: r.status, badge, badgeStyle, cat: r.cat, name: r.name, cta: r.cta, meta, onOpen: () => this.setState({ detail: key }) };
+  }
+
+  dotStyle(active) {
+    return 'width:' + (active ? '18px' : '6px') + ';height:6px;border-radius:999px;transition:all .2s;background:' + (active ? '#6b76ff' : 'rgba(255,255,255,.22)');
+  }
+
+  filterChips(cur, setFn) {
+    return [{ k: 'kaikki', l: 'Kaikki' }, { k: 'avoinna', l: '🟢 Avoinna nyt' }, { k: 'lahin', l: '📍 Lähimmät' }].map((f) => ({
+      label: f.l,
+      onClick: () => setFn(f.k),
+      style: 'flex:none;cursor:pointer;font-size:12px;font-weight:800;padding:8px 13px;border-radius:999px;white-space:nowrap;' +
+        (cur === f.k ? 'color:#fff;background:rgba(91,101,230,.9)' : 'color:rgba(255,255,255,.5);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.06)'),
+    }));
+  }
+
+  buildDetail() {
+    const raw = this.placeData()[this.state.detail];
+    if (!raw) return null;
+    const facts = [];
+    if (raw.kind === 'akt' && raw.rating) facts.push({ t: '⭐ ' + raw.rating + ' · ' + raw.reviews + ' arvostelua' });
+    if (raw.price) facts.push({ t: '💶 ' + raw.price });
+    if (raw.duration) facts.push({ t: '⏱ ' + raw.duration });
+    if (raw.hours) facts.push({ t: '🕐 ' + raw.hours });
+    if (raw.doors) facts.push({ t: '🚪 Ovet ' + raw.doors });
+    if (raw.lineup) facts.push({ t: '🎫 ' + raw.lineup });
+    if (raw.agelimit) facts.push({ t: '🔞 ' + raw.agelimit });
+    if (raw.org) facts.push({ t: '🏷 Järjestäjä: ' + raw.org });
+    facts.push({ t: '📍 ' + raw.address + ' · ' + raw.dist });
+    if (raw.phone) facts.push({ t: '📞 ' + raw.phone });
+    const badges = [];
+    if (raw.free) badges.push({ label: 'Ilmainen', style: 'font-size:10px;font-weight:800;color:#04231a;background:#5fd9a6;padding:5px 10px;border-radius:999px' });
+    if (raw.accessible) badges.push({ label: '♿ Esteetön', style: 'font-size:10px;font-weight:800;color:#04223a;background:#7cc4ff;padding:5px 10px;border-radius:999px' });
+    if (raw.award) badges.push({ label: raw.award, style: 'font-size:10px;font-weight:800;color:#1c1407;background:#e8c06a;padding:5px 10px;border-radius:999px' });
+    const statusStyle = 'font-size:10px;font-weight:800;padding:5px 10px;border-radius:999px;' + (raw.open ? 'color:#5fd9a6;background:rgba(95,217,166,.14)' : 'color:#ffb86b;background:rgba(255,184,107,.14)');
+    return { emoji: raw.emoji, tint: raw.tint, name: raw.name, cat: raw.cat, status: raw.status, statusStyle, ctaLabel: raw.cta, desc: raw.long || raw.desc, facts, badges };
+  }
+
+  chip(active) {
+    return 'flex:none;cursor:pointer;font-size:13px;font-weight:' + (active ? 800 : 600) +
+      ';color:' + (active ? '#fff' : 'rgba(255,255,255,.42)') +
+      ';padding:0 2px 9px;border-bottom:2px solid ' + (active ? '#6b76ff' : 'transparent') +
+      ';white-space:nowrap;transition:color .15s,border-color .15s';
+  }
+
+  deck() {
+    return [
+      { key: 'olavi', title: 'Olavi Uusivirta', venue: 'Keikka · Tavastia', when: 'Tänään 21.00', price: '32€', emoji: '🎤', tint: '255,90,77', tag: 'Keikka', rating: '4.8', startsLabel: 'alkaa 35 min', dist: '0.6 km', soon: true, blurb: 'Kotimaisen rockin suosikki livenä Tavastialla — illan kohokohta keikkaystäville.' },
+      { key: 'amos', title: 'Amos Rex: ilta', venue: 'Taide · Keskusta', when: 'Tänään 19.00', price: '18€', emoji: '🖼', tint: '95,150,255', tag: 'Näyttely', rating: '4.7', startsLabel: 'alkaa 20 min', dist: '0.4 km', soon: true, blurb: 'Maanalainen elämysmuseo immersiivisin näyttelyin — iltakierros rauhallisemmassa tunnelmassa.' },
+      { key: 'standup', title: 'Stand-up: Comedy Café', venue: 'Komedia · Kallio', when: 'Tänään 21.30', price: '15€', emoji: '🎙', tint: '95,210,160', tag: 'Stand up', rating: '4.6', startsLabel: 'alkaa 50 min', dist: '1.2 km', soon: true, blurb: 'Illan stand-up-show nousevien ja tunnettujen koomikoiden voimin. Nauru taattu.' },
+      { key: 'hifk', title: 'HIFK – Tappara', venue: 'Urheilu · Helsinki-halli', when: 'Tänään 18.30', price: '29€', emoji: '🏒', tint: '95,200,235', tag: 'Jääkiekko', rating: '4.9', startsLabel: 'alkaa 1 h 15 min', dist: '2.4 km', soon: true, blurb: 'Liigan kärkiottelu kotiyleisön edessä — tunnelma katossa koko illan.' },
+      { key: 'kaikuklubi', title: 'Klubi: Kaiku', venue: 'Yöelämä · Suvilahti', when: 'Tänään 23.00', price: '12€', emoji: '🎧', tint: '175,130,255', tag: 'Klubi', rating: '4.6', startsLabel: 'alkaa 3 h', dist: '1.1 km', soon: false, blurb: 'Helsingin arvostetuin klubi elektroniselle musiikille, vaihtuvin DJ-vierain.' },
+    ];
+  }
+
+  renderVals() {
+    const page = this.state.page;
+
+    // bottom nav (real tabs from code)
+    const navDefs = [
+      { key: 'koti', label: 'Koti', emoji: '🏠' },
+      { key: 'idea', label: 'Idea', emoji: '🎲' },
+      { key: 'ravintolat', label: 'Ravintolat', emoji: '🍽' },
+      { key: 'aktiviteetit', label: 'Aktiviteetit', emoji: '🧖' },
+      { key: 'kartta', label: 'Kartta', emoji: '🗺' },
+      { key: 'suosikit', label: 'Suosikit', emoji: '♥' },
+    ];
+    const mkIcon = (paths) => React.createElement('svg', { width: 25, height: 25, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' },
+      paths.map((p, i) => {
+        if (p.startsWith('rect:')) { const [x, y, w, h, r] = p.slice(5).split(',').map(Number); return React.createElement('rect', { key: i, x, y, width: w, height: h, rx: r }); }
+        if (p.startsWith('dot:')) { const [cx, cy] = p.slice(4).split(',').map(Number); return React.createElement('circle', { key: i, cx, cy, r: 1.3, fill: 'currentColor', stroke: 'none' }); }
+        if (p.startsWith('circle:')) { const [cx, cy, r] = p.slice(7).split(',').map(Number); return React.createElement('circle', { key: i, cx, cy, r }); }
+        return React.createElement('path', { key: i, d: p });
+      }));
+    const nav = navDefs.map((n) => {
+      const active = page === n.key;
+      return {
+        icon: n.paths ? mkIcon(n.paths) : React.createElement('span', { style: { fontSize: '18px', lineHeight: 1 } }, n.emoji),
+        label: n.label,
+        onClick: () => this.setState({ page: n.key, detail: null }),
+        style: 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:color .15s;color:' +
+          (active ? '#6b76ff' : 'rgba(255,255,255,.4)') +
+          (active ? ';filter:drop-shadow(0 0 8px rgba(91,101,230,.5))' : ''),
+      };
+    });
+
+    // VIBE subcategories (events page) — from code
+    const vibeDefs = [
+      { key: 'kaikki', label: 'Kaikki' },
+      { key: 'keikka', label: '🎸 Keikka' },
+      { key: 'yoelama', label: '🌙 Yöelämä' },
+      { key: 'baari', label: '🍺 Baari / Pub' },
+      { key: 'urheilu', label: '⚽ Urheilu' },
+      { key: 'standup', label: '😂 Stand up' },
+      { key: 'museo', label: '🏛 Museo' },
+      { key: 'lapset', label: '👨‍👩‍👧 Lapset & Perhe' },
+      { key: 'tyopaja', label: '🛠 Työpaja & Kurssi' },
+      { key: 'teatteri', label: '🎭 Teatteri & Tanssi' },
+      { key: 'taide', label: '🎨 Taide' },
+    ];
+    const vibes = vibeDefs.map((v) => ({
+      label: v.label,
+      onClick: () => this.setState({ vibe: v.key }),
+      style: this.chip(this.state.vibe === v.key),
+    }));
+
+    const cuisineDefs = [
+      { key: 'kaikki', label: 'Kaikki' },
+      { key: 'palkitut', label: '🏆 Palkitut' },
+      { key: 'pohjoismainen', label: '🇫🇮 Pohjoismainen' },
+      { key: 'pizza', label: '🍕 Pizza' },
+      { key: 'italia', label: '🍝 Italialainen' },
+      { key: 'japani', label: '🍣 Japanilainen' },
+      { key: 'aasia', label: '🍜 Aasialainen' },
+      { key: 'burger', label: '🍔 Burgerit' },
+      { key: 'kebab', label: '🌯 Kebab' },
+      { key: 'valimeri', label: '🫒 Välimeri' },
+      { key: 'intia', label: '🍛 Intialainen' },
+      { key: 'kala', label: '🐟 Kala & meri' },
+      { key: 'pihvi', label: '🥩 Pihvi & grilli' },
+      { key: 'meksiko', label: '🌮 Meksikolainen' },
+      { key: 'kasvis', label: '🌱 Kasvis' },
+      { key: 'fine', label: '⭐ Fine dining' },
+    ];
+    const cuisines = cuisineDefs.map((c) => ({
+      label: c.label,
+      onClick: () => this.setState({ cuisine: c.key }),
+      style: this.chip(this.state.cuisine === c.key),
+    }));
+
+    const actDefs = [
+      { key: 'kaikki', label: 'Kaikki' },
+      { key: 'sauna', label: '🧖 Saunat' },
+      { key: 'nako', label: '🌄 Näköpaikat' },
+      { key: 'museo', label: '🏛 Museot' },
+      { key: 'ranta', label: '🏖 Uimarannat' },
+      { key: 'puisto', label: '🌳 Puistot' },
+      { key: 'markkina', label: '🛍 Markkinat' },
+      { key: 'galleria', label: '🖼 Galleriat' },
+    ];
+    const acts = actDefs.map((a) => ({
+      label: a.label,
+      onClick: () => this.setState({ act: a.key }),
+      style: this.chip(this.state.act === a.key),
+    }));
+
+    // Ravintolat: tyyppivalitsin + adaptiivinen suositus
+    const restTypeDefs = [
+      { key: 'ruoka', label: '🍽 Ruokapaikat' },
+      { key: 'kahvila', label: '☕ Kahvilat' },
+      { key: 'baari', label: '🍺 Baarit' },
+      { key: 'yokerho', label: '🌃 Yökerhot' },
+    ];
+    const restType = this.state.restType || 'ruoka';
+    const restTypes = restTypeDefs.map((rt) => {
+      const on = restType === rt.key;
+      return {
+        label: rt.label,
+        onClick: () => this.setState({ restType: rt.key, restSub: 'kaikki' }),
+        style: 'flex:none;cursor:pointer;font-size:13px;font-weight:800;padding:9px 16px;border-radius:999px;white-space:nowrap;' +
+          (on ? 'color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);box-shadow:0 8px 20px -7px rgba(91,101,230,.8)'
+              : 'color:rgba(255,255,255,.55);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.06)'),
+      };
+    });
+    const rcfg = this.restConfig()[restType];
+    const hr = this.placeData()[rcfg.hero];
+    const rHero = { emoji: hr.emoji, tint: hr.tint, name: hr.name, cat: hr.cat, status: hr.status, badge: rcfg.badge, badgeStyle: rcfg.badgeStyle, cta: hr.cta, meta: (hr.price ? hr.price + ' · ' : '') + hr.dist, onOpen: () => this.setState({ detail: rcfg.hero }) };
+    const restFilter = this.state.restFilter || 'kaikki';
+    const restSub = this.state.restSub || 'kaikki';
+    const subCatDefs = this.subCatDefs();
+    const restSubChips = (subCatDefs[restType] || []).map((s) => ({ label: s.label, onClick: () => this.setState({ restSub: s.key }), style: this.chip(restSub === s.key) }));
+    const ravShowRails = restSub === 'kaikki';
+    let rBaseKeys = rcfg.items;
+    if (restSub !== 'kaikki') {
+      rBaseKeys = rcfg.items.filter((k) => { const r = this.placeData()[k]; const tag = restType === 'ruoka' ? r.rcat : r.scat; return restSub === 'palkitut' ? !!r.award : tag === restSub; });
+    }
+    const rItems = this.applyFilter(rBaseKeys, restFilter).map((k) => this.cardVM(k));
+    const subLabel = ((subCatDefs[restType] || []).find((s) => s.key === restSub) || {}).label || '';
+    const rListTitle2 = restSub === 'kaikki' ? rcfg.title : (subLabel + ' · ' + rBaseKeys.length + ' paikkaa');
+    const rRail = this.applyFilter(rcfg.items, 'lahin').map((k) => this.cardVM(k));
+    const restFilterChips = this.filterChips(restFilter, (k) => this.setState({ restFilter: k }));
+    const weekPicks = ['olo', 'trillby', 'kaffa', 'sori'].map((k) => this.cardVM(k));
+    const railBudget = ['lounas', 'katukeittio', 'story'].map((k) => this.cardVM(k));
+    const railNew = ['uusi1', 'uusi2', 'uusi3'].map((k) => this.cardVM(k));
+    const railAward = ['olo', 'gron', 'bar'].map((k) => this.cardVM(k));
+    const railSuomi = ['suomi1', 'suomi2', 'suomi3'].map((k) => this.cardVM(k));
+    const railSuosittuRuoka = ['via', 'olo', 'fafa', 'uusi2'].map((k) => this.cardVM(k));
+    const railKlassikko = ['ekberg', 'fazer', 'strindberg'].map((k) => this.cardVM(k));
+    const railRanska = ['cafelin', 'patisserie', 'maison'].map((k) => this.cardVM(k));
+    const railBoheemi = ['kahvilatorni', 'sointu', 'taikalamppu'].map((k) => this.cardVM(k));
+    const railOlut = ['pikkulintu', 'kaisla', 'sori', 'oluthuone'].map((k) => this.cardVM(k));
+    const railCocktail = ['trillby', 'son', 'liberty'].map((k) => this.cardVM(k));
+    const railSport = ['sport1', 'sport2', 'sport3'].map((k) => this.cardVM(k));
+    const railGem = ['gem1', 'gem2', 'gem3'].map((k) => this.cardVM(k));
+    const railLive = ['live1', 'live2', 'kaiku'].map((k) => this.cardVM(k));
+    const railVapaa = ['vapaa1', 'vapaa2', 'kerma'].map((k) => this.cardVM(k));
+    const railKatto = ['maxine', 'loiste', 'katto3'].map((k) => this.cardVM(k));
+    const railSuosittu = ['kaiku', 'kerma', 'maxine', 'kaivohuone'].map((k) => this.cardVM(k));
+    const eventHandlers = {}; ['olavi', 'behm', 'hifk', 'kaikuklubi'].forEach((k) => { eventHandlers['oe_' + k] = () => this.setState({ detail: k }); });
+    const koDay = this.state.koDay || 'tanaan';
+    const MONTHS_FI = ['Tammikuu', 'Helmikuu', 'Maaliskuu', 'Huhtikuu', 'Toukokuu', 'Kesäkuu', 'Heinäkuu', 'Elokuu', 'Syyskuu', 'Lokakuu', 'Marraskuu', 'Joulukuu'];
+    const fmtChip = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('fi-FI', { weekday: 'short', day: 'numeric', month: 'numeric' }); };
+    const koStart = this.state.koStart, koEnd = this.state.koEnd, koPending = this.state.koPending;
+    const hasRange = !!(koStart || koEnd);
+    const dayChipDefs = [{ key: 'tanaan', label: 'Tänään' }, { key: 'huomenna', label: 'Huomenna' }, { key: 'vk', label: '🎉 Viikonloppu' }, { key: 'viikko', label: 'Tämä viikko' }];
+    const koDayChips = dayChipDefs.map((d) => ({
+      label: d.label,
+      onClick: () => this.setState({ koDay: d.key, koStart: null, koEnd: null, koPending: null }),
+      style: 'flex:none;cursor:pointer;font-size:12.5px;font-weight:' + (koDay === d.key && !hasRange ? '800' : '700') + ';color:' + (koDay === d.key && !hasRange ? '#fff' : 'rgba(255,255,255,.55)') + ';padding:8px 15px;border-radius:999px;' + (koDay === d.key && !hasRange ? 'background:linear-gradient(150deg,#6b76ff,#5059e6);box-shadow:0 8px 20px -7px rgba(91,101,230,.8)' : 'background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.05)'),
+    }));
+    const calLabel = (koStart && koEnd && koStart !== koEnd) ? ('📅 ' + fmtChip(koStart) + ' – ' + fmtChip(koEnd)) : ((koStart || koEnd) ? ('📅 ' + fmtChip(koStart || koEnd)) : '📅 Valitse jakso');
+    const calBtn = {
+      label: calLabel,
+      onClick: () => { const ref = koStart || koEnd; const base = ref ? (() => { const [y, m] = ref.split('-').map(Number); return { y, m: m - 1 }; })() : { y: new Date().getFullYear(), m: new Date().getMonth() }; this.setState({ koCalOpen: true, koView: base, koPending: null }); },
+      style: 'flex:none;cursor:pointer;font-size:12.5px;font-weight:800;padding:8px 14px;border-radius:999px;' + (hasRange ? 'color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);box-shadow:0 8px 20px -7px rgba(91,101,230,.8)' : 'color:rgba(255,255,255,.55);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.05)'),
+    };
+    // Calendar overlay (range)
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    const kv = this.state.koView || { y: today0.getFullYear(), m: today0.getMonth() };
+    const effStart = koPending || koStart;
+    const effEnd = koPending ? null : koEnd;
+    const pickDay = (iso) => {
+      if (!koPending && !koStart) { this.setState({ koPending: iso }); return; }
+      if (koPending) {
+        if (iso >= koPending) this.setState({ koStart: koPending, koEnd: iso, koPending: null, koCalOpen: false });
+        else this.setState({ koPending: iso });
+        return;
+      }
+      // start exists, end exists or not: start a new range
+      this.setState({ koStart: null, koEnd: null, koPending: iso });
+    };
+    const startDow = (new Date(kv.y, kv.m, 1).getDay() + 6) % 7;
+    const daysInMonth = new Date(kv.y, kv.m + 1, 0).getDate();
+    const calCells = [];
+    for (let i = 0; i < startDow; i++) calCells.push({ blank: true, key: 'b' + i });
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dt = new Date(kv.y, kv.m, d); dt.setHours(0, 0, 0, 0);
+      const iso = kv.y + '-' + String(kv.m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const past = dt < today0;
+      const isToday = dt.getTime() === today0.getTime();
+      const isStart = effStart && iso === effStart;
+      const isEnd = effEnd && iso === effEnd && effEnd !== effStart;
+      const inRange = effStart && effEnd && iso > effStart && iso < effEnd;
+      let bg = 'transparent', col = past ? 'rgba(255,255,255,.15)' : isToday ? '#a3abff' : 'rgba(255,255,255,.75)', radius = '10px', shadow = 'none';
+      if (isStart || isEnd) { bg = 'linear-gradient(150deg,#6b76ff,#5059e6)'; col = '#fff'; shadow = '0 4px 12px rgba(91,101,230,.4)'; }
+      else if (inRange) { bg = 'rgba(91,101,230,.2)'; col = '#fff'; radius = '0'; }
+      calCells.push({ key: 'd' + d, day: d, blank: false, style: 'width:34px;height:34px;margin:0 auto;display:flex;align-items:center;justify-content:center;border-radius:' + radius + ';border:none;font-size:13px;font-weight:700;color:' + col + ';background:' + bg + ';cursor:' + (past ? 'default' : 'pointer') + ';box-shadow:' + shadow, onClick: past ? (() => {}) : (() => pickDay(iso)) });
+    }
+    const calMonthLabel = MONTHS_FI[kv.m] + ' ' + kv.y;
+    const calHint = koPending ? 'Valitse loppupäivä' : 'Valitse alkupäivä';
+    const calPrev = () => this.setState((s) => { const v = s.koView; return { koView: v.m === 0 ? { y: v.y - 1, m: 11 } : { y: v.y, m: v.m - 1 } }; });
+    const calNext = () => this.setState((s) => { const v = s.koView; return { koView: v.m === 11 ? { y: v.y + 1, m: 0 } : { y: v.y, m: v.m + 1 } }; });
+    const closeCal = () => this.setState({ koCalOpen: false, koPending: null });
+    const clearRange = () => this.setState({ koStart: null, koEnd: null, koPending: null, koCalOpen: false });
+    const calHasSel = hasRange || !!koPending;
+    const calDayLabels = ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'].map((l, i) => ({ l, key: 'wl' + i }));
+    const heroRavCards = rcfg.items.map((k) => this.heroCardVM(k));
+
+    // Aktiviteetit
+    const actPool = ['loyly', 'suomenlinna', 'amos', 'nako', 'allas', 'skywheel', 'hieta'];
+    const actFilter = this.state.actFilter || 'kaikki';
+    const actCats = ['loyly', 'allas', 'kotiharju', 'amos', 'suomenlinna', 'ham', 'nako', 'skywheel', 'hieta', 'kaivopuisto', 'hakaniemi', 'tuomiokirkko', 'temppeliaukio', 'oodi'];
+    const actSel = this.state.act || 'kaikki';
+    const actBase = actSel === 'kaikki' ? actCats : actCats.filter((k) => this.placeData()[k].acat === actSel);
+    const actItems = this.applyFilter(actBase, actFilter).map((k) => this.cardVM(k));
+    const actIsKaikki = actSel === 'kaikki';
+    const actCatLabel = { sauna: 'Saunat', nako: 'Näköpaikat', museo: 'Museot', ranta: 'Uimarannat', puisto: 'Puistot', markkina: 'Markkinat', galleria: 'Galleriat', tyopaja: 'Työpajat' };
+    const actListTitle = actIsKaikki ? 'Tekemistä lähellä' : ((actCatLabel[actSel] || 'Kohteet') + ' · ' + actBase.length + ' paikkaa');
+    const actRail = this.applyFilter(actPool, 'lahin').map((k) => this.cardVM(k));
+    const actFilterChips = this.filterChips(actFilter, (k) => this.setState({ actFilter: k }));
+    const actRain = ['amos', 'loyly', 'allas'].map((k) => this.cardVM(k));
+    const actHelmet = ['suomenlinna', 'tuomiokirkko', 'temppeliaukio', 'loyly', 'oodi'].map((k) => this.cardVM(k));
+    const actFree = ['suomenlinna', 'nako', 'hieta'].map((k) => this.cardVM(k));
+    const actDate = ['loyly', 'allas', 'amos'].map((k) => this.cardVM(k));
+    const heroAktCards = ['loyly', 'suomenlinna', 'allas', 'amos'].map((k) => this.heroCardVM(k));
+    const heroRavI = this.state.heroRav || 0;
+    const heroAktI = this.state.heroAkt || 0;
+    const ravDots = heroRavCards.map((_, i) => ({ style: this.dotStyle(i === heroRavI) }));
+    const actDots = heroAktCards.map((_, i) => ({ style: this.dotStyle(i === heroAktI) }));
+    const onHeroRavScroll = (e) => { const i = Math.round(e.target.scrollLeft / Math.max(1, e.target.clientWidth)); if (i !== (this.state.heroRav || 0)) this.setState({ heroRav: i }); };
+    const onHeroAktScroll = (e) => { const i = Math.round(e.target.scrollLeft / Math.max(1, e.target.clientWidth)); if (i !== (this.state.heroAkt || 0)) this.setState({ heroAkt: i }); };
+    const dragScrollRef = (el) => {
+      if (!el || el._dragWired) return; el._dragWired = true;
+      let down = false, sx = 0, sl = 0, moved = false;
+      el.addEventListener('pointerdown', (e) => { down = true; moved = false; sx = e.clientX; sl = el.scrollLeft; });
+      el.addEventListener('pointermove', (e) => { if (!down) return; const dx = e.clientX - sx; if (Math.abs(dx) > 4) moved = true; el.scrollLeft = sl - dx; });
+      const end = () => {
+        if (!down) return; down = false;
+        const w = Math.max(1, el.clientWidth);
+        el.scrollTo({ left: Math.round(el.scrollLeft / w) * w, behavior: 'smooth' });
+      };
+      el.addEventListener('pointerup', end);
+      el.addEventListener('pointerleave', end);
+      el.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); } }, true);
+    };
+    const ah = this.placeData()['loyly'];
+    const actHero = { emoji: ah.emoji, tint: ah.tint, name: ah.name, cat: ah.cat, status: ah.status, badge: '🧖 SUOSITTU', badgeStyle: 'font-size:9px;font-weight:900;letter-spacing:.08em;color:#04222a;background:#5fd9c0;padding:5px 10px;border-radius:999px', cta: ah.cta, meta: (ah.price ? ah.price + ' · ' : '') + ah.dist, onOpen: () => this.setState({ detail: 'loyly' }) };
+    const surprise = () => { const k = actPool[Math.floor(Math.random() * actPool.length)]; this.setState({ detail: k }); };
+
+    const deck = this.deck();
+    const ideaMode = this.state.ideaMode || 'nyt';
+    const fdeck = ideaMode === 'nyt' ? deck.filter((d) => d.soon) : deck;
+    const cur = fdeck[this.state.idx] || null;
+    this._curKey = cur ? cur.key : null;
+    const openCard = () => { if (this._moved) return; if (this._curKey) this.setState({ detail: this._curKey }); };
+    const ideaSeg = (on) => 'flex:1;text-align:center;cursor:pointer;font-size:12.5px;font-weight:800;padding:10px 0;border-radius:11px;transition:all .15s;' +
+      (on ? 'color:#fff;background:linear-gradient(150deg,#6b76ff,#5059e6);box-shadow:0 8px 20px -7px rgba(91,101,230,.8)'
+          : 'color:rgba(255,255,255,.5);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.06)');
+
+    const dragX = this.state.dragX || 0;
+    const dragging = this.state.dragging;
+    const dragStyle = 'transform:translateX(' + dragX + 'px) rotate(' + (dragX * 0.045) + 'deg);' +
+      'transition:' + (dragging ? 'none' : 'transform .32s cubic-bezier(.2,.8,.2,1)') + ';will-change:transform;touch-action:pan-y';
+    const likeOp = Math.max(0, Math.min(1, dragX / 110));
+    const nopeOp = Math.max(0, Math.min(1, -dragX / 110));
+    const badgeBase = 'position:absolute;top:18px;z-index:5;font-size:20px;font-weight:900;letter-spacing:.04em;padding:8px 14px;border-radius:12px;pointer-events:none;backdrop-filter:blur(4px)';
+    const likeBadge = badgeBase + ';left:16px;color:#fff;background:rgba(40,200,120,.28);border:2px solid #3ee6a0;transform:rotate(-12deg);opacity:' + likeOp;
+    const nopeBadge = badgeBase + ';right:16px;color:#fff;background:rgba(91,101,230,.28);border:2px solid #6b76ff;transform:rotate(12deg);opacity:' + nopeOp;
+
+    const onDown = (e) => { this._ds = e.clientX; this._moved = false; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} this.setState({ dragging: true }); };
+    const onMove = (e) => { if (this._ds == null) return; if (Math.abs(e.clientX - this._ds) > 8) this._moved = true; this.setState({ dragX: e.clientX - this._ds }); };
+    const onUp = () => {
+      const dx = this.state.dragX || 0; this._ds = null;
+      if (dx > 100) this.advance(true);
+      else if (dx < -100) this.advance(false);
+      else if (!this._moved && this._curKey) this.setState({ dragX: 0, dragging: false, detail: this._curKey });
+      else this.setState({ dragX: 0, dragging: false });
+    };
+
+    // Viikonlopun kohokohdat: otsikko mukautuu viikonpäivään
+    const todayLabel = new Date().toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long' });
+    const dow = new Date().getDay(); // 0=su … 6=la
+    const isWeekend = dow === 5 || dow === 6 || dow === 0; // pe/la/su
+    const weekendTitle = (isWeekend ? 'Tänä viikonloppuna' : 'Tulossa viikonloppuna') + ' 🎉';
+
+    return {
+      isKoti: page === 'koti',
+      isIdea: page === 'idea',
+      isRavintolat: page === 'ravintolat',
+      isAktiviteetit: page === 'aktiviteetit',
+      isKartta: page === 'kartta',
+      mapBind: this.mapBind,
+      locateMe: this.locateMe,
+      mapLayerChips: [
+        { key: 'events', label: '🎟 Tapahtumat', on: '#6b76ff' },
+        { key: 'rest', label: '🍽 Ravintolat', on: '#5f96ff' },
+        { key: 'act', label: '🧖 Tekemistä', on: '#5fd9a6' },
+      ].map((c) => {
+        const active = (this.state.mapLayers || {})[c.key];
+        return {
+          label: c.label,
+          onClick: () => this.setState((s) => { const ml = { ...s.mapLayers, [c.key]: !s.mapLayers[c.key] }; return { mapLayers: ml, mapSub: null, mapRestType: null }; }),
+          style: 'flex:none;cursor:pointer;font-size:12px;font-weight:800;padding:8px 13px;border-radius:999px;white-space:nowrap;color:' + (active ? '#0a0a0c' : 'rgba(255,255,255,.5)') + ';background:' + (active ? c.on : 'rgba(255,255,255,.06)') + ';border:1px solid ' + (active ? 'transparent' : 'rgba(255,255,255,.08)'),
+        };
+      }),
+      mapSubChips: (() => {
+        const ml = this.state.mapLayers || {};
+        const defs = this.mapSubDefs();
+        const subByType = this.subCatDefs();
+        const sub = this.state.mapSub;
+        const rt = this.state.mapRestType;
+        const restTypes = [{ k: 'ruoka', l: '🍽 Ruokapaikat' }, { k: 'kahvila', l: '☕ Kahvilat' }, { k: 'baari', l: '🍸 Baarit' }, { k: 'yokerho', l: '🌃 Yökerhot' }];
+        const chips = [];
+        chips.push({ label: 'Kaikki', active: (!sub && !rt), onClick: () => this.setState({ mapSub: null, mapRestType: null }) });
+        if (ml.events) defs.events.forEach((d) => chips.push({ label: d.l, active: sub === d.k, onClick: () => this.setState({ mapSub: sub === d.k ? null : d.k }), accent: 'rgba(91,101,230,.9)' }));
+        if (ml.rest) {
+          restTypes.forEach((t) => {
+            chips.push({ label: t.l, rtKey: t.k, active: rt === t.k, type: true, onClick: () => this.setState({ mapRestType: rt === t.k ? null : t.k, mapSub: null }), accent: 'rgba(95,150,255,.9)' });
+          });
+        }
+        if (ml.act) defs.act.forEach((d) => chips.push({ label: d.l, active: sub === d.k, onClick: () => this.setState({ mapSub: sub === d.k ? null : d.k }), accent: 'rgba(95,217,166,.9)' }));
+        return chips.map((c) => ({
+          label: c.label,
+          rtKey: c.rtKey || '',
+          onClick: c.onClick,
+          style: 'flex:none;cursor:pointer;font-size:11.5px;font-weight:' + (c.active || c.type ? '800' : '700') + ';padding:7px 12px;border-radius:999px;white-space:nowrap;color:' + (c.active ? '#fff' : (c.type ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.5)')) + ';background:' + (c.active ? (c.accent || 'rgba(91,101,230,.9)') : 'rgba(255,255,255,.06)') + ';border:1px solid ' + (c.active ? 'transparent' : (c.sub ? 'rgba(95,150,255,.35)' : 'rgba(255,255,255,.07)')) + (c.sub ? ';margin-left:-2px' : ''),
+        }));
+      })(),
+      mapRestType: this.state.mapRestType,
+      mapRestSubChips: (() => {
+        const rt = this.state.mapRestType;
+        if (!rt) return [];
+        const sub = this.state.mapSub;
+        const subByType = this.subCatDefs();
+        return (subByType[rt] || []).map((d) => ({
+          label: d.label,
+          onClick: () => this.setState({ mapSub: (d.key === 'kaikki') ? null : (sub === d.key ? null : d.key) }),
+          style: 'flex:none;cursor:pointer;font-size:11.5px;font-weight:' + (((d.key === 'kaikki' && !sub) || sub === d.key) ? '800' : '700') + ';padding:7px 12px;border-radius:999px;white-space:nowrap;color:' + (((d.key === 'kaikki' && !sub) || sub === d.key) ? '#fff' : 'rgba(255,255,255,.55)') + ';background:' + (((d.key === 'kaikki' && !sub) || sub === d.key) ? 'rgba(95,150,255,.9)' : 'rgba(255,255,255,.06)') + ';border:1px solid ' + (((d.key === 'kaikki' && !sub) || sub === d.key) ? 'transparent' : 'rgba(95,150,255,.28)'),
+        }));
+      })(),
+      mapDateChip: {
+        label: (koStart && koEnd && koStart !== koEnd) ? ('📅 ' + fmtChip(koStart) + ' – ' + fmtChip(koEnd)) : ((koStart || koEnd) ? ('📅 ' + fmtChip(koStart || koEnd)) : '📅 Päivä'),
+        onClick: calBtn.onClick,
+        style: 'flex:none;cursor:pointer;font-size:11.5px;font-weight:800;padding:7px 12px;border-radius:999px;white-space:nowrap;color:' + (hasRange ? '#fff' : 'rgba(255,255,255,.5)') + ';background:' + (hasRange ? 'linear-gradient(150deg,#6b76ff,#5059e6)' : 'rgba(255,255,255,.06)') + ';border:1px solid ' + (hasRange ? 'transparent' : 'rgba(255,255,255,.07)'),
+      },
+      isSuosikit: page === 'suosikit',
+      nav, vibes, cuisines, acts,
+      weekendTitle,
+      todayLabel,
+      cur,
+      nytStyle: ideaSeg(ideaMode === 'nyt'),
+      kaikkiStyle: ideaSeg(ideaMode === 'kaikki'),
+      setNyt: () => this.setState({ ideaMode: 'nyt', idx: 0, dragX: 0, dragging: false }),
+      setKaikki: () => this.setState({ ideaMode: 'kaikki', idx: 0, dragX: 0, dragging: false }),
+      dragStyle, likeBadge, nopeBadge,
+      onDown, onMove, onUp, openCard,
+      detailActive: !!this.state.detail,
+      d: this.buildDetail(),
+      restTypes,
+      restIsRuoka: restType === 'ruoka',
+      rHero, rItems, restSubChips,
+      rListTitle: rListTitle2,
+      ravShowRails, ravShowList: !ravShowRails,
+      restFilterChips, rRail, weekPicks, koDayChips, calBtn, ...eventHandlers,
+      koCalOpen: this.state.koCalOpen, calCells, calMonthLabel, calPrev, calNext, closeCal, calDayLabels, calHint, clearRange, calHasSel,
+      railBudget, railNew, railAward, railSuomi, railSuosittuRuoka,
+      railKlassikko, railRanska, railBoheemi,
+      railOlut, railCocktail, railSport, railGem,
+      railLive, railVapaa, railKatto, railSuosittu,
+      ravIsRuokaFront: restType === 'ruoka' && ravShowRails,
+      ravIsKahvilaFront: restType === 'kahvila' && ravShowRails,
+      ravIsBaariFront: restType === 'baari' && ravShowRails,
+      ravIsYokerhoFront: restType === 'yokerho' && ravShowRails,
+      actHero, actItems, actRail, actFilterChips, surprise, actRain,
+      heroRavCards, heroAktCards, ravDots, actDots, onHeroRavScroll, onHeroAktScroll, dragScrollRef,
+      actFree, actDate, actHelmet, actIsKaikki, actNotKaikki: !actIsKaikki, actListTitle,
+      openVia: () => this.setState({ detail: 'via' }),
+      openFafa: () => this.setState({ detail: 'fafa' }),
+      openBar: () => this.setState({ detail: 'bar' }),
+      openNako: () => this.setState({ detail: 'nako' }),
+      openAmos: () => this.setState({ detail: 'amos' }),
+      openHieta: () => this.setState({ detail: 'hieta' }),
+      closeDetail: () => this.setState({ detail: null }),
+      goKartta: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ page: 'kartta', detail: null }); },
+      stopRow: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      toggleSaveDetail: () => this.setState((s) => ({ saved: s.saved + 1 })),
+      deckActive: !!cur,
+      deckEmpty: !cur,
+      saved: this.state.saved,
+      progress: Math.min(this.state.idx + 1, fdeck.length) + ' / ' + fdeck.length,
+      like: () => this.advance(true),
+      skip: () => this.advance(false),
+      tickets: () => this.advance(true),
+      reset: () => this.setState({ idx: 0, saved: 0 }),
+    };
+  }
+}
+</script>
+</body>
+</html>
