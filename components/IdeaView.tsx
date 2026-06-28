@@ -143,6 +143,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const [detailSuggestion, setDetailSuggestion] = useState<Suggestion | null>(null)
   // Instantly hide card when panel opens — no competing animations
   const [cardHidden, setCardHidden] = useState(false)
+  // rAF-based panel animation: mount first, then slide in on next paint
+  const [panelMounted, setPanelMounted] = useState(false)
+  const [panelSlideIn, setPanelSlideIn] = useState(false)
 
   // Swipe state — use refs for synchronous drag tracking (useState closures would lose updates)
   const [dragX, setDragX] = useState(0)
@@ -161,6 +164,23 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     fetch('/api/activities').then(r => r.json()).then(d => setActivities(d.activities ?? [])).catch(() => {})
     fetch('/api/restaurants').then(r => r.json()).then(d => setRestaurants(d.restaurants ?? [])).catch(() => {})
   }, [])
+
+  // Panel animation lifecycle: mount at translateY(100%), then double-rAF to slide in.
+  // This guarantees the browser paints the off-screen position before transitioning,
+  // eliminating the 1-2 frame flash that CSS animation classes can produce on iOS.
+  useEffect(() => {
+    if (detailSuggestion) {
+      setPanelMounted(true)
+      const rafId = requestAnimationFrame(() =>
+        requestAnimationFrame(() => setPanelSlideIn(true))
+      )
+      return () => cancelAnimationFrame(rafId)
+    } else {
+      setPanelSlideIn(false)
+      const t = setTimeout(() => setPanelMounted(false), 360)
+      return () => clearTimeout(t)
+    }
+  }, [detailSuggestion])
 
   // ── Build pools ──────────────────────────────────────
 
@@ -611,138 +631,157 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     </main>
 
     {/* ── Detail panel (activities / restaurants) ── */}
-
-    {detailSuggestion && (() => {
+    {panelMounted && detailSuggestion && (() => {
       const d = detailSuggestion
       const m = TYPE_META[d.type]
       return (
         <div className="fixed inset-0 z-50 flex items-end"
           onClick={() => setDetailSuggestion(null)}>
+
+          {/* Dark backdrop — no blur, instant */}
           <div className="absolute inset-0 bg-black/80" />
-          <div className="relative w-full max-w-lg mx-auto rounded-t-3xl overflow-hidden overflow-y-auto animate-panel-up"
-            style={{ background: '#12121a', border: '1px solid rgba(255,255,255,.12)', maxHeight: '82vh', willChange: 'transform' }}
+
+          {/*
+            Outer: ONLY transform animation — no overflow, no scroll.
+            Separating the animated layer from the scroll container is critical
+            on iOS Safari: transform + overflow-y on the same element causes jank.
+            The double-rAF in useEffect guarantees this element is painted at
+            translateY(100%) before the transition starts, eliminating the flash.
+          */}
+          <div
+            className="relative w-full max-w-lg mx-auto rounded-t-3xl overflow-hidden"
+            style={{
+              transform: panelSlideIn ? 'translateY(0)' : 'translateY(100%)',
+              transition: 'transform 340ms cubic-bezier(0.32,0.72,0,1)',
+              willChange: 'transform',
+            }}
             onClick={e => e.stopPropagation()}>
 
-            {/* Header image */}
-            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-              <div className="absolute inset-0" style={{ background: m.gradient }} />
-              {d.image ? (
-                <>
-                  <img src={d.image} alt={d.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.8),transparent 60%)' }} />
-                </>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center"
-                  style={{ fontSize: '5rem', opacity: 0.2 }}>
-                  {d.emoji}
-                </div>
-              )}
+            {/* Inner: scrollable content — no transform here */}
+            <div style={{ background: '#12121a', border: '1px solid rgba(255,255,255,.12)', maxHeight: '82vh', overflowY: 'auto' }}>
 
-              {/* Close */}
-              <button onClick={() => setDetailSuggestion(null)}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(8px)' }}>
-                <X size={18} className="text-white" />
-              </button>
-
-              {/* Saved badge */}
-              {savedIds.has(d.id) && (
-                <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                  <Heart size={12} fill="white" className="text-white" />
-                  <span className="text-white text-[11px] font-black">Tallennettu</span>
-                </div>
-              )}
-
-              {/* Title */}
-              <div className="absolute bottom-0 left-0 right-0 p-5">
-                <h2 className="font-black text-white text-2xl leading-tight" style={{ letterSpacing: '-0.02em' }}>
-                  {d.title}
-                </h2>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="p-5 space-y-4">
-              {/* Why */}
-              <div className="rounded-xl p-4 space-y-1.5"
-                style={{ background: `${m.accent}0d`, border: `1px solid ${m.accent}22` }}>
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${m.accent}88` }}>
-                  Miksi juuri tämä?
-                </p>
-                <p className="text-sm leading-relaxed font-medium" style={{ color: m.accent }}>
-                  {d.why}
-                </p>
-                {d.subWhy && (
-                  <p className="text-xs text-white/40 italic">{d.subWhy}</p>
+              {/* Header image */}
+              <div className="relative w-full shrink-0" style={{ aspectRatio: '16/9' }}>
+                <div className="absolute inset-0" style={{ background: m.gradient }} />
+                {d.image ? (
+                  <>
+                    <img src={d.image} alt={d.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.8),transparent 60%)' }} />
+                  </>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center"
+                    style={{ fontSize: '5rem', opacity: 0.2 }}>
+                    {d.emoji}
+                  </div>
                 )}
-              </div>
 
-              {/* Info chips */}
-              <div className="flex flex-wrap gap-2">
-                {d.isOpen !== undefined && (
-                  <span className={`text-[11px] font-black px-3 py-1.5 rounded-full ${d.isOpen ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/40'}`}>
-                    {d.isOpen ? '● Avoinna nyt' : '○ Suljettu'}
-                  </span>
-                )}
-                {d.isFree && (
-                  <span className="text-[11px] font-black px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300">
-                    ILMAINEN
-                  </span>
-                )}
-                {!d.isFree && d.price && (
-                  <span className="text-[11px] font-black px-3 py-1.5 rounded-full bg-white/10 text-white/50">
-                    {d.price}
-                  </span>
-                )}
-                {d.badge && (
-                  <span className="text-[11px] font-black px-3 py-1.5 rounded-full"
-                    style={{ background: `${m.accent}22`, color: m.accent }}>
-                    {d.badge}
-                  </span>
-                )}
-              </div>
+                {/* Close */}
+                <button onClick={() => setDetailSuggestion(null)}
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(0,0,0,.6)' }}>
+                  <X size={18} className="text-white" />
+                </button>
 
-              {/* Address */}
-              {d.address && (
-                <div className="flex items-start gap-2">
-                  <MapPin size={14} className="text-white/30 mt-0.5 shrink-0" />
-                  <p className="text-sm text-white/50">{d.address}</p>
-                </div>
-              )}
-
-              {/* Time */}
-              {d.time && (
-                <div className="flex items-center gap-2">
-                  <Clock size={14} className="text-white/30 shrink-0" />
-                  <p className="text-sm text-white/50">Tänään klo {d.time}</p>
-                </div>
-              )}
-
-              {/* CTA buttons */}
-              <div className="flex flex-col gap-2 pt-1">
-                {d.url && (
-                  <a href={/^https?:\/\//i.test(d.url) ? d.url : '#'} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white"
+                {/* Saved badge */}
+                {savedIds.has(d.id) && (
+                  <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                     style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                    <Globe size={15} />
-                    {d.type === 'event' ? 'Osta liput' : 'Avaa nettisivu'}
-                  </a>
+                    <Heart size={12} fill="white" className="text-white" />
+                    <span className="text-white text-[11px] font-black">Tallennettu</span>
+                  </div>
                 )}
-                {onShowOnMap && d.lat && d.lon && (
-                  <button
-                    onClick={() => { setDetailSuggestion(null); onShowOnMap(d.lat!, d.lon!, d.title, d.type) }}
-                    className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white/60"
-                    style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
-                    <MapIcon size={15} />
-                    Näytä kartalla
-                  </button>
-                )}
+
+                {/* Title */}
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <h2 className="font-black text-white text-2xl leading-tight" style={{ letterSpacing: '-0.02em' }}>
+                    {d.title}
+                  </h2>
+                </div>
               </div>
-            </div>
-          </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4">
+                {/* Why */}
+                <div className="rounded-xl p-4 space-y-1.5"
+                  style={{ background: `${m.accent}0d`, border: `1px solid ${m.accent}22` }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${m.accent}88` }}>
+                    Miksi juuri tämä?
+                  </p>
+                  <p className="text-sm leading-relaxed font-medium" style={{ color: m.accent }}>
+                    {d.why}
+                  </p>
+                  {d.subWhy && (
+                    <p className="text-xs text-white/40 italic">{d.subWhy}</p>
+                  )}
+                </div>
+
+                {/* Info chips */}
+                <div className="flex flex-wrap gap-2">
+                  {d.isOpen !== undefined && (
+                    <span className={`text-[11px] font-black px-3 py-1.5 rounded-full ${d.isOpen ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/40'}`}>
+                      {d.isOpen ? '● Avoinna nyt' : '○ Suljettu'}
+                    </span>
+                  )}
+                  {d.isFree && (
+                    <span className="text-[11px] font-black px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                      ILMAINEN
+                    </span>
+                  )}
+                  {!d.isFree && d.price && (
+                    <span className="text-[11px] font-black px-3 py-1.5 rounded-full bg-white/10 text-white/50">
+                      {d.price}
+                    </span>
+                  )}
+                  {d.badge && (
+                    <span className="text-[11px] font-black px-3 py-1.5 rounded-full"
+                      style={{ background: `${m.accent}22`, color: m.accent }}>
+                      {d.badge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Address */}
+                {d.address && (
+                  <div className="flex items-start gap-2">
+                    <MapPin size={14} className="text-white/30 mt-0.5 shrink-0" />
+                    <p className="text-sm text-white/50">{d.address}</p>
+                  </div>
+                )}
+
+                {/* Time */}
+                {d.time && (
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} className="text-white/30 shrink-0" />
+                    <p className="text-sm text-white/50">Tänään klo {d.time}</p>
+                  </div>
+                )}
+
+                {/* CTA buttons */}
+                <div className="flex flex-col gap-2 pt-1 pb-2">
+                  {d.url && (
+                    <a href={/^https?:\/\//i.test(d.url) ? d.url : '#'} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white"
+                      style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                      <Globe size={15} />
+                      {d.type === 'event' ? 'Osta liput' : 'Avaa nettisivu'}
+                    </a>
+                  )}
+                  {onShowOnMap && d.lat && d.lon && (
+                    <button
+                      onClick={() => { setDetailSuggestion(null); onShowOnMap(d.lat!, d.lon!, d.title, d.type) }}
+                      className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white/60"
+                      style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+                      <MapIcon size={15} />
+                      Näytä kartalla
+                    </button>
+                  )}
+                </div>
+              </div>
+
+            </div>{/* /inner scrollable */}
+          </div>{/* /animated outer */}
         </div>
       )
     })()}
