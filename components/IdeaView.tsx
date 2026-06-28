@@ -137,14 +137,15 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const { toggle, isFavorite } = useFavorites()
 
   const [ideaMode, setIdeaMode] = useState<IdeaMode>('ilta')
-  const [idx, setIdx] = useState(0)
-  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [detailSuggestion, setDetailSuggestion] = useState<Suggestion | null>(null)
 
   // Swipe state — use refs for synchronous drag tracking (useState closures would lose updates)
   const [dragX, setDragX] = useState(0)
   const isDragging = useRef(false)
   const dragStartX = useRef(0)
+  const dragStartY = useRef(0)
   const cardRef = useRef<HTMLDivElement>(null)
 
   // Exit animation
@@ -241,7 +242,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   const pool = useMemo(() => {
     let all = shuffle([...activityPool, ...restaurantPool, ...eventPool])
-      .filter(s => !skippedIds.has(s.id))
+      .filter(s => !seenIds.has(s.id))
     if (ideaMode === 'nyt') {
       // "Juuri nyt": prefer items starting soon (< 3h) or open now
       all = [
@@ -252,11 +253,11 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     }
     return all
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ideaMode, activityPool.length, restaurantPool.length, eventPool.length, skippedIds])
+  }, [ideaMode, activityPool.length, restaurantPool.length, eventPool.length, seenIds])
 
-  useEffect(() => { setIdx(0) }, [ideaMode])
+  useEffect(() => { setSeenIds(new Set()) }, [ideaMode])
 
-  const current = pool[idx % Math.max(pool.length, 1)]
+  const current = pool[0] ?? null
   const meta = current ? TYPE_META[current.type] : TYPE_META.event
 
   // ── Swipe logic ──────────────────────────────────────
@@ -265,6 +266,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     dragStartX.current = e.clientX
+    dragStartY.current = e.clientY
     isDragging.current = true
     cardRef.current?.setPointerCapture(e.pointerId)
   }, [])
@@ -276,28 +278,43 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   const commit = useCallback((dir: 'left' | 'right') => {
     if (!current) return
+    const id = current.id
+    const eventRef = current.eventRef
+    const snap = current
     setExitDir(dir)
     if (dir === 'right') {
-      setSavedIds(s => new Set([...s, current.id]))
-      if (current.eventRef) toggle(current.eventRef)
-    } else {
-      setSkippedIds(s => new Set([...s, current.id]))
+      setSavedIds(s => new Set([...s, id]))
+      if (eventRef) toggle(eventRef)
+      // open detail after card exits
+      setTimeout(() => {
+        if (eventRef && onEventClick) onEventClick(eventRef)
+        else setDetailSuggestion(snap)
+      }, 250)
     }
+    // mark as seen after exit animation — pool then recomputes to next card
     setTimeout(() => {
-      setIdx(i => (i + 1) % Math.max(pool.length - 1, 1))
+      setSeenIds(s => new Set([...s, id]))
       setDragX(0)
       setExitDir(null)
     }, 220)
-  }, [current, pool.length, toggle])
+  }, [current, toggle, onEventClick])
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
     isDragging.current = false
     const dx = e.clientX - dragStartX.current
+    const dy = e.clientY - dragStartY.current
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      // Tap — open detail panel
+      if (current?.eventRef && onEventClick) onEventClick(current.eventRef)
+      else if (current) setDetailSuggestion(current)
+      setDragX(0)
+      return
+    }
     if (dx > SWIPE_THRESHOLD) commit('right')
     else if (dx < -SWIPE_THRESHOLD) commit('left')
     else setDragX(0)
-  }, [commit])
+  }, [commit, current, onEventClick])
 
   const handleSkip = useCallback(() => commit('left'), [commit])
   const handleSave = useCallback(() => commit('right'), [commit])
@@ -315,13 +332,14 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   if (!current) return (
     <main className="flex flex-col items-center justify-center min-h-[60vh] text-white/25 text-sm">
-      Ladataan ehdotuksia…
+      {activities.length === 0 ? 'Ladataan ehdotuksia…' : 'Kaikki ehdotukset katsottu! 🎉'}
     </main>
   )
 
   const savedCount = savedIds.size
 
   return (
+    <>
     <main className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4">
 
       {/* ── Header ── */}
@@ -368,7 +386,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         )}
 
         {/* Main card — touch-action:none so browser doesn't steal the horizontal drag */}
-        <div ref={cardRef}
+        <div key={current.id} ref={cardRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -423,7 +441,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 {current.type === 'event' ? '📅 Tapahtuma' : current.type === 'activity' ? '🧖 Aktiviteetti' : '🍽 Ravintola'}
               </span>
               <span className="text-[11px] font-bold text-white/40 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
-                {(idx % Math.max(pool.length, 1)) + 1} / {Math.min(pool.length, 12)}
+                {pool.length} jäljellä
               </span>
             </div>
 
@@ -555,9 +573,147 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
       {/* Swipe hint */}
       <p className="text-center text-white/20 text-[11px] font-bold">
-        Pyyhkäise ♥ oikealle tai ✕ vasemmalle
+        Napauta korttia · Pyyhkäise ♥ oikealle tai ✕ vasemmalle
       </p>
 
     </main>
+
+    {/* ── Detail panel (activities / restaurants) ── */}
+
+    {detailSuggestion && (() => {
+      const d = detailSuggestion
+      const m = TYPE_META[d.type]
+      return (
+        <div className="fixed inset-0 z-50 flex items-end"
+          onClick={() => setDetailSuggestion(null)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative w-full max-w-lg mx-auto rounded-t-3xl overflow-hidden overflow-y-auto"
+            style={{ background: '#12121a', border: '1px solid rgba(255,255,255,.12)', maxHeight: '82vh' }}
+            onClick={e => e.stopPropagation()}>
+
+            {/* Header image */}
+            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+              <div className="absolute inset-0" style={{ background: m.gradient }} />
+              {d.image ? (
+                <>
+                  <img src={d.image} alt={d.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.8),transparent 60%)' }} />
+                </>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center"
+                  style={{ fontSize: '5rem', opacity: 0.2 }}>
+                  {d.emoji}
+                </div>
+              )}
+
+              {/* Close */}
+              <button onClick={() => setDetailSuggestion(null)}
+                className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(8px)' }}>
+                <X size={18} className="text-white" />
+              </button>
+
+              {/* Saved badge */}
+              {savedIds.has(d.id) && (
+                <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                  <Heart size={12} fill="white" className="text-white" />
+                  <span className="text-white text-[11px] font-black">Tallennettu</span>
+                </div>
+              )}
+
+              {/* Title */}
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <h2 className="font-black text-white text-2xl leading-tight" style={{ letterSpacing: '-0.02em' }}>
+                  {d.title}
+                </h2>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4">
+              {/* Why */}
+              <div className="rounded-xl p-4 space-y-1.5"
+                style={{ background: `${m.accent}0d`, border: `1px solid ${m.accent}22` }}>
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${m.accent}88` }}>
+                  Miksi juuri tämä?
+                </p>
+                <p className="text-sm leading-relaxed font-medium" style={{ color: m.accent }}>
+                  {d.why}
+                </p>
+                {d.subWhy && (
+                  <p className="text-xs text-white/40 italic">{d.subWhy}</p>
+                )}
+              </div>
+
+              {/* Info chips */}
+              <div className="flex flex-wrap gap-2">
+                {d.isOpen !== undefined && (
+                  <span className={`text-[11px] font-black px-3 py-1.5 rounded-full ${d.isOpen ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/40'}`}>
+                    {d.isOpen ? '● Avoinna nyt' : '○ Suljettu'}
+                  </span>
+                )}
+                {d.isFree && (
+                  <span className="text-[11px] font-black px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                    ILMAINEN
+                  </span>
+                )}
+                {!d.isFree && d.price && (
+                  <span className="text-[11px] font-black px-3 py-1.5 rounded-full bg-white/10 text-white/50">
+                    {d.price}
+                  </span>
+                )}
+                {d.badge && (
+                  <span className="text-[11px] font-black px-3 py-1.5 rounded-full"
+                    style={{ background: `${m.accent}22`, color: m.accent }}>
+                    {d.badge}
+                  </span>
+                )}
+              </div>
+
+              {/* Address */}
+              {d.address && (
+                <div className="flex items-start gap-2">
+                  <MapPin size={14} className="text-white/30 mt-0.5 shrink-0" />
+                  <p className="text-sm text-white/50">{d.address}</p>
+                </div>
+              )}
+
+              {/* Time */}
+              {d.time && (
+                <div className="flex items-center gap-2">
+                  <Clock size={14} className="text-white/30 shrink-0" />
+                  <p className="text-sm text-white/50">Tänään klo {d.time}</p>
+                </div>
+              )}
+
+              {/* CTA buttons */}
+              <div className="flex flex-col gap-2 pt-1">
+                {d.url && (
+                  <a href={/^https?:\/\//i.test(d.url) ? d.url : '#'} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white"
+                    style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                    <Globe size={15} />
+                    {d.type === 'event' ? 'Osta liput' : 'Avaa nettisivu'}
+                  </a>
+                )}
+                {onShowOnMap && d.lat && d.lon && (
+                  <button
+                    onClick={() => { setDetailSuggestion(null); onShowOnMap(d.lat!, d.lon!, d.title, d.type) }}
+                    className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white/60"
+                    style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+                    <MapIcon size={15} />
+                    Näytä kartalla
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    })()}
+    </>
   )
 }
