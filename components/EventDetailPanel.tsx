@@ -14,8 +14,10 @@ interface Props {
 
 export default function EventDetailPanel({ event, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [copied, setCopied] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [slideIn, setSlideIn] = useState(false)
   const { toggle, isFavorite } = useFavorites()
   const { t, lang } = useLanguage()
   const fav = event ? isFavorite(event.id) : false
@@ -27,17 +29,27 @@ export default function EventDetailPanel({ event, onClose }: Props) {
     return `${event.title}\n${date}${loc}${free}\n\n${t('share.found_in')}`
   }
 
+  // Slide-in: double-rAF so the panel is painted off-screen before transitioning.
+  // Avoids the 1-2 frame flash at wrong position that CSS animation classes cause on iOS.
   useEffect(() => {
     if (!event) return
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [event, onClose])
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setSlideIn(true)))
+    return () => cancelAnimationFrame(id)
+  }, [event])
 
   useEffect(() => {
-    document.body.style.overflow = event ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
+    if (!event) return
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose() }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event])
+
+  function handleClose() {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setSlideIn(false)
+    closeTimer.current = setTimeout(() => { setSlideIn(false); onClose() }, 350)
+  }
 
   if (!event) return null
 
@@ -80,17 +92,28 @@ export default function EventDetailPanel({ event, onClose }: Props) {
 
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      {/* Backdrop — no blur (backdrop-filter kills GPU perf on iOS during animation) */}
+      <div className="fixed inset-0 z-40 bg-black/60" onClick={handleClose} aria-hidden />
 
-      {/* Panel */}
+      {/*
+        Outer: ONLY transform — no overflow-y, no scroll.
+        iOS Safari jank source: transform + overflow-y on the same element.
+        Outer clips rounded corners (overflow:hidden), inner handles scroll.
+      */}
       <div
         ref={panelRef}
         role="dialog"
         aria-modal
         aria-label={event.title}
-        className="fixed inset-x-0 bottom-0 z-50 h-[92dvh] rounded-t-3xl overflow-y-auto bg-[#0e1117] shadow-2xl animate-panel-up md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:h-auto md:w-full md:max-w-lg md:rounded-none md:animate-slide-in"
+        className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl overflow-hidden md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:rounded-none md:w-full md:max-w-lg"
+        style={{
+          transform: slideIn ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 340ms cubic-bezier(0.32,0.72,0,1)',
+          willChange: 'transform',
+        }}
       >
+      {/* Scrollable inner — no transform here */}
+      <div className="h-[92dvh] overflow-y-auto bg-[#0e1117] shadow-2xl md:h-full">
         {/* Drag handle — mobile only */}
         <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-white/20" />
@@ -119,14 +142,14 @@ export default function EventDetailPanel({ event, onClose }: Props) {
                 background: fav ? '#ec4899' : 'rgba(0,0,0,0.5)',
                 color: fav ? '#fff' : 'rgba(255,255,255,0.7)',
               }}
-              className="p-2 backdrop-blur-sm rounded-full transition-all"
+              className="p-2 rounded-full transition-all"
               aria-label={t('detail.save_fav')}
             >
               <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
             </button>
             <button
-              onClick={onClose}
-              className="p-2 bg-black/50 hover:bg-black/80 backdrop-blur-sm rounded-full text-white transition-colors"
+              onClick={handleClose}
+              className="p-2 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors"
               aria-label={t('detail.close')}
             >
               <X size={16} />
@@ -271,7 +294,8 @@ export default function EventDetailPanel({ event, onClose }: Props) {
             )}
           </div>
         </div>
-      </div>
+      </div>{/* /scrollable inner */}
+      </div>{/* /animated outer */}
     </>
   )
 }
