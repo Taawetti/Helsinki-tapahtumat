@@ -143,9 +143,10 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const [detailSuggestion, setDetailSuggestion] = useState<Suggestion | null>(null)
   // Instantly hide card when panel opens — no competing animations
   const [cardHidden, setCardHidden] = useState(false)
-  // rAF-based panel animation: mount first, then slide in on next paint
-  const [panelMounted, setPanelMounted] = useState(false)
+  // rAF-based slide-in: panel is always in DOM when detailSuggestion is set
+  // so the backdrop appears immediately (no gap between card-hide and backdrop)
   const [panelSlideIn, setPanelSlideIn] = useState(false)
+  const panelCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Swipe state — use refs for synchronous drag tracking (useState closures would lose updates)
   const [dragX, setDragX] = useState(0)
@@ -165,22 +166,25 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     fetch('/api/restaurants').then(r => r.json()).then(d => setRestaurants(d.restaurants ?? [])).catch(() => {})
   }, [])
 
-  // Panel animation lifecycle: mount at translateY(100%), then double-rAF to slide in.
-  // This guarantees the browser paints the off-screen position before transitioning,
-  // eliminating the 1-2 frame flash that CSS animation classes can produce on iOS.
+  // Panel slide-in: double-rAF guarantees the browser paints translateY(100%)
+  // before transitioning, eliminating the 1-2 frame flash on iOS Safari.
   useEffect(() => {
-    if (detailSuggestion) {
-      setPanelMounted(true)
-      const rafId = requestAnimationFrame(() =>
-        requestAnimationFrame(() => setPanelSlideIn(true))
-      )
-      return () => cancelAnimationFrame(rafId)
-    } else {
-      setPanelSlideIn(false)
-      const t = setTimeout(() => setPanelMounted(false), 360)
-      return () => clearTimeout(t)
-    }
+    if (!detailSuggestion) return
+    const rafId = requestAnimationFrame(() =>
+      requestAnimationFrame(() => setPanelSlideIn(true))
+    )
+    return () => cancelAnimationFrame(rafId)
   }, [detailSuggestion])
+
+  // Close panel with slide-out animation, then unmount
+  const closePanel = useCallback(() => {
+    if (panelCloseTimer.current) clearTimeout(panelCloseTimer.current)
+    setPanelSlideIn(false)
+    panelCloseTimer.current = setTimeout(() => {
+      setDetailSuggestion(null)
+      setPanelSlideIn(false)
+    }, 350)
+  }, [])
 
   // ── Build pools ──────────────────────────────────────
 
@@ -631,12 +635,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     </main>
 
     {/* ── Detail panel (activities / restaurants) ── */}
-    {panelMounted && detailSuggestion && (() => {
+    {detailSuggestion && (() => {
       const d = detailSuggestion
       const m = TYPE_META[d.type]
       return (
         <div className="fixed inset-0 z-50 flex items-end"
-          onClick={() => setDetailSuggestion(null)}>
+          onClick={closePanel}>
 
           {/* Dark backdrop — no blur, instant */}
           <div className="absolute inset-0 bg-black/80" />
@@ -678,7 +682,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 )}
 
                 {/* Close */}
-                <button onClick={() => setDetailSuggestion(null)}
+                <button onClick={closePanel}
                   className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
                   style={{ background: 'rgba(0,0,0,.6)' }}>
                   <X size={18} className="text-white" />
@@ -770,7 +774,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                   )}
                   {onShowOnMap && d.lat && d.lon && (
                     <button
-                      onClick={() => { setDetailSuggestion(null); onShowOnMap(d.lat!, d.lon!, d.title, d.type) }}
+                      onClick={() => { closePanel(); onShowOnMap(d.lat!, d.lon!, d.title, d.type) }}
                       className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white/60"
                       style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
                       <MapIcon size={15} />
