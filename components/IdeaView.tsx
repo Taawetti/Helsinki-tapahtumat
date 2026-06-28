@@ -11,22 +11,22 @@ import { ATTRACTION_HIGHLIGHTS, getHighlight } from '@/lib/activity-highlights'
 // ── Curated activity names ───────────────────────────────
 
 const CURATED_NAMES = [
-  { name: 'Löyly',                  emoji: '🔥' },
-  { name: 'Allas Sea Pool',         emoji: '🌊' },
-  { name: 'Kotiharjun sauna',       emoji: '🪵' },
-  { name: 'Suomenlinna',            emoji: '⛵' },
-  { name: 'Temppeliaukion kirkko',  emoji: '⛪' },
-  { name: 'Kansallismuseo',         emoji: '🏛' },
-  { name: 'HAM Helsinki',           emoji: '🎨' },
-  { name: 'Ateneum',                emoji: '🖼' },
-  { name: 'Kiasma',                 emoji: '🌀' },
-  { name: 'Amos Rex',               emoji: '🎭' },
-  { name: 'Linnanmäki',             emoji: '🎢' },
-  { name: 'Korkeasaari',            emoji: '🦁' },
-  { name: 'Heureka',                emoji: '🔬' },
-  { name: 'Pihlajasaari',           emoji: '🏖' },
-  { name: 'Seurasaari',             emoji: '🌲' },
-  { name: 'Helsingin tuomiokirkko', emoji: '🕍' },
+  { name: 'Löyly',                  emoji: '🔥', url: 'https://loylyhelsinki.fi' },
+  { name: 'Allas Sea Pool',         emoji: '🌊', url: 'https://allasseapool.fi' },
+  { name: 'Kotiharjun sauna',       emoji: '🪵', url: 'https://kotiharjunsauna.fi' },
+  { name: 'Suomenlinna',            emoji: '⛵', url: 'https://www.suomenlinna.fi' },
+  { name: 'Temppeliaukion kirkko',  emoji: '⛪', url: 'https://www.helsinginseurakunnat.fi/kirkot/temppeliaukionkirkko' },
+  { name: 'Kansallismuseo',         emoji: '🏛', url: 'https://www.kansallismuseo.fi' },
+  { name: 'HAM Helsinki',           emoji: '🎨', url: 'https://hamhelsinki.fi' },
+  { name: 'Ateneum',                emoji: '🖼', url: 'https://ateneum.fi' },
+  { name: 'Kiasma',                 emoji: '🌀', url: 'https://kiasma.fi' },
+  { name: 'Amos Rex',               emoji: '🎭', url: 'https://amosrex.fi' },
+  { name: 'Linnanmäki',             emoji: '🎢', url: 'https://www.linnanmaki.fi' },
+  { name: 'Korkeasaari',            emoji: '🦁', url: 'https://www.korkeasaari.fi' },
+  { name: 'Heureka',                emoji: '🔬', url: 'https://www.heureka.fi' },
+  { name: 'Pihlajasaari',           emoji: '🏖', url: 'https://www.hel.fi/fi/kulttuuri-ja-vapaa-aika/ulkoilu-ja-luonto/uimarannat/pihlajasaari' },
+  { name: 'Seurasaari',             emoji: '🌲', url: 'https://www.kansallismuseo.fi/fi/seurasaarenulkomuseo' },
+  { name: 'Helsingin tuomiokirkko', emoji: '🕍', url: 'https://www.helsinginseurakunnat.fi/kirkot/tuomiokirkko' },
 ]
 
 // ── Types ────────────────────────────────────────────────
@@ -137,6 +137,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const { toggle, isFavorite } = useFavorites()
 
   const [ideaMode, setIdeaMode] = useState<IdeaMode>('ilta')
+  const [typeFilter, setTypeFilter] = useState<SuggestionType | 'all'>('all')
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [detailSuggestion, setDetailSuggestion] = useState<Suggestion | null>(null)
@@ -163,7 +164,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   const activityPool = useMemo((): Suggestion[] => {
     const byName = new Map(activities.map(a => [a.name.toLowerCase(), a]))
-    return CURATED_NAMES.map(({ name, emoji }) => {
+    return CURATED_NAMES.map(({ name, emoji, url: fallbackUrl }) => {
       const activity = byName.get(name.toLowerCase())
       const highlight = getHighlight(name)
       const h = ATTRACTION_HIGHLIGHTS.find(h => name.toLowerCase().includes(h.nameKey))
@@ -179,7 +180,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         address: activity?.address,
         lat: activity?.lat,
         lon: activity?.lon,
-        url: activity?.www ?? undefined,
+        url: activity?.www ?? fallbackUrl,
         badge: lang === 'en' && highlight?.badgeEn ? highlight.badgeEn : highlight?.badge,
         isFree: activity?.fee === false,
         isOpen: activity ? isOpenNow(activity.openingHours) : undefined,
@@ -243,6 +244,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const pool = useMemo(() => {
     let all = shuffle([...activityPool, ...restaurantPool, ...eventPool])
       .filter(s => !seenIds.has(s.id))
+      .filter(s => typeFilter === 'all' || s.type === typeFilter)
     if (ideaMode === 'nyt') {
       // "Juuri nyt": prefer items starting soon (< 3h) or open now
       all = [
@@ -253,9 +255,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     }
     return all
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ideaMode, activityPool.length, restaurantPool.length, eventPool.length, seenIds])
+  }, [ideaMode, typeFilter, activityPool.length, restaurantPool.length, eventPool.length, seenIds])
 
-  useEffect(() => { setSeenIds(new Set()) }, [ideaMode])
+  useEffect(() => { setSeenIds(new Set()) }, [ideaMode, typeFilter])
 
   const current = pool[0] ?? null
   const meta = current ? TYPE_META[current.type] : TYPE_META.event
@@ -285,13 +287,11 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     if (dir === 'right') {
       setSavedIds(s => new Set([...s, id]))
       if (eventRef) toggle(eventRef)
-      // open detail after card exits
-      setTimeout(() => {
-        if (eventRef && onEventClick) onEventClick(eventRef)
-        else setDetailSuggestion(snap)
-      }, 250)
+      // open detail immediately while card exits — panel slides up over the animation
+      if (eventRef && onEventClick) onEventClick(eventRef)
+      else setDetailSuggestion(snap)
     }
-    // mark as seen after exit animation — pool then recomputes to next card
+    // mark as seen after exit animation — pool recomputes to next card
     setTimeout(() => {
       setSeenIds(s => new Set([...s, id]))
       setDragX(0)
@@ -374,6 +374,28 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             {opt.label}
           </button>
         ))}
+      </div>
+
+      {/* ── Type filter pills ── */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
+        {([
+          { id: 'all' as const,        label: 'Kaikki',       icon: '✨' },
+          { id: 'event' as const,      label: 'Tapahtumat',   icon: '📅' },
+          { id: 'activity' as const,   label: 'Aktiviteetit', icon: '🧖' },
+          { id: 'restaurant' as const, label: 'Ravintolat',   icon: '🍽' },
+        ]).map(f => {
+          const active = typeFilter === f.id
+          return (
+            <button key={f.id} onClick={() => setTypeFilter(f.id)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black shrink-0 transition-all"
+              style={active
+                ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff', boxShadow: '0 4px 12px -4px rgba(91,101,230,.5)' }
+                : { background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.45)', border: '1px solid rgba(255,255,255,.1)' }}>
+              <span>{f.icon}</span>
+              {f.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* ── Swipeable card ── */}
@@ -586,8 +608,8 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       return (
         <div className="fixed inset-0 z-50 flex items-end"
           onClick={() => setDetailSuggestion(null)}>
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-          <div className="relative w-full max-w-lg mx-auto rounded-t-3xl overflow-hidden overflow-y-auto"
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-mtfade" />
+          <div className="relative w-full max-w-lg mx-auto rounded-t-3xl overflow-hidden overflow-y-auto animate-panel-up"
             style={{ background: '#12121a', border: '1px solid rgba(255,255,255,.12)', maxHeight: '82vh' }}
             onClick={e => e.stopPropagation()}>
 
