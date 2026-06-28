@@ -94,7 +94,7 @@ body {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
-.animate-panel-up { animation: panel-up 0.32s cubic-bezier(0.32, 0.72, 0, 1); }
+.animate-panel-up { animation: panel-up 0.34s cubic-bezier(0.32, 0.72, 0, 1) both; }
 
 @keyframes slide-up {
   from { transform: translateY(20px); opacity: 0; }

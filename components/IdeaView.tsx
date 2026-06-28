@@ -287,16 +287,23 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     if (dir === 'right') {
       setSavedIds(s => new Set([...s, id]))
       if (eventRef) toggle(eventRef)
-      // open detail immediately while card exits — panel slides up over the animation
+      // Open detail immediately — backdrop covers card instantly so no competing animations
       if (eventRef && onEventClick) onEventClick(eventRef)
       else setDetailSuggestion(snap)
+      // Wait for panel animation (320ms) to fully complete before swapping card behind it
+      setTimeout(() => {
+        setSeenIds(s => new Set([...s, id]))
+        setDragX(0)
+        setExitDir(null)
+      }, 360)
+    } else {
+      // Left swipe: no panel, advance as soon as card exits
+      setTimeout(() => {
+        setSeenIds(s => new Set([...s, id]))
+        setDragX(0)
+        setExitDir(null)
+      }, 220)
     }
-    // mark as seen after exit animation — pool recomputes to next card
-    setTimeout(() => {
-      setSeenIds(s => new Set([...s, id]))
-      setDragX(0)
-      setExitDir(null)
-    }, 220)
   }, [current, toggle, onEventClick])
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
@@ -379,10 +386,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       {/* ── Type filter pills ── */}
       <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
         {([
-          { id: 'all' as const,        label: 'Kaikki',       icon: '✨' },
-          { id: 'event' as const,      label: 'Tapahtumat',   icon: '📅' },
-          { id: 'activity' as const,   label: 'Aktiviteetit', icon: '🧖' },
-          { id: 'restaurant' as const, label: 'Ravintolat',   icon: '🍽' },
+          { id: 'all' as const,      label: 'Kaikki',       icon: '✨' },
+          { id: 'event' as const,    label: 'Tapahtumat',   icon: '📅' },
+          { id: 'activity' as const, label: 'Aktiviteetit', icon: '🧖' },
         ]).map(f => {
           const active = typeFilter === f.id
           return (
@@ -608,9 +614,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       return (
         <div className="fixed inset-0 z-50 flex items-end"
           onClick={() => setDetailSuggestion(null)}>
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-mtfade" />
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
           <div className="relative w-full max-w-lg mx-auto rounded-t-3xl overflow-hidden overflow-y-auto animate-panel-up"
-            style={{ background: '#12121a', border: '1px solid rgba(255,255,255,.12)', maxHeight: '82vh' }}
+            style={{ background: '#12121a', border: '1px solid rgba(255,255,255,.12)', maxHeight: '82vh', willChange: 'transform' }}
             onClick={e => e.stopPropagation()}>
 
             {/* Header image */}
