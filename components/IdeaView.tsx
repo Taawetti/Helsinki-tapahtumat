@@ -309,23 +309,29 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     const id = current.id
     const eventRef = current.eventRef
     const snap = current
-    setExitDir(dir)
+
     if (dir === 'right') {
-      setSavedIds(s => new Set([...s, id]))
-      if (eventRef) toggle(eventRef)
-      // Hide card instantly — only panel animates, no competing transforms
+      // Reset drag + hide card immediately — no exitDir transform, no translateX(110%)
+      // that would cause iOS Safari horizontal overflow and page zoom
+      setDragX(0)
       setCardHidden(true)
-      if (eventRef && onEventClick) onEventClick(eventRef)
-      else setDetailSuggestion(snap)
-      // Swap card after panel animation completes
+      // Open panel in next rAF — identical to home page tap flow: single clean state update
+      requestAnimationFrame(() => {
+        if (eventRef && onEventClick) onEventClick(eventRef)
+        else setDetailSuggestion(snap)
+      })
+      // Defer expensive FavoritesContext update until panel animation is already running
+      setTimeout(() => {
+        setSavedIds(s => new Set([...s, id]))
+        if (eventRef) toggle(eventRef)
+      }, 400)
+      // Advance to next card after panel has opened
       setTimeout(() => {
         setSeenIds(s => new Set([...s, id]))
-        setDragX(0)
-        setExitDir(null)
         setCardHidden(false)
       }, 380)
     } else {
-      // Left swipe: no panel, advance as soon as card exits
+      setExitDir('left')
       setTimeout(() => {
         setSeenIds(s => new Set([...s, id]))
         setDragX(0)
@@ -375,7 +381,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   return (
     <>
-    <main className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4">
+    <main className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4" style={{ overscrollBehavior: 'none' }}>
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between">
