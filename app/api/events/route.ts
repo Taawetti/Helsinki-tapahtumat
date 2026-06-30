@@ -217,11 +217,13 @@ export async function GET(req: NextRequest) {
 
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
-    // Enrich events without images using Wikipedia thumbnails (cached 7 days)
-    const { venues: venueMap, categories: categoryMap } = await fetchImagesCached()
+    // Enrich events without images using venue-specific Wikipedia thumbnails only.
+    // Category fallbacks are intentionally omitted — they cause every event of the
+    // same category to share the same image, which looks wrong in carousels.
+    const { venues: venueMap } = await fetchImagesCached()
     for (const e of events) {
       if (!e.image) {
-        const fallback = getEventImage(e.location?.name, e.categories, venueMap, categoryMap)
+        const fallback = getEventImage(e.location?.name, e.categories, venueMap, {})
         if (fallback) e.image = fallback
       }
     }

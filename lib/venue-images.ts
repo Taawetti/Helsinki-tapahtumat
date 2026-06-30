@@ -85,6 +85,8 @@ const VENUE_WIKI: [string, string][] = [
   ['talvipuutarha',            'Helsinki_Winter_Garden'],
   ['löyly',                    'Löyly'],
   ['allas sea pool',           'Allas_Sea_Pool'],
+  ['superterassi',             'Hotel_Torni'],
+  ['hotel torni',              'Hotel_Torni'],
   ['sea life',                 'SEA_LIFE_Helsinki'],
   ['töölönlahti',              'Töölönlahti'],
   ['temppeliaukio',            'Temppeliaukion_kirkko'],
@@ -171,7 +173,7 @@ async function _fetchAllImages(): Promise<{ venues: Record<string, string>; cate
 }
 
 // Cache for 7 days — Wikipedia thumbnails are stable
-export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v4'], {
+export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v5'], {
   revalidate: 604800,
   tags: ['venue-images'],
 })
