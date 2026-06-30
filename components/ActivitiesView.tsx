@@ -8,17 +8,17 @@ import { useLanguage } from '@/contexts/LanguageContext'
 
 // ── Constants ─────────────────────────────────────────────
 
-const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string }> = {
-  sauna:      { label: 'Saunat',      emoji: '🧖' },
-  museo:      { label: 'Museot',      emoji: '🏛' },
-  nahtavyys:  { label: 'Nähtävyydet', emoji: '🌄' },
-  galleria:   { label: 'Galleriat',   emoji: '🖼' },
-  nakopaikka: { label: 'Näköpaikat',  emoji: '🔭' },
-  uimaranta:  { label: 'Uimarannat', emoji: '🏖' },
-  puisto:     { label: 'Puistot',     emoji: '🌳' },
-  markkina:   { label: 'Markkinat',   emoji: '🛍' },
-  urheilu:    { label: 'Urheilu',     emoji: '⚽' },
-  muu:        { label: 'Muut',        emoji: '✨' },
+const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string; gradient: string }> = {
+  sauna:      { label: 'Saunat',      emoji: '🧖', gradient: 'linear-gradient(135deg,#7c2d12,#9a3412)' },
+  museo:      { label: 'Museot',      emoji: '🏛', gradient: 'linear-gradient(135deg,#0f172a,#1e3a5f)' },
+  nahtavyys:  { label: 'Nähtävyydet', emoji: '🌄', gradient: 'linear-gradient(135deg,#1e1b4b,#312e81)' },
+  galleria:   { label: 'Galleriat',   emoji: '🖼', gradient: 'linear-gradient(135deg,#2e1065,#4c1d95)' },
+  nakopaikka: { label: 'Näköpaikat',  emoji: '🔭', gradient: 'linear-gradient(135deg,#0c4a6e,#075985)' },
+  uimaranta:  { label: 'Uimarannat', emoji: '🏖', gradient: 'linear-gradient(135deg,#0c4a6e,#0369a1)' },
+  puisto:     { label: 'Puistot',     emoji: '🌳', gradient: 'linear-gradient(135deg,#042f2e,#065f46)' },
+  markkina:   { label: 'Markkinat',   emoji: '🛍', gradient: 'linear-gradient(135deg,#451a03,#78350f)' },
+  urheilu:    { label: 'Urheilu',     emoji: '⚽', gradient: 'linear-gradient(135deg,#172554,#1e3a8a)' },
+  muu:        { label: 'Muut',        emoji: '✨', gradient: 'linear-gradient(135deg,#1a1a2e,#16213e)' },
 }
 
 // Categories shown in the icon grid (ordered by summer relevance)
@@ -122,7 +122,7 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
       {a.image ? (
         <img src={a.image} alt={a.name} className="absolute inset-0 w-full h-full object-cover" />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center text-6xl" style={{ background: 'linear-gradient(135deg,#042f2e,#0f4c35,#065f46)' }}>
+        <div className="absolute inset-0 flex items-center justify-center text-6xl" style={{ background: meta.gradient }}>
           {meta.emoji}
         </div>
       )}
@@ -193,7 +193,7 @@ function ActivityRowCard({ a, distance, rating, onClick }: {
         {a.image ? (
           <img src={a.image} alt={a.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: 'linear-gradient(135deg,#042f2e,#0f4c35)' }}>
+          <div className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: meta.gradient }}>
             {meta.emoji}
           </div>
         )}

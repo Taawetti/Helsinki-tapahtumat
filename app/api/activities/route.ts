@@ -161,9 +161,11 @@ async function _fetchActivities(): Promise<Activity[]> {
       })
 
       // Assign images: venue name match first, then category fallback
-      const { venues: venueMap, categories: catMap } = await fetchImagesCached()
+      const { venues: venueMap } = await fetchImagesCached()
       for (const act of results) {
-        act.image = getEventImage(act.name, [act.category], venueMap, catMap)
+        // Only assign image if the venue name matches a known Wikipedia entry.
+        // Category fallbacks are omitted — they make every park/museum look identical.
+        act.image = getEventImage(act.name, [act.category], venueMap, {})
       }
 
       console.log(`[activities] OSM: ${results.length} results from ${mirror}`)
