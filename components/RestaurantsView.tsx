@@ -77,6 +77,19 @@ function fmtDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
+function isLateNight(hours: string): boolean {
+  if (!hours) return false
+  if (hours === '24/7') return true
+  for (const part of hours.split(';')) {
+    const m = part.trim().match(/^[\w,\-]+\s+\d{1,2}:\d{2}-(\d{1,2}):\d{2}$/)
+    if (m) {
+      const h = parseInt(m[1])
+      if (h < 6 || h >= 22) return true
+    }
+  }
+  return false
+}
+
 function isOpenNow(hours: string): boolean | undefined {
   if (!hours) return undefined
   if (hours === '24/7') return true
@@ -545,10 +558,9 @@ export default function RestaurantsView({ onShowOnMap }: {
   const rows = useMemo(() => {
     const base = typePool
     if (restType === 'ruokapaikat') return [
-      { title: '🏆 Kokit jotka palkittiin',     items: base.filter(r => r.michelinStars || r.bibGourmand || r.featured) },
-      { title: '🌏 Maailman maut Helsingissä ✦', items: base.filter(r => r.cuisineCategories.some(c => ['japanese','asian','indian','mexican','italian','mediterranean'].includes(c))) },
-      { title: '🇫🇮 Kotimainen keittiö',        items: base.filter(r => r.cuisineCategories.includes('nordisk')) },
-      { title: '🌱 Kasvisruokaa parhaimmillaan', items: base.filter(r => r.cuisineCategories.includes('veggie')) },
+      { title: '☀️ Lounaalle mars',              items: base.filter(r => /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase()) || (r.priceRange !== undefined && r.priceRange <= 2)) },
+      { title: '🌅 Terassi & ulkoilma',          items: base.filter(r => r.outdoorSeating === true) },
+      { title: '🌙 Auki vielä myöhään illalla',  items: base.filter(r => r.openingHours ? isLateNight(r.openingHours) : false) },
     ]
     if (restType === 'kahvilat') return [
       { title: '🎩 Kaupungin legendat',          items: base.filter(r => matchesSubCat(r, 'kahvilat', 'klassikot')) },
