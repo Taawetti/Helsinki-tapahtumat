@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
+import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 // ── Constants ─────────────────────────────────────────────
@@ -75,6 +76,63 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 
 function fmtDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+}
+
+function relativeDate(pubDate: string): string {
+  try {
+    const diffH = Math.floor((Date.now() - new Date(pubDate).getTime()) / 3_600_000)
+    if (diffH < 1)  return 'juuri nyt'
+    if (diffH < 24) return `${diffH} t sitten`
+    const d = Math.floor(diffH / 24)
+    if (d === 1)  return 'eilen'
+    if (d < 7)   return `${d} pv sitten`
+    return `${Math.floor(d / 7)} vk sitten`
+  } catch { return '' }
+}
+
+function NewsSection({ items }: { items: NewsItem[] }) {
+  if (!items.length) return null
+  return (
+    <div className="space-y-3">
+      {/* Header — same style as RestRow */}
+      <div className="flex items-baseline gap-2">
+        <h2 className="font-black text-white text-[17px] leading-none" style={{ letterSpacing: '-0.02em' }}>
+          📰 Tuoreita artikkeleita valinnan tueksi
+        </h2>
+        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {items.length}</span>
+      </div>
+
+      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+        {items.map((item, i) => (
+          <a
+            key={i}
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 w-[230px] rounded-2xl p-4 flex flex-col gap-2.5 transition-all active:scale-[.97]"
+            style={{
+              background: 'rgba(255,255,255,.05)',
+              border: '1px solid rgba(255,255,255,.1)',
+              borderTop: '2px solid rgba(107,118,255,.5)',
+            }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wide truncate" style={{ color: 'rgba(163,171,255,.8)' }}>
+                {item.source || 'Uutinen'}
+              </span>
+              <span className="text-[10px] shrink-0" style={{ color: 'rgba(255,255,255,.25)' }}>
+                {relativeDate(item.pubDate)}
+              </span>
+            </div>
+            <p className="text-[13px] font-semibold leading-snug line-clamp-4" style={{ color: 'rgba(255,255,255,.9)' }}>
+              {item.title}
+            </p>
+            <span className="text-[11px] font-black mt-auto" style={{ color: 'rgba(163,171,255,.9)' }}>Lue lisää ↗</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function isLateNight(hours: string): boolean {
@@ -487,6 +545,7 @@ export default function RestaurantsView({ onShowOnMap }: {
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [selectedRest, setSelectedRest] = useState<Restaurant | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
+  const [news, setNews] = useState<NewsItem[]>([])
 
   useEffect(() => {
     fetch('/api/restaurants')
@@ -494,6 +553,13 @@ export default function RestaurantsView({ onShowOnMap }: {
       .then(data => setRestaurants(data.restaurants ?? []))
       .catch(() => {})
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/restaurant-news')
+      .then(r => r.json())
+      .then(data => setNews(data.items ?? []))
+      .catch(() => {})
   }, [])
 
   useEffect(() => { setSubCat('all'); setQuickSort('default'); setVisibleCount(48) }, [restType])
@@ -657,6 +723,8 @@ export default function RestaurantsView({ onShowOnMap }: {
                   onShowOnMap={onShowOnMap}
                 />
               ))}
+
+              <NewsSection items={news} />
 
               <SubCatGrid
                 restType={restType}
