@@ -47,7 +47,7 @@ export default function NewsletterBanner() {
   if (hidden) return null
 
   return (
-    <div className="rounded-2xl border border-white/6 overflow-hidden" style={{ background: 'rgba(168,85,247,0.05)' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(107,118,255,0.06)', border: '1px solid rgba(107,118,255,0.15)' }}>
       <div className="p-5">
         {sent ? (
           <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ export default function NewsletterBanner() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>
+                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                   <Mail size={15} className="text-white" />
                 </div>
                 <div>
@@ -82,11 +82,11 @@ export default function NewsletterBanner() {
                   onChange={e => setEmail(e.target.value)}
                   placeholder="sähköpostisi@email.com"
                   disabled={loading}
-                  className="flex-1 bg-white/6 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-purple-500/40 transition-colors disabled:opacity-50"
+                  className="flex-1 bg-white/6 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#6b76ff]/40 transition-colors disabled:opacity-50"
                 />
                 <button type="submit" disabled={loading}
                   className="px-4 py-2.5 rounded-xl font-bold text-xs text-white shrink-0 hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 flex items-center gap-1.5"
-                  style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>
+                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 12px -4px rgba(91,101,230,.5)' }}>
                   {loading && <span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
                   Tilaa
                 </button>

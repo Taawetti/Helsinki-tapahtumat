@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect } from 'react'
 import { Loader2, SlidersHorizontal, Heart, Bell } from 'lucide-react'
-import { Event, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS } from '@/lib/types'
+import { Event, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents } from '@/hooks/useEvents'
 import EventCard from '@/components/EventCard'
@@ -710,50 +710,6 @@ export default function Home() {
             />
           )}
 
-          {/* City selector */}
-          <div className="pt-4 border-t border-white/5">
-            <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">{t('discover.city')}</p>
-            <div className="flex gap-2">
-              {[{id:'helsinki',label:'Helsinki'},{id:'espoo',label:'Espoo'},{id:'vantaa',label:'Vantaa'}].map((c) => (
-                <button key={c.id} onClick={() => setMunicipality(c.id)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${municipality === c.id ? 'bg-white/15 text-white' : 'bg-white/5 text-white/40 hover:text-white/70'}`}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Category & neighborhood links — SEO internal linking */}
-          <div className="pt-4 border-t border-white/5 space-y-5">
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">{t('discover.by_category')}</p>
-              <div className="flex flex-wrap gap-2">
-                {VIBES.map((v) => (
-                  <Link
-                    key={v.id}
-                    href={`/tapahtumat/${v.id}`}
-                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all border border-white/6 hover:border-white/15"
-                  >
-                    {v.emoji} {t(v.tKey as TranslationKey)}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-white/20 mb-3">{t('discover.by_area')}</p>
-              <div className="flex flex-wrap gap-2">
-                {NEIGHBORHOODS.filter((n) => n.municipality === 'helsinki').map((n) => (
-                  <Link
-                    key={n.id}
-                    href={`/tapahtumat/${n.id}`}
-                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all border border-white/6 hover:border-white/15"
-                  >
-                    {n.emoji} {n.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
 
           {/* Newsletter signup */}
           <NewsletterBanner />
