@@ -86,15 +86,39 @@ function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void
 
 // ── Carousel row ─────────────────────────────────────────
 function CarouselRow({ title, events, onClick }: { title: string; events: Event[]; onClick: (e: Event) => void }) {
+  const [expanded, setExpanded] = useState(false)
   if (events.length === 0) return null
+  const hasMore = events.length > 10
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-black text-white text-[17px] tracking-tight" style={{ letterSpacing: '-0.02em' }}>{title}</h2>
+        <h2 className="font-black text-white text-[17px] tracking-tight flex items-baseline gap-1.5" style={{ letterSpacing: '-0.02em' }}>
+          {title}
+          <span className="text-white/25 font-bold text-[13px]">· {events.length}</span>
+        </h2>
+        {hasMore && !expanded && (
+          <button onClick={() => setExpanded(true)}
+            className="text-[12px] font-black shrink-0 transition-colors"
+            style={{ color: '#a3abff' }}>
+            Katso kaikki {events.length} →
+          </button>
+        )}
+        {expanded && (
+          <button onClick={() => setExpanded(false)}
+            className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
+            Näytä vähemmän ↑
+          </button>
+        )}
       </div>
-      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-        {events.slice(0, 10).map(e => <RowCard key={e.id} event={e} onClick={onClick} />)}
-      </div>
+      {!expanded ? (
+        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+          {events.slice(0, 10).map(e => <RowCard key={e.id} event={e} onClick={onClick} />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {events.map(e => <PosterCard key={e.id} event={e} onClick={onClick} />)}
+        </div>
+      )}
     </section>
   )
 }
