@@ -78,6 +78,13 @@ function fmtDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
+function restGradient(type: Restaurant['type']): string {
+  if (type === 'kahvila') return 'linear-gradient(135deg,#422006,#78350f)'
+  if (type === 'baari')   return 'linear-gradient(135deg,#1e1b4b,#312e81)'
+  if (type === 'pikaruoka') return 'linear-gradient(135deg,#431407,#9a3412)'
+  return 'linear-gradient(135deg,#3b0f0f,#7f1d1d)'
+}
+
 function relativeDate(pubDate: string): string {
   try {
     const diffH = Math.floor((Date.now() - new Date(pubDate).getTime()) / 3_600_000)
@@ -225,7 +232,7 @@ function HeroCard({ r, distance, onShowOnMap }: {
       {r.image ? (
         <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full object-cover" />
       ) : (
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81,#1e3a8a)' }} />
+        <div className="absolute inset-0" style={{ background: restGradient(r.type) }} />
       )}
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.2) 55%,transparent 100%)' }} />
 
@@ -287,8 +294,8 @@ function RestRowCard({ r, distance, onClick }: {
         {r.image ? (
           <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }}>
-            {r.type === 'kahvila' ? '☕' : r.type === 'baari' ? '🍸' : '🍽'}
+          <div className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: restGradient(r.type) }}>
+            {r.type === 'kahvila' ? '☕' : r.type === 'baari' ? '🍸' : r.type === 'pikaruoka' ? '🍔' : '🍽'}
           </div>
         )}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.8) 0%,transparent 60%)' }} />
