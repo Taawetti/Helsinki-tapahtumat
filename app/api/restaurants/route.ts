@@ -7,6 +7,7 @@ import {
   GREEN_MICHELIN,
   RESTAURANT_OF_YEAR,
 } from '@/lib/restaurant-awards'
+import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -244,6 +245,14 @@ async function _fetchOSM(): Promise<Restaurant[]> {
         enrichWithAwards(name, partial)
 
         results.push(partial as Restaurant)
+      }
+
+      // Assign category fallback image — cuisine categories map to Wikipedia food articles
+      const { venues: venueMap, categories: catMap } = await fetchImagesCached()
+      const typeToKey: Record<string, string> = { ravintola: 'restaurant', kahvila: 'cafe', baari: 'bar', pikaruoka: 'burger', muu: 'restaurant' }
+      for (const rest of results) {
+        const cats = [...rest.cuisineCategories, typeToKey[rest.type] ?? 'restaurant']
+        rest.image = getEventImage(rest.name, cats, venueMap, catMap)
       }
 
       console.log(`[restaurants] OSM: ${results.length} results from ${mirror}`)

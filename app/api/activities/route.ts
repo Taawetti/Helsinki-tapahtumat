@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
 import type { Activity, ActivityCategory } from '@/lib/types'
+import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
 
 interface OSMElement {
   type: 'node' | 'way' | 'relation'
@@ -158,6 +159,12 @@ async function _fetchActivities(): Promise<Activity[]> {
         if (aScore !== bScore) return bScore - aScore
         return a.name.localeCompare(b.name, 'fi')
       })
+
+      // Assign images: venue name match first, then category fallback
+      const { venues: venueMap, categories: catMap } = await fetchImagesCached()
+      for (const act of results) {
+        act.image = getEventImage(act.name, [act.category], venueMap, catMap)
+      }
 
       console.log(`[activities] OSM: ${results.length} results from ${mirror}`)
       return results

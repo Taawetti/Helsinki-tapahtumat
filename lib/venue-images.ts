@@ -65,21 +65,40 @@ const VENUE_WIKI: [string, string][] = [
   ['tennispalatsi',            'Tennispalatsi'],
   ['sinebrychoff',             'Sinebrychoff_Art_Museum'],
   ['amos rex',                 'Amos_Rex'],
+  ['helsingin taidemuseo',     'Helsinki_Art_Museum'],
+  ['natural history',          'Finnish_Museum_of_Natural_History'],
+  ['luonnontieteellinen',      'Finnish_Museum_of_Natural_History'],
+  ['arkkitehtuurimuseo',       'Museum_of_Finnish_Architecture'],
+  ['valokuvataiteen museo',    'Finnish_Museum_of_Photography'],
 
-  // Attractions
+  // Attractions & activities
   ['linnanmäki',               'Linnanmäki'],
   ['korkeasaari',              'Korkeasaari'],
   ['suomenlinna',              'Suomenlinna'],
   ['heureka',                  'Heureka_(science_centre)'],
   ['messukeskus',              'Helsinki_Exhibition_%26_Convention_Centre'],
+  ['seurasaari',               'Seurasaari'],
+  ['pihlajasaari',             'Pihlajasaari'],
+  ['uunisaari',                'Uunisaari'],
+  ['kaivopuisto',              'Kaivopuisto'],
+  ['esplanadi',                'Esplanade_park,_Helsinki'],
+  ['talvipuutarha',            'Helsinki_Winter_Garden'],
+  ['löyly',                    'Löyly'],
+  ['allas sea pool',           'Allas_Sea_Pool'],
+  ['sea life',                 'SEA_LIFE_Helsinki'],
+  ['töölönlahti',              'Töölönlahti'],
+  ['temppeliaukio',            'Temppeliaukion_kirkko'],
+  ['tuomiokirkko',             'Helsinki_Cathedral'],
+  ['uspenskin katedraali',     'Uspenski_Cathedral'],
 
   // Markets
   ['kauppahalli',              'Old_Market_Hall,_Helsinki'],
   ['hakaniemen',               'Hakaniemi_market_hall'],
 ]
 
-// Category fallback: Wikipedia articles for well-known Helsinki landmarks
+// Category fallback images — covers both event categories and activity/restaurant categories
 const CATEGORY_WIKI: [string, string][] = [
+  // Event categories (existing)
   ['music',      'Helsinki_Music_Centre'],
   ['club',       'Tavastia_Club'],
   ['classical',  'Helsinki_Music_Centre'],
@@ -92,6 +111,38 @@ const CATEGORY_WIKI: [string, string][] = [
   ['kids',       'Linnanmäki'],
   ['networking', 'Helsinki_Exhibition_%26_Convention_Centre'],
   ['festival',   'Senate_Square'],
+
+  // Activity categories
+  ['sauna',      'Finnish_sauna'],
+  ['museo',      'National_Museum_of_Finland'],
+  ['galleria',   'Kiasma'],
+  ['nakopaikka', 'Senate_Square,_Helsinki'],
+  ['uimaranta',  'Pihlajasaari'],
+  ['puisto',     'Esplanade_park,_Helsinki'],
+  ['markkina',   'Old_Market_Hall,_Helsinki'],
+  ['nahtavyys',  'Suomenlinna'],
+  ['urheilu',    'Olympic_Stadium_(Helsinki)'],
+  ['muu',        'Helsinki'],
+
+  // Restaurant cuisine categories
+  ['japanese',       'Japanese_cuisine'],
+  ['italian',        'Italian_cuisine'],
+  ['pizza',          'Pizza'],
+  ['nordisk',        'New_Nordic_cuisine'],
+  ['mediterranean',  'Mediterranean_cuisine'],
+  ['asian',          'Asian_cuisine'],
+  ['veggie',         'Vegetarian_cuisine'],
+  ['burger',         'Hamburger'],
+  ['indian',         'Indian_cuisine'],
+  ['kebab',          'Kebab'],
+  ['mexican',        'Mexican_cuisine'],
+  ['french',         'French_cuisine'],
+
+  // Restaurant type fallbacks
+  ['restaurant',  'Restaurant'],
+  ['cafe',        'Coffeehouse'],
+  ['bar',         'Bar_(establishment)'],
+  ['nightclub',   'Nightclub'],
 ]
 
 // ── Cached fetch of all venue + category images ───────────
@@ -120,7 +171,7 @@ async function _fetchAllImages(): Promise<{ venues: Record<string, string>; cate
 }
 
 // Cache for 7 days — Wikipedia thumbnails are stable
-export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v3'], {
+export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v4'], {
   revalidate: 604800,
   tags: ['venue-images'],
 })
