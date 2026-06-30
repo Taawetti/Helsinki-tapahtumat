@@ -186,6 +186,11 @@ function matchesText(e: Event, pattern: RegExp): boolean {
 const isKeikka  = (e: Event) => matchesText(e, /keikka|konsertti|live[\s-]?musiikki|bändi|gig/)
 const isUrheilu = (e: Event) => matchesText(e, /urheilu|jääkiekko|jalkapallo|koripallo|ottelu|sm-liiga|khl|nba|liiga/)
 const isSurprise = (e: Event) => matchesText(e, /sauna|melont|jooga|silent|pop.?up|taikur|sirkus|impro|flash|yömelont|saunavene/)
+const isTerrace = (e: Event) => {
+  const month = new Date().getMonth() + 1
+  if (month < 6 || month > 8) return false
+  return matchesText(e, /terassi|ulkoilma|outdoor|puisto|esplanadi|kasarmitori|allas|ranta|ulkoilta|kesäohjelma/)
+}
 function isAlkaaPian(e: Event): boolean {
   const ms = new Date(e.startTime).getTime() - Date.now()
   return ms > 0 && ms < 3 * 60 * 60 * 1000
@@ -193,6 +198,7 @@ function isAlkaaPian(e: Event): boolean {
 
 function nightlifeScore(e: Event): number {
   const text = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
+  if (/festivaali|festival|festarit/.test(text)) return 8
   if (/keikka|konsertti|live[\s-]?musiikki|bändi|gig/.test(text)) return 7
   if (/klubi|dj[\s-]?set|yökerho|disco|rave|after[\s-]?party/.test(text)) return 6
   if (/jääkiekko|jalkapallo|ottelu|urheilu|koripallo/.test(text)) return 5
@@ -337,11 +343,11 @@ export default function Home() {
   const heroEvent = useMemo(() => discoverEvents.find((e) => nightlifeScore(e) >= 3 && e.image) ?? null, [discoverEvents])
 
   const carousels = useMemo(() => [
-    { id: 'keikka',    title: 'Illan keikat 🎸',         events: baseEvents.filter(isKeikka) },
-    { id: 'pian',      title: 'Alkaa pian ⏱',            events: baseEvents.filter(isAlkaaPian) },
-    { id: 'urheilu',   title: 'Urheilu tänään ⚽',        events: baseEvents.filter(isUrheilu) },
+    { id: 'pian',      title: 'Juuri sopivasti aikaa ⏱', events: baseEvents.filter(isAlkaaPian) },
+    { id: 'parhaat',   title: 'Illan parhaat ✦',         events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !!e.image) },
     { id: 'ilmainen',  title: 'Ilmaiseksi tänään 🎁',    events: baseEvents.filter(e => e.isFree) },
-    { id: 'ylatys',    title: 'Jotain yllättävää ✨',     events: baseEvents.filter(isSurprise) },
+    { id: 'terassit',  title: 'Kesäillan terassit ☀️',   events: baseEvents.filter(isTerrace) },
+    { id: 'ylatys',    title: 'Erilainen ilta ✨',        events: baseEvents.filter(isSurprise) },
   ].filter(r => r.events.length > 0), [baseEvents])
 
   const activeCount = activeVibes.length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
@@ -628,15 +634,29 @@ export default function Home() {
             <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
           </div>
 
-          {/* Vibe pills */}
-          <VibeBar
-            active={activeVibes}
-            onClearAll={() => { setActiveVibes([]); setPriceFilter('all') }}
-            onToggle={(id) => {
-              if (id === 'ilmainen') { setPriceFilter((p) => p === 'free' ? 'all' : 'free'); return }
-              setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
-            }}
-          />
+          {/* Aktiivinen filtteripalkki — ilmestyy kun kategoria valittu */}
+          {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && (
+            <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl"
+              style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>
+                  {activeVibes[0]
+                    ? (VIBES.find(v => v.id === activeVibes[0])?.emoji + ' ' + VIBES.find(v => v.id === activeVibes[0])?.label)
+                    : priceFilter === 'free' ? '🎁 Ilmainen' : 'Suodatettu'}
+                </span>
+                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>
+                  · {discoverEvents.length} tapahtumaa
+                </span>
+              </div>
+              <button
+                onClick={clearFilters}
+                className="text-[12px] font-black flex-shrink-0 ml-3 px-3 py-1 rounded-full transition-all"
+                style={{ color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}
+              >
+                Poistu hausta ×
+              </button>
+            </div>
+          )}
 
           {/* Loading skeletons */}
           {loading && baseEvents.length === 0 && (
@@ -693,19 +713,14 @@ export default function Home() {
             </button>
           )}
 
-          {/* ── Carousel rows ── */}
-          {!loading && carousels.map(row => (
+          {/* ── Carousel rows — piilotetaan kun filtteri aktiivinen ── */}
+          {!loading && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && carousels.map(row => (
             <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent} />
           ))}
 
-          {/* ── Kaikki tapahtumat -grid (jos vibe/kategoria valittu tai ei karusellirivejä) ── */}
+          {/* ── Filtteröity grid — näkyy kun kategoria valittu ── */}
           {!loading && (activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-black text-white text-[17px] tracking-tight" style={{ letterSpacing: '-0.02em' }}>
-                  {activeVibes[0] ? VIBES.find(v => v.id === activeVibes[0])?.emoji : ''} {activeVibes[0] ? VIBES.find(v => v.id === activeVibes[0])?.label : 'Suodatetut'}
-                </h2>
-              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {discoverEvents.filter(e => e.id !== heroEvent?.id).map(e => (
                   <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
@@ -718,6 +733,23 @@ export default function Home() {
                   {t('common.load_more')}
                 </button>
               )}
+            </section>
+          )}
+
+          {/* ── Selaa aihepiireittäin — ikonigridi karusellivien jälkeen ── */}
+          {!loading && baseEvents.length > 0 && (
+            <section>
+              <h2 className="font-black text-white text-[17px] mb-4" style={{ letterSpacing: '-0.02em' }}>
+                Selaa aihepiireittäin
+              </h2>
+              <VibeBar
+                active={activeVibes}
+                onClearAll={() => { setActiveVibes([]); setPriceFilter('all') }}
+                onToggle={(id) => {
+                  if (id === 'ilmainen') { setPriceFilter((p) => p === 'free' ? 'all' : 'free'); return }
+                  setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
+                }}
+              />
             </section>
           )}
 
