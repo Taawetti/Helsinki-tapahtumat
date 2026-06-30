@@ -338,7 +338,10 @@ export async function GET(req: NextRequest) {
         .select('*')
         .eq('active', true)
       if (!error && data && data.length > 0) {
-        defs = (data as DbRecurringEvent[]).map(fromDb)
+        // Merge: DB entries override same-ID static entries, but static-only entries remain
+        const dbDefs = (data as DbRecurringEvent[]).map(fromDb)
+        const dbIds = new Set(dbDefs.map(d => d.id))
+        defs = [...RECURRING.filter(d => !dbIds.has(d.id)), ...dbDefs]
       }
     } catch {
       // Supabase unavailable — use static fallback
