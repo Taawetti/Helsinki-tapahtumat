@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { MapPin, Globe, Phone, Navigation, Clock, Ticket, Timer, Map as MapIcon, X } from 'lucide-react'
 import type { Activity, ActivityCategory } from '@/lib/types'
 import { getHighlight } from '@/lib/activity-highlights'
@@ -9,45 +9,45 @@ import { useLanguage } from '@/contexts/LanguageContext'
 // ── Constants ─────────────────────────────────────────────
 
 const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string }> = {
-  sauna:      { label: 'Saunat',         emoji: '🧖' },
-  museo:      { label: 'Museot',         emoji: '🏛' },
-  nahtavyys:  { label: 'Nähtävyydet',    emoji: '🌄' },
-  galleria:   { label: 'Galleriat',      emoji: '🖼' },
-  nakopaikka: { label: 'Näköpaikat',     emoji: '🔭' },
-  uimaranta:  { label: 'Uimarannat',     emoji: '🏖' },
-  puisto:     { label: 'Puistot',        emoji: '🌳' },
-  markkina:   { label: 'Markkinat',      emoji: '🛍' },
-  urheilu:    { label: 'Urheilu',        emoji: '⚽' },
-  muu:        { label: 'Muut',           emoji: '✨' },
+  sauna:      { label: 'Saunat',      emoji: '🧖' },
+  museo:      { label: 'Museot',      emoji: '🏛' },
+  nahtavyys:  { label: 'Nähtävyydet', emoji: '🌄' },
+  galleria:   { label: 'Galleriat',   emoji: '🖼' },
+  nakopaikka: { label: 'Näköpaikat',  emoji: '🔭' },
+  uimaranta:  { label: 'Uimarannat', emoji: '🏖' },
+  puisto:     { label: 'Puistot',     emoji: '🌳' },
+  markkina:   { label: 'Markkinat',   emoji: '🛍' },
+  urheilu:    { label: 'Urheilu',     emoji: '⚽' },
+  muu:        { label: 'Muut',        emoji: '✨' },
 }
 
-const SUB_TABS: { id: ActivityCategory | 'all'; label: string; emoji: string }[] = [
-  { id: 'all',       label: 'Kaikki',      emoji: '' },
-  { id: 'sauna',     label: 'Saunat',      emoji: '🧖' },
-  { id: 'nakopaikka',label: 'Näköpaikat',  emoji: '🌄' },
-  { id: 'museo',     label: 'Museot',      emoji: '🏛' },
-  { id: 'uimaranta', label: 'Uimarannat',  emoji: '🏖' },
-  { id: 'puisto',    label: 'Puistot',     emoji: '🌳' },
-  { id: 'markkina',  label: 'Markkinat',   emoji: '🛍' },
-  { id: 'galleria',  label: 'Galleriat',   emoji: '🖼' },
-  { id: 'muu',       label: 'Muut',        emoji: '🛠' },
+// Categories shown in the icon grid (ordered by summer relevance)
+const GRID_CATS: ActivityCategory[] = [
+  'sauna', 'nakopaikka', 'uimaranta', 'puisto',
+  'museo', 'galleria', 'markkina', 'urheilu', 'muu',
+]
+
+// Hero rotates category by day of week
+const HERO_ROTATION: ActivityCategory[] = [
+  'sauna', 'nakopaikka', 'museo', 'uimaranta', 'galleria', 'puisto', 'markkina',
 ]
 
 // Helsinki's must-see attractions — used for "Helsingin helmet" row
-const HELMET_NAMES = [
-  'Suomenlinna', 'Temppeliaukion kirkko', 'Helsingin tuomiokirkko',
-  'Amos Rex', 'Löyly', 'Allas Sea Pool', 'Kansallismuseo', 'Ateneum',
-  'Kiasma', 'HAM Helsinki', 'Linnanmäki', 'Korkeasaari', 'Oodi',
+const HELMET_IDS_OR_NAMES = new Set([
+  'suomenlinna', 'temppeliaukion kirkko', 'temppeliaukio', 'helsingin tuomiokirkko',
+  'amos rex', 'löyly', 'allas sea pool', 'kansallismuseo', 'ateneum',
+  'kiasma', 'ham helsinki', 'linnanmäki', 'korkeasaari', 'oodi',
+])
+
+type QuickSort = 'default' | 'open' | 'yllatys' | 'nearby'
+
+const QUICK_SORTS: { id: QuickSort; label: string }[] = [
+  { id: 'default', label: 'Kaikki' },
+  { id: 'open',    label: '🟢 Avoinna nyt' },
+  { id: 'yllatys', label: '✨ Ylläty' },
+  { id: 'nearby',  label: '📍 Lähimmät' },
 ]
 
-const QUICK_SORTS = [
-  { id: 'default',  label: 'Kaikki' },
-  { id: 'open',     label: '🟢 Avoinna nyt' },
-  { id: 'yllatys',  label: '✨ Ylläty' },
-]
-type QuickSort = 'default' | 'open' | 'yllatys'
-
-// Indoor categories (for "Sateen sattuessa")
 const INDOOR_CATS: ActivityCategory[] = ['museo', 'galleria', 'muu']
 
 // ── Helpers ───────────────────────────────────────────────
@@ -116,7 +116,6 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const open = isOpenNow(a.openingHours)
-  const highlight = getHighlight(a.name)
   const meta = CATEGORY_META[a.category]
 
   return (
@@ -177,7 +176,7 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
   )
 }
 
-// ── Row card (horizontal carousels) ──────────────────────
+// ── Carousel row card ─────────────────────────────────────
 
 function ActivityRowCard({ a, distance, rating, onClick }: {
   a: Activity
@@ -225,56 +224,55 @@ function ActivityRowCard({ a, distance, rating, onClick }: {
   )
 }
 
-// ── Row section ───────────────────────────────────────────
+// ── Carousel row — expand in place ────────────────────────
 
-function ActRow({ title, items, distMap, ratingMap, onCardClick }: {
+function ActRow({ title, items, distMap, ratingMap, onCardClick, onShowOnMap }: {
   title: string
   items: Activity[]
   distMap: Map<string, number>
   ratingMap: Map<string, { rating: number; reviewCount: number }>
   onCardClick: (a: Activity) => void
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
   if (items.length === 0) return null
+  const hasMore = items.length > 10
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-black text-white text-[17px] tracking-tight" style={{ letterSpacing: '-0.02em' }}>{title}</h2>
-        <button className="text-[13px] font-bold" style={{ color: '#6b76ff' }}>Kaikki ›</button>
+        <h2 className="font-black text-white text-[17px] flex items-baseline gap-1.5" style={{ letterSpacing: '-0.02em' }}>
+          {title}
+          <span className="text-white/25 font-bold text-[13px]">· {items.length}</span>
+        </h2>
+        {hasMore && !expanded && (
+          <button onClick={() => setExpanded(true)} className="text-[12px] font-black shrink-0 transition-colors" style={{ color: '#a3abff' }}>
+            Katso kaikki {items.length} →
+          </button>
+        )}
+        {expanded && (
+          <button onClick={() => setExpanded(false)} className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
+            Näytä vähemmän ↑
+          </button>
+        )}
       </div>
-      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-        {items.slice(0, 10).map(a => (
-          <ActivityRowCard key={a.id} a={a} distance={distMap.get(a.id)} rating={ratingMap.get(a.name.toLowerCase())} onClick={onCardClick} />
-        ))}
-      </div>
+      {!expanded ? (
+        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+          {items.slice(0, 10).map(a => (
+            <ActivityRowCard key={a.id} a={a} distance={distMap.get(a.id)} rating={ratingMap.get(a.name.toLowerCase())} onClick={onCardClick} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map(a => (
+            <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)} rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} />
+          ))}
+        </div>
+      )}
     </section>
   )
 }
 
-// ── Underline tabs ─────────────────────────────────────────
-
-function UnderlineTabs<T extends string>({ tabs, active, onChange }: {
-  tabs: { id: T; label: string; emoji?: string }[]
-  active: T
-  onChange: (id: T) => void
-}) {
-  return (
-    <div className="flex overflow-x-auto scrollbar-none -mx-4 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-      {tabs.map(tab => (
-        <button key={tab.id} onClick={() => onChange(tab.id)}
-          className="shrink-0 flex items-center gap-1.5 px-4 py-3 text-[13px] font-black transition-all relative"
-          style={{ color: active === tab.id ? '#6b76ff' : 'rgba(255,255,255,.4)' }}>
-          {tab.emoji && <span>{tab.emoji}</span>}
-          {tab.label}
-          {active === tab.id && (
-            <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }} />
-          )}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-// ── List card (vertical, for category view) ───────────────
+// ── List card ─────────────────────────────────────────────
 
 function ActivityListCard({ a, distance, rating, onShowOnMap }: {
   a: Activity
@@ -381,6 +379,60 @@ function ActivityListCard({ a, distance, rating, onShowOnMap }: {
   )
 }
 
+// ── Category icon grid ────────────────────────────────────
+
+function CategoryGrid({ active, onSelect }: {
+  active: ActivityCategory | 'all'
+  onSelect: (id: ActivityCategory | 'all') => void
+}) {
+  return (
+    <section>
+      <h2 className="font-black text-white text-[17px] mb-4" style={{ letterSpacing: '-0.02em' }}>
+        Selaa kategorioittain
+      </h2>
+      <div className="grid grid-cols-2 gap-2.5">
+        {GRID_CATS.map(cat => {
+          const meta = CATEGORY_META[cat]
+          const isActive = active === cat
+          return (
+            <button key={cat} onClick={() => onSelect(isActive ? 'all' : cat)}
+              className="flex items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all active:scale-[.97]"
+              style={isActive
+                ? { background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.4)' }
+                : { background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }
+              }>
+              <span className="text-[22px] leading-none flex-shrink-0">{meta.emoji}</span>
+              <span className="font-black text-[13px] leading-tight"
+                style={{ letterSpacing: '-0.01em', color: isActive ? '#a3abff' : 'rgba(255,255,255,.6)' }}>
+                {meta.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+// ── Quick sort pills ──────────────────────────────────────
+
+function QuickSortPills({ active, onSelect }: { active: QuickSort; onSelect: (id: QuickSort) => void }) {
+  return (
+    <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
+      {QUICK_SORTS.map(s => (
+        <button key={s.id} onClick={() => onSelect(s.id)}
+          className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+          style={active === s.id
+            ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
+            : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
+          }>
+          {s.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ── Main view ─────────────────────────────────────────────
 
 export default function ActivitiesView({ onShowOnMap }: {
@@ -393,6 +445,10 @@ export default function ActivitiesView({ onShowOnMap }: {
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [venueRatings, setVenueRatings] = useState<Record<string, { rating: number; reviewCount: number; priceLevel: string | null }>>({})
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
+  const [visibleCount, setVisibleCount] = useState(48)
+
+  // Stable shuffle seed per session — makes Ylläty actually different each visit
+  const shuffleSeed = useRef(Math.floor(Math.random() * 9973))
 
   useEffect(() => {
     fetch('/api/activities')
@@ -409,7 +465,22 @@ export default function ActivitiesView({ onShowOnMap }: {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { setQuickSort('default') }, [catFilter])
+  useEffect(() => { setQuickSort('default'); setVisibleCount(48) }, [catFilter])
+  useEffect(() => { setVisibleCount(48) }, [quickSort])
+
+  const locateMe = useCallback(() => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      pos => { setUserPos([pos.coords.latitude, pos.coords.longitude]); setQuickSort('nearby') },
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }, [])
+
+  const handleQuickSort = useCallback((id: QuickSort) => {
+    if (id === 'nearby') { locateMe(); return }
+    setQuickSort(id)
+  }, [locateMe])
 
   const distMap = useMemo(() => {
     if (!userPos) return new Map<string, number>()
@@ -424,76 +495,78 @@ export default function ActivitiesView({ onShowOnMap }: {
     return m
   }, [venueRatings])
 
-  // Pool for current category
   const catPool = useMemo(() => {
     if (catFilter === 'all') return activities
     return activities.filter(a => a.category === catFilter)
   }, [activities, catFilter])
 
-  // Apply quick sort
   const sortedPool = useMemo(() => {
+    const seed = shuffleSeed.current
     let result = [...catPool]
     if (quickSort === 'open') {
       result = result.filter(a => isOpenNow(a.openingHours) === true)
     } else if (quickSort === 'yllatys') {
-      // Shuffle for "surprise" effect (stable across renders via id hash)
       result = result.sort((a, b) => {
-        const ha = a.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) % 997
-        const hb = b.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) % 997
+        const ha = (a.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) + seed) % 9973
+        const hb = (b.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) + seed) % 9973
         return ha - hb
       })
-    } else if (userPos && distMap.size > 0) {
-      // No sort change unless nearby was selected via RestaurantsView pattern
+    } else if (quickSort === 'nearby' && userPos && distMap.size > 0) {
+      result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     }
     return result
   }, [catPool, quickSort, userPos, distMap])
 
-  // Hero: preferred sauna or first with image
+  // Hero rotates by day of week across different categories
   const heroActivity = useMemo(() => {
     if (catFilter !== 'all') return null
-    const pool = catFilter === 'all' ? activities : catPool
-    return pool.find(a => a.category === 'sauna' && a.image && isOpenNow(a.openingHours))
-      ?? pool.find(a => a.image && isOpenNow(a.openingHours))
-      ?? pool.find(a => a.image)
-      ?? pool[0]
+    const preferredCat = HERO_ROTATION[new Date().getDay() % HERO_ROTATION.length]
+    return activities.find(a => a.category === preferredCat && a.image && isOpenNow(a.openingHours))
+      ?? activities.find(a => a.image && isOpenNow(a.openingHours))
+      ?? activities.find(a => a.image)
+      ?? activities[0]
       ?? null
-  }, [activities, catPool, catFilter])
+  }, [activities, catFilter])
 
-  // Curated rows
   const rows = useMemo(() => {
     if (catFilter !== 'all') return []
-    const helmetSet = new Set(HELMET_NAMES.map(n => n.toLowerCase()))
     return [
-      { title: '❤️ Helsingin helmet',     items: activities.filter(a => helmetSet.has(a.name.toLowerCase())) },
-      { title: '☔ Sateen sattuessa',      items: activities.filter(a => INDOOR_CATS.includes(a.category)) },
-      { title: '🆓 Ilmaiseksi',            items: activities.filter(a => a.fee === false) },
-      { title: '🧖 Saunat',               items: activities.filter(a => a.category === 'sauna') },
-      { title: '🌄 Näköpaikat',           items: activities.filter(a => a.category === 'nakopaikka') },
-      { title: '📅 Tänään auki',           items: activities.filter(a => isOpenNow(a.openingHours) === true) },
+      { title: '❤️ Tänne kannattaa mennä kerran elämässä', items: activities.filter(a => HELMET_IDS_OR_NAMES.has(a.name.toLowerCase())) },
+      { title: '🆓 Ilmaiseksi — ei maksa mitään',          items: activities.filter(a => a.fee === false) },
+      { title: '🧖 Löylyt ✦',                               items: activities.filter(a => a.category === 'sauna') },
+      { title: '🌄 Kaupunki ylhäältä katsottuna',          items: activities.filter(a => a.category === 'nakopaikka') },
+      { title: '🏛 Sadepäivän pelastajat',                  items: activities.filter(a => INDOOR_CATS.includes(a.category)) },
+      { title: '🟢 Ovet auki juuri nyt',                   items: activities.filter(a => isOpenNow(a.openingHours) === true) },
     ]
   }, [activities, catFilter])
 
-  const isHomepageView = catFilter === 'all' && quickSort === 'default'
+  const isFilterActive = catFilter !== 'all' || quickSort !== 'default'
+
+  const activeFilterLabel = useMemo(() => {
+    if (catFilter !== 'all') {
+      const meta = CATEGORY_META[catFilter]
+      return `${meta.emoji} ${meta.label}`
+    }
+    if (quickSort === 'open') return '🟢 Avoinna nyt'
+    if (quickSort === 'yllatys') return '✨ Ylläty'
+    if (quickSort === 'nearby') return '📍 Lähimmät'
+    return 'Suodatettu'
+  }, [catFilter, quickSort])
+
+  const clearFilter = useCallback(() => { setCatFilter('all'); setQuickSort('default') }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
 
-      {/* ── Heading ── */}
+      {/* Heading */}
       <div>
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
         <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
-          Aktiviteetit
+          Tekemistä
         </h1>
       </div>
 
-      {/* ── Category tabs ── */}
-      <UnderlineTabs
-        tabs={SUB_TABS}
-        active={catFilter}
-        onChange={(id) => setCatFilter(id as ActivityCategory | 'all')}
-      />
-
-      {/* ── Loading ── */}
+      {/* Loading skeletons */}
       {loading && (
         <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -502,99 +575,98 @@ export default function ActivitiesView({ onShowOnMap }: {
         </div>
       )}
 
-      {/* ── Homepage view ── */}
-      {!loading && isHomepageView && (
+      {!loading && (
         <>
-          {/* Hero */}
-          {heroActivity && (
-            <ActivityHero
-              a={heroActivity}
-              distance={distMap.get(heroActivity.id)}
-              rating={ratingMap.get(heroActivity.name.toLowerCase())}
-              onShowOnMap={onShowOnMap}
-            />
-          )}
-
-          {/* Quick sort pills */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-            {QUICK_SORTS.map(s => {
-              const isActive = quickSort === s.id
-              return (
-                <button key={s.id} onClick={() => setQuickSort(s.id as QuickSort)}
-                  className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-                  style={isActive
-                    ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
-                    : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
-                  }>
-                  {s.label}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Curated rows */}
-          {rows.filter(r => r.items.length > 0).map(row => (
-            <ActRow key={row.title} title={row.title} items={row.items} distMap={distMap} ratingMap={ratingMap} onCardClick={setSelectedActivity} />
-          ))}
-        </>
-      )}
-
-      {/* ── List view (category selected or quick sort active) ── */}
-      {!loading && !isHomepageView && (
-        <>
-          {/* Quick sort pills */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-            {QUICK_SORTS.map(s => {
-              const isActive = quickSort === s.id
-              return (
-                <button key={s.id} onClick={() => setQuickSort(s.id as QuickSort)}
-                  className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-                  style={isActive
-                    ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
-                    : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
-                  }>
-                  {s.label}
-                </button>
-              )
-            })}
-            {catFilter !== 'all' && (
-              <button onClick={() => { setCatFilter('all'); setQuickSort('default') }}
-                className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-full text-sm font-bold text-white/30"
-                style={{ background: 'rgba(255,255,255,.04)' }}>
-                <X size={12} /> Tyhjennä
-              </button>
-            )}
-          </div>
-
-          <p className="text-white/20 text-xs font-bold">{sortedPool.length} kohdetta</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedPool.slice(0, 48).map(a => (
-              <ActivityListCard
-                key={a.id}
-                a={a}
-                distance={distMap.get(a.id)}
-                rating={ratingMap.get(a.name.toLowerCase())}
-                onShowOnMap={onShowOnMap}
-              />
-            ))}
-          </div>
-
-          {sortedPool.length === 0 && (
-            <div className="flex flex-col items-center py-16 text-center gap-3">
-              <span className="text-5xl">🔭</span>
-              <p className="text-white/40 font-bold">Ei kohteita tällä suodatuksella</p>
-              <button onClick={() => { setCatFilter('all'); setQuickSort('default') }}
-                className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
-                style={{ borderColor: 'rgba(107,118,255,.3)' }}>
-                Näytä kaikki
+          {/* Active filter bar */}
+          {isFilterActive && (
+            <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl"
+              style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>{activeFilterLabel}</span>
+                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {sortedPool.length} kohdetta</span>
+              </div>
+              <button onClick={clearFilter}
+                className="text-[12px] font-black flex-shrink-0 ml-3 px-3 py-1 rounded-full transition-all"
+                style={{ color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}>
+                Poistu hausta ×
               </button>
             </div>
           )}
+
+          {/* Homepage view */}
+          {!isFilterActive && (
+            <>
+              {heroActivity && (
+                <ActivityHero
+                  a={heroActivity}
+                  distance={distMap.get(heroActivity.id)}
+                  rating={ratingMap.get(heroActivity.name.toLowerCase())}
+                  onShowOnMap={onShowOnMap}
+                />
+              )}
+
+              <QuickSortPills active={quickSort} onSelect={handleQuickSort} />
+
+              {rows.filter(r => r.items.length > 0).map(row => (
+                <ActRow
+                  key={row.title}
+                  title={row.title}
+                  items={row.items}
+                  distMap={distMap}
+                  ratingMap={ratingMap}
+                  onCardClick={setSelectedActivity}
+                  onShowOnMap={onShowOnMap}
+                />
+              ))}
+
+              <CategoryGrid active={catFilter} onSelect={setCatFilter} />
+            </>
+          )}
+
+          {/* Filter active: list view */}
+          {isFilterActive && (
+            <>
+              <QuickSortPills active={quickSort} onSelect={handleQuickSort} />
+
+              {sortedPool.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {sortedPool.slice(0, visibleCount).map(a => (
+                      <ActivityListCard
+                        key={a.id}
+                        a={a}
+                        distance={distMap.get(a.id)}
+                        rating={ratingMap.get(a.name.toLowerCase())}
+                        onShowOnMap={onShowOnMap}
+                      />
+                    ))}
+                  </div>
+                  {visibleCount < sortedPool.length && (
+                    <button
+                      onClick={() => setVisibleCount(v => v + 24)}
+                      className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
+                      style={{ background: 'rgba(255,255,255,.05)' }}>
+                      Näytä lisää ({sortedPool.length - visibleCount} kohdetta)
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center py-16 text-center gap-3">
+                  <span className="text-5xl">🔭</span>
+                  <p className="text-white/40 font-bold">Ei kohteita tällä suodatuksella</p>
+                  <button onClick={clearFilter}
+                    className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
+                    style={{ borderColor: 'rgba(107,118,255,.3)' }}>
+                    Näytä kaikki
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
 
-      {/* ── Detail panel ── */}
+      {/* Detail panel */}
       {selectedActivity && (
         <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)' }}
           onClick={() => setSelectedActivity(null)}>
@@ -609,8 +681,23 @@ export default function ActivitiesView({ onShowOnMap }: {
             )}
             <div className="p-5 space-y-3">
               <div className="flex items-start justify-between">
-                <h2 className="font-black text-white text-xl leading-tight">{selectedActivity.name}</h2>
-                <button onClick={() => setSelectedActivity(null)} className="p-2 rounded-full text-white/40 hover:text-white"
+                <div className="min-w-0">
+                  <h2 className="font-black text-white text-xl leading-tight">{selectedActivity.name}</h2>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {(() => {
+                      const open = isOpenNow(selectedActivity.openingHours)
+                      return open !== undefined ? (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
+                          {open ? '● Avoinna' : '○ Suljettu'}
+                        </span>
+                      ) : null
+                    })()}
+                    {selectedActivity.fee === false && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">ILMAINEN</span>
+                    )}
+                  </div>
+                </div>
+                <button onClick={() => setSelectedActivity(null)} className="p-2 rounded-full text-white/40 hover:text-white shrink-0 ml-2"
                   style={{ background: 'rgba(255,255,255,.08)' }}>
                   <X size={16} />
                 </button>
@@ -624,6 +711,11 @@ export default function ActivitiesView({ onShowOnMap }: {
               {selectedActivity.openingHours && (
                 <div className="flex items-center gap-2 text-white/30 text-sm">
                   <Clock size={13} /> {selectedActivity.openingHours}
+                </div>
+              )}
+              {selectedActivity.fee === true && selectedActivity.charge && (
+                <div className="flex items-center gap-2 text-amber-400/70 text-sm">
+                  <Ticket size={13} /> {selectedActivity.charge}
                 </div>
               )}
               <div className="flex gap-3 pt-1 flex-wrap">

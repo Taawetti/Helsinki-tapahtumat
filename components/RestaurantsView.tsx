@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { MapPin, Globe, Phone, Navigation, Star, Map as MapIcon, X } from 'lucide-react'
+import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
-import { FEATURED_PICKS } from '@/lib/restaurant-awards'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 // ── Constants ─────────────────────────────────────────────
@@ -11,6 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 const PRICE_LABELS = ['', '€', '€€', '€€€', '€€€€']
 
 type RestType = 'ruokapaikat' | 'kahvilat' | 'baarit' | 'yokerhot'
+type QuickSort = 'default' | 'open' | 'nearby'
 
 const TYPE_TABS: { id: RestType; label: string; emoji: string; dbType: Restaurant['type'] | null }[] = [
   { id: 'ruokapaikat', label: 'Ruokapaikat', emoji: '🍽', dbType: 'ravintola' },
@@ -21,54 +21,46 @@ const TYPE_TABS: { id: RestType; label: string; emoji: string; dbType: Restauran
 
 const SUB_CATS: Record<RestType, { id: string; label: string; emoji: string }[]> = {
   ruokapaikat: [
-    { id: 'all', label: 'Kaikki', emoji: '' },
-    { id: 'awarded', label: 'Palkitut', emoji: '🏆' },
-    { id: 'nordisk', label: 'Pohjoismainen', emoji: '🇫🇮' },
-    { id: 'japanese', label: 'Japanilainen', emoji: '🍣' },
-    { id: 'pizza', label: 'Pizza', emoji: '🍕' },
-    { id: 'italian', label: 'Italialainen', emoji: '🍝' },
-    { id: 'asian', label: 'Aasialainen', emoji: '🍜' },
-    { id: 'burger', label: 'Hampurilaiset', emoji: '🍔' },
-    { id: 'veggie', label: 'Kasvis', emoji: '🌱' },
-    { id: 'kebab', label: 'Kebab', emoji: '🌯' },
-    { id: 'mediterranean', label: 'Välimeri', emoji: '🫒' },
-    { id: 'indian', label: 'Intialainen', emoji: '🍛' },
-    { id: 'seafood', label: 'Kala & meri', emoji: '🐟' },
-    { id: 'steak', label: 'Pihvi & grilli', emoji: '🥩' },
-    { id: 'mexican', label: 'Meksikolainen', emoji: '🌮' },
+    { id: 'awarded',  label: 'Palkitut',      emoji: '🏆' },
+    { id: 'japanese', label: 'Japanilainen',  emoji: '🍣' },
+    { id: 'nordisk',  label: 'Pohjoismainen', emoji: '🇫🇮' },
+    { id: 'italian',  label: 'Italialainen',  emoji: '🍝' },
+    { id: 'pizza',    label: 'Pizza',         emoji: '🍕' },
+    { id: 'asian',    label: 'Aasialainen',   emoji: '🍜' },
+    { id: 'veggie',   label: 'Kasvis',        emoji: '🌱' },
+    { id: 'burger',   label: 'Hampurilaiset', emoji: '🍔' },
+    { id: 'seafood',  label: 'Kala & meri',   emoji: '🐟' },
+    { id: 'steak',    label: 'Pihvi & grilli',emoji: '🥩' },
+    { id: 'indian',   label: 'Intialainen',   emoji: '🍛' },
+    { id: 'mexican',  label: 'Meksikolainen', emoji: '🌮' },
   ],
   kahvilat: [
-    { id: 'all', label: 'Kaikki', emoji: '' },
-    { id: 'klassikot', label: 'Klassikot', emoji: '🎩' },
-    { id: 'ranskalaiset', label: 'Ranskalaiset', emoji: '🥖' },
-    { id: 'boheemit', label: 'Boheemit', emoji: '📖' },
-    { id: 'erikois', label: 'Erikoiskahvilat', emoji: '☕' },
-    { id: 'paahtimo', label: 'Paahtimot', emoji: '🔥' },
-    { id: 'brunssi', label: 'Brunssi', emoji: '🥐' },
+    { id: 'klassikot',    label: 'Klassikot',       emoji: '🎩' },
+    { id: 'ranskalaiset', label: 'Ranskalaiset',    emoji: '🥖' },
+    { id: 'boheemit',     label: 'Boheemit',        emoji: '📖' },
+    { id: 'erikois',      label: 'Erikoiskahvilat', emoji: '☕' },
+    { id: 'paahtimo',     label: 'Paahtimot',       emoji: '🔥' },
+    { id: 'brunssi',      label: 'Brunssi',         emoji: '🥐' },
   ],
   baarit: [
-    { id: 'all', label: 'Kaikki', emoji: '' },
-    { id: 'cocktail', label: 'Cocktail', emoji: '🍸' },
-    { id: 'olut', label: 'Olutbaarit', emoji: '🍺' },
-    { id: 'viini', label: 'Viinibaarit', emoji: '🍷' },
-    { id: 'urheilu', label: 'Sporttibaarit', emoji: '🏟' },
+    { id: 'cocktail', label: 'Cocktail',      emoji: '🍸' },
+    { id: 'olut',     label: 'Olutbaarit',    emoji: '🍺' },
+    { id: 'viini',    label: 'Viinibaarit',   emoji: '🍷' },
+    { id: 'urheilu',  label: 'Sporttibaarit', emoji: '🏟' },
   ],
   yokerhot: [
-    { id: 'all', label: 'Kaikki', emoji: '' },
-    { id: 'tekno', label: 'Tekno', emoji: '🎧' },
-    { id: 'pop', label: 'Pop & hitit', emoji: '🪩' },
-    { id: 'katto', label: 'Kattoklubit', emoji: '🌃' },
+    { id: 'klubi',   label: 'Clubit',      emoji: '🎉' },
+    { id: 'karaoke', label: 'Karaoke',     emoji: '🎤' },
+    { id: 'tekno',   label: 'Tekno',       emoji: '🎧' },
+    { id: 'katto',   label: 'Kattoklubit', emoji: '🌃' },
   ],
 }
 
-// Quick-sort pills shown below hero
-const QUICK_SORTS = [
+const QUICK_SORTS: { id: QuickSort; label: string }[] = [
   { id: 'default', label: 'Kaikki' },
   { id: 'open',    label: '🟢 Avoinna nyt' },
   { id: 'nearby',  label: '📍 Lähimmät' },
 ]
-
-type QuickSort = 'default' | 'open' | 'nearby'
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -139,8 +131,9 @@ function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean 
     if (sub === 'urheilu') return /sport|urheilu|hockey|futis|liiga/.test(text)
   }
   if (restType === 'yokerhot') {
+    if (sub === 'klubi') return /klubi|nightclub|yökerho|disco/.test(text)
+    if (sub === 'karaoke') return /karaoke/.test(text)
     if (sub === 'tekno') return /tekno|techno|industrial|electronic/.test(text)
-    if (sub === 'pop') return /pop|hits|karaoke|disco/.test(text)
     if (sub === 'katto') return /katto|roof|sky|terassi/.test(text)
   }
   return false
@@ -165,7 +158,6 @@ function HeroCard({ r, distance, onShowOnMap }: {
       )}
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.2) 55%,transparent 100%)' }} />
 
-      {/* Open badge */}
       {open !== undefined && (
         <div className="absolute top-4 right-4">
           <span className={`text-[11px] font-black px-3 py-1 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-white/20 text-white/60'}`}>
@@ -208,7 +200,7 @@ function HeroCard({ r, distance, onShowOnMap }: {
   )
 }
 
-// ── Restaurant row card (horizontal carousels) ────────────
+// ── Carousel row card ────────────────────────────────────
 
 function RestRowCard({ r, distance, onClick }: {
   r: Restaurant
@@ -248,7 +240,7 @@ function RestRowCard({ r, distance, onClick }: {
   )
 }
 
-// ── List card (vertical, for sub-category view) ───────────
+// ── List card ─────────────────────────────────────────────
 
 function RestListCard({ r, distance, onShowOnMap }: {
   r: Restaurant
@@ -302,6 +294,12 @@ function RestListCard({ r, distance, onShowOnMap }: {
             <span>{r.address}</span>
           </div>
         )}
+        {r.openingHours && (
+          <div className="flex items-center gap-1.5 text-white/25 text-xs">
+            <Clock size={10} className="shrink-0" />
+            <span className="truncate">{r.openingHours}</span>
+          </div>
+        )}
         <div className="flex items-center gap-3 pt-0.5 flex-wrap">
           {r.www && (
             <a href={/^https?:\/\//i.test(r.www) ? r.www : '#'} target="_blank" rel="noopener noreferrer"
@@ -336,48 +334,127 @@ function RestListCard({ r, distance, onShowOnMap }: {
   )
 }
 
-// ── Horizontal row section ─────────────────────────────────
+// ── Carousel row — expand in place ────────────────────────
 
-function RestRow({ title, items, distMap, onCardClick }: {
+function RestRow({ title, items, distMap, onCardClick, onShowOnMap }: {
   title: string
   items: Restaurant[]
   distMap: Map<string, number>
   onCardClick: (r: Restaurant) => void
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
   if (items.length === 0) return null
+  const hasMore = items.length > 10
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-black text-white text-[17px] tracking-tight" style={{ letterSpacing: '-0.02em' }}>{title}</h2>
-        <button className="text-[13px] font-bold" style={{ color: '#6b76ff' }}>Kaikki ›</button>
+        <h2 className="font-black text-white text-[17px] flex items-baseline gap-1.5" style={{ letterSpacing: '-0.02em' }}>
+          {title}
+          <span className="text-white/25 font-bold text-[13px]">· {items.length}</span>
+        </h2>
+        {hasMore && !expanded && (
+          <button onClick={() => setExpanded(true)} className="text-[12px] font-black shrink-0 transition-colors" style={{ color: '#a3abff' }}>
+            Katso kaikki {items.length} →
+          </button>
+        )}
+        {expanded && (
+          <button onClick={() => setExpanded(false)} className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
+            Näytä vähemmän ↑
+          </button>
+        )}
       </div>
-      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-        {items.slice(0, 10).map(r => (
-          <RestRowCard key={r.id} r={r} distance={distMap.get(r.id)} onClick={onCardClick} />
-        ))}
+      {!expanded ? (
+        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+          {items.slice(0, 10).map(r => (
+            <RestRowCard key={r.id} r={r} distance={distMap.get(r.id)} onClick={onCardClick} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map(r => (
+            <RestListCard key={r.id} r={r} distance={distMap.get(r.id)} onShowOnMap={onShowOnMap} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ── Sub-cat icon grid ─────────────────────────────────────
+
+function SubCatGrid({ restType, active, onSelect }: {
+  restType: RestType
+  active: string
+  onSelect: (id: string) => void
+}) {
+  return (
+    <section>
+      <h2 className="font-black text-white text-[17px] mb-4" style={{ letterSpacing: '-0.02em' }}>
+        Selaa tyypeittäin
+      </h2>
+      <div className="grid grid-cols-2 gap-2.5">
+        {SUB_CATS[restType].map(cat => {
+          const isActive = active === cat.id
+          return (
+            <button key={cat.id} onClick={() => onSelect(isActive ? 'all' : cat.id)}
+              className="flex items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all active:scale-[.97]"
+              style={isActive
+                ? { background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.4)' }
+                : { background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }
+              }>
+              <span className="text-[22px] leading-none flex-shrink-0">{cat.emoji}</span>
+              <span className="font-black text-[13px] leading-tight"
+                style={{ letterSpacing: '-0.01em', color: isActive ? '#a3abff' : 'rgba(255,255,255,.6)' }}>
+                {cat.label}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </section>
   )
 }
 
-// ── Tab bar (underline style) ─────────────────────────────
+// ── Type tab grid — 2×2 large cards ──────────────────────
 
-function UnderlineTabs<T extends string>({ tabs, active, onChange }: {
-  tabs: { id: T; label: string; emoji?: string }[]
-  active: T
-  onChange: (id: T) => void
-}) {
+function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestType) => void }) {
   return (
-    <div className="flex overflow-x-auto scrollbar-none -mx-4 px-4" style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-      {tabs.map(tab => (
-        <button key={tab.id} onClick={() => onChange(tab.id)}
-          className="shrink-0 flex items-center gap-1.5 px-4 py-3 text-[13px] font-black transition-all relative"
-          style={{ color: active === tab.id ? '#6b76ff' : 'rgba(255,255,255,.4)' }}>
-          {tab.emoji && <span>{tab.emoji}</span>}
-          {tab.label}
-          {active === tab.id && (
-            <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }} />
-          )}
+    <div className="grid grid-cols-2 gap-2.5">
+      {TYPE_TABS.map(tab => {
+        const isActive = active === tab.id
+        return (
+          <button key={tab.id} onClick={() => onChange(tab.id)}
+            className="flex items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all active:scale-[.97]"
+            style={isActive
+              ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 8px 24px -8px rgba(91,101,230,.5)' }
+              : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }
+            }>
+            <span className="text-[26px] leading-none flex-shrink-0">{tab.emoji}</span>
+            <span className="font-black text-[14px] leading-tight"
+              style={{ letterSpacing: '-0.01em', color: isActive ? '#fff' : 'rgba(255,255,255,.7)' }}>
+              {tab.label}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Quick sort pills ──────────────────────────────────────
+
+function QuickSortPills({ active, onSelect }: { active: QuickSort; onSelect: (id: QuickSort) => void }) {
+  return (
+    <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
+      {QUICK_SORTS.map(s => (
+        <button key={s.id} onClick={() => onSelect(s.id)}
+          className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+          style={active === s.id
+            ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
+            : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
+          }>
+          {s.label}
         </button>
       ))}
     </div>
@@ -389,8 +466,6 @@ function UnderlineTabs<T extends string>({ tabs, active, onChange }: {
 export default function RestaurantsView({ onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
-  const { t } = useLanguage()
-
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
   const [restType, setRestType] = useState<RestType>('ruokapaikat')
@@ -398,6 +473,7 @@ export default function RestaurantsView({ onShowOnMap }: {
   const [quickSort, setQuickSort] = useState<QuickSort>('default')
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [selectedRest, setSelectedRest] = useState<Restaurant | null>(null)
+  const [visibleCount, setVisibleCount] = useState(48)
 
   useEffect(() => {
     fetch('/api/restaurants')
@@ -407,10 +483,9 @@ export default function RestaurantsView({ onShowOnMap }: {
       .finally(() => setLoading(false))
   }, [])
 
-  // Reset sub-category when type changes
-  useEffect(() => { setSubCat('all') }, [restType])
+  useEffect(() => { setSubCat('all'); setQuickSort('default'); setVisibleCount(48) }, [restType])
+  useEffect(() => { setVisibleCount(48) }, [subCat, quickSort])
 
-  // Locate user for "Lähimmät"
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
@@ -419,6 +494,11 @@ export default function RestaurantsView({ onShowOnMap }: {
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
+
+  const handleQuickSort = useCallback((id: QuickSort) => {
+    if (id === 'nearby') { locateMe(); return }
+    setQuickSort(id)
+  }, [locateMe])
 
   const distMap = useMemo(() => {
     if (!userPos) return new Map<string, number>()
@@ -429,7 +509,6 @@ export default function RestaurantsView({ onShowOnMap }: {
     return m
   }, [userPos, restaurants])
 
-  // Base pool: restaurants for current type tab
   const typePool = useMemo(() => {
     const tab = TYPE_TABS.find(t => t.id === restType)!
     if (restType === 'yokerhot') {
@@ -441,13 +520,11 @@ export default function RestaurantsView({ onShowOnMap }: {
     return tab.dbType ? restaurants.filter(r => r.type === tab.dbType) : restaurants
   }, [restaurants, restType])
 
-  // Sub-category filtered pool
   const subPool = useMemo(() => {
     if (subCat === 'all') return typePool
     return typePool.filter(r => matchesSubCat(r, restType, subCat))
   }, [typePool, subCat, restType])
 
-  // Apply quick sort
   const sortedPool = useMemo(() => {
     let result = [...subPool]
     if (quickSort === 'open') {
@@ -458,63 +535,60 @@ export default function RestaurantsView({ onShowOnMap }: {
     return result
   }, [subPool, quickSort, userPos, distMap])
 
-  // Hero: first open + image, else first with image, else first
   const heroRest = useMemo(() => {
-    if (subCat !== 'all') return null
     return typePool.find(r => r.image && r.openingHours && isOpenNow(r.openingHours))
       ?? typePool.find(r => r.image)
       ?? typePool[0]
       ?? null
-  }, [typePool, subCat])
+  }, [typePool])
 
-  // Curated rows per type (homepage view)
   const rows = useMemo(() => {
-    if (subCat !== 'all') return []
     const base = typePool
-
-    if (restType === 'ruokapaikat') {
-      const featured = FEATURED_PICKS.map(p => p.name.toLowerCase())
-      return [
-        { title: '🔥 Suosituimmat juuri nyt',      items: base.filter(r => r.featured || r.michelinStars).slice(0, 10) },
-        { title: '🏆 Palkitut & Michelin',          items: base.filter(r => r.michelinStars || r.bibGourmand || r.featured) },
-        { title: '🇫🇮 Suomalaiset ravintolat',     items: base.filter(r => r.cuisineCategories.includes('nordisk')) },
-        { title: '🍣 Japanilainen',                  items: base.filter(r => r.cuisineCategories.includes('japanese')) },
-        { title: '🌱 Kasvisravintolat',              items: base.filter(r => r.cuisineCategories.includes('veggie')) },
-      ]
-    }
-    if (restType === 'kahvilat') {
-      return [
-        { title: '🎩 Arvostetut klassikot',          items: base.filter(r => matchesSubCat(r, 'kahvilat', 'klassikot')) },
-        { title: '🥖 Ranskalaistunnelmaa',            items: base.filter(r => matchesSubCat(r, 'kahvilat', 'ranskalaiset')) },
-        { title: '📖 Boheemi & rauhallinen',          items: base.filter(r => matchesSubCat(r, 'kahvilat', 'boheemit')) },
-        { title: '🔥 Paahtimot',                     items: base.filter(r => matchesSubCat(r, 'kahvilat', 'paahtimo')) },
-        { title: '🥐 Brunssi',                       items: base.filter(r => matchesSubCat(r, 'kahvilat', 'brunssi')) },
-      ]
-    }
-    if (restType === 'baarit') {
-      return [
-        { title: '🍸 Tyylikkäät cocktailbaarit',     items: base.filter(r => matchesSubCat(r, 'baarit', 'cocktail')) },
-        { title: '🍺 Laadukkaat olutravintolat',      items: base.filter(r => matchesSubCat(r, 'baarit', 'olut')) },
-        { title: '🍷 Viinibaarit',                   items: base.filter(r => matchesSubCat(r, 'baarit', 'viini')) },
-        { title: '🏟 Sporttibaarit',                  items: base.filter(r => matchesSubCat(r, 'baarit', 'urheilu')) },
-      ]
-    }
-    if (restType === 'yokerhot') {
-      return [
-        { title: '🎧 Tekno & elektroninen',           items: base.filter(r => matchesSubCat(r, 'yokerhot', 'tekno')) },
-        { title: '🪩 Pop & hitit',                   items: base.filter(r => matchesSubCat(r, 'yokerhot', 'pop')) },
-        { title: '🌃 Kattoklubit & terassit',         items: base.filter(r => matchesSubCat(r, 'yokerhot', 'katto')) },
-      ]
-    }
+    if (restType === 'ruokapaikat') return [
+      { title: '🏆 Kokit jotka palkittiin',     items: base.filter(r => r.michelinStars || r.bibGourmand || r.featured) },
+      { title: '🌏 Maailman maut Helsingissä ✦', items: base.filter(r => r.cuisineCategories.some(c => ['japanese','asian','indian','mexican','italian','mediterranean'].includes(c))) },
+      { title: '🇫🇮 Kotimainen keittiö',        items: base.filter(r => r.cuisineCategories.includes('nordisk')) },
+      { title: '🌱 Kasvisruokaa parhaimmillaan', items: base.filter(r => r.cuisineCategories.includes('veggie')) },
+    ]
+    if (restType === 'kahvilat') return [
+      { title: '🎩 Kaupungin legendat',          items: base.filter(r => matchesSubCat(r, 'kahvilat', 'klassikot')) },
+      { title: '☕ Kahviammattilaisten paahtimot', items: base.filter(r => matchesSubCat(r, 'kahvilat', 'paahtimo') || matchesSubCat(r, 'kahvilat', 'erikois')) },
+      { title: '🥐 Aamupala & brunssi',          items: base.filter(r => matchesSubCat(r, 'kahvilat', 'brunssi')) },
+      { title: '🥖 Pariisitunnelmaa',            items: base.filter(r => matchesSubCat(r, 'kahvilat', 'ranskalaiset')) },
+    ]
+    if (restType === 'baarit') return [
+      { title: '🍸 Illan paras drinkki ✦',       items: base.filter(r => matchesSubCat(r, 'baarit', 'cocktail')) },
+      { title: '🍺 Craft & hops',                items: base.filter(r => matchesSubCat(r, 'baarit', 'olut')) },
+      { title: '🍷 Viinituntuinen ilta',          items: base.filter(r => matchesSubCat(r, 'baarit', 'viini')) },
+      { title: '📺 Pelit & ottelu katsomossa',    items: base.filter(r => matchesSubCat(r, 'baarit', 'urheilu')) },
+    ]
+    if (restType === 'yokerhot') return [
+      { title: '🎉 Clubit',               items: base.filter(r => matchesSubCat(r, 'yokerhot', 'klubi')) },
+      { title: '🎤 Karaokebaaret',        items: base.filter(r => matchesSubCat(r, 'yokerhot', 'karaoke')) },
+      { title: '🎧 Tekno & underground',  items: base.filter(r => matchesSubCat(r, 'yokerhot', 'tekno')) },
+      { title: '🌃 Rooftops ✦',          items: base.filter(r => matchesSubCat(r, 'yokerhot', 'katto')) },
+    ]
     return []
-  }, [typePool, restType, subCat])
+  }, [typePool, restType])
 
-  const isHomepageView = subCat === 'all' && quickSort === 'default'
+  const isFilterActive = subCat !== 'all' || quickSort !== 'default'
+
+  const activeFilterLabel = useMemo(() => {
+    if (subCat !== 'all') {
+      const cat = SUB_CATS[restType].find(c => c.id === subCat)
+      return cat ? `${cat.emoji} ${cat.label}` : 'Suodatettu'
+    }
+    if (quickSort === 'open') return '🟢 Avoinna nyt'
+    if (quickSort === 'nearby') return '📍 Lähimmät'
+    return 'Suodatettu'
+  }, [subCat, quickSort, restType])
+
+  const clearFilter = useCallback(() => { setSubCat('all'); setQuickSort('default') }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
 
-      {/* ── Heading ── */}
+      {/* Heading */}
       <div>
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
         <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
@@ -522,21 +596,10 @@ export default function RestaurantsView({ onShowOnMap }: {
         </h1>
       </div>
 
-      {/* ── Type tabs (primary) ── */}
-      <UnderlineTabs
-        tabs={TYPE_TABS.map(t => ({ id: t.id, label: t.label, emoji: t.emoji }))}
-        active={restType}
-        onChange={(id) => setRestType(id)}
-      />
+      {/* Type tabs — always visible */}
+      <TypeTabs active={restType} onChange={setRestType} />
 
-      {/* ── Sub-category tabs (secondary) ── */}
-      <UnderlineTabs
-        tabs={SUB_CATS[restType]}
-        active={subCat}
-        onChange={(id) => { setSubCat(id); setQuickSort('default') }}
-      />
-
-      {/* ── Loading ── */}
+      {/* Loading skeletons */}
       {loading && (
         <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -545,90 +608,90 @@ export default function RestaurantsView({ onShowOnMap }: {
         </div>
       )}
 
-      {/* ── Homepage view (Kaikki + default sort) ── */}
-      {!loading && isHomepageView && (
+      {!loading && (
         <>
-          {/* Hero */}
-          {heroRest && (
-            <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
-          )}
-
-          {/* Quick sort pills */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-            {QUICK_SORTS.map(s => {
-              const isActive = quickSort === s.id
-              return (
-                <button key={s.id}
-                  onClick={() => { if (s.id === 'nearby') { locateMe() } else { setQuickSort(s.id as QuickSort) } }}
-                  className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-                  style={isActive
-                    ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
-                    : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
-                  }>
-                  {s.label}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Curated rows */}
-          {rows.filter(r => r.items.length > 0).map(row => (
-            <RestRow key={row.title} title={row.title} items={row.items} distMap={distMap} onCardClick={setSelectedRest} />
-          ))}
-        </>
-      )}
-
-      {/* ── List view (specific sub-cat or quick sort active) ── */}
-      {!loading && !isHomepageView && (
-        <>
-          {/* Quick sort pills */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-            {QUICK_SORTS.map(s => {
-              const isActive = quickSort === s.id
-              return (
-                <button key={s.id}
-                  onClick={() => { if (s.id === 'nearby') { locateMe() } else { setQuickSort(s.id as QuickSort) } }}
-                  className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-                  style={isActive
-                    ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
-                    : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
-                  }>
-                  {s.label}
-                </button>
-              )
-            })}
-            {(subCat !== 'all' || quickSort !== 'default') && (
-              <button onClick={() => { setSubCat('all'); setQuickSort('default') }}
-                className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-full text-sm font-bold text-white/30"
-                style={{ background: 'rgba(255,255,255,.04)' }}>
-                <X size={12} /> Tyhjennä
-              </button>
-            )}
-          </div>
-
-          <p className="text-white/20 text-xs font-bold">{sortedPool.length} paikkaa</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedPool.slice(0, 48).map(r => (
-              <RestListCard key={r.id} r={r} distance={distMap.get(r.id)} onShowOnMap={onShowOnMap} />
-            ))}
-          </div>
-
-          {sortedPool.length === 0 && (
-            <div className="flex flex-col items-center py-16 text-center gap-3">
-              <span className="text-5xl">🍽</span>
-              <p className="text-white/40 font-bold">Ei tuloksia tällä suodatuksella</p>
-              <button onClick={() => { setSubCat('all'); setQuickSort('default') }}
-                className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
-                style={{ borderColor: 'rgba(107,118,255,.3)' }}>
-                Näytä kaikki
+          {/* Active filter bar */}
+          {isFilterActive && (
+            <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl"
+              style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>{activeFilterLabel}</span>
+                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {sortedPool.length} paikkaa</span>
+              </div>
+              <button onClick={clearFilter}
+                className="text-[12px] font-black flex-shrink-0 ml-3 px-3 py-1 rounded-full transition-all"
+                style={{ color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}>
+                Poistu hausta ×
               </button>
             </div>
           )}
+
+          {/* Homepage view: hero + quick sorts + carousels + icon grid */}
+          {!isFilterActive && (
+            <>
+              {heroRest && (
+                <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
+              )}
+
+              <QuickSortPills active={quickSort} onSelect={handleQuickSort} />
+
+              {rows.filter(r => r.items.length > 0).map(row => (
+                <RestRow
+                  key={row.title}
+                  title={row.title}
+                  items={row.items}
+                  distMap={distMap}
+                  onCardClick={setSelectedRest}
+                  onShowOnMap={onShowOnMap}
+                />
+              ))}
+
+              <SubCatGrid
+                restType={restType}
+                active={subCat}
+                onSelect={(id) => { setSubCat(id); setQuickSort('default') }}
+              />
+            </>
+          )}
+
+          {/* Filter active: list view */}
+          {isFilterActive && (
+            <>
+              <QuickSortPills active={quickSort} onSelect={handleQuickSort} />
+
+              {sortedPool.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {sortedPool.slice(0, visibleCount).map(r => (
+                      <RestListCard key={r.id} r={r} distance={distMap.get(r.id)} onShowOnMap={onShowOnMap} />
+                    ))}
+                  </div>
+                  {visibleCount < sortedPool.length && (
+                    <button
+                      onClick={() => setVisibleCount(v => v + 24)}
+                      className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
+                      style={{ background: 'rgba(255,255,255,.05)' }}>
+                      Näytä lisää ({sortedPool.length - visibleCount} paikkaa)
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center py-16 text-center gap-3">
+                  <span className="text-5xl">🍽</span>
+                  <p className="text-white/40 font-bold">Ei tuloksia tällä suodatuksella</p>
+                  <button onClick={clearFilter}
+                    className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
+                    style={{ borderColor: 'rgba(107,118,255,.3)' }}>
+                    Näytä kaikki
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </>
       )}
 
-      {/* ── Detail panel for restaurant (simple) ── */}
+      {/* Detail modal */}
       {selectedRest && (
         <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)' }}
           onClick={() => setSelectedRest(null)}>
@@ -643,8 +706,35 @@ export default function RestaurantsView({ onShowOnMap }: {
             )}
             <div className="p-5 space-y-3">
               <div className="flex items-start justify-between">
-                <h2 className="font-black text-white text-xl leading-tight">{selectedRest.name}</h2>
-                <button onClick={() => setSelectedRest(null)} className="p-2 rounded-full text-white/40 hover:text-white"
+                <div className="min-w-0">
+                  <h2 className="font-black text-white text-xl leading-tight">{selectedRest.name}</h2>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {(() => {
+                      const open = selectedRest.openingHours ? isOpenNow(selectedRest.openingHours) : undefined
+                      return open !== undefined ? (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
+                          {open ? '● Avoinna' : '○ Suljettu'}
+                        </span>
+                      ) : null
+                    })()}
+                    {selectedRest.priceRange && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/45">
+                        {PRICE_LABELS[selectedRest.priceRange]}
+                      </span>
+                    )}
+                    {selectedRest.michelinStars && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/15 text-red-300">
+                        {'⭐'.repeat(selectedRest.michelinStars)} Michelin
+                      </span>
+                    )}
+                    {selectedRest.bibGourmand && !selectedRest.michelinStars && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300">
+                        😊 Bib Gourmand
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button onClick={() => setSelectedRest(null)} className="p-2 rounded-full text-white/40 hover:text-white shrink-0 ml-2"
                   style={{ background: 'rgba(255,255,255,.08)' }}>
                   <X size={16} />
                 </button>
@@ -653,6 +743,11 @@ export default function RestaurantsView({ onShowOnMap }: {
               {selectedRest.address && (
                 <div className="flex items-center gap-2 text-white/30 text-sm">
                   <MapPin size={13} /> {selectedRest.address}
+                </div>
+              )}
+              {selectedRest.openingHours && (
+                <div className="flex items-center gap-2 text-white/30 text-sm">
+                  <Clock size={13} /> {selectedRest.openingHours}
                 </div>
               )}
               <div className="flex gap-3 pt-1 flex-wrap">
