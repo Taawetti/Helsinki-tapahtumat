@@ -39,12 +39,11 @@ const HELMET_IDS_OR_NAMES = new Set([
   'kiasma', 'ham helsinki', 'linnanmäki', 'korkeasaari', 'oodi',
 ])
 
-type QuickSort = 'default' | 'open' | 'yllatys' | 'nearby'
+type QuickSort = 'default' | 'open' | 'nearby'
 
 const QUICK_SORTS: { id: QuickSort; label: string }[] = [
   { id: 'default', label: 'Kaikki' },
   { id: 'open',    label: '🟢 Avoinna nyt' },
-  { id: 'yllatys', label: '✨ Ylläty' },
   { id: 'nearby',  label: '📍 Lähimmät' },
 ]
 
@@ -501,21 +500,23 @@ export default function ActivitiesView({ onShowOnMap }: {
   }, [activities, catFilter])
 
   const sortedPool = useMemo(() => {
-    const seed = shuffleSeed.current
     let result = [...catPool]
     if (quickSort === 'open') {
       result = result.filter(a => isOpenNow(a.openingHours) === true)
-    } else if (quickSort === 'yllatys') {
-      result = result.sort((a, b) => {
-        const ha = (a.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) + seed) % 9973
-        const hb = (b.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) + seed) % 9973
-        return ha - hb
-      })
     } else if (quickSort === 'nearby' && userPos && distMap.size > 0) {
       result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     }
     return result
   }, [catPool, quickSort, userPos, distMap])
+
+  const surpriseItems = useMemo(() => {
+    const seed = shuffleSeed.current
+    return [...activities].sort((a, b) => {
+      const ha = (a.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) + seed) % 9973
+      const hb = (b.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) + seed) % 9973
+      return ha - hb
+    })
+  }, [activities])
 
   // Hero rotates by day of week across different categories
   const heroActivity = useMemo(() => {
@@ -531,14 +532,13 @@ export default function ActivitiesView({ onShowOnMap }: {
   const rows = useMemo(() => {
     if (catFilter !== 'all') return []
     return [
+      { title: '✨ Ylläty — kokeile jotain uutta',          items: surpriseItems },
       { title: '❤️ Tänne kannattaa mennä kerran elämässä', items: activities.filter(a => HELMET_IDS_OR_NAMES.has(a.name.toLowerCase())) },
       { title: '🆓 Ilmaiseksi — ei maksa mitään',          items: activities.filter(a => a.fee === false) },
-      { title: '🧖 Löylyt ✦',                               items: activities.filter(a => a.category === 'sauna') },
-      { title: '🌄 Kaupunki ylhäältä katsottuna',          items: activities.filter(a => a.category === 'nakopaikka') },
       { title: '🏛 Sadepäivän pelastajat',                  items: activities.filter(a => INDOOR_CATS.includes(a.category)) },
       { title: '🟢 Ovet auki juuri nyt',                   items: activities.filter(a => isOpenNow(a.openingHours) === true) },
     ]
-  }, [activities, catFilter])
+  }, [activities, catFilter, surpriseItems])
 
   const isFilterActive = catFilter !== 'all' || quickSort !== 'default'
 
@@ -548,7 +548,6 @@ export default function ActivitiesView({ onShowOnMap }: {
       return `${meta.emoji} ${meta.label}`
     }
     if (quickSort === 'open') return '🟢 Avoinna nyt'
-    if (quickSort === 'yllatys') return '✨ Ylläty'
     if (quickSort === 'nearby') return '📍 Lähimmät'
     return 'Suodatettu'
   }, [catFilter, quickSort])
