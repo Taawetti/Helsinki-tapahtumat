@@ -85,17 +85,12 @@ function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void
 }
 
 // ── Carousel row ─────────────────────────────────────────
-function CarouselRow({ title, events, onClick, onSeeAll, seeAllLabel }: { title: string; events: Event[]; onClick: (e: Event) => void; onSeeAll?: () => void; seeAllLabel?: string }) {
+function CarouselRow({ title, events, onClick }: { title: string; events: Event[]; onClick: (e: Event) => void }) {
   if (events.length === 0) return null
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-black text-white text-[17px] tracking-tight" style={{ letterSpacing: '-0.02em' }}>{title}</h2>
-        {onSeeAll && (
-          <button onClick={onSeeAll} className="text-[13px] font-bold transition-opacity hover:opacity-70 active:opacity-50" style={{ color: '#6b76ff' }}>
-            {seeAllLabel ?? 'Kaikki ›'}
-          </button>
-        )}
       </div>
       <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
         {events.slice(0, 10).map(e => <RowCard key={e.id} event={e} onClick={onClick} />)}
@@ -675,17 +670,9 @@ export default function Home() {
           )}
 
           {/* ── Carousel rows ── */}
-          {!loading && carousels.map(row => {
-            const seeAllHandlers: Record<string, () => void> = {
-              keikka:   () => { setActiveVibes(['keikka']);  window.scrollTo({ top: 0, behavior: 'smooth' }) },
-              urheilu:  () => { setActiveVibes(['urheilu']); window.scrollTo({ top: 0, behavior: 'smooth' }) },
-              ilmainen: () => { setPriceFilter('free');      window.scrollTo({ top: 0, behavior: 'smooth' }) },
-              pian:     () => { setDateFilter('tonight'); setCustomDate(''); setCustomDateEnd(''); window.scrollTo({ top: 0, behavior: 'smooth' }) },
-            }
-            return (
-              <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent} onSeeAll={seeAllHandlers[row.id]} />
-            )
-          })}
+          {!loading && carousels.map(row => (
+            <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent} />
+          ))}
 
           {/* ── Kaikki tapahtumat -grid (jos vibe/kategoria valittu tai ei karusellirivejä) ── */}
           {!loading && (activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
