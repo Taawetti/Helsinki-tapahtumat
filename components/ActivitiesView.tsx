@@ -579,7 +579,7 @@ export default function ActivitiesView({ onShowOnMap }: {
       <div>
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
         <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
-          Tekemistä
+          Aktiviteetit
         </h1>
       </div>
 

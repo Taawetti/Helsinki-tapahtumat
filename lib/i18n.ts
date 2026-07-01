@@ -7,7 +7,7 @@ const t = {
     'nav.idea':        'Mitä teen?',
     'nav.map':         'Kartta',
     'nav.restaurants': 'Ravintolat',
-    'nav.activities':  'Tekemistä',
+    'nav.activities':  'Aktiviteetit',
     'nav.favorites':   'Suosikit',
 
     // ── Common labels ────────────────────────────────────────
@@ -81,7 +81,7 @@ const t = {
     // ── Map ──────────────────────────────────────────────────
     'map.layer_events':      '📅 Tapahtumat',
     'map.layer_restaurants': '🍽 Ravintolat',
-    'map.layer_activities':  '🧖 Tekemistä',
+    'map.layer_activities':  '🧖 Aktiviteetit',
     'map.you_are_here':      '📍 Olet tässä',
     'map.loading_rests':     'Haetaan ravintoloita…',
     'map.loading_acts':      'Haetaan kohteita…',
@@ -169,7 +169,7 @@ const t = {
     'rest.award.stars2':          '2 tähteä',
 
     // ── Activities ───────────────────────────────────────────
-    'activities.heading':        'Tekemistä',
+    'activities.heading':        'Aktiviteetit',
     'activities.subtitle':       'Nähtävyydet, saunat, museot & luonto',
     'activities.what_looking':   'Mitä haet tänään?',
     'activities.top_picks':      '✦ Parhaat kohteet',
@@ -223,7 +223,7 @@ const t = {
     'idea.filter_all':   '🌟 Kaikki',
     'idea.filter_event': '📅 Tapahtumat',
     'idea.filter_rest':  '🍽 Ravintolat',
-    'idea.filter_act':   '🧖 Tekemistä',
+    'idea.filter_act':   '🧖 Aktiviteetit',
     'idea.open_now':     'Avoinna nyt',
     'idea.loading':      'Ladataan ideoita…',
     'idea.today_at':     'Tänään klo',

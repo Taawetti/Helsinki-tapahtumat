@@ -31,7 +31,7 @@ const HELSINKI_CENTER: [number, number] = [60.1699, 24.9384]
 const LAYER_META = [
   { key: 'events'      as const, label: '🎟 Tapahtumat', bg: 'linear-gradient(150deg,#6b76ff,#5059e6)' },
   { key: 'restaurants' as const, label: '🍽 Ravintolat',  bg: 'linear-gradient(150deg,#2563eb,#5f96ff)' },
-  { key: 'activities'  as const, label: '🧖 Tekemistä',   bg: 'linear-gradient(150deg,#10b981,#5fd9a6)' },
+  { key: 'activities'  as const, label: '🧖 Aktiviteetit', bg: 'linear-gradient(150deg,#10b981,#5fd9a6)' },
 ]
 
 // ── Color helpers ─────────────────────────────────────────
