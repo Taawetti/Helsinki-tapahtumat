@@ -115,10 +115,42 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('festivals')
   const [refreshing, setRefreshing] = useState(false)
   const [refreshResult, setRefreshResult] = useState('')
+  const [enriching, setEnriching] = useState(false)
+  const [enrichResult, setEnrichResult] = useState('')
+  const enrichStopRef = useRef(false)
 
   async function handleLogout() {
     await fetch('/api/admin/auth', { method: 'DELETE' })
     router.push('/admin/login')
+  }
+
+  async function handleEnrichRestaurants() {
+    if (enriching) { enrichStopRef.current = true; return }
+    setEnriching(true)
+    enrichStopRef.current = false
+    setEnrichResult('Aloitetaan...')
+    let totalProcessed = 0
+    let totalEnriched = 0
+
+    while (!enrichStopRef.current) {
+      const res = await fetch('/api/admin/enrich-restaurant-cuisines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 100 }),
+      })
+      const data = await res.json()
+      if (data.error) { setEnrichResult('Virhe: ' + data.error); break }
+
+      totalProcessed += data.processed
+      totalEnriched += data.enriched
+      setEnrichResult(`Käsitelty ${totalProcessed} • Kategoria löytyi ${totalEnriched} • Jäljellä ${data.remaining}`)
+
+      if (data.remaining === 0 || data.processed === 0) {
+        setEnrichResult(`✓ Valmis — käsitelty ${totalProcessed}, kategoria ${totalEnriched}:lle`)
+        break
+      }
+    }
+    setEnriching(false)
   }
 
   async function handleRefreshRatings() {
@@ -142,8 +174,15 @@ export default function AdminPage() {
           <div className="font-bold text-lg">Helsinki Tapahtumat</div>
           <div className="text-gray-400 text-sm">Admin</div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap justify-end">
+          {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
           {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
+          <button
+            onClick={handleEnrichRestaurants}
+            className={`text-sm transition-colors ${enriching ? 'text-red-400 hover:text-red-300' : 'text-orange-400 hover:text-orange-300'}`}
+          >
+            {enriching ? '⏹ Pysäytä' : '🍽 Rikasta ravintolat'}
+          </button>
           <button
             onClick={handleRefreshRatings}
             disabled={refreshing}
