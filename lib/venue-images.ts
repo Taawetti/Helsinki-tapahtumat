@@ -32,14 +32,15 @@ const VENUE_WIKI: [string, string][] = [
   ['olympiastadion',           'Olympic_Stadium_(Helsinki)'],
   ['olympic stadium',          'Olympic_Stadium_(Helsinki)'],
   ['hartwall',                 'Hartwall_Arena'],
+  ['veikkaus arena',           'Hartwall_Arena'],
   ['bolt arena',               'Bolt_Arena_(Helsinki)'],
   ['markku.fi areena',         'Metro_Areena'],
   ['espoo metro areena',       'Metro_Areena'],
 
   // Live music
   ['tavastia',                 'Tavastia_Club'],
-  ['kaapelitehdas',            'Cable_Factory,_Helsinki'],
-  ['cable factory',            'Cable_Factory,_Helsinki'],
+  ['kaapelitehdas',            'Kaapelitehdas'],
+  ['cable factory',            'Kaapelitehdas'],
   ['korjaamo',                 'Korjaamo'],
   ['kulttuuritalo',            'Helsinki_Workers%27_Hall'],
   ['on the rocks',             'On_the_Rocks_(nightclub)'],
@@ -54,7 +55,7 @@ const VENUE_WIKI: [string, string][] = [
   ['music centre',             'Helsinki_Music_Centre'],
   ['kaupunginteatteri',        'Helsinki_City_Theatre'],
   ['svenska teatern',          'Swedish_Theatre,_Helsinki'],
-  ['aleksanterin teatteri',    'Alexander_Theatre_(Helsinki)'],
+  ['aleksanterin teatteri',    'Aleksanterin_teatteri'],
   ['finlandia',                'Finlandia_Hall'],
 
   // Museums & art
@@ -75,7 +76,7 @@ const VENUE_WIKI: [string, string][] = [
   ['linnanmäki',               'Linnanmäki'],
   ['korkeasaari',              'Korkeasaari'],
   ['suomenlinna',              'Suomenlinna'],
-  ['heureka',                  'Heureka_(science_centre)'],
+  ['heureka',                  'Heureka_(tiedekeskus)'],
   ['messukeskus',              'Helsinki_Exhibition_%26_Convention_Centre'],
   ['seurasaari',               'Seurasaari'],
   ['pihlajasaari',             'Pihlajasaari'],
@@ -87,7 +88,7 @@ const VENUE_WIKI: [string, string][] = [
   ['allas sea pool',           'Allas_Sea_Pool'],
   ['superterassi',             'Hotel_Torni'],
   ['hotel torni',              'Hotel_Torni'],
-  ['sea life',                 'SEA_LIFE_Helsinki'],
+  ['sea life',                 'Sea_Life_Helsinki'],
   ['töölönlahti',              'Töölönlahti'],
   ['temppeliaukio',            'Temppeliaukion_kirkko'],
   ['tuomiokirkko',             'Helsinki_Cathedral'],
@@ -177,7 +178,7 @@ export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-im
 const FI_TO_CAT: Record<string, string> = {
   'musiikki': 'music', 'konsertti': 'music', 'jazz': 'music', 'rock': 'music',
   'pop': 'music', 'keikka': 'music',
-  'teatteri': 'theatre', 'sirkus': 'theatre', 'näyttely': 'theatre',
+  'teatteri': 'theatre', 'sirkus': 'theatre', 'näyttely': 'art',
   'tanssi': 'classical', 'ooppera': 'classical', 'klassinen': 'classical',
   'baleetti': 'classical',
   'stand-up': 'standup', 'komedia': 'standup', 'huumori': 'standup',

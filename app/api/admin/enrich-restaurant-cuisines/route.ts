@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchOSMCached } from '@/app/api/restaurants/route'
+import { createHmac } from 'crypto'
 
 // ── Auth ─────────────────────────────────────────────────────
 
 function checkAuth(req: NextRequest) {
   const session = req.cookies.get('admin_session')?.value
   const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
+    ? createHmac('sha256', process.env.ADMIN_PASSWORD).update('admin-session').digest('hex')
     : null
   return expected && session === expected
 }
@@ -138,9 +139,9 @@ export async function POST(req: NextRequest) {
         review_count: reviewCount,
         last_updated: new Date().toISOString(),
       }
-      if (rest.cuisineCategories.length === 0) {
-        upsertData.cuisine_categories = cuisineCats.length > 0 ? cuisineCats : []
-      }
+      upsertData.cuisine_categories = rest.cuisineCategories.length > 0
+        ? rest.cuisineCategories
+        : cuisineCats.length > 0 ? cuisineCats : []
       await supabaseAdmin.from('venue_ratings').upsert(upsertData, { onConflict: 'venue_key' })
     }
 
@@ -154,7 +155,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Rate limit — DataForSEO allows ~1 req/s on basic plan
-    await new Promise(r => setTimeout(r, 250))
+    await new Promise(r => setTimeout(r, 1100))
   }
 
   return NextResponse.json({

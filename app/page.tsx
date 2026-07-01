@@ -706,7 +706,7 @@ export default function Home() {
                     <span className="px-4 py-2 rounded-full text-white text-[13px] font-black bg-emerald-500">Ilmainen →</span>
                   ) : null}
                   <span className="text-white/50 text-[13px] font-bold">
-                    Tänään {new Date(heroEvent.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(heroEvent.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long' }).replace(/^./, c => c.toUpperCase())} {new Date(heroEvent.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>

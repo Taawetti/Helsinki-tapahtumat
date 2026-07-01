@@ -180,7 +180,7 @@ function isLateNight(hours: string): boolean {
     const m = part.trim().match(/^[\w,\-]+\s+\d{1,2}:\d{2}-(\d{1,2}):\d{2}$/)
     if (m) {
       const h = parseInt(m[1])
-      if (h < 6 || h >= 23) return true
+      if (h < 6) return true
     }
   }
   return false
@@ -208,11 +208,16 @@ function isOpenNow(hours: string): boolean | undefined {
       const m = part.trim().match(/^([\w-]+(?:,[\w-]+)*)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
       if (!m) continue
       const days = m[1].split(',').flatMap(expandRange)
-      if (!days.includes(dayIdx)) continue
       const [fh, fm] = m[2].split(':').map(Number)
       const [th, tm] = m[3].split(':').map(Number)
       const from = fh * 60 + fm, to = th * 60 + tm
-      if (cur >= from && cur <= (to < from ? to + 1440 : to)) return true
+      if (to < from) {
+        const yesterday = (dayIdx + 6) % 7
+        if (days.includes(dayIdx) && cur >= from) return true
+        if (days.includes(yesterday) && cur <= to) return true
+      } else {
+        if (days.includes(dayIdx) && cur >= from && cur <= to) return true
+      }
     }
     return false
   } catch { return undefined }
@@ -243,7 +248,7 @@ function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean 
     if (sub === 'klubi') return /klubi|nightclub|yökerho|disco/.test(text)
     if (sub === 'karaoke') return /karaoke/.test(text)
     if (sub === 'tekno') return /tekno|techno|industrial|electronic/.test(text)
-    if (sub === 'katto') return /katto|roof|sky|terassi/.test(text)
+    if (sub === 'katto') return /katto|roof|sky/.test(text)
   }
   return false
 }
@@ -285,7 +290,7 @@ function HeroCard({ r, distance, onShowOnMap }: {
         <h2 className="font-black text-white text-2xl leading-tight mb-3" style={{ letterSpacing: '-0.02em' }}>{r.name}</h2>
         <div className="flex items-center gap-3 flex-wrap">
           {r.www ? (
-            <a href={/^https?:\/\//i.test(r.www) ? r.www : '#'} target="_blank" rel="noopener noreferrer"
+            <a href={/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www} target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 rounded-full text-white text-[13px] font-black"
               style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
               {ctaLabel}
@@ -444,7 +449,7 @@ function RestListCard({ r, distance, onShowOnMap }: {
         )}
         <div className="flex items-center gap-3 pt-0.5 flex-wrap">
           {r.www && (
-            <a href={/^https?:\/\//i.test(r.www) ? r.www : '#'} target="_blank" rel="noopener noreferrer"
+            <a href={/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold hover:opacity-80 transition-opacity"
               style={{ color: '#a3abff' }}>
               <Globe size={10} /> Nettisivu
@@ -664,7 +669,7 @@ export default function RestaurantsView({ onShowOnMap }: {
     if (restType === 'yokerhot') {
       return restaurants.filter(r => {
         const text = `${r.name} ${r.description}`.toLowerCase()
-        return /yökerho|nightclub|klubi|disco|dj/.test(text) || r.type === 'baari'
+        return /yökerho|nightclub|klubi|disco|dj/.test(text)
       })
     }
     return tab.dbType ? restaurants.filter(r => r.type === tab.dbType) : restaurants
@@ -908,7 +913,7 @@ export default function RestaurantsView({ onShowOnMap }: {
               )}
               <div className="flex gap-3 pt-1 flex-wrap">
                 {selectedRest.www && (
-                  <a href={/^https?:\/\//i.test(selectedRest.www) ? selectedRest.www : '#'} target="_blank" rel="noopener noreferrer"
+                  <a href={/^https?:\/\//i.test(selectedRest.www) ? selectedRest.www : 'https://' + selectedRest.www} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
                     style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                     <Globe size={13} /> Nettisivu

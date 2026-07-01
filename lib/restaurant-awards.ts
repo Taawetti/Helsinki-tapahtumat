@@ -26,7 +26,6 @@ export const BIB_GOURMAND = new Set<string>([
 // Michelin Green Star — sustainability leaders
 export const GREEN_MICHELIN = new Set<string>([
   'Grön',
-  'Nolla',
 ])
 
 // ── National awards ───────────────────────────────────────

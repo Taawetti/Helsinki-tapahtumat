@@ -29,7 +29,7 @@ export function getDateRange(filter: DateFilter, customDate?: string, customDate
 
     case 'weekend': {
       const day = now.getDay()
-      const daysToSat = day === 6 ? 0 : (6 - day)
+      const daysToSat = day === 0 ? -1 : day === 6 ? 0 : (6 - day)
       const sat = new Date(now)
       sat.setDate(now.getDate() + daysToSat)
       const sun = new Date(sat)

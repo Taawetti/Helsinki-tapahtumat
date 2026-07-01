@@ -388,7 +388,7 @@ async function scrapeKaiku(): Promise<ScrapedEvent[]> {
     if (!sdMatch) continue
     const utcDate = new Date(sdMatch[1].trim())
     if (isNaN(utcDate.getTime())) continue
-    const dateStr = new Date(utcDate.getTime() + 3 * 3600000).toISOString().slice(0, 10)
+    const dateStr = new Date(utcDate.toLocaleString('sv-SE', { timeZone: 'Europe/Helsinki' })).toISOString().slice(0, 10)
     if (dateStr < todayStr) continue
 
     // Otsikko: itemprop="name"
@@ -504,7 +504,7 @@ async function scrapeStoryville(): Promise<ScrapedEvent[]> {
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -34,6 +34,7 @@ export const metadata: Metadata = {
     locale: 'fi_FI',
     siteName: 'Mitä tänään',
     url: BASE,
+    images: [{ url: '/api/og', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: BASE,
-    languages: { 'fi-FI': BASE },
+    languages: { 'fi-FI': BASE, 'en': `${BASE}/en` },
   },
 }
 

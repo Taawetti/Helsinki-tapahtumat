@@ -23,7 +23,7 @@ const CATEGORY_META: Record<ActivityCategory, { label: string; emoji: string; gr
 
 // Categories shown in the icon grid (ordered by summer relevance)
 const GRID_CATS: ActivityCategory[] = [
-  'sauna', 'nakopaikka', 'uimaranta', 'puisto',
+  'sauna', 'nakopaikka', 'nahtavyys', 'uimaranta', 'puisto',
   'museo', 'galleria', 'markkina', 'urheilu', 'muu',
 ]
 
@@ -90,11 +90,16 @@ function isOpenNow(hours?: string): boolean | undefined {
       const m = part.trim().match(/^([\w-]+(?:,[\w-]+)*)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
       if (!m) continue
       const days = m[1].split(',').flatMap(expandRange)
-      if (!days.includes(dayIdx)) continue
       const [fh, fm] = m[2].split(':').map(Number)
       const [th, tm] = m[3].split(':').map(Number)
       const from = fh * 60 + fm, to = th * 60 + tm
-      if (cur >= from && cur <= (to < from ? to + 1440 : to)) return true
+      if (to < from) {
+        const yesterday = (dayIdx + 6) % 7
+        if (days.includes(dayIdx) && cur >= from) return true
+        if (days.includes(yesterday) && cur <= to) return true
+      } else {
+        if (days.includes(dayIdx) && cur >= from && cur <= to) return true
+      }
     }
     return false
   } catch { return undefined }

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { createHmac } from 'crypto'
 
 function checkAuth(req: NextRequest) {
   const session = req.cookies.get('admin_session')?.value
   const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
+    ? createHmac('sha256', process.env.ADMIN_PASSWORD).update('admin-session').digest('hex')
     : null
   return expected && session === expected
 }
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Small delay to avoid rate limiting
-    await new Promise(r => setTimeout(r, 200))
+    await new Promise(r => setTimeout(r, 1100))
   }
 
   return NextResponse.json({ updated: results.length, results })

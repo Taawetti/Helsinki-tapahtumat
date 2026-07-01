@@ -25,6 +25,7 @@ export interface DbVenueRating {
   price_level: string | null
   description: string | null
   last_updated: string
+  cuisine_categories: string[] | null
 }
 
 export interface DbRecurringEvent {

@@ -12,12 +12,13 @@ function getBaseUrl(): string {
 // Discovers new Helsinki events via SERP + seed crawling, auto-imports complete ones.
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const baseUrl = getBaseUrl()
-  const sessionValue = Buffer.from(process.env.ADMIN_PASSWORD ?? '').toString('base64')
+  const { createHmac } = await import('crypto')
+  const sessionValue = createHmac('sha256', process.env.ADMIN_PASSWORD ?? '').update('admin-session').digest('hex')
   const cookieHeader = `admin_session=${sessionValue}`
 
   try {

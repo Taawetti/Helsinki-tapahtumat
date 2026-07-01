@@ -178,8 +178,9 @@ export async function GET(req: NextRequest) {
     // Normalize title for dedup: strip ticket tiers, years, punctuation variation
     function dedupKey(title: string, date: string): string {
       const base = title
-        .replace(/\s*[\|–\-]\s*(premium|legazy|standard|vip|gold|silver|early|late|general|suite|seat|ticket|standing|seated|presale|fan\s*club)[\w\s]*/gi, '')
+        .replace(/\s*[\|–\-]\s*(premium|legacy|standard|vip|gold|silver|early|late|general|suite|seat|ticket|standing|seated|presale|fan\s*club)[\w\s]*/gi, '')
         .replace(/\b20\d{2}\b/g, '')        // strip years
+        .replace(/\s*\(päivä\s*\d+\/\d+\)/gi, '') // strip festival day suffix
         .replace(/[^\wäöåÄÖÅ\s]/g, ' ')    // punct → space
         .replace(/\s+/g, ' ')
         .trim()
@@ -214,6 +215,10 @@ export async function GET(req: NextRequest) {
       const d = e.startTime.slice(0, 10)
       return d >= start && d <= end
     })
+
+    if (startAfter) {
+      events = events.filter((e: Event) => e.startTime >= startAfter)
+    }
 
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
