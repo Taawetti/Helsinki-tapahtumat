@@ -188,8 +188,10 @@ export async function GET(req: NextRequest) {
       return `${base}|${date}`
     }
 
-    // Merge all external sources — deduplicate by normalized title+date
-    const seen = new Set(events.map((e) => dedupKey(e.title, e.startTime.slice(0, 10))))
+    // Merge all external sources — deduplicate by normalized title+date.
+    // When a duplicate is found, upgrade the existing event with coordinates
+    // from the incoming version (e.g. recurring has coords, Linked Events doesn't).
+    const seen = new Map(events.map((e, i) => [dedupKey(e.title, e.startTime.slice(0, 10)), i]))
 
     for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes, recurringRes, pubivisatRes, stadissaRes, myhelsinkiRes, openingsRes, allasRes, lippuRes, scrapedRes]) {
       if (res.status === 'fulfilled' && res.value && res.value !== null) {
@@ -198,8 +200,15 @@ export async function GET(req: NextRequest) {
         const incoming: Event[] = data.events ?? []
         const unique = incoming.filter((e) => {
           const key = dedupKey(e.title, e.startTime.slice(0, 10))
-          if (seen.has(key)) return false
-          seen.add(key)
+          const existingIdx = seen.get(key)
+          if (existingIdx !== undefined) {
+            // Upgrade existing event with coordinates if incoming has them and existing doesn't
+            if (e.location?.lat && e.location?.lon && !events[existingIdx]?.location?.lat) {
+              events[existingIdx] = { ...events[existingIdx], location: e.location }
+            }
+            return false
+          }
+          seen.set(key, events.length + unique.length)
           return true
         })
         events.push(...unique)
