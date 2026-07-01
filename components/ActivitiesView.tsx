@@ -39,13 +39,8 @@ const HELMET_IDS_OR_NAMES = new Set([
   'kiasma', 'ham helsinki', 'linnanmäki', 'korkeasaari', 'oodi',
 ])
 
-type QuickSort = 'default' | 'open' | 'nearby'
-
-const QUICK_SORTS: { id: QuickSort; label: string }[] = [
-  { id: 'default', label: 'Kaikki' },
-  { id: 'open',    label: '🟢 Avoinna nyt' },
-  { id: 'nearby',  label: '📍 Lähimmät' },
-]
+// Categories always accessible outdoors — shown even without opening_hours tag
+const OUTDOOR_ALWAYS_OPEN: string[] = ['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys']
 
 const INDOOR_CATS: ActivityCategory[] = ['museo', 'galleria', 'muu']
 
@@ -420,19 +415,26 @@ function CategoryGrid({ active, onSelect }: {
 
 // ── Quick sort pills ──────────────────────────────────────
 
-function QuickSortPills({ active, onSelect }: { active: QuickSort; onSelect: (id: QuickSort) => void }) {
+function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby }: {
+  filterOpen: boolean
+  filterNearby: boolean
+  onToggleOpen: () => void
+  onToggleNearby: () => void
+}) {
+  const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
+  const off = { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-      {QUICK_SORTS.map(s => (
-        <button key={s.id} onClick={() => onSelect(s.id)}
-          className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-          style={active === s.id
-            ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
-            : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
-          }>
-          {s.label}
-        </button>
-      ))}
+      <button onClick={onToggleOpen}
+        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+        style={filterOpen ? on : off}>
+        🟢 Avoinna nyt
+      </button>
+      <button onClick={onToggleNearby}
+        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+        style={filterNearby ? on : off}>
+        📍 Lähimmät
+      </button>
     </div>
   )
 }
@@ -445,7 +447,8 @@ export default function ActivitiesView({ onShowOnMap }: {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [catFilter, setCatFilter] = useState<ActivityCategory | 'all'>('all')
-  const [quickSort, setQuickSort] = useState<QuickSort>('default')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterNearby, setFilterNearby] = useState(false)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [venueRatings, setVenueRatings] = useState<Record<string, { rating: number; reviewCount: number; priceLevel: string | null }>>({})
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
@@ -469,21 +472,25 @@ export default function ActivitiesView({ onShowOnMap }: {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { setQuickSort('default'); setVisibleCount(48) }, [catFilter])
-  useEffect(() => { setVisibleCount(48) }, [quickSort])
+  useEffect(() => { setFilterOpen(false); setFilterNearby(false); setVisibleCount(48) }, [catFilter])
+  useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby])
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
-      pos => { setUserPos([pos.coords.latitude, pos.coords.longitude]); setQuickSort('nearby') },
+      pos => setUserPos([pos.coords.latitude, pos.coords.longitude]),
       () => {},
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
 
-  const handleQuickSort = useCallback((id: QuickSort) => {
-    if (id === 'nearby') { locateMe(); return }
-    setQuickSort(id)
+  const handleToggleOpen = useCallback(() => setFilterOpen(v => !v), [])
+
+  const handleToggleNearby = useCallback(() => {
+    setFilterNearby(v => {
+      if (!v) locateMe()
+      return !v
+    })
   }, [locateMe])
 
   const distMap = useMemo(() => {
@@ -506,13 +513,18 @@ export default function ActivitiesView({ onShowOnMap }: {
 
   const sortedPool = useMemo(() => {
     let result = [...catPool]
-    if (quickSort === 'open') {
-      result = result.filter(a => isOpenNow(a.openingHours) === true)
-    } else if (quickSort === 'nearby' && userPos && distMap.size > 0) {
+    if (filterOpen) {
+      result = result.filter(a => {
+        // Outdoor spots without opening_hours are always accessible
+        if (!a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category)) return true
+        return isOpenNow(a.openingHours) === true
+      })
+    }
+    if (filterNearby && userPos && distMap.size > 0) {
       result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     }
     return result
-  }, [catPool, quickSort, userPos, distMap])
+  }, [catPool, filterOpen, filterNearby, userPos, distMap])
 
   const surpriseItems = useMemo(() => {
     const seed = shuffleSeed.current
@@ -545,19 +557,20 @@ export default function ActivitiesView({ onShowOnMap }: {
     ]
   }, [activities, catFilter, surpriseItems])
 
-  const isFilterActive = catFilter !== 'all' || quickSort !== 'default'
+  const isFilterActive = catFilter !== 'all' || filterOpen || filterNearby
 
   const activeFilterLabel = useMemo(() => {
+    const parts: string[] = []
+    if (filterOpen) parts.push('🟢 Avoinna nyt')
+    if (filterNearby) parts.push('📍 Lähimmät')
     if (catFilter !== 'all') {
       const meta = CATEGORY_META[catFilter]
-      return `${meta.emoji} ${meta.label}`
+      parts.push(`${meta.emoji} ${meta.label}`)
     }
-    if (quickSort === 'open') return '🟢 Avoinna nyt'
-    if (quickSort === 'nearby') return '📍 Lähimmät'
-    return 'Suodatettu'
-  }, [catFilter, quickSort])
+    return parts.join(' · ') || 'Suodatettu'
+  }, [catFilter, filterOpen, filterNearby])
 
-  const clearFilter = useCallback(() => { setCatFilter('all'); setQuickSort('default') }, [])
+  const clearFilter = useCallback(() => { setCatFilter('all'); setFilterOpen(false); setFilterNearby(false) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -609,7 +622,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                 />
               )}
 
-              <QuickSortPills active={quickSort} onSelect={handleQuickSort} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
               {rows.filter(r => r.items.length > 0).map(row => (
                 <ActRow
@@ -630,7 +643,7 @@ export default function ActivitiesView({ onShowOnMap }: {
           {/* Filter active: list view */}
           {isFilterActive && (
             <>
-              <QuickSortPills active={quickSort} onSelect={handleQuickSort} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
               {sortedPool.length > 0 ? (
                 <>

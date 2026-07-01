@@ -11,7 +11,6 @@ import { useLanguage } from '@/contexts/LanguageContext'
 const PRICE_LABELS = ['', '€', '€€', '€€€', '€€€€']
 
 type RestType = 'ruokapaikat' | 'kahvilat' | 'baarit' | 'yokerhot'
-type QuickSort = 'default' | 'open' | 'nearby'
 
 const TYPE_TABS: { id: RestType; label: string; emoji: string; dbType: Restaurant['type'] | null }[] = [
   { id: 'ruokapaikat', label: 'Ruokapaikat', emoji: '🍽', dbType: 'ravintola' },
@@ -56,12 +55,6 @@ const SUB_CATS: Record<RestType, { id: string; label: string; emoji: string }[]>
     { id: 'katto',   label: 'Kattoklubit', emoji: '🌃' },
   ],
 }
-
-const QUICK_SORTS: { id: QuickSort; label: string }[] = [
-  { id: 'default', label: 'Kaikki' },
-  { id: 'open',    label: '🟢 Avoinna nyt' },
-  { id: 'nearby',  label: '📍 Lähimmät' },
-]
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -591,19 +584,26 @@ function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestT
 
 // ── Quick sort pills ──────────────────────────────────────
 
-function QuickSortPills({ active, onSelect }: { active: QuickSort; onSelect: (id: QuickSort) => void }) {
+function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby }: {
+  filterOpen: boolean
+  filterNearby: boolean
+  onToggleOpen: () => void
+  onToggleNearby: () => void
+}) {
+  const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
+  const off = { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-      {QUICK_SORTS.map(s => (
-        <button key={s.id} onClick={() => onSelect(s.id)}
-          className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-          style={active === s.id
-            ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
-            : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
-          }>
-          {s.label}
-        </button>
-      ))}
+      <button onClick={onToggleOpen}
+        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+        style={filterOpen ? on : off}>
+        🟢 Avoinna nyt
+      </button>
+      <button onClick={onToggleNearby}
+        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+        style={filterNearby ? on : off}>
+        📍 Lähimmät
+      </button>
     </div>
   )
 }
@@ -617,7 +617,8 @@ export default function RestaurantsView({ onShowOnMap }: {
   const [loading, setLoading] = useState(true)
   const [restType, setRestType] = useState<RestType>('ruokapaikat')
   const [subCat, setSubCat] = useState<string>('all')
-  const [quickSort, setQuickSort] = useState<QuickSort>('default')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterNearby, setFilterNearby] = useState(false)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [selectedRest, setSelectedRest] = useState<Restaurant | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
@@ -638,21 +639,25 @@ export default function RestaurantsView({ onShowOnMap }: {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { setSubCat('all'); setQuickSort('default'); setVisibleCount(48) }, [restType])
-  useEffect(() => { setVisibleCount(48) }, [subCat, quickSort])
+  useEffect(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setVisibleCount(48) }, [restType])
+  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby])
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
-      pos => { setUserPos([pos.coords.latitude, pos.coords.longitude]); setQuickSort('nearby') },
+      pos => setUserPos([pos.coords.latitude, pos.coords.longitude]),
       () => {},
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
 
-  const handleQuickSort = useCallback((id: QuickSort) => {
-    if (id === 'nearby') { locateMe(); return }
-    setQuickSort(id)
+  const handleToggleOpen = useCallback(() => setFilterOpen(v => !v), [])
+
+  const handleToggleNearby = useCallback(() => {
+    setFilterNearby(v => {
+      if (!v) locateMe()
+      return !v
+    })
   }, [locateMe])
 
   const distMap = useMemo(() => {
@@ -682,13 +687,14 @@ export default function RestaurantsView({ onShowOnMap }: {
 
   const sortedPool = useMemo(() => {
     let result = [...subPool]
-    if (quickSort === 'open') {
+    if (filterOpen) {
       result = result.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
-    } else if (quickSort === 'nearby' && userPos) {
+    }
+    if (filterNearby && userPos) {
       result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     }
     return result
-  }, [subPool, quickSort, userPos, distMap])
+  }, [subPool, filterOpen, filterNearby, userPos, distMap])
 
   const heroRest = useMemo(() => {
     return typePool.find(r => r.image && r.openingHours && isOpenNow(r.openingHours))
@@ -724,19 +730,20 @@ export default function RestaurantsView({ onShowOnMap }: {
     return []
   }, [typePool, restType])
 
-  const isFilterActive = subCat !== 'all' || quickSort !== 'default'
+  const isFilterActive = subCat !== 'all' || filterOpen || filterNearby
 
   const activeFilterLabel = useMemo(() => {
+    const parts: string[] = []
+    if (filterOpen) parts.push('🟢 Avoinna nyt')
+    if (filterNearby) parts.push('📍 Lähimmät')
     if (subCat !== 'all') {
       const cat = SUB_CATS[restType].find(c => c.id === subCat)
-      return cat ? `${cat.emoji} ${cat.label}` : 'Suodatettu'
+      if (cat) parts.push(`${cat.emoji} ${cat.label}`)
     }
-    if (quickSort === 'open') return '🟢 Avoinna nyt'
-    if (quickSort === 'nearby') return '📍 Lähimmät'
-    return 'Suodatettu'
-  }, [subCat, quickSort, restType])
+    return parts.join(' · ') || 'Suodatettu'
+  }, [subCat, filterOpen, filterNearby, restType])
 
-  const clearFilter = useCallback(() => { setSubCat('all'); setQuickSort('default') }, [])
+  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -786,7 +793,7 @@ export default function RestaurantsView({ onShowOnMap }: {
                 <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
               )}
 
-              <QuickSortPills active={quickSort} onSelect={handleQuickSort} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
               {rows.filter(r => r.items.length > 0).map(row => (
                 <RestRow
@@ -804,7 +811,7 @@ export default function RestaurantsView({ onShowOnMap }: {
               <SubCatGrid
                 restType={restType}
                 active={subCat}
-                onSelect={(id) => { setSubCat(id); setQuickSort('default') }}
+                onSelect={setSubCat}
               />
             </>
           )}
@@ -812,7 +819,7 @@ export default function RestaurantsView({ onShowOnMap }: {
           {/* Filter active: list view */}
           {isFilterActive && (
             <>
-              <QuickSortPills active={quickSort} onSelect={handleQuickSort} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
               {sortedPool.length > 0 ? (
                 <>
