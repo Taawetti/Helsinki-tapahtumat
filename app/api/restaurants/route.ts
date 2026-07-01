@@ -7,7 +7,7 @@ import {
   GREEN_MICHELIN,
   RESTAURANT_OF_YEAR,
 } from '@/lib/restaurant-awards'
-import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
+import { supabase } from '@/lib/supabase'
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -62,6 +62,59 @@ function parseCuisineCategories(raw: string): string[] {
     if (cat) cats.add(cat)
   }
   return [...cats]
+}
+
+// Infer cuisine category from restaurant name when OSM has no cuisine tag.
+// Ordered from most specific to least to avoid false positives.
+function inferCuisineFromName(name: string): string[] {
+  const n = name.toLowerCase()
+
+  // Japanese
+  if (/sushi|ramen|izakaya|yakitori|tempura|tonkatsu|bento|udon|soba|wasabi|gyoza|nigiri|sashimi|teppanyak|sukiyaki|matcha|gaijin|kabuki/.test(n)) return ['japanese']
+
+  // Indian / Nepali / Pakistani / Sri Lankan
+  if (/nepal|nepalilainen|nepalese|india(?!n lake)|intia|intialainen|pakistan|banglad|curry\b|tikka|masala|tandoori|biryani|bollywood|maharaja|himalaya|namaste|mantra\b|punjab|mughal|vindaloo|korma|samosa|dosa|naan\b|chapati|raita/.test(n)) return ['indian']
+
+  // Thai / Southeast Asian
+  if (/\bthai\b|thailand|thaimaalainen|pad.?thai|tom.?yum|som.?tam|\blaos\b|vietnamese|vietnam|pho\b|banh.?mi|bun.?bo|farang/.test(n)) return ['asian']
+
+  // Chinese / Korean / other Asian
+  if (/chinese|kiinalainen|china\b|dim.?sum|peking|beijing|sichuan|szechuan|cantonese|kung.?pao|mandarin|korea|korealainen|bibimbap|bulgogi|kimchi|seoul|golden.?dragon|jade.?garden|wonton|noodle.?house/.test(n)) return ['asian']
+
+  // Pizza (before Italian to catch "pizza" in name)
+  if (/\bpizza\b|pizzeria/.test(n)) return ['pizza']
+
+  // Italian
+  if (/\btrattoria\b|\bristorante\b|\bosteria\b|\bpasta\b|lasagn|italialainen|\bgelato\b|\bpesto\b|bruschetta|cannoli|tiramisu|prosciutto|antipasto/.test(n)) return ['italian']
+
+  // Kebab / Turkish / Middle Eastern
+  if (/kebab|döner|doner|shawarma|gyros|falafel|turkish|turkkilainen|istanbul|ankara|beirut|libanon|arabic|persia|hummus/.test(n)) return ['kebab']
+
+  // Burger
+  if (/burger|hamburgeri|hamburger/.test(n)) return ['burger']
+
+  // Mexican
+  if (/mexic|meksiko|\btaco\b|burrito|quesadilla|nacho|cantina|habanero|jalapeño/.test(n)) return ['mexican']
+
+  // Mediterranean / Greek / Spanish
+  if (/greek|kreikk|\bhellas\b|taverna|spain|espanja|tapas|paella|iberic|mediterran|välimeri|moussaka/.test(n)) return ['mediterranean']
+
+  // French
+  if (/\bbistro\b|brasserie|patisserie|pâtisserie|ranskalainen|\bboulangerie\b|crêperie/.test(n)) return ['french']
+
+  // Seafood
+  if (/\bfish\b|kalatalо|kalasto|seafood|lobster|hummer|oyster|shrimp|kalastajatorppa|fisker/.test(n)) return ['seafood']
+
+  // Steak
+  if (/steakhouse|steak.?house|pihviravintola/.test(n)) return ['steak']
+
+  // Nordic / Finnish
+  if (/nordic|pohjoismainen|skandinaavinen|suomalainen|husmanskost/.test(n)) return ['nordisk']
+
+  // Veggie / Vegan
+  if (/\bvegan\b|vegaani|kasvisravintola|vegetarian|plant.?based/.test(n)) return ['veggie']
+
+  return []
 }
 
 // ── Price range helpers ───────────────────────────────────
@@ -219,12 +272,14 @@ async function _fetchOSM(): Promise<Restaurant[]> {
         if (!lat || !lon) continue
 
         const cuisineRaw = el.tags?.cuisine ?? ''
+        const osmCats = parseCuisineCategories(cuisineRaw)
+        const cuisineCategories = osmCats.length > 0 ? osmCats : inferCuisineFromName(name)
         const partial: Partial<Restaurant> = {
           id: `osm-${el.type[0]}${el.id}`,
           name,
           description: cuisineRaw.replace(/_/g, ' '),
           cuisines: parseCuisines(cuisineRaw),
-          cuisineCategories: parseCuisineCategories(cuisineRaw),
+          cuisineCategories,
           address: osmAddress(el.tags),
           city: el.tags?.['addr:city'] ?? '',
           lat,
@@ -247,13 +302,7 @@ async function _fetchOSM(): Promise<Restaurant[]> {
         results.push(partial as Restaurant)
       }
 
-      // Assign category fallback image — cuisine categories map to Wikipedia food articles
-      const { venues: venueMap } = await fetchImagesCached()
-      for (const rest of results) {
-        // Only assign image if the venue name matches a known Wikipedia entry.
-        // Category fallbacks are omitted — they make every Italian/Japanese restaurant look identical.
-        rest.image = getEventImage(rest.name, rest.cuisineCategories, venueMap, {})
-      }
+      // Images are handled by Twemoji illustrations in the UI — no Wikipedia fetch needed here.
 
       console.log(`[restaurants] OSM: ${results.length} results from ${mirror}`)
       return results
@@ -268,12 +317,45 @@ async function _fetchOSM(): Promise<Restaurant[]> {
 
 // ── Cached wrapper ────────────────────────────────────────
 
-export const fetchOSMCached = unstable_cache(_fetchOSM, ['restaurants-osm-v6'], {
+export const fetchOSMCached = unstable_cache(_fetchOSM, ['restaurants-osm-v7'], {
   revalidate: 86400,
   tags: ['restaurants'],
 })
 
 export const fetchPKCached = async () => [] as Restaurant[]
+
+// ── Supabase cuisine enrichment (1 h cache) ───────────────
+// Fills in cuisine categories for restaurants OSM + name inference couldn't identify.
+
+interface RestaurantEnrichment {
+  cuisineCategories?: string[]
+  googleRating?: number
+  reviewCount?: number
+}
+
+async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEnrichment>> {
+  if (!supabase) return {}
+  const { data } = await supabase
+    .from('venue_ratings')
+    .select('venue_key, cuisine_categories, google_rating, review_count')
+  const map: Record<string, RestaurantEnrichment> = {}
+  for (const row of data ?? []) {
+    const entry: RestaurantEnrichment = {}
+    if (Array.isArray(row.cuisine_categories) && row.cuisine_categories.length > 0) {
+      entry.cuisineCategories = row.cuisine_categories
+    }
+    if (row.google_rating) entry.googleRating = row.google_rating
+    if (row.review_count) entry.reviewCount = row.review_count
+    if (Object.keys(entry).length > 0) map[row.venue_key] = entry
+  }
+  return map
+}
+
+const fetchCuisineEnrichmentCached = unstable_cache(
+  _fetchRestaurantEnrichment,
+  ['restaurant-enrichment-v2'],
+  { revalidate: 3600 }
+)
 
 // ── Route handler ─────────────────────────────────────────
 
@@ -284,8 +366,25 @@ export async function GET(req: NextRequest) {
   const priceMax = parseInt(req.nextUrl.searchParams.get('priceMax') ?? '0') || 0
   const featured = req.nextUrl.searchParams.get('featured') === '1'
 
-  const osmList = await fetchOSMCached()
-  let restaurants = osmList
+  const [osmList, enrichmentMap] = await Promise.all([
+    fetchOSMCached(),
+    fetchCuisineEnrichmentCached(),
+  ])
+
+  // Apply Supabase enrichment: cuisine categories (for unidentified) + Google ratings (for all)
+  const restaurants_enriched = osmList.map(r => {
+    const enriched = enrichmentMap[r.name.toLowerCase().trim()]
+    if (!enriched) return r
+    const updates: Partial<typeof r> = {}
+    if (r.cuisineCategories.length === 0 && enriched.cuisineCategories) {
+      updates.cuisineCategories = enriched.cuisineCategories
+    }
+    if (enriched.googleRating) updates.googleRating = enriched.googleRating
+    if (enriched.reviewCount) updates.reviewCount = enriched.reviewCount
+    return Object.keys(updates).length > 0 ? { ...r, ...updates } : r
+  })
+
+  let restaurants = restaurants_enriched
 
   if (featured) {
     restaurants = restaurants.filter(r => r.featured)
@@ -324,7 +423,7 @@ export async function GET(req: NextRequest) {
 
   // Build cuisine category distribution for the frontend
   const categoryCount: Record<string, number> = {}
-  for (const r of osmList) {
+  for (const r of restaurants_enriched) {
     for (const cat of r.cuisineCategories) {
       categoryCount[cat] = (categoryCount[cat] ?? 0) + 1
     }

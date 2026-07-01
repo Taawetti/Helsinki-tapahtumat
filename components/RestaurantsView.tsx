@@ -78,11 +78,42 @@ function fmtDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
-function restGradient(type: Restaurant['type']): string {
-  if (type === 'kahvila') return 'linear-gradient(135deg,#422006,#78350f)'
-  if (type === 'baari')   return 'linear-gradient(135deg,#1e1b4b,#312e81)'
-  if (type === 'pikaruoka') return 'linear-gradient(135deg,#431407,#9a3412)'
-  return 'linear-gradient(135deg,#3b0f0f,#7f1d1d)'
+// ── Cuisine Twemoji (B2 style: dark bg + radial glow + illustrated emoji) ─────
+
+const CUISINE_STYLE: Record<string, { cp: string; color: string }> = {
+  pizza:         { cp: '1f355', color: '#c0392b' },
+  japanese:      { cp: '1f363', color: '#1a4a7a' },
+  burger:        { cp: '1f354', color: '#c97d10' },
+  italian:       { cp: '1f35d', color: '#1d6a39' },
+  nordisk:       { cp: '1f41f', color: '#1a4f7a' },
+  asian:         { cp: '1f962', color: '#6c3483' },
+  indian:        { cp: '1fad5', color: '#d35400' },
+  kebab:         { cp: '1f959', color: '#7a4419' },
+  mexican:       { cp: '1f32e', color: '#1e8449' },
+  mediterranean: { cp: '1fad2', color: '#1a6b8a' },
+  veggie:        { cp: '1f966', color: '#239b56' },
+  french:        { cp: '1f950', color: '#9a7d0a' },
+  seafood:       { cp: '1f99e', color: '#1a5f7a' },
+  steak:         { cp: '1f969', color: '#922b21' },
+}
+
+const TYPE_FALLBACK: Record<string, { cp: string; color: string }> = {
+  kahvila:   { cp: '2615',  color: '#6f4e37' },
+  baari:     { cp: '1f378', color: '#4a1942' },
+  pikaruoka: { cp: '1f354', color: '#c97d10' },
+}
+
+const DEFAULT_CUISINE_STYLE = { cp: '1f374', color: '#2a2a30' }
+
+function getCuisineStyle(r: Restaurant): { cp: string; color: string } {
+  for (const cat of r.cuisineCategories ?? []) {
+    if (CUISINE_STYLE[cat]) return CUISINE_STYLE[cat]
+  }
+  return TYPE_FALLBACK[r.type] ?? DEFAULT_CUISINE_STYLE
+}
+
+function twemojiUrl(cp: string): string {
+  return `https://cdn.jsdelivr.net/gh/twitter/twemoji@v14.0.2/assets/svg/${cp}.svg`
 }
 
 function relativeDate(pubDate: string): string {
@@ -149,7 +180,7 @@ function isLateNight(hours: string): boolean {
     const m = part.trim().match(/^[\w,\-]+\s+\d{1,2}:\d{2}-(\d{1,2}):\d{2}$/)
     if (m) {
       const h = parseInt(m[1])
-      if (h < 6 || h >= 22) return true
+      if (h < 6 || h >= 23) return true
     }
   }
   return false
@@ -226,15 +257,18 @@ function HeroCard({ r, distance, onShowOnMap }: {
 }) {
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
   const ctaLabel = r.type === 'ravintola' ? 'Varaa pöytä →' : r.type === 'kahvila' ? 'Lisätietoja →' : 'Avaa →'
+  const heroStyle = getCuisineStyle(r)
 
   return (
     <div className="relative w-full rounded-[22px] overflow-hidden" style={{ aspectRatio: '16/9', boxShadow: '0 22px 50px -20px rgba(10,10,12,.8)' }}>
-      {r.image ? (
-        <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full object-cover" />
-      ) : (
-        <div className="absolute inset-0" style={{ background: restGradient(r.type) }} />
-      )}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.2) 55%,transparent 100%)' }} />
+      <div className="absolute inset-0" style={{ background: '#0f0f14' }} />
+      <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 38%, ${heroStyle.color}40 0%, transparent 62%)` }} />
+      <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: '70px' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={twemojiUrl(heroStyle.cp)} alt="" width={88} height={88} style={{ objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,.7))' }} />
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: heroStyle.color, opacity: 0.5 }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.1) 50%,transparent 100%)' }} />
 
       {open !== undefined && (
         <div className="absolute top-4 right-4">
@@ -286,19 +320,20 @@ function RestRowCard({ r, distance, onClick }: {
   onClick: (r: Restaurant) => void
 }) {
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
+  const cuisineStyle = getCuisineStyle(r)
   return (
     <button onClick={() => onClick(r)}
       className="group shrink-0 w-44 text-left rounded-[18px] overflow-hidden"
       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
-        {r.image ? (
-          <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: restGradient(r.type) }}>
-            {r.type === 'kahvila' ? '☕' : r.type === 'baari' ? '🍸' : r.type === 'pikaruoka' ? '🍔' : '🍽'}
-          </div>
-        )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.8) 0%,transparent 60%)' }} />
+        {/* B2: dark bg + cuisine-colored radial glow + Twemoji illustrated emoji */}
+        <div className="absolute inset-0" style={{ background: '#141418' }} />
+        <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 55%, ${cuisineStyle.color}30 0%, transparent 68%)` }} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={50} height={50} style={{ objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.5))' }} />
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.6 }} />
         {open !== undefined && (
           <div className="absolute top-2 right-2">
             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-black/50 text-white/50'}`}>
@@ -306,13 +341,34 @@ function RestRowCard({ r, distance, onClick }: {
             </span>
           </div>
         )}
+        {(r.michelinStars || r.bibGourmand) && (
+          <div className="absolute top-2 left-2">
+            {r.michelinStars ? (
+              <span className="text-[11px] font-black px-2 py-1 rounded-full text-white leading-none" style={{ background: 'rgba(185,28,28,.95)', boxShadow: '0 2px 8px rgba(0,0,0,.5)' }}>
+                {'⭐'.repeat(r.michelinStars)} Michelin
+              </span>
+            ) : (
+              <span className="text-[11px] font-black px-2 py-1 rounded-full text-white leading-none" style={{ background: 'rgba(194,65,12,.95)', boxShadow: '0 2px 8px rgba(0,0,0,.5)' }}>
+                😊 Bib Gourmand
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="p-3">
         <p className="text-white font-black text-[13px] leading-tight line-clamp-1" style={{ letterSpacing: '-0.01em' }}>{r.name}</p>
         <p className="text-white/40 text-[11px] mt-0.5 truncate">{r.description || r.address}</p>
-        {distance !== undefined && (
-          <p className="text-[11px] mt-1 font-bold" style={{ color: '#a3abff' }}>{fmtDist(distance)}</p>
-        )}
+        <div className="flex items-center gap-2 mt-1">
+          {r.googleRating && (
+            <span className="text-[11px] font-black" style={{ color: '#fbbf24' }}>
+              ⭐ {r.googleRating.toFixed(1)}
+              {r.reviewCount ? <span className="font-normal opacity-60"> ({r.reviewCount > 999 ? `${(r.reviewCount/1000).toFixed(1)}t` : r.reviewCount})</span> : null}
+            </span>
+          )}
+          {distance !== undefined && (
+            <span className="text-[11px] font-bold" style={{ color: '#a3abff' }}>{fmtDist(distance)}</span>
+          )}
+        </div>
       </div>
     </button>
   )
@@ -326,14 +382,16 @@ function RestListCard({ r, distance, onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
+  const cuisineStyle = getCuisineStyle(r)
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
-      {r.image && (
-        <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/7' }}>
-          <img src={r.image} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.5) 0%,transparent 60%)' }} />
-        </div>
-      )}
+      {/* B2-style mini-header */}
+      <div className="relative flex items-center justify-center overflow-hidden" style={{ height: 72, background: '#141418' }}>
+        <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 60%, ${cuisineStyle.color}28 0%, transparent 70%)` }} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={38} height={38} style={{ objectFit: 'contain', position: 'relative', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.5))' }} />
+        <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.5 }} />
+      </div>
       <div className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-black text-white text-sm leading-tight">{r.name}</h3>
@@ -355,6 +413,12 @@ function RestListCard({ r, distance, onShowOnMap }: {
             )}
           </div>
         </div>
+        {r.googleRating && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>
+            ⭐ {r.googleRating.toFixed(1)}
+            {r.reviewCount ? <span className="font-normal opacity-70">({r.reviewCount > 999 ? `${(r.reviewCount/1000).toFixed(1)}t` : r.reviewCount})</span> : null}
+          </span>
+        )}
         {r.michelinStars && (
           <span className="inline-flex text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/15">
             {'⭐'.repeat(r.michelinStars)} Michelin
@@ -632,7 +696,6 @@ export default function RestaurantsView({ onShowOnMap }: {
     const base = typePool
     if (restType === 'ruokapaikat') return [
       { title: '☀️ Lounaalle mars',              items: base.filter(r => /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase()) || (r.priceRange !== undefined && r.priceRange <= 2)) },
-      { title: '🌅 Terassi & ulkoilma',          items: base.filter(r => r.outdoorSeating === true) },
       { title: '🌙 Auki vielä myöhään illalla',  items: base.filter(r => r.openingHours ? isLateNight(r.openingHours) : false) },
     ]
     if (restType === 'kahvilat') return [
@@ -807,6 +870,12 @@ export default function RestaurantsView({ onShowOnMap }: {
                     {selectedRest.priceRange && (
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/45">
                         {PRICE_LABELS[selectedRest.priceRange]}
+                      </span>
+                    )}
+                    {selectedRest.googleRating && (
+                      <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>
+                        ⭐ {selectedRest.googleRating.toFixed(1)}
+                        {selectedRest.reviewCount ? ` (${selectedRest.reviewCount > 999 ? `${(selectedRest.reviewCount/1000).toFixed(1)}t` : selectedRest.reviewCount})` : ''}
                       </span>
                     )}
                     {selectedRest.michelinStars && (

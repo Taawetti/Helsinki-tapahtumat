@@ -140,11 +140,6 @@ const CATEGORY_WIKI: [string, string][] = [
   ['mexican',        'Mexican_cuisine'],
   ['french',         'French_cuisine'],
 
-  // Restaurant type fallbacks
-  ['restaurant',  'Restaurant'],
-  ['cafe',        'Coffeehouse'],
-  ['bar',         'Bar_(establishment)'],
-  ['nightclub',   'Nightclub'],
 ]
 
 // ── Cached fetch of all venue + category images ───────────
@@ -173,7 +168,7 @@ async function _fetchAllImages(): Promise<{ venues: Record<string, string>; cate
 }
 
 // Cache for 7 days — Wikipedia thumbnails are stable
-export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v5'], {
+export const fetchImagesCached = unstable_cache(_fetchAllImages, ['venue-wiki-images-v6'], {
   revalidate: 604800,
   tags: ['venue-images'],
 })

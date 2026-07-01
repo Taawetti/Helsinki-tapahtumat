@@ -153,6 +153,8 @@ export interface Restaurant {
   featured?: boolean
   outdoorSeating?: boolean
   takeaway?: boolean
+  googleRating?: number
+  reviewCount?: number
 }
 
 // ── ACTIVITIES ─────────────────────────────────────────
