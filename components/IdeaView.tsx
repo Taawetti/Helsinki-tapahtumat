@@ -298,7 +298,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     dragStartY.current = e.clientY
     isDragging.current = true
     isHorizontalDrag.current = false
-    // Pointer capture deferred to onPointerMove once direction is known
+    cardRef.current?.setPointerCapture(e.pointerId)
   }, [])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
@@ -307,14 +307,14 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     const dy = e.clientY - dragStartY.current
     if (!isHorizontalDrag.current) {
       if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return
-      if (Math.abs(dy) >= Math.abs(dx)) {
-        // Predominantly vertical — cancel our handling, let browser scroll
+      if (Math.abs(dy) > Math.abs(dx)) {
+        // Predominantly vertical — release capture so browser handles scroll
         isDragging.current = false
+        cardRef.current?.releasePointerCapture(e.pointerId)
+        setDragX(0)
         return
       }
-      // Confirmed horizontal — capture pointer so browser doesn't steal drag
       isHorizontalDrag.current = true
-      try { cardRef.current?.setPointerCapture(e.pointerId) } catch { /* ignore */ }
     }
     setDragX(dx)
   }, [])
