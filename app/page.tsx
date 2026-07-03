@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { Fragment, useState, useCallback, useMemo, useEffect } from 'react'
+import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Loader2, SlidersHorizontal, Heart, Bell } from 'lucide-react'
 import { Event, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
 import { useFavorites } from '@/contexts/FavoritesContext'
@@ -233,6 +233,57 @@ export default function Home() {
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [showVibePanel, setShowVibePanel] = useState(false)
+  const vibeBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Entry animation + scroll-hide for the floating Aihepiirit button.
+  // Uses direct style manipulation — CSS animation would block transitions via fill-mode.
+  useEffect(() => {
+    const el = vibeBtnRef.current
+    if (!el) return
+
+    const TRANS_ENTER = 'opacity .4s cubic-bezier(.34,1.5,.64,1), transform .4s cubic-bezier(.34,1.5,.64,1)'
+    const TRANS_SCROLL = 'opacity .2s ease, transform .22s ease'
+
+    el.style.transition = 'none'
+    el.style.opacity = '0'
+    el.style.transform = 'translateX(20px) scale(.88)'
+    el.style.pointerEvents = 'none'
+
+    const entryTimer = setTimeout(() => {
+      el.style.transition = TRANS_ENTER
+      el.style.opacity = '1'
+      el.style.transform = 'none'
+      el.style.pointerEvents = 'all'
+    }, 200)
+
+    let lastY = 0
+    let entryDone = false
+    const readyTimer = setTimeout(() => { entryDone = true }, 700)
+
+    const onScroll = () => {
+      if (!entryDone) return
+      const y = window.scrollY
+      if (y > lastY + 6 && y > 60) {
+        el.style.transition = TRANS_SCROLL
+        el.style.opacity = '0'
+        el.style.transform = 'translateY(-10px) scale(.93)'
+        el.style.pointerEvents = 'none'
+      } else if (y < lastY - 4) {
+        el.style.transition = TRANS_SCROLL
+        el.style.opacity = '1'
+        el.style.transform = 'none'
+        el.style.pointerEvents = 'all'
+      }
+      lastY = y
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      clearTimeout(entryTimer)
+      clearTimeout(readyTimer)
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [mode, showFilters])
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
@@ -523,41 +574,34 @@ export default function Home() {
       {/* ── Floating Aihepiirit button — only on discover, hidden when filter panel open ── */}
       {mode === 'discover' && !showFilters && (
         <button
+          ref={vibeBtnRef}
           onClick={() => setShowVibePanel(true)}
-          className="fixed right-3 z-[35] flex items-center gap-2 rounded-full overflow-hidden transition-all active:scale-[.96] hover:bg-white/[.17]"
+          className="fixed right-3 z-[35] flex items-center gap-1.5 rounded-full overflow-hidden hover:bg-white/[.17] active:scale-[.94]"
           style={{
             top: 'calc(env(safe-area-inset-top, 0px) + 108px)',
-            padding: '10px 15px 10px 13px',
+            padding: '7px 11px 7px 9px',
             background: 'rgba(255,255,255,.11)',
             border: '1px solid rgba(255,255,255,.2)',
             backdropFilter: 'blur(18px)',
             WebkitBackdropFilter: 'blur(18px)',
-            boxShadow: '0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12)',
+            boxShadow: '0 3px 16px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12)',
             color: '#fff',
-            animation: 'vibe-btn-enter .45s .15s both cubic-bezier(.34,1.5,.64,1)',
+            // opacity/transform controlled by useEffect (JS transitions)
           }}
         >
-          {/* Shimmer sweep on load */}
-          <span
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%)',
-              animation: 'vibe-btn-shimmer .65s .75s both',
-            }}
-          />
-          <span className="text-base leading-none relative z-10 select-none">🎨</span>
-          <span className="relative z-10 text-[14px] font-black" style={{ letterSpacing: '-0.01em' }}>
+          <span className="text-[13px] leading-none select-none">🎨</span>
+          <span className="text-[12px] font-black" style={{ letterSpacing: '-0.01em' }}>
             Aihepiirit
           </span>
           {activeVibes.length > 0 && (
             <span
-              className="relative z-10 flex items-center justify-center text-[10px] font-black text-white rounded-full"
-              style={{ background: 'rgba(255,255,255,.22)', minWidth: 18, height: 18, padding: '0 4px' }}
+              className="flex items-center justify-center text-[9px] font-black text-white rounded-full"
+              style={{ background: 'rgba(255,255,255,.22)', minWidth: 16, height: 16, padding: '0 3px' }}
             >
               {activeVibes.length}
             </span>
           )}
-          <span className="relative z-10 text-[10px] opacity-50 select-none">▾</span>
+          <span className="text-[9px] opacity-50 select-none">▾</span>
         </button>
       )}
 
