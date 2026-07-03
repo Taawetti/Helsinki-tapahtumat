@@ -293,7 +293,11 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   const SWIPE_THRESHOLD = 80
 
+  // Mouse / stylus only — Pointer Events with setPointerCapture are safe for non-touch.
+  // Touch is handled separately below via native Touch Events to avoid the iOS Safari
+  // bug where setPointerCapture + touchAction triggers immediate pointercancel.
   const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') return
     dragStartX.current = e.clientX
     dragStartY.current = e.clientY
     isDragging.current = true
@@ -302,21 +306,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   }, [])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') return
     if (!isDragging.current) return
-    const dx = e.clientX - dragStartX.current
-    const dy = e.clientY - dragStartY.current
-    if (!isHorizontalDrag.current) {
-      if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return
-      if (Math.abs(dy) > Math.abs(dx)) {
-        // Predominantly vertical — release capture so browser handles scroll
-        isDragging.current = false
-        cardRef.current?.releasePointerCapture(e.pointerId)
-        setDragX(0)
-        return
-      }
-      isHorizontalDrag.current = true
-    }
-    setDragX(dx)
+    setDragX(e.clientX - dragStartX.current)
   }, [])
 
   const commit = useCallback((dir: 'left' | 'right') => {
@@ -355,14 +347,15 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     }
   }, [current, toggle, onEventClick])
 
+  // Mouse/stylus pointer up (touch handled by native touchend below)
   const onPointerUp = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') return
     if (!isDragging.current) return
     isDragging.current = false
     isHorizontalDrag.current = false
     const dx = e.clientX - dragStartX.current
     const dy = e.clientY - dragStartY.current
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-      // Tap — open detail panel
       if (current?.eventRef && onEventClick) onEventClick(current.eventRef)
       else if (current) setDetailSuggestion(current)
       setDragX(0)
@@ -372,6 +365,99 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     else if (dx < -SWIPE_THRESHOLD) commit('left')
     else setDragX(0)
   }, [commit, current, onEventClick])
+
+  const onPointerCancel = useCallback(() => {
+    isDragging.current = false
+    isHorizontalDrag.current = false
+    setDragX(0)
+  }, [])
+
+  // Touch gesture handler via native Touch Events.
+  // Uses non-passive touchmove so we can call e.preventDefault() for horizontal drags,
+  // blocking page scroll only when the user is swiping the card sideways.
+  // Vertical gestures pass through unblocked — the browser scrolls the page normally.
+  // Re-registers whenever the card changes (current.id changes → card remounts via key).
+  useEffect(() => {
+    const card = cardRef.current
+    if (!card) return
+
+    let startX = 0
+    let startY = 0
+    let dragging = false
+    let horizontal = false
+
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0]
+      startX = t.clientX
+      startY = t.clientY
+      dragStartX.current = startX
+      dragStartY.current = startY
+      dragging = true
+      horizontal = false
+      isDragging.current = true
+      isHorizontalDrag.current = false
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragging || e.touches.length !== 1) return
+      const t = e.touches[0]
+      const dx = t.clientX - startX
+      const dy = t.clientY - startY
+      if (!horizontal) {
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return
+        if (Math.abs(dy) >= Math.abs(dx)) {
+          dragging = false
+          isDragging.current = false
+          setDragX(0)
+          return
+        }
+        horizontal = true
+        isHorizontalDrag.current = true
+      }
+      e.preventDefault()
+      setDragX(dx)
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!dragging) return
+      dragging = false
+      horizontal = false
+      isDragging.current = false
+      isHorizontalDrag.current = false
+      const t = e.changedTouches[0]
+      const dx = t.clientX - startX
+      const dy = t.clientY - startY
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+        if (current?.eventRef && onEventClick) onEventClick(current.eventRef)
+        else if (current) setDetailSuggestion(current)
+        setDragX(0)
+        return
+      }
+      if (dx > SWIPE_THRESHOLD) commit('right')
+      else if (dx < -SWIPE_THRESHOLD) commit('left')
+      else setDragX(0)
+    }
+
+    const onTouchCancel = () => {
+      dragging = false
+      horizontal = false
+      isDragging.current = false
+      isHorizontalDrag.current = false
+      setDragX(0)
+    }
+
+    card.addEventListener('touchstart', onTouchStart, { passive: true })
+    card.addEventListener('touchmove', onTouchMove, { passive: false })
+    card.addEventListener('touchend', onTouchEnd, { passive: true })
+    card.addEventListener('touchcancel', onTouchCancel, { passive: true })
+
+    return () => {
+      card.removeEventListener('touchstart', onTouchStart)
+      card.removeEventListener('touchmove', onTouchMove)
+      card.removeEventListener('touchend', onTouchEnd)
+      card.removeEventListener('touchcancel', onTouchCancel)
+    }
+  }, [current, commit, onEventClick])
 
   const handleSkip = useCallback(() => commit('left'), [commit])
   const handleSave = useCallback(() => commit('right'), [commit])
@@ -468,6 +554,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
           className="relative z-10 rounded-3xl overflow-hidden cursor-grab active:cursor-grabbing"
           style={{
             touchAction: 'pan-y',
