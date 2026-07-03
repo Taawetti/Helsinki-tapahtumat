@@ -114,6 +114,16 @@ body {
 }
 .animate-float { animation: float 3s ease-in-out infinite; }
 
+/* Vibe button floating animations */
+@keyframes vibe-btn-enter {
+  from { opacity: 0; transform: translateX(24px) scale(.88) }
+  to   { opacity: 1; transform: none }
+}
+@keyframes vibe-btn-shimmer {
+  from { transform: translateX(-100%) }
+  to   { transform: translateX(250%) }
+}
+
 /* Scrollbar hide */
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }

@@ -14,6 +14,7 @@ import SearchBar from '@/components/SearchBar'
 import PosterCard from '@/components/PosterCard'
 import InstallBanner from '@/components/InstallBanner'
 import VibeBar from '@/components/VibeBar'
+import VibePanel from '@/components/VibePanel'
 import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
 import JarjestajaForm from '@/components/JarjestajaForm'
@@ -231,6 +232,7 @@ export default function Home() {
   const [showEiTieda, setShowEiTieda] = useState(false)
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
+  const [showVibePanel, setShowVibePanel] = useState(false)
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
@@ -517,6 +519,47 @@ export default function Home() {
           </div>
         )}
       </header>
+
+      {/* ── Floating Aihepiirit button — only on discover, hidden when filter panel open ── */}
+      {mode === 'discover' && !showFilters && (
+        <button
+          onClick={() => setShowVibePanel(true)}
+          className="fixed right-3 z-[35] flex items-center gap-2 rounded-full overflow-hidden transition-all active:scale-[.96] hover:bg-white/[.17]"
+          style={{
+            top: 'calc(env(safe-area-inset-top, 0px) + 108px)',
+            padding: '10px 15px 10px 13px',
+            background: 'rgba(255,255,255,.11)',
+            border: '1px solid rgba(255,255,255,.2)',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            boxShadow: '0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12)',
+            color: '#fff',
+            animation: 'vibe-btn-enter .45s .15s both cubic-bezier(.34,1.5,.64,1)',
+          }}
+        >
+          {/* Shimmer sweep on load */}
+          <span
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%)',
+              animation: 'vibe-btn-shimmer .65s .75s both',
+            }}
+          />
+          <span className="text-base leading-none relative z-10 select-none">🎨</span>
+          <span className="relative z-10 text-[14px] font-black" style={{ letterSpacing: '-0.01em' }}>
+            Aihepiirit
+          </span>
+          {activeVibes.length > 0 && (
+            <span
+              className="relative z-10 flex items-center justify-center text-[10px] font-black text-white rounded-full"
+              style={{ background: 'rgba(255,255,255,.22)', minWidth: 18, height: 18, padding: '0 4px' }}
+            >
+              {activeVibes.length}
+            </span>
+          )}
+          <span className="relative z-10 text-[10px] opacity-50 select-none">▾</span>
+        </button>
+      )}
 
       {/* ══ FAVORITES ══ */}
       {mode === 'favorites' && (
@@ -830,6 +873,14 @@ export default function Home() {
           })}
         </div>
       </nav>
+
+      <VibePanel
+        open={showVibePanel}
+        active={activeVibes}
+        onToggle={handleVibeToggle}
+        onClear={() => { setActiveVibes([]); setPriceFilter('all') }}
+        onClose={() => setShowVibePanel(false)}
+      />
 
       <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}/>
       <InstallBanner/>
