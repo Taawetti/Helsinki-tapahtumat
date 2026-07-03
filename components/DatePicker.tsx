@@ -125,8 +125,12 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
   if (rangeMode) {
     if (value && valueEnd) {
       const s = toLocalDate(value).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
-      const e = toLocalDate(valueEnd).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
-      label = `${s} – ${e}`
+      if (value === valueEnd) {
+        label = s
+      } else {
+        const e = toLocalDate(valueEnd).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
+        label = `${s} – ${e}`
+      }
     } else if (value) {
       label = toLocalDate(value).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
     }
@@ -148,16 +152,16 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
         width: 280,
         zIndex: 9999,
         background: 'rgba(15,10,25,0.97)',
-        border: '1px solid rgba(168,85,247,0.3)',
+        border: '1px solid rgba(107,118,255,0.3)',
         backdropFilter: 'blur(24px)',
         borderRadius: 20,
-        boxShadow: '0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(168,85,247,0.1)',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(107,118,255,0.1)',
         overflow: 'hidden',
       }}
     >
       {/* Hint when picking range end */}
       {rangeMode && pendingStart && (
-        <div style={{ padding: '10px 16px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(168,85,247,0.8)' }}>
+        <div style={{ padding: '10px 16px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(107,118,255,0.8)' }}>
           {lang === 'fi' ? 'Valitse loppupäivä' : 'Select end date'}
         </div>
       )}
@@ -204,20 +208,20 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
           const isSel = !rangeMode && value === dateStr
 
           let bg = 'transparent'
-          let color = isPast ? 'rgba(255,255,255,0.15)' : isToday ? '#c084fc' : 'rgba(255,255,255,0.7)'
+          let color = isPast ? 'rgba(255,255,255,0.15)' : isToday ? '#a3abff' : 'rgba(255,255,255,0.7)'
           let borderRadius = 10
           let boxShadow = 'none'
 
           if (isSel) {
-            bg = 'linear-gradient(135deg,#a855f7,#ec4899)'
+            bg = 'linear-gradient(150deg,#6b76ff,#5059e6)'
             color = '#fff'
-            boxShadow = '0 4px 12px rgba(168,85,247,0.4)'
+            boxShadow = '0 4px 12px rgba(91,101,230,0.4)'
           } else if (isStart || isEnd) {
-            bg = 'linear-gradient(135deg,#a855f7,#ec4899)'
+            bg = 'linear-gradient(150deg,#6b76ff,#5059e6)'
             color = '#fff'
-            boxShadow = '0 4px 12px rgba(168,85,247,0.4)'
+            boxShadow = '0 4px 12px rgba(91,101,230,0.4)'
           } else if (isInRange) {
-            bg = 'rgba(168,85,247,0.2)'
+            bg = 'rgba(107,118,255,0.15)'
             color = '#fff'
             borderRadius = 0
           }
@@ -277,8 +281,8 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
         onClick={openCalendar}
         className={`shrink-0 flex items-center gap-1.5 font-black transition-all border-0 rounded-full cursor-pointer ${
           btnSm ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'
-        } ${hasSelection ? 'text-white shadow-lg shadow-purple-500/20' : 'text-white/35 bg-white/5 hover:bg-white/10 hover:text-white/65'}`}
-        style={hasSelection ? { background: 'linear-gradient(135deg,#a855f7,#ec4899)' } : {}}
+        } ${hasSelection ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/10 hover:text-white/65'}`}
+        style={hasSelection ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,0.5)' } : {}}
       >
         <Calendar size={btnSm ? 11 : 13} />
         {label ?? t('date.custom')}
