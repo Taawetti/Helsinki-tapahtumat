@@ -151,6 +151,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   // Swipe state — use refs for synchronous drag tracking (useState closures would lose updates)
   const [dragX, setDragX] = useState(0)
   const isDragging = useRef(false)
+  const isHorizontalDrag = useRef(false)
   const dragStartX = useRef(0)
   const dragStartY = useRef(0)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -296,12 +297,26 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     dragStartX.current = e.clientX
     dragStartY.current = e.clientY
     isDragging.current = true
-    cardRef.current?.setPointerCapture(e.pointerId)
+    isHorizontalDrag.current = false
+    // Pointer capture deferred to onPointerMove once direction is known
   }, [])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
-    setDragX(e.clientX - dragStartX.current)
+    const dx = e.clientX - dragStartX.current
+    const dy = e.clientY - dragStartY.current
+    if (!isHorizontalDrag.current) {
+      if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        // Predominantly vertical — cancel our handling, let browser scroll
+        isDragging.current = false
+        return
+      }
+      // Confirmed horizontal — capture pointer so browser doesn't steal drag
+      isHorizontalDrag.current = true
+      try { cardRef.current?.setPointerCapture(e.pointerId) } catch { /* ignore */ }
+    }
+    setDragX(dx)
   }, [])
 
   const commit = useCallback((dir: 'left' | 'right') => {
@@ -343,6 +358,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
     isDragging.current = false
+    isHorizontalDrag.current = false
     const dx = e.clientX - dragStartX.current
     const dy = e.clientY - dragStartY.current
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
@@ -447,14 +463,14 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.06)' }} />
         )}
 
-        {/* Main card — touch-action:none so browser doesn't steal the horizontal drag */}
+        {/* Main card — pan-y lets browser handle vertical scroll; horizontal drag is captured once intent is confirmed */}
         <div key={current.id} ref={cardRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           className="relative z-10 rounded-3xl overflow-hidden cursor-grab active:cursor-grabbing"
           style={{
-            touchAction: 'none',
+            touchAction: 'pan-y',
             border: '1px solid rgba(255,255,255,.1)',
             transform: cardTransform,
             transition: isDragging.current ? 'none' : 'transform 220ms cubic-bezier(.34,1.56,.64,1)',
