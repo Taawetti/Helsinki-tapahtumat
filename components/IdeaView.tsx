@@ -133,7 +133,7 @@ interface Props {
 // ── Component ────────────────────────────────────────────
 
 export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const { toggle, isFavorite } = useFavorites()
 
   const [ideaMode, setIdeaMode] = useState<IdeaMode>('ilta')
@@ -475,7 +475,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   if (!current) return (
     <main className="flex flex-col items-center justify-center min-h-[60vh] text-white/25 text-sm">
-      {activities.length === 0 ? 'Ladataan ehdotuksia…' : 'Kaikki ehdotukset katsottu! 🎉'}
+      {activities.length === 0 ? t('idea.loading_suggestions') : t('idea.all_seen')}
     </main>
   )
 
@@ -490,15 +490,15 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         <div>
           <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
           <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.6rem,6vw,2.6rem)', letterSpacing: '-0.03em' }}>
-            Etkö tiedä mitä tehdä?
+            {t('idea.dont_know')}
           </h1>
-          <p className="text-white/30 text-xs mt-1">Kaikki ehdotukset tapahtuvat tänä iltana</p>
+          <p className="text-white/30 text-xs mt-1">{t('idea.tonight_all')}</p>
         </div>
         {savedCount > 0 && (
           <div className="flex items-center gap-1.5 px-3 py-2 rounded-full shrink-0"
             style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.2)' }}>
             <Heart size={12} fill="#6b76ff" style={{ color: '#6b76ff' }} />
-            <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount} listalla</span>
+            <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount} {t('idea.saved_suffix')}</span>
           </div>
         )}
       </div>
@@ -506,8 +506,8 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       {/* ── Segmented control ── */}
       <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,.06)' }}>
         {([
-          { id: 'nyt' as IdeaMode,  label: '⚡ Juuri nyt' },
-          { id: 'ilta' as IdeaMode, label: '🌙 Koko ilta' },
+          { id: 'nyt' as IdeaMode,  label: t('idea.mode_now') },
+          { id: 'ilta' as IdeaMode, label: t('idea.mode_evening') },
         ]).map(opt => (
           <button key={opt.id} onClick={() => setIdeaMode(opt.id)}
             className="flex-1 py-2 rounded-lg text-sm font-black transition-all"
@@ -587,7 +587,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: swipeOpacity }}>
                 <div className="flex flex-col items-center gap-2 bg-emerald-500/20 backdrop-blur-sm rounded-3xl px-8 py-6 border-2 border-emerald-400">
                   <Heart size={40} fill="#4ade80" style={{ color: '#4ade80' }} />
-                  <span className="text-emerald-300 font-black text-xl">Tallennettu!</span>
+                  <span className="text-emerald-300 font-black text-xl">{t('idea.saved_overlay')}</span>
                 </div>
               </div>
             )}
@@ -595,7 +595,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: swipeOpacity }}>
                 <div className="flex flex-col items-center gap-2 bg-red-500/20 backdrop-blur-sm rounded-3xl px-8 py-6 border-2 border-red-400">
                   <X size={40} style={{ color: '#f87171' }} />
-                  <span className="text-red-300 font-black text-xl">Ohitettu</span>
+                  <span className="text-red-300 font-black text-xl">{t('idea.skipped')}</span>
                 </div>
               </div>
             )}
@@ -603,10 +603,10 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             {/* Type badge + progress */}
             <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
               <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/90 bg-black/40 backdrop-blur-sm">
-                {current.type === 'event' ? '📅 Tapahtuma' : current.type === 'activity' ? '🧖 Aktiviteetti' : '🍽 Ravintola'}
+                {current.type === 'event' ? t('idea.type_event') : current.type === 'activity' ? t('idea.type_activity') : t('idea.type_rest')}
               </span>
               <span className="text-[11px] font-bold text-white/40 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
-                {pool.length} jäljellä
+                {pool.length} {t('common.remaining')}
               </span>
             </div>
 
@@ -614,7 +614,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             {current.minutesUntil !== undefined && current.minutesUntil >= 0 && current.minutesUntil < 240 && (
               <div className="absolute top-14 left-4">
                 <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-500/90 text-white">
-                  ⏱ alkaa {current.minutesUntil < 60
+                  ⏱ {t('idea.starts_in')} {current.minutesUntil < 60
                     ? `${current.minutesUntil} min`
                     : `${Math.round(current.minutesUntil / 60)} h`}
                 </span>
@@ -625,7 +625,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             {current.isOpen !== undefined && current.minutesUntil === undefined && (
               <div className="absolute top-14 left-4">
                 <span className={`text-[11px] font-black px-2.5 py-1 rounded-full ${current.isOpen ? 'bg-emerald-500/90' : 'bg-white/20'} text-white`}>
-                  {current.isOpen ? '● Avoinna nyt' : '○ Suljettu'}
+                  {current.isOpen ? `● ${t('idea.open_now')}` : `○ ${t('common.closed')}`}
                 </span>
               </div>
             )}
@@ -633,7 +633,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             {/* Free badge */}
             {current.isFree && (
               <div className="absolute top-4 right-4">
-                <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-500 text-white">ILMAINEN</span>
+                <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-500 text-white">{t('common.free_badge')}</span>
               </div>
             )}
 
@@ -650,7 +650,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               </h2>
               {current.time && (
                 <p className="text-white/60 text-sm font-bold">
-                  Tänään {current.time}{current.price ? ` · alk. ${current.price}` : ''}
+                  {t('date.today')} {current.time}{current.price ? ` · ${t('discover.tickets_from')} ${current.price}` : ''}
                 </p>
               )}
               {current.address && (
@@ -665,7 +665,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           <div className="bg-[#0d0d12] p-5 space-y-3">
             {/* Why */}
             <div className="rounded-xl p-3.5 space-y-1" style={{ background: `${meta.accent}0d`, border: `1px solid ${meta.accent}22` }}>
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${meta.accent}88` }}>Miksi juuri tämä?</p>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${meta.accent}88` }}>{t('idea.why_this')}</p>
               <p className="text-sm leading-relaxed font-medium line-clamp-3" style={{ color: meta.accent }}>{current.why}</p>
               {current.subWhy && (
                 <p className="text-xs text-white/30 italic">{current.subWhy}</p>
@@ -679,19 +679,19 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                   className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity"
                   style={{ color: '#a3abff' }}>
                   <Globe size={12} />
-                  {current.type === 'event' ? 'Osta liput →' : 'Nettisivu →'}
+                  {current.type === 'event' ? `${t('detail.buy_tickets')} →` : `${t('common.website')} →`}
                 </a>
               )}
               {onShowOnMap && current.lat && current.lon && (
                 <button onClick={() => onShowOnMap(current.lat!, current.lon!, current.title, current.type)}
                   className="flex items-center gap-1.5 text-xs font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-                  <MapIcon size={12} /> Kartalla
+                  <MapIcon size={12} /> {t('idea.on_map')}
                 </button>
               )}
               {onEventClick && current.eventRef && (
                 <button onClick={() => onEventClick(current.eventRef!)}
                   className="flex items-center gap-1.5 text-xs font-bold text-white/30 hover:text-white/60 transition-colors">
-                  Lisätietoja →
+                  {t('common.more_info')} →
                 </button>
               )}
             </div>
@@ -738,7 +738,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
       {/* Swipe hint */}
       <p className="text-center text-white/20 text-[11px] font-bold">
-        Napauta korttia · Pyyhkäise ♥ oikealle tai ✕ vasemmalle
+        {t('idea.swipe_hint')}
       </p>
 
     </main>
@@ -802,7 +802,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                   <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                     style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                     <Heart size={12} fill="white" className="text-white" />
-                    <span className="text-white text-[11px] font-black">Tallennettu</span>
+                    <span className="text-white text-[11px] font-black">{t('detail.saved')}</span>
                   </div>
                 )}
 
@@ -820,7 +820,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 <div className="rounded-xl p-4 space-y-1.5"
                   style={{ background: `${m.accent}0d`, border: `1px solid ${m.accent}22` }}>
                   <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${m.accent}88` }}>
-                    Miksi juuri tämä?
+                    {t('idea.why_this')}
                   </p>
                   <p className="text-sm leading-relaxed font-medium" style={{ color: m.accent }}>
                     {d.why}
@@ -834,12 +834,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 <div className="flex flex-wrap gap-2">
                   {d.isOpen !== undefined && (
                     <span className={`text-[11px] font-black px-3 py-1.5 rounded-full ${d.isOpen ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/40'}`}>
-                      {d.isOpen ? '● Avoinna nyt' : '○ Suljettu'}
+                      {d.isOpen ? `● ${t('idea.open_now')}` : `○ ${t('common.closed')}`}
                     </span>
                   )}
                   {d.isFree && (
                     <span className="text-[11px] font-black px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300">
-                      ILMAINEN
+                      {t('common.free_badge')}
                     </span>
                   )}
                   {!d.isFree && d.price && (
@@ -867,7 +867,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 {d.time && (
                   <div className="flex items-center gap-2">
                     <Clock size={14} className="text-white/30 shrink-0" />
-                    <p className="text-sm text-white/50">Tänään klo {d.time}</p>
+                    <p className="text-sm text-white/50">{t('common.today_at')} {d.time}</p>
                   </div>
                 )}
 
@@ -878,7 +878,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                       className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white"
                       style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                       <Globe size={15} />
-                      {d.type === 'event' ? 'Osta liput' : 'Avaa nettisivu'}
+                      {d.type === 'event' ? t('detail.buy_tickets') : t('common.website')}
                     </a>
                   )}
                   {onShowOnMap && d.lat && d.lon && (
@@ -887,7 +887,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                       className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white/60"
                       style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
                       <MapIcon size={15} />
-                      Näytä kartalla
+                      {t('common.show_on_map')}
                     </button>
                   )}
                 </div>

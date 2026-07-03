@@ -70,10 +70,10 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose }: 
         <div className="flex items-start justify-between px-5 pt-6 shrink-0">
           <div>
             <p className="font-black text-white text-xl" style={{ letterSpacing: '-0.03em' }}>
-              Aihepiirit
+              {t('vibes.title')}
             </p>
             <p className="text-sm font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,.45)' }}>
-              Valitse yksi tai useampi
+              {t('vibes.subtitle')}
             </p>
           </div>
           <button
@@ -131,7 +131,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose }: 
               className="text-sm font-bold px-4 py-2 rounded-xl transition-all hover:text-white/70"
               style={{ color: 'rgba(255,255,255,.35)' }}
             >
-              Tyhjennä valinnat
+              {t('vibes.clear')}
             </button>
           </div>
         )}
@@ -147,7 +147,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose }: 
               letterSpacing: '-0.01em',
             }}
           >
-            {n === 0 ? 'Näytä kaikki tapahtumat' : `Näytä tapahtumat · ${n} aihepiiri${n > 1 ? 'ä' : ''}`}
+            {n === 0 ? t('vibes.show_all') : `${t('vibes.show_events')} · ${n} ${n > 1 ? t('vibes.categories') : t('vibes.category')}`}
           </button>
         </div>
       </div>

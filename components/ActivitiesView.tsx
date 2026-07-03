@@ -5,6 +5,7 @@ import { MapPin, Globe, Phone, Navigation, Clock, Ticket, Timer, Map as MapIcon,
 import type { Activity, ActivityCategory } from '@/lib/types'
 import { getHighlight } from '@/lib/activity-highlights'
 import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -100,10 +101,10 @@ function isOpenNow(hours?: string): boolean | undefined {
   } catch { return undefined }
 }
 
-function ctaLabel(a: Activity): string {
-  if (a.category === 'sauna') return 'Varaa vuoro →'
-  if (a.category === 'museo' || a.category === 'galleria') return 'Osta liput →'
-  return 'Lisätietoja →'
+function ctaLabel(a: Activity, t: (k: TranslationKey) => string): string {
+  if (a.category === 'sauna') return `${t('common.website')} →`
+  if (a.category === 'museo' || a.category === 'galleria') return `${t('detail.buy_tickets')} →`
+  return `${t('common.more_info')} →`
 }
 
 // ── Hero card ─────────────────────────────────────────────
@@ -114,6 +115,7 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
   rating?: { rating: number; reviewCount: number }
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const open = isOpenNow(a.openingHours)
   const meta = CATEGORY_META[a.category]
 
@@ -131,7 +133,7 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
       {open !== undefined && (
         <div className="absolute top-4 right-4">
           <span className={`text-[11px] font-black px-3 py-1 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-white/20 text-white/60'}`}>
-            {open ? 'Avoinna' : 'Suljettu'}
+            {open ? t('common.open') : t('common.closed')}
           </span>
         </div>
       )}
@@ -146,11 +148,11 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
             <a href={/^https?:\/\//i.test(a.www) ? a.www : '#'} target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 rounded-full text-white text-[13px] font-black"
               style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
-              {ctaLabel(a)}
+              {ctaLabel(a, t)}
             </a>
           ) : (
             <span className="px-4 py-2 rounded-full text-white text-[13px] font-black" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-              {ctaLabel(a)}
+              {ctaLabel(a, t)}
             </span>
           )}
           <div className="flex items-center gap-2">
@@ -166,7 +168,7 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
           {onShowOnMap && a.lat && a.lon && (
             <button onClick={() => onShowOnMap(a.lat!, a.lon!, a.name)}
               className="text-[12px] font-bold text-white/40 hover:text-white/70 transition-colors">
-              🗺 Kartalla
+              🗺 {t('idea.on_map')}
             </button>
           )}
         </div>
@@ -183,6 +185,7 @@ function ActivityRowCard({ a, distance, rating, onClick }: {
   rating?: { rating: number; reviewCount: number }
   onClick: (a: Activity) => void
 }) {
+  const { t } = useLanguage()
   const open = isOpenNow(a.openingHours)
   const meta = CATEGORY_META[a.category]
   return (
@@ -201,13 +204,13 @@ function ActivityRowCard({ a, distance, rating, onClick }: {
         {open !== undefined && (
           <div className="absolute top-2 right-2">
             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-black/50 text-white/50'}`}>
-              {open ? '● Auki' : '○ Kiinni'}
+              {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
             </span>
           </div>
         )}
         {a.fee === false && (
           <div className="absolute top-2 left-2">
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">ILMAINEN</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">{t('common.free_badge')}</span>
           </div>
         )}
       </div>
@@ -233,6 +236,7 @@ function ActRow({ title, items, distMap, ratingMap, onCardClick, onShowOnMap }: 
   onCardClick: (a: Activity) => void
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
   if (items.length === 0) return null
   const hasMore = items.length > 10
@@ -245,12 +249,12 @@ function ActRow({ title, items, distMap, ratingMap, onCardClick, onShowOnMap }: 
         </h2>
         {hasMore && !expanded && (
           <button onClick={() => setExpanded(true)} className="text-[12px] font-black shrink-0 transition-colors" style={{ color: '#a3abff' }}>
-            Katso kaikki {items.length} →
+            {t('discover.see_all')} {items.length} →
           </button>
         )}
         {expanded && (
           <button onClick={() => setExpanded(false)} className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
-            Näytä vähemmän ↑
+            {t('discover.see_fewer')}
           </button>
         )}
       </div>
@@ -301,11 +305,11 @@ function ActivityListCard({ a, distance, rating, onShowOnMap }: {
           <div className="flex gap-1 shrink-0 flex-wrap justify-end">
             {open !== undefined && (
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
-                {open ? '● Avoinna' : '○ Suljettu'}
+                {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
               </span>
             )}
             {a.fee === false && (
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">ILMAINEN</span>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">{t('common.free_badge')}</span>
             )}
             {distance !== undefined && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-[#a3abff]" style={{ background: 'rgba(107,118,255,.12)' }}>
@@ -421,6 +425,7 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
   onToggleOpen: () => void
   onToggleNearby: () => void
 }) {
+  const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
   const off = { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
   return (
@@ -428,12 +433,12 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
       <button onClick={onToggleOpen}
         className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
         style={filterOpen ? on : off}>
-        🟢 Avoinna nyt
+        🟢 {t('idea.open_now')}
       </button>
       <button onClick={onToggleNearby}
         className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
         style={filterNearby ? on : off}>
-        📍 Lähimmät
+        📍 {t('activities.sort_nearby')}
       </button>
     </div>
   )
@@ -444,6 +449,7 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
 export default function ActivitiesView({ onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [catFilter, setCatFilter] = useState<ActivityCategory | 'all'>('all')
@@ -561,13 +567,13 @@ export default function ActivitiesView({ onShowOnMap }: {
 
   const activeFilterLabel = useMemo(() => {
     const parts: string[] = []
-    if (filterOpen) parts.push('🟢 Avoinna nyt')
-    if (filterNearby) parts.push('📍 Lähimmät')
+    if (filterOpen) parts.push(`🟢 ${t('idea.open_now')}`)
+    if (filterNearby) parts.push(`📍 ${t('activities.sort_nearby')}`)
     if (catFilter !== 'all') {
       const meta = CATEGORY_META[catFilter]
       parts.push(`${meta.emoji} ${meta.label}`)
     }
-    return parts.join(' · ') || 'Suodatettu'
+    return parts.join(' · ') || t('common.filters')
   }, [catFilter, filterOpen, filterNearby])
 
   const clearFilter = useCallback(() => { setCatFilter('all'); setFilterOpen(false); setFilterNearby(false) }, [])
@@ -600,12 +606,12 @@ export default function ActivitiesView({ onShowOnMap }: {
               style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>{activeFilterLabel}</span>
-                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {sortedPool.length} kohdetta</span>
+                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {sortedPool.length} {t('map.acts_count')}</span>
               </div>
               <button onClick={clearFilter}
                 className="text-[12px] font-black flex-shrink-0 ml-3 px-3 py-1 rounded-full transition-all"
                 style={{ color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}>
-                Poistu hausta ×
+                {t('discover.exit_search')}
               </button>
             </div>
           )}
@@ -705,12 +711,12 @@ export default function ActivitiesView({ onShowOnMap }: {
                       const open = isOpenNow(selectedActivity.openingHours)
                       return open !== undefined ? (
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
-                          {open ? '● Avoinna' : '○ Suljettu'}
+                          {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
                         </span>
                       ) : null
                     })()}
                     {selectedActivity.fee === false && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">ILMAINEN</span>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">{t('common.free_badge')}</span>
                     )}
                   </div>
                 </div>
@@ -740,14 +746,14 @@ export default function ActivitiesView({ onShowOnMap }: {
                   <a href={/^https?:\/\//i.test(selectedActivity.www) ? selectedActivity.www : '#'} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
                     style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                    <Globe size={13} /> {ctaLabel(selectedActivity)}
+                    <Globe size={13} /> {ctaLabel(selectedActivity, t)}
                   </a>
                 )}
                 {onShowOnMap && selectedActivity.lat && selectedActivity.lon && (
                   <button onClick={() => { onShowOnMap(selectedActivity.lat!, selectedActivity.lon!, selectedActivity.name); setSelectedActivity(null) }}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
                     style={{ background: 'rgba(255,255,255,.08)' }}>
-                    <MapIcon size={13} /> Kartalla
+                    <MapIcon size={13} /> {t('idea.on_map')}
                   </button>
                 )}
                 {((selectedActivity.lat && selectedActivity.lon) || selectedActivity.address) && (

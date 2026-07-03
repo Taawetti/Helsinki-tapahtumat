@@ -253,8 +253,9 @@ function HeroCard({ r, distance, onShowOnMap }: {
   distance?: number
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
-  const ctaLabel = r.type === 'ravintola' ? 'Varaa pöytä →' : r.type === 'kahvila' ? 'Lisätietoja →' : 'Avaa →'
+  const ctaLabel = r.type === 'ravintola' ? `${t('common.website')} →` : r.type === 'kahvila' ? `${t('common.more_info')} →` : `${t('common.more_info')} →`
   const heroStyle = getCuisineStyle(r)
 
   return (
@@ -271,7 +272,7 @@ function HeroCard({ r, distance, onShowOnMap }: {
       {open !== undefined && (
         <div className="absolute top-4 right-4">
           <span className={`text-[11px] font-black px-3 py-1 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-white/20 text-white/60'}`}>
-            {open ? 'Avoinna' : 'Suljettu'}
+            {open ? t('common.open') : t('common.closed')}
           </span>
         </div>
       )}
@@ -301,7 +302,7 @@ function HeroCard({ r, distance, onShowOnMap }: {
           {onShowOnMap && r.lat && r.lon && (
             <button onClick={() => onShowOnMap(r.lat!, r.lon!, r.name)}
               className="text-[12px] font-bold text-white/40 hover:text-white/70 transition-colors">
-              🗺 Kartalla
+              🗺 {t('idea.on_map')}
             </button>
           )}
         </div>
@@ -317,6 +318,7 @@ function RestRowCard({ r, distance, onClick }: {
   distance?: number
   onClick: (r: Restaurant) => void
 }) {
+  const { t } = useLanguage()
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
   const cuisineStyle = getCuisineStyle(r)
   return (
@@ -335,7 +337,7 @@ function RestRowCard({ r, distance, onClick }: {
         {open !== undefined && (
           <div className="absolute top-2 right-2">
             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-black/50 text-white/50'}`}>
-              {open ? '● Auki' : '○ Suljettu'}
+              {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
             </span>
           </div>
         )}
@@ -379,6 +381,7 @@ function RestListCard({ r, distance, onShowOnMap }: {
   distance?: number
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
   const cuisineStyle = getCuisineStyle(r)
   return (
@@ -396,7 +399,7 @@ function RestListCard({ r, distance, onShowOnMap }: {
           <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
             {open !== undefined && (
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
-                {open ? '● Avoinna' : '○ Suljettu'}
+                {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
               </span>
             )}
             {r.priceRange && (
@@ -483,6 +486,7 @@ function RestRow({ title, items, distMap, onCardClick, onShowOnMap }: {
   onCardClick: (r: Restaurant) => void
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
   if (items.length === 0) return null
   const hasMore = items.length > 10
@@ -495,12 +499,12 @@ function RestRow({ title, items, distMap, onCardClick, onShowOnMap }: {
         </h2>
         {hasMore && !expanded && (
           <button onClick={() => setExpanded(true)} className="text-[12px] font-black shrink-0 transition-colors" style={{ color: '#a3abff' }}>
-            Katso kaikki {items.length} →
+            {t('discover.see_all')} {items.length} →
           </button>
         )}
         {expanded && (
           <button onClick={() => setExpanded(false)} className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
-            Näytä vähemmän ↑
+            {t('discover.see_fewer')}
           </button>
         )}
       </div>
@@ -590,6 +594,7 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
   onToggleOpen: () => void
   onToggleNearby: () => void
 }) {
+  const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
   const off = { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
   return (
@@ -597,12 +602,12 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
       <button onClick={onToggleOpen}
         className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
         style={filterOpen ? on : off}>
-        🟢 Avoinna nyt
+        🟢 {t('idea.open_now')}
       </button>
       <button onClick={onToggleNearby}
         className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
         style={filterNearby ? on : off}>
-        📍 Lähimmät
+        📍 {t('restaurants.sort_nearby')}
       </button>
     </div>
   )
@@ -613,6 +618,7 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
 export default function RestaurantsView({ onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  const { t } = useLanguage()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
   const [restType, setRestType] = useState<RestType>('ruokapaikat')
@@ -734,13 +740,13 @@ export default function RestaurantsView({ onShowOnMap }: {
 
   const activeFilterLabel = useMemo(() => {
     const parts: string[] = []
-    if (filterOpen) parts.push('🟢 Avoinna nyt')
-    if (filterNearby) parts.push('📍 Lähimmät')
+    if (filterOpen) parts.push(`🟢 ${t('idea.open_now')}`)
+    if (filterNearby) parts.push(`📍 ${t('restaurants.sort_nearby')}`)
     if (subCat !== 'all') {
       const cat = SUB_CATS[restType].find(c => c.id === subCat)
       if (cat) parts.push(`${cat.emoji} ${cat.label}`)
     }
-    return parts.join(' · ') || 'Suodatettu'
+    return parts.join(' · ') || t('common.filters')
   }, [subCat, filterOpen, filterNearby, restType])
 
   const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false) }, [])
@@ -776,12 +782,12 @@ export default function RestaurantsView({ onShowOnMap }: {
               style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>{activeFilterLabel}</span>
-                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {sortedPool.length} paikkaa</span>
+                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {sortedPool.length} {t('restaurants.places')}</span>
               </div>
               <button onClick={clearFilter}
                 className="text-[12px] font-black flex-shrink-0 ml-3 px-3 py-1 rounded-full transition-all"
                 style={{ color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}>
-                Poistu hausta ×
+                {t('discover.exit_search')}
               </button>
             </div>
           )}
@@ -833,18 +839,18 @@ export default function RestaurantsView({ onShowOnMap }: {
                       onClick={() => setVisibleCount(v => v + 24)}
                       className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
                       style={{ background: 'rgba(255,255,255,.05)' }}>
-                      Näytä lisää ({sortedPool.length - visibleCount} paikkaa)
+                      {t('restaurants.load_more')} ({sortedPool.length - visibleCount} {t('restaurants.places')})
                     </button>
                   )}
                 </>
               ) : (
                 <div className="flex flex-col items-center py-16 text-center gap-3">
                   <span className="text-5xl">🍽</span>
-                  <p className="text-white/40 font-bold">Ei tuloksia tällä suodatuksella</p>
+                  <p className="text-white/40 font-bold">{t('discover.no_filter_match')}</p>
                   <button onClick={clearFilter}
                     className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
                     style={{ borderColor: 'rgba(107,118,255,.3)' }}>
-                    Näytä kaikki
+                    {t('common.show_all')}
                   </button>
                 </div>
               )}
@@ -875,7 +881,7 @@ export default function RestaurantsView({ onShowOnMap }: {
                       const open = selectedRest.openingHours ? isOpenNow(selectedRest.openingHours) : undefined
                       return open !== undefined ? (
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
-                          {open ? '● Avoinna' : '○ Suljettu'}
+                          {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
                         </span>
                       ) : null
                     })()}
@@ -923,14 +929,14 @@ export default function RestaurantsView({ onShowOnMap }: {
                   <a href={/^https?:\/\//i.test(selectedRest.www) ? selectedRest.www : 'https://' + selectedRest.www} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
                     style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                    <Globe size={13} /> Nettisivu
+                    <Globe size={13} /> {t('common.website')}
                   </a>
                 )}
                 {onShowOnMap && selectedRest.lat && selectedRest.lon && (
                   <button onClick={() => { onShowOnMap(selectedRest.lat!, selectedRest.lon!, selectedRest.name); setSelectedRest(null) }}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
                     style={{ background: 'rgba(255,255,255,.08)' }}>
-                    <MapIcon size={13} /> Kartalla
+                    <MapIcon size={13} /> {t('idea.on_map')}
                   </button>
                 )}
                 {((selectedRest.lat && selectedRest.lon) || selectedRest.address) && (
@@ -940,7 +946,7 @@ export default function RestaurantsView({ onShowOnMap }: {
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
                     style={{ background: 'rgba(255,255,255,.08)' }}>
-                    <Navigation size={13} /> Reittiohjeet
+                    <Navigation size={13} /> {t('detail.directions')}
                   </a>
                 )}
               </div>

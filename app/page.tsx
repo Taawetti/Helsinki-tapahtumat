@@ -39,7 +39,7 @@ interface EmptyStateProps {
 
 // ── Horizontal carousel card ─────────────────────────────
 function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void }) {
-  const { lang } = useLanguage()
+  const { lang, t } = useLanguage()
   const now = Date.now()
   const start = new Date(event.startTime)
   const msUntil = start.getTime() - now
@@ -47,7 +47,7 @@ function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void
   const isToday = start.toDateString() === todayStr
   const time = start.toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
   let dateLabel = isToday
-    ? `Tänään ${time}`
+    ? `${t('date.today')} ${time}`
     : start.toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric' }) + ' ' + time
   if (msUntil > 0 && msUntil < 90 * 60 * 1000) dateLabel = `⏱ ${Math.round(msUntil / 60000)} min`
   return (
@@ -68,7 +68,7 @@ function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void
         </div>
         {event.isFree && (
           <div className="absolute top-2 right-2">
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white bg-emerald-500">ILMAINEN</span>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white bg-emerald-500">{t('common.free_badge')}</span>
           </div>
         )}
         <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -78,7 +78,7 @@ function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void
       </div>
       {!event.isFree && event.price && (
         <div className="px-3 py-2.5">
-          <span className="text-[11px] font-black" style={{ color: '#a3abff' }}>Osta → {event.price}</span>
+          <span className="text-[11px] font-black" style={{ color: '#a3abff' }}>{t('discover.tickets_from')} {event.price} →</span>
         </div>
       )}
     </button>
@@ -87,6 +87,7 @@ function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void
 
 // ── Carousel row ─────────────────────────────────────────
 function CarouselRow({ title, events, onClick }: { title: string; events: Event[]; onClick: (e: Event) => void }) {
+  const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
   if (events.length === 0) return null
   const hasMore = events.length > 10
@@ -101,13 +102,13 @@ function CarouselRow({ title, events, onClick }: { title: string; events: Event[
           <button onClick={() => setExpanded(true)}
             className="text-[12px] font-black shrink-0 transition-colors"
             style={{ color: '#a3abff' }}>
-            Katso kaikki {events.length} →
+            {t('discover.see_all')} {events.length} →
           </button>
         )}
         {expanded && (
           <button onClick={() => setExpanded(false)}
             className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
-            Näytä vähemmän ↑
+            {t('discover.see_fewer')}
           </button>
         )}
       </div>
@@ -396,12 +397,12 @@ export default function Home() {
   const heroEvent = useMemo(() => discoverEvents.find((e) => nightlifeScore(e) >= 3 && e.image) ?? null, [discoverEvents])
 
   const carousels = useMemo(() => [
-    { id: 'pian',      title: 'Juuri sopivasti aikaa ⏱', events: baseEvents.filter(isAlkaaPian) },
-    { id: 'parhaat',   title: 'Illan parhaat ✦',         events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !!e.image) },
-    { id: 'ilmainen',  title: 'Ilmaiseksi tänään 🎁',    events: baseEvents.filter(e => e.isFree) },
-    { id: 'terassit',  title: 'Kesäillan terassit ☀️',   events: baseEvents.filter(isTerrace) },
-    { id: 'ylatys',    title: 'Erilainen ilta ✨',        events: baseEvents.filter(isSurprise) },
-  ].filter(r => r.events.length > 0), [baseEvents])
+    { id: 'pian',      title: t('discover.carousel_soon'),      events: baseEvents.filter(isAlkaaPian) },
+    { id: 'parhaat',   title: t('discover.carousel_best'),      events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !!e.image) },
+    { id: 'ilmainen',  title: t('discover.carousel_free'),      events: baseEvents.filter(e => e.isFree) },
+    { id: 'terassit',  title: t('discover.carousel_terraces'),  events: baseEvents.filter(isTerrace) },
+    { id: 'ylatys',    title: t('discover.carousel_different'), events: baseEvents.filter(isSurprise) },
+  ].filter(r => r.events.length > 0), [baseEvents, t])
 
   const activeCount = activeVibes.length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
 
@@ -591,7 +592,7 @@ export default function Home() {
         >
           <span className="text-[13px] leading-none select-none">🎨</span>
           <span className="text-[12px] font-black" style={{ letterSpacing: '-0.01em' }}>
-            Aihepiirit
+            {t('vibes.title')}
           </span>
           {activeVibes.length > 0 && (
             <span
@@ -657,7 +658,7 @@ export default function Home() {
                             {dateStr} {timeStr}
                           </span>
                           {e.isFree && (
-                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0">ILMAINEN</span>
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0">{t('common.free_badge')}</span>
                           )}
                         </div>
                         <h3 className="font-black text-white text-sm leading-tight line-clamp-2" style={{ letterSpacing: '-0.01em' }}>{e.title}</h3>
@@ -672,7 +673,7 @@ export default function Home() {
                             onClick={ev => ev.stopPropagation()}
                             className="inline-block text-[11px] font-black px-3 py-1 rounded-full text-white"
                             style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                            {e.ticketUrl ? 'Osta liput →' : 'Lisätietoja →'}
+                            {e.ticketUrl ? `${t('detail.buy_tickets')} →` : `${t('common.more_info')} →`}
                           </a>
                         )}
                       </div>
@@ -729,10 +730,10 @@ export default function Home() {
                 <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>
                   {activeVibes[0]
                     ? (VIBES.find(v => v.id === activeVibes[0])?.emoji + ' ' + VIBES.find(v => v.id === activeVibes[0])?.label)
-                    : priceFilter === 'free' ? '🎁 Ilmainen' : 'Suodatettu'}
+                    : priceFilter === 'free' ? `🎁 ${t('common.free')}` : t('common.filters')}
                 </span>
                 <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>
-                  · {discoverEvents.length} tapahtumaa
+                  · {discoverEvents.length} {t('discover.events_count')}
                 </span>
               </div>
               <button
@@ -740,7 +741,7 @@ export default function Home() {
                 className="text-[12px] font-black flex-shrink-0 ml-3 px-3 py-1 rounded-full transition-all"
                 style={{ color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}
               >
-                Poistu hausta ×
+                {t('discover.exit_search')}
               </button>
             </div>
           )}
@@ -763,7 +764,7 @@ export default function Home() {
               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,0.97) 0%,rgba(10,10,12,0.2) 55%,transparent 100%)' }} />
               {/* Badges row */}
               <div className="absolute top-4 left-4 flex gap-2">
-                <span className="text-[9px] font-black px-2.5 py-1 rounded-full text-white tracking-[.08em] uppercase" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>✦ ILLAN NOSTO</span>
+                <span className="text-[9px] font-black px-2.5 py-1 rounded-full text-white tracking-[.08em] uppercase" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{t('discover.hero_badge')}</span>
                 {heroEvent.categories[0] && (
                   <span className="text-[9px] font-black px-2.5 py-1 rounded-full text-white/80 uppercase tracking-[.08em]" style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.15)' }}>
                     {heroEvent.categories[0]}
@@ -787,10 +788,10 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                   {!heroEvent.isFree && heroEvent.price ? (
                     <span className="px-4 py-2 rounded-full text-white text-[13px] font-black" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
-                      Liput alk. {heroEvent.price} →
+                      {t('discover.tickets_from')} {heroEvent.price} →
                     </span>
                   ) : heroEvent.isFree ? (
-                    <span className="px-4 py-2 rounded-full text-white text-[13px] font-black bg-emerald-500">Ilmainen →</span>
+                    <span className="px-4 py-2 rounded-full text-white text-[13px] font-black bg-emerald-500">{t('common.free')} →</span>
                   ) : null}
                   <span className="text-white/50 text-[13px] font-bold">
                     {new Date(heroEvent.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long' }).replace(/^./, c => c.toUpperCase())} {new Date(heroEvent.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
