@@ -190,10 +190,20 @@ function normName(n: string): string {
   return n.toLowerCase().replace(/[^a-zäöå0-9]/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-// Match OSM name against an award key using strict normalized equality.
-// Substring matching ("bar palace".includes("palace")) causes false awards — don't use it.
+// Common prefixes OSM mappers add to restaurant names
+const PREFIX_RE = /^(ravintola|restaurant|bar|cafe|kahvila|bistro|brasserie|gastropub)\s+/
+
+function stripPrefix(n: string): string {
+  return n.replace(PREFIX_RE, '').trim()
+}
+
+// Match OSM name against an award key. Handles "Ravintola Olo" → "Olo" prefix variants.
+// Still avoids substring matching to prevent false awards.
 function awardMatch(osmName: string, awardKey: string): boolean {
-  return normName(osmName) === normName(awardKey)
+  const a = normName(osmName)
+  const b = normName(awardKey)
+  if (a === b) return true
+  return stripPrefix(a) === stripPrefix(b)
 }
 
 function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
@@ -394,6 +404,44 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
     results.push(b as Restaurant)
   }
 
+  // Award-winning restaurants that may be missing or misnamed in OSM
+  const AWARD_SUPPLEMENTS: Array<{ name: string; address: string; lat: number; lon: number; www?: string; priceRange?: 1|2|3|4 }> = [
+    { name: 'Olo',              address: 'Pohjoisesplanadi 5',  lat: 60.1678, lon: 24.9534, www: 'https://olo-ravintola.fi', priceRange: 4 },
+    { name: 'Finnjävel Salonki',address: 'Ainonkatu 3',         lat: 60.1657, lon: 24.9312, www: 'https://finnjavel.fi',     priceRange: 4 },
+    { name: 'Nolla',            address: 'Fredrikinkatu 22',    lat: 60.1628, lon: 24.9364, www: 'https://restaurantnolla.com', priceRange: 3 },
+    { name: '305',              address: 'Pursimiehenk. 1',     lat: 60.1585, lon: 24.9267, priceRange: 2 },
+    { name: 'Bona Fide',        address: 'Fredrikinkatu 34',    lat: 60.1617, lon: 24.9341, priceRange: 2 },
+    { name: 'Natura',           address: 'Museokatu 14',        lat: 60.1732, lon: 24.9279, priceRange: 3 },
+  ]
+  for (const sup of AWARD_SUPPLEMENTS) {
+    const alreadyIn = results.some(r => awardMatch(r.name, sup.name))
+    if (alreadyIn) continue
+    const entry: Partial<Restaurant> = {
+      id: `supplement-${sup.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      name: sup.name,
+      description: 'finedining',
+      cuisines: [],
+      cuisineCategories: ['nordisk'],
+      address: sup.address,
+      city: 'Helsinki',
+      lat: sup.lat,
+      lon: sup.lon,
+      image: CURATED_IMAGES[sup.name] ?? null,
+      www: sup.www ?? null,
+      phone: null,
+      email: null,
+      instagram: null,
+      type: 'ravintola',
+      priceRange: sup.priceRange,
+      openingHours: undefined,
+      awards: [],
+      outdoorSeating: undefined,
+      takeaway: undefined,
+    }
+    enrichWithAwards(sup.name, entry)
+    results.push(entry as Restaurant)
+  }
+
   // Curated Helsinki nightclubs — add those missing from OSM
   const osmNames = new Set(results.map(r => normName(r.name)))
   for (const venue of HELSINKI_NIGHTCLUBS) {
@@ -430,7 +478,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v12'],
+  ['restaurants-osm-v13'],
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
