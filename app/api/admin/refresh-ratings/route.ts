@@ -44,9 +44,10 @@ async function fetchRating(query: string): Promise<{
   reviewCount: number | null
   priceLevel: string | null
   description: string | null
+  mainImage: string | null
 }> {
   const token = process.env.DATAFORSEO_TOKEN
-  if (!token) return { rating: null, reviewCount: null, priceLevel: null, description: null }
+  if (!token) return { rating: null, reviewCount: null, priceLevel: null, description: null, mainImage: null }
 
   const res = await fetch('https://api.dataforseo.com/v3/business_data/google/my_business_info/live', {
     method: 'POST',
@@ -71,7 +72,7 @@ async function fetchRating(query: string): Promise<{
   const item = data?.tasks?.[0]?.result?.[0]?.items?.[0]
   if (!item) {
     console.log('[refresh-ratings] no item for query:', query, JSON.stringify(data?.tasks?.[0]?.result?.[0]).slice(0, 200))
-    return { rating: null, reviewCount: null, priceLevel: null, description: null }
+    return { rating: null, reviewCount: null, priceLevel: null, description: null, mainImage: null }
   }
 
   return {
@@ -79,6 +80,7 @@ async function fetchRating(query: string): Promise<{
     reviewCount: item.rating?.votes_count ?? null,
     priceLevel: item.price_level ?? null,
     description: item.description ?? null,
+    mainImage: item.main_image ?? null,
   }
 }
 
@@ -90,7 +92,7 @@ export async function POST(req: NextRequest) {
 
   for (const [venueKey, query] of Object.entries(VENUE_QUERIES)) {
     try {
-      const { rating, reviewCount, priceLevel, description } = await fetchRating(query)
+      const { rating, reviewCount, priceLevel, description, mainImage } = await fetchRating(query)
 
       await supabaseAdmin.from('venue_ratings').upsert({
         venue_key: venueKey,
@@ -98,6 +100,7 @@ export async function POST(req: NextRequest) {
         review_count: reviewCount,
         price_level: priceLevel,
         description,
+        ...(mainImage ? { main_image: mainImage } : {}),
         last_updated: new Date().toISOString(),
       }, { onConflict: 'venue_key' })
 

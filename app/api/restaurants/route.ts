@@ -492,13 +492,14 @@ interface RestaurantEnrichment {
   googleRating?: number
   reviewCount?: number
   subCategories?: string[]
+  imageUrl?: string
 }
 
 async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEnrichment>> {
   if (!supabase) return {}
   const { data } = await supabase
     .from('venue_ratings')
-    .select('venue_key, cuisine_categories, google_rating, review_count, sub_categories')
+    .select('venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image')
   const map: Record<string, RestaurantEnrichment> = {}
   for (const row of data ?? []) {
     const entry: RestaurantEnrichment = {}
@@ -510,6 +511,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
     if (Array.isArray(row.sub_categories) && row.sub_categories.length > 0) {
       entry.subCategories = row.sub_categories
     }
+    if (row.main_image) entry.imageUrl = row.main_image
     if (Object.keys(entry).length > 0) map[row.venue_key] = entry
   }
   return map
@@ -517,7 +519,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
 
 const fetchCuisineEnrichmentCached = unstable_cache(
   _fetchRestaurantEnrichment,
-  ['restaurant-enrichment-v3'],
+  ['restaurant-enrichment-v4'],
   { revalidate: 3600 }
 )
 
@@ -546,6 +548,7 @@ export async function GET(req: NextRequest) {
     if (enriched.googleRating) updates.googleRating = enriched.googleRating
     if (enriched.reviewCount) updates.reviewCount = enriched.reviewCount
     if (enriched.subCategories) updates.subCategories = enriched.subCategories
+    if (enriched.imageUrl && !r.image) updates.image = enriched.imageUrl
     return Object.keys(updates).length > 0 ? { ...r, ...updates } : r
   })
 

@@ -51,11 +51,12 @@ interface GoogleData {
   categories: string[]
   rating: number | null
   reviewCount: number | null
+  mainImage: string | null
 }
 
 async function fetchGoogleData(query: string): Promise<GoogleData> {
   const token = process.env.DATAFORSEO_TOKEN
-  if (!token) return { categories: [], rating: null, reviewCount: null }
+  if (!token) return { categories: [], rating: null, reviewCount: null, mainImage: null }
 
   try {
     const res = await fetch('https://api.dataforseo.com/v3/business_data/google/my_business_info/live', {
@@ -73,19 +74,22 @@ async function fetchGoogleData(query: string): Promise<GoogleData> {
 
     const data = await res.json()
     const item = data?.tasks?.[0]?.result?.[0]?.items?.[0]
-    if (!item) return { categories: [], rating: null, reviewCount: null }
+    if (!item) return { categories: [], rating: null, reviewCount: null, mainImage: null }
 
     const cats: string[] = []
     if (item.category) cats.push(item.category)
     if (Array.isArray(item.additional_categories)) cats.push(...item.additional_categories)
 
+    const mainImage: string | null = item.main_image ?? null
+
     return {
       categories: cats,
       rating: item.rating?.value ?? null,
       reviewCount: item.rating?.votes_count ?? null,
+      mainImage,
     }
   } catch {
-    return { categories: [], rating: null, reviewCount: null }
+    return { categories: [], rating: null, reviewCount: null, mainImage: null }
   }
 }
 
@@ -126,7 +130,7 @@ export async function POST(req: NextRequest) {
 
   for (const rest of toProcess) {
     const query = `${rest.name} Helsinki`
-    const { categories: googleCats, rating, reviewCount } = await fetchGoogleData(query)
+    const { categories: googleCats, rating, reviewCount, mainImage } = await fetchGoogleData(query)
     const cuisineCats = googleCategoriesToCuisine(googleCats)
 
     const venueKey = rest.name.toLowerCase().trim()
@@ -142,6 +146,7 @@ export async function POST(req: NextRequest) {
       upsertData.cuisine_categories = rest.cuisineCategories.length > 0
         ? rest.cuisineCategories
         : cuisineCats.length > 0 ? cuisineCats : []
+      if (mainImage) upsertData.main_image = mainImage
       await supabaseAdmin.from('venue_ratings').upsert(upsertData, { onConflict: 'venue_key' })
     }
 
