@@ -8,16 +8,16 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { endpoint, keys } = body
+  const { endpoint, keys, preferredCategories } = body
 
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 })
   }
 
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    { endpoint, p256dh: keys.p256dh, auth: keys.auth },
-    { onConflict: 'endpoint' }
-  )
+  const row: Record<string, string> = { endpoint, p256dh: keys.p256dh, auth: keys.auth }
+  if (preferredCategories) row.preferred_categories = preferredCategories
+
+  const { error } = await supabase.from('push_subscriptions').upsert(row, { onConflict: 'endpoint' })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

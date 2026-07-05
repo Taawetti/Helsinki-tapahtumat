@@ -9,6 +9,7 @@ import { haversineKm } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents } from '@/hooks/useEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
+import { getCategoryScores } from '@/lib/preferences'
 import EventCard from '@/components/EventCard'
 import FeedCard from '@/components/FeedCard'
 import EventDetailPanel from '@/components/EventDetailPanel'
@@ -447,7 +448,17 @@ export default function Home() {
       userVisibleOnly: true,
       applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     })
-    await fetch('/api/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub.toJSON()) })
+    const scores = getCategoryScores()
+    const topCats = Object.entries(scores)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([cat]) => cat)
+      .join(',')
+    await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...sub.toJSON(), preferredCategories: topCats }),
+    })
     setPushEnabled(true)
   }
 
