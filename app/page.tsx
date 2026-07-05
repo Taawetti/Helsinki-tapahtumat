@@ -352,6 +352,7 @@ export default function Home() {
     }
   }, [mode, showJarjestajaForm])
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
+  const [pushEnabled, setPushEnabled] = useState(false)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
@@ -407,6 +408,36 @@ export default function Home() {
     setMode('map')
     setMobileTab('map')
   }, [])
+
+  // Check if user already has an active push subscription
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
+    navigator.serviceWorker.ready.then(async (reg) => {
+      const sub = await reg.pushManager.getSubscription()
+      setPushEnabled(!!sub)
+    }).catch(() => {})
+  }, [])
+
+  const handleBellClick = async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+    const reg = await navigator.serviceWorker.ready
+    const existing = await reg.pushManager.getSubscription()
+    if (existing) {
+      // Unsubscribe
+      await existing.unsubscribe()
+      await fetch('/api/subscribe', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: existing.endpoint }) })
+      setPushEnabled(false)
+      return
+    }
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') return
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    })
+    await fetch('/api/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub.toJSON()) })
+    setPushEnabled(true)
+  }
 
   // Local notification: alert about today's events after 8h gap
   useEffect(() => {
@@ -564,8 +595,9 @@ export default function Home() {
               {lang === 'fi' ? 'EN' : 'FI'}
             </button>
             <button
-              onClick={async () => { if (typeof Notification === 'undefined') return; await Notification.requestPermission() }}
-              className="p-2 rounded-xl border border-white/8 text-white/40 bg-white/4 hover:text-white/70 transition-all"
+              onClick={handleBellClick}
+              title={pushEnabled ? 'Peruuta ilmoitukset' : 'Tilaa päiväilmoitukset'}
+              className={`p-2 rounded-xl border transition-all ${pushEnabled ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
             >
               <Bell size={15} />
             </button>
@@ -624,9 +656,9 @@ export default function Home() {
           </button>
 
           <button
-            onClick={async () => { if (typeof Notification === 'undefined') return; await Notification.requestPermission() }}
-            className="shrink-0 p-2 rounded-xl border border-white/8 text-white/40 bg-white/4 hover:text-white/70 transition-all"
-            title="Tilaa ilmoitukset"
+            onClick={handleBellClick}
+            title={pushEnabled ? 'Peruuta ilmoitukset' : 'Tilaa päiväilmoitukset'}
+            className={`shrink-0 p-2 rounded-xl border transition-all ${pushEnabled ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
           >
             <Bell size={15} />
           </button>

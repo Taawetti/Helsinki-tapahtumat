@@ -19,5 +19,11 @@ export async function GET(req: NextRequest) {
   // Pre-warm restaurant cache in background (don't block the cron response)
   void Promise.allSettled([fetchOSMCached(), fetchPKCached()])
 
+  // Send daily push notifications
+  const origin = req.nextUrl.origin
+  void fetch(`${origin}/api/push`, {
+    headers: { authorization: `Bearer ${process.env.CRON_SECRET}` },
+  }).catch(() => {})
+
   return NextResponse.json({ synced: true, at: new Date().toISOString() })
 }
