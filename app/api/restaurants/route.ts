@@ -188,11 +188,10 @@ function normName(n: string): string {
   return n.toLowerCase().replace(/[^a-zäöå0-9]/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-// Match OSM name against an award key: exact OR OSM contains the key OR key contains OSM name
+// Match OSM name against an award key using strict normalized equality.
+// Substring matching ("bar palace".includes("palace")) causes false awards — don't use it.
 function awardMatch(osmName: string, awardKey: string): boolean {
-  if (osmName === awardKey) return true
-  const n = normName(osmName), k = normName(awardKey)
-  return n === k || n.includes(k) || k.includes(n)
+  return normName(osmName) === normName(awardKey)
 }
 
 function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
@@ -368,7 +367,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v8'],
+  ['restaurants-osm-v9'],
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
