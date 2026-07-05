@@ -5,12 +5,26 @@ import { Search, X } from 'lucide-react'
 import { SEARCH_SUGGESTIONS } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+export interface SearchHit {
+  id: string
+  name: string
+  sub: string
+}
+
 interface Props {
   value: string
   onChange: (v: string) => void
+  activityHits?: SearchHit[]
+  restaurantHits?: SearchHit[]
+  onSelectActivity?: (id: string) => void
+  onSelectRestaurant?: (id: string) => void
 }
 
-export default function SearchBar({ value, onChange }: Props) {
+export default function SearchBar({
+  value, onChange,
+  activityHits = [], restaurantHits = [],
+  onSelectActivity, onSelectRestaurant,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [focused, setFocused] = useState(false)
   const { t } = useLanguage()
@@ -25,6 +39,8 @@ export default function SearchBar({ value, onChange }: Props) {
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [])
+
+  const hasLocalHits = activityHits.length > 0 || restaurantHits.length > 0
 
   return (
     <div className="relative w-full max-w-md">
@@ -49,7 +65,53 @@ export default function SearchBar({ value, onChange }: Props) {
         </button>
       )}
 
-      {/* Suggestion dropdown */}
+      {/* Local hits dropdown — activities & restaurants */}
+      {focused && value && hasLocalHits && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[#131820] border border-white/10 rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
+          {activityHits.length > 0 && (
+            <>
+              <p className="text-white/30 text-[11px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1">
+                {t('nav.activities')}
+              </p>
+              {activityHits.map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => onSelectActivity?.(h.id)}
+                  className="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between gap-3"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <Search size={12} className="text-white/20 shrink-0" />
+                    <span className="truncate">{h.name}</span>
+                  </span>
+                  <span className="text-[10px] text-white/25 shrink-0">{h.sub}</span>
+                </button>
+              ))}
+            </>
+          )}
+          {restaurantHits.length > 0 && (
+            <>
+              <p className="text-white/30 text-[11px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1">
+                {t('nav.restaurants')}
+              </p>
+              {restaurantHits.map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => onSelectRestaurant?.(h.id)}
+                  className="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between gap-3"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <Search size={12} className="text-white/20 shrink-0" />
+                    <span className="truncate">{h.name}</span>
+                  </span>
+                  <span className="text-[10px] text-white/25 shrink-0">{h.sub}</span>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Suggestions dropdown — shown when input is empty */}
       {focused && !value && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-[#131820] border border-white/10 rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
           <p className="text-white/30 text-[11px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1">

@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Loader2, SlidersHorizontal, Heart, Bell } from 'lucide-react'
-import { Event, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
+import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents } from '@/hooks/useEvents'
 import EventCard from '@/components/EventCard'
@@ -235,6 +235,57 @@ export default function Home() {
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [showVibePanel, setShowVibePanel] = useState(false)
   const vibeBtnRef = useRef<HTMLButtonElement>(null)
+
+  // ── Unified search: lazy-load activities + restaurants on first keystroke ──
+  const [allActivities, setAllActivities] = useState<Activity[]>([])
+  const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([])
+  const searchDataLoaded = useRef(false)
+
+  useEffect(() => {
+    if (!keyword || searchDataLoaded.current) return
+    searchDataLoaded.current = true
+    fetch('/api/activities').then(r => r.json()).then(d => setAllActivities(d ?? [])).catch(() => {})
+    fetch('/api/restaurants').then(r => r.json()).then(d => setAllRestaurants(d ?? [])).catch(() => {})
+  }, [keyword])
+
+  const localSearchHits = useMemo(() => {
+    if (!keyword || keyword.length < 2) return { activities: [], restaurants: [] }
+    const kw = keyword.toLowerCase()
+    const ACT_LABEL: Record<string, string> = {
+      sauna: '🧖 Sauna', museo: '🏛 Museo', nahtavyys: '🌄 Nähtävyys',
+      galleria: '🖼 Galleria', nakopaikka: '🔭 Näköpaikka', uimaranta: '🏖 Uimaranta',
+      puisto: '🌳 Puisto', markkina: '🛍 Markkina', urheilu: '⚽ Urheilu', muu: '✨ Muut',
+    }
+    const REST_EMOJI: Record<string, string> = {
+      ravintola: '🍽', kahvila: '☕', baari: '🍺', pikaruoka: '🍟', muu: '🍴',
+    }
+    return {
+      activities: allActivities
+        .filter(a => a.name.toLowerCase().includes(kw) || a.description?.toLowerCase().includes(kw))
+        .slice(0, 4)
+        .map(a => ({ id: a.id, name: a.name, sub: ACT_LABEL[a.category] ?? '✨' })),
+      restaurants: allRestaurants
+        .filter(r =>
+          r.name.toLowerCase().includes(kw) ||
+          r.description?.toLowerCase().includes(kw) ||
+          r.cuisines?.some(c => c.toLowerCase().includes(kw))
+        )
+        .slice(0, 4)
+        .map(r => ({ id: r.id, name: r.name, sub: `${REST_EMOJI[r.type] ?? '🍴'} ${r.description || r.type}` })),
+    }
+  }, [keyword, allActivities, allRestaurants])
+
+  const handleSelectActivity = useCallback(() => {
+    setKeyword('')
+    setMode('activities')
+    setMobileTab('activities')
+  }, [])
+
+  const handleSelectRestaurant = useCallback(() => {
+    setKeyword('')
+    setMode('restaurants')
+    setMobileTab('restaurants')
+  }, [])
 
   // Entry animation + scroll-hide for the floating Aihepiirit button.
   // Uses direct style manipulation — CSS animation would block transitions via fill-mode.
@@ -474,7 +525,14 @@ export default function Home() {
         </div>
         {/* ── Mobile header row 2: search ── */}
         <div className="md:hidden px-4 pb-3">
-          <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }} />
+          <SearchBar
+            value={keyword}
+            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }}
+            activityHits={localSearchHits.activities}
+            restaurantHits={localSearchHits.restaurants}
+            onSelectActivity={handleSelectActivity}
+            onSelectRestaurant={handleSelectRestaurant}
+          />
         </div>
 
         {/* ── Desktop header: single row ── */}
@@ -497,7 +555,14 @@ export default function Home() {
           </div>
 
           <div className="flex-1 max-w-md">
-            <SearchBar value={keyword} onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }} />
+            <SearchBar
+            value={keyword}
+            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }}
+            activityHits={localSearchHits.activities}
+            restaurantHits={localSearchHits.restaurants}
+            onSelectActivity={handleSelectActivity}
+            onSelectRestaurant={handleSelectRestaurant}
+          />
           </div>
 
           <button onClick={() => setLang(lang === 'fi' ? 'en' : 'fi')}
