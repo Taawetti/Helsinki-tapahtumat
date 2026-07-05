@@ -166,6 +166,16 @@ function NewsSection({ items }: { items: NewsItem[] }) {
   )
 }
 
+function isLunchTime(): boolean {
+  const h = new Date().getHours()
+  return h >= 10 && h < 15
+}
+
+function isDinnerTime(): boolean {
+  const h = new Date().getHours()
+  return h >= 17 && h <= 22
+}
+
 function isLateNight(hours: string): boolean {
   if (!hours) return false
   if (hours === '24/7') return true
@@ -588,11 +598,13 @@ function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestT
 
 // ── Quick sort pills ──────────────────────────────────────
 
-function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby }: {
+function QuickSortPills({ filterOpen, filterNearby, filterTerrace, onToggleOpen, onToggleNearby, onToggleTerrace }: {
   filterOpen: boolean
   filterNearby: boolean
+  filterTerrace: boolean
   onToggleOpen: () => void
   onToggleNearby: () => void
+  onToggleTerrace: () => void
 }) {
   const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
@@ -603,6 +615,11 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
         className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
         style={filterOpen ? on : off}>
         🟢 {t('idea.open_now')}
+      </button>
+      <button onClick={onToggleTerrace}
+        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
+        style={filterTerrace ? on : off}>
+        ☀️ Terassi
       </button>
       <button onClick={onToggleNearby}
         className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
@@ -625,6 +642,7 @@ export default function RestaurantsView({ onShowOnMap }: {
   const [subCat, setSubCat] = useState<string>('all')
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterNearby, setFilterNearby] = useState(false)
+  const [filterTerrace, setFilterTerrace] = useState(false)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [selectedRest, setSelectedRest] = useState<Restaurant | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
@@ -645,7 +663,7 @@ export default function RestaurantsView({ onShowOnMap }: {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setVisibleCount(48) }, [restType])
+  useEffect(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setFilterTerrace(false); setVisibleCount(48) }, [restType])
   useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby])
 
   const locateMe = useCallback(() => {
@@ -658,6 +676,7 @@ export default function RestaurantsView({ onShowOnMap }: {
   }, [])
 
   const handleToggleOpen = useCallback(() => setFilterOpen(v => !v), [])
+  const handleToggleTerrace = useCallback(() => setFilterTerrace(v => !v), [])
 
   const handleToggleNearby = useCallback(() => {
     setFilterNearby(v => {
@@ -693,14 +712,11 @@ export default function RestaurantsView({ onShowOnMap }: {
 
   const sortedPool = useMemo(() => {
     let result = [...subPool]
-    if (filterOpen) {
-      result = result.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
-    }
-    if (filterNearby && userPos) {
-      result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
-    }
+    if (filterOpen) result = result.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
+    if (filterTerrace) result = result.filter(r => r.outdoorSeating === true)
+    if (filterNearby && userPos) result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     return result
-  }, [subPool, filterOpen, filterNearby, userPos, distMap])
+  }, [subPool, filterOpen, filterTerrace, filterNearby, userPos, distMap])
 
   const heroRest = useMemo(() => {
     return typePool.find(r => r.image && r.openingHours && isOpenNow(r.openingHours))
@@ -711,10 +727,19 @@ export default function RestaurantsView({ onShowOnMap }: {
 
   const rows = useMemo(() => {
     const base = typePool
-    if (restType === 'ruokapaikat') return [
-      { title: '☀️ Lounaalle mars',              items: base.filter(r => /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase()) || (r.priceRange !== undefined && r.priceRange <= 2)) },
-      { title: '🌙 Auki vielä myöhään illalla',  items: base.filter(r => r.openingHours ? isLateNight(r.openingHours) : false) },
-    ]
+    if (restType === 'ruokapaikat') {
+      const lunchRow = isLunchTime()
+        ? { title: '🍱 Lounas auki juuri nyt', items: base.filter(r => r.openingHours && isOpenNow(r.openingHours) === true && /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase())) }
+        : isDinnerTime()
+          ? { title: '🌙 Illallispaikat — auki nyt', items: base.filter(r => r.openingHours && isOpenNow(r.openingHours) === true) }
+          : { title: '☀️ Lounaalle mars', items: base.filter(r => /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase()) || (r.priceRange !== undefined && r.priceRange <= 2)) }
+      return [
+        lunchRow,
+        { title: '🌿 Terassit — ulkona syömässä', items: base.filter(r => r.outdoorSeating === true) },
+        { title: '⭐ Michelin & palkitut',         items: base.filter(r => !!(r.michelinStars || r.bibGourmand || r.greenMichelin)) },
+        { title: '🌙 Auki vielä myöhään illalla',  items: base.filter(r => r.openingHours ? isLateNight(r.openingHours) : false) },
+      ]
+    }
     if (restType === 'kahvilat') return [
       { title: '🎩 Kaupungin legendat',          items: base.filter(r => matchesSubCat(r, 'kahvilat', 'klassikot')) },
       { title: '☕ Kahviammattilaisten paahtimot', items: base.filter(r => matchesSubCat(r, 'kahvilat', 'paahtimo') || matchesSubCat(r, 'kahvilat', 'erikois')) },
@@ -736,11 +761,12 @@ export default function RestaurantsView({ onShowOnMap }: {
     return []
   }, [typePool, restType])
 
-  const isFilterActive = subCat !== 'all' || filterOpen || filterNearby
+  const isFilterActive = subCat !== 'all' || filterOpen || filterNearby || filterTerrace
 
   const activeFilterLabel = useMemo(() => {
     const parts: string[] = []
     if (filterOpen) parts.push(`🟢 ${t('idea.open_now')}`)
+    if (filterTerrace) parts.push('☀️ Terassi')
     if (filterNearby) parts.push(`📍 ${t('restaurants.sort_nearby')}`)
     if (subCat !== 'all') {
       const cat = SUB_CATS[restType].find(c => c.id === subCat)
@@ -749,7 +775,7 @@ export default function RestaurantsView({ onShowOnMap }: {
     return parts.join(' · ') || t('common.filters')
   }, [subCat, filterOpen, filterNearby, restType])
 
-  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false) }, [])
+  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setFilterTerrace(false) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -799,7 +825,7 @@ export default function RestaurantsView({ onShowOnMap }: {
                 <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
               )}
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} filterTerrace={filterTerrace} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onToggleTerrace={handleToggleTerrace} />
 
               {rows.filter(r => r.items.length > 0).map(row => (
                 <RestRow
@@ -825,7 +851,7 @@ export default function RestaurantsView({ onShowOnMap }: {
           {/* Filter active: list view */}
           {isFilterActive && (
             <>
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} filterTerrace={filterTerrace} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onToggleTerrace={handleToggleTerrace} />
 
               {sortedPool.length > 0 ? (
                 <>
