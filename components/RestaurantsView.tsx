@@ -625,8 +625,9 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
 
 // ── Main view ─────────────────────────────────────────────
 
-export default function RestaurantsView({ onShowOnMap }: {
+export default function RestaurantsView({ onShowOnMap, jumpToId }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
+  jumpToId?: string
 }) {
   const { t } = useLanguage()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
@@ -647,6 +648,13 @@ export default function RestaurantsView({ onShowOnMap }: {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // Open detail modal when navigated from search
+  useEffect(() => {
+    if (!jumpToId || !restaurants.length) return
+    const r = restaurants.find(r => r.id === jumpToId)
+    if (r) setSelectedRest(r)
+  }, [jumpToId, restaurants])
 
   useEffect(() => {
     fetch('/api/restaurant-news')

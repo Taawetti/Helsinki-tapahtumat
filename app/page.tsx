@@ -282,10 +282,13 @@ export default function Home() {
     setMobileTab('activities')
   }, [])
 
-  const handleSelectRestaurant = useCallback(() => {
+  const [jumpToRestaurantId, setJumpToRestaurantId] = useState<string | undefined>()
+
+  const handleSelectRestaurant = useCallback((id: string) => {
     setKeyword('')
     setMode('restaurants')
     setMobileTab('restaurants')
+    setJumpToRestaurantId(id)
   }, [])
 
   // Entry animation + scroll-hide for the floating Aihepiirit button.
@@ -968,7 +971,7 @@ export default function Home() {
       )}
 
       {/* ══ RESTAURANTS ══ */}
-      {mode === 'restaurants' && <RestaurantsView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'restaurant')} />}
+      {mode === 'restaurants' && <RestaurantsView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'restaurant')} jumpToId={jumpToRestaurantId} />}
 
       {/* ══ ACTIVITIES ══ */}
       {mode === 'activities' && <ActivitiesView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'activity')} />}
