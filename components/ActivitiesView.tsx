@@ -35,7 +35,7 @@ const HERO_ROTATION: ActivityCategory[] = [
 
 // Helsinki's must-see attractions — used for "Helsingin helmet" row
 const HELMET_IDS_OR_NAMES = new Set([
-  'suomenlinna', 'temppeliaukion kirkko', 'temppeliaukio', 'helsingin tuomiokirkko',
+  'suomenlinna', 'temppeliaukion kirkko', 'helsingin tuomiokirkko',
   'amos rex', 'löyly', 'allas sea pool', 'kansallismuseo', 'ateneum',
   'kiasma', 'ham helsinki', 'linnanmäki', 'korkeasaari', 'oodi',
 ])
