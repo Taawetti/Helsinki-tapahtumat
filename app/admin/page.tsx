@@ -139,7 +139,7 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/enrich-restaurant-cuisines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 100 }),
+        body: JSON.stringify({ limit: 50 }),
       })
       const data = await res.json()
       if (data.error) { setEnrichResult('Virhe: ' + data.error); break }

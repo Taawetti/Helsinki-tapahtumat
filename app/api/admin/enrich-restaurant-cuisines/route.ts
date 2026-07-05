@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchOSMCached } from '@/app/api/restaurants/route'
 
+export const maxDuration = 300
 
 // ── Auth ─────────────────────────────────────────────────────
 
