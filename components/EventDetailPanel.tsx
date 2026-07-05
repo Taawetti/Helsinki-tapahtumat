@@ -16,6 +16,7 @@ interface Props {
 export default function EventDetailPanel({ event, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isManualClose = useRef(false)
   const [copied, setCopied] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [slideIn, setSlideIn] = useState(false)
@@ -69,10 +70,40 @@ export default function EventDetailPanel({ event, onClose }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event])
 
+  // Push a browser history entry when the panel opens so that the native
+  // swipe-back gesture fires popstate instead of leaving the app entirely.
+  useEffect(() => {
+    if (!event) return
+    isManualClose.current = false
+    history.pushState({ mitaTanaan: 'panel' }, '')
+
+    const onPop = () => {
+      if (isManualClose.current) { isManualClose.current = false; return }
+      // Swipe-back: browser already went back — just animate and close
+      isManualClose.current = true
+      setSlideIn(false)
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+      closeTimer.current = setTimeout(onClose, 350)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      // If the panel was closed externally (parent set event=null directly),
+      // remove the history entry we pushed so it doesn't leave a ghost entry.
+      if (!isManualClose.current) history.back()
+      isManualClose.current = false
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id])
+
   function handleClose() {
     if (closeTimer.current) clearTimeout(closeTimer.current)
+    isManualClose.current = true
     setSlideIn(false)
-    closeTimer.current = setTimeout(() => { setSlideIn(false); onClose() }, 350)
+    closeTimer.current = setTimeout(() => {
+      history.back() // removes the pushState entry (fires popstate async, but listener is gone by then)
+      onClose()
+    }, 350)
   }
 
   if (!event) return null
