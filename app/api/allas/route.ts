@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
         const title = (e.acf?.title || e.title.rendered).trim()
         const date = parseDate(e.acf?.date || '')
         if (!title || !date) continue
-        if (keyword && !title.toLowerCase().includes(keyword)) continue
+        if (!title) continue
 
         seenDates.add(date)
         events.push({
@@ -154,7 +154,7 @@ export async function GET(req: NextRequest) {
   for (const s of ALLAS_LIVE_STATIC) {
     const ts = new Date(s.date).getTime()
     if (ts < startTs || ts > endTs) continue
-    if (keyword && !s.title.toLowerCase().includes(keyword)) continue
+    if (!s.title) continue
     if (seenDates.has(s.date)) continue
 
     seenDates.add(s.date)

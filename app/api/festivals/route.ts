@@ -48,10 +48,6 @@ export async function GET(req: NextRequest) {
   const events: Event[] = []
 
   for (const fest of festivals) {
-    if (keyword && !fest.name.toLowerCase().includes(keyword) && !fest.shortName.toLowerCase().includes(keyword)) {
-      continue
-    }
-
     const festDays = daysBetween(fest.startDate, fest.endDate)
     const totalDays = festDays.length
 

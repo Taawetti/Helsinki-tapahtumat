@@ -258,13 +258,5 @@ export async function GET(req: NextRequest) {
       return ts >= startTs && ts <= endTs
     })
 
-  if (keyword) {
-    events = events.filter(
-      (e) =>
-        e.title.toLowerCase().includes(keyword) ||
-        e.location?.name?.toLowerCase().includes(keyword)
-    )
-  }
-
   return NextResponse.json({ events })
 }

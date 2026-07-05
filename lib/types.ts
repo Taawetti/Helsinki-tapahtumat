@@ -193,14 +193,16 @@ export interface Activity {
 }
 
 export const SEARCH_SUGGESTIONS = [
-  'keikkoja tänä iltana',
-  'ilmainen tapahtuma',
-  'stand up',
-  'cocktailbaari',
-  'Kallio tänään',
-  'klubitapahtumia',
   'jazz',
-  'pop-up ravintola',
-  'ulkoilmatapahtuma',
-  'viikonloppu',
+  'stand up',
+  'rock',
+  'tango',
+  'ooppera',
+  'baletti',
+  'elektroninen',
+  'folk',
+  'gospel',
+  'sushi',
+  'sauna',
+  'Kallio',
 ]
