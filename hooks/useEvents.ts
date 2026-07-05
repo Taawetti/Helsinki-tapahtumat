@@ -44,6 +44,30 @@ export function useEvents({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  const applySort = useCallback((incoming: Event[], prev: Event[], append: boolean): Event[] => {
+    const merged = append ? [...prev, ...incoming] : incoming
+    const seen = new Set<string>()
+    const unique = merged.filter((e: Event) => {
+      if (seen.has(e.id)) return false
+      seen.add(e.id)
+      return true
+    })
+    if (nearbyCoords) {
+      const { lat, lon } = nearbyCoords
+      unique.sort((a: Event, b: Event) => {
+        const da = (a.location?.lat && a.location?.lon) ? haversineKm(lat, lon, a.location.lat, a.location.lon) : 999
+        const db = (b.location?.lat && b.location?.lon) ? haversineKm(lat, lon, b.location.lat, b.location.lon) : 999
+        return da - db
+      })
+    } else {
+      const scores = getCategoryScores()
+      if (Object.keys(scores).length > 0) {
+        unique.sort((a: Event, b: Event) => virtualStartTime(a, scores) - virtualStartTime(b, scores))
+      }
+    }
+    return unique
+  }, [nearbyCoords])
+
   const fetchEvents = useCallback(
     async (pageNum: number, append: boolean) => {
       if (abortRef.current) abortRef.current.abort()
@@ -66,43 +90,37 @@ export function useEvents({
       if (keywordsFromCategories) params.set('categories', keywordsFromCategories)
 
       try {
-        const res = await fetch(`/api/events?${params}`, { signal: controller.signal })
-        if (!res.ok) throw new Error(`Virhe: ${res.status}`)
-        const data = await res.json()
+        // Phase 1: LinkedEvents only — shows results in ~1s
+        const quickParams = new URLSearchParams(params)
+        quickParams.set('quick', '1')
+        const quickRes = await fetch(`/api/events?${quickParams}`, { signal: controller.signal })
+        if (!quickRes.ok) throw new Error(`Virhe: ${quickRes.status}`)
+        const quickData = await quickRes.json()
 
-        setEvents((prev) => {
-          const merged = append ? [...prev, ...data.events] : data.events
-          const seen = new Set<string>()
-          const unique = merged.filter((e: Event) => {
-            if (seen.has(e.id)) return false
-            seen.add(e.id)
-            return true
-          })
-          if (nearbyCoords) {
-            const { lat, lon } = nearbyCoords
-            unique.sort((a: Event, b: Event) => {
-              const da = (a.location?.lat && a.location?.lon) ? haversineKm(lat, lon, a.location.lat, a.location.lon) : 999
-              const db = (b.location?.lat && b.location?.lon) ? haversineKm(lat, lon, b.location.lat, b.location.lon) : 999
-              return da - db
-            })
-          } else {
-            const scores = getCategoryScores()
-            if (Object.keys(scores).length > 0) {
-              unique.sort((a: Event, b: Event) => virtualStartTime(a, scores) - virtualStartTime(b, scores))
-            }
-          }
-          return unique
-        })
-        setHasMore(data.hasMore)
-        setTotal(data.total)
+        if (!controller.signal.aborted) {
+          setEvents(prev => applySort(quickData.events, append ? prev : [], append))
+          setHasMore(quickData.hasMore)
+          setTotal(quickData.total)
+          setLoading(false) // Show content immediately
+        }
+
+        // Phase 2: All sources — silent background update
+        const fullRes = await fetch(`/api/events?${params}`, { signal: controller.signal })
+        if (!fullRes.ok) return
+        const fullData = await fullRes.json()
+
+        if (!controller.signal.aborted) {
+          setEvents(prev => applySort(fullData.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
+          setHasMore(fullData.hasMore)
+          setTotal(fullData.total)
+        }
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
         setError('Tapahtumien lataaminen epäonnistui. Yritä uudelleen.')
-      } finally {
         setLoading(false)
       }
     },
-    [dateFilter, customDate, customDateEnd, keyword, municipality, activeCategories, bbox, nearbyCoords]
+    [dateFilter, customDate, customDateEnd, keyword, municipality, activeCategories, bbox, nearbyCoords, applySort]
   )
 
   useEffect(() => {
