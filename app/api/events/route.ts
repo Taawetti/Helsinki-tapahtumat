@@ -189,6 +189,7 @@ export async function GET(req: NextRequest) {
     // Normalize title for dedup: strip ticket tiers, years, punctuation variation
     function dedupKey(title: string, date: string): string {
       const base = title
+        .replace(/\s*\|.*$/, '')            // strip everything after | (ticket tier separators)
         .replace(/\s*[\|–\-]\s*(premium|legacy|standard|vip|gold|silver|early|late|general|suite|seat|ticket|standing|seated|presale|fan\s*club)[\w\s]*/gi, '')
         .replace(/\b20\d{2}\b/g, '')        // strip years
         .replace(/\s*\(päivä\s*\d+\/\d+\)/gi, '') // strip festival day suffix
@@ -213,10 +214,14 @@ export async function GET(req: NextRequest) {
           const key = dedupKey(e.title, e.startTime.slice(0, 10))
           const existingIdx = seenMap.get(key)
           if (existingIdx !== undefined) {
-            // Upgrade existing event with coordinates if incoming has them and existing doesn't
-            if (e.location?.lat && e.location?.lon && !events[existingIdx]?.location?.lat) {
-              events[existingIdx] = { ...events[existingIdx], location: e.location }
-            }
+            // Upgrade existing event with best available data from the incoming duplicate
+            const existing = events[existingIdx]
+            const upgrades: Partial<Event> = {}
+            if (e.location?.lat && e.location?.lon && !existing?.location?.lat) upgrades.location = e.location
+            if (e.image && !existing?.image) upgrades.image = e.image
+            if (e.ticketUrl && !existing?.ticketUrl) upgrades.ticketUrl = e.ticketUrl
+            if (e.price && !existing?.price) upgrades.price = e.price
+            if (Object.keys(upgrades).length > 0) events[existingIdx] = { ...existing, ...upgrades }
           } else {
             seenMap.set(key, events.length)
             events.push(e)
