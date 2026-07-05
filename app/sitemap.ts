@@ -49,6 +49,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.4,
     },
+    // Aikaperusteinen SEO-laskeutumissivut — korkean hakuvolyymin termit
+    { url: `${BASE}/tapahtumat/tanaan`,     lastModified: now, changeFrequency: 'hourly' as const, priority: 0.95 },
+    { url: `${BASE}/tapahtumat/viikonloppu`, lastModified: now, changeFrequency: 'daily' as const,  priority: 0.92 },
+    { url: `${BASE}/tapahtumat/ilmaiset`,   lastModified: now, changeFrequency: 'daily' as const,  priority: 0.90 },
     // Kategoriasivut — yksi per VIBE
     ...VIBES.map((v) => ({
       url: `${BASE}/tapahtumat/${v.id}`,
