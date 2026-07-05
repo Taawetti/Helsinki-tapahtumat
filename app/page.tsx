@@ -888,7 +888,7 @@ export default function Home() {
                   <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
                 ))}
               </div>
-              {hasMore && activeVibes.length === 0 && activeCategories.length === 0 && (
+              {hasMore && (
                 <button onClick={loadMore} disabled={loading}
                   className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 bg-white/5 hover:bg-white/8 transition-all flex items-center justify-center gap-2 mt-3">
                   {loading ? <Loader2 size={14} className="animate-spin" /> : null}
