@@ -9,6 +9,7 @@ const t = {
     'nav.restaurants': 'Ravintolat',
     'nav.activities':  'Aktiviteetit',
     'nav.favorites':   'Suosikit',
+    'nav.festivals':   'Festivaalit',
 
     // ── Common labels ────────────────────────────────────────
     'common.open':          'Avoinna',
@@ -247,6 +248,7 @@ const t = {
     'vibes.clear':             'Tyhjennä valinnat',
     'vibes.show_all':          'Näytä kaikki tapahtumat',
     'vibes.show_events':       'Näytä tapahtumat',
+
     'vibes.categories':        'aihepiiriä',
     'vibes.category':          'aihepiiri',
 
@@ -273,6 +275,7 @@ const t = {
     'vibe.tyopaja':  'Työpaja & Kurssi',
     'vibe.teatteri': 'Teatteri & Tanssi',
     'vibe.taide':    'Taide',
+    'vibe.festivaali': 'Festivaalit',
 
     // ── EventDetailPanel ─────────────────────────────────────
     'detail.tickets':    'Osta liput',
@@ -427,6 +430,7 @@ const t = {
     'nav.restaurants': 'Restaurants',
     'nav.activities':  'Things to do',
     'nav.favorites':   'Favorites',
+    'nav.festivals':   'Festivals',
 
     // ── Common labels ────────────────────────────────────────
     'common.open':          'Open',
@@ -657,6 +661,7 @@ const t = {
     'vibe.tyopaja':  'Workshop',
     'vibe.teatteri': 'Theatre & Dance',
     'vibe.taide':    'Art',
+    'vibe.festivaali': 'Festivals',
 
     // ── EventDetailPanel ─────────────────────────────────────
     'detail.tickets':    'Buy tickets',
@@ -822,7 +827,7 @@ const t = {
     'vibes.subtitle':   'Select one or more',
     'vibes.clear':      'Clear categories',
     'vibes.show_all':   'Show all events',
-    'vibes.show_events':'Show events',
+    'vibes.show_events': 'Show events',
     'vibes.categories': 'categories',
     'vibes.category':   'category',
 
