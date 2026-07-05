@@ -1,37 +1,35 @@
 // Helsinki restaurant awards & curated editorial data
-// Michelin Guide Finland 2025 — verify at guide.michelin.com/fi
+// Michelin Guide Nordic Countries 2025 — published June 2025
+// Source: guide.michelin.com + PRNewswire + Helsinki Partners
 
 // ── Michelin Stars ────────────────────────────────────────
-// Stars awarded for 2025 season; updated when Michelin Guide Finland publishes
 export const MICHELIN_STARS: Record<string, number> = {
   'Palace': 2,
   'Grön': 1,
-  'Chef & Sommelier': 1,
-  'Spis': 1,
   'Finnjävel Salonki': 1,
-  'Finnjävel Kantakrouvi': 1,
-  'Ora': 1,
   'Demo': 1,
+  'Olo': 1,
 }
 
 // Bib Gourmand — excellent food at moderate prices
 export const BIB_GOURMAND = new Set<string>([
-  'Farang',
-  'Gaijin',
-  'Smör',
-  'Pastis',
-  'Aino',
+  '305',
+  'Bona Fide',
+  'Nolla',
+  'plein',
 ])
 
 // Michelin Green Star — sustainability leaders
 export const GREEN_MICHELIN = new Set<string>([
   'Grön',
+  'Nolla',
+  'Natura',
+  'Nokka',
 ])
 
 // ── National awards ───────────────────────────────────────
 // Vuoden Ravintola (Restaurant of the Year) — ProHotelli / MaRa
 export const RESTAURANT_OF_YEAR: Record<number, string> = {
-  2025: 'Palace',
   2024: 'Grön',
   2023: 'Nolla',
 }
@@ -61,8 +59,8 @@ export const FEATURED_PICKS: FeaturedPick[] = [
   },
   {
     name: 'Grön',
-    badge: '⭐ Michelin • Vuoden ravintola 2024',
-    badgeEn: '⭐ Michelin • Restaurant of the Year 2024',
+    badge: '⭐ Michelin • Green Star • Vuoden ravintola 2024',
+    badgeEn: '⭐ Michelin • Green Star • Restaurant of the Year 2024',
     note: 'Kasvipainotteinen fine dining — Chef Toni Kostiaisen luomus, Suomen arvostetuimpia kasvispainotteisia.',
     noteEn: 'Plant-forward fine dining — Chef Toni Kostiainen\'s creation, one of Finland\'s most acclaimed vegetable-focused restaurants.',
     priceHint: 4,
@@ -70,52 +68,44 @@ export const FEATURED_PICKS: FeaturedPick[] = [
     cuisineHintEn: 'Vegetable / Nordic',
   },
   {
-    name: 'Chef & Sommelier',
+    name: 'Finnjävel Salonki',
     badge: '⭐ Michelin tähti',
     badgeEn: '⭐ Michelin Star',
-    note: 'Moderni pohjoismainen keittiö ja poikkeuksellinen viinivalikoima Punavuoressa.',
-    noteEn: 'Modern Nordic cuisine and an exceptional wine selection in Punavuori.',
+    note: 'Suomalainen fine dining parhaimmillaan — perinteinen kotimainen keittiö modernisti tulkittuna.',
+    noteEn: 'Finnish fine dining at its best — traditional Finnish cuisine with a modern interpretation.',
+    priceHint: 4,
+    cuisineHint: 'Suomalainen fine dining',
+    cuisineHintEn: 'Finnish fine dining',
+  },
+  {
+    name: 'Demo',
+    badge: '⭐ Michelin tähti',
+    badgeEn: '⭐ Michelin Star',
+    note: 'Helsingin pitkäikäisin Michelin-tähtiravintola — luova pohjoismainen keittiö Töölössä.',
+    noteEn: "Helsinki's longest-running Michelin-starred restaurant — creative Nordic cuisine in Töölö.",
     priceHint: 4,
     cuisineHint: 'Pohjoismainen fine dining',
     cuisineHintEn: 'Nordic fine dining',
   },
   {
-    name: 'Spis',
+    name: 'Olo',
     badge: '⭐ Michelin tähti',
     badgeEn: '⭐ Michelin Star',
-    note: 'Intiimi ruotsalais-suomalainen fine dining -ravintola Kruununhaassa.',
-    noteEn: 'Intimate Swedish-Finnish fine dining restaurant in Kruununhaka.',
-    priceHint: 4,
-    cuisineHint: 'Pohjoismainen',
-    cuisineHintEn: 'Nordic',
-  },
-  {
-    name: 'Ora',
-    badge: '⭐ Michelin tähti',
-    badgeEn: '⭐ Michelin Star',
-    note: 'Innovatiivinen fine dining Punavuoressa, moderneja makuja ja tekniikoita.',
-    noteEn: 'Innovative fine dining in Punavuori — modern flavours and techniques.',
+    note: 'Pohjoismainen fine dining Etelärannassa — merellinen tunnelma ja huolellisesti valitut raaka-aineet.',
+    noteEn: 'Nordic fine dining on the South Harbour — maritime atmosphere and carefully sourced ingredients.',
     priceHint: 4,
     cuisineHint: 'Pohjoismainen fine dining',
     cuisineHintEn: 'Nordic fine dining',
   },
   {
-    name: 'Farang',
-    badge: '😊 Bib Gourmand',
-    note: 'Rohkea aasialainen fuusio ravintola, yksi Helsingin rakastetuimmista paikoista.',
-    noteEn: "Bold Asian fusion restaurant — one of Helsinki's most beloved dining spots.",
+    name: 'Nolla',
+    badge: '😊 Bib Gourmand • 🌿 Green Star',
+    badgeEn: '😊 Bib Gourmand • 🌿 Green Star',
+    note: 'Nolla-hukka-ravintola — kestävän gastronomian edelläkävijä, lähes täysin jätteettömästi toimiva.',
+    noteEn: 'Zero-waste restaurant — pioneer of sustainable gastronomy, operating with near-zero waste.',
     priceHint: 3,
-    cuisineHint: 'Aasialainen fuusio',
-    cuisineHintEn: 'Asian fusion',
-  },
-  {
-    name: 'Gaijin',
-    badge: '😊 Bib Gourmand',
-    note: 'Japanilainen ja pohjoismainen keittiö yhdistyy — konsepti joka toimii täydellisesti.',
-    noteEn: 'Japanese and Nordic cuisines combined — a concept that works perfectly.',
-    priceHint: 3,
-    cuisineHint: 'Japanilainen / Pohjoismainen',
-    cuisineHintEn: 'Japanese / Nordic',
+    cuisineHint: 'Pohjoismainen / Kestävä',
+    cuisineHintEn: 'Nordic / Sustainable',
   },
   {
     name: 'Sea Horse',
@@ -158,20 +148,20 @@ export const CRITIC_PICKS: CriticPick[] = [
     stars: 5,
   },
   {
-    name: 'Farang',
-    source: 'Helsingin Sanomat',
-    snippet: 'Farang on edelleen se paikka, jonne kaikki haluavat mennä lounaalle tai illalliselle.',
-    snippetEn: 'Farang is still the place everyone wants to go for lunch or dinner.',
-    year: 2024,
-    stars: 4,
-  },
-  {
-    name: 'Chef & Sommelier',
+    name: 'Olo',
     source: 'Michelin Guide',
-    snippet: 'Pohjoismaisen keittiön mestariteos — viinit ovat aivan omaa luokkaansa.',
-    snippetEn: 'A masterpiece of Nordic cuisine — the wines are in a class of their own.',
+    snippet: 'Merinäköala ja pohjoismainen tarkkuus — Olo on Helsingin kauneimmin sijoittunut fine dining.',
+    snippetEn: 'Sea views and Nordic precision — Olo is Helsinki\'s most beautifully situated fine dining.',
     year: 2025,
     stars: 5,
+  },
+  {
+    name: 'Nolla',
+    source: 'Michelin Guide',
+    snippet: 'Nolla todistaa että kestävyys ja gastronominen kunnianhimo kulkevat käsi kädessä.',
+    snippetEn: 'Nolla proves that sustainability and gastronomic ambition go hand in hand.',
+    year: 2025,
+    stars: 4,
   },
   {
     name: 'Sea Horse',
@@ -182,11 +172,11 @@ export const CRITIC_PICKS: CriticPick[] = [
     stars: 4,
   },
   {
-    name: 'Gaijin',
-    source: 'Nyt.fi',
-    snippet: 'Fuusio toimii: japanilainen tarkkuus ja pohjoismaiset raaka-aineet sulautuvat täydellisesti.',
-    snippetEn: 'The fusion works: Japanese precision and Nordic ingredients blend perfectly.',
-    year: 2024,
-    stars: 4,
+    name: 'Demo',
+    source: 'Michelin Guide',
+    snippet: 'Vuodesta 2004 Michelin-tähdellä — Demo on Helsingin fine diningin tinkimätön veteraani.',
+    snippetEn: 'Michelin-starred since 2004 — Demo is the uncompromising veteran of Helsinki fine dining.',
+    year: 2025,
+    stars: 5,
   },
 ]
