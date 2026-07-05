@@ -7,6 +7,7 @@ import {
   GREEN_MICHELIN,
   RESTAURANT_OF_YEAR,
 } from '@/lib/restaurant-awards'
+import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 import { supabase } from '@/lib/supabase'
 
 // ── Types ─────────────────────────────────────────────────
@@ -361,6 +362,36 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
     enrichWithAwards('Palace', p)
     results.push(p as Restaurant)
   }
+
+  // Curated Helsinki nightclubs — add those missing from OSM
+  const osmNames = new Set(results.map(r => normName(r.name)))
+  for (const venue of HELSINKI_NIGHTCLUBS) {
+    if (osmNames.has(normName(venue.name))) continue  // already in OSM
+    results.push({
+      id: venue.id,
+      name: venue.name,
+      description: '',
+      cuisines: [],
+      cuisineCategories: [],
+      address: venue.address,
+      city: 'Helsinki',
+      lat: venue.lat,
+      lon: venue.lon,
+      image: null,
+      www: venue.www ?? null,
+      phone: null,
+      email: null,
+      instagram: null,
+      type: venue.type,
+      priceRange: undefined,
+      openingHours: undefined,
+      awards: [],
+      subCategories: venue.subCategories,
+      outdoorSeating: undefined,
+      takeaway: undefined,
+    })
+  }
+
   return results
 }
 
@@ -368,7 +399,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v10'],
+  ['restaurants-osm-v11'],
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
