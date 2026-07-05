@@ -235,6 +235,7 @@ export default function Home() {
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [showVibePanel, setShowVibePanel] = useState(false)
   const vibeBtnRef = useRef<HTMLButtonElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   // ── Unified search: lazy-load activities + restaurants on first keystroke ──
   const [allActivities, setAllActivities] = useState<Activity[]>([])
@@ -347,6 +348,18 @@ export default function Home() {
     setCustomDateEnd(end)
     setDateFilter(start ? 'range' : 'today')
   }, [])
+
+  // Infinite scroll — trigger loadMore when sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && hasMore && !loading) loadMore() },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loading, loadMore])
 
   const handleVibeToggle = useCallback((id: string) => {
     if (id === 'kaikki') {
@@ -888,13 +901,8 @@ export default function Home() {
                   <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
                 ))}
               </div>
-              {hasMore && (
-                <button onClick={loadMore} disabled={loading}
-                  className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 bg-white/5 hover:bg-white/8 transition-all flex items-center justify-center gap-2 mt-3">
-                  {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-                  {t('common.load_more')}
-                </button>
-              )}
+              <div ref={sentinelRef} className="h-1" />
+              {loading && <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-white/30" /></div>}
             </section>
           )}
 
