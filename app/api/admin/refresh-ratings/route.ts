@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { createHmac } from 'crypto'
+
 
 function checkAuth(req: NextRequest) {
   const session = req.cookies.get('admin_session')?.value
   const expected = process.env.ADMIN_PASSWORD
-    ? createHmac('sha256', process.env.ADMIN_PASSWORD).update('admin-session').digest('hex')
+    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
     : null
   return expected && session === expected
 }

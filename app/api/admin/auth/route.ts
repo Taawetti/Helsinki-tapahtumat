@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createHmac } from 'crypto'
 
 const SESSION_COOKIE = 'admin_session'
 const MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 
-function getExpectedToken() {
-  const pw = process.env.ADMIN_PASSWORD
-  if (!pw) return null
-  return createHmac('sha256', pw).update('admin-session').digest('hex')
+function getExpectedToken(pw: string) {
+  return Buffer.from(pw).toString('base64')
 }
 
 // POST /api/admin/auth — login
@@ -20,15 +17,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Salasana puuttuu' }, { status: 400 })
   }
 
-  const expectedToken = getExpectedToken()
-  if (!expectedToken) {
+  const adminPw = process.env.ADMIN_PASSWORD
+  if (!adminPw) {
     return NextResponse.json({ error: 'ADMIN_PASSWORD ei ole asetettu' }, { status: 500 })
   }
 
-  const inputToken = createHmac('sha256', password).update('admin-session').digest('hex')
-  if (inputToken !== expectedToken) {
+  if (password !== adminPw) {
     return NextResponse.json({ error: 'Väärä salasana' }, { status: 401 })
   }
+
+  const expectedToken = getExpectedToken(adminPw)
 
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE, expectedToken, {
