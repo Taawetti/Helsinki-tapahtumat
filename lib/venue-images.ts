@@ -207,10 +207,13 @@ export function getEventImage(
     let best: string | null = null
     let bestLen = 0
     for (const [pattern, url] of Object.entries(venueMap)) {
-      if (key.includes(pattern) && pattern.length > bestLen) {
-        best = url
-        bestLen = pattern.length
-      }
+      const idx = key.indexOf(pattern)
+      if (idx === -1 || pattern.length <= bestLen) continue
+      // reject if pattern ends mid-word (e.g. "löyly" matching "löylykontti")
+      const charAfter = key[idx + pattern.length]
+      if (charAfter !== undefined && /[a-z0-9äöåA-Z]/.test(charAfter)) continue
+      best = url
+      bestLen = pattern.length
     }
     if (best) return best
   }
