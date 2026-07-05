@@ -4,6 +4,10 @@ import { getDateRange, haversineKm } from '@/lib/utils'
 import { getCategoryScores, virtualStartTime } from '@/lib/preferences'
 import type { GeoCoords } from './useGeolocation'
 
+interface CacheEntry { events: Event[]; hasMore: boolean; total: number; ts: number }
+const eventsCache = new Map<string, CacheEntry>()
+const CACHE_TTL = 5 * 60 * 1000
+
 interface UseEventsOptions {
   dateFilter: DateFilter
   customDate?: string
@@ -36,7 +40,7 @@ export function useEvents({
   nearbyCoords,
 }: UseEventsOptions): UseEventsResult {
   const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [fetchingFull, setFetchingFull] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -76,8 +80,8 @@ export function useEvents({
       const controller = new AbortController()
       abortRef.current = controller
 
-      setLoading(true)
       setError(null)
+      setFetchingFull(false) // reset from any previous aborted fetch
 
       const { start, end, startAfter } = getDateRange(dateFilter, customDate, customDateEnd)
 
@@ -90,6 +94,41 @@ export function useEvents({
       if (bbox) params.set('bbox', bbox)
       if (keyword) params.set('keyword', keyword)
       if (keywordsFromCategories) params.set('categories', keywordsFromCategories)
+
+      const cacheKey = params.toString()
+      const cached = eventsCache.get(cacheKey)
+      const now = Date.now()
+
+      if (cached) {
+        // Serve cached results immediately — no loading flash
+        setEvents(prev => applySort(cached.events, append ? prev : [], append))
+        setHasMore(cached.hasMore)
+        setTotal(cached.total)
+        setLoading(false)
+
+        if (now - cached.ts < CACHE_TTL) return // still fresh, skip revalidation
+
+        // Stale: revalidate silently in background
+        setFetchingFull(true)
+        try {
+          const res = await fetch(`/api/events?${params}`, { signal: controller.signal })
+          if (!res.ok) { setFetchingFull(false); return }
+          const data = await res.json()
+          if (!controller.signal.aborted) {
+            eventsCache.set(cacheKey, { events: data.events, hasMore: data.hasMore, total: data.total, ts: Date.now() })
+            setEvents(prev => applySort(data.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
+            setHasMore(data.hasMore)
+            setTotal(data.total)
+            setFetchingFull(false)
+          }
+        } catch {
+          setFetchingFull(false)
+        }
+        return
+      }
+
+      // Cache miss: two-phase fetch
+      setLoading(true)
 
       try {
         // Phase 1: LinkedEvents only — shows results in ~1s
@@ -104,7 +143,7 @@ export function useEvents({
           setHasMore(quickData.hasMore)
           setTotal(quickData.total)
           setLoading(false)
-          setFetchingFull(true) // Phase 2 still running — suppress empty state
+          setFetchingFull(true)
         }
 
         // Phase 2: All sources — silent background update
@@ -113,13 +152,17 @@ export function useEvents({
         const fullData = await fullRes.json()
 
         if (!controller.signal.aborted) {
+          eventsCache.set(cacheKey, { events: fullData.events, hasMore: fullData.hasMore, total: fullData.total, ts: Date.now() })
           setEvents(prev => applySort(fullData.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
           setHasMore(fullData.hasMore)
           setTotal(fullData.total)
           setFetchingFull(false)
         }
       } catch (err) {
-        if ((err as Error).name === 'AbortError') return
+        if ((err as Error).name === 'AbortError') {
+          setFetchingFull(false)
+          return
+        }
         setError('Tapahtumien lataaminen epäonnistui. Yritä uudelleen.')
         setLoading(false)
         setFetchingFull(false)
@@ -130,7 +173,15 @@ export function useEvents({
 
   useEffect(() => {
     setPage(1)
-    setEvents([]) // Clear stale events immediately on filter change
+    // Only clear events if there's no cached result for the new filter — avoids flash
+    const { start, end, startAfter } = getDateRange(dateFilter, customDate, customDateEnd)
+    const kws = activeCategories.flatMap((id) => CATEGORIES.find((c) => c.id === id)?.keywords ?? []).join(',')
+    const p = new URLSearchParams({ start, end, page: '1', municipality })
+    if (startAfter) p.set('startAfter', startAfter)
+    if (bbox) p.set('bbox', bbox)
+    if (keyword) p.set('keyword', keyword)
+    if (kws) p.set('categories', kws)
+    if (!eventsCache.has(p.toString())) setEvents([])
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       fetchEvents(1, false)

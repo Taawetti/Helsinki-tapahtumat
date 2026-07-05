@@ -878,12 +878,20 @@ export default function Home() {
             </div>
           )}
 
-          {/* Loading skeletons */}
-          {loading && baseEvents.length === 0 && (
-            <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '3/4' }} />
-              ))}
+          {/* Loading skeletons — shown during both phase 1 (loading) and phase 2 (fetchingFull) when no results yet */}
+          {(loading || fetchingFull) && baseEvents.length === 0 && (
+            <div>
+              <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '3/4' }} />
+                ))}
+              </div>
+              {fetchingFull && (
+                <div className="flex items-center justify-center gap-2 pt-5 pb-2">
+                  <Loader2 size={14} className="animate-spin text-white/30" />
+                  <span className="text-white/30 text-[13px]">Haetaan tapahtumia...</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -937,6 +945,13 @@ export default function Home() {
           {!loading && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && carousels.map(row => (
             <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent} />
           ))}
+          {/* Phase 2 spinner — carousel-näkymässä kun tuloksia on jo mutta lisää haetaan */}
+          {fetchingFull && baseEvents.length > 0 && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+            <div className="flex items-center justify-center gap-2 py-3">
+              <Loader2 size={14} className="animate-spin text-white/30" />
+              <span className="text-white/30 text-[13px]">Haetaan lisää...</span>
+            </div>
+          )}
 
           {/* ── Flat grid — näkyy kun keyword, kategoria tai vibe valittu ── */}
           {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
