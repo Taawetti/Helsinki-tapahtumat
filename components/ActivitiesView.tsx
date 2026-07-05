@@ -539,6 +539,8 @@ export default function ActivitiesView({ onShowOnMap }: {
     const GYM_PATTERN = /fressi|forever\s*sport|elixia|fitness first|kuntokeskus/i
     // Generic park sub-types that are just infrastructure, not destinations
     const DULL_PARK_PATTERN = /puistikko|leikkipuisto|liikuntapuisto|urheilupuisto|pallokenttä|ulkoilualue/i
+    // Well-known tourist staples — not surprising to recommend
+    const OBVIOUS_NAMES = /kauppahalli|hakaniemi.*halli|hietalahden.*halli|vanha kauppatori/i
 
     function hashId(id: string): number {
       return id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0)
@@ -549,9 +551,9 @@ export default function ActivitiesView({ onShowOnMap }: {
       if (a.image) s += 3
       if (a.category === 'sauna') s += 2
       if (a.category === 'nakopaikka') s += 2
-      if (a.category === 'galleria') s += 1
-      if (a.category === 'markkina') s += 1
-      if (a.category === 'muu') s += 1
+      // galleria and muu tend to be genuinely off-the-beaten-path
+      if (a.category === 'galleria') s += 2
+      if (a.category === 'muu') s += 2
       return s
     }
 
@@ -562,6 +564,8 @@ export default function ActivitiesView({ onShowOnMap }: {
       if (GYM_PATTERN.test(a.name)) return false
       // Generic park sub-types without an image (parks with photos can still be interesting)
       if (a.category === 'puisto' && DULL_PARK_PATTERN.test(a.name) && !a.image) return false
+      // Well-known tourist staples that aren't "surprising"
+      if (OBVIOUS_NAMES.test(a.name)) return false
       return true
     })
 
