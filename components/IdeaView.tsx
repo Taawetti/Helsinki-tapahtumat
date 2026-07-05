@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Globe, MapPin, Ticket, Map as MapIcon, Heart, X, Clock } from 'lucide-react'
-import type { Event, Activity, Restaurant } from '@/lib/types'
+import type { Event, Activity, ActivityCategory } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
-import { FEATURED_PICKS } from '@/lib/restaurant-awards'
 import { ATTRACTION_HIGHLIGHTS, getHighlight } from '@/lib/activity-highlights'
 
 // ── Curated activity names ───────────────────────────────
@@ -31,8 +30,7 @@ const CURATED_NAMES = [
 
 // ── Types ────────────────────────────────────────────────
 
-type SuggestionType = 'event' | 'activity' | 'restaurant'
-type IdeaMode = 'nyt' | 'ilta'
+type SuggestionType = 'event' | 'activity'
 
 interface Suggestion {
   id: string
@@ -105,6 +103,28 @@ function eventEmoji(event: Event): string {
   return '📅'
 }
 
+const CATEGORY_EMOJI: Partial<Record<ActivityCategory, string>> = {
+  sauna: '🧖', museo: '🏛', nakopaikka: '🔭', galleria: '🖼',
+  uimaranta: '🏖', markkina: '🛍', nahtavyys: '🌄', muu: '✨',
+}
+
+const SUPPLEMENTAL_CATS: ActivityCategory[] = [
+  'sauna', 'nakopaikka', 'galleria', 'museo', 'markkina', 'uimaranta', 'nahtavyys', 'muu',
+]
+
+function scoreEvent(e: Event): number {
+  let s = 0
+  if (e.image) s += 3
+  const desc = e.shortDescription || e.description || ''
+  if (desc.length > 80) s += 2
+  else if (desc.length > 15) s += 1
+  if (e.isFree) s += 1
+  const d = new Date(e.startTime)
+  const now = new Date()
+  if (d.toDateString() === now.toDateString() && d.getHours() >= 17) s += 1
+  return s
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -117,9 +137,8 @@ function shuffle<T>(arr: T[]): T[] {
 // ── Type visual meta ─────────────────────────────────────
 
 const TYPE_META: Record<SuggestionType, { label: string; gradient: string; accent: string }> = {
-  event:      { label: '📅 Tapahtuma',  gradient: 'linear-gradient(160deg,#1e1b4b,#4c1d95,#7c3aed)', accent: '#a78bfa' },
-  activity:   { label: '🧖 Aktiviteetti',gradient: 'linear-gradient(160deg,#042f2e,#065f46,#0f766e)', accent: '#2dd4bf' },
-  restaurant: { label: '🍽 Ravintola',  gradient: 'linear-gradient(160deg,#431407,#9a3412,#c2410c)', accent: '#fb923c' },
+  event:    { label: '📅 Tapahtuma',   gradient: 'linear-gradient(160deg,#1e1b4b,#4c1d95,#7c3aed)', accent: '#a78bfa' },
+  activity: { label: '🧖 Aktiviteetti', gradient: 'linear-gradient(160deg,#042f2e,#065f46,#0f766e)', accent: '#2dd4bf' },
 }
 
 // ── Props ────────────────────────────────────────────────
@@ -136,7 +155,6 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const { lang, t } = useLanguage()
   const { toggle, isFavorite } = useFavorites()
 
-  const [ideaMode, setIdeaMode] = useState<IdeaMode>('ilta')
   const [typeFilter, setTypeFilter] = useState<SuggestionType | 'all'>('all')
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
@@ -160,11 +178,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const [exitDir, setExitDir] = useState<'left' | 'right' | null>(null)
 
   const [activities, setActivities] = useState<Activity[]>([])
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
 
   useEffect(() => {
     fetch('/api/activities').then(r => r.json()).then(d => setActivities(d.activities ?? [])).catch(() => {})
-    fetch('/api/restaurants').then(r => r.json()).then(d => setRestaurants(d.restaurants ?? [])).catch(() => {})
   }, [])
 
   // Panel slide-in: double-rAF guarantees the browser paints translateY(100%)
@@ -191,7 +207,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   const activityPool = useMemo((): Suggestion[] => {
     const byName = new Map(activities.map(a => [a.name.toLowerCase(), a]))
-    return CURATED_NAMES.map(({ name, emoji, url: fallbackUrl }) => {
+
+    // Curated picks with hand-written highlights
+    const curated = CURATED_NAMES.map(({ name, emoji, url: fallbackUrl }) => {
       const activity = byName.get(name.toLowerCase())
       const highlight = getHighlight(name)
       const h = ATTRACTION_HIGHLIGHTS.find(h => name.toLowerCase().includes(h.nameKey))
@@ -214,38 +232,41 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         emoji,
       }
     })
-  }, [activities, lang])
 
-  const restaurantPool = useMemo((): Suggestion[] => {
-    const byName = new Map(restaurants.map(r => [r.name.toLowerCase(), r]))
-    return FEATURED_PICKS.flatMap(pick => {
-      const r = byName.get(pick.name.toLowerCase())
-      if (!r) return []
-      const badge = r.michelinStars === 2 ? '⭐⭐ Michelin' : r.michelinStars === 1 ? '⭐ Michelin'
-        : r.bibGourmand ? '😊 Bib Gourmand' : (lang === 'en' && pick.badgeEn ? pick.badgeEn : pick.badge)
-      return [{
-        id: `restaurant-${r.id}`,
-        type: 'restaurant' as const,
-        title: r.name,
-        why: lang === 'en' && pick.noteEn ? pick.noteEn : pick.note,
-        image: r.image ?? null,
-        address: r.address,
-        lat: r.lat,
-        lon: r.lon,
-        url: r.www ?? undefined,
-        badge,
-        isFree: false,
-        price: r.priceRange ? ['','€','€€','€€€','€€€€'][r.priceRange] : undefined,
-        isOpen: r.openingHours ? isOpenNow(r.openingHours) : undefined,
-        emoji: '🍽',
-      }]
-    })
-  }, [restaurants, lang])
+    // Supplemental: interesting DB activities not already in the curated list
+    const curatedNames = new Set(CURATED_NAMES.map(c => c.name.toLowerCase()))
+    const supplemental = shuffle(
+      activities.filter(a =>
+        a.image &&
+        SUPPLEMENTAL_CATS.includes(a.category) &&
+        !curatedNames.has(a.name.toLowerCase())
+      )
+    )
+      .slice(0, 12)
+      .map(a => ({
+        id: `activity-db-${a.id}`,
+        type: 'activity' as const,
+        title: a.name,
+        why: a.description || '',
+        image: a.image ?? null,
+        address: a.address,
+        lat: a.lat,
+        lon: a.lon,
+        url: a.www ?? undefined,
+        badge: undefined,
+        isFree: a.fee === false,
+        isOpen: isOpenNow(a.openingHours),
+        emoji: CATEGORY_EMOJI[a.category] ?? '✨',
+      }))
+
+    return [...curated, ...supplemental]
+  }, [activities, lang])
 
   const eventPool = useMemo((): Suggestion[] => {
     return events
       .filter(e => (e.shortDescription?.length ?? 0) > 15 || (e.description?.length ?? 0) > 15)
-      .slice(0, 40)
+      .sort((a, b) => scoreEvent(b) - scoreEvent(a))
+      .slice(0, 50)
       .map(e => {
         const mins = minutesUntilStart(e.startTime)
         return {
@@ -269,22 +290,13 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   }, [events, lang])
 
   const pool = useMemo(() => {
-    let all = shuffle([...activityPool, ...restaurantPool, ...eventPool])
+    return shuffle([...activityPool, ...eventPool])
       .filter(s => !seenIds.has(s.id))
       .filter(s => typeFilter === 'all' || s.type === typeFilter)
-    if (ideaMode === 'nyt') {
-      // "Juuri nyt": prefer items starting soon (< 3h) or open now
-      all = [
-        ...all.filter(s => s.minutesUntil !== undefined && s.minutesUntil >= 0 && s.minutesUntil < 180),
-        ...all.filter(s => s.isOpen === true && s.minutesUntil === undefined),
-        ...all.filter(s => s.minutesUntil === undefined && s.isOpen !== true),
-      ]
-    }
-    return all
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ideaMode, typeFilter, activityPool.length, restaurantPool.length, eventPool.length, seenIds])
+  }, [typeFilter, activityPool.length, eventPool.length, seenIds])
 
-  useEffect(() => { setSeenIds(new Set()) }, [ideaMode, typeFilter])
+  useEffect(() => { setSeenIds(new Set()) }, [typeFilter])
 
   const current = pool[0] ?? null
   const meta = current ? TYPE_META[current.type] : TYPE_META.event
@@ -501,22 +513,6 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount} {t('idea.saved_suffix')}</span>
           </div>
         )}
-      </div>
-
-      {/* ── Segmented control ── */}
-      <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,.06)' }}>
-        {([
-          { id: 'nyt' as IdeaMode,  label: t('idea.mode_now') },
-          { id: 'ilta' as IdeaMode, label: t('idea.mode_evening') },
-        ]).map(opt => (
-          <button key={opt.id} onClick={() => setIdeaMode(opt.id)}
-            className="flex-1 py-2 rounded-lg text-sm font-black transition-all"
-            style={ideaMode === opt.id
-              ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff', boxShadow: '0 4px 12px -4px rgba(91,101,230,.5)' }
-              : { color: 'rgba(255,255,255,.4)' }}>
-            {opt.label}
-          </button>
-        ))}
       </div>
 
       {/* ── Type filter pills ── */}
