@@ -886,12 +886,10 @@ export default function Home() {
                   <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '3/4' }} />
                 ))}
               </div>
-              {fetchingFull && (
-                <div className="flex items-center justify-center gap-2 pt-5 pb-2">
-                  <Loader2 size={14} className="animate-spin text-white/30" />
-                  <span className="text-white/30 text-[13px]">Haetaan tapahtumia...</span>
-                </div>
-              )}
+              <div className="flex items-center justify-center gap-2 pt-5 pb-2">
+                <Loader2 size={14} className="animate-spin text-white/30" />
+                <span className="text-white/30 text-[13px]">Haetaan tapahtumia...</span>
+              </div>
             </div>
           )}
 

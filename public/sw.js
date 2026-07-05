@@ -1,10 +1,10 @@
 const CACHE = 'hki-v3'
 const API_CACHE = 'hki-api-v1'
+const QUICK_CACHE = 'hki-quick-v1'
 const STATIC = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png']
-const API_TTL = 5 * 60 * 1000 // 5 min — fresh, no revalidation
-// Older than 5 min but < 1h: serve stale + revalidate in background
-// Older than 1h: fetch fresh (treat as cache miss)
-const API_MAX_AGE = 60 * 60 * 1000
+const API_TTL = 5 * 60 * 1000     // full fetch: 5 min fresh
+const API_MAX_AGE = 60 * 60 * 1000 // full fetch: 1 h max stale
+const QUICK_TTL = 60 * 1000        // quick fetch: 1 min fresh (LinkedEvents only)
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -15,7 +15,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== API_CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== API_CACHE && k !== QUICK_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   )
 })
@@ -23,13 +23,14 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
 
-  // /api/events full fetch (not quick=1): stale-while-revalidate
-  if (
-    url.pathname === '/api/events' &&
-    e.request.method === 'GET' &&
-    url.searchParams.get('quick') !== '1'
-  ) {
-    e.respondWith(handleEventsApi(e.request))
+  if (url.pathname === '/api/events' && e.request.method === 'GET') {
+    if (url.searchParams.get('quick') === '1') {
+      // quick=1: cache-first with 1 min TTL — makes phase 1 instant on repeat visits
+      e.respondWith(handleQuickApi(e.request))
+    } else {
+      // full fetch: stale-while-revalidate with 5 min TTL
+      e.respondWith(handleEventsApi(e.request))
+    }
     return
   }
 
@@ -50,6 +51,22 @@ self.addEventListener('fetch', e => {
     })
   )
 })
+
+async function handleQuickApi(request) {
+  const cache = await caches.open(QUICK_CACHE)
+  const cached = await cache.match(request)
+  if (cached) {
+    const age = Date.now() - Number(cached.headers.get('sw-cached-at') || 0)
+    if (age < QUICK_TTL) return cached // fresh — serve instantly
+  }
+  // Fetch fresh and cache
+  try {
+    return await fetchAndCache(cache, request)
+  } catch {
+    if (cached) return cached
+    throw new Error('Ei verkkoyhteyttä')
+  }
+}
 
 async function handleEventsApi(request) {
   const cache = await caches.open(API_CACHE)
