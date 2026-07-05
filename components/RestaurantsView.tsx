@@ -226,6 +226,54 @@ function isOpenNow(hours: string): boolean | undefined {
   } catch { return undefined }
 }
 
+function formatOpeningHoursHuman(raw: string): string {
+  if (!raw) return ''
+  if (raw === '24/7') return 'Auki 24/7'
+  const FI: Record<string, string> = { Mo: 'Ma', Tu: 'Ti', We: 'Ke', Th: 'To', Fr: 'Pe', Sa: 'La', Su: 'Su' }
+  return raw
+    .split(';')
+    .map(p => {
+      let s = p.trim().replace(/\b(Mo|Tu|We|Th|Fr|Sa|Su)\b/g, k => FI[k] ?? k)
+      s = s.replace(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/g, '$1–$2')
+      return s
+    })
+    .join(', ')
+}
+
+function getTodayHours(raw: string): string | null {
+  if (!raw) return null
+  if (raw === '24/7') return '24h'
+  const dayIdx = new Date().getDay() // 0=Su
+  const D: Record<string, number> = { Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6, Su: 0 }
+  function expandRange(spec: string): number[] {
+    if (D[spec] !== undefined) return [D[spec]]
+    const m = spec.match(/^([A-Z][a-z])-([A-Z][a-z])$/)
+    if (m) {
+      const keys = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+      const a = keys.indexOf(m[1]), b = keys.indexOf(m[2])
+      if (a >= 0 && b >= 0) return keys.slice(a, b + 1).map(k => D[k])
+    }
+    return []
+  }
+  for (const part of raw.split(';')) {
+    const m = part.trim().match(/^([\w-]+(?:,[\w-]+)*)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
+    if (!m) continue
+    if (m[1].split(',').flatMap(expandRange).includes(dayIdx)) return `${m[2]}–${m[3]}`
+  }
+  return null
+}
+
+function reservationUrl(r: Restaurant): string {
+  const www = r.www ?? ''
+  if (/thefork|tableonline|opentable|quandoo|resy\.com/i.test(www)) {
+    return /^https?:\/\//i.test(www) ? www : 'https://' + www
+  }
+  if (r.type === 'ravintola') {
+    return `https://www.thefork.fi/haku/?searchText=${encodeURIComponent(r.name)}`
+  }
+  return ''
+}
+
 function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean {
   if (sub === 'all') return true
   const text = `${r.name} ${r.description}`.toLowerCase()
@@ -447,12 +495,20 @@ function RestListCard({ r, distance, onShowOnMap }: {
             <span>{r.address}</span>
           </div>
         )}
-        {r.openingHours && (
-          <div className="flex items-center gap-1.5 text-white/25 text-xs">
-            <Clock size={10} className="shrink-0" />
-            <span className="truncate">{r.openingHours}</span>
-          </div>
-        )}
+        {r.openingHours && (() => {
+          const today = getTodayHours(r.openingHours)
+          const open = isOpenNow(r.openingHours)
+          return (
+            <div className="flex items-center gap-1.5 text-white/25 text-xs">
+              <Clock size={10} className="shrink-0" />
+              <span className="truncate">
+                {today
+                  ? <><span className={open ? 'text-emerald-400/70' : ''}>Tänään {today}</span></>
+                  : formatOpeningHoursHuman(r.openingHours)}
+              </span>
+            </div>
+          )
+        })()}
         <div className="flex items-center gap-3 pt-0.5 flex-wrap">
           {r.www && (
             <a href={/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www} target="_blank" rel="noopener noreferrer"
@@ -1016,11 +1072,26 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   <MapPin size={13} /> {selectedRest.address}
                 </div>
               )}
-              {selectedRest.openingHours && (
-                <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <Clock size={13} /> {selectedRest.openingHours}
-                </div>
-              )}
+              {selectedRest.openingHours && (() => {
+                const todayH = getTodayHours(selectedRest.openingHours)
+                const open = isOpenNow(selectedRest.openingHours)
+                return (
+                  <div className="space-y-0.5">
+                    {todayH && (
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <Clock size={13} className="shrink-0 text-white/30" />
+                        <span className={open ? 'text-emerald-400' : 'text-white/50'}>
+                          Tänään {todayH}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-white/25 text-xs">
+                      <Clock size={11} className="shrink-0 opacity-0" />
+                      <span>{formatOpeningHoursHuman(selectedRest.openingHours)}</span>
+                    </div>
+                  </div>
+                )
+              })()}
               <div className="flex gap-3 pt-1 flex-wrap">
                 {selectedRest.www && (
                   <a href={/^https?:\/\//i.test(selectedRest.www) ? selectedRest.www : 'https://' + selectedRest.www} target="_blank" rel="noopener noreferrer"
@@ -1029,6 +1100,16 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                     <Globe size={13} /> {t('common.website')}
                   </a>
                 )}
+                {(() => {
+                  const url = reservationUrl(selectedRest)
+                  return url ? (
+                    <a href={url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
+                      style={{ background: 'linear-gradient(150deg,#10b981,#059669)' }}>
+                      🍽 Varaa pöytä
+                    </a>
+                  ) : null
+                })()}
                 {onShowOnMap && selectedRest.lat && selectedRest.lon && (
                   <button onClick={() => { onShowOnMap(selectedRest.lat!, selectedRest.lon!, selectedRest.name); setSelectedRest(null) }}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
