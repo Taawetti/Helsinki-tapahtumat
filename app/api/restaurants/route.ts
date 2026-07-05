@@ -183,8 +183,21 @@ function isOpenNow(hours: string): boolean | undefined {
 
 // ── Awards enrichment ─────────────────────────────────────
 
+// Normalize for fuzzy matching: lowercase, strip punctuation, collapse spaces
+function normName(n: string): string {
+  return n.toLowerCase().replace(/[^a-zäöå0-9]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+// Match OSM name against an award key: exact OR OSM contains the key OR key contains OSM name
+function awardMatch(osmName: string, awardKey: string): boolean {
+  if (osmName === awardKey) return true
+  const n = normName(osmName), k = normName(awardKey)
+  return n === k || n.includes(k) || k.includes(n)
+}
+
 function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
-  const stars = MICHELIN_STARS[name]
+  const starsKey = Object.keys(MICHELIN_STARS).find(k => awardMatch(name, k))
+  const stars = starsKey ? MICHELIN_STARS[starsKey] : undefined
   if (stars) {
     result.michelinStars = stars
     result.priceRange = 4
@@ -193,21 +206,23 @@ function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
     awards.push(`${stars === 1 ? '⭐' : stars === 2 ? '⭐⭐' : '⭐⭐⭐'} Michelin ${stars === 1 ? 'tähti' : 'tähteä'} 2025`)
     result.awards = awards
   }
-  if (BIB_GOURMAND.has(name)) {
+  const bibKey = [...BIB_GOURMAND].find(k => awardMatch(name, k))
+  if (bibKey) {
     result.bibGourmand = true
     result.featured = true
     const awards = result.awards ?? []
     awards.push('😊 Bib Gourmand 2025')
     result.awards = awards
   }
-  if (GREEN_MICHELIN.has(name)) {
+  const greenKey = [...GREEN_MICHELIN].find(k => awardMatch(name, k))
+  if (greenKey) {
     result.greenMichelin = true
     const awards = result.awards ?? []
     awards.push('🌿 Michelin Green Star')
     result.awards = awards
   }
   for (const [year, winner] of Object.entries(RESTAURANT_OF_YEAR)) {
-    if (winner === name) {
+    if (awardMatch(name, winner)) {
       const awards = result.awards ?? []
       awards.push(`🏆 Vuoden ravintola ${year}`)
       result.awards = awards
@@ -315,12 +330,47 @@ async function _fetchOSM(): Promise<Restaurant[]> {
   return []
 }
 
+// ── Supplement restaurants (not in OSM as restaurant node) ───────────────
+
+function applySupplements(results: Restaurant[]): Restaurant[] {
+  // Palace exists in OSM only as a hotel (tourism=hotel), not as amenity=restaurant
+  const haspalace = results.some(r => awardMatch(r.name, 'Palace'))
+  if (!haspalace) {
+    const p: Partial<Restaurant> = {
+      id: 'supplement-palace',
+      name: 'Palace',
+      description: 'finedining',
+      cuisines: ['finedining'],
+      cuisineCategories: ['nordisk'],
+      address: 'Eteläranta 10',
+      city: 'Helsinki',
+      lat: 60.16617,
+      lon: 24.95266,
+      image: null,
+      www: 'https://palacerestaurant.fi',
+      phone: '+358 9 1345 6780',
+      email: null,
+      instagram: null,
+      type: 'ravintola',
+      priceRange: 4,
+      openingHours: undefined,
+      awards: [],
+      outdoorSeating: undefined,
+      takeaway: undefined,
+    }
+    enrichWithAwards('Palace', p)
+    results.push(p as Restaurant)
+  }
+  return results
+}
+
 // ── Cached wrapper ────────────────────────────────────────
 
-export const fetchOSMCached = unstable_cache(_fetchOSM, ['restaurants-osm-v7'], {
-  revalidate: 86400,
-  tags: ['restaurants'],
-})
+export const fetchOSMCached = unstable_cache(
+  async () => applySupplements(await _fetchOSM()),
+  ['restaurants-osm-v8'],
+  { revalidate: 86400, tags: ['restaurants'] }
+)
 
 export const fetchPKCached = async () => [] as Restaurant[]
 
