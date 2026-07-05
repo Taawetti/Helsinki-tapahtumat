@@ -592,8 +592,23 @@ export default function ActivitiesView({ onShowOnMap }: {
       { title: '✨ Ylläty — kokeile jotain uutta',          items: surpriseItems },
       { title: '❤️ Tänne kannattaa mennä kerran elämässä', items: activities.filter(a => HELMET_IDS_OR_NAMES.has(a.name.toLowerCase())) },
       { title: '🆓 Ilmaiseksi — ei maksa mitään',          items: activities.filter(a => a.fee === false) },
-      { title: '🏛 Sadepäivän pelastajat',                  items: activities.filter(a => INDOOR_CATS.includes(a.category)) },
-      { title: '🟢 Ovet auki juuri nyt',                   items: activities.filter(a => isOpenNow(a.openingHours) === true) },
+      {
+        title: '🏛 Sadepäivän pelastajat',
+        items: activities.filter(a => {
+          if (!INDOOR_CATS.includes(a.category)) return false
+          // muu is a catch-all — require an image as minimum quality signal
+          if (a.category === 'muu') return !!a.image
+          return true
+        }),
+      },
+      {
+        title: '🟢 Ovet auki juuri nyt',
+        items: activities.filter(a => {
+          // Outdoor spots without opening_hours are always accessible
+          if (!a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category)) return true
+          return isOpenNow(a.openingHours) === true
+        }),
+      },
     ]
   }, [activities, catFilter, surpriseItems])
 
