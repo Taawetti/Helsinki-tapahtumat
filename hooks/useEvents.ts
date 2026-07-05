@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Event, DateFilter, CATEGORIES } from '@/lib/types'
 import { getDateRange } from '@/lib/utils'
+import { getCategoryScores, virtualStartTime } from '@/lib/preferences'
 
 interface UseEventsOptions {
   dateFilter: DateFilter
@@ -69,11 +70,16 @@ export function useEvents({
         setEvents((prev) => {
           const merged = append ? [...prev, ...data.events] : data.events
           const seen = new Set<string>()
-          return merged.filter((e: Event) => {
+          const unique = merged.filter((e: Event) => {
             if (seen.has(e.id)) return false
             seen.add(e.id)
             return true
           })
+          const scores = getCategoryScores()
+          if (Object.keys(scores).length > 0) {
+            unique.sort((a: Event, b: Event) => virtualStartTime(a, scores) - virtualStartTime(b, scores))
+          }
+          return unique
         })
         setHasMore(data.hasMore)
         setTotal(data.total)

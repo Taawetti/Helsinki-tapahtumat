@@ -3,6 +3,7 @@
 import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime, truncate, isTonight } from '@/lib/utils'
+import { recordClick } from '@/lib/preferences'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
@@ -62,7 +63,7 @@ export default function EventCard({ event, onClick }: Props) {
 
   return (
     <button
-      onClick={() => onClick(event)}
+      onClick={() => { recordClick(event); onClick(event) }}
       className="group w-full text-left bg-[#111318] border border-white/8 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl hover:shadow-black/50 hover:-translate-y-1 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
     >
       {/* Image */}
