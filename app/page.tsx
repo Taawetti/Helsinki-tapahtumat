@@ -406,8 +406,10 @@ export default function Home() {
     let result = events
 
     // Vibe filter — substring match; Yöelämä also matches evening start times
+    // If all vibes are selected it's equivalent to no filter — avoids hiding events
+    // that don't fit any keyword (e.g. generic "kulttuuri" events).
     const activeVibeIds = activeVibes.filter((v) => v !== 'ilmainen')
-    if (activeVibeIds.length > 0) {
+    if (activeVibeIds.length > 0 && activeVibeIds.length < VIBES.length) {
       const vibeKeywords = activeVibeIds.flatMap((id) => VIBES.find((v) => v.id === id)?.keywords ?? [])
       const isNightlife = activeVibeIds.includes('yoelama')
       result = result.filter((e) => {
