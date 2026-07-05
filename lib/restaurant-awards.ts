@@ -19,6 +19,31 @@ export const BIB_GOURMAND = new Set<string>([
   'Nolla',
 ])
 
+// Michelin Plate — recommended restaurants in the guide (no star/bib)
+export const MICHELIN_RECOMMENDED = new Set<string>([
+  'Savoy',
+  'Cafe Savoy',
+  'Nokka',
+  'Gaijin',
+  'Muru',
+  'Natura',
+  'Kuurna',
+  'Flor',
+  'Le Ankka',
+  'Bistro Bardot',
+  'Shelter',
+  'Young Hearts',
+  'Vinkkeli',
+  'Le Coucou Vert',
+  'Aoi',
+  'Boulevard Bar & Seafood',
+  'Boon Nam',
+  'Spis',
+  'Bistro Ego',
+  'Plein',
+  'Latitude 25',
+])
+
 // Michelin Green Star — sustainability leaders
 export const GREEN_MICHELIN = new Set<string>([
   'Grön',

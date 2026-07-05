@@ -445,15 +445,19 @@ function RestRowCard({ r, distance, onClick }: {
             </span>
           </div>
         )}
-        {(r.michelinStars || r.bibGourmand) && (
+        {(r.michelinStars || r.bibGourmand || r.michelinRecommended) && (
           <div className="absolute top-2 left-2">
             {r.michelinStars ? (
               <span className="text-[11px] font-black px-2 py-1 rounded-full text-white leading-none" style={{ background: 'rgba(185,28,28,.95)', boxShadow: '0 2px 8px rgba(0,0,0,.5)' }}>
                 {'⭐'.repeat(r.michelinStars)} Michelin
               </span>
-            ) : (
+            ) : r.bibGourmand ? (
               <span className="text-[11px] font-black px-2 py-1 rounded-full text-white leading-none" style={{ background: 'rgba(194,65,12,.95)', boxShadow: '0 2px 8px rgba(0,0,0,.5)' }}>
                 😊 Bib Gourmand
+              </span>
+            ) : (
+              <span className="text-[11px] font-black px-2 py-1 rounded-full text-white leading-none" style={{ background: 'rgba(30,30,30,.92)', boxShadow: '0 2px 8px rgba(0,0,0,.5)' }}>
+                🍽 Michelin
               </span>
             )}
           </div>
@@ -844,7 +848,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
           : { title: '☀️ Lounaalle mars', items: base.filter(r => /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase()) || (r.priceRange !== undefined && r.priceRange <= 2)) }
       return [
         lunchRow,
-        { title: '⭐ Michelin & palkitut',        items: base.filter(r => !!(r.michelinStars || r.bibGourmand || r.greenMichelin)) },
+        { title: '⭐ Michelin & palkitut',        items: base.filter(r => !!(r.michelinStars || r.bibGourmand || r.greenMichelin || r.michelinRecommended)) },
         { title: '🌙 Auki vielä myöhään illalla', items: base.filter(r => r.openingHours ? isLateNight(r.openingHours) : false) },
       ]
     }

@@ -150,6 +150,7 @@ export interface Restaurant {
   michelinStars?: number        // 1, 2 or 3
   bibGourmand?: boolean
   greenMichelin?: boolean
+  michelinRecommended?: boolean // Michelin Plate — in the guide without a star
   awards?: string[]             // e.g. ['Vuoden ravintola 2024']
   featured?: boolean
   outdoorSeating?: boolean

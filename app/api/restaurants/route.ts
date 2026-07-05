@@ -5,6 +5,7 @@ import {
   MICHELIN_STARS,
   BIB_GOURMAND,
   GREEN_MICHELIN,
+  MICHELIN_RECOMMENDED,
   RESTAURANT_OF_YEAR,
   CURATED_IMAGES,
 } from '@/lib/restaurant-awards'
@@ -232,6 +233,11 @@ function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
     awards.push('🌿 Michelin Green Star')
     result.awards = awards
   }
+  const recKey = [...MICHELIN_RECOMMENDED].find(k => awardMatch(name, k))
+  if (recKey && !result.michelinStars && !result.bibGourmand) {
+    result.michelinRecommended = true
+    result.featured = true
+  }
   for (const [year, winner] of Object.entries(RESTAURANT_OF_YEAR)) {
     if (awardMatch(name, winner)) {
       const awards = result.awards ?? []
@@ -404,14 +410,37 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
     results.push(b as Restaurant)
   }
 
-  // Award-winning restaurants that may be missing or misnamed in OSM
+  // Michelin-listed restaurants that may be missing or misnamed in OSM
   const AWARD_SUPPLEMENTS: Array<{ name: string; address: string; lat: number; lon: number; www?: string; priceRange?: 1|2|3|4 }> = [
-    { name: 'Olo',              address: 'Pohjoisesplanadi 5',  lat: 60.1678, lon: 24.9534, www: 'https://olo-ravintola.fi', priceRange: 4 },
-    { name: 'Finnjävel Salonki',address: 'Ainonkatu 3',         lat: 60.1657, lon: 24.9312, www: 'https://finnjavel.fi',     priceRange: 4 },
-    { name: 'Nolla',            address: 'Fredrikinkatu 22',    lat: 60.1628, lon: 24.9364, www: 'https://restaurantnolla.com', priceRange: 3 },
-    { name: '305',              address: 'Pursimiehenk. 1',     lat: 60.1585, lon: 24.9267, priceRange: 2 },
-    { name: 'Bona Fide',        address: 'Fredrikinkatu 34',    lat: 60.1617, lon: 24.9341, priceRange: 2 },
-    { name: 'Natura',           address: 'Museokatu 14',        lat: 60.1732, lon: 24.9279, priceRange: 3 },
+    // ── Starred ───────────────────────────────────────────────────────────
+    { name: 'Olo',                    address: 'Pohjoisesplanadi 5',   lat: 60.1678, lon: 24.9534, www: 'https://olo-ravintola.fi',          priceRange: 4 },
+    { name: 'Finnjävel Salonki',      address: 'Ainonkatu 3',          lat: 60.1657, lon: 24.9312, www: 'https://finnjavel.fi',              priceRange: 4 },
+    // ── Bib Gourmand ──────────────────────────────────────────────────────
+    { name: 'Nolla',                  address: 'Fredrikinkatu 22',     lat: 60.1628, lon: 24.9364, www: 'https://restaurantnolla.com',       priceRange: 3 },
+    { name: '305',                    address: 'Pursimiehenkatu 1',    lat: 60.1585, lon: 24.9267,                                           priceRange: 2 },
+    { name: 'Bona Fide',              address: 'Fredrikinkatu 34',     lat: 60.1617, lon: 24.9341,                                           priceRange: 2 },
+    // ── Michelin Recommended (The Plate) ──────────────────────────────────
+    { name: 'Savoy',                  address: 'Eteläesplanadi 14',    lat: 60.1676, lon: 24.9459, www: 'https://ravintolasavoy.fi',         priceRange: 4 },
+    { name: 'Cafe Savoy',             address: 'Eteläesplanadi 14',    lat: 60.1675, lon: 24.9458, www: 'https://cafesavoy.fi',              priceRange: 3 },
+    { name: 'Nokka',                  address: 'Kanavaranta 7',        lat: 60.1680, lon: 24.9588, www: 'https://ravintolaNokka.fi',         priceRange: 3 },
+    { name: 'Gaijin',                 address: 'Bulevardi 6',          lat: 60.1645, lon: 24.9395, www: 'https://gaijin.fi',                 priceRange: 3 },
+    { name: 'Muru',                   address: 'Fredrikinkatu 41',     lat: 60.1602, lon: 24.9365, www: 'https://ravintolaMuru.fi',          priceRange: 3 },
+    { name: 'Natura',                 address: 'Eerikinkatu 3',        lat: 60.1638, lon: 24.9386,                                           priceRange: 3 },
+    { name: 'Kuurna',                 address: 'Meritullinkatu 6',     lat: 60.1713, lon: 24.9524, www: 'https://kuurna.fi',                 priceRange: 3 },
+    { name: 'Flor',                   address: 'Fredrikinkatu 29',     lat: 60.1618, lon: 24.9374,                                           priceRange: 3 },
+    { name: 'Le Ankka',               address: 'Pohjoisesplanadi 17',  lat: 60.1692, lon: 24.9481,                                           priceRange: 3 },
+    { name: 'Bistro Bardot',          address: 'Erottajankatu 11',     lat: 60.1643, lon: 24.9450,                                           priceRange: 3 },
+    { name: 'Shelter',                address: 'Eerikinkatu 3',        lat: 60.1637, lon: 24.9387,                                           priceRange: 3 },
+    { name: 'Young Hearts',           address: 'Iso Roobertinkatu 1',  lat: 60.1649, lon: 24.9448,                                           priceRange: 3 },
+    { name: 'Vinkkeli',               address: 'Korkeavuorenkatu 27',  lat: 60.1621, lon: 24.9499,                                           priceRange: 2 },
+    { name: 'Le Coucou Vert',         address: 'Helsinki',             lat: 60.1680, lon: 24.9422,                                           priceRange: 3 },
+    { name: 'Aoi',                    address: 'Pursimiehenkatu 7',    lat: 60.1593, lon: 24.9261,                                           priceRange: 3 },
+    { name: 'Boulevard Bar & Seafood',address: 'Bulevardi 6',          lat: 60.1644, lon: 24.9394,                                           priceRange: 3 },
+    { name: 'Boon Nam',               address: 'Helsinki',             lat: 60.1680, lon: 24.9422,                                           priceRange: 2 },
+    { name: 'Spis',                   address: 'Kasarmikatu 26',       lat: 60.1647, lon: 24.9568, www: 'https://spis.fi',                   priceRange: 3 },
+    { name: 'Bistro Ego',             address: 'Helsinki',             lat: 60.1680, lon: 24.9422,                                           priceRange: 2 },
+    { name: 'Plein',                  address: 'Annankatu 31',         lat: 60.1618, lon: 24.9402,                                           priceRange: 3 },
+    { name: 'Latitude 25',            address: 'Helsinki',             lat: 60.1680, lon: 24.9422,                                           priceRange: 3 },
   ]
   for (const sup of AWARD_SUPPLEMENTS) {
     const alreadyIn = results.some(r => awardMatch(r.name, sup.name))
@@ -478,7 +507,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v13'],
+  ['restaurants-osm-v14'],
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
