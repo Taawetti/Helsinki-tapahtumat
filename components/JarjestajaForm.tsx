@@ -117,19 +117,31 @@ export default function JarjestajaForm({ onClose }: Props) {
               <input required value={form.paikka} onChange={set('paikka')} placeholder={t('form.field_venue_ph')} className={inputClass} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_price')}</label>
-                <input value={form.hinta} onChange={set('hinta')} placeholder={t('form.field_price_ph')} className={inputClass} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_category')}</label>
-                <select value={form.kategoria} onChange={set('kategoria')} className={inputClass}>
-                  <option value="">{t('form.field_category_ph')}</option>
-                  {FORM_CATEGORIES.map(cat => (
-                    <option key={cat.fi} value={cat.fi} className="bg-[#111118]">{t(cat.tKey)}</option>
-                  ))}
-                </select>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_price')}</label>
+              <input value={form.hinta} onChange={set('hinta')} placeholder={t('form.field_price_ph')} className={inputClass} />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wide text-white/35">{t('form.field_category')}</label>
+              <div className="flex flex-wrap gap-1.5">
+                {FORM_CATEGORIES.map(cat => {
+                  const active = form.kategoria === cat.fi
+                  return (
+                    <button
+                      key={cat.fi}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, kategoria: active ? '' : cat.fi }))}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
+                      style={active
+                        ? { background: 'rgba(107,118,255,0.18)', borderColor: 'rgba(107,118,255,0.5)', color: '#a3abff' }
+                        : { background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }
+                      }
+                    >
+                      {t(cat.tKey)}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
@@ -146,7 +158,7 @@ export default function JarjestajaForm({ onClose }: Props) {
             {error && <p className="text-red-400/80 text-xs text-center">{error}</p>}
             <button type="submit" disabled={loading}
               className="w-full py-3.5 rounded-xl font-black text-sm text-white hover:opacity-90 active:scale-[0.98] transition-all mt-1 disabled:opacity-60 flex items-center justify-center gap-2"
-              style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>
+              style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
               {loading && <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
               {loading ? t('form.sending') : t('form.submit')}
             </button>

@@ -339,7 +339,7 @@ export default function Home() {
       clearTimeout(readyTimer)
       window.removeEventListener('scroll', onScroll)
     }
-  }, [mode, showFilters])
+  }, [mode, showJarjestajaForm])
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
@@ -538,13 +538,10 @@ export default function Home() {
             >
               <Bell size={15} />
             </button>
-            <button onClick={() => setShowFilters((p) => !p)}
-              className={`relative p-2 rounded-xl border transition-all ${showFilters ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4'}`}
-              style={showFilters ? { color: '#6b76ff' } : {}}>
+            <button onClick={() => setShowJarjestajaForm((p) => !p)}
+              className={`relative p-2 rounded-xl border transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4'}`}
+              style={showJarjestajaForm ? { color: '#6b76ff' } : {}}>
               <SlidersHorizontal size={15} />
-              {activeCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{activeCount}</span>
-              )}
             </button>
           </div>
         </div>
@@ -603,67 +600,17 @@ export default function Home() {
             <Bell size={15} />
           </button>
 
-          <button onClick={() => setShowFilters((p) => !p)}
-            className={`relative shrink-0 p-2 rounded-xl border transition-all ${showFilters ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
-            style={showFilters ? { color: '#6b76ff' } : {}}>
+          <button onClick={() => setShowJarjestajaForm((p) => !p)}
+            className={`relative shrink-0 p-2 rounded-xl border transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
+            style={showJarjestajaForm ? { color: '#6b76ff' } : {}}>
             <SlidersHorizontal size={15} />
-            {activeCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{activeCount}</span>
-            )}
           </button>
         </div>
 
-        {showFilters && (
-          <div className="border-t border-white/5 px-4 py-4 max-w-6xl mx-auto space-y-3">
-            {/* Date row */}
-            <div className="flex flex-wrap gap-2 items-center">
-              {(['today','tonight','tomorrow','weekend','week','month'] as DateFilter[]).map((d) => {
-                const dateLabels: Record<string, string> = {
-                  today:   t('date.today'),
-                  tonight: `🌙 ${t('filter.tonight_short')}`,
-                  tomorrow:t('date.tomorrow'),
-                  weekend: `🎉 ${t('date.weekend')}`,
-                  week:    t('filter.week_short'),
-                  month:   t('date.month'),
-                }
-                const isActive = dateFilter === d && !customDate && !customDateEnd
-                return (
-                  <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${isActive ? 'text-white border-transparent' : 'text-white/40 border-white/10 hover:text-white/70'}`}
-                    style={isActive ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', borderColor: 'transparent' } : {}}>
-                    {dateLabels[d]}
-                  </button>
-                )
-              })}
-              <DatePicker size="sm" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
-            </div>
-            {/* Price row */}
-            <div className="flex gap-2">
-              {(['all','free','paid'] as PriceFilter[]).map((p) => {
-                const priceLabels: Record<string, string> = {
-                  all:  t('filter.all_price'),
-                  free: t('filter.free'),
-                  paid: t('filter.paid'),
-                }
-                return (
-                  <button key={p} onClick={() => setPriceFilter(p)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${priceFilter === p ? 'bg-white/12 border-white/20 text-white' : 'text-white/40 border-white/8 hover:text-white/60'}`}>
-                    {priceLabels[p]}
-                  </button>
-                )
-              })}
-              {activeCount > 0 && (
-                <button onClick={clearFilters} className="ml-auto px-3 py-1.5 rounded-full text-xs font-bold text-white/30 border border-white/8 hover:text-white/60 transition-all">
-                  {t('common.clear_all')}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </header>
 
       {/* ── Floating Aihepiirit button — only on discover, hidden when filter panel open ── */}
-      {mode === 'discover' && !showFilters && (
+      {mode === 'discover' && !showJarjestajaForm && (
         <button
           ref={vibeBtnRef}
           onClick={() => setShowVibePanel(true)}
@@ -942,15 +889,6 @@ export default function Home() {
           {/* Newsletter signup */}
           <NewsletterBanner />
 
-          {/* Organizer CTA */}
-          <div className="flex items-center justify-center pb-2">
-            <button
-              onClick={() => setShowJarjestajaForm(true)}
-              className="text-xs text-white/20 hover:text-white/50 transition-all font-bold"
-            >
-              {t('discover.add_event')}
-            </button>
-          </div>
         </main>
       )}
 
