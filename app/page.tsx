@@ -413,9 +413,9 @@ export default function Home() {
       result = result.filter((e) => {
         const haystack = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
         const kwMatch = vibeKeywords.some((kw) => haystack.includes(kw.toLowerCase()))
-        // Evening events (19:30+) count as nightlife even without matching keywords
+        // Evening events (19:30+) count as nightlife — but not sports matches
         const d = new Date(e.startTime)
-        const eveningMatch = isNightlife && (d.getHours() > 19 || (d.getHours() === 19 && d.getMinutes() >= 30))
+        const eveningMatch = isNightlife && (d.getHours() > 19 || (d.getHours() === 19 && d.getMinutes() >= 30)) && !isUrheilu(e)
         return kwMatch || eveningMatch
       })
     }
