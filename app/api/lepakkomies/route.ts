@@ -10,6 +10,15 @@ const VENUE = {
   url: 'https://lepis.fi',
 }
 
+function decodeHTML(s: string): string {
+  return s
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&ndash;/g, '–').replace(/&mdash;/g, '—').replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
+    .replace(/&[a-z]+;/gi, ' ')
+}
+
 // "ke 8.7.2026 / ovet klo 20:00" → { date: '2026-07-08', time: '20:00' }
 function parseLepisDate(s: string): { date: string; time: string } | null {
   const dateM = s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/)
@@ -35,25 +44,24 @@ async function scrape(): Promise<{ title: string; date: string; time: string; ti
   const html = await res.text()
   const results: { title: string; date: string; time: string; ticketUrl: string }[] = []
 
-  // Each event card: <a href="/tapahtumat/slug/"><h2 or h3>Title</h2/3>...<p>date text</p>...</a>
-  const cardRe = /<a\s+href="([^"]*\/tapahtumat\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/g
+  // Avoid nested-anchor problem: find each event href then inspect the surrounding HTML region
+  const hrefRe = /href="([^"]*\/tapahtumat\/[^"]+)"/g
   let m: RegExpExecArray | null
-  while ((m = cardRe.exec(html)) !== null) {
+  while ((m = hrefRe.exec(html)) !== null) {
     const href = m[1]
-    const inner = m[2]
-    const titleM = inner.match(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/)
+    const region = html.slice(m.index, m.index + 900)
+
+    const titleM = region.match(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/)
     if (!titleM) continue
-    const title = titleM[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim()
+    const title = decodeHTML(titleM[1].replace(/<[^>]+>/g, '')).trim()
     if (!title || title.length < 2) continue
 
-    // Look for date text in the card
-    const dateM = inner.match(/\d{1,2}\.\d{1,2}\.\d{4}/)
+    const dateM = region.match(/\d{1,2}\.\d{1,2}\.\d{4}/)
     if (!dateM) continue
     const parsed = parseLepisDate(dateM[0] + ' / ovet klo 20:00')
     if (!parsed) continue
 
-    // Also look for opening time in the card text
-    const cardText = inner.replace(/<[^>]+>/g, ' ')
+    const cardText = region.replace(/<[^>]+>/g, ' ')
     const timeM = cardText.match(/ovet\s+klo\s+(\d{1,2})[.:](\d{2})/i)
     const time = timeM ? `${String(parseInt(timeM[1])).padStart(2, '0')}:${timeM[2]}` : parsed.time
 
@@ -71,6 +79,7 @@ export async function GET(req: NextRequest) {
   const endTs = new Date(end).getTime() + 86400000
 
   const lineup = await scrape().catch(() => [])
+  if (lineup.length === 0) console.warn('[lepakkomies] scraper returned 0 events')
   const events: Event[] = []
 
   for (const e of lineup) {

@@ -10,6 +10,15 @@ const VENUE = {
   url: 'https://glivelab.fi',
 }
 
+function decodeHTML(s: string): string {
+  return s
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&ndash;/g, '–').replace(/&mdash;/g, '—').replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
+    .replace(/&[a-z]+;/gi, ' ')
+}
+
 // "2.9." or "2.9. ke" → YYYY-MM-DD
 function parseDDM(s: string): string {
   const m = s.match(/(\d{1,2})\.(\d{1,2})\./)
@@ -17,10 +26,12 @@ function parseDDM(s: string): string {
   const day = parseInt(m[1])
   const month = parseInt(m[2])
   if (day < 1 || day > 31 || month < 1 || month > 12) return ''
-  const today = new Date()
-  let year = today.getFullYear()
-  if (new Date(year, month - 1, day) < today) year++
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  const todayStr = new Date().toISOString().slice(0, 10)
+  let year = parseInt(todayStr.slice(0, 4))
+  const mm = String(month).padStart(2, '0')
+  const dd = String(day).padStart(2, '0')
+  if (`${year}-${mm}-${dd}` < todayStr) year++
+  return `${year}-${mm}-${dd}`
 }
 
 async function scrape(): Promise<{ title: string; date: string; time: string; ticketUrl: string }[]> {
@@ -39,7 +50,7 @@ async function scrape(): Promise<{ title: string; date: string; time: string; ti
   let m: RegExpExecArray | null
   while ((m = blockRe.exec(html)) !== null) {
     const href = m[1]
-    const inner = m[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    const inner = decodeHTML(m[2].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
 
     // inner looks like: "2.9. ke Loscil (CA) + Pietu Arvola 20:00 Osta liput!"
     const dateM = inner.match(/\b(\d{1,2}\.\d{1,2}\.)/)
@@ -71,6 +82,7 @@ export async function GET(req: NextRequest) {
   const endTs = new Date(end).getTime() + 86400000
 
   const lineup = await scrape().catch(() => [])
+  if (lineup.length === 0) console.warn('[glivelab] scraper returned 0 events')
   const events: Event[] = []
   const seen = new Set<string>()
 

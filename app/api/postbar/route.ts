@@ -22,10 +22,12 @@ function parseEnglishDate(s: string): string {
   const month = MONTHS[m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase()]
   if (!month) return ''
   const day = parseInt(m[2])
-  const today = new Date()
-  let year = today.getFullYear()
-  if (new Date(year, month - 1, day) < today) year++
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  const todayStr = new Date().toISOString().slice(0, 10)
+  let year = parseInt(todayStr.slice(0, 4))
+  const mm = String(month).padStart(2, '0')
+  const dd = String(day).padStart(2, '0')
+  if (`${year}-${mm}-${dd}` < todayStr) year++
+  return `${year}-${mm}-${dd}`
 }
 
 // "Doors 22-05" or "Doors 22:00" → "22:00"
@@ -77,6 +79,7 @@ export async function GET(req: NextRequest) {
   const endTs = new Date(end).getTime() + 86400000
 
   const lineup = await scrape().catch(() => [])
+  if (lineup.length === 0) console.warn('[postbar] scraper returned 0 events')
   const events: Event[] = []
 
   for (const e of lineup) {

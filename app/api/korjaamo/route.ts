@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
   const endTs = new Date(end).getTime() + 86400000
 
   const lineup = await scrape(startTs, endTs).catch(() => [])
+  if (lineup.length === 0) console.warn('[korjaamo] scraper returned 0 events')
   const events: Event[] = []
 
   for (const e of lineup) {

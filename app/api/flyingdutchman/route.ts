@@ -27,17 +27,19 @@ const STATIC_2026: { title: string; date: string; time: string }[] = [
   { title: 'Season Wrap Up – DJs Daddy Pales & Borzin',  date: '2026-08-29', time: '19:00' },
 ]
 
-// Parse "D.M." or "DD.MM." to YYYY-MM-DD — same logic as Kuudes Linja scraper
+// Parse "D.M." or "DD.MM." to YYYY-MM-DD
 function parseFinnishDate(s: string): string {
   const m = s.match(/^(\d{1,2})\.(\d{1,2})\.$/)
   if (!m) return ''
   const day = parseInt(m[1])
   const month = parseInt(m[2])
   if (day < 1 || day > 31 || month < 1 || month > 12) return ''
-  const today = new Date()
-  let year = today.getFullYear()
-  if (new Date(year, month - 1, day) < today) year++
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  const todayStr = new Date().toISOString().slice(0, 10)
+  let year = parseInt(todayStr.slice(0, 4))
+  const mm = String(month).padStart(2, '0')
+  const dd = String(day).padStart(2, '0')
+  if (`${year}-${mm}-${dd}` < todayStr) year++
+  return `${year}-${mm}-${dd}`
 }
 
 async function scrapeLive(): Promise<{ title: string; date: string; time: string }[]> {
@@ -110,7 +112,7 @@ export async function GET(req: NextRequest) {
     if (ts < startTs || ts >= endTs) continue
 
     events.push({
-      id: `flyingdutchman-${e.date.replace(/-/g, '')}`,
+      id: `flyingdutchman-${e.date.replace(/-/g, '')}-${e.title.slice(0, 20).replace(/\W+/g, '-').toLowerCase()}`,
       title: e.title,
       shortDescription: `Flying Dutch – ${VENUE.address}, Helsinki`,
       description: '',

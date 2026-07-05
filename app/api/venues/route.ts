@@ -214,7 +214,7 @@ function toEvent(v: VenueEvent): Event {
     title: v.title,
     shortDescription: `${v.venueName} — ${v.city}`,
     description: '',
-    startTime: `${v.date}T19:00:00`,
+    startTime: `${v.date}T19:00:00+03:00`,
     endTime: null,
     location: {
       name: v.venueName,
