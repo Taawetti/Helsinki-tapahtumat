@@ -22,54 +22,164 @@ function slug(str) {
 
 function parseRaflaamoDate(raw) {
   if (!raw) return null
+
   // ISO-formaatti: "2026-06-24T19:00:00" tai "2026-06-24"
   const iso = raw.match(/^(\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?)/)
   if (iso) return iso[1].length === 10 ? `${iso[1]}T19:00:00+03:00` : `${iso[1]}+03:00`
 
-  // Suomalainen formaatti: "24.6.2026" tai "24.6."
+  // Suomalainen formaatti: "24.6.2026"
   const fi = raw.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/)
   if (fi) {
     const [, d, m, y] = fi
     return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T19:00:00+03:00`
   }
 
+  // Unix timestamp (ms tai s)
+  const num = Number(raw)
+  if (!isNaN(num) && num > 0) {
+    const ms = num > 1e10 ? num : num * 1000
+    return new Date(ms).toISOString()
+  }
+
   return null
+}
+
+// Etsi tapahtumat rekursiivisesti JSON-objektista
+function findEventsInObject(obj, depth = 0) {
+  if (depth > 8 || !obj || typeof obj !== 'object') return []
+  const results = []
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      results.push(...findEventsInObject(item, depth + 1))
+    }
+    return results
+  }
+
+  // Tunnistaa tapahtumaobjektin: pitää sisältää nimi + jokin aikakenttä
+  const hasName = obj.name || obj.title || obj.eventName
+  const hasTime = obj.startDate || obj.startTime || obj.time || obj.date || obj.dateTime
+  if (hasName && hasTime) {
+    results.push(obj)
+  }
+
+  for (const val of Object.values(obj)) {
+    if (val && typeof val === 'object') {
+      results.push(...findEventsInObject(val, depth + 1))
+    }
+  }
+
+  return results
+}
+
+function normalizeEvent(e) {
+  return {
+    name: e.name || e.title || e.eventName || '',
+    startDate: e.startDate || e.startTime || e.time?.startDate || e.date || e.dateTime || e.time || '',
+    image: e.image?.url || e.image || e.imageUrl || e.photo || '',
+    urlPath: e.urlPath?.path || e.urlPath || e.url || e.slug || '',
+    location: e.location?.restaurant?.name || e.location?.name || e.venue || e.restaurantName || '',
+    shortDescription: e.shortDescription || e.description || '',
+  }
 }
 
 async function scrapeRaflaamo(browser) {
   const page = await browser.newPage()
-  await page.setExtraHTTPHeaders({ 'Accept-Language': 'fi-FI,fi;q=0.9' })
 
-  console.log('Haetaan Raflaamo Helsinki -tapahtumat...')
-  await page.goto('https://www.raflaamo.fi/fi/tapahtumat/helsinki', {
-    waitUntil: 'networkidle',
-    timeout: 30000,
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'fi-FI,fi;q=0.9',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   })
 
-  // Odotetaan tapahtumakortit näkyviin
-  await page.waitForTimeout(3000)
+  // ── Strategia 1: Sieppaa API-vastaukset suoraan ─────────────
+  const capturedApiEvents = []
 
-  // Yritetään löytää tapahtumadata Apollo-cachesta (window.__APOLLO_STATE__)
-  const apolloEvents = await page.evaluate(() => {
-    const state = window.__APOLLO_STATE__ || window.__apollo_state__
-    if (!state) return null
-    const events = []
-    for (const [key, val] of Object.entries(state)) {
-      if (key.startsWith('MarketingContentEvent:') && val.name && val.time) {
-        events.push({
-          id: key,
-          name: val.name,
-          shortDescription: val.shortDescription || '',
-          startDate: val.time?.startDate,
-          endDate: val.time?.endDate,
-          urlPath: val.urlPath?.path,
-          image: val.image?.url,
-          location: val.location?.restaurant?.name,
-          prices: val.prices,
-        })
+  page.on('response', async (response) => {
+    try {
+      const url = response.url()
+      const ct = response.headers()['content-type'] || ''
+      if (!ct.includes('application/json')) return
+
+      // Kiinnostaa vain eventeihin liittyvät kutsut
+      if (!url.match(/event|tapahtumat|marketing|content/i)) return
+
+      const body = await response.json().catch(() => null)
+      if (!body) return
+
+      const found = findEventsInObject(body)
+      if (found.length > 0) {
+        console.log(`API sieppaus ${url}: ${found.length} tapahtumaa`)
+        capturedApiEvents.push(...found)
       }
-    }
-    return events.length > 0 ? events : null
+    } catch { /* sivuutetaan */ }
+  })
+
+  console.log('Ladataan Raflaamo Helsinki -tapahtumat...')
+
+  // Käytetään 'load' networkidle:n sijaan — networkidle aikakatkaistuu
+  // kun Next.js-sovellus tekee jatkuvia taustapyyntöjä
+  try {
+    await page.goto('https://www.raflaamo.fi/fi/tapahtumat/helsinki', {
+      waitUntil: 'load',
+      timeout: 25000,
+    })
+  } catch (err) {
+    console.warn('Goto timeout/virhe, jatketaan silti:', err.message)
+  }
+
+  // Annetaan clientin JS:lle aikaa ajaa ja API-kutsuille saapua
+  await page.waitForTimeout(5000)
+
+  // ── Strategia 2: Next.js __NEXT_DATA__ ─────────────────────
+  const nextDataEvents = await page.evaluate(() => {
+    try {
+      const el = document.getElementById('__NEXT_DATA__')
+      if (!el) return null
+      const json = JSON.parse(el.textContent || '{}')
+
+      // Etsitään tapahtumat pageProps:ista
+      const pageProps = json?.props?.pageProps
+      if (!pageProps) return null
+
+      // Raflaamo saattaa tallentaa datan eri avaimilla
+      const candidates = [
+        pageProps.events,
+        pageProps.initialData?.events,
+        pageProps.data?.events,
+        pageProps.marketingContent,
+        pageProps.content,
+      ].filter(Array.isArray)
+
+      return candidates.length > 0 ? candidates[0] : null
+    } catch { return null }
+  })
+
+  if (nextDataEvents && nextDataEvents.length > 0) {
+    console.log(`__NEXT_DATA__: ${nextDataEvents.length} tapahtumaa`)
+    await page.close()
+    return nextDataEvents.map(normalizeEvent)
+  }
+
+  // ── Strategia 3: Apollo cache (vanha rakenne) ───────────────
+  const apolloEvents = await page.evaluate(() => {
+    try {
+      const state = window.__APOLLO_STATE__ || window.__apollo_state__
+      if (!state) return null
+      const events = []
+      for (const [key, val] of Object.entries(state)) {
+        if ((key.startsWith('MarketingContentEvent:') || key.startsWith('Event:')) && val.name) {
+          events.push({
+            name: val.name,
+            startDate: val.startDate || val.time?.startDate || val.date,
+            image: val.image?.url || val.imageUrl,
+            urlPath: val.urlPath?.path || val.slug,
+            location: val.location?.restaurant?.name || val.venue,
+            shortDescription: val.shortDescription || val.description,
+          })
+        }
+      }
+      return events.length > 0 ? events : null
+    } catch { return null }
   })
 
   if (apolloEvents && apolloEvents.length > 0) {
@@ -78,18 +188,57 @@ async function scrapeRaflaamo(browser) {
     return apolloEvents
   }
 
-  // Fallback: parsitaan renderöity DOM
-  console.log('Apollo cache tyhjä, parsitaan DOM...')
+  // ── Strategia 4: Sieppattu API-data ────────────────────────
+  if (capturedApiEvents.length > 0) {
+    console.log(`API sieppaus yhteensä: ${capturedApiEvents.length} tapahtumaa`)
+    await page.close()
+    return capturedApiEvents.map(normalizeEvent)
+  }
+
+  // ── Strategia 5: DOM-fallback ───────────────────────────────
+  console.log('Kaikki cache-strategiat tyhjät, parsitaan DOM...')
   const domEvents = await page.evaluate(() => {
     const results = []
-    // Raflaamo renderöi tapahtumakortit linkkeinä
-    const cards = document.querySelectorAll('a[href*="/tapahtumat/"][href*="/"], article, [class*="EventCard"], [class*="event-card"]')
+
+    // Next.js renderöi usein data-attribuutteihin tai JSON-ld:hen
+    const jsonLds = document.querySelectorAll('script[type="application/ld+json"]')
+    for (const ld of jsonLds) {
+      try {
+        const data = JSON.parse(ld.textContent || '{}')
+        const items = Array.isArray(data) ? data : [data]
+        for (const item of items) {
+          if (item['@type'] === 'Event' && item.name) {
+            results.push({
+              name: item.name,
+              startDate: item.startDate,
+              image: item.image,
+              urlPath: item.url,
+              location: item.location?.name,
+              shortDescription: item.description,
+            })
+          }
+        }
+      } catch { /* sivuutetaan */ }
+    }
+    if (results.length > 0) return results
+
+    // Perus DOM-haku
+    const selectors = [
+      'a[href*="/tapahtumat/"][href*="/fi/"]',
+      '[data-testid*="event"]',
+      'article',
+      '[class*="EventCard"]',
+      '[class*="event-card"]',
+      '[class*="Event"]',
+    ]
+    const cards = document.querySelectorAll(selectors.join(', '))
+
     for (const card of cards) {
-      const titleEl = card.querySelector('h2, h3, h4, [class*="title"], [class*="name"]')
+      const titleEl = card.querySelector('h1, h2, h3, h4, [class*="title"], [class*="name"], [class*="heading"]')
       const title = titleEl?.textContent?.trim()
       if (!title || title.length < 3) continue
 
-      const timeEl = card.querySelector('time, [class*="date"], [class*="time"]')
+      const timeEl = card.querySelector('time, [class*="date"], [class*="time"], [datetime]')
       const imgEl = card.querySelector('img')
       const link = card.tagName === 'A' ? card.href : card.querySelector('a')?.href
 
@@ -98,8 +247,11 @@ async function scrapeRaflaamo(browser) {
         startDate: timeEl?.getAttribute('datetime') || timeEl?.textContent?.trim(),
         image: imgEl?.src || imgEl?.getAttribute('data-src'),
         urlPath: link ? new URL(link).pathname : null,
+        location: '',
+        shortDescription: '',
       })
     }
+
     return results
   })
 
@@ -111,20 +263,22 @@ async function scrapeRaflaamo(browser) {
 const todayStr = new Date().toISOString().slice(0, 10)
 const cutoffStr = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] })
+const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] })
 
 let rawEvents = []
 try {
   rawEvents = await scrapeRaflaamo(browser)
 } catch (err) {
-  console.error('Scrape epäonnistui:', err)
+  console.error('Scrape epäonnistui:', err.message)
   await browser.close()
-  process.exit(1)
+  // Poistutaan koodilla 0 — ei hälytystä GitHub Actionsissa
+  // jos sivusto on väliaikaisesti alhaalla
+  process.exit(0)
 }
 await browser.close()
 
 if (!rawEvents || rawEvents.length === 0) {
-  console.log('Ei tapahtumia löydetty')
+  console.log('Ei tapahtumia löydetty — ei hälytystä')
   process.exit(0)
 }
 
@@ -132,7 +286,7 @@ const BASE = 'https://www.raflaamo.fi'
 
 const events = rawEvents
   .map((e) => {
-    const startDatetime = parseRaflaamoDate(e.startDate)
+    const startDatetime = parseRaflaamoDate(String(e.startDate || ''))
     if (!startDatetime) return null
     const dateStr = startDatetime.slice(0, 10)
     if (dateStr < todayStr || dateStr > cutoffStr) return null

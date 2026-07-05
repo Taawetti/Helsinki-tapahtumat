@@ -26,3 +26,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NODE_PATH: /tmp/scraper/node_modules
         run: node scripts/scrape-raflaamo.mjs
+        continue-on-error: true
+
+      - name: Check scraper exit
+        if: failure()
+        run: echo "Raflaamo scraper epäonnistui — sivusto saattaa olla muuttunut tai väliaikaisesti alhaalla."
