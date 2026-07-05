@@ -534,9 +534,43 @@ export default function ActivitiesView({ onShowOnMap }: {
 
   const surpriseItems = useMemo(() => {
     const seed = shuffleSeed.current
-    return [...activities].sort((a, b) => {
-      const ha = (a.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) + seed) % 9973
-      const hb = (b.id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0) + seed) % 9973
+
+    // Commercial gym chains — not "surprising" to recommend
+    const GYM_PATTERN = /fressi|forever\s*sport|elixia|fitness first|kuntokeskus/i
+    // Generic park sub-types that are just infrastructure, not destinations
+    const DULL_PARK_PATTERN = /puistikko|leikkipuisto|liikuntapuisto|urheilupuisto|pallokenttä|ulkoilualue/i
+
+    function hashId(id: string): number {
+      return id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0)
+    }
+
+    function score(a: Activity): number {
+      let s = 0
+      if (a.image) s += 3
+      if (a.category === 'sauna') s += 2
+      if (a.category === 'nakopaikka') s += 2
+      if (a.category === 'galleria') s += 1
+      if (a.category === 'markkina') s += 1
+      if (a.category === 'muu') s += 1
+      return s
+    }
+
+    const curated = activities.filter(a => {
+      // Already shown in "Helsingin helmet" row
+      if (HELMET_IDS_OR_NAMES.has(a.name.toLowerCase())) return false
+      // Commercial gym chains
+      if (GYM_PATTERN.test(a.name)) return false
+      // Generic park sub-types without an image (parks with photos can still be interesting)
+      if (a.category === 'puisto' && DULL_PARK_PATTERN.test(a.name) && !a.image) return false
+      return true
+    })
+
+    return curated.sort((a, b) => {
+      const sd = score(b) - score(a)
+      if (sd !== 0) return sd
+      // Same score tier: seeded shuffle for variety
+      const ha = (hashId(a.id) + seed) % 9973
+      const hb = (hashId(b.id) + seed) % 9973
       return ha - hb
     })
   }, [activities])
