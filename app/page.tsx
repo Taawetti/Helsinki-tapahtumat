@@ -5,8 +5,10 @@ import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Loader2, SlidersHorizontal, Heart, Bell } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
+import { haversineKm } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents } from '@/hooks/useEvents'
+import { useGeolocation } from '@/hooks/useGeolocation'
 import EventCard from '@/components/EventCard'
 import FeedCard from '@/components/FeedCard'
 import EventDetailPanel from '@/components/EventDetailPanel'
@@ -353,9 +355,19 @@ export default function Home() {
   }, [mode, showJarjestajaForm])
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const [pushEnabled, setPushEnabled] = useState(false)
+  const [nearbyMode, setNearbyMode] = useState(false)
+  const geo = useGeolocation()
+
+  function handleNearbyToggle() {
+    if (nearbyMode) { setNearbyMode(false); return }
+    if (!geo.coords) geo.request()
+    setNearbyMode(true)
+  }
+
   const { events, loading, error, hasMore, total, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
+    nearbyCoords: nearbyMode && geo.coords ? geo.coords : null,
   })
 
   const handleRangeChange = useCallback((start: string, end: string) => {
@@ -820,6 +832,15 @@ export default function Home() {
               )
             })}
             <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
+            <button
+              onClick={handleNearbyToggle}
+              title={geo.denied ? 'Sijaintia ei sallittu' : 'Lähellä sinua'}
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
+                nearbyMode && geo.coords ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
+              }`}
+              style={nearbyMode && geo.coords ? { background: 'linear-gradient(150deg,#0ea5e9,#0284c7)', boxShadow: '0 4px 16px -4px rgba(14,165,233,.4)' } : {}}>
+              {geo.loading ? '⏳' : geo.denied ? '📍✕' : '📍'} Lähellä
+            </button>
           </div>
 
           {/* Aktiivinen filtteripalkki — ilmestyy kun kategoria valittu */}
@@ -911,7 +932,10 @@ export default function Home() {
             <section>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {discoverEvents.filter(e => e.id !== heroEvent?.id).map(e => (
-                  <PosterCard key={e.id} event={e} onClick={setSelectedEvent} />
+                  <PosterCard key={e.id} event={e} onClick={setSelectedEvent}
+                    distance={geo.coords && e.location?.lat && e.location?.lon
+                      ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
+                      : undefined} />
                 ))}
               </div>
               <div ref={sentinelRef} className="h-1" />

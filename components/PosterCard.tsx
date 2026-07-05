@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Event } from '@/lib/types'
-import { formatTime } from '@/lib/utils'
+import { formatTime, fmtDistance } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 // 12 distinct dark gradients with varied angles
@@ -61,9 +61,10 @@ interface Props {
   event: Event
   onClick: (e: Event) => void
   large?: boolean
+  distance?: number
 }
 
-export default function PosterCard({ event, onClick, large }: Props) {
+export default function PosterCard({ event, onClick, large, distance }: Props) {
   const idx = hashIdx(event.id, GRADIENTS.length)
   const gradient = GRADIENTS[idx]
   const accent = ACCENT_COLORS[idx]
@@ -165,9 +166,14 @@ export default function PosterCard({ event, onClick, large }: Props) {
         <p className="text-white font-bold text-[13px] leading-snug line-clamp-2 group-hover:text-[#c7caff] transition-colors">
           {event.title}
         </p>
-        {event.location?.name && (
-          <p className="text-white/40 text-[11px] truncate">{event.location.name}</p>
-        )}
+        <div className="flex items-center gap-1.5">
+          {event.location?.name && (
+            <p className="text-white/40 text-[11px] truncate">{event.location.name}</p>
+          )}
+          {distance !== undefined && (
+            <span className="text-blue-400/70 text-[11px] font-medium shrink-0">· {fmtDistance(distance)}</span>
+          )}
+        </div>
         {!event.isFree && event.price && (
           <p className="text-white/30 text-[11px]">{event.price}</p>
         )}

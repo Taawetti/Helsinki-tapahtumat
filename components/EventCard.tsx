@@ -2,7 +2,7 @@
 
 import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
-import { formatDate, formatTime, truncate, isTonight } from '@/lib/utils'
+import { formatDate, formatTime, truncate, isTonight, fmtDistance } from '@/lib/utils'
 import { recordClick } from '@/lib/preferences'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -11,6 +11,7 @@ import type { TranslationKey } from '@/lib/i18n'
 interface Props {
   event: Event
   onClick: (event: Event) => void
+  distance?: number  // km, pre-calculated by parent
 }
 
 const GRADIENT_COLORS = [
@@ -53,7 +54,7 @@ function handleShare(e: React.MouseEvent, event: Event) {
   }
 }
 
-export default function EventCard({ event, onClick }: Props) {
+export default function EventCard({ event, onClick, distance }: Props) {
   const gradient = hashGradient(event.id)
   const tonight = isTonight(event.startTime)
   const { toggle, isFavorite } = useFavorites()
@@ -138,6 +139,9 @@ export default function EventCard({ event, onClick }: Props) {
               <div className="flex items-center gap-1.5 text-white/40 text-xs">
                 <MapPin size={10} className="shrink-0" />
                 <span className="truncate max-w-[160px]">{event.location.name || event.location.streetAddress}</span>
+                {distance !== undefined && (
+                  <span className="text-blue-400/70 font-medium shrink-0">· {fmtDistance(distance)}</span>
+                )}
               </div>
             )}
             <div className="flex items-center gap-1.5 text-purple-400 text-xs font-semibold">

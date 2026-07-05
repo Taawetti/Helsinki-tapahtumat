@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Event, DateFilter, CATEGORIES } from '@/lib/types'
-import { getDateRange } from '@/lib/utils'
+import { getDateRange, haversineKm } from '@/lib/utils'
 import { getCategoryScores, virtualStartTime } from '@/lib/preferences'
+import type { GeoCoords } from './useGeolocation'
 
 interface UseEventsOptions {
   dateFilter: DateFilter
@@ -11,6 +12,7 @@ interface UseEventsOptions {
   municipality: string
   activeCategories: string[]
   bbox?: string
+  nearbyCoords?: GeoCoords | null
 }
 
 interface UseEventsResult {
@@ -30,6 +32,7 @@ export function useEvents({
   municipality,
   activeCategories,
   bbox,
+  nearbyCoords,
 }: UseEventsOptions): UseEventsResult {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(false)
@@ -75,9 +78,18 @@ export function useEvents({
             seen.add(e.id)
             return true
           })
-          const scores = getCategoryScores()
-          if (Object.keys(scores).length > 0) {
-            unique.sort((a: Event, b: Event) => virtualStartTime(a, scores) - virtualStartTime(b, scores))
+          if (nearbyCoords) {
+            const { lat, lon } = nearbyCoords
+            unique.sort((a: Event, b: Event) => {
+              const da = (a.location?.lat && a.location?.lon) ? haversineKm(lat, lon, a.location.lat, a.location.lon) : 999
+              const db = (b.location?.lat && b.location?.lon) ? haversineKm(lat, lon, b.location.lat, b.location.lon) : 999
+              return da - db
+            })
+          } else {
+            const scores = getCategoryScores()
+            if (Object.keys(scores).length > 0) {
+              unique.sort((a: Event, b: Event) => virtualStartTime(a, scores) - virtualStartTime(b, scores))
+            }
           }
           return unique
         })
@@ -90,7 +102,7 @@ export function useEvents({
         setLoading(false)
       }
     },
-    [dateFilter, customDate, customDateEnd, keyword, municipality, activeCategories, bbox]
+    [dateFilter, customDate, customDateEnd, keyword, municipality, activeCategories, bbox, nearbyCoords]
   )
 
   useEffect(() => {
@@ -105,7 +117,7 @@ export function useEvents({
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateFilter, customDate, customDateEnd ?? '', keyword, municipality, activeCategories.join(','), bbox ?? ''])
+  }, [dateFilter, customDate, customDateEnd ?? '', keyword, municipality, activeCategories.join(','), bbox ?? '', nearbyCoords?.lat ?? '', nearbyCoords?.lon ?? ''])
 
   const loadMore = useCallback(() => {
     const next = page + 1
