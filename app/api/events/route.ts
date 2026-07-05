@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch all sources in parallel — page 1 only for external sources
-    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes, recurringRes, pubivisatRes, stadissaRes, myhelsinkiRes, openingsRes, allasRes, lippuRes, scrapedRes, flyingdutchRes, juttutupRes, lepakkomiesRes, glivelabRes, kulttuuritaloRes, postbarRes, korjaamoRes] = await Promise.allSettled([
+    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes, recurringRes, pubivisatRes, stadissaRes, myhelsinkiRes, openingsRes, allasRes, lippuRes, scrapedRes, flyingdutchRes, juttutupRes, lepakkomiesRes, glivelabRes, kulttuuritaloRes, postbarRes, korjaamoRes, malmitaloRes, vuotaloRes, savoyRes] = await Promise.allSettled([
       fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(10000) }),
       page === '1' ? src('api/ticketmaster')    : Promise.resolve(null),
       page === '1' ? src('api/eventbrite')      : Promise.resolve(null),
@@ -167,6 +167,9 @@ export async function GET(req: NextRequest) {
       page === '1' ? src('api/kulttuuritalo')   : Promise.resolve(null),
       page === '1' ? src('api/postbar')         : Promise.resolve(null),
       page === '1' ? src('api/korjaamo')        : Promise.resolve(null),
+      page === '1' ? src('api/malmitalo')       : Promise.resolve(null),
+      page === '1' ? src('api/vuotalo')         : Promise.resolve(null),
+      page === '1' ? src('api/savoy')           : Promise.resolve(null),
     ])
 
     if (linkedRes.status === 'rejected' || (linkedRes.status === 'fulfilled' && !linkedRes.value.ok)) {
@@ -200,7 +203,7 @@ export async function GET(req: NextRequest) {
     // from the incoming version (e.g. recurring has coords, Linked Events doesn't).
     const seenMap = new Map(events.map((e, i) => [dedupKey(e.title, e.startTime.slice(0, 10)), i]))
 
-    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes, recurringRes, pubivisatRes, stadissaRes, myhelsinkiRes, openingsRes, allasRes, lippuRes, scrapedRes, flyingdutchRes, juttutupRes, lepakkomiesRes, glivelabRes, kulttuuritaloRes, postbarRes, korjaamoRes]) {
+    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes, recurringRes, pubivisatRes, stadissaRes, myhelsinkiRes, openingsRes, allasRes, lippuRes, scrapedRes, flyingdutchRes, juttutupRes, lepakkomiesRes, glivelabRes, kulttuuritaloRes, postbarRes, korjaamoRes, malmitaloRes, vuotaloRes, savoyRes]) {
       if (res.status === 'fulfilled' && res.value && res.value !== null) {
         let data: { events?: Event[] }
         try { data = await (res.value as Response).json() } catch { continue }
