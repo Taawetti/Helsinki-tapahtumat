@@ -187,6 +187,17 @@ function matchesText(e: Event, pattern: RegExp): boolean {
 }
 const isKeikka  = (e: Event) => matchesText(e, /keikka|konsertti|live[\s-]?musiikki|bändi|gig/)
 const isUrheilu = (e: Event) => matchesText(e, /urheilu|jääkiekko|jalkapallo|koripallo|ottelu|sm-liiga|khl|nba|liiga/)
+
+// Finnish concept words → category/title terms that identify matching events.
+// Needed because Linked Events full-text search is too permissive.
+const KEYWORD_CONCEPTS: Record<string, string[]> = {
+  keikka:      ['musiikki', 'keikka', 'konsertti', 'concert', 'live', 'rock', 'jazz', 'folk', 'pop', 'metal', 'festivaali', 'festival'],
+  keikkoja:    ['musiikki', 'keikka', 'konsertti', 'concert', 'live', 'festivaali', 'festival'],
+  livekeikka:  ['musiikki', 'keikka', 'konsertti', 'concert', 'live'],
+  konsertti:   ['musiikki', 'keikka', 'konsertti', 'concert', 'klassinen', 'orkesteri', 'sinfonia'],
+  konsertit:   ['musiikki', 'keikka', 'konsertti', 'concert', 'klassinen', 'orkesteri'],
+  festivaali:  ['festivaali', 'festival', 'musiikki', 'keikka'],
+}
 const isSurprise = (e: Event) => matchesText(e, /sauna|melont|jooga|silent|pop.?up|taikur|sirkus|impro|flash|yömelont|saunavene/)
 const isTerrace = (e: Event) => {
   const month = new Date().getMonth() + 1
@@ -428,6 +439,26 @@ export default function Home() {
 // Vibe-based client filter on top of API results
   const filteredEvents = useMemo(() => {
     let result = events
+
+    // Keyword concept filter — applied client-side because Linked Events full-text search
+    // returns too many false positives (word "keikka" appears in unrelated descriptions).
+    if (keyword) {
+      const kw = keyword.toLowerCase().trim()
+      const conceptTerms = KEYWORD_CONCEPTS[kw]
+      if (conceptTerms) {
+        // Concept search: match against categories + title
+        result = result.filter((e) => {
+          const haystack = [e.title, e.shortDescription ?? '', ...e.categories].join(' ').toLowerCase()
+          return conceptTerms.some((term) => haystack.includes(term))
+        })
+      } else {
+        // Specific search: match title or shortDescription
+        result = result.filter((e) => {
+          const haystack = [e.title, e.shortDescription ?? '', e.location?.name ?? ''].join(' ').toLowerCase()
+          return haystack.includes(kw)
+        })
+      }
+    }
 
     // Vibe filter — 'kaikki' shows all events unfiltered (list mode without keyword filter)
     const activeVibeIds = activeVibes.filter((v) => v !== 'ilmainen' && v !== 'kaikki')
