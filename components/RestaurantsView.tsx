@@ -344,14 +344,24 @@ function HeroCard({ r, distance, onShowOnMap }: {
 
   return (
     <div className="relative w-full rounded-[22px] overflow-hidden" style={{ aspectRatio: '16/9', boxShadow: '0 22px 50px -20px rgba(10,10,12,.8)' }}>
-      <div className="absolute inset-0" style={{ background: '#0f0f14' }} />
-      <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 38%, ${heroStyle.color}40 0%, transparent 62%)` }} />
-      <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: '70px' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={twemojiUrl(heroStyle.cp)} alt="" width={88} height={88} style={{ objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,.7))' }} />
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: heroStyle.color, opacity: 0.5 }} />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.1) 50%,transparent 100%)' }} />
+      {r.image ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.4) 50%,rgba(0,0,0,.15) 100%)' }} />
+        </>
+      ) : (
+        <>
+          <div className="absolute inset-0" style={{ background: '#0f0f14' }} />
+          <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 38%, ${heroStyle.color}40 0%, transparent 62%)` }} />
+          <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: '70px' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={twemojiUrl(heroStyle.cp)} alt="" width={88} height={88} style={{ objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,.7))' }} />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: heroStyle.color, opacity: 0.5 }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.1) 50%,transparent 100%)' }} />
+        </>
+      )}
 
       {open !== undefined && (
         <div className="absolute top-4 right-4">
@@ -410,14 +420,24 @@ function RestRowCard({ r, distance, onClick }: {
       className="group shrink-0 w-44 text-left rounded-[18px] overflow-hidden"
       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
-        {/* B2: dark bg + cuisine-colored radial glow + Twemoji illustrated emoji */}
-        <div className="absolute inset-0" style={{ background: '#141418' }} />
-        <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 55%, ${cuisineStyle.color}30 0%, transparent 68%)` }} />
-        <div className="absolute inset-0 flex items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={50} height={50} style={{ objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.5))' }} />
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.6 }} />
+        {r.image ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 60%)' }} />
+          </>
+        ) : (
+          <>
+            {/* B2: dark bg + cuisine-colored radial glow + Twemoji illustrated emoji */}
+            <div className="absolute inset-0" style={{ background: '#141418' }} />
+            <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 55%, ${cuisineStyle.color}30 0%, transparent 68%)` }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={50} height={50} style={{ objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.5))' }} />
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.6 }} />
+          </>
+        )}
         {open !== undefined && (
           <div className="absolute top-2 right-2">
             <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-black/50 text-white/50'}`}>

@@ -6,6 +6,7 @@ import {
   BIB_GOURMAND,
   GREEN_MICHELIN,
   RESTAURANT_OF_YEAR,
+  CURATED_IMAGES,
 } from '@/lib/restaurant-awards'
 import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 import { supabase } from '@/lib/supabase'
@@ -314,6 +315,7 @@ async function _fetchOSM(): Promise<Restaurant[]> {
         }
 
         enrichWithAwards(name, partial)
+        if (!partial.image && CURATED_IMAGES[name]) partial.image = CURATED_IMAGES[name]
 
         results.push(partial as Restaurant)
       }
@@ -347,7 +349,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
       city: 'Helsinki',
       lat: 60.16617,
       lon: 24.95266,
-      image: null,
+      image: CURATED_IMAGES['Palace'] ?? null,
       www: 'https://palacerestaurant.fi',
       phone: '+358 9 1345 6780',
       email: null,
@@ -361,6 +363,35 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
     }
     enrichWithAwards('Palace', p)
     results.push(p as Restaurant)
+  }
+
+  // Boreal — new 1-star 2026, may not yet be in OSM
+  const hasBoreal = results.some(r => awardMatch(r.name, 'Boreal'))
+  if (!hasBoreal) {
+    const b: Partial<Restaurant> = {
+      id: 'supplement-boreal',
+      name: 'Boreal',
+      description: 'finedining',
+      cuisines: ['finedining'],
+      cuisineCategories: ['nordisk'],
+      address: 'Uudenmaankatu 9',
+      city: 'Helsinki',
+      lat: 60.1613,
+      lon: 24.9432,
+      image: CURATED_IMAGES['Boreal'] ?? null,
+      www: null,
+      phone: null,
+      email: null,
+      instagram: null,
+      type: 'ravintola',
+      priceRange: 4,
+      openingHours: undefined,
+      awards: [],
+      outdoorSeating: undefined,
+      takeaway: undefined,
+    }
+    enrichWithAwards('Boreal', b)
+    results.push(b as Restaurant)
   }
 
   // Curated Helsinki nightclubs — add those missing from OSM
@@ -399,7 +430,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v11'],
+  ['restaurants-osm-v12'],
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
