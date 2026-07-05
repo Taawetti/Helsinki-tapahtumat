@@ -838,13 +838,13 @@ export default function Home() {
             </button>
           )}
 
-          {/* ── Carousel rows — piilotetaan kun filtteri aktiivinen ── */}
-          {!loading && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && carousels.map(row => (
+          {/* ── Carousel rows — piilotetaan kun filtteri tai keyword aktiivinen ── */}
+          {!loading && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && carousels.map(row => (
             <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent} />
           ))}
 
-          {/* ── Filtteröity grid — näkyy kun kategoria valittu ── */}
-          {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
+          {/* ── Flat grid — näkyy kun keyword, kategoria tai vibe valittu ── */}
+          {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {discoverEvents.filter(e => e.id !== heroEvent?.id).map(e => (
