@@ -90,6 +90,33 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose }: 
           className="grid gap-2.5 p-5 overflow-y-auto flex-1"
           style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
         >
+          {/* Kaikki — always first, active when nothing selected */}
+          <button
+            onClick={onClear}
+            className="flex flex-col items-center gap-2 py-4 rounded-[18px] transition-all active:scale-[.96]"
+            style={n === 0
+              ? { background: 'rgba(107,118,255,.13)', border: '1.5px solid rgba(107,118,255,.45)' }
+              : { background: 'rgba(255,255,255,.05)', border: '1.5px solid rgba(255,255,255,.08)' }
+            }
+          >
+            <span
+              className="text-[28px] leading-none"
+              style={{
+                transform: n === 0 ? 'scale(1.18)' : 'scale(1)',
+                transition: 'transform .15s',
+                display: 'block',
+              }}
+            >
+              ✨
+            </span>
+            <span
+              className="text-[11px] font-black text-center leading-tight px-1"
+              style={{ color: n === 0 ? '#a3abff' : 'rgba(255,255,255,.45)' }}
+            >
+              Kaikki
+            </span>
+          </button>
+
           {VIBES.map((v) => {
             const isActive = active.includes(v.id)
             return (
