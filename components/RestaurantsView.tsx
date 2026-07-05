@@ -625,9 +625,10 @@ function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby
 
 // ── Main view ─────────────────────────────────────────────
 
-export default function RestaurantsView({ onShowOnMap, jumpToId }: {
+export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
   jumpToId?: string
+  jumpToKey?: object
 }) {
   const { t } = useLanguage()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
@@ -649,12 +650,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId }: {
       .finally(() => setLoading(false))
   }, [])
 
-  // Open detail modal when navigated from search
+  // Open detail modal when navigated from search.
+  // jumpToKey changes on every click (new object ref) so same restaurant can be reopened.
   useEffect(() => {
     if (!jumpToId || !restaurants.length) return
     const r = restaurants.find(r => r.id === jumpToId)
     if (r) setSelectedRest(r)
-  }, [jumpToId, restaurants])
+  }, [jumpToKey, restaurants])
 
   useEffect(() => {
     fetch('/api/restaurant-news')
