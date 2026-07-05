@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 import type { NewsItem } from '@/app/api/restaurant-news/route'
@@ -574,18 +574,18 @@ function SubCatGrid({ restType, active, onSelect }: {
 
 function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestType) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5">
+    <div className="grid grid-cols-2 gap-2">
       {TYPE_TABS.map(tab => {
         const isActive = active === tab.id
         return (
           <button key={tab.id} onClick={() => onChange(tab.id)}
-            className="flex items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all active:scale-[.97]"
+            className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition-all active:scale-[.97]"
             style={isActive
-              ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 8px 24px -8px rgba(91,101,230,.5)' }
+              ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 6px 16px -6px rgba(91,101,230,.5)' }
               : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }
             }>
-            <span className="text-[26px] leading-none flex-shrink-0">{tab.emoji}</span>
-            <span className="font-black text-[14px] leading-tight"
+            <span className="text-[20px] leading-none flex-shrink-0">{tab.emoji}</span>
+            <span className="font-black text-[13px] leading-tight"
               style={{ letterSpacing: '-0.01em', color: isActive ? '#fff' : 'rgba(255,255,255,.7)' }}>
               {tab.label}
             </span>
@@ -641,6 +641,8 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [selectedRest, setSelectedRest] = useState<Restaurant | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   const [news, setNews] = useState<NewsItem[]>([])
+  const [showCatPanel, setShowCatPanel] = useState(false)
+  const catBtnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     fetch('/api/restaurants')
@@ -787,7 +789,78 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       </div>
 
       {/* Type tabs — always visible */}
-      <TypeTabs active={restType} onChange={setRestType} />
+      <TypeTabs active={restType} onChange={(id) => { setRestType(id); setShowCatPanel(false) }} />
+
+      {/* Floating Kategoriat button */}
+      <button
+        ref={catBtnRef}
+        onClick={() => setShowCatPanel(v => !v)}
+        className="fixed right-3 z-[35] flex items-center gap-1.5 rounded-full overflow-hidden transition-all active:scale-[.94]"
+        style={{
+          top: 'calc(env(safe-area-inset-top, 0px) + 108px)',
+          padding: '7px 11px 7px 9px',
+          background: showCatPanel ? 'rgba(107,118,255,.25)' : 'rgba(255,255,255,.11)',
+          border: showCatPanel ? '1px solid rgba(107,118,255,.5)' : '1px solid rgba(255,255,255,.2)',
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+          boxShadow: '0 3px 16px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12)',
+          color: showCatPanel ? '#a3abff' : '#fff',
+        }}
+      >
+        <span className="text-[13px] leading-none select-none">🍽</span>
+        <span className="text-[12px] font-black" style={{ letterSpacing: '-0.01em' }}>Kategoriat</span>
+        {subCat !== 'all' && (
+          <span className="flex items-center justify-center text-[9px] font-black text-white rounded-full"
+            style={{ background: 'rgba(255,255,255,.22)', minWidth: 16, height: 16, padding: '0 3px' }}>
+            1
+          </span>
+        )}
+        <span className="text-[9px] opacity-50 select-none">▾</span>
+      </button>
+
+      {/* Category panel */}
+      {showCatPanel && (
+        <>
+          <div className="fixed inset-0 z-[34]" onClick={() => setShowCatPanel(false)} />
+          <div className="fixed z-[35] right-3 rounded-2xl overflow-hidden"
+            style={{
+              top: 'calc(env(safe-area-inset-top, 0px) + 148px)',
+              width: 260,
+              background: 'rgba(16,16,26,0.97)',
+              border: '1px solid rgba(255,255,255,.1)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              boxShadow: '0 16px 48px rgba(0,0,0,.6)',
+            }}>
+            <div className="px-4 pt-3 pb-2">
+              <p className="text-[10px] font-black uppercase tracking-[.12em] text-white/30">
+                {TYPE_TABS.find(t => t.id === restType)?.label}
+              </p>
+            </div>
+            <div className="flex flex-col pb-2">
+              <button
+                onClick={() => { setSubCat('all'); setShowCatPanel(false) }}
+                className="flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/5"
+                style={{ color: subCat === 'all' ? '#a3abff' : 'rgba(255,255,255,.6)' }}>
+                <span className="text-[16px] leading-none">✨</span>
+                <span className="font-bold text-[13px]">Kaikki</span>
+                {subCat === 'all' && <span className="ml-auto text-[10px] font-black text-[#a3abff]">✓</span>}
+              </button>
+              {SUB_CATS[restType].map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => { setSubCat(subCat === cat.id ? 'all' : cat.id); setShowCatPanel(false) }}
+                  className="flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/5"
+                  style={{ color: subCat === cat.id ? '#a3abff' : 'rgba(255,255,255,.6)' }}>
+                  <span className="text-[16px] leading-none">{cat.emoji}</span>
+                  <span className="font-bold text-[13px]">{cat.label}</span>
+                  {subCat === cat.id && <span className="ml-auto text-[10px] font-black text-[#a3abff]">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Loading skeletons */}
       {loading && (
