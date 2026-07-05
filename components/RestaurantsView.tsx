@@ -16,7 +16,7 @@ const TYPE_TABS: { id: RestType; label: string; emoji: string; dbType: Restauran
   { id: 'ruokapaikat', label: 'Ruokapaikat', emoji: '🍽', dbType: 'ravintola' },
   { id: 'kahvilat',    label: 'Kahvilat',    emoji: '☕', dbType: 'kahvila'   },
   { id: 'baarit',      label: 'Baarit',      emoji: '🍸', dbType: 'baari'     },
-  { id: 'yokerhot',    label: 'Yökerhot',    emoji: '🌃', dbType: null        },
+  { id: 'yokerhot',    label: 'Yökerhot',    emoji: '🌃', dbType: 'yokerho'   },
 ]
 
 const SUB_CATS: Record<RestType, { id: string; label: string; emoji: string }[]> = {
@@ -274,13 +274,30 @@ function reservationUrl(r: Restaurant): string {
   return ''
 }
 
+// Sub-category IDs differ between UI and Supabase for some baarit keys
+const SUB_TO_DB: Record<string, string> = {
+  olut: 'craft_beer',
+  viini: 'wine',
+  urheilu: 'sports',
+}
+
 function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean {
   if (sub === 'all') return true
-  const text = `${r.name} ${r.description}`.toLowerCase()
+
+  // ruokapaikat uses cuisine categories — no change needed
   if (restType === 'ruokapaikat') {
     if (sub === 'awarded') return !!r.featured
     return r.cuisineCategories.includes(sub)
   }
+
+  // For all other types: Supabase sub_categories is authoritative
+  const dbKey = SUB_TO_DB[sub] ?? sub
+  if (r.subCategories && r.subCategories.length > 0) {
+    return r.subCategories.includes(dbKey)
+  }
+
+  // Fallback text matching for venues not yet enriched
+  const text = `${r.name} ${r.description}`.toLowerCase()
   if (restType === 'kahvilat') {
     if (sub === 'klassikot') return /klassikko|perintei|1\d{3}|vanha|café fa/.test(text)
     if (sub === 'ranskalaiset') return /ranskala|croque|baguette|patisserie|pâtisserie/.test(text)
@@ -755,12 +772,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
   const typePool = useMemo(() => {
     const tab = TYPE_TABS.find(t => t.id === restType)!
-    if (restType === 'yokerhot') {
-      return restaurants.filter(r => {
-        const text = `${r.name} ${r.description}`.toLowerCase()
-        return /yökerho|nightclub|klubi|disco|dj/.test(text)
-      })
-    }
     return tab.dbType ? restaurants.filter(r => r.type === tab.dbType) : restaurants
   }, [restaurants, restType])
 

@@ -144,7 +144,7 @@ export interface Restaurant {
   phone: string | null
   email?: string | null
   instagram?: string | null
-  type: 'ravintola' | 'kahvila' | 'baari' | 'pikaruoka' | 'muu'
+  type: 'ravintola' | 'kahvila' | 'baari' | 'yokerho' | 'pikaruoka' | 'muu'
   priceRange?: 1 | 2 | 3 | 4   // 1=€ 2=€€ 3=€€€ 4=€€€€
   openingHours?: string         // raw OSM opening_hours value
   michelinStars?: number        // 1, 2 or 3
@@ -156,6 +156,7 @@ export interface Restaurant {
   takeaway?: boolean
   googleRating?: number
   reviewCount?: number
+  subCategories?: string[]
 }
 
 // ── ACTIVITIES ─────────────────────────────────────────

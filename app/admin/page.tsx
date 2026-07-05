@@ -118,6 +118,9 @@ export default function AdminPage() {
   const [enriching, setEnriching] = useState(false)
   const [enrichResult, setEnrichResult] = useState('')
   const enrichStopRef = useRef(false)
+  const [enrichingSubs, setEnrichingSubs] = useState(false)
+  const [enrichSubsResult, setEnrichSubsResult] = useState('')
+  const enrichSubsStopRef = useRef(false)
 
   async function handleLogout() {
     await fetch('/api/admin/auth', { method: 'DELETE' })
@@ -153,6 +156,35 @@ export default function AdminPage() {
     setEnriching(false)
   }
 
+  async function handleEnrichSubcategories() {
+    if (enrichingSubs) { enrichSubsStopRef.current = true; return }
+    setEnrichingSubs(true)
+    enrichSubsStopRef.current = false
+    setEnrichSubsResult('Aloitetaan...')
+    let totalProcessed = 0
+    let totalEnriched = 0
+
+    while (!enrichSubsStopRef.current) {
+      const res = await fetch('/api/admin/enrich-subcategories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 150 }),
+      })
+      const data = await res.json()
+      if (data.error) { setEnrichSubsResult('Virhe: ' + data.error); break }
+
+      totalProcessed += data.processed
+      totalEnriched += data.enriched
+      setEnrichSubsResult(`Käsitelty ${totalProcessed} • Kategorioitu ${totalEnriched} • Jäljellä ${data.remaining}`)
+
+      if (data.remaining === 0 || data.processed === 0) {
+        setEnrichSubsResult(`✓ Valmis — käsitelty ${totalProcessed}, kategorioitu ${totalEnriched}:lle`)
+        break
+      }
+    }
+    setEnrichingSubs(false)
+  }
+
   async function handleRefreshRatings() {
     setRefreshing(true)
     setRefreshResult('')
@@ -176,12 +208,19 @@ export default function AdminPage() {
         </div>
         <div className="flex items-center gap-3 flex-wrap justify-end">
           {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
+          {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
           {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
           <button
             onClick={handleEnrichRestaurants}
             className={`text-sm transition-colors ${enriching ? 'text-red-400 hover:text-red-300' : 'text-orange-400 hover:text-orange-300'}`}
           >
             {enriching ? '⏹ Pysäytä' : '🍽 Rikasta ravintolat'}
+          </button>
+          <button
+            onClick={handleEnrichSubcategories}
+            className={`text-sm transition-colors ${enrichingSubs ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'}`}
+          >
+            {enrichingSubs ? '⏹ Pysäytä' : '🎯 Enrichoi kategoriat'}
           </button>
           <button
             onClick={handleRefreshRatings}

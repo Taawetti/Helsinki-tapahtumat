@@ -234,7 +234,7 @@ function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
 // Helsinki+Espoo+Vantaa bounding box (south,west,north,east)
 
 const OSM_BBOX = '60.09,24.58,60.41,25.26'
-const OSM_QUERY = `[out:json][timeout:30][bbox:${OSM_BBOX}];(node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten)$"]["name"];way["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten)$"]["name"];);out center;`
+const OSM_QUERY = `[out:json][timeout:30][bbox:${OSM_BBOX}];(node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten|nightclub)$"]["name"];way["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten|nightclub)$"]["name"];);out center;`
 
 const OVERPASS_MIRRORS = [
   'https://overpass.openstreetmap.fr/api/interpreter',
@@ -251,6 +251,7 @@ function osmAmenityToType(amenity?: string): Restaurant['type'] {
   switch (amenity) {
     case 'cafe': return 'kahvila'
     case 'bar': case 'pub': case 'biergarten': return 'baari'
+    case 'nightclub': return 'yokerho'
     case 'fast_food': case 'food_court': return 'pikaruoka'
     case 'restaurant': return 'ravintola'
     default: return 'muu'
@@ -367,7 +368,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v9'],
+  ['restaurants-osm-v10'],
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
@@ -380,13 +381,14 @@ interface RestaurantEnrichment {
   cuisineCategories?: string[]
   googleRating?: number
   reviewCount?: number
+  subCategories?: string[]
 }
 
 async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEnrichment>> {
   if (!supabase) return {}
   const { data } = await supabase
     .from('venue_ratings')
-    .select('venue_key, cuisine_categories, google_rating, review_count')
+    .select('venue_key, cuisine_categories, google_rating, review_count, sub_categories')
   const map: Record<string, RestaurantEnrichment> = {}
   for (const row of data ?? []) {
     const entry: RestaurantEnrichment = {}
@@ -395,6 +397,9 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
     }
     if (row.google_rating) entry.googleRating = row.google_rating
     if (row.review_count) entry.reviewCount = row.review_count
+    if (Array.isArray(row.sub_categories) && row.sub_categories.length > 0) {
+      entry.subCategories = row.sub_categories
+    }
     if (Object.keys(entry).length > 0) map[row.venue_key] = entry
   }
   return map
@@ -402,7 +407,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
 
 const fetchCuisineEnrichmentCached = unstable_cache(
   _fetchRestaurantEnrichment,
-  ['restaurant-enrichment-v2'],
+  ['restaurant-enrichment-v3'],
   { revalidate: 3600 }
 )
 
@@ -420,7 +425,7 @@ export async function GET(req: NextRequest) {
     fetchCuisineEnrichmentCached(),
   ])
 
-  // Apply Supabase enrichment: cuisine categories (for unidentified) + Google ratings (for all)
+  // Apply Supabase enrichment: cuisine categories, Google ratings, sub-categories
   const restaurants_enriched = osmList.map(r => {
     const enriched = enrichmentMap[r.name.toLowerCase().trim()]
     if (!enriched) return r
@@ -430,6 +435,7 @@ export async function GET(req: NextRequest) {
     }
     if (enriched.googleRating) updates.googleRating = enriched.googleRating
     if (enriched.reviewCount) updates.reviewCount = enriched.reviewCount
+    if (enriched.subCategories) updates.subCategories = enriched.subCategories
     return Object.keys(updates).length > 0 ? { ...r, ...updates } : r
   })
 
