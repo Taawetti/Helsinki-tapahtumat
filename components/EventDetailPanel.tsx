@@ -15,8 +15,12 @@ interface Props {
 
 export default function EventDetailPanel({ event, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const innerRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isManualClose = useRef(false)
+  // Stable ref so touch handler never captures a stale onClose
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   const [copied, setCopied] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [slideIn, setSlideIn] = useState(false)
@@ -96,6 +100,83 @@ export default function EventDetailPanel({ event, onClose }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event?.id])
 
+  // Swipe-down-to-close: listen for touch on the outer panel.
+  // Uses direct DOM listeners (passive:false) so preventDefault() works on iOS.
+  // Only intercepts downward swipes when the inner scroll is at the top.
+  useEffect(() => {
+    if (!event) return
+    const panel = panelRef.current
+    if (!panel) return
+
+    let startY = 0, startX = 0, dragging = false, curDelta = 0
+    const CLOSE_THRESHOLD = 100
+    const SPRING = 'transform 340ms cubic-bezier(0.32,0.72,0,1)'
+    const EASE_OUT = 'transform 260ms cubic-bezier(0.4,0,1,1)'
+
+    const onStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY
+      startX = e.touches[0].clientX
+      dragging = false
+      curDelta = 0
+      panel.style.transition = 'none'
+    }
+
+    const onMove = (e: TouchEvent) => {
+      const dy = e.touches[0].clientY - startY
+      const dx = e.touches[0].clientX - startX
+      const scrollTop = innerRef.current?.scrollTop ?? 0
+
+      if (!dragging) {
+        // Only start dragging for a clearly downward gesture at the top of the scroll
+        if (dy > 8 && dy > Math.abs(dx) && scrollTop <= 0) {
+          dragging = true
+        } else {
+          panel.style.transition = SPRING
+          return
+        }
+      }
+
+      e.preventDefault() // prevents inner scroll while panel is being dragged
+      curDelta = Math.max(0, dy)
+      panel.style.transform = `translateY(${curDelta}px)`
+    }
+
+    const onEnd = () => {
+      if (!dragging) { panel.style.transition = SPRING; return }
+      dragging = false
+
+      if (curDelta >= CLOSE_THRESHOLD) {
+        // Past threshold — animate off-screen and close
+        isManualClose.current = true
+        panel.style.transition = EASE_OUT
+        panel.style.transform = 'translateY(110%)'
+        if (closeTimer.current) clearTimeout(closeTimer.current)
+        closeTimer.current = setTimeout(() => {
+          history.back()
+          onCloseRef.current()
+        }, 260)
+      } else {
+        // Below threshold — snap back
+        panel.style.transition = SPRING
+        panel.style.transform = 'translateY(0)'
+      }
+      curDelta = 0
+    }
+
+    panel.addEventListener('touchstart', onStart, { passive: true })
+    panel.addEventListener('touchmove', onMove, { passive: false })
+    panel.addEventListener('touchend', onEnd, { passive: true })
+    panel.addEventListener('touchcancel', onEnd, { passive: true })
+
+    return () => {
+      panel.removeEventListener('touchstart', onStart)
+      panel.removeEventListener('touchmove', onMove)
+      panel.removeEventListener('touchend', onEnd)
+      panel.removeEventListener('touchcancel', onEnd)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id])
+
   function handleClose() {
     if (closeTimer.current) clearTimeout(closeTimer.current)
     isManualClose.current = true
@@ -168,7 +249,7 @@ export default function EventDetailPanel({ event, onClose }: Props) {
         }}
       >
       {/* Scrollable inner — no transform here */}
-      <div className="h-[92dvh] overflow-y-auto bg-[#0e1117] shadow-2xl md:h-full">
+      <div ref={innerRef} className="h-[92dvh] overflow-y-auto bg-[#0e1117] shadow-2xl md:h-full">
         {/* Drag handle — mobile only */}
         <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-white/20" />
