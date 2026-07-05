@@ -894,7 +894,7 @@ export default function Home() {
           ))}
 
           {/* ── Filtteröity grid — näkyy kun kategoria valittu ── */}
-          {!loading && (activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
+          {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {discoverEvents.filter(e => e.id !== heroEvent?.id).map(e => (
