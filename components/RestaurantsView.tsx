@@ -281,6 +281,13 @@ const SUB_TO_DB: Record<string, string> = {
   urheilu: 'sports',
 }
 
+// Name-based overrides that are always definitive regardless of subCategories
+const NAME_OVERRIDES: Record<string, RegExp> = {
+  karaoke: /karaoke/i,
+  tekno:   /tekno|techno/i,
+  klubi:   /klubi|nightclub/i,
+}
+
 function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean {
   if (sub === 'all') return true
 
@@ -290,14 +297,19 @@ function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean 
     return r.cuisineCategories.includes(sub)
   }
 
-  // For all other types: Supabase sub_categories is authoritative
+  const name = r.name.toLowerCase()
+
+  // Name-based overrides always win — "Karaoke Bar X" is always karaoke
+  if (NAME_OVERRIDES[sub]?.test(name)) return true
+
+  // Supabase sub_categories is authoritative when present
   const dbKey = SUB_TO_DB[sub] ?? sub
   if (r.subCategories && r.subCategories.length > 0) {
     return r.subCategories.includes(dbKey)
   }
 
   // Fallback text matching for venues not yet enriched
-  const text = `${r.name} ${r.description}`.toLowerCase()
+  const text = `${name} ${r.description}`.toLowerCase()
   if (restType === 'kahvilat') {
     if (sub === 'klassikot') return /klassikko|perintei|1\d{3}|vanha|café fa/.test(text)
     if (sub === 'ranskalaiset') return /ranskala|croque|baguette|patisserie|pâtisserie/.test(text)
@@ -313,9 +325,6 @@ function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean 
     if (sub === 'urheilu') return /sport|urheilu|hockey|futis|liiga/.test(text)
   }
   if (restType === 'yokerhot') {
-    if (sub === 'klubi') return /klubi|nightclub|yökerho|disco/.test(text)
-    if (sub === 'karaoke') return /karaoke/.test(text)
-    if (sub === 'tekno') return /tekno|techno|industrial|electronic/.test(text)
     if (sub === 'katto') return /katto|roof|sky/.test(text)
   }
   return false
@@ -770,8 +779,19 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     return m
   }, [userPos, restaurants])
 
+  const NIGHTCLUB_SUBS = ['klubi', 'tekno', 'karaoke', 'katto']
+
   const typePool = useMemo(() => {
     const tab = TYPE_TABS.find(t => t.id === restType)!
+    if (restType === 'yokerhot') {
+      // OSM nightclubs + bars enriched with nightclub subs + venues with obvious nightclub names
+      return restaurants.filter(r => {
+        if (r.type === 'yokerho') return true
+        if (r.subCategories && r.subCategories.some(s => NIGHTCLUB_SUBS.includes(s))) return true
+        const n = r.name.toLowerCase()
+        return /karaoke|nightclub|klubi\b|yökerho/.test(n)
+      })
+    }
     return tab.dbType ? restaurants.filter(r => r.type === tab.dbType) : restaurants
   }, [restaurants, restType])
 
