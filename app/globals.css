@@ -124,6 +124,24 @@ body {
   to   { transform: translateX(250%) }
 }
 
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,.04) 0%,
+    rgba(255,255,255,.09) 40%,
+    rgba(255,255,255,.13) 50%,
+    rgba(255,255,255,.09) 60%,
+    rgba(255,255,255,.04) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
 /* Scrollbar hide */
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }

@@ -593,7 +593,7 @@ export default function ActivitiesView({ onShowOnMap }: {
       {loading && (
         <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden bg-white/4 animate-pulse" style={{ aspectRatio: '4/3' }} />
+            <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
           ))}
         </div>
       )}
