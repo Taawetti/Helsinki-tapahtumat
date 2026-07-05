@@ -245,8 +245,8 @@ export default function Home() {
   useEffect(() => {
     if (!keyword || searchDataLoaded.current) return
     searchDataLoaded.current = true
-    fetch('/api/activities').then(r => r.json()).then(d => setAllActivities(d ?? [])).catch(() => {})
-    fetch('/api/restaurants').then(r => r.json()).then(d => setAllRestaurants(d ?? [])).catch(() => {})
+    fetch('/api/activities').then(r => r.json()).then(d => setAllActivities(d?.activities ?? [])).catch(() => {})
+    fetch('/api/restaurants').then(r => r.json()).then(d => setAllRestaurants(d?.restaurants ?? [])).catch(() => {})
   }, [keyword])
 
   const localSearchHits = useMemo(() => {
