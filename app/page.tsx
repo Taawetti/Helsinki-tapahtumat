@@ -349,11 +349,19 @@ export default function Home() {
   }, [])
 
   const handleVibeToggle = useCallback((id: string) => {
-    setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
+    if (id === 'kaikki') {
+      // Toggle: if already active → back to carousels, else → list of all events
+      setActiveVibes((prev) => prev.includes('kaikki') ? [] : ['kaikki'])
+      return
+    }
+    // Selecting a specific vibe deselects 'kaikki'
+    setActiveVibes((prev) => {
+      const without = prev.filter((v) => v !== 'kaikki')
+      return without.includes(id) ? without.filter((v) => v !== id) : [...without, id]
+    })
     // Map "ilmainen" vibe to price filter
     if (id === 'ilmainen') {
       setPriceFilter((p) => p === 'free' ? 'all' : 'free')
-      return
     }
   }, [])
 
@@ -405,11 +413,9 @@ export default function Home() {
   const filteredEvents = useMemo(() => {
     let result = events
 
-    // Vibe filter — substring match; Yöelämä also matches evening start times
-    // If all vibes are selected it's equivalent to no filter — avoids hiding events
-    // that don't fit any keyword (e.g. generic "kulttuuri" events).
-    const activeVibeIds = activeVibes.filter((v) => v !== 'ilmainen')
-    if (activeVibeIds.length > 0 && activeVibeIds.length < VIBES.length) {
+    // Vibe filter — 'kaikki' shows all events unfiltered (list mode without keyword filter)
+    const activeVibeIds = activeVibes.filter((v) => v !== 'ilmainen' && v !== 'kaikki')
+    if (activeVibeIds.length > 0) {
       const vibeKeywords = activeVibeIds.flatMap((id) => VIBES.find((v) => v.id === id)?.keywords ?? [])
       const isNightlife = activeVibeIds.includes('yoelama')
       result = result.filter((e) => {
@@ -457,7 +463,8 @@ export default function Home() {
     { id: 'ylatys',    title: t('discover.carousel_different'), events: baseEvents.filter(isSurprise) },
   ].filter(r => r.events.length > 0), [baseEvents, t])
 
-  const activeCount = activeVibes.length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
+  // 'kaikki' counts as 0 — it's "show all", not a real filter selection
+  const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
 
   const handleQuickAction = useCallback((id: string) => {
     switch (id) {
