@@ -18,6 +18,7 @@ interface UseEventsOptions {
 interface UseEventsResult {
   events: Event[]
   loading: boolean
+  fetchingFull: boolean
   error: string | null
   hasMore: boolean
   total: number
@@ -36,6 +37,7 @@ export function useEvents({
 }: UseEventsOptions): UseEventsResult {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(false)
+  const [fetchingFull, setFetchingFull] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
@@ -101,23 +103,26 @@ export function useEvents({
           setEvents(prev => applySort(quickData.events, append ? prev : [], append))
           setHasMore(quickData.hasMore)
           setTotal(quickData.total)
-          setLoading(false) // Show content immediately
+          setLoading(false)
+          setFetchingFull(true) // Phase 2 still running — suppress empty state
         }
 
         // Phase 2: All sources — silent background update
         const fullRes = await fetch(`/api/events?${params}`, { signal: controller.signal })
-        if (!fullRes.ok) return
+        if (!fullRes.ok) { setFetchingFull(false); return }
         const fullData = await fullRes.json()
 
         if (!controller.signal.aborted) {
           setEvents(prev => applySort(fullData.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
           setHasMore(fullData.hasMore)
           setTotal(fullData.total)
+          setFetchingFull(false)
         }
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
         setError('Tapahtumien lataaminen epäonnistui. Yritä uudelleen.')
         setLoading(false)
+        setFetchingFull(false)
       }
     },
     [dateFilter, customDate, customDateEnd, keyword, municipality, activeCategories, bbox, nearbyCoords, applySort]
@@ -143,7 +148,7 @@ export function useEvents({
     fetchEvents(next, true)
   }, [page, fetchEvents])
 
-  return { events, loading, error, hasMore, total, loadMore }
+  return { events, loading, fetchingFull, error, hasMore, total, loadMore }
 }
 
 // Lightweight hook for collection previews (fetches up to 10 events)

@@ -365,7 +365,7 @@ export default function Home() {
     setNearbyMode(true)
   }
 
-  const { events, loading, error, hasMore, total, loadMore } = useEvents({
+  const { events, loading, fetchingFull, error, hasMore, total, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
     nearbyCoords: nearbyMode && geo.coords ? geo.coords : null,
@@ -950,7 +950,7 @@ export default function Home() {
                 ))}
               </div>
               <div ref={sentinelRef} className="h-1" />
-              {loading && <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-white/30" /></div>}
+              {(loading || fetchingFull) && <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-white/30" /></div>}
             </section>
           )}
 
@@ -971,7 +971,7 @@ export default function Home() {
             </section>
           )}
 
-          {!loading && baseEvents.length === 0 && (
+          {!loading && !fetchingFull && baseEvents.length === 0 && (
             <EmptyState
               keyword={keyword}
               activeVibes={activeVibes}
