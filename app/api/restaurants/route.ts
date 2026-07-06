@@ -526,29 +526,40 @@ interface RestaurantEnrichment {
 
 async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEnrichment>> {
   if (!supabase) return {}
-  const { data } = await supabase
-    .from('venue_ratings')
-    .select('venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image')
+
+  // Supabase returns max 1000 rows per request — paginate to get all
+  const PAGE = 1000
+  const allRows: Record<string, unknown>[] = []
+  for (let page = 0; ; page++) {
+    const { data } = await supabase
+      .from('venue_ratings')
+      .select('venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image')
+      .range(page * PAGE, (page + 1) * PAGE - 1)
+    if (!data || data.length === 0) break
+    allRows.push(...data)
+    if (data.length < PAGE) break
+  }
+
   const map: Record<string, RestaurantEnrichment> = {}
-  for (const row of data ?? []) {
+  for (const row of allRows) {
     const entry: RestaurantEnrichment = {}
     if (Array.isArray(row.cuisine_categories) && row.cuisine_categories.length > 0) {
-      entry.cuisineCategories = row.cuisine_categories
+      entry.cuisineCategories = row.cuisine_categories as string[]
     }
-    if (row.google_rating) entry.googleRating = row.google_rating
-    if (row.review_count) entry.reviewCount = row.review_count
+    if (row.google_rating) entry.googleRating = row.google_rating as number
+    if (row.review_count) entry.reviewCount = row.review_count as number
     if (Array.isArray(row.sub_categories) && row.sub_categories.length > 0) {
-      entry.subCategories = row.sub_categories
+      entry.subCategories = row.sub_categories as string[]
     }
-    if (row.main_image) entry.imageUrl = row.main_image
-    if (Object.keys(entry).length > 0) map[row.venue_key] = entry
+    if (row.main_image) entry.imageUrl = row.main_image as string
+    if (Object.keys(entry).length > 0) map[row.venue_key as string] = entry
   }
   return map
 }
 
 const fetchCuisineEnrichmentCached = unstable_cache(
   _fetchRestaurantEnrichment,
-  ['restaurant-enrichment-v4'],
+  ['restaurant-enrichment-v7'],
   { revalidate: 3600 }
 )
 

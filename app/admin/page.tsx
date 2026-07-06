@@ -121,6 +121,10 @@ export default function AdminPage() {
   const [enrichingSubs, setEnrichingSubs] = useState(false)
   const [enrichSubsResult, setEnrichSubsResult] = useState('')
   const enrichSubsStopRef = useRef(false)
+  const [enrichingImages, setEnrichingImages] = useState(false)
+  const [enrichImagesResult, setEnrichImagesResult] = useState('')
+  const enrichImagesStopRef = useRef(false)
+  const [imageSamples, setImageSamples] = useState<{ name: string; image: string }[]>([])
 
   async function handleLogout() {
     await fetch('/api/admin/auth', { method: 'DELETE' })
@@ -185,6 +189,48 @@ export default function AdminPage() {
     setEnrichingSubs(false)
   }
 
+  async function handleEnrichImages() {
+    if (enrichingImages) { enrichImagesStopRef.current = true; return }
+    setEnrichingImages(true)
+    enrichImagesStopRef.current = false
+    setEnrichImagesResult('Aloitetaan...')
+    setImageSamples([])
+    let totalProcessed = 0
+    let totalUpdated = 0
+    let firstBatch = true
+
+    while (!enrichImagesStopRef.current) {
+      // First batch is small (20) so user can check quality quickly
+      const limit = firstBatch ? 20 : 50
+      firstBatch = false
+      const res = await fetch('/api/admin/enrich-restaurant-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit }),
+      })
+      const data = await res.json()
+      if (data.error) { setEnrichImagesResult('Virhe: ' + data.error); break }
+
+      totalProcessed += data.processed
+      totalUpdated += data.updated
+      if (data.samples?.length > 0) setImageSamples(data.samples)
+      setEnrichImagesResult(`Käsitelty ${totalProcessed} • Kuva löytyi ${totalUpdated}:lle • Jäljellä ${data.remaining}`)
+
+      // Pause after first batch so user can review samples
+      if (totalProcessed === 20) {
+        setEnrichImagesResult(`✋ Ensimmäinen erä valmis — tarkista kuvat alla, paina uudelleen jatkaaksesi (Jäljellä ${data.remaining})`)
+        setEnrichingImages(false)
+        return
+      }
+
+      if (data.remaining === 0 || data.processed === 0) {
+        setEnrichImagesResult(`✓ Valmis — käsitelty ${totalProcessed}, kuva ${totalUpdated}:lle`)
+        break
+      }
+    }
+    setEnrichingImages(false)
+  }
+
   async function handleRefreshRatings() {
     setRefreshing(true)
     setRefreshResult('')
@@ -209,6 +255,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-3 flex-wrap justify-end">
           {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
           {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
+          {enrichImagesResult && <span className={`text-xs ${enrichImagesResult.startsWith('✓') ? 'text-green-400' : enrichImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichImagesResult}</span>}
           {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
           <button
             onClick={handleEnrichRestaurants}
@@ -221,6 +268,12 @@ export default function AdminPage() {
             className={`text-sm transition-colors ${enrichingSubs ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'}`}
           >
             {enrichingSubs ? '⏹ Pysäytä' : '🎯 Enrichoi kategoriat'}
+          </button>
+          <button
+            onClick={handleEnrichImages}
+            className={`text-sm transition-colors ${enrichingImages ? 'text-red-400 hover:text-red-300' : 'text-cyan-400 hover:text-cyan-300'}`}
+          >
+            {enrichingImages ? '⏹ Pysäytä' : '📸 Hae kuvat'}
           </button>
           <button
             onClick={handleRefreshRatings}
@@ -237,6 +290,21 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      {/* Image samples preview */}
+      {imageSamples.length > 0 && (
+        <div className="border-b border-white/8 px-6 py-3 bg-cyan-500/5">
+          <div className="text-xs text-cyan-400 mb-2 font-medium">Esimerkkikuvia Google Businessista — tarkista laatu:</div>
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {imageSamples.map((s, i) => (
+              <div key={i} className="shrink-0 w-24">
+                <img src={s.image} alt={s.name} className="w-24 h-16 object-cover rounded-lg bg-gray-800" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <div className="text-xs text-gray-400 mt-1 truncate">{s.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-white/8 px-6 flex gap-1">

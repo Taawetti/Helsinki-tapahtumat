@@ -107,13 +107,12 @@ export async function POST(req: NextRequest) {
   // Load all OSM restaurants
   const osmRestaurants = await fetchOSMCached()
 
-  // Skip only venues that have BOTH cuisine_categories AND main_image already set.
-  // Venues enriched before image support was added will be re-processed to fetch their image.
+  // Skip venues already processed (cuisine_categories set = done, image may or may not exist).
+  // A separate "fetch images" pass handles venues that have cuisine but no image yet.
   const { data: existingRows } = await supabaseAdmin
     .from('venue_ratings')
-    .select('venue_key, cuisine_categories, main_image')
+    .select('venue_key')
     .not('cuisine_categories', 'is', null)
-    .not('main_image', 'is', null)
 
   const alreadyDoneKeys = new Set((existingRows ?? []).map((r: { venue_key: string }) => r.venue_key))
 
