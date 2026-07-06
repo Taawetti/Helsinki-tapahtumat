@@ -74,14 +74,34 @@ export async function POST(req: NextRequest) {
       ? `${rest.name} ${rest.address} Helsinki`
       : `${rest.name} Helsinki`
     const image = await fetchGoogleImage(query)
+    const now = new Date().toISOString()
 
-    await supabaseAdmin
+    // Check if the row already exists in venue_ratings.
+    // If it does: UPDATE only main_image + last_updated (don't overwrite cuisine/ratings).
+    // If it doesn't: INSERT with all columns so NOT NULL constraints are satisfied.
+    const { data: existing } = await supabaseAdmin
       .from('venue_ratings')
-      .upsert({
-        venue_key: venueKey,
-        main_image: image ?? '',
-        last_updated: new Date().toISOString(),
-      }, { onConflict: 'venue_key' })
+      .select('venue_key')
+      .eq('venue_key', venueKey)
+      .maybeSingle()
+
+    if (existing) {
+      await supabaseAdmin
+        .from('venue_ratings')
+        .update({ main_image: image ?? '', last_updated: now })
+        .eq('venue_key', venueKey)
+    } else {
+      await supabaseAdmin
+        .from('venue_ratings')
+        .insert({
+          venue_key: venueKey,
+          main_image: image ?? '',
+          last_updated: now,
+          google_rating: null,
+          review_count: null,
+          cuisine_categories: rest.cuisineCategories ?? [],
+        })
+    }
 
     if (image) {
       updated++
