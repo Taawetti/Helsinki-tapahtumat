@@ -126,6 +126,10 @@ export default function AdminPage() {
   const enrichImagesStopRef = useRef(false)
   const [imageSamples, setImageSamples] = useState<{ name: string; image: string }[]>([])
   const imageTestDoneRef = useRef(false)
+  const [enrichingActivityImages, setEnrichingActivityImages] = useState(false)
+  const [enrichActivityImagesResult, setEnrichActivityImagesResult] = useState('')
+  const enrichActivityImagesStopRef = useRef(false)
+  const activityImageTestDoneRef = useRef(false)
 
   async function handleLogout() {
     await fetch('/api/admin/auth', { method: 'DELETE' })
@@ -188,6 +192,44 @@ export default function AdminPage() {
       }
     }
     setEnrichingSubs(false)
+  }
+
+  async function handleEnrichActivityImages() {
+    if (enrichingActivityImages) { enrichActivityImagesStopRef.current = true; return }
+    setEnrichingActivityImages(true)
+    enrichActivityImagesStopRef.current = false
+    setEnrichActivityImagesResult('Aloitetaan...')
+    let totalProcessed = 0
+    let totalUpdated = 0
+
+    while (!enrichActivityImagesStopRef.current) {
+      const limit = !activityImageTestDoneRef.current ? 20 : 50
+      const res = await fetch('/api/admin/enrich-activity-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit }),
+      })
+      const data = await res.json()
+      if (data.error) { setEnrichActivityImagesResult('Virhe: ' + data.error); break }
+
+      totalProcessed += data.processed
+      totalUpdated += data.updated
+      if (data.samples?.length > 0) setImageSamples(data.samples)
+      setEnrichActivityImagesResult(`Käsitelty ${totalProcessed} • Kuva löytyi ${totalUpdated}:lle • Jäljellä ${data.remaining}`)
+
+      if (!activityImageTestDoneRef.current) {
+        activityImageTestDoneRef.current = true
+        setEnrichActivityImagesResult(`✋ Ensimmäinen erä valmis — tarkista kuvat alla, paina uudelleen jatkaaksesi (Jäljellä ${data.remaining})`)
+        setEnrichingActivityImages(false)
+        return
+      }
+
+      if (data.remaining === 0 || data.processed === 0) {
+        setEnrichActivityImagesResult(`✓ Valmis — käsitelty ${totalProcessed}, kuva ${totalUpdated}:lle`)
+        break
+      }
+    }
+    setEnrichingActivityImages(false)
   }
 
   async function handleEnrichImages() {
@@ -254,6 +296,7 @@ export default function AdminPage() {
           {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
           {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
           {enrichImagesResult && <span className={`text-xs ${enrichImagesResult.startsWith('✓') ? 'text-green-400' : enrichImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichImagesResult}</span>}
+          {enrichActivityImagesResult && <span className={`text-xs ${enrichActivityImagesResult.startsWith('✓') ? 'text-green-400' : enrichActivityImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivityImagesResult}</span>}
           {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
           <button
             onClick={handleEnrichRestaurants}
@@ -272,6 +315,12 @@ export default function AdminPage() {
             className={`text-sm transition-colors ${enrichingImages ? 'text-red-400 hover:text-red-300' : 'text-cyan-400 hover:text-cyan-300'}`}
           >
             {enrichingImages ? '⏹ Pysäytä' : '📸 Hae kuvat'}
+          </button>
+          <button
+            onClick={handleEnrichActivityImages}
+            className={`text-sm transition-colors ${enrichingActivityImages ? 'text-red-400 hover:text-red-300' : 'text-teal-400 hover:text-teal-300'}`}
+          >
+            {enrichingActivityImages ? '⏹ Pysäytä' : '🏃 Aktiviteettien kuvat'}
           </button>
           <button
             onClick={handleRefreshRatings}

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
 import type { Activity, ActivityCategory } from '@/lib/types'
 import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
+import { supabase } from '@/lib/supabase'
 
 interface OSMElement {
   type: 'node' | 'way' | 'relation'
@@ -177,12 +178,30 @@ async function _fetchActivities(): Promise<Activity[]> {
         return a.name.localeCompare(b.name, 'fi')
       })
 
-      // Assign images: venue name match first, then category fallback
+      // Assign images: Wikipedia first, then Supabase (DataForSEO) as supplement
       const { venues: venueMap } = await fetchImagesCached()
       for (const act of results) {
-        // Only assign image if the venue name matches a known Wikipedia entry.
-        // Category fallbacks are omitted — they make every park/museum look identical.
         act.image = getEventImage(act.name, [act.category], venueMap, {})
+      }
+
+      // Fill missing images from Supabase DataForSEO enrichment
+      if (supabase) {
+        const { data: imageRows } = await supabase
+          .from('venue_ratings')
+          .select('venue_key, main_image')
+          .like('venue_key', 'act:%')
+          .not('main_image', 'is', null)
+          .neq('main_image', '')
+        const actImageMap: Record<string, string> = {}
+        for (const row of imageRows ?? []) {
+          actImageMap[row.venue_key.replace('act:', '')] = row.main_image
+        }
+        for (const act of results) {
+          if (!act.image) {
+            const img = actImageMap[act.name.toLowerCase().trim()]
+            if (img) act.image = img
+          }
+        }
       }
 
       console.log(`[activities] OSM: ${results.length} results from ${mirror}`)
