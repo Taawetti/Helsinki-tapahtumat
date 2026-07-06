@@ -131,7 +131,9 @@ export async function POST(req: NextRequest) {
   let notFound = 0
 
   for (const rest of toProcess) {
-    const query = `${rest.name} Helsinki`
+    const query = rest.address
+      ? `${rest.name} ${rest.address} Helsinki`
+      : `${rest.name} Helsinki`
     const { categories: googleCats, rating, reviewCount, mainImage } = await fetchGoogleData(query)
     const cuisineCats = googleCategoriesToCuisine(googleCats)
 

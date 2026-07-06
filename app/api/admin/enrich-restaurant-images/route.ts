@@ -70,7 +70,10 @@ export async function POST(req: NextRequest) {
 
   for (const rest of toProcess) {
     const venueKey = rest.name.toLowerCase().trim()
-    const image = await fetchGoogleImage(`${rest.name} Helsinki`)
+    const query = rest.address
+      ? `${rest.name} ${rest.address} Helsinki`
+      : `${rest.name} Helsinki`
+    const image = await fetchGoogleImage(query)
 
     await supabaseAdmin
       .from('venue_ratings')
