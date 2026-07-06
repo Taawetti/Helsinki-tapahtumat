@@ -228,15 +228,21 @@ function nightlifeScore(e: Event): number {
 type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities'
 type ListStyle = 'feed' | 'grid'
 
-export default function HomeClient({ initialEvents, initialTotal }: { initialEvents: Event[]; initialTotal: number }) {
-  // Pre-seed in-memory cache with SSR data — eliminates loading state on first render
+export default function HomeClient({ initialEvents, initialTotal, serverDate }: { initialEvents: Event[]; initialTotal: number; serverDate: string }) {
+  // Pre-seed in-memory cache with SSR data.
+  // Use local date to match getDateRange('today') which uses local time.
+  // Only seed when client local date matches server date — avoids showing wrong-day
+  // events during the midnight-3 AM window (Helsinki UTC+3 vs server UTC).
   if (initialEvents.length > 0) {
-    const today = new Date().toISOString().split('T')[0]
-    preloadEventsCache(
-      new URLSearchParams({ start: today, end: today, page: '1', municipality: 'helsinki' }).toString(),
-      initialEvents,
-      initialTotal,
-    )
+    const now = new Date()
+    const clientDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    if (clientDate === serverDate) {
+      preloadEventsCache(
+        new URLSearchParams({ start: clientDate, end: clientDate, page: '1', municipality: 'helsinki' }).toString(),
+        initialEvents,
+        initialTotal,
+      )
+    }
   }
   const { lang, setLang, t } = useLanguage()
   const { favorites, count: favCount } = useFavorites()
@@ -918,11 +924,11 @@ export default function HomeClient({ initialEvents, initialTotal }: { initialEve
                   </span>
                 )}
               </div>
-              {/* Heart */}
-              <button className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.15)' }}
-                onClick={e => { e.stopPropagation(); /* handled via EventDetailPanel heart */ }}>
+              {/* Heart — div instead of button to avoid invalid button-in-button nesting */}
+              <div className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer" style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.15)' }}
+                role="button" onClick={e => { e.stopPropagation(); }}>
                 <Heart size={14} className="text-white/70" />
-              </button>
+              </div>
               <div className="absolute bottom-0 left-0 right-0 p-5">
                 {heroEvent.location?.name && (
                   <p className="text-[11px] font-black uppercase tracking-[.1em] mb-1" style={{ color: 'rgba(255,255,255,.5)' }}>

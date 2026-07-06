@@ -123,7 +123,9 @@ export function useEvents({
           if (!res.ok) { setFetchingFull(false); return }
           const data = await res.json()
           if (!controller.signal.aborted) {
-            eventsCache.set(cacheKey, { events: data.events, hasMore: data.hasMore, total: data.total, ts: Date.now() })
+            const staleEntry: CacheEntry = { events: data.events, hasMore: data.hasMore, total: data.total, ts: Date.now() }
+            eventsCache.set(cacheKey, staleEntry)
+            try { localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify(staleEntry)) } catch {}
             setEvents(prev => applySort(data.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
             setHasMore(data.hasMore)
             setTotal(data.total)
