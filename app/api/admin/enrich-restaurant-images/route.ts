@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { fetchOSMCached } from '@/app/api/restaurants/route'
 
 export const maxDuration = 300
 
@@ -43,43 +44,46 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const limit: number = Math.min(body.limit ?? 50, 100)
 
-  // Get all venues in Supabase without an image yet (no cuisine filter)
-  const { data: targets, error: targetErr } = await supabaseAdmin
+  // All OSM restaurants
+  const osmRestaurants = await fetchOSMCached()
+
+  // Supabase venue_keys that already have an image (real URL or '' = attempted)
+  const { data: doneRows } = await supabaseAdmin
     .from('venue_ratings')
     .select('venue_key')
-    .is('main_image', null)
-    .limit(limit)
+    .not('main_image', 'is', null)
 
-  if (targetErr) return NextResponse.json({ error: targetErr.message }, { status: 500 })
+  const doneKeys = new Set((doneRows ?? []).map((r: { venue_key: string }) => r.venue_key))
 
-  // Count remaining after this batch
-  const { count: remaining } = await supabaseAdmin
-    .from('venue_ratings')
-    .select('venue_key', { count: 'exact', head: true })
-    .is('main_image', null)
+  // All OSM restaurants not yet attempted
+  const toProcess = osmRestaurants
+    .filter(r => !doneKeys.has(r.name.toLowerCase().trim()))
+    .slice(0, limit)
 
-  const toProcess = targets ?? []
+  const remaining = osmRestaurants
+    .filter(r => !doneKeys.has(r.name.toLowerCase().trim()))
+    .length - toProcess.length
+
   let updated = 0
   let notFound = 0
   const samples: { name: string; image: string }[] = []
 
-  for (const row of toProcess) {
-    const query = `${row.venue_key} Helsinki`
-    const image = await fetchGoogleImage(query)
+  for (const rest of toProcess) {
+    const venueKey = rest.name.toLowerCase().trim()
+    const image = await fetchGoogleImage(`${rest.name} Helsinki`)
+
+    await supabaseAdmin
+      .from('venue_ratings')
+      .upsert({
+        venue_key: venueKey,
+        main_image: image ?? '',
+        last_updated: new Date().toISOString(),
+      }, { onConflict: 'venue_key' })
 
     if (image) {
-      await supabaseAdmin
-        .from('venue_ratings')
-        .update({ main_image: image })
-        .eq('venue_key', row.venue_key)
       updated++
-      if (samples.length < 5) samples.push({ name: row.venue_key, image })
+      if (samples.length < 5) samples.push({ name: rest.name, image })
     } else {
-      // Mark as attempted by setting a placeholder so we don't retry forever
-      await supabaseAdmin
-        .from('venue_ratings')
-        .update({ main_image: '' })
-        .eq('venue_key', row.venue_key)
       notFound++
     }
 
@@ -90,7 +94,7 @@ export async function POST(req: NextRequest) {
     processed: toProcess.length,
     updated,
     notFound,
-    remaining: Math.max(0, (remaining ?? 0) - toProcess.length),
+    remaining,
     samples,
   })
 }
