@@ -43,11 +43,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const limit: number = Math.min(body.limit ?? 50, 100)
 
-  // Get venues that have cuisine but no image — these are the target set
+  // Get all venues in Supabase without an image yet (no cuisine filter)
   const { data: targets, error: targetErr } = await supabaseAdmin
     .from('venue_ratings')
     .select('venue_key')
-    .not('cuisine_categories', 'is', null)
     .is('main_image', null)
     .limit(limit)
 
@@ -57,7 +56,6 @@ export async function POST(req: NextRequest) {
   const { count: remaining } = await supabaseAdmin
     .from('venue_ratings')
     .select('venue_key', { count: 'exact', head: true })
-    .not('cuisine_categories', 'is', null)
     .is('main_image', null)
 
   const toProcess = targets ?? []
