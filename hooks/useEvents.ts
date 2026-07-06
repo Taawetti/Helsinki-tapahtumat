@@ -7,6 +7,14 @@ import type { GeoCoords } from './useGeolocation'
 interface CacheEntry { events: Event[]; hasMore: boolean; total: number; ts: number }
 const eventsCache = new Map<string, CacheEntry>()
 const CACHE_TTL = 5 * 60 * 1000
+const LS_PREFIX = 'events-v2-'
+const LS_TTL = 30 * 60 * 1000
+
+export function preloadEventsCache(key: string, events: Event[], total: number): void {
+  if (!eventsCache.has(key)) {
+    eventsCache.set(key, { events, hasMore: false, total, ts: Date.now() })
+  }
+}
 
 interface UseEventsOptions {
   dateFilter: DateFilter
@@ -152,7 +160,9 @@ export function useEvents({
         const fullData = await fullRes.json()
 
         if (!controller.signal.aborted) {
-          eventsCache.set(cacheKey, { events: fullData.events, hasMore: fullData.hasMore, total: fullData.total, ts: Date.now() })
+          const entry: CacheEntry = { events: fullData.events, hasMore: fullData.hasMore, total: fullData.total, ts: Date.now() }
+          eventsCache.set(cacheKey, entry)
+          try { localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify(entry)) } catch {}
           setEvents(prev => applySort(fullData.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
           setHasMore(fullData.hasMore)
           setTotal(fullData.total)
@@ -181,7 +191,22 @@ export function useEvents({
     if (bbox) p.set('bbox', bbox)
     if (keyword) p.set('keyword', keyword)
     if (kws) p.set('categories', kws)
-    if (!eventsCache.has(p.toString())) setEvents([])
+    const ck = p.toString()
+    if (!eventsCache.has(ck)) {
+      // Check localStorage before showing empty state — instant results for returning users
+      try {
+        const raw = localStorage.getItem(LS_PREFIX + ck)
+        if (raw) {
+          const entry: CacheEntry = JSON.parse(raw)
+          if (Date.now() - entry.ts < LS_TTL) {
+            eventsCache.set(ck, entry)
+          } else {
+            localStorage.removeItem(LS_PREFIX + ck)
+          }
+        }
+      } catch {}
+      if (!eventsCache.has(ck)) setEvents([])
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       fetchEvents(1, false)
