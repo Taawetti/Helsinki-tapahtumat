@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Loader2, SlidersHorizontal, Heart, Bell } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
-import { haversineKm } from '@/lib/utils'
+import { haversineKm, getDateRange } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -228,19 +228,40 @@ function nightlifeScore(e: Event): number {
 type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities'
 type ListStyle = 'feed' | 'grid'
 
-export default function HomeClient({ initialEvents, initialTotal, serverDate }: { initialEvents: Event[]; initialTotal: number; serverDate: string }) {
-  // Pre-seed in-memory cache with SSR data.
-  // Use local date to match getDateRange('today') which uses local time.
-  // Only seed when client local date matches server date — avoids showing wrong-day
-  // events during the midnight-3 AM window (Helsinki UTC+3 vs server UTC).
-  if (initialEvents.length > 0) {
-    const now = new Date()
-    const clientDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    if (clientDate === serverDate) {
+interface PreloadedDateRange {
+  start: string
+  end: string
+  events: Event[]
+  total: number
+}
+
+export default function HomeClient({
+  preloadedData,
+}: {
+  preloadedData: {
+    today: PreloadedDateRange
+    tomorrow: PreloadedDateRange
+    weekend: PreloadedDateRange
+    week: PreloadedDateRange
+  }
+}) {
+  // Pre-seed in-memory cache for today/tomorrow/weekend/week.
+  // Guard: compare server-computed dates (UTC on Vercel) with client local dates.
+  // If they mismatch (Helsinki midnight–3 AM window, UTC+3 vs UTC), skip that filter —
+  // it falls through to the normal two-phase fetch automatically.
+  for (const [filter, data] of [
+    ['today',    preloadedData.today],
+    ['tomorrow', preloadedData.tomorrow],
+    ['weekend',  preloadedData.weekend],
+    ['week',     preloadedData.week],
+  ] as [DateFilter, PreloadedDateRange][]) {
+    if (data.events.length === 0) continue
+    const localRange = getDateRange(filter)
+    if (localRange.start === data.start && localRange.end === data.end) {
       preloadEventsCache(
-        new URLSearchParams({ start: clientDate, end: clientDate, page: '1', municipality: 'helsinki' }).toString(),
-        initialEvents,
-        initialTotal,
+        new URLSearchParams({ start: data.start, end: data.end, page: '1', municipality: 'helsinki' }).toString(),
+        data.events,
+        data.total,
       )
     }
   }

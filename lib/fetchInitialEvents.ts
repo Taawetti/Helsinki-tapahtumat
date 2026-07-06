@@ -48,11 +48,11 @@ function normalize(raw: LEEvent): Event {
   }
 }
 
-async function _fetchLinkedEventsQuick(date: string): Promise<{ events: Event[]; total: number }> {
+async function _fetchLinkedEventsQuick(start: string, end: string): Promise<{ events: Event[]; total: number }> {
   const params = new URLSearchParams({
     format: 'json',
-    start: date,
-    end: date,
+    start,
+    end,
     page: '1',
     page_size: '50',
     include: 'location,keywords',
@@ -72,8 +72,11 @@ async function _fetchLinkedEventsQuick(date: string): Promise<{ events: Event[];
     let events: Event[] = (data.data ?? []).map(normalize)
 
     // Same post-fetch filter as events route — LinkedEvents can return long-running events
-    // (e.g. "Sep 23 – Dec 23") whose startTime is outside today's range.
-    events = events.filter(e => e.startTime.slice(0, 10) === date)
+    // (e.g. "Sep 23 – Dec 23") whose startTime falls outside the queried range.
+    events = events.filter(e => {
+      const d = e.startTime.slice(0, 10)
+      return d >= start && d <= end
+    })
 
     // Apply venue images — same logic as events route handler
     const { venues: venueMap } = await fetchImagesCached()
@@ -92,6 +95,6 @@ async function _fetchLinkedEventsQuick(date: string): Promise<{ events: Event[];
 
 export const fetchInitialEvents = unstable_cache(
   _fetchLinkedEventsQuick,
-  ['initial-events-v1'],
+  ['initial-events-v2'],
   { revalidate: 300, tags: ['events'] },
 )
