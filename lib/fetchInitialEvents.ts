@@ -69,7 +69,11 @@ async function _fetchLinkedEventsQuick(date: string): Promise<{ events: Event[];
     if (!res.ok) return { events: [], total: 0 }
 
     const data = await res.json()
-    const events: Event[] = (data.data ?? []).map(normalize)
+    let events: Event[] = (data.data ?? []).map(normalize)
+
+    // Same post-fetch filter as events route — LinkedEvents can return long-running events
+    // (e.g. "Sep 23 – Dec 23") whose startTime is outside today's range.
+    events = events.filter(e => e.startTime.slice(0, 10) === date)
 
     // Apply venue images — same logic as events route handler
     const { venues: venueMap } = await fetchImagesCached()
@@ -80,7 +84,7 @@ async function _fetchLinkedEventsQuick(date: string): Promise<{ events: Event[];
       }
     }
 
-    return { events, total: data.meta?.count ?? events.length }
+    return { events, total: events.length }
   } catch {
     return { events: [], total: 0 }
   }
