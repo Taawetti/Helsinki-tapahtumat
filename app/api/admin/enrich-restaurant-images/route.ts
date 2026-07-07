@@ -47,13 +47,24 @@ export async function POST(req: NextRequest) {
   // All OSM restaurants
   const osmRestaurants = await fetchOSMCached()
 
-  // Supabase venue_keys that already have an image (real URL or '' = attempted)
-  const { data: doneRows } = await supabaseAdmin
-    .from('venue_ratings')
-    .select('venue_key')
-    .not('main_image', 'is', null)
-
-  const doneKeys = new Set((doneRows ?? []).map((r: { venue_key: string }) => r.venue_key))
+  // Fetch ALL venue_keys where main_image is set (real URL or '' = attempted).
+  // Paginate in chunks of 1000 — Supabase silently truncates plain SELECT at 1000 rows.
+  const doneKeys = new Set<string>()
+  {
+    let offset = 0
+    const PAGE = 1000
+    while (true) {
+      const { data } = await supabaseAdmin
+        .from('venue_ratings')
+        .select('venue_key')
+        .not('main_image', 'is', null)
+        .range(offset, offset + PAGE - 1)
+      if (!data || data.length === 0) break
+      for (const r of data as { venue_key: string }[]) doneKeys.add(r.venue_key)
+      if (data.length < PAGE) break
+      offset += PAGE
+    }
+  }
 
   // All OSM restaurants not yet attempted
   const toProcess = osmRestaurants
