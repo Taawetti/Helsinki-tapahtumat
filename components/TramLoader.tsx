@@ -5,28 +5,33 @@ import { useEffect, useRef, useState } from 'react'
 export function TramLoader({ loading }: { loading: boolean }) {
   const [visible, setVisible]   = useState(false)
   const [exiting, setExiting]   = useState(false)
-  const dataReadyRef  = useRef(false)
-  const triggeredRef  = useRef(false)
+  const tramRef      = useRef<HTMLDivElement>(null)
+  const dataReadyRef = useRef(false)
+  const triggeredRef = useRef(false)
 
   useEffect(() => {
     if (loading) {
       dataReadyRef.current = false
       triggeredRef.current = false
       setExiting(false)
-      // Only show if loading takes > 150 ms — avoids flash on ISR cache hit
+      // Reset tram opacity if it was hidden from a previous exit
+      if (tramRef.current) tramRef.current.style.opacity = '1'
+      // Only show if loading takes > 150 ms — no flash on ISR cache hit
       const t = setTimeout(() => setVisible(true), 150)
       return () => clearTimeout(t)
     } else {
       dataReadyRef.current = true
-      // Visible overlay exits on the next animationiteration (≤ 2.6 s away)
+      // Tram exits on the next animationiteration (≤ 2.6 s away)
     }
   }, [loading])
 
   function handleIteration() {
     if (!dataReadyRef.current || triggeredRef.current) return
     triggeredRef.current = true
+    // Tram is offscreen at this moment — hide it before CSS animation restarts from left
+    if (tramRef.current) tramRef.current.style.opacity = '0'
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 450)
+    setTimeout(() => { setVisible(false); setExiting(false) }, 300)
   }
 
   if (!visible) return null
@@ -35,9 +40,9 @@ export function TramLoader({ loading }: { loading: boolean }) {
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 60,
-        background: '#0a0a0c', overflow: 'hidden',
-        transition: 'opacity 0.4s ease',
-        opacity: exiting ? 0 : 1,
+        background: 'transparent',   // page fully visible behind
+        overflow: 'hidden',
+        pointerEvents: 'none',
       }}
     >
       <style>{`
@@ -55,21 +60,32 @@ export function TramLoader({ loading }: { loading: boolean }) {
         }
       `}</style>
 
+      {/* Faint track-bed glow */}
+      <div style={{
+        position: 'absolute', top: 'calc(60% + 10px)', left: 0, right: 0, height: 70,
+        background: 'linear-gradient(to bottom, transparent, rgba(107,118,255,.04) 40%, rgba(107,118,255,.04) 60%, transparent)',
+        transition: 'opacity .3s ease', opacity: exiting ? 0 : 1,
+      }} />
+
       {/* Track rails */}
-      <div style={{ position: 'absolute', top: 'calc(50% + 47px)', left: 0, right: 0 }}>
-        <div style={{ height: '1.5px', background: 'rgba(107,118,255,0.14)', marginBottom: 8 }} />
-        <div style={{ height: '1.5px', background: 'rgba(107,118,255,0.14)' }} />
+      <div style={{
+        position: 'absolute', top: 'calc(60% + 47px)', left: 0, right: 0,
+        transition: 'opacity .3s ease', opacity: exiting ? 0 : 1,
+      }}>
+        <div style={{ height: '1.5px', background: 'rgba(107,118,255,.22)', marginBottom: 8 }} />
+        <div style={{ height: '1.5px', background: 'rgba(107,118,255,.22)' }} />
       </div>
 
       {/* Tram */}
       <div
+        ref={tramRef}
         onAnimationIteration={handleIteration}
         style={{
           position: 'absolute',
-          top: '50%',
+          top: '60%',
           transform: 'translateY(-50%)',
           left: '-340px',
-          filter: 'drop-shadow(-8px 0 12px rgba(107,118,255,0.2))',
+          filter: 'drop-shadow(-8px 0 14px rgba(107,118,255,.3)) drop-shadow(0 4px 12px rgba(0,0,0,.6))',
           animation: 'tramLoop 2.6s linear infinite',
         }}
       >
@@ -169,10 +185,11 @@ export function TramLoader({ loading }: { loading: boolean }) {
 
       {/* Loading text */}
       <p style={{
-        position: 'absolute', bottom: 100, left: 0, right: 0,
+        position: 'absolute', bottom: 80, left: 0, right: 0,
         textAlign: 'center', fontSize: 13, fontWeight: 700,
-        color: 'rgba(255,255,255,0.28)', letterSpacing: '-0.01em',
+        color: 'rgba(255,255,255,0.35)', letterSpacing: '-0.01em',
         animation: 'tramTextIn 0.4s ease 0.5s both',
+        transition: 'opacity .3s ease', opacity: exiting ? 0 : 1,
       }}>
         Haetaan Helsingin parhaat menot
         <span style={{ animation: 'tramDot 1.4s ease-in-out 1s infinite', opacity: 0 }}>.</span>
