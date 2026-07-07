@@ -242,11 +242,10 @@ export default function AdminPage() {
     let totalUpdated = 0
 
     while (!enrichImagesStopRef.current) {
-      const limit = !imageTestDoneRef.current ? 20 : 50
       const res = await fetch('/api/admin/enrich-restaurant-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit }),
+        body: JSON.stringify({ limit: 50 }),
       })
       const data = await res.json()
       if (data.error) { setEnrichImagesResult('Virhe: ' + data.error); break }
@@ -255,13 +254,6 @@ export default function AdminPage() {
       totalUpdated += data.updated
       if (data.samples?.length > 0) setImageSamples(data.samples)
       setEnrichImagesResult(`Käsitelty ${totalProcessed} • Kuva löytyi ${totalUpdated}:lle • Jäljellä ${data.remaining}`)
-
-      if (!imageTestDoneRef.current) {
-        imageTestDoneRef.current = true
-        setEnrichImagesResult(`✋ Ensimmäinen erä valmis — tarkista kuvat alla, paina uudelleen jatkaaksesi (Jäljellä ${data.remaining})`)
-        setEnrichingImages(false)
-        return
-      }
 
       if (data.remaining === 0 || data.processed === 0) {
         setEnrichImagesResult(`✓ Valmis — käsitelty ${totalProcessed}, kuva ${totalUpdated}:lle`)

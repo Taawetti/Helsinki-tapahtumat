@@ -25,6 +25,7 @@ import NewsletterBanner from '@/components/NewsletterBanner'
 import RestaurantsView from '@/components/RestaurantsView'
 import ActivitiesView from '@/components/ActivitiesView'
 import IdeaView from '@/components/IdeaView'
+import { TramLoader } from '@/components/TramLoader'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 
@@ -637,6 +638,7 @@ export default function HomeClient({
 
   return (
     <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#0a0a0c' }}>
+      <TramLoader loading={loading && baseEvents.length === 0} />
 
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(10,10,12,0.96)', backdropFilter: 'blur(20px)' }}>
@@ -914,20 +916,6 @@ export default function HomeClient({
             </div>
           )}
 
-          {/* Loading skeletons — shown during both phase 1 (loading) and phase 2 (fetchingFull) when no results yet */}
-          {(loading || fetchingFull) && baseEvents.length === 0 && (
-            <div>
-              <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '3/4' }} />
-                ))}
-              </div>
-              <div className="flex items-center justify-center gap-2 pt-5 pb-2">
-                <Loader2 size={14} className="animate-spin text-white/30" />
-                <span className="text-white/30 text-[13px]">Haetaan tapahtumia...</span>
-              </div>
-            </div>
-          )}
 
           {/* ── Hero "ILLAN NOSTO" ── */}
           {heroEvent && (
