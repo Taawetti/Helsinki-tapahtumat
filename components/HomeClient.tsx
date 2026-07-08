@@ -25,7 +25,6 @@ import NewsletterBanner from '@/components/NewsletterBanner'
 import RestaurantsView from '@/components/RestaurantsView'
 import ActivitiesView from '@/components/ActivitiesView'
 import IdeaView from '@/components/IdeaView'
-import { TramLoader } from '@/components/TramLoader'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 
@@ -638,8 +637,6 @@ export default function HomeClient({
 
   return (
     <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#0a0a0c' }}>
-      <TramLoader loading={(loading || fetchingFull) && baseEvents.length === 0} />
-
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(10,10,12,0.96)', backdropFilter: 'blur(20px)' }}>
         {/* ── Mobile header row 1: logo + actions ── */}
@@ -942,6 +939,28 @@ export default function HomeClient({
             </div>
           )}
 
+
+          {/* ── Loading skeleton — näkyy vain kun tapahtumia ei vielä ole ── */}
+          {loading && baseEvents.length === 0 && (
+            <div className="space-y-5">
+              <p className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,.3)', letterSpacing: '-0.01em' }}>
+                Haetaan tapahtumia
+                <span style={{ animation: 'loadingDot 1.4s ease-in-out 0s infinite', opacity: 0 }}>.</span>
+                <span style={{ animation: 'loadingDot 1.4s ease-in-out 0.2s infinite', opacity: 0 }}>.</span>
+                <span style={{ animation: 'loadingDot 1.4s ease-in-out 0.4s infinite', opacity: 0 }}>.</span>
+              </p>
+              {[0, 1, 2].map(i => (
+                <div key={i} className="space-y-3">
+                  <div className="h-4 rounded-lg skeleton-shimmer" style={{ width: 80 + i * 24 }} />
+                  <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4">
+                    {[0, 1, 2, 3].map(j => (
+                      <div key={j} className="shrink-0 w-40 rounded-[18px] skeleton-shimmer" style={{ aspectRatio: '3/4', flexShrink: 0 }} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* ── Hero "ILLAN NOSTO" ── */}
           {heroEvent && (

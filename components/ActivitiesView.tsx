@@ -644,10 +644,23 @@ export default function ActivitiesView({ onShowOnMap }: {
 
       {/* Loading skeletons */}
       {loading && (
-        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
-          ))}
+        <div className="space-y-3">
+          <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
+            ))}
+          </div>
+          <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
+            ))}
+          </div>
+          <p className="text-[13px] font-bold pt-1" style={{ color: 'rgba(255,255,255,.3)', letterSpacing: '-0.01em' }}>
+            Haetaan aktiviteetteja
+            <span style={{ animation: 'loadingDot 1.4s ease-in-out 0s infinite', opacity: 0 }}>.</span>
+            <span style={{ animation: 'loadingDot 1.4s ease-in-out 0.2s infinite', opacity: 0 }}>.</span>
+            <span style={{ animation: 'loadingDot 1.4s ease-in-out 0.4s infinite', opacity: 0 }}>.</span>
+          </p>
         </div>
       )}
 

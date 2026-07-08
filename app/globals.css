@@ -142,6 +142,11 @@ body {
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
+@keyframes loadingDot {
+  0%, 60%, 100% { opacity: 0; }
+  30% { opacity: 1; }
+}
+
 /* Scrollbar hide */
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
