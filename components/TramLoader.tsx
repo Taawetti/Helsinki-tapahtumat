@@ -21,7 +21,16 @@ export function TramLoader({ loading }: { loading: boolean }) {
       return () => clearTimeout(t)
     } else {
       dataReadyRef.current = true
-      // Tram exits on the next animationiteration (≤ 2.6 s away)
+      // Primary exit: animationIteration fires when tram is off-screen (≤ loop duration away).
+      // Fallback: force exit after 1.5 s so the tram never lingers long after data arrives.
+      const fallback = setTimeout(() => {
+        if (triggeredRef.current) return
+        triggeredRef.current = true
+        if (tramRef.current) tramRef.current.style.opacity = '0'
+        setExiting(true)
+        setTimeout(() => { setVisible(false); setExiting(false) }, 300)
+      }, 1500)
+      return () => clearTimeout(fallback)
     }
   }, [loading])
 
@@ -86,7 +95,7 @@ export function TramLoader({ loading }: { loading: boolean }) {
           transform: 'translateY(-50%)',
           left: '-340px',
           filter: 'drop-shadow(-8px 0 14px rgba(107,118,255,.3)) drop-shadow(0 4px 12px rgba(0,0,0,.6))',
-          animation: 'tramLoop 2.6s linear infinite',
+          animation: 'tramLoop 3.5s linear infinite',
         }}
       >
         <svg viewBox="0 0 318 94" width="318" height="94" xmlns="http://www.w3.org/2000/svg">

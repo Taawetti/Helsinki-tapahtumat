@@ -638,7 +638,7 @@ export default function HomeClient({
 
   return (
     <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#0a0a0c' }}>
-      <TramLoader loading={(loading || fetchingFull) && baseEvents.length === 0} />
+      <TramLoader loading={loading && baseEvents.length === 0} />
 
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(10,10,12,0.96)', backdropFilter: 'blur(20px)' }}>
