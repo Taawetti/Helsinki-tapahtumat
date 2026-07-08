@@ -302,7 +302,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     let mounted = true
-    Promise.all([import('leaflet'), import('leaflet.markercluster')]).then(([L]) => {
+
+    import('leaflet').then(async (L) => {
       if (!mounted || !containerRef.current || mapRef.current) return
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -313,26 +314,43 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       }).addTo(map)
       mapRef.current = map
 
-      // Create cluster groups — one per layer type
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mkCluster = (color: string) => (L as any).markerClusterGroup({
-        chunkedLoading: true,
-        maxClusterRadius: 55,
-        showCoverageOnHover: false,
-        spiderfyOnMaxZoom: true,
-        zoomToBoundsOnClick: true,
+      // Load markercluster AFTER leaflet — it patches L sequentially
+      try {
+        await import('leaflet.markercluster')
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        iconCreateFunction: (cluster: any) => createClusterIcon(L, cluster, color),
-      })
-      eventClusterRef.current = mkCluster('#6b76ff')
-      restClusterRef.current  = mkCluster('#f97316')
-      actClusterRef.current   = mkCluster('#10b981')
+        if (typeof (L as any).markerClusterGroup === 'function') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mkCluster = (color: string) => (L as any).markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 55,
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true,
+            zoomToBoundsOnClick: true,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            iconCreateFunction: (cluster: any) => createClusterIcon(L, cluster, color),
+          })
+          eventClusterRef.current = mkCluster('#6b76ff')
+          restClusterRef.current  = mkCluster('#f97316')
+          actClusterRef.current   = mkCluster('#10b981')
+        }
+      } catch (_) {
+        // markercluster failed — fall back to plain LayerGroups (same API)
+      }
+
+      // Fallback: use plain LayerGroups if clustering unavailable
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mkFallback = () => (L as any).layerGroup()
+      if (!eventClusterRef.current) eventClusterRef.current = mkFallback()
+      if (!restClusterRef.current)  restClusterRef.current  = mkFallback()
+      if (!actClusterRef.current)   actClusterRef.current   = mkFallback()
+
       // Events layer is on by default
       map.addLayer(eventClusterRef.current)
 
       setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize() }, 120)
       setMapReady(true)
     })
+
     return () => {
       mounted = false
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
