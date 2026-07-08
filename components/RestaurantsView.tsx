@@ -6,6 +6,18 @@ import type { Restaurant } from '@/lib/types'
 import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+// ── Chain grouping types ──────────────────────────────────
+
+interface ChainGroup {
+  _isChain: true
+  key: string
+  displayName: string
+  representative: Restaurant
+  locations: Restaurant[]
+}
+
+type RestItem = Restaurant | ChainGroup
+
 // ── Constants ─────────────────────────────────────────────
 
 const PRICE_LABELS = ['', '€', '€€', '€€€', '€€€€']
@@ -71,6 +83,56 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 
 function fmtDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+}
+
+function normalizeChainName(name: string): string {
+  let n = name.toLowerCase().trim()
+  n = n.replace(/^(ravintola|café|cafe|bistro|restaurant|bar|pub|kahvila|pizzeria)\s+/i, '')
+  n = n.replace(/\s+(ravintola|café|cafe|bistro|restaurant|bar|pub|kahvila|pizzeria)$/i, '')
+  return n.replace(/\s+/g, ' ').trim()
+}
+
+function groupByChain(items: Restaurant[], distMap: Map<string, number>): RestItem[] {
+  const groups = new Map<string, Restaurant[]>()
+  for (const r of items) {
+    const key = normalizeChainName(r.name)
+    const existing = groups.get(key)
+    if (existing) existing.push(r)
+    else groups.set(key, [r])
+  }
+
+  const originalOrder = new Map(items.map((r, i) => [r.id, i]))
+  const result: RestItem[] = []
+
+  for (const [key, members] of groups) {
+    if (members.length < 2) {
+      result.push(members[0])
+    } else {
+      const sorted = [...members].sort((a, b) => {
+        const da = distMap.get(a.id) ?? Infinity
+        const db = distMap.get(b.id) ?? Infinity
+        if (da !== db && da !== Infinity && db !== Infinity) return da - db
+        const scoreA = (a.image ? 2 : 0) + (a.openingHours ? 1 : 0)
+        const scoreB = (b.image ? 2 : 0) + (b.openingHours ? 1 : 0)
+        return scoreB - scoreA
+      })
+      result.push({
+        _isChain: true,
+        key,
+        displayName: sorted[0].name,
+        representative: sorted[0],
+        locations: sorted,
+      })
+    }
+  }
+
+  result.sort((a, b) => {
+    const aId = '_isChain' in a ? a.representative.id : a.id
+    const bId = '_isChain' in b ? b.representative.id : b.id
+    return (originalOrder.get(aId) ?? 0) - (originalOrder.get(bId) ?? 0)
+  })
+
+  return result
 }
 
 // ── Cuisine Twemoji (B2 style: dark bg + radial glow + illustrated emoji) ─────
@@ -486,6 +548,52 @@ function RestRowCard({ r, distance, onClick }: {
   )
 }
 
+// ── Chain carousel card ──────────────────────────────────
+
+function ChainRowCard({ chain, distMap, onClick }: {
+  chain: ChainGroup
+  distMap: Map<string, number>
+  onClick: (chain: ChainGroup) => void
+}) {
+  const r = chain.representative
+  const cuisineStyle = getCuisineStyle(r)
+  return (
+    <button onClick={() => onClick(chain)}
+      className="group shrink-0 w-44 text-left rounded-[18px] overflow-hidden"
+      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
+        {r.image ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 60%)' }} />
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0" style={{ background: '#141418' }} />
+            <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 55%, ${cuisineStyle.color}30 0%, transparent 68%)` }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={50} height={50} style={{ objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.5))' }} />
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.6 }} />
+          </>
+        )}
+        <div className="absolute top-2 right-2">
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white"
+            style={{ background: 'rgba(107,118,255,.88)', boxShadow: '0 2px 6px rgba(0,0,0,.4)' }}>
+            📍 {chain.locations.length}
+          </span>
+        </div>
+      </div>
+      <div className="p-3">
+        <p className="text-white font-black text-[13px] leading-tight line-clamp-1" style={{ letterSpacing: '-0.01em' }}>{r.name}</p>
+        <p className="text-[11px] mt-0.5 font-bold" style={{ color: '#a3abff' }}>{chain.locations.length} sijaintia</p>
+      </div>
+    </button>
+  )
+}
+
 // ── List card ─────────────────────────────────────────────
 
 function RestListCard({ r, distance, onShowOnMap }: {
@@ -607,19 +715,163 @@ function RestListCard({ r, distance, onShowOnMap }: {
   )
 }
 
+// ── Chain list card (filter view) ────────────────────────
+
+function ChainListCard({ chain, onClick }: {
+  chain: ChainGroup
+  onClick: (chain: ChainGroup) => void
+}) {
+  const r = chain.representative
+  const cuisineStyle = getCuisineStyle(r)
+  return (
+    <button onClick={() => onClick(chain)} className="rounded-2xl overflow-hidden text-left w-full transition-all active:scale-[.98]"
+      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
+      <div className="relative flex items-center justify-center overflow-hidden" style={{ height: 72, background: '#141418' }}>
+        {r.image ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.4) 0%,transparent 60%)' }} />
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 60%, ${cuisineStyle.color}28 0%, transparent 70%)` }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={38} height={38} style={{ objectFit: 'contain', position: 'relative', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.5))' }} />
+            <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.5 }} />
+          </>
+        )}
+        <div className="absolute top-2 right-2">
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white"
+            style={{ background: 'rgba(107,118,255,.88)' }}>
+            📍 {chain.locations.length}
+          </span>
+        </div>
+      </div>
+      <div className="p-4">
+        <h3 className="font-black text-white text-sm leading-tight">{r.name}</h3>
+        <p className="text-[11px] font-bold mt-0.5" style={{ color: '#a3abff' }}>{chain.locations.length} sijaintia · näytä kaikki</p>
+      </div>
+    </button>
+  )
+}
+
+// ── Chain detail sheet ────────────────────────────────────
+
+function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
+  chain: ChainGroup
+  distMap: Map<string, number>
+  onClose: () => void
+  onShowOnMap?: (lat: number, lon: number, name: string) => void
+}) {
+  const { t } = useLanguage()
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}>
+      <div className="w-full max-w-2xl mx-auto rounded-t-[28px] overflow-hidden animate-sheet-up flex flex-col"
+        style={{ background: '#0f0f13', border: '1px solid rgba(255,255,255,.1)', maxHeight: '85vh' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="p-5 flex items-start justify-between shrink-0"
+          style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+          <div>
+            <h2 className="font-black text-white text-xl leading-tight">{chain.displayName}</h2>
+            <p className="text-[13px] mt-1 font-bold" style={{ color: '#a3abff' }}>📍 {chain.locations.length} sijaintia Helsingissä</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full text-white/40 hover:text-white shrink-0 ml-2"
+            style={{ background: 'rgba(255,255,255,.08)' }}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Locations list */}
+        <div className="overflow-y-auto flex-1 p-4 space-y-3">
+          {chain.locations.map((r, i) => {
+            const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
+            const todayH = r.openingHours ? getTodayHours(r.openingHours) : null
+            const dist = distMap.get(r.id)
+            return (
+              <div key={r.id} className="rounded-2xl p-4 space-y-2"
+                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)' }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <span className="text-[11px] font-black text-white/20 pt-0.5 shrink-0">{i + 1}</span>
+                    <span className="text-sm font-bold text-white/85 leading-snug">{r.address || r.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                    {open !== undefined && (
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
+                        {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
+                      </span>
+                    )}
+                    {dist !== undefined && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-[#a3abff]"
+                        style={{ background: 'rgba(107,118,255,.12)' }}>
+                        {fmtDist(dist)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {todayH && (
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: open ? '#6ee7b7' : 'rgba(255,255,255,.25)' }}>
+                    <Clock size={10} className="shrink-0" />
+                    <span>Tänään {todayH}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 pt-0.5 flex-wrap">
+                  {onShowOnMap && r.lat && r.lon && (
+                    <button onClick={() => { onShowOnMap(r.lat!, r.lon!, r.name); onClose() }}
+                      className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
+                      <MapIcon size={10} /> Kartalla
+                    </button>
+                  )}
+                  {((r.lat && r.lon) || r.address) && (
+                    <a href={r.lat && r.lon
+                      ? `https://maps.google.com/maps?daddr=${r.lat},${r.lon}&travelmode=transit`
+                      : `https://maps.google.com/maps?daddr=${encodeURIComponent(r.address + ', Helsinki')}&travelmode=transit`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
+                      <Navigation size={10} /> Reittiohjeet
+                    </a>
+                  )}
+                  {r.googleRating && (
+                    <span className="text-[10px] font-bold" style={{ color: '#fbbf24' }}>
+                      ⭐ {r.googleRating.toFixed(1)}
+                    </span>
+                  )}
+                  {r.www && (
+                    <a href={/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[10px] font-bold hover:opacity-80 transition-opacity"
+                      style={{ color: '#a3abff' }}>
+                      <Globe size={10} /> Nettisivu
+                    </a>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Carousel row — expand in place ────────────────────────
 
-function RestRow({ title, items, distMap, onCardClick, onShowOnMap }: {
+function RestRow({ title, items, distMap, onCardClick, onChainClick, onShowOnMap }: {
   title: string
   items: Restaurant[]
   distMap: Map<string, number>
   onCardClick: (r: Restaurant) => void
+  onChainClick: (chain: ChainGroup) => void
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
-  if (items.length === 0) return null
-  const hasMore = items.length > 10
+  const grouped = useMemo(() => groupByChain(items, distMap), [items, distMap])
+  if (grouped.length === 0) return null
+  const hasMore = grouped.length > 10
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
@@ -629,7 +881,7 @@ function RestRow({ title, items, distMap, onCardClick, onShowOnMap }: {
         </h2>
         {hasMore && !expanded && (
           <button onClick={() => setExpanded(true)} className="text-[12px] font-black shrink-0 transition-colors" style={{ color: '#a3abff' }}>
-            {t('discover.see_all')} {items.length} →
+            {t('discover.see_all')} {grouped.length} →
           </button>
         )}
         {expanded && (
@@ -640,15 +892,19 @@ function RestRow({ title, items, distMap, onCardClick, onShowOnMap }: {
       </div>
       {!expanded ? (
         <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-          {items.slice(0, 10).map(r => (
-            <RestRowCard key={r.id} r={r} distance={distMap.get(r.id)} onClick={onCardClick} />
-          ))}
+          {grouped.slice(0, 10).map(item =>
+            '_isChain' in item
+              ? <ChainRowCard key={item.key} chain={item} distMap={distMap} onClick={onChainClick} />
+              : <RestRowCard key={item.id} r={item} distance={distMap.get(item.id)} onClick={onCardClick} />
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map(r => (
-            <RestListCard key={r.id} r={r} distance={distMap.get(r.id)} onShowOnMap={onShowOnMap} />
-          ))}
+          {grouped.map(item =>
+            '_isChain' in item
+              ? <ChainListCard key={item.key} chain={item} onClick={onChainClick} />
+              : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} />
+          )}
         </div>
       )}
     </section>
@@ -759,6 +1015,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [filterNearby, setFilterNearby] = useState(false)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [selectedRest, setSelectedRest] = useState<Restaurant | null>(null)
+  const [selectedChain, setSelectedChain] = useState<ChainGroup | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   const [news, setNews] = useState<NewsItem[]>([])
   const [showCatPanel, setShowCatPanel] = useState(false)
@@ -844,6 +1101,8 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     if (filterNearby && userPos) result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     return result
   }, [subPool, filterOpen, filterNearby, userPos, distMap])
+
+  const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
 
   const heroRest = useMemo(() => {
     return typePool.find(r => r.image && r.openingHours && isOpenNow(r.openingHours))
@@ -1030,6 +1289,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   items={row.items}
                   distMap={distMap}
                   onCardClick={setSelectedRest}
+                  onChainClick={setSelectedChain}
                   onShowOnMap={onShowOnMap}
                 />
               ))}
@@ -1049,19 +1309,21 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
             <>
               <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
-              {sortedPool.length > 0 ? (
+              {groupedSortedPool.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sortedPool.slice(0, visibleCount).map(r => (
-                      <RestListCard key={r.id} r={r} distance={distMap.get(r.id)} onShowOnMap={onShowOnMap} />
-                    ))}
+                    {groupedSortedPool.slice(0, visibleCount).map(item =>
+                      '_isChain' in item
+                        ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
+                        : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} />
+                    )}
                   </div>
-                  {visibleCount < sortedPool.length && (
+                  {visibleCount < groupedSortedPool.length && (
                     <button
                       onClick={() => setVisibleCount(v => v + 24)}
                       className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
                       style={{ background: 'rgba(255,255,255,.05)' }}>
-                      {t('restaurants.load_more')} ({sortedPool.length - visibleCount} {t('restaurants.places')})
+                      {t('restaurants.load_more')} ({groupedSortedPool.length - visibleCount} {t('restaurants.places')})
                     </button>
                   )}
                 </>
@@ -1079,6 +1341,16 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
             </>
           )}
         </>
+      )}
+
+      {/* Chain detail sheet */}
+      {selectedChain && (
+        <ChainDetailSheet
+          chain={selectedChain}
+          distMap={distMap}
+          onClose={() => setSelectedChain(null)}
+          onShowOnMap={onShowOnMap}
+        />
       )}
 
       {/* Detail modal */}
