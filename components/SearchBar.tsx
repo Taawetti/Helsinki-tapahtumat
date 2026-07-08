@@ -54,8 +54,13 @@ export default function SearchBar({
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={t('search.placeholder')}
-        className="w-full bg-white/7 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:border-[#0072C6]/60 focus:bg-white/9 transition-all"
-        style={{ color: '#fff', WebkitTextFillColor: '#fff' }}
+        className="w-full border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:border-[#6b76ff]/60 transition-all"
+        style={{
+          color: '#fff',
+          WebkitTextFillColor: '#fff',
+          colorScheme: 'dark',
+          background: 'rgba(255,255,255,0.07)',
+        }}
       />
       {value && (
         <button

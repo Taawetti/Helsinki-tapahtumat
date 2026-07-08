@@ -701,11 +701,11 @@ export default function HomeClient({
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'idea', 'restaurants', 'activities', 'map', 'favorites'] as AppMode[]).map((m) => (
+            {(['discover', 'idea', 'restaurants', 'activities', 'map'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab) }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
                 style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
-                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'map' ? `🗺 ${t('nav.map')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : m === 'activities' ? `🧖 ${t('nav.activities')}` : `♥ ${t('nav.favorites')}`}
+                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'map' ? `🗺 ${t('nav.map')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🧖 ${t('nav.activities')}`}
               </button>
             ))}
             <Link href="/suunnittele"
@@ -737,6 +737,17 @@ export default function HomeClient({
             className={`shrink-0 p-2 rounded-xl border transition-all ${pushEnabled ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
           >
             <Bell size={15} />
+          </button>
+
+          <button
+            onClick={() => { setMode('favorites'); setMobileTab('favorites') }}
+            title="Suosikit"
+            className={`relative shrink-0 p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 bg-white/4 hover:text-white/70'}`}
+          >
+            <span className="text-[15px] leading-none">❤️</span>
+            {favCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{favCount}</span>
+            )}
           </button>
 
           <button onClick={() => setShowJarjestajaForm((p) => !p)}
