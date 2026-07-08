@@ -29,14 +29,18 @@ const GROUP_OPTIONS: Array<{ value: GroupType; emoji: string; label: string }> =
 ]
 
 const INTEREST_OPTIONS = [
-  { value: 'tapahtumat', label: 'Tapahtumat', emoji: '🎭' },
-  { value: 'ruoka',      label: 'Hyvä ruoka', emoji: '🍽' },
-  { value: 'kulttuuri',  label: 'Kulttuuri',  emoji: '🏛'  },
-  { value: 'yoelama',    label: 'Yöelämä',    emoji: '🌙' },
-  { value: 'luonto',     label: 'Luonto',     emoji: '🌿' },
-  { value: 'lapset',     label: 'Lapsiystävällistä', emoji: '👶' },
-  { value: 'urheilu',    label: 'Urheilu',    emoji: '⚽' },
-  { value: 'shoppailu',  label: 'Shoppailu',  emoji: '🛍'  },
+  { value: 'keikka',    label: 'Keikka',           emoji: '🎸' },
+  { value: 'ruoka',     label: 'Hyvä ruoka',       emoji: '🍽' },
+  { value: 'teatteri',  label: 'Teatteri & Tanssi', emoji: '🎭' },
+  { value: 'museo',     label: 'Museo',            emoji: '🏛'  },
+  { value: 'yoelama',   label: 'Yöelämä',          emoji: '🌙' },
+  { value: 'baari',     label: 'Baari / Pub',      emoji: '🍺' },
+  { value: 'lapset',    label: 'Lapsiystävällistä', emoji: '👶' },
+  { value: 'urheilu',   label: 'Urheilu',          emoji: '⚽' },
+  { value: 'festivaali',label: 'Festivaalit',      emoji: '🎪' },
+  { value: 'standup',   label: 'Stand up',         emoji: '😂' },
+  { value: 'luonto',    label: 'Luonto & Ulkoilu', emoji: '🌿' },
+  { value: 'shoppailu', label: 'Shoppailu',        emoji: '🛍'  },
 ]
 
 // ─── Date helpers (client-side only) ─────────────────────────────────────────
@@ -229,9 +233,9 @@ export default function PlannerView() {
   }
 
   const dateQuickOptions = [
-    { label: 'Tänään',   iso: isoOffset(0) },
-    { label: 'Huomenna', iso: isoOffset(1) },
-    { label: 'Lauantai', iso: nextSaturdayISO() },
+    { label: 'Tänään',      iso: isoOffset(0),       days: 1 },
+    { label: 'Huomenna',    iso: isoOffset(1),       days: 1 },
+    { label: 'Viikonloppu', iso: nextSaturdayISO(),  days: 2 },
   ]
 
   const durationOptions = [
@@ -341,7 +345,7 @@ export default function PlannerView() {
                     const sel = travelDate === opt.iso
                     return (
                       <button key={opt.iso} className="chip-btn"
-                        onClick={() => setTravelDate(opt.iso)}
+                        onClick={() => { setTravelDate(opt.iso); setDayCount(opt.days) }}
                         style={{
                           padding: '8px 18px', borderRadius: 20, cursor: 'pointer',
                           border:     `1px solid ${sel ? '#6b76ff' : 'rgba(255,255,255,.15)'}`,
