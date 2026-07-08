@@ -96,6 +96,18 @@ function esc(s: string | null | undefined): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createClusterIcon(L: any, cluster: any, color: string) {
+  const count = cluster.getChildCount()
+  const size = count < 10 ? 32 : count < 100 ? 38 : 44
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2.5px solid rgba(255,255,255,0.88);box-shadow:0 2px 10px rgba(0,0,0,0.55),0 0 0 4px ${color}40;display:flex;align-items:center;justify-content:center;font-size:${count < 10 ? 13 : 11}px;font-weight:900;color:#fff;font-family:-apple-system,sans-serif;letter-spacing:-.02em">${count}</div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  })
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makePinIcon(L: any, color: string, emoji: string, round = false) {
   const shape = round
     ? `border-radius:50%`
@@ -271,13 +283,13 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userMarkerRef       = useRef<any>(null)
+  const userMarkerRef      = useRef<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const eventMarkersRef     = useRef<any[]>([])
+  const eventClusterRef    = useRef<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const restMarkersRef      = useRef<any[]>([])
+  const restClusterRef     = useRef<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activityMarkersRef  = useRef<any[]>([])
+  const actClusterRef      = useRef<any>(null)
 
   const toggleLayer = useCallback((key: keyof Layers) => {
     setLayers(l => ({ ...l, [key]: !l[key] }))
@@ -290,7 +302,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     let mounted = true
-    import('leaflet').then((L) => {
+    Promise.all([import('leaflet'), import('leaflet.markercluster')]).then(([L]) => {
       if (!mounted || !containerRef.current || mapRef.current) return
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -300,7 +312,24 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         subdomains: 'abcd', maxZoom: 20,
       }).addTo(map)
       mapRef.current = map
-      // invalidateSize after CSS transition (tab switch may not have settled)
+
+      // Create cluster groups — one per layer type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mkCluster = (color: string) => (L as any).markerClusterGroup({
+        chunkedLoading: true,
+        maxClusterRadius: 55,
+        showCoverageOnHover: false,
+        spiderfyOnMaxZoom: true,
+        zoomToBoundsOnClick: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        iconCreateFunction: (cluster: any) => createClusterIcon(L, cluster, color),
+      })
+      eventClusterRef.current = mkCluster('#6b76ff')
+      restClusterRef.current  = mkCluster('#f97316')
+      actClusterRef.current   = mkCluster('#10b981')
+      // Events layer is on by default
+      map.addLayer(eventClusterRef.current)
+
       setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize() }, 120)
       setMapReady(true)
     })
@@ -309,6 +338,20 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
     }
   }, [])
+
+  // ── Sync cluster layers to layer toggle state ─────────────
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return
+    const map = mapRef.current
+    const sync = (cluster: any, on: boolean) => {
+      if (!cluster) return
+      if (on && !map.hasLayer(cluster)) map.addLayer(cluster)
+      else if (!on && map.hasLayer(cluster)) map.removeLayer(cluster)
+    }
+    sync(eventClusterRef.current, layers.events)
+    sync(restClusterRef.current,  layers.restaurants)
+    sync(actClusterRef.current,   layers.activities)
+  }, [mapReady, layers])
 
   // ── Fly to mapTarget when map ready ──────────────────────
   useEffect(() => {
@@ -351,10 +394,11 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
 
   // ── Event markers ─────────────────────────────────────────
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return
+    if (!mapReady || !mapRef.current || !eventClusterRef.current) return
     import('leaflet').then((L) => {
-      eventMarkersRef.current.forEach(m => { try { mapRef.current.removeLayer(m) } catch {} })
-      eventMarkersRef.current = []
+      const cluster = eventClusterRef.current
+      if (!cluster) return
+      cluster.clearLayers()
       if (!layers.events) return
       events.forEach((event) => {
         if (!event.location?.lat || !event.location?.lon) return
@@ -372,18 +416,18 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         const marker = L.marker([event.location.lat, event.location.lon], { icon })
         marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 240 })
         marker.on('click', () => onEventClick(event))
-        marker.addTo(mapRef.current)
-        eventMarkersRef.current.push(marker)
+        cluster.addLayer(marker)
       })
     })
   }, [mapReady, events, onEventClick, layers.events, eventGroup, dateFilter, customDate, t, lang])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return
+    if (!mapReady || !mapRef.current || !restClusterRef.current) return
     import('leaflet').then((L) => {
-      restMarkersRef.current.forEach(m => { try { mapRef.current.removeLayer(m) } catch {} })
-      restMarkersRef.current = []
+      const cluster = restClusterRef.current
+      if (!cluster) return
+      cluster.clearLayers()
       if (!layers.restaurants) return
       restaurants.forEach((r) => {
         if (!r.lat || !r.lon) return
@@ -405,18 +449,18 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         </div>`
         const marker = L.marker([r.lat, r.lon], { icon })
         marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
-        marker.addTo(mapRef.current)
-        restMarkersRef.current.push(marker)
+        cluster.addLayer(marker)
       })
     })
   }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine, t, lang])
 
   // ── Activity markers ──────────────────────────────────────
   useEffect(() => {
-    if (!mapReady || !mapRef.current) return
+    if (!mapReady || !mapRef.current || !actClusterRef.current) return
     import('leaflet').then((L) => {
-      activityMarkersRef.current.forEach(m => { try { mapRef.current.removeLayer(m) } catch {} })
-      activityMarkersRef.current = []
+      const cluster = actClusterRef.current
+      if (!cluster) return
+      cluster.clearLayers()
       if (!layers.activities) return
       activities.forEach((a) => {
         if (!a.lat || !a.lon) return
@@ -433,8 +477,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         </div>`
         const marker = L.marker([a.lat, a.lon], { icon })
         marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
-        marker.addTo(mapRef.current)
-        activityMarkersRef.current.push(marker)
+        cluster.addLayer(marker)
       })
     })
   }, [mapReady, activities, layers.activities, actCat, t, lang])
@@ -715,7 +758,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
 
       {/* ── Loading indicators ── */}
       {(restsLoading || activitiesLoading) && (
-        <div className="absolute top-14 right-3 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
+        <div className="absolute bottom-16 right-3 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
           <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white/70 animate-spin" />
           {restsLoading ? t('map.loading_rests') : t('map.loading_acts')}
         </div>
