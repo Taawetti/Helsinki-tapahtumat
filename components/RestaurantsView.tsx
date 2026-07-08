@@ -1259,12 +1259,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               <div key={i} className="shrink-0 w-44 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
             ))}
           </div>
-          <p className="text-[13px] font-bold pt-1" style={{ color: 'rgba(255,255,255,.3)', letterSpacing: '-0.01em' }}>
-            Haetaan ravintoloita
-            <span style={{ animation: 'loadingDot 1.4s ease-in-out 0s infinite', opacity: 0 }}>.</span>
-            <span style={{ animation: 'loadingDot 1.4s ease-in-out 0.2s infinite', opacity: 0 }}>.</span>
-            <span style={{ animation: 'loadingDot 1.4s ease-in-out 0.4s infinite', opacity: 0 }}>.</span>
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
+            <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>Haetaan ravintoloita</span>
+          </div>
         </div>
       )}
 

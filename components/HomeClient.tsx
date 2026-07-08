@@ -943,12 +943,10 @@ export default function HomeClient({
           {/* ── Loading skeleton — näkyy vain kun tapahtumia ei vielä ole ── */}
           {loading && baseEvents.length === 0 && (
             <div className="space-y-5">
-              <p className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,.3)', letterSpacing: '-0.01em' }}>
-                Haetaan tapahtumia
-                <span style={{ animation: 'loadingDot 1.4s ease-in-out 0s infinite', opacity: 0 }}>.</span>
-                <span style={{ animation: 'loadingDot 1.4s ease-in-out 0.2s infinite', opacity: 0 }}>.</span>
-                <span style={{ animation: 'loadingDot 1.4s ease-in-out 0.4s infinite', opacity: 0 }}>.</span>
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>Haetaan tapahtumia</span>
+              </div>
               {[0, 1, 2].map(i => (
                 <div key={i} className="space-y-3">
                   <div className="h-4 rounded-lg skeleton-shimmer" style={{ width: 80 + i * 24 }} />
