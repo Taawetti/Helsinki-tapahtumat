@@ -15,7 +15,7 @@ export function TramLoader({ loading }: { loading: boolean }) {
     } else {
       // Fade out immediately when data arrives — no waiting for tram position
       setExiting(true)
-      const t = setTimeout(() => { setVisible(false); setExiting(false) }, 350)
+      const t = setTimeout(() => { setVisible(false); setExiting(false) }, 10)
       return () => clearTimeout(t)
     }
   }, [loading])
