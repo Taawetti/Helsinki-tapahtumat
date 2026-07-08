@@ -109,12 +109,13 @@ export async function POST(req: NextRequest) {
   if (!body) return new Response('Bad request', { status: 400 })
 
   const {
-    groupType = 'solo',
+    groupType    = 'solo',
     travelDate,
-    dayCount   = 1,
-    interests  = [] as string[],
-    budget     = 'normal',
-    messages   = [] as Array<{ role: string; content: string }>,
+    dayCount     = 1,
+    interests    = [] as string[],
+    budget       = 'normal',
+    subInterests = {} as Record<string, string[]>,
+    messages     = [] as Array<{ role: string; content: string }>,
   } = body
 
   if (!travelDate) return new Response('Missing travelDate', { status: 400 })
@@ -125,9 +126,13 @@ export async function POST(req: NextRequest) {
   // Pre-fetch events from LinkedEvents (real-time data for Claude)
   const { text: eventData, refs: eventRefs } = await fetchLinkedEvents(travelDate, dayCount)
 
-  const group        = GROUP_FI[groupType] || 'matkailija'
-  const interestStr  = (interests as string[]).length > 0
-    ? (interests as string[]).join(', ')
+  const group       = GROUP_FI[groupType] || 'matkailija'
+  const subMap      = subInterests as Record<string, string[]>
+  const interestStr = (interests as string[]).length > 0
+    ? (interests as string[]).map(i => {
+        const subs = subMap[i]
+        return subs && subs.length > 0 ? `${i} (tarkemmin: ${subs.join(', ')})` : i
+      }).join(', ')
     : 'yleinen Helsinki-kokemus'
   const dateLabel    = formatDateFI(travelDate, dayCount)
   const durationText = dayCount === 1 ? 'yksi päivä' : `${dayCount} päivää`

@@ -65,6 +65,21 @@ const INTEREST_OPTIONS = [
   { value: 'shoppailu', label: 'Shoppailu',        emoji: '🛍'  },
 ]
 
+const SUBCATS: Record<string, string[]> = {
+  keikka:    ['Rock', 'Jazz', 'Pop', 'Folk / iskelmä', 'Metal', 'Elektroninen', 'Hip-hop', 'Klassinen', 'Indie', 'Blues'],
+  ruoka:     ['Fine dining', 'Bistro', 'Street food', 'Aamiaisravintola', 'Vegaani', 'Sushi', 'Italialainen', 'Pohjoismainen', 'Intialainen'],
+  teatteri:  ['Draama', 'Musikaali', 'Baletti', 'Ooppera', 'Lastenteatteri', 'Impro', 'Kokeellinen'],
+  museo:     ['Taidemuseo', 'Historia', 'Nykytaide', 'Tiede', 'Valokuva', 'Design', 'Luonnontiede'],
+  yoelama:   ['Yökerho', 'Live-musiikki', 'Karaoke', 'DJ-illat', 'Tanssiminen'],
+  baari:     ['Craft-olut', 'Cocktail', 'Viinibaari', 'Pubivisat', 'Sports bar', 'Pelibaari', 'Whisky'],
+  lapset:    ['Eläintarha', 'Huvipuisto', 'Tiedekeskus', 'Luonto', 'Museo', 'Liikunta'],
+  urheilu:   ['Jalkapallo', 'Jääkiekko', 'Koripallo', 'Tennis', 'Pyöräily', 'Juokseminen', 'Yleisurheilu'],
+  festivaali:['Musiikki', 'Elokuva', 'Ruoka', 'Kulttuuri', 'Taide', 'Olutjuhla'],
+  standup:   ['Suomeksi', 'Englanniksi', 'Open mic', 'Impro-komedia'],
+  luonto:    ['Patikka', 'Pyöräily', 'Uiminen', 'Kalastus', 'Retkiluistelu', 'Piknik', 'Lintuharrastus'],
+  shoppailu: ['Antiikki / kirppis', 'Design', 'Kirjakaupat', 'Kauppahalli', 'Elektroniikka', 'Urheilu'],
+}
+
 const BUDGET_OPTIONS = [
   { value: 'free',    emoji: '🆓', label: 'Ilmainen',  desc: 'Vain ilmaiset kohteet'       },
   { value: 'budget',  emoji: '💚', label: 'Edullinen', desc: 'Max ~15 €/aktiviteetti'       },
@@ -207,9 +222,10 @@ export default function PlannerView() {
   const [chatInput,   setChatInput]   = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [error,       setError]       = useState<string | null>(null)
-  const [showMap,     setShowMap]     = useState(false)
-  const [copied,      setCopied]      = useState(false)
-  const [eventRefs,   setEventRefs]   = useState<EventRef[]>([])
+  const [showMap,       setShowMap]       = useState(false)
+  const [copied,        setCopied]        = useState(false)
+  const [eventRefs,     setEventRefs]     = useState<EventRef[]>([])
+  const [subInterests,  setSubInterests]  = useState<Record<string, string[]>>({})
 
   const accumRef      = useRef('')
   const bottomRef     = useRef<HTMLDivElement>(null)
@@ -250,24 +266,38 @@ export default function PlannerView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const toggleInterest = (v: string) =>
+  function toggleInterest(v: string) {
     setInterests(p => p.includes(v) ? p.filter(i => i !== v) : [...p, v])
+    if (interests.includes(v)) {
+      setSubInterests(prev => { const n = { ...prev }; delete n[v]; return n })
+    }
+  }
+
+  function toggleSubInterest(category: string, sub: string) {
+    setSubInterests(prev => {
+      const current = prev[category] || []
+      const next = current.includes(sub) ? current.filter(s => s !== sub) : [...current, sub]
+      return { ...prev, [category]: next }
+    })
+  }
 
   async function streamItinerary(
     msgs: ChatMessage[],
     opts?: {
-      groupType?: GroupType | null
-      travelDate?: string
-      dayCount?:   number
-      interests?:  string[]
-      budget?:     string
+      groupType?:    GroupType | null
+      travelDate?:   string
+      dayCount?:     number
+      interests?:    string[]
+      budget?:       string
+      subInterests?: Record<string, string[]>
     }
   ) {
-    const gt = opts?.groupType  !== undefined ? opts.groupType  : groupType
-    const td = opts?.travelDate !== undefined ? opts.travelDate : travelDate
-    const dc = opts?.dayCount   !== undefined ? opts.dayCount   : dayCount
-    const it = opts?.interests  !== undefined ? opts.interests  : interests
-    const bg = opts?.budget     !== undefined ? opts.budget     : budget
+    const gt = opts?.groupType    !== undefined ? opts.groupType    : groupType
+    const td = opts?.travelDate   !== undefined ? opts.travelDate   : travelDate
+    const dc = opts?.dayCount     !== undefined ? opts.dayCount     : dayCount
+    const it = opts?.interests    !== undefined ? opts.interests    : interests
+    const bg = opts?.budget       !== undefined ? opts.budget       : budget
+    const si = opts?.subInterests !== undefined ? opts.subInterests : subInterests
 
     setPhase('generating')
     setIsStreaming(true)
@@ -281,12 +311,13 @@ export default function PlannerView() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          groupType: gt,
-          travelDate: td,
-          dayCount:   dc,
-          interests:  it,
-          budget:     bg,
-          messages:   msgs,
+          groupType:    gt,
+          travelDate:   td,
+          dayCount:     dc,
+          interests:    it,
+          budget:       bg,
+          subInterests: si,
+          messages:     msgs,
         }),
       })
 
@@ -391,6 +422,7 @@ export default function PlannerView() {
     setShowMap(false)
     setCopied(false)
     setEventRefs([])
+    setSubInterests({})
   }
 
   function handleShare() {
@@ -438,8 +470,32 @@ export default function PlannerView() {
         }
         .planner-input::placeholder { color: rgba(255,255,255,.25) }
         .planner-input:focus { border-color: rgba(107,118,255,.6) !important; outline: none }
-        .chip-btn { transition: all .18s ease }
-        .chip-btn:hover { opacity: .9 }
+        .chip-btn {
+          transition: background .18s ease, border-color .18s ease, color .18s ease, transform .1s ease;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+          user-select: none;
+        }
+        .chip-btn:hover { opacity: .88 }
+        .chip-btn:active { transform: scale(0.94); transition-duration: .06s }
+        .ob-anim { animation: fadeUp .35s ease both }
+        .sub-chip {
+          transition: background .18s ease, border-color .18s ease, color .18s ease, transform .1s ease;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+          user-select: none;
+        }
+        .sub-chip:hover { opacity: .88 }
+        .sub-chip:active { transform: scale(0.94); transition-duration: .06s }
+        .subcat-outer {
+          overflow: hidden;
+          max-height: 0;
+          transition: max-height .4s cubic-bezier(.4,0,.2,1), opacity .3s ease, margin-top .35s ease;
+          opacity: 0;
+          margin-top: 0;
+        }
+        .subcat-outer.open { max-height: 800px; opacity: 1; margin-top: 18px }
+        .subcat-group { animation: fadeUp .22s ease both }
         .action-link { transition: background .15s, color .15s }
         .action-link:hover { background: rgba(255,255,255,.1) !important }
       `}</style>
@@ -572,7 +628,7 @@ export default function PlannerView() {
               </OnboardingSection>
             )}
 
-            {/* Step 4: Interests */}
+            {/* Step 4: Interests + subcategories */}
             {travelDate && (
               <OnboardingSection label="Mikä kiinnostaa? (voit valita useita)" delay>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -593,6 +649,60 @@ export default function PlannerView() {
                       </button>
                     )
                   })}
+                </div>
+
+                {/* Subcategory expansion — slides in when ≥1 category selected */}
+                <div className={`subcat-outer${interests.length > 0 ? ' open' : ''}`}>
+                  <div style={{ borderTop: '1px solid rgba(107,118,255,.14)', paddingTop: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                      <span style={{
+                        fontSize: 11, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase',
+                        color: 'rgba(107,118,255,.6)',
+                      }}>
+                        Tarkenna valintoja
+                      </span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.22)', fontWeight: 500 }}>
+                        Valinnainen
+                      </span>
+                    </div>
+                    {interests.map(val => {
+                      const chip = INTEREST_OPTIONS.find(o => o.value === val)
+                      const subs = SUBCATS[val] || []
+                      if (!chip || subs.length === 0) return null
+                      const selSubs = subInterests[val] || []
+                      return (
+                        <div key={val} className="subcat-group" style={{ marginBottom: 14 }}>
+                          <p style={{
+                            fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,.3)',
+                            letterSpacing: '.04em', marginBottom: 7,
+                          }}>
+                            {chip.emoji} {chip.label}
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {subs.map(sub => {
+                              const isSel = selSubs.includes(sub)
+                              return (
+                                <button
+                                  key={sub}
+                                  className="sub-chip"
+                                  onClick={() => toggleSubInterest(val, sub)}
+                                  style={{
+                                    padding: '5px 11px', borderRadius: 20, cursor: 'pointer',
+                                    fontSize: 12, fontWeight: 600,
+                                    border:     `1px solid ${isSel ? 'rgba(107,118,255,.55)' : 'rgba(255,255,255,.09)'}`,
+                                    background:  isSel ? 'rgba(107,118,255,.12)' : 'rgba(255,255,255,.025)',
+                                    color:       isSel ? '#a5aaff' : 'rgba(255,255,255,.38)',
+                                  }}
+                                >
+                                  {sub}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </OnboardingSection>
             )}
@@ -627,7 +737,7 @@ export default function PlannerView() {
 
             {/* CTA */}
             {isReady && (
-              <div style={{ marginTop: 32, animation: 'fadeUp .35s ease' }}>
+              <div className="ob-anim" style={{ marginTop: 32 }}>
                 <button onClick={handleStart} style={{
                   width: '100%', padding: '17px', borderRadius: 16, border: 'none',
                   background: 'linear-gradient(150deg,#6b76ff,#5059e6)',
@@ -722,7 +832,7 @@ function OnboardingSection({
   delay?: boolean
 }) {
   return (
-    <div style={{ marginBottom: 30, animation: delay ? 'fadeUp .35s ease' : undefined }}>
+    <div className={delay ? 'ob-anim' : undefined} style={{ marginBottom: 30 }}>
       <p style={{
         fontSize: 11, fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase',
         color: 'rgba(107,118,255,.85)', marginBottom: 12,
@@ -788,7 +898,7 @@ function ItineraryPhase({
                 color: copied ? '#4ade80' : 'rgba(255,255,255,.5)',
                 fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 5,
-                transition: 'all .2s',
+                transition: 'background .2s ease, color .2s ease, border-color .2s ease',
               }}
             >
               {copied ? '✓ Kopioitu' : '🔗 Jaa'}
@@ -889,7 +999,7 @@ function ItineraryPhase({
                 : 'rgba(255,255,255,.08)',
               color: chatInput.trim() && !isStreaming ? '#fff' : 'rgba(255,255,255,.25)',
               fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap',
-              transition: 'all .18s',
+              transition: 'background .18s ease, color .18s ease',
             }}>
             {isStreaming ? '…' : 'Muokkaa ↗'}
           </button>
