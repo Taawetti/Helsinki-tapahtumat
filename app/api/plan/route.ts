@@ -9,12 +9,20 @@ interface LEEvent {
   start_time?: string
   short_description?: { fi?: string; en?: string }
   location?: { name?: { fi?: string; en?: string } }
-  offers?: Array<{ is_free?: boolean; price?: { fi?: string; en?: string } }>
+  offers?: Array<{ is_free?: boolean; price?: { fi?: string; en?: string }; info_url?: string }>
+}
+
+interface EventRef {
+  name: string
+  ticketUrl: string | null
 }
 
 // ─── Pre-fetch events from LinkedEvents ──────────────────────────────────────
 
-async function fetchLinkedEvents(startDate: string, dayCount: number): Promise<string> {
+async function fetchLinkedEvents(
+  startDate: string,
+  dayCount: number,
+): Promise<{ text: string; refs: EventRef[] }> {
   const end = new Date(startDate + 'T12:00:00')
   end.setDate(end.getDate() + dayCount - 1)
   const endDate = end.toISOString().slice(0, 10)
@@ -34,23 +42,34 @@ async function fetchLinkedEvents(startDate: string, dayCount: number): Promise<s
       `https://api.hel.fi/linkedevents/v1/event/?${params}`,
       { signal: AbortSignal.timeout(6000) }
     )
-    if (!res.ok) return 'Tapahtumahaku epäonnistui.'
+    if (!res.ok) return { text: 'Tapahtumahaku epäonnistui.', refs: [] }
 
     const data = await res.json()
     const events: LEEvent[] = data.data || []
-    if (events.length === 0) return 'LinkedEventsistä ei löytynyt tapahtumia tälle päivälle.'
+    if (events.length === 0) return { text: 'LinkedEventsistä ei löytynyt tapahtumia tälle päivälle.', refs: [] }
 
-    return events.slice(0, 15).map(e => {
-      const name  = e.name?.fi || e.name?.en || 'Nimetön'
-      const time  = e.start_time?.slice(11, 16) || ''
-      const loc   = e.location?.name?.fi || e.location?.name?.en || ''
+    const slice = events.slice(0, 15)
+
+    const text = slice.map(e => {
+      const name   = e.name?.fi || e.name?.en || 'Nimetön'
+      const time   = e.start_time?.slice(11, 16) || ''
+      const loc    = e.location?.name?.fi || e.location?.name?.en || ''
       const isFree = e.offers?.[0]?.is_free
-      const price = isFree ? 'Ilmainen' : (e.offers?.[0]?.price?.fi || e.offers?.[0]?.price?.en || '')
-      const desc  = (e.short_description?.fi || e.short_description?.en || '').slice(0, 120)
+      const price  = isFree ? 'Ilmainen' : (e.offers?.[0]?.price?.fi || e.offers?.[0]?.price?.en || '')
+      const desc   = (e.short_description?.fi || e.short_description?.en || '').slice(0, 120)
       return `- ${time ? time + ' ' : ''}${name}${loc ? ' @ ' + loc : ''}${price ? ` [${price}]` : ''}${desc ? ': ' + desc : ''}`
     }).join('\n')
+
+    const refs: EventRef[] = slice
+      .map(e => ({
+        name:      e.name?.fi || e.name?.en || '',
+        ticketUrl: e.offers?.[0]?.info_url || null,
+      }))
+      .filter(r => r.name.length > 0)
+
+    return { text, refs }
   } catch {
-    return 'Tapahtumahaku epäonnistui (verkkovirhe).'
+    return { text: 'Tapahtumahaku epäonnistui (verkkovirhe).', refs: [] }
   }
 }
 
@@ -78,6 +97,13 @@ function formatDateFI(iso: string, dayCount: number): string {
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
+const BUDGET_LABELS: Record<string, string> = {
+  free:    'Ilmainen — käytä VAIN ilmaisia kohteita, ei lipunmyyntiä',
+  budget:  'Edullinen — max ~15 € per aktiviteetti',
+  normal:  'Normaali — 15–40 € per aktiviteetti, sopiva laatu',
+  premium: 'Premium — parasta laadusta tinkimättä, hinta ei rajoita',
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body) return new Response('Bad request', { status: 400 })
@@ -87,6 +113,7 @@ export async function POST(req: NextRequest) {
     travelDate,
     dayCount   = 1,
     interests  = [] as string[],
+    budget     = 'normal',
     messages   = [] as Array<{ role: string; content: string }>,
   } = body
 
@@ -96,7 +123,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return new Response('Server config error', { status: 500 })
 
   // Pre-fetch events from LinkedEvents (real-time data for Claude)
-  const eventData = await fetchLinkedEvents(travelDate, dayCount)
+  const { text: eventData, refs: eventRefs } = await fetchLinkedEvents(travelDate, dayCount)
 
   const group        = GROUP_FI[groupType] || 'matkailija'
   const interestStr  = (interests as string[]).length > 0
@@ -104,6 +131,7 @@ export async function POST(req: NextRequest) {
     : 'yleinen Helsinki-kokemus'
   const dateLabel    = formatDateFI(travelDate, dayCount)
   const durationText = dayCount === 1 ? 'yksi päivä' : `${dayCount} päivää`
+  const budgetLabel  = BUDGET_LABELS[budget] || BUDGET_LABELS.normal
 
   const systemPrompt = `Olet Helsinki-matkailuasiantuntija. Luot personoituja, aikataulutettuja päiväohjelmia helsinkiläisille ja turisteille. Kirjoita AINA suomeksi.
 
@@ -112,8 +140,9 @@ TIEDOT:
 - Päivämäärä: ${dateLabel}
 - Kesto: ${durationText}
 - Kiinnostukset: ${interestStr}
+- Budjetti: ${budgetLabel}
 
-TÄMÄNPÄIVÄISET TAPAHTUMAT LINKEDEVENTSISTÄ (käytä näitä jos sopivat kohderyhmälle):
+TÄMÄNPÄIVÄISET TAPAHTUMAT LINKEDEVENTSISTÄ (käytä näitä jos sopivat kohderyhmälle ja budjettiin):
 ${eventData}
 
 SUOSITUT HELSINKI-KOHTEET (täydennä niillä):
@@ -180,6 +209,11 @@ SÄÄNNÖT:
 
       const send = (payload: string) =>
         controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`))
+
+      // Emit event metadata before Claude text starts (client uses for ticket links)
+      if (eventRefs.length > 0) {
+        send(JSON.stringify({ type: 'meta', events: eventRefs }))
+      }
 
       try {
         outer: while (true) {
