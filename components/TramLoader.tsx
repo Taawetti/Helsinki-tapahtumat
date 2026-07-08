@@ -1,47 +1,24 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export function TramLoader({ loading }: { loading: boolean }) {
-  const [visible, setVisible]   = useState(false)
-  const [exiting, setExiting]   = useState(false)
-  const tramRef      = useRef<HTMLDivElement>(null)
-  const dataReadyRef = useRef(false)
-  const triggeredRef = useRef(false)
+  const [visible, setVisible] = useState(false)
+  const [exiting, setExiting] = useState(false)
 
   useEffect(() => {
     if (loading) {
-      dataReadyRef.current = false
-      triggeredRef.current = false
       setExiting(false)
-      // Reset tram opacity if it was hidden from a previous exit
-      if (tramRef.current) tramRef.current.style.opacity = '1'
       // Only show if loading takes > 150 ms — no flash on ISR cache hit
       const t = setTimeout(() => setVisible(true), 150)
       return () => clearTimeout(t)
     } else {
-      dataReadyRef.current = true
-      // Primary exit: animationIteration fires when tram is off-screen (≤ loop duration away).
-      // Fallback: force exit after 1.5 s so the tram never lingers long after data arrives.
-      const fallback = setTimeout(() => {
-        if (triggeredRef.current) return
-        triggeredRef.current = true
-        if (tramRef.current) tramRef.current.style.opacity = '0'
-        setExiting(true)
-        setTimeout(() => { setVisible(false); setExiting(false) }, 300)
-      }, 1500)
-      return () => clearTimeout(fallback)
+      // Fade out immediately when data arrives — no waiting for tram position
+      setExiting(true)
+      const t = setTimeout(() => { setVisible(false); setExiting(false) }, 350)
+      return () => clearTimeout(t)
     }
   }, [loading])
-
-  function handleIteration() {
-    if (!dataReadyRef.current || triggeredRef.current) return
-    triggeredRef.current = true
-    // Tram is offscreen at this moment — hide it before CSS animation restarts from left
-    if (tramRef.current) tramRef.current.style.opacity = '0'
-    setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 300)
-  }
 
   if (!visible) return null
 
@@ -87,8 +64,6 @@ export function TramLoader({ loading }: { loading: boolean }) {
 
       {/* Tram */}
       <div
-        ref={tramRef}
-        onAnimationIteration={handleIteration}
         style={{
           position: 'absolute',
           top: '60%',
