@@ -31,8 +31,10 @@ const SUB_CATS: Record<RestType, { id: string; label: string; emoji: string }[]>
     { id: 'burger',   label: 'Hampurilaiset', emoji: '🍔' },
     { id: 'seafood',  label: 'Kala & meri',   emoji: '🐟' },
     { id: 'steak',    label: 'Pihvi & grilli',emoji: '🥩' },
-    { id: 'indian',   label: 'Intialainen',   emoji: '🍛' },
-    { id: 'mexican',  label: 'Meksikolainen', emoji: '🌮' },
+    { id: 'indian',         label: 'Intialainen',   emoji: '🍛' },
+    { id: 'mexican',        label: 'Meksikolainen', emoji: '🌮' },
+    { id: 'middle_eastern', label: 'Lähi-itä',      emoji: '🧆' },
+    { id: 'african',        label: 'Afrikkalainen',  emoji: '🌍' },
   ],
   kahvilat: [
     { id: 'klassikot',    label: 'Klassikot',       emoji: '🎩' },
@@ -86,8 +88,10 @@ const CUISINE_STYLE: Record<string, { cp: string; color: string }> = {
   mediterranean: { cp: '1fad2', color: '#1a6b8a' },
   veggie:        { cp: '1f966', color: '#239b56' },
   french:        { cp: '1f950', color: '#9a7d0a' },
-  seafood:       { cp: '1f99e', color: '#1a5f7a' },
-  steak:         { cp: '1f969', color: '#922b21' },
+  seafood:        { cp: '1f99e', color: '#1a5f7a' },
+  steak:          { cp: '1f969', color: '#922b21' },
+  middle_eastern: { cp: '1f9c6', color: '#a07830' },
+  african:        { cp: '1f30d', color: '#8b4a2a' },
 }
 
 const TYPE_FALLBACK: Record<string, { cp: string; color: string }> = {

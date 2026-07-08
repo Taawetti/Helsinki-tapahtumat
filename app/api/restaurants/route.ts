@@ -37,8 +37,15 @@ const OSM_TO_CATEGORY: Record<string, string> = {
   'asian': 'asian', 'chinese': 'asian', 'thai': 'asian', 'vietnamese': 'asian',
   'korean': 'asian', 'taiwanese': 'asian', 'noodle': 'asian', 'pan asian': 'asian',
   'malaysian': 'asian', 'singaporean': 'asian', 'indonesian': 'asian', 'burmese': 'asian',
-  'kebab': 'kebab', 'turkish': 'kebab', 'middle eastern': 'kebab',
-  'arabic': 'kebab', 'persian': 'kebab', 'lebanese': 'kebab', 'shawarma': 'kebab',
+  'kebab': 'kebab', 'turkish': 'kebab',
+  'middle eastern': 'middle_eastern', 'arabic': 'middle_eastern', 'persian': 'middle_eastern',
+  'lebanese': 'middle_eastern', 'shawarma': 'middle_eastern', 'syrian': 'middle_eastern',
+  'iranian': 'middle_eastern', 'iraqi': 'middle_eastern', 'jordanian': 'middle_eastern',
+  'falafel': 'middle_eastern', 'yemeni': 'middle_eastern',
+  'african': 'african', 'ethiopian': 'african', 'eritrean': 'african',
+  'somali': 'african', 'moroccan': 'african', 'north african': 'african',
+  'west african': 'african', 'tunisian': 'african', 'algerian': 'african',
+  'nigerian': 'african', 'kenyan': 'african', 'ghanaian': 'african',
   'indian': 'indian', 'bangladeshi': 'indian', 'nepali': 'indian', 'pakistani': 'indian',
   'sri lankan': 'indian',
   'mediterranean': 'mediterranean', 'greek': 'mediterranean', 'spanish': 'mediterranean',
@@ -90,8 +97,14 @@ function inferCuisineFromName(name: string): string[] {
   // Italian
   if (/\btrattoria\b|\bristorante\b|\bosteria\b|\bpasta\b|lasagn|italialainen|\bgelato\b|\bpesto\b|bruschetta|cannoli|tiramisu|prosciutto|antipasto/.test(n)) return ['italian']
 
-  // Kebab / Turkish / Middle Eastern
-  if (/kebab|döner|doner|shawarma|gyros|falafel|turkish|turkkilainen|istanbul|ankara|beirut|libanon|arabic|persia|hummus/.test(n)) return ['kebab']
+  // African
+  if (/ethiopi|eritrea|somali|morocc|maroc|tunisian|alger|nigeria|kenyan|ghana|injera|habesha|\baddis\b|lalibela/.test(n)) return ['african']
+
+  // Kebab fast food — checked before Middle Eastern so "Persia Kebab" stays in kebab
+  if (/\bkebab\b|döner|doner|gyros|turkkilainen|\bistanbul\b|\bankara\b/.test(n)) return ['kebab']
+
+  // Middle Eastern (proper restaurants: Lebanese, Persian, Arabic, etc.)
+  if (/lebanes|libanon|\bpersian\b|\bpersia\b|irania|\bsyrian\b|\biraqi\b|damasc|levant|\bbeirut\b|hummus|falafel|shawarma|\barabic\b|\bturkish\b|mezze|tabbouleh|baklava/.test(n)) return ['middle_eastern']
 
   // Burger
   if (/burger|hamburgeri|hamburger/.test(n)) return ['burger']
@@ -507,7 +520,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v14'],
+  ['restaurants-osm-v15'],
   { revalidate: 86400, tags: ['restaurants'] }
 )
 

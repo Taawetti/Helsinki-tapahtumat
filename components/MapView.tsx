@@ -142,7 +142,9 @@ const REST_CUISINE_SUBS = [
   { key: 'indian',        emoji: '🍛', label: 'Intialainen',    color: '#a78bfa', tKey: 'cuisine.indian' as const },
   { key: 'seafood',       emoji: '🐟', label: 'Kala & meri',    color: '#06b6d4', tKey: 'cuisine.seafood' as const },
   { key: 'steak',         emoji: '🥩', label: 'Pihvi & grilli', color: '#ef4444', tKey: 'cuisine.steak' as const },
-  { key: 'mexican',       emoji: '🌮', label: 'Meksikolainen',  color: '#22c55e', tKey: 'cuisine.mexican' as const },
+  { key: 'mexican',       emoji: '🌮', label: 'Meksikolainen',   color: '#22c55e', tKey: 'cuisine.mexican' as const },
+  { key: 'middle_eastern',emoji: '🧆', label: 'Lähi-itä',        color: '#d97706', tKey: 'cuisine.middle_eastern' as const },
+  { key: 'african',       emoji: '🌍', label: 'Afrikkalainen',    color: '#c67c52', tKey: 'cuisine.african' as const },
 ] as const
 
 const ACT_SUBS = [

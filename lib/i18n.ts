@@ -135,8 +135,10 @@ const t = {
     'cuisine.indian':        'Intialainen',
     'cuisine.seafood':       'Kala & meri',
     'cuisine.steak':         'Pihvi & grilli',
-    'cuisine.mexican':       'Meksikolainen',
-    'cuisine.cafe_dessert':  'Kahvila & dessert',
+    'cuisine.mexican':        'Meksikolainen',
+    'cuisine.middle_eastern': 'Lähi-itä',
+    'cuisine.african':        'Afrikkalainen',
+    'cuisine.cafe_dessert':   'Kahvila & dessert',
 
     // ── Restaurants ──────────────────────────────────────────
     'restaurants.heading':        'Ravintolat',
@@ -557,8 +559,10 @@ const t = {
     'cuisine.indian':        'Indian',
     'cuisine.seafood':       'Fish & seafood',
     'cuisine.steak':         'Steak & grill',
-    'cuisine.mexican':       'Mexican',
-    'cuisine.cafe_dessert':  'Café & dessert',
+    'cuisine.mexican':        'Mexican',
+    'cuisine.middle_eastern': 'Middle Eastern',
+    'cuisine.african':        'African',
+    'cuisine.cafe_dessert':   'Café & dessert',
 
     // ── Restaurants ──────────────────────────────────────────
     'restaurants.heading':        'Restaurants',
