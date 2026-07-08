@@ -662,6 +662,16 @@ export default function HomeClient({
             >
               <Bell size={15} />
             </button>
+            <button
+              onClick={() => { setMode('favorites'); setMobileTab('favorites') }}
+              title="Suosikit"
+              className={`relative p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 bg-white/4 hover:text-white/70'}`}
+            >
+              <span className="text-[15px] leading-none">❤️</span>
+              {favCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{favCount}</span>
+              )}
+            </button>
             <button onClick={() => setShowJarjestajaForm((p) => !p)}
               className={`relative p-2 rounded-xl border transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4'}`}
               style={showJarjestajaForm ? { color: '#6b76ff' } : {}}>
@@ -1057,14 +1067,13 @@ export default function HomeClient({
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
         style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-7 h-full">
+        <div className="grid grid-cols-6 h-full">
           {([
             { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
             { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
             { tab: 'restaurants' as const,   emoji: '🍽', labelKey: 'nav.restaurants' },
             { tab: 'activities' as const,    emoji: '🧖', labelKey: 'nav.activities'  },
             { tab: 'map' as const,           emoji: '🗺', labelKey: 'nav.map'         },
-            { tab: 'favorites' as const,     emoji: '♥',  labelKey: 'nav.favorites'   },
           ] as const).map(({ tab, emoji, labelKey }) => {
             const isActive = mobileTab === tab
             return (
@@ -1073,9 +1082,6 @@ export default function HomeClient({
                 style={{ color: isActive ? '#6b76ff' : 'rgba(255,255,255,0.4)' }}>
                 <span className="text-lg leading-none" style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(91,101,230,.5))' } : {}}>{emoji}</span>
                 <span className="text-[10px] font-bold">{t(labelKey)}</span>
-                {tab === 'favorites' && favCount > 0 && (
-                  <span className="absolute top-2 right-[calc(50%-18px)] w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{favCount}</span>
-                )}
               </button>
             )
           })}

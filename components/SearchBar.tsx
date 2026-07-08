@@ -47,13 +47,15 @@ export default function SearchBar({
       <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
       <input
         ref={inputRef}
-        type="search"
+        type="text"
+        inputMode="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={t('search.placeholder')}
-        className="w-full bg-white/7 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#0072C6]/60 focus:bg-white/9 transition-all"
+        className="w-full bg-white/7 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:border-[#0072C6]/60 focus:bg-white/9 transition-all"
+        style={{ color: '#fff', WebkitTextFillColor: '#fff' }}
       />
       {value && (
         <button
