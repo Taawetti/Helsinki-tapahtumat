@@ -698,6 +698,11 @@ export default function HomeClient({
                 {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'map' ? `🗺 ${t('nav.map')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : m === 'activities' ? `🧖 ${t('nav.activities')}` : `♥ ${t('nav.favorites')}`}
               </button>
             ))}
+            <Link href="/suunnittele"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-white/35 hover:text-white/65"
+              style={{ textDecoration: 'none' }}>
+              ✈️ Suunnittele
+            </Link>
           </div>
 
           <div className="flex-1 max-w-md">
@@ -1052,7 +1057,7 @@ export default function HomeClient({
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
         style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-6 h-full">
+        <div className="grid grid-cols-7 h-full">
           {([
             { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
             { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
@@ -1074,6 +1079,13 @@ export default function HomeClient({
               </button>
             )
           })}
+          {/* Planner tab — navigates to /suunnittele */}
+          <Link href="/suunnittele"
+            className="relative flex flex-col items-center justify-center gap-0.5 transition-all"
+            style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>
+            <span className="text-lg leading-none">✈️</span>
+            <span className="text-[10px] font-bold">Suunnittele</span>
+          </Link>
         </div>
       </nav>
 
