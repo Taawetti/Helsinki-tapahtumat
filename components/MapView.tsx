@@ -5,6 +5,13 @@ import { Event, Restaurant, Activity } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 
+// Static imports are safe here: MapView is always loaded with { ssr: false }.
+// The webpack alias in next.config.ts forces both this ESM import and the CJS
+// require() inside leaflet.markercluster to share the same module instance,
+// so markerClusterGroup is reachable via (L as any).default after the side-effect.
+import * as L from 'leaflet'
+import 'leaflet.markercluster'
+
 // ── Types ─────────────────────────────────────────────────
 
 export interface MapTarget {
@@ -96,19 +103,20 @@ function esc(s: string | null | undefined): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createClusterIcon(L: any, cluster: any, color: string) {
+function createClusterIcon(cluster: any, color: string) {
   const count = cluster.getChildCount()
   const size = count < 10 ? 32 : count < 100 ? 38 : 44
   return L.divIcon({
     html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2.5px solid rgba(255,255,255,0.88);box-shadow:0 2px 10px rgba(0,0,0,0.55),0 0 0 4px ${color}40;display:flex;align-items:center;justify-content:center;font-size:${count < 10 ? 13 : 11}px;font-weight:900;color:#fff;font-family:-apple-system,sans-serif;letter-spacing:-.02em">${count}</div>`,
     className: '',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    iconSize: [size, size] as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    iconAnchor: [size / 2, size / 2] as any,
   })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function makePinIcon(L: any, color: string, emoji: string, round = false) {
+function makePinIcon(color: string, emoji: string, round = false) {
   const shape = round
     ? `border-radius:50%`
     : `border-radius:50% 50% 50% 4px;transform:rotate(-45deg)`
@@ -116,8 +124,10 @@ function makePinIcon(L: any, color: string, emoji: string, round = false) {
   return L.divIcon({
     html: `<div style="width:30px;height:30px;${shape};background:${color};border:2px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.6),0 0 10px ${color}66;display:flex;align-items:center;justify-content:center;font-size:13px">${inner}</div>`,
     className: '',
-    iconSize: [30, 30],
-    iconAnchor: round ? [15, 15] : [15, 26],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    iconSize: [30, 30] as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    iconAnchor: (round ? [15, 15] : [15, 26]) as any,
   })
 }
 
@@ -301,58 +311,47 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   // ── Init map ─────────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
-    let mounted = true
 
-    import('leaflet').then(async (L) => {
-      if (!mounted || !containerRef.current || mapRef.current) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (L.Icon.Default.prototype as any)._getIconUrl
+    const map = L.map(containerRef.current, { center: HELSINKI_CENTER, zoom: 12, zoomControl: true })
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd', maxZoom: 20,
+    }).addTo(map)
+    mapRef.current = map
+
+    // With the webpack alias (next.config.ts), the static 'leaflet.markercluster'
+    // side-effect import patches the same CJS exports object that our L references.
+    // markerClusterGroup lands on (L as any).default (CJS interop wrapper).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const Lcjs = (L as any).default ?? L
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hasMCG = typeof (Lcjs as any).markerClusterGroup === 'function'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mkCluster = (color: string) => hasMCG
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (L.Icon.Default.prototype as any)._getIconUrl
-      const map = L.map(containerRef.current, { center: HELSINKI_CENTER, zoom: 12, zoomControl: true })
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd', maxZoom: 20,
-      }).addTo(map)
-      mapRef.current = map
-
-      // Load markercluster AFTER leaflet — it patches L sequentially
-      try {
-        await import('leaflet.markercluster')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (typeof (L as any).markerClusterGroup === 'function') {
+      ? (Lcjs as any).markerClusterGroup({
+          chunkedLoading: true,
+          maxClusterRadius: 55,
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: true,
+          zoomToBoundsOnClick: true,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mkCluster = (color: string) => (L as any).markerClusterGroup({
-            chunkedLoading: true,
-            maxClusterRadius: 55,
-            showCoverageOnHover: false,
-            spiderfyOnMaxZoom: true,
-            zoomToBoundsOnClick: true,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            iconCreateFunction: (cluster: any) => createClusterIcon(L, cluster, color),
-          })
-          eventClusterRef.current = mkCluster('#6b76ff')
-          restClusterRef.current  = mkCluster('#f97316')
-          actClusterRef.current   = mkCluster('#10b981')
-        }
-      } catch (_) {
-        // markercluster failed — fall back to plain LayerGroups (same API)
-      }
-
-      // Fallback: use plain LayerGroups if clustering unavailable
+          iconCreateFunction: (cluster: any) => createClusterIcon(cluster, color),
+        })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mkFallback = () => (L as any).layerGroup()
-      if (!eventClusterRef.current) eventClusterRef.current = mkFallback()
-      if (!restClusterRef.current)  restClusterRef.current  = mkFallback()
-      if (!actClusterRef.current)   actClusterRef.current   = mkFallback()
+      : (L as any).layerGroup()
 
-      // Events layer is on by default
-      map.addLayer(eventClusterRef.current)
+    eventClusterRef.current = mkCluster('#6b76ff')
+    restClusterRef.current  = mkCluster('#f97316')
+    actClusterRef.current   = mkCluster('#10b981')
 
-      setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize() }, 120)
-      setMapReady(true)
-    })
+    map.addLayer(eventClusterRef.current)
+    setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize() }, 120)
+    setMapReady(true)
 
     return () => {
-      mounted = false
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
     }
   }, [])
@@ -381,14 +380,11 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     const timer = setTimeout(() => {
       if (!mapRef.current) return
       mapRef.current.flyTo([mapTarget.lat, mapTarget.lon], mapTarget.zoom ?? 16, { duration: 1.2, easeLinearity: 0.5 })
-      import('leaflet').then(L => {
-        if (!mapRef.current) return
-        L.popup({ className: 'dark-popup', closeButton: true })
-          .setLatLng([mapTarget.lat, mapTarget.lon])
-          .setContent(`<p style="color:#fff;font-family:Inter,sans-serif;font-size:13px;font-weight:700;margin:0;padding:2px 0">📍 ${mapTarget.name}</p>`)
-          .openOn(mapRef.current)
-        onTargetConsumed?.()
-      })
+      L.popup({ className: 'dark-popup', closeButton: true })
+        .setLatLng([mapTarget.lat, mapTarget.lon])
+        .setContent(`<p style="color:#fff;font-family:Inter,sans-serif;font-size:13px;font-weight:700;margin:0;padding:2px 0">📍 ${mapTarget.name}</p>`)
+        .openOn(mapRef.current)
+      onTargetConsumed?.()
     }, 350)
     return () => clearTimeout(timer)
   }, [mapReady, mapTarget, onTargetConsumed])
@@ -413,106 +409,100 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   // ── Event markers ─────────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !eventClusterRef.current) return
-    import('leaflet').then((L) => {
-      const cluster = eventClusterRef.current
-      if (!cluster) return
-      cluster.clearLayers()
-      if (!layers.events) return
-      events.forEach((event) => {
-        if (!event.location?.lat || !event.location?.lon) return
-        if (eventGroup && getEventGroup(event) !== eventGroup) return
-        if (!filterEventByDate(event, dateFilter, customDate)) return
-        const { color, emoji } = eventColor(event)
-        const icon = makePinIcon(L, color, emoji, false)
-        const time = new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
-        const popup = `<div style="font-family:Inter,sans-serif;min-width:180px;max-width:220px">
-          ${event.image ? `<img src="${event.image}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:8px" loading="lazy"/>` : ''}
-          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff;line-height:1.3">${esc(event.title)}</p>
-          <p style="font-size:11px;color:${color};margin:0 0 2px;font-weight:600">${time}${event.isFree ? ' · ' + t('map.free_popup') : ''}</p>
-          <p style="font-size:11px;color:#777;margin:0">${esc(event.location?.name)}</p>
-        </div>`
-        const marker = L.marker([event.location.lat, event.location.lon], { icon })
-        marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 240 })
-        marker.on('click', () => onEventClick(event))
-        cluster.addLayer(marker)
-      })
+    const cluster = eventClusterRef.current
+    cluster.clearLayers()
+    if (!layers.events) return
+    events.forEach((event) => {
+      if (!event.location?.lat || !event.location?.lon) return
+      if (eventGroup && getEventGroup(event) !== eventGroup) return
+      if (!filterEventByDate(event, dateFilter, customDate)) return
+      const { color, emoji } = eventColor(event)
+      const icon = makePinIcon(color, emoji, false)
+      const time = new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+      const popup = `<div style="font-family:Inter,sans-serif;min-width:180px;max-width:220px">
+        ${event.image ? `<img src="${event.image}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:8px" loading="lazy"/>` : ''}
+        <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff;line-height:1.3">${esc(event.title)}</p>
+        <p style="font-size:11px;color:${color};margin:0 0 2px;font-weight:600">${time}${event.isFree ? ' · ' + t('map.free_popup') : ''}</p>
+        <p style="font-size:11px;color:#777;margin:0">${esc(event.location?.name)}</p>
+      </div>`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const marker = L.marker([event.location.lat, event.location.lon] as any, { icon })
+      marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 240 })
+      marker.on('click', () => onEventClick(event))
+      cluster.addLayer(marker)
     })
   }, [mapReady, events, onEventClick, layers.events, eventGroup, dateFilter, customDate, t, lang])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !restClusterRef.current) return
-    import('leaflet').then((L) => {
-      const cluster = restClusterRef.current
-      if (!cluster) return
-      cluster.clearLayers()
-      if (!layers.restaurants) return
-      restaurants.forEach((r) => {
-        if (!r.lat || !r.lon) return
-        if (restType && r.type !== restType) return
-        if (restCuisine) {
-          if (restCuisine === 'awarded' && !r.featured) return
-          if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return
-        }
-        const { color, emoji } = restaurantColor(r.type)
-        const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
-        const icon = makePinIcon(L, color, emoji, true)
-        const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
-          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(r.name)}</p>
-          ${r.description ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(r.description)}</p>` : ''}
-          ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(r.address)}${r.city && r.city !== 'Helsinki' ? `, ${esc(r.city)}` : ''}</p>` : ''}
-          ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} ${t('map.dist_away')}</p>` : ''}
-          ${safeUrl(r.www) ? `<a href="${safeUrl(r.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
-          ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${safeUrl(r.www) ? '3px' : '0'} 0 0">${r.phone}</p>` : ''}
-        </div>`
-        const marker = L.marker([r.lat, r.lon], { icon })
-        marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
-        cluster.addLayer(marker)
-      })
+    const cluster = restClusterRef.current
+    cluster.clearLayers()
+    if (!layers.restaurants) return
+    restaurants.forEach((r) => {
+      if (!r.lat || !r.lon) return
+      if (restType && r.type !== restType) return
+      if (restCuisine) {
+        if (restCuisine === 'awarded' && !r.featured) return
+        if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return
+      }
+      const { color, emoji } = restaurantColor(r.type)
+      const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
+      const icon = makePinIcon(color, emoji, true)
+      const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
+        <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(r.name)}</p>
+        ${r.description ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(r.description)}</p>` : ''}
+        ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(r.address)}${r.city && r.city !== 'Helsinki' ? `, ${esc(r.city)}` : ''}</p>` : ''}
+        ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} ${t('map.dist_away')}</p>` : ''}
+        ${safeUrl(r.www) ? `<a href="${safeUrl(r.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
+        ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${safeUrl(r.www) ? '3px' : '0'} 0 0">${r.phone}</p>` : ''}
+      </div>`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const marker = L.marker([r.lat, r.lon] as any, { icon })
+      marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
+      cluster.addLayer(marker)
     })
   }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine, t, lang])
 
   // ── Activity markers ──────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !actClusterRef.current) return
-    import('leaflet').then((L) => {
-      const cluster = actClusterRef.current
-      if (!cluster) return
-      cluster.clearLayers()
-      if (!layers.activities) return
-      activities.forEach((a) => {
-        if (!a.lat || !a.lon) return
-        if (actCat && a.category !== actCat) return
-        const { color, emoji } = activityColor(a.category)
-        const icon = makePinIcon(L, color, emoji, true)
-        const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
-          <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(a.name)}</p>
-          <p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(a.description)}</p>
-          ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(a.address)}</p>` : ''}
-          ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">🎁 ${t('map.free_act')}</p>` : ''}
-          ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${a.openingHours.split(';')[0]}</p>` : ''}
-          ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
-        </div>`
-        const marker = L.marker([a.lat, a.lon], { icon })
-        marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
-        cluster.addLayer(marker)
-      })
+    const cluster = actClusterRef.current
+    cluster.clearLayers()
+    if (!layers.activities) return
+    activities.forEach((a) => {
+      if (!a.lat || !a.lon) return
+      if (actCat && a.category !== actCat) return
+      const { color, emoji } = activityColor(a.category)
+      const icon = makePinIcon(color, emoji, true)
+      const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
+        <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(a.name)}</p>
+        <p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(a.description)}</p>
+        ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(a.address)}</p>` : ''}
+        ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">🎁 ${t('map.free_act')}</p>` : ''}
+        ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${a.openingHours.split(';')[0]}</p>` : ''}
+        ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
+      </div>`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const marker = L.marker([a.lat, a.lon] as any, { icon })
+      marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
+      cluster.addLayer(marker)
     })
   }, [mapReady, activities, layers.activities, actCat, t, lang])
 
   // ── User position marker ──────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !userPos) return
-    import('leaflet').then((L) => {
-      if (userMarkerRef.current) { try { mapRef.current.removeLayer(userMarkerRef.current) } catch {} }
-      const icon = L.divIcon({
-        html: `<div style="width:18px;height:18px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 5px rgba(59,130,246,0.25)"></div>`,
-        className: '', iconSize: [18, 18], iconAnchor: [9, 9],
-      })
-      userMarkerRef.current = L.marker(userPos, { icon, zIndexOffset: 2000 })
-        .bindPopup(`<p style="color:#fff;font-family:Inter;font-size:12px;margin:0;font-weight:600">${t('map.you_are_here')}</p>`, { className: 'dark-popup' })
-        .addTo(mapRef.current)
+    if (userMarkerRef.current) { try { mapRef.current.removeLayer(userMarkerRef.current) } catch {} }
+    const icon = L.divIcon({
+      html: `<div style="width:18px;height:18px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 5px rgba(59,130,246,0.25)"></div>`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      className: '', iconSize: [18, 18] as any, iconAnchor: [9, 9] as any,
     })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    userMarkerRef.current = L.marker(userPos as any, { icon, zIndexOffset: 2000 })
+      .bindPopup(`<p style="color:#fff;font-family:Inter;font-size:12px;margin:0;font-weight:600">${t('map.you_are_here')}</p>`, { className: 'dark-popup' })
+      .addTo(mapRef.current)
   }, [mapReady, userPos, t])
 
   // ── Locate me ─────────────────────────────────────────────
