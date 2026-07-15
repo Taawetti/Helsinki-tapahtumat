@@ -50,7 +50,6 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: BASE,
-    languages: { 'fi-FI': BASE, 'en': `${BASE}/en` },
   },
 }
 
