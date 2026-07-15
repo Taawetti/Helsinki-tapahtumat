@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import type { SourceStatus } from '@/lib/types'
+import { getDateRange, formatTime } from '@/lib/utils'
 
 // ── Festivals ────────────────────────────────────────────────────────────────
 
@@ -108,7 +110,7 @@ function recurringFromDb(row: Record<string, unknown>): RecurringEvent {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type Tab = 'festivals' | 'recurring'
+type Tab = 'festivals' | 'recurring' | 'sources'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -347,7 +349,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="border-b border-white/8 px-6 flex gap-1">
-        {(['festivals', 'recurring'] as Tab[]).map(t => (
+        {(['festivals', 'recurring', 'sources'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -357,12 +359,117 @@ export default function AdminPage() {
                 : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            {t === 'festivals' ? 'Festivaalit' : 'Toistuvat tapahtumat'}
+            {t === 'festivals' ? 'Festivaalit' : t === 'recurring' ? 'Toistuvat tapahtumat' : 'Lähteet'}
           </button>
         ))}
       </div>
 
-      {tab === 'festivals' ? <FestivalsTab /> : <RecurringTab />}
+      {tab === 'festivals' ? <FestivalsTab /> : tab === 'recurring' ? <RecurringTab /> : <SourcesTab />}
+    </div>
+  )
+}
+
+// ── Sources health tab ────────────────────────────────────────────────────────
+
+// Module cache: the tab unmounts on every tab switch — without this, each
+// switch back would re-fire the full 40-source fan-out and lose the results.
+let sourcesResultCache: { sources: SourceStatus[]; total: number; checkedAt: string } | null = null
+
+function SourcesTab() {
+  const [sources, setSources] = useState<SourceStatus[]>(sourcesResultCache?.sources ?? [])
+  const [total, setTotal] = useState(sourcesResultCache?.total ?? 0)
+  const [loading, setLoading] = useState(false)
+  const [checkedAt, setCheckedAt] = useState(sourcesResultCache?.checkedAt ?? '')
+  const [error, setError] = useState('')
+
+  const runCheck = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      // Täysi fanout tälle päivälle — sama polku jota etusivu käyttää,
+      // joten tulos vastaa käyttäjän näkemää tilannetta.
+      // _health-parametri ohittaa service workerin stale-while-revalidate
+      // -välimuistin — muuten "Tarkista nyt" palauttaisi cachetetun vastauksen
+      // ja alhaalla oleva lähde näkyisi terveenä.
+      const { start, end } = getDateRange('today')
+      const res = await fetch(`/api/events?start=${start}&end=${end}&page=1&municipality=helsinki&_health=${Date.now()}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      const result = {
+        sources: (data.sources ?? []) as SourceStatus[],
+        total: (data.total ?? 0) as number,
+        checkedAt: formatTime(new Date().toISOString()),
+      }
+      sourcesResultCache = result
+      setSources(result.sources)
+      setTotal(result.total)
+      setCheckedAt(result.checkedAt)
+    } catch (e) {
+      setError('Tarkistus epäonnistui: ' + (e as Error).message)
+    }
+    setLoading(false)
+  }, [])
+
+  // Aja automaattisesti vain kun tulosta ei vielä ole — välilehden vaihto ei laukaise uutta fanoutia
+  useEffect(() => { if (!sourcesResultCache) runCheck() }, [runCheck])
+
+  const okCount = sources.filter(s => s.ok).length
+  const failed = sources.filter(s => !s.ok)
+
+  return (
+    <div className="p-6 max-w-3xl">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="font-bold text-lg">Lähteiden terveys</h2>
+          <p className="text-gray-400 text-sm">
+            {checkedAt && `Tarkistettu klo ${checkedAt} · `}
+            {sources.length > 0 && `${okCount}/${sources.length} lähdettä OK · ${total} tapahtumaa (1. sivu)`}
+          </p>
+        </div>
+        <button
+          onClick={runCheck}
+          disabled={loading}
+          className="text-sm px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition-colors disabled:opacity-40"
+        >
+          {loading ? 'Tarkistetaan…' : '↻ Tarkista nyt'}
+        </button>
+      </div>
+
+      {error && <div className="text-red-400 text-sm mb-3">{error}</div>}
+      {loading && sources.length === 0 && <div className="text-gray-400 text-sm">Haetaan kaikki lähteet — tämä kestää hetken…</div>}
+
+      {failed.length > 0 && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          ⚠ {failed.length} lähdettä ei vastannut: {failed.map(s => s.name).join(', ')}
+        </div>
+      )}
+
+      {sources.length > 0 && (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-gray-400 border-b border-white/8">
+              <th className="py-2 pr-4 font-medium">Lähde</th>
+              <th className="py-2 pr-4 font-medium">Tila</th>
+              <th className="py-2 font-medium text-right">Tapahtumia</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sources.map(s => (
+              <tr key={s.name} className="border-b border-white/5">
+                <td className="py-2 pr-4">{s.name}</td>
+                <td className="py-2 pr-4">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${s.ok ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                    {s.ok ? 'OK' : 'Ei vastausta'}
+                  </span>
+                </td>
+                <td className={`py-2 text-right ${s.ok && s.count === 0 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                  {s.count}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }

@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Event } from '@/lib/types'
+import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
+
+// External sources fetched via internal API routes (api/<name>).
+// Order defines merge priority: earlier sources win dedup upgrades first.
+const EXTERNAL_SOURCES = [
+  'ticketmaster', 'eventbrite', 'meetup', 'rss', 'venues', 'culture', 'espoo',
+  'helmet', 'ilmonet', 'finna', 'visitfinland', 'sports', 'festivals', 'theatre',
+  'bars', 'ra', 'museums', 'liiga', 'kide', 'arenas', 'recurring', 'pubivisat',
+  'stadissa', 'myhelsinki', 'openings', 'allas', 'lippu', 'scraped',
+  'flyingdutchman', 'juttutupa', 'lepakkomies', 'glivelab', 'kulttuuritalo',
+  'postbar', 'korjaamo', 'malmitalo', 'vuotalo', 'savoy', 'nauramaan',
+] as const
 
 interface LinkedEventsImage {
   url: string
@@ -132,50 +143,12 @@ export async function GET(req: NextRequest) {
     }
 
     // quick=1: return only LinkedEvents immediately (used for phase-1 fast load)
-    const skip = (cond: boolean) => cond ? Promise.resolve(null) : undefined
+    const attemptExternal = !quick && page === '1'
 
     // Fetch all sources in parallel — page 1 only for external sources
-    const [linkedRes, tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes, recurringRes, pubivisatRes, stadissaRes, myhelsinkiRes, openingsRes, allasRes, lippuRes, scrapedRes, flyingdutchRes, juttutupRes, lepakkomiesRes, glivelabRes, kulttuuritaloRes, postbarRes, korjaamoRes, malmitaloRes, vuotaloRes, savoyRes, nauramaanRes] = await Promise.allSettled([
+    const [linkedRes, ...externalRes] = await Promise.allSettled([
       fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(10000) }),
-      skip(quick) ?? (page === '1' ? src('api/ticketmaster')    : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/eventbrite')      : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/meetup')          : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/rss')             : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/venues')          : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/culture')         : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/espoo')           : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/helmet')          : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/ilmonet')         : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/finna')           : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/visitfinland')    : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/sports')          : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/festivals')       : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/theatre')         : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/bars')            : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/ra')              : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/museums')         : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/liiga')           : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/kide')            : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/arenas')          : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/recurring')       : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/pubivisat')       : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/stadissa')        : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/myhelsinki')      : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/openings')        : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/allas')           : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/lippu')           : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/scraped')         : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/flyingdutchman')  : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/juttutupa')       : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/lepakkomies')     : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/glivelab')        : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/kulttuuritalo')   : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/postbar')         : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/korjaamo')        : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/malmitalo')       : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/vuotalo')         : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/savoy')           : Promise.resolve(null)),
-      skip(quick) ?? (page === '1' ? src('api/nauramaan')       : Promise.resolve(null)),
+      ...EXTERNAL_SOURCES.map((name) => attemptExternal ? src(`api/${name}`) : Promise.resolve(null)),
     ])
 
     if (linkedRes.status === 'rejected' || (linkedRes.status === 'fulfilled' && !linkedRes.value.ok)) {
@@ -208,32 +181,48 @@ export async function GET(req: NextRequest) {
     // Merge all external sources — deduplicate by normalized title+date.
     // When a duplicate is found, upgrade the existing event with coordinates
     // from the incoming version (e.g. recurring has coords, Linked Events doesn't).
+    // Every attempted source gets a status entry so failures are visible instead of silent.
     const seenMap = new Map(events.map((e, i) => [dedupKey(e.title, e.startTime.slice(0, 10)), i]))
+    const sources: SourceStatus[] = [{ name: 'linked-events', ok: true, count: events.length }]
 
-    for (const res of [tmRes, ebRes, meetupRes, rssRes, venuesRes, cultureRes, espooRes, helmetRes, ilmonetRes, finnaRes, visitfinlandRes, sportsRes, festivalsRes, theatreRes, barsRes, raRes, museumsRes, liigaRes, kideRes, arenasRes, recurringRes, pubivisatRes, stadissaRes, myhelsinkiRes, openingsRes, allasRes, lippuRes, scrapedRes, flyingdutchRes, juttutupRes, lepakkomiesRes, glivelabRes, kulttuuritaloRes, postbarRes, korjaamoRes, malmitaloRes, vuotaloRes, savoyRes, nauramaanRes]) {
-      if (res.status === 'fulfilled' && res.value && res.value !== null) {
-        let data: { events?: Event[] }
-        try { data = await (res.value as Response).json() } catch { continue }
-        const incoming: Event[] = data.events ?? []
-        for (const e of incoming) {
-          const key = dedupKey(e.title, e.startTime.slice(0, 10))
-          const existingIdx = seenMap.get(key)
-          if (existingIdx !== undefined) {
-            // Upgrade existing event with best available data from the incoming duplicate
-            const existing = events[existingIdx]
-            const upgrades: Partial<Event> = {}
-            if (e.location?.lat && e.location?.lon && !existing?.location?.lat) upgrades.location = e.location
-            if (e.image && !existing?.image) upgrades.image = e.image
-            if (e.ticketUrl && !existing?.ticketUrl) upgrades.ticketUrl = e.ticketUrl
-            if (e.price && !existing?.price) upgrades.price = e.price
-            if (Object.keys(upgrades).length > 0) events[existingIdx] = { ...existing, ...upgrades }
-          } else {
-            seenMap.set(key, events.length)
-            events.push(e)
-            total++
+    for (let i = 0; i < externalRes.length && attemptExternal; i++) {
+      const name = EXTERNAL_SOURCES[i]
+      const res = externalRes[i]
+      let ok = false
+      let count = 0
+      // rejected / null (timeout, network) / non-OK HTTP / bad JSON → ok stays false
+      if (res.status === 'fulfilled' && res.value && (res.value as Response).ok) {
+        try {
+          const data: { events?: Event[] } = await (res.value as Response).json()
+          const incoming: Event[] = data.events ?? []
+          for (const e of incoming) {
+            const key = dedupKey(e.title, e.startTime.slice(0, 10))
+            const existingIdx = seenMap.get(key)
+            if (existingIdx !== undefined) {
+              // Upgrade existing event with best available data from the incoming duplicate
+              const existing = events[existingIdx]
+              const upgrades: Partial<Event> = {}
+              if (e.location?.lat && e.location?.lon && !existing?.location?.lat) upgrades.location = e.location
+              if (e.image && !existing?.image) upgrades.image = e.image
+              if (e.ticketUrl && !existing?.ticketUrl) upgrades.ticketUrl = e.ticketUrl
+              if (e.price && !existing?.price) upgrades.price = e.price
+              if (Object.keys(upgrades).length > 0) events[existingIdx] = { ...existing, ...upgrades }
+            } else {
+              seenMap.set(key, events.length)
+              events.push(e)
+              total++
+            }
           }
+          // Status only after the whole batch merged — a mid-merge throw
+          // (malformed row) must not report the source as both ok and counted.
+          ok = true
+          count = incoming.length
+        } catch {
+          ok = false
+          count = 0
         }
       }
+      sources.push({ name, ok, count })
     }
 
     // Enforce date boundaries for all sources — external APIs may ignore the date params
@@ -246,7 +235,11 @@ export async function GET(req: NextRequest) {
     })
 
     if (startAfter) {
-      events = events.filter((e: Event) => e.startTime >= startAfter)
+      // Compare as timestamps, not strings — startAfter is UTC (…Z) while most
+      // sources emit +03:00 offsets, so lexicographic comparison lets in events
+      // up to 3 h before the intended cutoff.
+      const cutoff = new Date(startAfter).getTime()
+      events = events.filter((e: Event) => new Date(e.startTime).getTime() >= cutoff)
     }
 
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
@@ -262,7 +255,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ events, hasMore, total })
+    return NextResponse.json({ events, hasMore, total, generatedAt: new Date().toISOString(), sources })
   } catch (err) {
     console.error('Events API error:', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

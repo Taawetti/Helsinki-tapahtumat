@@ -24,6 +24,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
 
   if (url.pathname === '/api/events' && e.request.method === 'GET') {
+    // Admin health check: always hit the network, never cache — a cached
+    // response would report a downed source as healthy.
+    if (url.searchParams.has('_health')) return
     if (url.searchParams.get('quick') === '1') {
       // quick=1: cache-first with 1 min TTL — makes phase 1 instant on repeat visits
       e.respondWith(handleQuickApi(e.request))

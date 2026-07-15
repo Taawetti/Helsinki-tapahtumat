@@ -23,6 +23,13 @@ export interface Event {
   source: string
 }
 
+// Per-source fetch status from /api/events — powers the freshness badge and admin health panel
+export interface SourceStatus {
+  name: string
+  ok: boolean
+  count: number
+}
+
 export type DateFilter = 'today' | 'tonight' | 'tomorrow' | 'weekend' | 'week' | 'month' | 'custom' | 'range'
 export type ViewMode = 'list' | 'map'
 export type PriceFilter = 'all' | 'free' | 'paid'
