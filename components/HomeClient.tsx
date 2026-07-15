@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Loader2, SlidersHorizontal, Heart, Bell } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
-import { haversineKm, getDateRange } from '@/lib/utils'
+import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -235,6 +235,10 @@ interface PreloadedDateRange {
   total: number
 }
 
+// Module flag: the tonight seed parses Dates over the whole preloaded array,
+// so run it once per page load instead of on every re-render.
+let tonightSeeded = false
+
 export default function HomeClient({
   preloadedData,
 }: {
@@ -265,7 +269,26 @@ export default function HomeClient({
       )
     }
   }
-  const { lang, setLang, t } = useLanguage()
+  // Seed 'tonight' from today's preloaded data — same day filtered by the 17:00
+  // cutoff, so the evening default paints instantly. Seeded deliberately stale:
+  // the full 40-source fan-out revalidates in the background right away, since
+  // the preloaded set is LinkedEvents-only and misses the nightlife long tail.
+  // Client-only + once per load: avoids per-render Date parsing and keeps the
+  // server-side module cache untouched.
+  if (typeof window !== 'undefined' && !tonightSeeded && preloadedData.today.events.length > 0) {
+    tonightSeeded = true
+    const tonightRange = getDateRange('tonight')
+    if (tonightRange.startAfter && tonightRange.start === preloadedData.today.start && tonightRange.end === preloadedData.today.end) {
+      const cutoff = new Date(tonightRange.startAfter).getTime()
+      const tonightEvents = preloadedData.today.events.filter(e => new Date(e.startTime).getTime() >= cutoff)
+      if (tonightEvents.length > 0) {
+        const tonightParams = new URLSearchParams({ start: tonightRange.start, end: tonightRange.end, page: '1', municipality: 'helsinki' })
+        tonightParams.set('startAfter', tonightRange.startAfter)
+        preloadEventsCache(tonightParams.toString(), tonightEvents, tonightEvents.length, Date.now() - 6 * 60 * 1000)
+      }
+    }
+  }
+  const { lang, t } = useLanguage()
   const { favorites, count: favCount } = useFavorites()
   const [mode, setMode] = useState<AppMode>('discover')
   const [dateFilter, setDateFilter] = useState<DateFilter>('today')
@@ -284,8 +307,29 @@ export default function HomeClient({
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [showVibePanel, setShowVibePanel] = useState(false)
+  const [liveOnly, setLiveOnly] = useState(false)
   const vibeBtnRef = useRef<HTMLButtonElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Ilta-oletus: klo 17 jälkeen avattu sovellus näyttää suoraan illan menot.
+  // Raja on sama kuin tonight-suodattimen 17:00-cutoff — aikaisempi vaihto
+  // piilottaisi oletuksena klo 15–17 alkavat tapahtumat.
+  // useEffect (ei useState-initializer) — SSR renderöi 'today'-oletuksella,
+  // joten aikaperustainen haara ei saa aiheuttaa hydraatioristiriitaa.
+  useEffect(() => {
+    if (new Date().getHours() >= 17) setDateFilter('tonight')
+  }, [])
+
+  // "Nyt menossa" -kello: päivitä minuutin välein kun suodatin on päällä —
+  // muuten käynnissä-tila jäätyy kytkentähetkeen (päättyneet jäävät listalle,
+  // juuri alkaneet eivät ilmesty).
+  const [liveNow, setLiveNow] = useState(0)
+  useEffect(() => {
+    if (!liveOnly) return
+    setLiveNow(Date.now())
+    const id = setInterval(() => setLiveNow(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [liveOnly])
 
   // ── Unified search: lazy-load activities + restaurants on first keystroke ──
   const [allActivities, setAllActivities] = useState<Activity[]>([])
@@ -401,7 +445,7 @@ export default function HomeClient({
     setNearbyMode(true)
   }
 
-  const { events, loading, fetchingFull, error, hasMore, total, loadMore } = useEvents({
+  const { events, loading, fetchingFull, error, hasMore, total, generatedAt, sources, loadMore } = useEvents({
     dateFilter: mode === 'map' ? 'month' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
     nearbyCoords: nearbyMode && geo.coords ? geo.coords : null,
@@ -411,6 +455,7 @@ export default function HomeClient({
     setCustomDate(start)
     setCustomDateEnd(end)
     setDateFilter(start ? 'range' : 'today')
+    setLiveOnly(false)
   }, [])
 
   // Infinite scroll — trigger loadMore when sentinel scrolls into view
@@ -449,7 +494,7 @@ export default function HomeClient({
   const clearFilters = useCallback(() => {
     setActiveCategories([]); setActiveVibes([]); setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
-    setPriceFilter('all'); setCustomDate(''); setCustomDateEnd('')
+    setPriceFilter('all'); setCustomDate(''); setCustomDateEnd(''); setLiveOnly(false)
   }, [])
 
   const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
@@ -575,8 +620,20 @@ export default function HomeClient({
 
     if (priceFilter === 'free') result = result.filter((e) => e.isFree)
     if (priceFilter === 'paid') result = result.filter((e) => !e.isFree)
+
+    // "Nyt menossa" — started already and still running. Most sources omit
+    // endTime, so events without one count as live for 3 h after start.
+    if (liveOnly) {
+      const nowTs = liveNow || Date.now()
+      result = result.filter((e) => {
+        const startTs = new Date(e.startTime).getTime()
+        if (startTs > nowTs) return false
+        if (e.endTime) return new Date(e.endTime).getTime() >= nowTs
+        return nowTs - startTs < 3 * 60 * 60 * 1000
+      })
+    }
     return result
-  }, [events, activeCategories, activeVibes, priceFilter])
+  }, [events, activeCategories, activeVibes, priceFilter, liveOnly, liveNow])
 
   const discoverEvents = useMemo(
     () => [...filteredEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
@@ -592,16 +649,28 @@ export default function HomeClient({
 
   const heroEvent = useMemo(() => discoverEvents.find((e) => nightlifeScore(e) >= 3 && e.image) ?? null, [discoverEvents])
 
-  const carousels = useMemo(() => [
-    { id: 'pian',      title: t('discover.carousel_soon'),      events: baseEvents.filter(isAlkaaPian) },
-    { id: 'parhaat',   title: t('discover.carousel_best'),      events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !!e.image) },
-    { id: 'ilmainen',  title: t('discover.carousel_free'),      events: baseEvents.filter(e => e.isFree) },
-    { id: 'terassit',  title: t('discover.carousel_terraces'),  events: baseEvents.filter(isTerrace) },
-    { id: 'ylatys',    title: t('discover.carousel_different'), events: baseEvents.filter(isSurprise) },
-  ].filter(r => r.events.length > 0), [baseEvents, t])
+  const carousels = useMemo(() => {
+    const rows = [
+      { id: 'pian',      title: t('discover.carousel_soon'),      events: baseEvents.filter(isAlkaaPian) },
+      { id: 'parhaat',   title: t('discover.carousel_best'),      events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !!e.image) },
+      { id: 'ilmainen',  title: t('discover.carousel_free'),      events: baseEvents.filter(e => e.isFree) },
+      { id: 'terassit',  title: t('discover.carousel_terraces'),  events: baseEvents.filter(isTerrace) },
+      { id: 'ylatys',    title: t('discover.carousel_different'), events: baseEvents.filter(isSurprise) },
+    ]
+    // Illalla-tilassa yöelämä johtaa: keikat/klubit/baarit-rivi nousee ensimmäiseksi
+    if (dateFilter === 'tonight') {
+      const i = rows.findIndex(r => r.id === 'parhaat')
+      if (i > 0) rows.unshift(rows.splice(i, 1)[0])
+    }
+    return rows.filter(r => r.events.length > 0)
+  }, [baseEvents, t, dateFilter])
 
   // 'kaikki' counts as 0 — it's "show all", not a real filter selection
-  const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
+  const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0) + (liveOnly ? 1 : 0)
+
+  // Freshness badge counts — hoisted so the ok/fail split lives in one place
+  const okSourceCount = sources.filter(s => s.ok).length
+  const failedSourceCount = sources.length - okSourceCount
 
   const handleQuickAction = useCallback((id: string) => {
     switch (id) {
@@ -648,10 +717,6 @@ export default function HomeClient({
             </span>
           </button>
           <div className="flex items-center gap-2">
-            <button onClick={() => setLang(lang === 'fi' ? 'en' : 'fi')}
-              className="text-[11px] font-black px-2.5 py-1.5 rounded-xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 transition-all bg-white/3">
-              {lang === 'fi' ? 'EN' : 'FI'}
-            </button>
             <button
               onClick={handleBellClick}
               title={pushEnabled ? 'Peruuta ilmoitukset' : 'Tilaa päiväilmoitukset'}
@@ -722,11 +787,6 @@ export default function HomeClient({
             onSelectRestaurant={handleSelectRestaurant}
           />
           </div>
-
-          <button onClick={() => setLang(lang === 'fi' ? 'en' : 'fi')}
-            className="shrink-0 text-[11px] font-black px-3 py-1.5 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/25 transition-all bg-white/3">
-            {lang === 'fi' ? '🇬🇧 EN' : '🇫🇮 FI'}
-          </button>
 
           <button
             onClick={handleBellClick}
@@ -881,6 +941,15 @@ export default function HomeClient({
             </h1>
             <p className="text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
               {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {/* Tuoreusleima: montako lähdettä vastasi ja milloin — vajaa data ei saa olla näkymätöntä */}
+              {fetchingFull ? (
+                <span className="normal-case tracking-normal"> · päivitetään lähteitä…</span>
+              ) : generatedAt && sources.length > 1 ? (
+                <span className="normal-case tracking-normal">
+                  {' · '}{okSourceCount} lähdettä · klo {formatTime(generatedAt)}
+                  {failedSourceCount > 0 && ` · ${failedSourceCount} ei vastannut`}
+                </span>
+              ) : null}
             </p>
           </div>
 
@@ -888,13 +957,14 @@ export default function HomeClient({
           <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 items-center">
             {([
               { d: 'today' as DateFilter, label: t('date.today') },
+              { d: 'tonight' as DateFilter, label: '🌙 ' + t('date.tonight_short') },
               { d: 'tomorrow' as DateFilter, label: t('date.tomorrow') },
               { d: 'weekend' as DateFilter, label: '🎉 ' + t('date.weekend') },
               { d: 'week' as DateFilter, label: t('date.week_short') },
             ]).map(({ d, label }) => {
               const isActive = dateFilter === d && !customDate && !customDateEnd
               return (
-                <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
+                <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd(''); setLiveOnly(false) }}
                   className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
                     isActive ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
                   }`}
@@ -903,7 +973,7 @@ export default function HomeClient({
                 </button>
               )
             })}
-            <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
+            <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today'); setLiveOnly(false) }} />
             <button
               onClick={handleNearbyToggle}
               title={geo.denied ? 'Sijaintia ei sallittu' : 'Lähellä sinua'}
@@ -913,15 +983,30 @@ export default function HomeClient({
               style={nearbyMode && geo.coords ? { background: 'linear-gradient(150deg,#0ea5e9,#0284c7)', boxShadow: '0 4px 16px -4px rgba(14,165,233,.4)' } : {}}>
               {geo.loading ? '⏳' : geo.denied ? '📍✕' : '📍'} Lähellä
             </button>
+            <button
+              onClick={() => {
+                // Käynnissä olevat ovat alkaneet ennen nyt-hetkeä → tonight-raja (17→)
+                // piilottaisi ne, joten pakota päiväksi 'today' kun suodatin kytketään.
+                setLiveOnly(v => !v)
+                if (!liveOnly) { setDateFilter('today'); setCustomDate(''); setCustomDateEnd('') }
+              }}
+              title="Käynnissä juuri nyt"
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
+                liveOnly ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
+              }`}
+              style={liveOnly ? { background: 'linear-gradient(150deg,#ef4444,#b91c1c)', boxShadow: '0 4px 16px -4px rgba(239,68,68,.4)' } : {}}>
+              🔴 Nyt menossa
+            </button>
           </div>
 
           {/* Aktiivinen filtteripalkki — ilmestyy kun kategoria valittu */}
-          {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && (
+          {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all' || liveOnly) && (
             <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl"
               style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>
-                  {activeVibes[0]
+                  {liveOnly ? '🔴 Nyt menossa'
+                    : activeVibes[0]
                     ? (VIBES.find(v => v.id === activeVibes[0])?.emoji + ' ' + VIBES.find(v => v.id === activeVibes[0])?.label)
                     : priceFilter === 'free' ? `🎁 ${t('common.free')}` : t('common.filters')}
                 </span>
@@ -1007,19 +1092,19 @@ export default function HomeClient({
           )}
 
           {/* ── Carousel rows — piilotetaan kun filtteri tai keyword aktiivinen ── */}
-          {!loading && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && carousels.map(row => (
+          {!loading && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && !liveOnly && carousels.map(row => (
             <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent} />
           ))}
           {/* Phase 2 spinner — carousel-näkymässä kun tuloksia on jo mutta lisää haetaan */}
-          {fetchingFull && baseEvents.length > 0 && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+          {fetchingFull && baseEvents.length > 0 && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && !liveOnly && (
             <div className="flex items-center justify-center gap-2 py-3">
               <Loader2 size={14} className="animate-spin text-white/30" />
               <span className="text-white/30 text-[13px]">Haetaan lisää...</span>
             </div>
           )}
 
-          {/* ── Flat grid — näkyy kun keyword, kategoria tai vibe valittu ── */}
-          {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
+          {/* ── Flat grid — näkyy kun keyword, kategoria, vibe tai Nyt menossa valittu ── */}
+          {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all' || liveOnly) && discoverEvents.length > 0 && (
             <section>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {discoverEvents.filter(e => e.id !== heroEvent?.id).map(e => (
@@ -1032,6 +1117,17 @@ export default function HomeClient({
               <div ref={sentinelRef} className="h-1" />
               {(loading || fetchingFull) && <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-white/30" /></div>}
             </section>
+          )}
+
+          {/* ── Nyt menossa: tyhjä tila — ilman tätä alue jäisi selittämättä tyhjäksi ── */}
+          {liveOnly && !loading && !fetchingFull && discoverEvents.length === 0 && baseEvents.length > 0 && (
+            <div className="flex flex-col items-center py-16 text-center gap-3">
+              <span className="text-4xl">🌃</span>
+              <div>
+                <p className="text-white/40 font-bold">Ei mitään käynnissä juuri nyt</p>
+                <p className="text-white/20 text-sm mt-1">Katso 🌙 Illalla — illan menot alkavat pian</p>
+              </div>
+            </div>
           )}
 
           {/* ── Selaa aihepiireittäin — ikonigridi karusellivien jälkeen ── */}
@@ -1059,7 +1155,7 @@ export default function HomeClient({
               priceFilter={priceFilter}
               dateFilter={dateFilter}
               onClear={clearFilters}
-              onDateChange={(d) => { setDateFilter(d); setCustomDate('') }}
+              onDateChange={(d) => { setDateFilter(d); setCustomDate(''); setLiveOnly(false) }}
             />
           )}
 

@@ -1,19 +1,33 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Event, DateFilter, CATEGORIES } from '@/lib/types'
+import { Event, DateFilter, SourceStatus, CATEGORIES } from '@/lib/types'
 import { getDateRange, haversineKm } from '@/lib/utils'
 import { getCategoryScores, virtualStartTime } from '@/lib/preferences'
 import type { GeoCoords } from './useGeolocation'
 
-interface CacheEntry { events: Event[]; hasMore: boolean; total: number; ts: number }
+interface CacheEntry { events: Event[]; hasMore: boolean; total: number; ts: number; generatedAt?: string; sources?: SourceStatus[] }
 const eventsCache = new Map<string, CacheEntry>()
 const CACHE_TTL = 5 * 60 * 1000
 const LS_PREFIX = 'events-v2-'
 const LS_TTL = 30 * 60 * 1000
 
-export function preloadEventsCache(key: string, events: Event[], total: number): void {
-  if (!eventsCache.has(key)) {
-    eventsCache.set(key, { events, hasMore: false, total, ts: Date.now() })
-  }
+// ts override: pass a stale timestamp to serve seeded data instantly while
+// still triggering a background revalidation against the full source fan-out.
+export function preloadEventsCache(key: string, events: Event[], total: number, ts?: number): void {
+  if (eventsCache.has(key)) return
+  // Prefer an unexpired localStorage entry over the seed: it came from a full
+  // 40-source fan-out, while seeds are a LinkedEvents-only subset. Seeding
+  // first would block useEvents' localStorage restore for the same key.
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + key)
+    if (raw) {
+      const entry: CacheEntry = JSON.parse(raw)
+      if (Date.now() - entry.ts < LS_TTL) {
+        eventsCache.set(key, entry)
+        return
+      }
+    }
+  } catch {}
+  eventsCache.set(key, { events, hasMore: false, total, ts: ts ?? Date.now() })
 }
 
 interface UseEventsOptions {
@@ -34,6 +48,8 @@ interface UseEventsResult {
   error: string | null
   hasMore: boolean
   total: number
+  generatedAt: string | null
+  sources: SourceStatus[]
   loadMore: () => void
 }
 
@@ -54,6 +70,8 @@ export function useEvents({
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [total, setTotal] = useState(0)
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null)
+  const [sources, setSources] = useState<SourceStatus[]>([])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -112,6 +130,12 @@ export function useEvents({
         setEvents(prev => applySort(cached.events, append ? prev : [], append))
         setHasMore(cached.hasMore)
         setTotal(cached.total)
+        // Freshness reflects the page-1 fan-out; later pages are LinkedEvents-only
+        // and would clobber the 40-source status with a single entry.
+        if (!append) {
+          setGeneratedAt(cached.generatedAt ?? null)
+          setSources(cached.sources ?? [])
+        }
         setLoading(false)
 
         if (now - cached.ts < CACHE_TTL) return // still fresh, skip revalidation
@@ -123,12 +147,16 @@ export function useEvents({
           if (!res.ok) { setFetchingFull(false); return }
           const data = await res.json()
           if (!controller.signal.aborted) {
-            const staleEntry: CacheEntry = { events: data.events, hasMore: data.hasMore, total: data.total, ts: Date.now() }
+            const staleEntry: CacheEntry = { events: data.events, hasMore: data.hasMore, total: data.total, ts: Date.now(), generatedAt: data.generatedAt, sources: data.sources }
             eventsCache.set(cacheKey, staleEntry)
             try { localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify(staleEntry)) } catch {}
             setEvents(prev => applySort(data.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
             setHasMore(data.hasMore)
             setTotal(data.total)
+            if (!append) {
+              setGeneratedAt(data.generatedAt ?? null)
+              setSources(data.sources ?? [])
+            }
             setFetchingFull(false)
           }
         } catch {
@@ -152,6 +180,10 @@ export function useEvents({
           setEvents(prev => applySort(quickData.events, append ? prev : [], append))
           setHasMore(quickData.hasMore)
           setTotal(quickData.total)
+          if (!append) {
+            setGeneratedAt(quickData.generatedAt ?? null)
+            setSources(quickData.sources ?? [])
+          }
           setLoading(false)
           setFetchingFull(true)
         }
@@ -162,12 +194,16 @@ export function useEvents({
         const fullData = await fullRes.json()
 
         if (!controller.signal.aborted) {
-          const entry: CacheEntry = { events: fullData.events, hasMore: fullData.hasMore, total: fullData.total, ts: Date.now() }
+          const entry: CacheEntry = { events: fullData.events, hasMore: fullData.hasMore, total: fullData.total, ts: Date.now(), generatedAt: fullData.generatedAt, sources: fullData.sources }
           eventsCache.set(cacheKey, entry)
           try { localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify(entry)) } catch {}
           setEvents(prev => applySort(fullData.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
           setHasMore(fullData.hasMore)
           setTotal(fullData.total)
+          if (!append) {
+            setGeneratedAt(fullData.generatedAt ?? null)
+            setSources(fullData.sources ?? [])
+          }
           setFetchingFull(false)
         }
       } catch (err) {
@@ -226,7 +262,7 @@ export function useEvents({
     fetchEvents(next, true)
   }, [page, fetchEvents])
 
-  return { events, loading, fetchingFull, error, hasMore, total, loadMore }
+  return { events, loading, fetchingFull, error, hasMore, total, generatedAt, sources, loadMore }
 }
 
 // Lightweight hook for collection previews (fetches up to 10 events)
