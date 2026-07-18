@@ -299,13 +299,13 @@ export default function HomeClient({
   const vibeBtnRef = useRef<HTMLButtonElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  // Ilta-oletus: klo 17 jälkeen avattu sovellus näyttää suoraan illan menot.
-  // Raja on sama kuin tonight-suodattimen 17:00-cutoff — aikaisempi vaihto
-  // piilottaisi oletuksena klo 15–17 alkavat tapahtumat.
-  // useEffect (ei useState-initializer) — SSR renderöi 'today'-oletuksella,
-  // joten aikaperustainen haara ei saa aiheuttaa hydraatioristiriitaa.
+  // Ilta-painotus: illalla NOSTETAAN yökeikat kärkeen mutta EI rajata päivää —
+  // oletus pysyy 'today' (koko päivä näkyvissä). Aiempi 'tonight'-automaatti
+  // piilotti kaikki päiväsaikaan alkavat tapahtumat ja teki etusivusta tyhjän
+  // näköisen. useEffect (ei initializer) → ei SSR/hydraatioristiriitaa.
+  const [isEvening, setIsEvening] = useState(false)
   useEffect(() => {
-    if (new Date().getHours() >= 17) setDateFilter('tonight')
+    if (new Date().getHours() >= 17) setIsEvening(true)
   }, [])
 
   // "Nyt menossa" -kello: päivitä minuutin välein kun suodatin on päällä —
@@ -645,13 +645,14 @@ export default function HomeClient({
       { id: 'terassit',  title: t('discover.carousel_terraces'),  events: baseEvents.filter(isTerrace) },
       { id: 'ylatys',    title: t('discover.carousel_different'), events: baseEvents.filter(isSurprise) },
     ]
-    // Illalla-tilassa yöelämä johtaa: keikat/klubit/baarit-rivi nousee ensimmäiseksi
-    if (dateFilter === 'tonight') {
+    // Illalla (tai Illalla-chipillä) yöelämä johtaa: nostetaan keikat/klubit-rivi
+    // ensimmäiseksi — koko päivän tapahtumat pysyvät silti feedissä.
+    if (isEvening || dateFilter === 'tonight') {
       const i = rows.findIndex(r => r.id === 'parhaat')
       if (i > 0) rows.unshift(rows.splice(i, 1)[0])
     }
     return rows.filter(r => r.events.length > 0)
-  }, [baseEvents, t, dateFilter])
+  }, [baseEvents, t, dateFilter, isEvening])
 
   // 'kaikki' counts as 0 — it's "show all", not a real filter selection
   const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0) + (liveOnly ? 1 : 0)
