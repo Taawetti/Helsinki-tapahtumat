@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { VIBES, NEIGHBORHOODS } from '@/lib/types'
 import { supabase, DbFestival } from '@/lib/supabase'
 import { FESTIVALS_STATIC } from '@/lib/festivals-data'
+import { VENUE_PAGES } from '@/lib/venue-pages'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
@@ -53,6 +54,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/tapahtumat/tanaan`,     lastModified: now, changeFrequency: 'hourly' as const, priority: 0.95 },
     { url: `${BASE}/tapahtumat/viikonloppu`, lastModified: now, changeFrequency: 'daily' as const,  priority: 0.92 },
     { url: `${BASE}/tapahtumat/ilmaiset`,   lastModified: now, changeFrequency: 'daily' as const,  priority: 0.90 },
+    // Vertikaalin laskeutumissivut — yöelämä, visat, terassit
+    { url: `${BASE}/yokerhot`,  lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },
+    { url: `${BASE}/pubivisat`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },
+    { url: `${BASE}/terassit`,  lastModified: now, changeFrequency: 'daily' as const,  priority: 0.80 },
+    // Keikkapaikkojen ohjelmasivut — "tavastia ohjelma" -tyyppiset haut
+    ...VENUE_PAGES.map((v) => ({
+      url: `${BASE}/ohjelma/${v.slug}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.82,
+    })),
     // Kategoriasivut — yksi per VIBE
     ...VIBES.map((v) => ({
       url: `${BASE}/tapahtumat/${v.id}`,
