@@ -1,4 +1,6 @@
-const CACHE = 'hki-v3'
+// v4: navigations are network-first now — the old cache-first '/' kept
+// serving a stale HTML shell (and thus a stale JS bundle) after deploys.
+const CACHE = 'hki-v4'
 // v2: day-chunk fetch shipped — old cached responses miss most of the day's
 // events, so the API cache generation is bumped to drop them on activate.
 const API_CACHE = 'hki-api-v2'
@@ -43,7 +45,25 @@ self.addEventListener('fetch', e => {
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/')) return
   if (e.request.method !== 'GET') return
 
-  // Static assets: cache-first, network fallback
+  // HTML navigations: NETWORK-FIRST, cache only as offline fallback.
+  // Cache-first here served a stale page shell (old JS bundle) after every
+  // deploy — a "what's on today" app must always boot the current app.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res.ok) {
+            const copy = res.clone()
+            caches.open(CACHE).then(c => c.put(e.request, copy))
+          }
+          return res
+        })
+        .catch(() => caches.match(e.request).then(cached => cached || caches.match('/')))
+    )
+    return
+  }
+
+  // Static assets (icons, manifest): cache-first, network fallback
   e.respondWith(
     caches.match(e.request).then(cached => {
       const fresh = fetch(e.request).then(res => {
