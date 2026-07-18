@@ -241,6 +241,11 @@ export default function HomeClient({
   // Guard: compare server-computed dates (UTC on Vercel) with client local dates.
   // If they mismatch (Helsinki midnight–3 AM window, UTC+3 vs UTC), skip that filter —
   // it falls through to the normal two-phase fetch automatically.
+  // Seeds are marked STALE on purpose: they are a LinkedEvents-only slice (and
+  // the upstream feed is flaky), so the full 40-source fan-out must always
+  // revalidate in the background. A "fresh" seed used to skip that entirely,
+  // leaving users stuck on partial data with no freshness badge and no way
+  // to tell anything was missing.
   for (const [filter, data] of [
     ['today',    preloadedData.today],
     ['tomorrow', preloadedData.tomorrow],
@@ -254,6 +259,7 @@ export default function HomeClient({
         new URLSearchParams({ start: data.start, end: data.end, page: '1', municipality: 'helsinki' }).toString(),
         data.events,
         data.total,
+        Date.now() - 6 * 60 * 1000,
       )
     }
   }
