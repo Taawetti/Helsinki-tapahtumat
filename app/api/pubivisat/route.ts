@@ -1,75 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
-
-const SOURCE_URL = 'https://pubivisat.fi/helsinki'
-
-const WEEKDAY_JS: Record<string, number> = {
-  maanantai: 1,
-  tiistai:   2,
-  keskiviikko: 3,
-  torstai:   4,
-  perjantai: 5,
-  lauantai:  6,
-  sunnuntai: 0,
-}
-
-function stripTags(html: string): string {
-  return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#[0-9]+;/g, '').trim()
-}
-
-interface PubVisa {
-  name: string
-  address: string
-  weekday: number
-  hour: number
-  minute: number
-}
-
-function parseTime(raw: string): { hour: number; minute: number } | null {
-  const m = raw.trim().match(/^(\d{1,2})[.:](\d{2})$/)
-  if (!m) return null
-  return { hour: parseInt(m[1]), minute: parseInt(m[2]) }
-}
-
-function parseRows(html: string): PubVisa[] {
-  const results: PubVisa[] = []
-
-  // Extract all <tr>...</tr> blocks
-  const trMatches = html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)
-  for (const trMatch of trMatches) {
-    const tr = trMatch[1]
-    // Extract TD cell texts
-    const cells = [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => stripTags(m[1]))
-    if (cells.length < 4) continue
-
-    // Columns: name, time, address, weekday (+ optional rating col)
-    const [nameRaw, timeRaw, addressRaw, weekdayRaw] = cells
-
-    const name = nameRaw.trim()
-    if (!name || name.length < 2) continue
-
-    const time = parseTime(timeRaw)
-    if (!time) continue
-
-    const address = addressRaw.trim()
-
-    // Only include Helsinki proper (filter out Kerava, Lohja, etc.)
-    const isHelsinki =
-      /\b0[0-9]{4}\b/.test(address) // Helsinki postal codes 00xxx
-        ? /\b0[0-9]{3}[0-9]\b/.test(address) && !/(kerava|espoo|vantaa|lohja|järvenpää|nurmijärvi|kirkkonummi)/i.test(address)
-        : !/(kerava|espoo|vantaa|lohja|järvenpää|nurmijärvi|kirkkonummi)/i.test(address)
-
-    if (!isHelsinki) continue
-
-    const weekdayKey = weekdayRaw.toLowerCase().trim()
-    const weekday = WEEKDAY_JS[weekdayKey]
-    if (weekday === undefined) continue
-
-    results.push({ name, address, weekday, hour: time.hour, minute: time.minute })
-  }
-
-  return results
-}
+import { PubVisa, fetchVisas, PUBIVISAT_SOURCE_URL } from '@/lib/pubivisat'
+import { helsinkiISO } from '@/lib/helsinki-time'
 
 function generateOccurrences(visa: PubVisa, startDate: Date, endDate: Date, index: number): Event[] {
   const events: Event[] = []
@@ -81,18 +13,22 @@ function generateOccurrences(visa: PubVisa, startDate: Date, endDate: Date, inde
 
   while (cursor <= endDate) {
     if (cursor.getDay() === visa.weekday) {
-      const startDt = new Date(cursor)
-      startDt.setHours(visa.hour, visa.minute, 0, 0)
-      const endDt = new Date(startDt.getTime() + 2 * 60 * 60 * 1000) // 2h default
+      // Quiz times are Helsinki wall-clock — build the ISO with the Helsinki
+      // offset so a 20.00 quiz doesn't shift to 23.00 on a UTC server.
+      const y = cursor.getFullYear()
+      const mo = cursor.getMonth() + 1
+      const d = cursor.getDate()
+      const startIso = helsinkiISO(y, mo, d, visa.hour, visa.minute)
+      const endIso = new Date(new Date(startIso).getTime() + 2 * 60 * 60 * 1000).toISOString() // 2h default
 
-      const dateKey = cursor.toISOString().slice(0, 10).replace(/-/g, '')
+      const dateKey = `${y}${String(mo).padStart(2, '0')}${String(d).padStart(2, '0')}`
       events.push({
         id: `pubivisa-${index}-${dateKey}`,
         title: `Tietovisa – ${visa.name}`,
         shortDescription: `Viikoittainen tietovisa ${visa.name}ssa`,
         description: `Viikoittainen tietovisa. Lähde: pubivisat.fi`,
-        startTime: startDt.toISOString(),
-        endTime: endDt.toISOString(),
+        startTime: startIso,
+        endTime: endIso,
         location: {
           name: visa.name,
           streetAddress,
@@ -102,7 +38,7 @@ function generateOccurrences(visa: PubVisa, startDate: Date, endDate: Date, inde
         isFree: true,
         price: null,
         ticketUrl: null,
-        infoUrl: SOURCE_URL,
+        infoUrl: PUBIVISAT_SOURCE_URL,
         categories: ['Tietovisa', 'Pubivisa', 'Baari'],
         source: 'linked-events',
       })
@@ -110,29 +46,6 @@ function generateOccurrences(visa: PubVisa, startDate: Date, endDate: Date, inde
     cursor.setDate(cursor.getDate() + 1)
   }
   return events
-}
-
-let cachedVisas: PubVisa[] | null = null
-let cacheTime = 0
-const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h — schedule changes rarely
-
-async function fetchVisas(): Promise<PubVisa[]> {
-  if (cachedVisas && Date.now() - cacheTime < CACHE_TTL) return cachedVisas
-
-  const res = await fetch(SOURCE_URL, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' },
-    signal: AbortSignal.timeout(10000),
-    next: { revalidate: 86400 },
-  })
-  if (!res.ok) return cachedVisas ?? []
-
-  const html = await res.text()
-  const visas = parseRows(html)
-  if (visas.length > 0) {
-    cachedVisas = visas
-    cacheTime = Date.now()
-  }
-  return cachedVisas ?? []
 }
 
 export async function GET(req: NextRequest) {

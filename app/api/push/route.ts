@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import webpush from '@/lib/webpush'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { sendToSubscribers } from '@/lib/webpush'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
   if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!supabaseAdmin) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
   }
 
   // Count today's events from Linked Events
@@ -28,7 +26,7 @@ export async function GET(req: NextRequest) {
   } catch {}
 
   // Fetch all subscribers including preferences
-  const { data: subs, error } = await supabase
+  const { data: subs, error } = await supabaseAdmin
     .from('push_subscriptions')
     .select('endpoint, p256dh, auth, preferred_categories')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -50,30 +48,12 @@ export async function GET(req: NextRequest) {
     return count > 0 ? `${count} tapahtumaa tänään Helsingissä!` : 'Katso tänään Helsingissä tapahtuvat tapahtumat!'
   }
 
-  const staleEndpoints: string[] = []
-  let sent = 0
-
-  await Promise.allSettled(
-    subs.map(async (sub) => {
-      const body = buildBody(sub.preferred_categories ?? '', eventCount)
-      const payload = JSON.stringify({ title: 'Mitä tänään? 📅', body })
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
-        )
-        sent++
-      } catch (err: unknown) {
-        // 410 Gone = subscription expired, clean up
-        if (err && typeof err === 'object' && 'statusCode' in err && (err.statusCode === 410 || err.statusCode === 404)) {
-          staleEndpoints.push(sub.endpoint)
-        }
-      }
-    })
+  const { sent, staleEndpoints } = await sendToSubscribers(subs, (sub) =>
+    JSON.stringify({ title: 'Mitä tänään? 📅', body: buildBody(sub.preferred_categories ?? '', eventCount) })
   )
 
   if (staleEndpoints.length > 0) {
-    await supabase.from('push_subscriptions').delete().in('endpoint', staleEndpoints)
+    await supabaseAdmin.from('push_subscriptions').delete().in('endpoint', staleEndpoints)
   }
 
   return NextResponse.json({ sent, removed: staleEndpoints.length })
