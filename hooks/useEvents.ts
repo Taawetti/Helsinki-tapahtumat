@@ -95,6 +95,10 @@ export function useEvents({
       const scores = getCategoryScores()
       if (Object.keys(scores).length > 0) {
         unique.sort((a: Event, b: Event) => virtualStartTime(a, scores) - virtualStartTime(b, scores))
+      } else {
+        // Chronological fallback — appended pages arrive as later day-windows,
+        // so plain concat order would be block-wise instead of time order
+        unique.sort((a: Event, b: Event) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
       }
     }
     return unique
@@ -150,7 +154,9 @@ export function useEvents({
             const staleEntry: CacheEntry = { events: data.events, hasMore: data.hasMore, total: data.total, ts: Date.now(), generatedAt: data.generatedAt, sources: data.sources }
             eventsCache.set(cacheKey, staleEntry)
             try { localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify(staleEntry)) } catch {}
-            setEvents(prev => applySort(data.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
+            // No count-based slicing — page sizes vary (day-window batches);
+            // applySort dedupes re-fetched events by id.
+            setEvents(prev => applySort(data.events, append ? prev : [], append))
             setHasMore(data.hasMore)
             setTotal(data.total)
             if (!append) {
@@ -197,7 +203,9 @@ export function useEvents({
           const entry: CacheEntry = { events: fullData.events, hasMore: fullData.hasMore, total: fullData.total, ts: Date.now(), generatedAt: fullData.generatedAt, sources: fullData.sources }
           eventsCache.set(cacheKey, entry)
           try { localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify(entry)) } catch {}
-          setEvents(prev => applySort(fullData.events, append ? prev.slice(0, (pageNum - 1) * 50) : [], append))
+          // No count-based slicing — page sizes vary (day-window batches);
+          // applySort dedupes re-fetched events by id.
+          setEvents(prev => applySort(fullData.events, append ? prev : [], append))
           setHasMore(fullData.hasMore)
           setTotal(fullData.total)
           if (!append) {

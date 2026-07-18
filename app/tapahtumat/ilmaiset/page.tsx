@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { helsinkiDateOf } from '@/lib/helsinki-time'
 
 export const revalidate = 3600
 
@@ -55,16 +56,38 @@ async function fetchFree(): Promise<PageEvent[]> {
   const now = new Date()
   const helsinkiNow = new Date(now.getTime() + 3 * 60 * 60 * 1000)
   const today = helsinkiNow.toISOString().slice(0, 10)
-  const in30 = new Date(helsinkiNow.getTime() + 30 * 86400000).toISOString().slice(0, 10)
+  // 7-day window fetched DAY BY DAY (one descending page per day): LinkedEvents
+  // `start=` also matches months-old ongoing free exhibitions, which no single
+  // multi-day query can avoid from the right end — free events alone start
+  // ~30/day, so a shared page cap would drop either the near or far days.
+  // Within one day the real starts sort newest-first, junk sinks below.
+  const days = Array.from({ length: 7 }, (_, i) =>
+    new Date(helsinkiNow.getTime() + i * 86400000).toISOString().slice(0, 10)
+  )
 
   try {
-    const res = await fetch(
-      `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${today}&end=${in30}&division=helsinki&language=fi&page_size=100&sort=start_time&include=location&is_free=true`,
-      { next: { revalidate: 3600 }, signal: AbortSignal.timeout(10000) }
-    )
-    if (!res.ok) return []
-    const data = await res.json()
-    return (data.data || []).map(normalize).filter((e: PageEvent | null): e is PageEvent => e !== null)
+    const results = await Promise.allSettled(days.map((d) =>
+      fetch(
+        `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${d}&end=${d}&division=helsinki&language=fi&page_size=100&sort=-start_time&include=location&is_free=true`,
+        { next: { revalidate: 3600 }, signal: AbortSignal.timeout(10000) }
+      )
+    ))
+    const events: PageEvent[] = []
+    const seen = new Set<string>()
+    const lastDay = days[days.length - 1]
+    for (const r of results) {
+      if (r.status !== 'fulfilled' || !r.value.ok) continue
+      const data = await r.value.json()
+      for (const raw of data.data || []) {
+        if (seen.has(raw.id)) continue
+        seen.add(raw.id)
+        const e = normalize(raw)
+        if (!e) continue
+        const d = helsinkiDateOf(e.startTime)
+        if (d >= today && d <= lastDay) events.push(e)
+      }
+    }
+    return events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   } catch {
     return []
   }
@@ -99,7 +122,7 @@ export default async function IlmaisetPage() {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: [
-      { '@type': 'Question', name: 'Mitä Helsingissä voi tehdä ilmaiseksi?', acceptedAnswer: { '@type': 'Answer', text: `Seuraavan kuukauden aikana Helsingissä on ${events.length} ilmaista tapahtumaa. Tarjolla on muun muassa ilmaisia konsertteja, puistotapahtumia, museovierailuja ja kulttuuritapahtumia.` } },
+      { '@type': 'Question', name: 'Mitä Helsingissä voi tehdä ilmaiseksi?', acceptedAnswer: { '@type': 'Answer', text: `Seuraavan viikon aikana Helsingissä on ${events.length} ilmaista tapahtumaa. Tarjolla on muun muassa ilmaisia konsertteja, puistotapahtumia, museovierailuja ja kulttuuritapahtumia.` } },
       { '@type': 'Question', name: 'Milloin museot ovat ilmaiseksi Helsingissä?', acceptedAnswer: { '@type': 'Answer', text: 'Monet Helsingin museot ovat ilmaiseksi alle 18-vuotiaille ympäri vuoden. Lisäksi museoissa on säännöllisiä ilmaisia sisäänpääsypäiviä. Katso ajantasaiset tiedot alta.' } },
       { '@type': 'Question', name: 'Missä järjestetään ilmaisia ulkoilmatapahtumia Helsingissä?', acceptedAnswer: { '@type': 'Answer', text: 'Esplanadin puisto, Kauppatori, Kallio Block Party, Hernesaari ja monet kaupunginosatapahtumat tarjoavat ilmaista ohjelmaa. Kesäisin myös Senaatintori ja Töölönlahti ovat aktiivisia tapahtumapaikkoja.' } },
     ],
@@ -119,7 +142,7 @@ export default async function IlmaisetPage() {
 
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">🆓 Ilmaiset tapahtumat Helsinki</h1>
-            <p className="text-gray-400 mb-4">Seuraava 30 päivää — {events.length} ilmaista tapahtumaa</p>
+            <p className="text-gray-400 mb-4">Seuraavat 7 päivää — {events.length} ilmaista tapahtumaa</p>
 
             <div className="text-sm text-gray-400 leading-relaxed space-y-3">
               <p>

@@ -2,9 +2,17 @@
 // Date math (setHours, toISOString().split('T')) silently shifts times by
 // 2-3 h and flips the calendar date between 00:00-03:00 Helsinki time.
 
+const HKI_DATE_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Helsinki' })
+
 /** Today's date in Helsinki as YYYY-MM-DD, regardless of server TZ. */
 export function helsinkiToday(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Helsinki' }).format(new Date())
+  return HKI_DATE_FMT.format(new Date())
+}
+
+/** Helsinki calendar date (YYYY-MM-DD) of a timestamp — a 00:30 Helsinki event
+ *  serialized as 21:30Z belongs to the NEXT Helsinki day, not the UTC day. */
+export function helsinkiDateOf(iso: string): string {
+  return HKI_DATE_FMT.format(new Date(iso))
 }
 
 /** Helsinki date range from today forward, as YYYY-MM-DD strings. */

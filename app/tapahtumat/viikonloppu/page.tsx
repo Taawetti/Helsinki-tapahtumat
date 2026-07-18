@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { helsinkiDateOf } from '@/lib/helsinki-time'
 
 export const revalidate = 3600
 
@@ -71,13 +72,31 @@ function formatDate(iso: string): string {
 async function fetchWeekend(): Promise<PageEvent[]> {
   const { fri, sun } = getWeekendRange()
   try {
-    const res = await fetch(
-      `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${fri}&end=${sun}&division=helsinki&language=fi&page_size=100&sort=start_time&include=location`,
-      { next: { revalidate: 3600 }, signal: AbortSignal.timeout(10000) }
-    )
-    if (!res.ok) return []
-    const data = await res.json()
-    return (data.data || []).map(normalize)
+    // Descending sort + date filter: LinkedEvents `start=` also matches
+    // months-old ongoing exhibitions, which ascending order would put first —
+    // eating the whole page and hiding the weekend's real events. A weekend
+    // has 125-250 real starts, so fetch three pages to cover Friday's daytime
+    // events too (descending order fills from Sunday backwards).
+    const base = `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${fri}&end=${sun}&division=helsinki&language=fi&page_size=100&sort=-start_time&include=location`
+    const results = await Promise.allSettled([1, 2, 3].map((p) =>
+      fetch(`${base}&page=${p}`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(10000) })
+    ))
+    const events: PageEvent[] = []
+    const seen = new Set<string>()
+    for (const r of results) {
+      if (r.status !== 'fulfilled' || !r.value.ok) continue
+      const data = await r.value.json()
+      for (const raw of data.data || []) {
+        if (seen.has(raw.id)) continue
+        seen.add(raw.id)
+        const e = normalize(raw)
+        // Helsinki calendar date — LE emits UTC, so a Friday 00:30 event's ISO
+        // prefix would point at Thursday
+        const d = helsinkiDateOf(e.startTime)
+        if (d >= fri && d <= sun) events.push(e)
+      }
+    }
+    return events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   } catch {
     return []
   }

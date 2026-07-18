@@ -49,6 +49,10 @@ function normalize(raw: LEEvent): Event {
 }
 
 async function _fetchLinkedEventsQuick(start: string, end: string): Promise<{ events: Event[]; total: number }> {
+  // Descending start_time: LinkedEvents `start=` also matches long-running
+  // ongoing events (old exhibitions) which would otherwise fill this page and
+  // leave the seed nearly empty after the date filter below. Newest-first puts
+  // the range's real events on page 1; display order is sorted client-side.
   const params = new URLSearchParams({
     format: 'json',
     start,
@@ -56,7 +60,7 @@ async function _fetchLinkedEventsQuick(start: string, end: string): Promise<{ ev
     page: '1',
     page_size: '50',
     include: 'location,keywords',
-    sort: 'start_time',
+    sort: '-start_time',
     language: 'fi',
     division: 'helsinki',
   })
@@ -77,6 +81,7 @@ async function _fetchLinkedEventsQuick(start: string, end: string): Promise<{ ev
       const d = e.startTime.slice(0, 10)
       return d >= start && d <= end
     })
+    events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
     // Apply venue images — same logic as events route handler
     const { venues: venueMap } = await fetchImagesCached()
@@ -95,6 +100,6 @@ async function _fetchLinkedEventsQuick(start: string, end: string): Promise<{ ev
 
 export const fetchInitialEvents = unstable_cache(
   _fetchLinkedEventsQuick,
-  ['initial-events-v2'],
+  ['initial-events-v3'], // v3: descending sort — bust caches with the old sparse shape
   { revalidate: 300, tags: ['events'] },
 )

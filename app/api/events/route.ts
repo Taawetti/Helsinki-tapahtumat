@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
+import { helsinkiDateOf } from '@/lib/helsinki-time'
 
 // External sources fetched via internal API routes (api/<name>).
 // Order defines merge priority: earlier sources win dedup upgrades first.
@@ -102,30 +103,34 @@ export async function GET(req: NextRequest) {
 
   const quick = searchParams.get('quick') === '1'
 
-  const params = new URLSearchParams({
-    format: 'json',
-    start: startAfter || start,
-    end,
-    page,
-    page_size: keyword ? '100' : '50',
-    include: 'location,keywords',
-    sort: 'start_time',  // soonest events first
-  })
-
-  // When searching by keyword, skip language filter to catch all languages
-  if (!keyword) params.set('language', 'fi')
-
-  // Use bbox for neighborhood filtering, otherwise use division (municipality filter)
-  if (bbox) {
-    params.set('bbox', bbox)
-  } else {
-    params.set('division', municipality)
+  // ── LinkedEvents: per-day chunk fetching ──────────────────────────────
+  // LinkedEvents `start=` matches also events STILL ONGOING at that date
+  // (exhibitions that began months ago), so any single query mixes hundreds
+  // of junk rows with the real ones and no page size or sort direction can
+  // cover a multi-day range from the right end. Instead each DAY is fetched
+  // as its own one-day query with sort=-start_time: within one day the
+  // events actually starting that day have the newest start times, so page 1
+  // holds them all and the ongoing junk sinks below. Day-chunks are also
+  // ideal fetch-cache units — today, tonight and week views share them.
+  const buildLeUrl = (day: string) => {
+    const p = new URLSearchParams({
+      format: 'json',
+      start: day,
+      end: day,
+      page_size: '100',
+      include: 'location,keywords',
+      sort: '-start_time',
+    })
+    // When searching by keyword, skip language filter to catch all languages
+    if (!keyword) p.set('language', 'fi')
+    // Use bbox for neighborhood filtering, otherwise division (municipality)
+    if (bbox) p.set('bbox', bbox)
+    else p.set('division', municipality)
+    if (keyword) p.set('text', keyword)
+    return `https://api.hel.fi/linkedevents/v1/event/?${p}`
   }
 
-  if (keyword) params.set('text', keyword)
-
   try {
-    const linkedUrl = `https://api.hel.fi/linkedevents/v1/event/?${params}`
     const extraParams = new URLSearchParams({ start, end, ...(keyword ? { keyword } : {}) })
     const origin = req.nextUrl.origin
 
@@ -143,25 +148,84 @@ export async function GET(req: NextRequest) {
     }
 
     // quick=1: return only LinkedEvents immediately (used for phase-1 fast load)
+    const pageNum = Math.max(1, parseInt(page) || 1)
     const attemptExternal = !quick && page === '1'
 
-    // Fetch all sources in parallel — page 1 only for external sources
-    const [linkedRes, ...externalRes] = await Promise.allSettled([
-      fetch(linkedUrl, { next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(10000) }),
+    // Client page N covers DAYS_PER_PAGE days of the range: page 1 = days
+    // 1-10, page 2 = days 11-20 … so infinite scroll walks a long range
+    // (month/map) forward in time. quick fetches only the first day of the
+    // window for a fast first paint. Short ranges (today/weekend/week) fit
+    // entirely in page 1 → hasMore=false and every filter sees the full data.
+    const DAYS_PER_PAGE = 10
+    const rangeStartTs = new Date(start).getTime()
+    const totalDays = Math.max(1, Math.round((new Date(end).getTime() - rangeStartTs) / 86400000) + 1)
+    const firstDayIdx = (pageNum - 1) * DAYS_PER_PAGE
+    const dayCount = Math.max(0, Math.min(quick ? 1 : DAYS_PER_PAGE, totalDays - firstDayIdx))
+    const dayDates = Array.from({ length: dayCount }, (_, i) =>
+      new Date(rangeStartTs + (firstDayIdx + i) * 86400000).toISOString().slice(0, 10)
+    )
+
+    // Fetch all day-chunks + external sources in parallel.
+    // Fresh options per call — AbortSignal.timeout starts ticking on creation,
+    // so a shared signal would shortchange the second fetch wave.
+    const leFetchOpts = () => ({ next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(10000) })
+    const settled = await Promise.allSettled([
+      ...dayDates.map((day) => fetch(buildLeUrl(day), leFetchOpts())),
       ...EXTERNAL_SOURCES.map((name) => attemptExternal ? src(`api/${name}`) : Promise.resolve(null)),
     ])
+    const dayResults = settled.slice(0, dayDates.length) as PromiseSettledResult<Response>[]
+    const externalRes = settled.slice(dayDates.length) as PromiseSettledResult<Response | null>[]
 
-    if (linkedRes.status === 'rejected' || (linkedRes.status === 'fulfilled' && !linkedRes.value.ok)) {
-      return NextResponse.json({ error: 'Linked Events API error' }, { status: 502 })
+    // Cutoff anchored to THIS PAGE's day-window (not the range start) so
+    // deeper pages don't re-admit ongoing rows from the range's first days —
+    // those already came with page 1.
+    const realCutoff = (dayDates.length > 0 ? new Date(dayDates[0]).getTime() : rangeStartTs) - 24 * 60 * 60 * 1000
+
+    // Collect day-chunks, dedupe by id (the feed itself contains dupes and
+    // chunk boundaries can overlap). If a full page of a day is real starts
+    // and more remain (festival days), fetch that day's page 2 as well.
+    const leRaw: LinkedEventsEvent[] = []
+    const seenLeIds = new Set<string>()
+    let leChunksOk = 0
+    const saturatedDayUrls: string[] = []
+    const collect = (rows: LinkedEventsEvent[]) => {
+      for (const raw of rows) {
+        if (!seenLeIds.has(raw.id)) { seenLeIds.add(raw.id); leRaw.push(raw) }
+      }
+    }
+    for (let i = 0; i < dayResults.length; i++) {
+      const r = dayResults[i]
+      if (r.status !== 'fulfilled' || !r.value.ok) continue
+      let pageData: { data?: LinkedEventsEvent[]; meta?: { next?: string | null } }
+      try { pageData = await r.value.json() } catch { continue }
+      leChunksOk++
+      const rows = pageData.data || []
+      collect(rows)
+      const allReal = rows.length > 0 && rows.every((raw) => new Date(raw.start_time).getTime() >= realCutoff)
+      if (allReal && pageData.meta?.next) saturatedDayUrls.push(`${buildLeUrl(dayDates[i])}&page=2`)
+    }
+    if (saturatedDayUrls.length > 0) {
+      const extra = await Promise.allSettled(saturatedDayUrls.map((u) => fetch(u, leFetchOpts())))
+      for (const r of extra) {
+        if (r.status !== 'fulfilled' || !r.value.ok) continue
+        try { collect(((await r.value.json()).data ?? []) as LinkedEventsEvent[]) } catch {}
+      }
     }
 
-    const linkedData = await linkedRes.value.json()
-    const startTs = new Date(start).getTime()
+    // Total LinkedEvents outage on page 1 is fatal; PARTIAL day failures
+    // return 200 but flag linked-events ok:false so the freshness badge and
+    // admin health panel surface the hole instead of hiding it.
+    if (pageNum === 1 && dayDates.length > 0 && leChunksOk === 0) {
+      return NextResponse.json({ error: 'Linked Events API error' }, { status: 502 })
+    }
+    const leOk = leChunksOk === dayDates.length
+
     // Filter out permanent exhibitions/ongoing events that started long before the requested date
-    let events: Event[] = (linkedData.data || [])
+    let events: Event[] = leRaw
       .map(normalize)
-      .filter((e: Event) => new Date(e.startTime).getTime() >= startTs - 24 * 60 * 60 * 1000)
-    const hasMore = !!linkedData.meta?.next
+      .filter((e: Event) => new Date(e.startTime).getTime() >= realCutoff)
+    // More day-windows left in the range → client can load the next window
+    const hasMore = firstDayIdx + dayCount < totalDays
     let total: number = events.length
 
     // Normalize title for dedup: strip ticket tiers, years, punctuation variation
@@ -183,7 +247,7 @@ export async function GET(req: NextRequest) {
     // from the incoming version (e.g. recurring has coords, Linked Events doesn't).
     // Every attempted source gets a status entry so failures are visible instead of silent.
     const seenMap = new Map(events.map((e, i) => [dedupKey(e.title, e.startTime.slice(0, 10)), i]))
-    const sources: SourceStatus[] = [{ name: 'linked-events', ok: true, count: events.length }]
+    const sources: SourceStatus[] = [{ name: 'linked-events', ok: leOk, count: events.length }]
 
     for (let i = 0; i < externalRes.length && attemptExternal; i++) {
       const name = EXTERNAL_SOURCES[i]
@@ -227,10 +291,10 @@ export async function GET(req: NextRequest) {
 
     // Enforce date boundaries for all sources — external APIs may ignore the date params
     // and return events from wrong dates (e.g. past events, future events, wrong month).
-    // Use the ISO date prefix (first 10 chars) for comparison; Finnish APIs store times
-    // with +03:00 offset so the date part is Helsinki local date.
+    // Compare HELSINKI calendar dates: LinkedEvents emits Z-suffixed UTC times, so a
+    // naive ISO-prefix compare would assign a 00:30 Helsinki event to the previous day.
     events = events.filter((e: Event) => {
-      const d = e.startTime.slice(0, 10)
+      const d = helsinkiDateOf(e.startTime)
       return d >= start && d <= end
     })
 

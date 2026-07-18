@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { helsinkiDateOf } from '@/lib/helsinki-time'
 
 export const revalidate = 900 // 15 min — today's events update frequently
 
@@ -62,13 +63,29 @@ async function fetchToday(): Promise<PageEvent[]> {
   const today = localNow.toISOString().slice(0, 10)
 
   try {
-    const res = await fetch(
-      `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${today}&end=${today}&division=helsinki&language=fi&page_size=100&sort=start_time&include=location`,
-      { next: { revalidate: 900 }, signal: AbortSignal.timeout(10000) }
-    )
-    if (!res.ok) return []
-    const data = await res.json()
-    return (data.data || []).map(normalize)
+    // Descending sort + date filter: LinkedEvents `start=` also matches
+    // months-old ongoing exhibitions, which ascending order would put first —
+    // eating the whole page and hiding today's real (esp. evening) events.
+    // Two pages cover festival days with >100 starts.
+    const base = `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${today}&end=${today}&division=helsinki&language=fi&page_size=100&sort=-start_time&include=location`
+    const results = await Promise.allSettled([1, 2].map((p) =>
+      fetch(`${base}&page=${p}`, { next: { revalidate: 900 }, signal: AbortSignal.timeout(10000) })
+    ))
+    const events: PageEvent[] = []
+    const seen = new Set<string>()
+    for (const r of results) {
+      if (r.status !== 'fulfilled' || !r.value.ok) continue
+      const data = await r.value.json()
+      for (const raw of data.data || []) {
+        if (seen.has(raw.id)) continue
+        seen.add(raw.id)
+        const e = normalize(raw)
+        // Helsinki calendar date — LE emits UTC, so a 00:30 event's ISO prefix
+        // would point at the previous day
+        if (helsinkiDateOf(e.startTime) === today) events.push(e)
+      }
+    }
+    return events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   } catch {
     return []
   }
