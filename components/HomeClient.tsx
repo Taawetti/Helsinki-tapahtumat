@@ -657,6 +657,18 @@ export default function HomeClient({
   // 'kaikki' counts as 0 — it's "show all", not a real filter selection
   const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0) + (liveOnly ? 1 : 0)
 
+  // Suodatinpalkin teksti: näytä KAIKKI aktiiviset suodattimet. Pelkän
+  // ensimmäisen aihepiirin näyttäminen piilotti esim. hintasuodattimen —
+  // "Stand up · 1 tapahtumaa" ilman selitystä, kun 🎁 Ilmainen oli päällä.
+  // ('ilmainen'-vibe kartoittuu hintasuodattimeen → hintachip edustaa sitä.)
+  const activeFilterLabel = [
+    ...(liveOnly ? ['🔴 Nyt menossa'] : []),
+    ...activeVibes
+      .filter((v) => v !== 'kaikki' && v !== 'ilmainen')
+      .map((v) => { const vb = VIBES.find((x) => x.id === v); return vb ? `${vb.emoji} ${vb.label}` : v }),
+    ...(priceFilter === 'free' ? [`🎁 ${t('common.free')}`] : priceFilter === 'paid' ? ['💳 Maksulliset'] : []),
+  ].join(' · ') || t('common.filters')
+
   // Freshness badge counts — hoisted so the ok/fail split lives in one place
   const okSourceCount = sources.filter(s => s.ok).length
   const failedSourceCount = sources.length - okSourceCount
@@ -994,10 +1006,7 @@ export default function HomeClient({
               style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>
-                  {liveOnly ? '🔴 Nyt menossa'
-                    : activeVibes[0]
-                    ? (VIBES.find(v => v.id === activeVibes[0])?.emoji + ' ' + VIBES.find(v => v.id === activeVibes[0])?.label)
-                    : priceFilter === 'free' ? `🎁 ${t('common.free')}` : t('common.filters')}
+                  {activeFilterLabel}
                 </span>
                 <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>
                   · {discoverEvents.length} {t('discover.events_count')}
