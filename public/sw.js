@@ -116,19 +116,22 @@ async function fetchAndCache(cache, request) {
 // ── Push notifications ───────────────────────────────────
 self.addEventListener('push', e => {
   if (!e.data) return
-  const { title, body } = e.data.json()
+  // Payload: { title, body, url?, tag? } — url deep-links on click,
+  // tag separates digests (morning vs evening) so they don't collapse.
+  const { title, body, url, tag } = e.data.json()
   e.waitUntil(
     self.registration.showNotification(title, {
       body,
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      tag: 'hki-events',
+      tag: tag || 'hki-events',
       renotify: true,
+      data: { url: url || '/' },
     })
   )
 })
 
 self.addEventListener('notificationclick', e => {
   e.notification.close()
-  e.waitUntil(clients.openWindow('/'))
+  e.waitUntil(clients.openWindow((e.notification.data && e.notification.data.url) || '/'))
 })
