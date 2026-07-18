@@ -1,6 +1,8 @@
 const CACHE = 'hki-v3'
-const API_CACHE = 'hki-api-v1'
-const QUICK_CACHE = 'hki-quick-v1'
+// v2: day-chunk fetch shipped — old cached responses miss most of the day's
+// events, so the API cache generation is bumped to drop them on activate.
+const API_CACHE = 'hki-api-v2'
+const QUICK_CACHE = 'hki-quick-v2'
 const STATIC = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png']
 const API_TTL = 5 * 60 * 1000     // full fetch: 5 min fresh
 const API_MAX_AGE = 60 * 60 * 1000 // full fetch: 1 h max stale

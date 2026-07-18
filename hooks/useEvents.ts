@@ -7,8 +7,20 @@ import type { GeoCoords } from './useGeolocation'
 interface CacheEntry { events: Event[]; hasMore: boolean; total: number; ts: number; generatedAt?: string; sources?: SourceStatus[] }
 const eventsCache = new Map<string, CacheEntry>()
 const CACHE_TTL = 5 * 60 * 1000
-const LS_PREFIX = 'events-v2-'
+// v3: day-chunk fetch — v2 entries were missing most of the day's events
+const LS_PREFIX = 'events-v3-'
 const LS_TTL = 30 * 60 * 1000
+
+// One-time sweep of the previous cache generation's keys (they'd never be
+// read again and would sit in localStorage as dead weight)
+if (typeof window !== 'undefined') {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i)
+      if (k?.startsWith('events-v2-')) localStorage.removeItem(k)
+    }
+  } catch {}
+}
 
 // ts override: pass a stale timestamp to serve seeded data instantly while
 // still triggering a background revalidation against the full source fan-out.
