@@ -535,22 +535,39 @@ interface RestaurantEnrichment {
   reviewCount?: number
   subCategories?: string[]
   imageUrl?: string
+  googleHours?: string  // OSM-format string derived from Google hours (fresher than OSM)
 }
 
 async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEnrichment>> {
   if (!supabase) return {}
 
-  // Supabase returns max 1000 rows per request — paginate to get all
+  // Supabase returns max 1000 rows per request — paginate to get all.
+  // `google_hours` is a newer column; if the migration hasn't run yet the
+  // select would error and wipe ALL enrichment, so fall back to the legacy
+  // column set on error (deploy order then doesn't matter).
+  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours'
+  const LEGACY_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image'
+  let cols = FULL_COLS
   const PAGE = 1000
   const allRows: Record<string, unknown>[] = []
   for (let page = 0; ; page++) {
-    const { data } = await supabase
+    const resp = await supabase
       .from('venue_ratings')
-      .select('venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image')
+      .select(cols)
       .range(page * PAGE, (page + 1) * PAGE - 1)
-    if (!data || data.length === 0) break
-    allRows.push(...data)
-    if (data.length < PAGE) break
+    let rows = resp.data as unknown as Record<string, unknown>[] | null
+    if (resp.error && cols === FULL_COLS) {
+      // Missing google_hours column — retry without it, permanently
+      cols = LEGACY_COLS
+      const retry = await supabase
+        .from('venue_ratings')
+        .select(cols)
+        .range(page * PAGE, (page + 1) * PAGE - 1)
+      rows = retry.data as unknown as Record<string, unknown>[] | null
+    }
+    if (!rows || rows.length === 0) break
+    allRows.push(...rows)
+    if (rows.length < PAGE) break
   }
 
   const map: Record<string, RestaurantEnrichment> = {}
@@ -565,6 +582,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
       entry.subCategories = row.sub_categories as string[]
     }
     if (row.main_image) entry.imageUrl = row.main_image as string
+    if (typeof row.google_hours === 'string' && row.google_hours.trim()) entry.googleHours = row.google_hours as string
     if (Object.keys(entry).length > 0) map[row.venue_key as string] = entry
   }
   return map
@@ -572,7 +590,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
 
 const fetchCuisineEnrichmentCached = unstable_cache(
   _fetchRestaurantEnrichment,
-  ['restaurant-enrichment-v7'],
+  ['restaurant-enrichment-v8'], // v8: + google_hours
   { revalidate: 3600 }
 )
 
@@ -590,6 +608,15 @@ export async function GET(req: NextRequest) {
     fetchCuisineEnrichmentCached(),
   ])
 
+  // Count venues per name — chains share one venue_ratings row (keyed by name),
+  // so a single Google-hours string must NOT override every outlet's own hours
+  // (they differ per location). Only apply Google hours to UNIQUE names.
+  const nameCounts = new Map<string, number>()
+  for (const r of osmList) {
+    const k = r.name.toLowerCase().trim()
+    nameCounts.set(k, (nameCounts.get(k) ?? 0) + 1)
+  }
+
   // Apply Supabase enrichment: cuisine categories, Google ratings, sub-categories
   const restaurants_enriched = osmList.map(r => {
     const enriched = enrichmentMap[r.name.toLowerCase().trim()]
@@ -602,6 +629,15 @@ export async function GET(req: NextRequest) {
     if (enriched.reviewCount) updates.reviewCount = enriched.reviewCount
     if (enriched.subCategories) updates.subCategories = enriched.subCategories
     if (enriched.imageUrl && !r.image) updates.image = enriched.imageUrl
+    // Google opening hours override OSM — OSM restaurant hours are frequently
+    // stale (venue open Sundays in OSM but closed per Google). Google wins,
+    // but ONLY for unique names (chains share one row → would misapply).
+    if (enriched.googleHours && nameCounts.get(r.name.toLowerCase().trim()) === 1) {
+      updates.openingHours = enriched.googleHours
+      updates.hoursSource = 'google'
+    } else if (r.openingHours) {
+      updates.hoursSource = 'osm'
+    }
     return Object.keys(updates).length > 0 ? { ...r, ...updates } : r
   })
 

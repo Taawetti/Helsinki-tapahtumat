@@ -153,7 +153,8 @@ export interface Restaurant {
   instagram?: string | null
   type: 'ravintola' | 'kahvila' | 'baari' | 'yokerho' | 'pikaruoka' | 'muu'
   priceRange?: 1 | 2 | 3 | 4   // 1=€ 2=€€ 3=€€€ 4=€€€€
-  openingHours?: string         // raw OSM opening_hours value
+  openingHours?: string         // opening_hours (OSM format; Google-sourced when hoursSource='google')
+  hoursSource?: 'google' | 'osm' // provenance of openingHours — Google is fresher
   michelinStars?: number        // 1, 2 or 3
   bibGourmand?: boolean
   greenMichelin?: boolean

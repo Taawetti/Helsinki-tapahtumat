@@ -123,6 +123,9 @@ export default function AdminPage() {
   const [enrichingSubs, setEnrichingSubs] = useState(false)
   const [enrichSubsResult, setEnrichSubsResult] = useState('')
   const enrichSubsStopRef = useRef(false)
+  const [enrichingHours, setEnrichingHours] = useState(false)
+  const [enrichHoursResult, setEnrichHoursResult] = useState('')
+  const enrichHoursStopRef = useRef(false)
   const [enrichingImages, setEnrichingImages] = useState(false)
   const [enrichImagesResult, setEnrichImagesResult] = useState('')
   const enrichImagesStopRef = useRef(false)
@@ -165,6 +168,41 @@ export default function AdminPage() {
       }
     }
     setEnriching(false)
+  }
+
+  async function handleEnrichHours() {
+    if (enrichingHours) { enrichHoursStopRef.current = true; return }
+    setEnrichingHours(true)
+    enrichHoursStopRef.current = false
+    setEnrichHoursResult('Aloitetaan...')
+    let totalProcessed = 0
+    let totalStored = 0
+
+    try {
+      while (!enrichHoursStopRef.current) {
+        // 40/batch × ~1.1s stays well under the 300s serverless limit
+        const res = await fetch('/api/admin/enrich-restaurant-hours', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: 40 }),
+        })
+        const data = await res.json()
+        if (data.error) { setEnrichHoursResult('Virhe: ' + data.error); break }
+
+        totalProcessed += data.processed
+        totalStored += data.stored
+        setEnrichHoursResult(`Käsitelty ${totalProcessed} • Google-aukiolot ${totalStored} • Jäljellä ${data.remaining}`)
+
+        if (data.remaining === 0 || data.processed === 0) {
+          setEnrichHoursResult(`✓ Valmis — käsitelty ${totalProcessed}, aukiolot ${totalStored}:lle`)
+          break
+        }
+      }
+    } catch (e) {
+      setEnrichHoursResult('Virhe: ' + (e instanceof Error ? e.message : 'verkkovirhe — yritä uudelleen'))
+    } finally {
+      setEnrichingHours(false)
+    }
   }
 
   async function handleEnrichSubcategories() {
@@ -289,6 +327,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-3 flex-wrap justify-end">
           {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
           {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
+          {enrichHoursResult && <span className={`text-xs ${enrichHoursResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichHoursResult}</span>}
           {enrichImagesResult && <span className={`text-xs ${enrichImagesResult.startsWith('✓') ? 'text-green-400' : enrichImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichImagesResult}</span>}
           {enrichActivityImagesResult && <span className={`text-xs ${enrichActivityImagesResult.startsWith('✓') ? 'text-green-400' : enrichActivityImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivityImagesResult}</span>}
           {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
@@ -303,6 +342,12 @@ export default function AdminPage() {
             className={`text-sm transition-colors ${enrichingSubs ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'}`}
           >
             {enrichingSubs ? '⏹ Pysäytä' : '🎯 Enrichoi kategoriat'}
+          </button>
+          <button
+            onClick={handleEnrichHours}
+            className={`text-sm transition-colors ${enrichingHours ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}
+          >
+            {enrichingHours ? '⏹ Pysäytä' : '🕐 Google-aukiolot'}
           </button>
           <button
             onClick={handleEnrichImages}

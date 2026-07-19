@@ -26,6 +26,8 @@ export interface DbVenueRating {
   description: string | null
   last_updated: string
   cuisine_categories: string[] | null
+  google_hours: string | null          // OSM-format opening_hours derived from Google
+  google_hours_updated: string | null
 }
 
 export interface DbRecurringEvent {
