@@ -6,6 +6,7 @@ import type { Event, Activity, ActivityCategory } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { ATTRACTION_HIGHLIGHTS, getHighlight } from '@/lib/activity-highlights'
+import { isOpenNow } from '@/lib/opening-hours'
 
 // ── Curated activity names ───────────────────────────────
 
@@ -54,38 +55,6 @@ interface Suggestion {
 }
 
 // ── Helpers ──────────────────────────────────────────────
-
-function isOpenNow(hours?: string): boolean | undefined {
-  if (!hours) return undefined
-  if (hours === '24/7') return true
-  try {
-    const now = new Date()
-    const dayIdx = now.getDay()
-    const cur = now.getHours() * 60 + now.getMinutes()
-    const D: Record<string, number[]> = { Mo:[1],Tu:[2],We:[3],Th:[4],Fr:[5],Sa:[6],Su:[0] }
-    function expandRange(spec: string): number[] {
-      if (D[spec]) return D[spec]
-      const m = spec.match(/^([A-Z][a-z])-([A-Z][a-z])$/)
-      if (m) {
-        const keys = ['Mo','Tu','We','Th','Fr','Sa','Su']
-        const a = keys.indexOf(m[1]), b = keys.indexOf(m[2])
-        if (a >= 0 && b >= 0) return keys.slice(a, b+1).map(k => D[k][0])
-      }
-      return []
-    }
-    for (const part of hours.split(';')) {
-      const m = part.trim().match(/^([\w-]+(?:,[\w-]+)*)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
-      if (!m) continue
-      const days = m[1].split(',').flatMap(expandRange)
-      if (!days.includes(dayIdx)) continue
-      const [fh,fm] = m[2].split(':').map(Number)
-      const [th,tm] = m[3].split(':').map(Number)
-      const from = fh*60+fm, to = th*60+tm
-      if (cur >= from && cur <= (to < from ? to+1440 : to)) return true
-    }
-    return false
-  } catch { return undefined }
-}
 
 function minutesUntilStart(startTime: string): number {
   return Math.round((new Date(startTime).getTime() - Date.now()) / 60000)

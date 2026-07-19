@@ -23,13 +23,16 @@ import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
 import JarjestajaForm from '@/components/JarjestajaForm'
 import NewsletterBanner from '@/components/NewsletterBanner'
-import RestaurantsView from '@/components/RestaurantsView'
-import ActivitiesView from '@/components/ActivitiesView'
-import IdeaView from '@/components/IdeaView'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
+// Tab views are code-split: each only mounts when its tab is opened, so the
+// ~250 KB opening_hours library (restaurants/activities/ideas) and the views
+// themselves stay out of the initial bundle.
+const RestaurantsView = dynamic(() => import('@/components/RestaurantsView'), { ssr: false })
+const ActivitiesView = dynamic(() => import('@/components/ActivitiesView'), { ssr: false })
+const IdeaView = dynamic(() => import('@/components/IdeaView'), { ssr: false })
 
 interface EmptyStateProps {
   keyword: string

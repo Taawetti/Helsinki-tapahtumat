@@ -5,6 +5,7 @@ import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'luci
 import type { Restaurant } from '@/lib/types'
 import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { isOpenNow, getTodayHours, helsinkiNow } from '@/lib/opening-hours'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -233,12 +234,12 @@ function NewsSection({ items }: { items: NewsItem[] }) {
 }
 
 function isLunchTime(): boolean {
-  const h = new Date().getHours()
+  const h = helsinkiNow().getHours()
   return h >= 10 && h < 15
 }
 
 function isDinnerTime(): boolean {
-  const h = new Date().getHours()
+  const h = helsinkiNow().getHours()
   return h >= 17 && h <= 22
 }
 
@@ -255,43 +256,6 @@ function isLateNight(hours: string): boolean {
   return false
 }
 
-function isOpenNow(hours: string): boolean | undefined {
-  if (!hours) return undefined
-  if (hours === '24/7') return true
-  try {
-    const now = new Date()
-    const dayIdx = now.getDay()
-    const cur = now.getHours() * 60 + now.getMinutes()
-    const D: Record<string, number[]> = { Mo:[1],Tu:[2],We:[3],Th:[4],Fr:[5],Sa:[6],Su:[0] }
-    function expandRange(spec: string): number[] {
-      if (D[spec]) return D[spec]
-      const m = spec.match(/^([A-Z][a-z])-([A-Z][a-z])$/)
-      if (m) {
-        const keys = ['Mo','Tu','We','Th','Fr','Sa','Su']
-        const a = keys.indexOf(m[1]), b = keys.indexOf(m[2])
-        if (a >= 0 && b >= 0) return keys.slice(a, b + 1).map(k => D[k][0])
-      }
-      return []
-    }
-    for (const part of hours.split(';')) {
-      const m = part.trim().match(/^([\w-]+(?:,[\w-]+)*)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
-      if (!m) continue
-      const days = m[1].split(',').flatMap(expandRange)
-      const [fh, fm] = m[2].split(':').map(Number)
-      const [th, tm] = m[3].split(':').map(Number)
-      const from = fh * 60 + fm, to = th * 60 + tm
-      if (to < from) {
-        const yesterday = (dayIdx + 6) % 7
-        if (days.includes(dayIdx) && cur >= from) return true
-        if (days.includes(yesterday) && cur <= to) return true
-      } else {
-        if (days.includes(dayIdx) && cur >= from && cur <= to) return true
-      }
-    }
-    return false
-  } catch { return undefined }
-}
-
 function formatOpeningHoursHuman(raw: string): string {
   if (!raw) return ''
   if (raw === '24/7') return 'Auki 24/7'
@@ -304,29 +268,6 @@ function formatOpeningHoursHuman(raw: string): string {
       return s
     })
     .join(', ')
-}
-
-function getTodayHours(raw: string): string | null {
-  if (!raw) return null
-  if (raw === '24/7') return '24h'
-  const dayIdx = new Date().getDay() // 0=Su
-  const D: Record<string, number> = { Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6, Su: 0 }
-  function expandRange(spec: string): number[] {
-    if (D[spec] !== undefined) return [D[spec]]
-    const m = spec.match(/^([A-Z][a-z])-([A-Z][a-z])$/)
-    if (m) {
-      const keys = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
-      const a = keys.indexOf(m[1]), b = keys.indexOf(m[2])
-      if (a >= 0 && b >= 0) return keys.slice(a, b + 1).map(k => D[k])
-    }
-    return []
-  }
-  for (const part of raw.split(';')) {
-    const m = part.trim().match(/^([\w-]+(?:,[\w-]+)*)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
-    if (!m) continue
-    if (m[1].split(',').flatMap(expandRange).includes(dayIdx)) return `${m[2]}–${m[3]}`
-  }
-  return null
 }
 
 function reservationUrl(r: Restaurant): string {
