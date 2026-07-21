@@ -20,7 +20,14 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
   if (events.length === 0) return null
   const safeIdx = Math.min(idx, events.length - 1)
   const e = events[safeIdx]
-  const time = new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+  const start = new Date(e.startTime)
+  const time = start.toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+  // Päivälabel tapahtuman OIKEASTA päivästä — päivävalitsin voi näyttää
+  // huomisen/viikonlopun keikkoja, jolloin "Tänään" olisi väärin
+  const isToday = start.toDateString() === new Date().toDateString()
+  const dayLabel = isToday
+    ? t('date.today')
+    : start.toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'numeric' })
   const fav = isFavorite(e.id)
 
   const onPointerDown = (ev: React.PointerEvent) => {
@@ -48,6 +55,13 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
       onOpen(e)
     }
   }
+  // Selaimen kaappaama ele (pystyscrollaus pan-y:llä) EI ole napautus eikä
+  // pyyhkäisy — pelkkä nollaus, muuten scrollaus avaisi detaljin vahingossa
+  const cancelDrag = () => {
+    dragging.current = false
+    moved.current = false
+    setDragX(0)
+  }
 
   const cta = e.isFree
     ? `${t('common.free')} →`
@@ -73,7 +87,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerCancel={cancelDrag}
         role="button"
         aria-label={e.title}
       >
@@ -92,7 +106,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
           </span>
           <span className="text-[10px] font-black px-2.5 py-1.5 rounded-full"
             style={{ background: 'rgba(10,10,12,.55)', border: '1px solid rgba(107,118,255,.4)', color: '#c7caff', backdropFilter: 'blur(8px)' }}>
-            {t('date.today')}
+            {dayLabel}
           </span>
         </div>
 
@@ -128,7 +142,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
               {cta}
             </span>
             <span className="text-white/85 text-[14px] font-bold shrink-0">
-              {t('date.today')} {time}
+              {dayLabel} {time}
             </span>
           </div>
         </div>

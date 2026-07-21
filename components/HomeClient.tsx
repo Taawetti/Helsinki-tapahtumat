@@ -511,7 +511,11 @@ export default function HomeClient({
 
   const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
     setMapTarget({ lat, lon, name, type })
-    setMode('map')
+    // Muista lähtösivu, jotta kartan ‹-paluunappi palaa oikeaan näkymään
+    setMode((prev) => {
+      if (prev !== 'map' && prev !== 'favorites') setPageBack(prev)
+      return 'map'
+    })
     setMobileTab('map')
   }, [])
 
@@ -674,8 +678,6 @@ export default function HomeClient({
     [events]
   )
 
-  const heroEvent = useMemo(() => discoverEvents.find((e) => nightlifeScore(e) >= 3 && e.image) ?? null, [discoverEvents])
-
   // "🎸 ILLAN KEIKAT" — pyyhkäisyheron 5 nostoa: parhaat pisteet ensin,
   // näytöllä aikajärjestyksessä
   const heroGigs = useMemo(() => {
@@ -766,7 +768,7 @@ export default function HomeClient({
       <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(10,10,12,0.96)', backdropFilter: 'blur(20px)' }}>
         {/* ── Mobile header row 1: logo + actions ── */}
         <div className="md:hidden flex items-center justify-between px-4 pt-3 pb-2">
-          <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="flex items-center gap-2">
+          <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>M</div>
             <span className="font-black text-sm tracking-tight" style={{ color: '#a3abff' }}>
               Mitä tänään
@@ -809,7 +811,7 @@ export default function HomeClient({
         <div className="md:hidden px-4 pb-3">
           <SearchBar
             value={keyword}
-            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }}
+            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null) } }}
             activityHits={localSearchHits.activities}
             restaurantHits={localSearchHits.restaurants}
             onSelectActivity={handleSelectActivity}
@@ -819,7 +821,7 @@ export default function HomeClient({
 
         {/* ── Desktop header: single row ── */}
         <div className="hidden md:flex max-w-6xl mx-auto px-4 py-3 items-center gap-3">
-          <button onClick={() => { setMode('discover'); setMobileTab('discover') }} className="shrink-0 flex items-center gap-2">
+          <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="shrink-0 flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0 text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>M</div>
             <span className="font-black text-sm tracking-tight" style={{ color: '#a3abff' }}>
               Mitä tänään
@@ -828,7 +830,7 @@ export default function HomeClient({
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
             {(['discover', 'idea', 'restaurants', 'activities'] as AppMode[]).map((m) => (
-              <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab) }}
+              <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab); if (m === 'discover') setKoCat(null) }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
                 style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
                 {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🧖 ${t('nav.activities')}`}
@@ -844,7 +846,7 @@ export default function HomeClient({
           <div className="flex-1 max-w-md">
             <SearchBar
             value={keyword}
-            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover') } }}
+            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null) } }}
             activityHits={localSearchHits.activities}
             restaurantHits={localSearchHits.restaurants}
             onSelectActivity={handleSelectActivity}
@@ -944,7 +946,7 @@ export default function HomeClient({
               <Heart size={48} className="text-white/8" />
               <p className="text-white/30 font-bold">{t('fav.empty')}</p>
               <p className="text-white/15 text-sm">{t('fav.hint')}</p>
-              <button onClick={() => { setMode('discover'); setMobileTab('discover') }}
+              <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }}
                 className="px-5 py-2.5 rounded-full text-sm font-black text-white"
                 style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                 {t('fav.browse')}
@@ -1228,7 +1230,7 @@ export default function HomeClient({
           {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all' || liveOnly) && discoverEvents.length > 0 && (
             <section>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {discoverEvents.filter(e => e.id !== heroEvent?.id).map(e => (
+                {discoverEvents.map(e => (
                   <PosterCard key={e.id} event={e} onClick={setSelectedEvent}
                     distance={geo.coords && e.location?.lat && e.location?.lon
                       ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)

@@ -232,19 +232,13 @@ const LEGEND_EVENT = [
   { color: '#06b6d4', label: 'Taide' },
   { color: '#10b981', label: 'Ilmainen' },
 ]
+// Pinnit ovat nyt tasoväreissä (design-tokenit): ravintolat sininen,
+// tekeminen vihreä — legenda kuvaa tasot, tyyppi näkyy pinnin emojista
 const LEGEND_REST = [
-  { color: '#f97316', label: 'Ravintola' },
-  { color: '#d97706', label: 'Kahvila' },
-  { color: '#d946ef', label: 'Baari' },
-  { color: '#ef4444', label: 'Pikaruoka' },
+  { color: '#5f96ff', label: 'Ravintolat' },
 ]
 const LEGEND_ACT = [
-  { color: '#f97316', label: 'Sauna' },
-  { color: '#06b6d4', label: 'Museo' },
-  { color: '#3b82f6', label: 'Nähtävyys' },
-  { color: '#a855f7', label: 'Galleria' },
-  { color: '#22c55e', label: 'Puisto' },
-  { color: '#14b8a6', label: 'Uimaranta' },
+  { color: '#5fd9a6', label: 'Tekemistä' },
 ]
 
 // ── Component ─────────────────────────────────────────────
@@ -260,6 +254,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     'Taide':      'legend.art',
     'Ilmainen':   'legend.free',
     'Ravintola':  'legend.restaurant',
+    'Ravintolat': 'nav.restaurants',
+    'Tekemistä':  'nav.activities',
     'Kahvila':    'legend.cafe',
     'Pikaruoka':  'legend.fastfood',
     'Sauna':      'legend.sauna',

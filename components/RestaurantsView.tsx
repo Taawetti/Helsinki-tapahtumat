@@ -1152,6 +1152,9 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
   useEffect(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setVisibleCount(48); setRcPick(null); setRcTried(false) }, [restType])
   useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby])
+  // Etusivun pikasuodattimet eivät saa vuotaa näkymättöminä alakategorian
+  // pystylistaan (siellä ei ole pillereitä joilla ne näkisi/poistaisi)
+  useEffect(() => { setFilterOpen(false); setFilterNearby(false) }, [subCat])
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) return

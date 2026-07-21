@@ -48,7 +48,13 @@ export default function JarjestajaForm({ onClose }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, kategoria: kategoriat.join(', ') }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        // Näytä palvelimen tarkka syy (esim. "Virheellinen linkki — käytä
+        // muotoa https://…") geneerisen virheen sijaan
+        const data = await res.json().catch(() => null)
+        setError(data?.error ?? t('form.error'))
+        return
+      }
       setSent(true)
     } catch {
       setError(t('form.error'))
