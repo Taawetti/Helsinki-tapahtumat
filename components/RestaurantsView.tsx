@@ -852,64 +852,225 @@ function RestRow({ title, items, distMap, onCardClick, onChainClick, onShowOnMap
   )
 }
 
-// ── Sub-cat icon grid ─────────────────────────────────────
+// ── "Selaa kategorioittain" — 3-sarakkeinen fiilisruudukko (design 3-ravintolat.png) ──
 
-function SubCatGrid({ restType, active, onSelect }: {
+// tint-hehkut per kategoria — sävyt vaihtelevat tarkoituksella
+const GRID_TINTS: Record<string, string> = {
+  awarded: '232,192,106', nordisk: '95,150,255', japanese: '95,217,166', pizza: '255,107,107',
+  italian: '175,130,255', asian: '95,217,166', burger: '232,192,106', veggie: '95,217,166',
+  seafood: '95,150,255', steak: '255,107,107', indian: '232,150,106', mexican: '232,192,106',
+  middle_eastern: '175,130,255', african: '232,150,106',
+  klassikot: '232,192,106', ranskalaiset: '175,130,255', boheemit: '95,217,166', erikois: '95,150,255', paahtimo: '255,107,107', brunssi: '232,192,106',
+  cocktail: '175,130,255', olut: '232,192,106', viini: '255,107,107', urheilu: '95,150,255',
+  klubi: '175,130,255', karaoke: '255,107,107', tekno: '95,150,255', katto: '95,217,166',
+}
+
+function SubCatGrid({ restType, onSelect }: {
   restType: RestType
-  active: string
   onSelect: (id: string) => void
 }) {
   return (
     <section>
-      <h2 className="font-black text-white text-[17px] mb-4" style={{ letterSpacing: '-0.02em' }}>
-        Selaa tyypeittäin
+      <h2 className="font-black text-white text-[18px] mb-3" style={{ letterSpacing: '-0.02em' }}>
+        Selaa kategorioittain
       </h2>
-      <div className="grid grid-cols-2 gap-2.5">
-        {SUB_CATS[restType].map(cat => {
-          const isActive = active === cat.id
-          return (
-            <button key={cat.id} onClick={() => onSelect(isActive ? 'all' : cat.id)}
-              className="flex items-center gap-3 rounded-2xl px-4 py-4 text-left transition-all active:scale-[.97]"
-              style={isActive
-                ? { background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.4)' }
-                : { background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }
-              }>
-              <span className="text-[22px] leading-none flex-shrink-0">{cat.emoji}</span>
-              <span className="font-black text-[13px] leading-tight"
-                style={{ letterSpacing: '-0.01em', color: isActive ? '#a3abff' : 'rgba(255,255,255,.6)' }}>
-                {cat.label}
-              </span>
-            </button>
-          )
-        })}
+      <div className="grid grid-cols-3 gap-2">
+        {SUB_CATS[restType].map(cat => (
+          <button key={cat.id} onClick={() => onSelect(cat.id)}
+            className="flex flex-col items-start gap-2 rounded-[16px] px-3.5 py-4 text-left transition-all active:scale-[.97]"
+            style={{
+              background: `radial-gradient(130% 110% at 30% 0%, rgba(${GRID_TINTS[cat.id] ?? '120,130,200'},.15), rgba(255,255,255,.03) 70%)`,
+              border: '1px solid rgba(255,255,255,.07)',
+            }}>
+            <span className="text-[24px] leading-none">{cat.emoji}</span>
+            <span className="font-black text-[12.5px] leading-tight text-white/90" style={{ letterSpacing: '-0.01em' }}>
+              {cat.label}
+            </span>
+          </button>
+        ))}
       </div>
     </section>
   )
 }
 
-// ── Type tab grid — 2×2 large cards ──────────────────────
+// ── Tyyppisegmentit — pillerit (design 3-ravintolat.png) ──────────────────
 
 function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestType) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
       {TYPE_TABS.map(tab => {
         const isActive = active === tab.id
         return (
           <button key={tab.id} onClick={() => onChange(tab.id)}
-            className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition-all active:scale-[.97]"
+            className="shrink-0 flex items-center gap-2 rounded-full px-4 py-2.5 transition-all active:scale-[.97]"
             style={isActive
               ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 6px 16px -6px rgba(91,101,230,.5)' }
               : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }
             }>
-            <span className="text-[20px] leading-none flex-shrink-0">{tab.emoji}</span>
-            <span className="font-black text-[13px] leading-tight"
-              style={{ letterSpacing: '-0.01em', color: isActive ? '#fff' : 'rgba(255,255,255,.7)' }}>
+            <span className="text-[16px] leading-none">{tab.emoji}</span>
+            <span className="font-black text-[13.5px]" style={{ letterSpacing: '-0.01em', color: isActive ? '#fff' : 'rgba(255,255,255,.55)' }}>
               {tab.label}
             </span>
           </button>
         )
       })}
     </div>
+  )
+}
+
+// ── Alakategorian alleviivatabit — näkyvät vain pystylistassa ─────────────
+
+function RestSubTabs({ restType, active, onSelect }: {
+  restType: RestType
+  active: string
+  onSelect: (id: string) => void
+}) {
+  const items = [{ id: 'all', emoji: '', label: 'Kaikki' }, ...SUB_CATS[restType]]
+  return (
+    <div className="flex gap-5 overflow-x-auto scrollbar-none -mx-4 px-4 border-b border-white/6">
+      {items.map(cat => {
+        const isActive = active === cat.id
+        return (
+          <button key={cat.id} onClick={() => onSelect(cat.id)}
+            className="shrink-0 pb-2.5 text-[13.5px] font-black transition-colors"
+            style={{
+              color: isActive ? '#fff' : 'rgba(255,255,255,.4)',
+              borderBottom: isActive ? '2px solid #6b76ff' : '2px solid transparent',
+              letterSpacing: '-0.01em',
+            }}>
+            {cat.emoji ? `${cat.emoji} ` : ''}{cat.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── "⭐ 4.5+" — korkea laatu: arvosana ≥4.5 JA ≥100 arvostelua, tai
+//    arvosanan puuttuessa Michelin/Bib-tunnustus ─────────────────────────
+function isHighRated(r: Restaurant): boolean {
+  if (r.googleRating !== undefined && r.googleRating !== null) {
+    return r.googleRating >= 4.5 && (r.reviewCount ?? 0) >= 100
+  }
+  return !!(r.michelinStars || r.bibGourmand || r.michelinRecommended)
+}
+
+// ── 🎯 Auta valitsemaan -paneeli (design 3-ravintolat.png) ────────────────
+
+type DistSeg = 0 | 1 | 2 | null   // 0–1 km | 1–3 km | 3+ km
+type PriceSeg = 1 | 2 | 3 | null  // € | €€ | €€€
+
+function DecidePanel({ pool, pick, tried, dist, price, rated, distMap, onDist, onPrice, onRated, onDecide, onAgain, onOpen }: {
+  pool: Restaurant[]
+  pick: Restaurant | null
+  tried: boolean
+  dist: DistSeg
+  price: PriceSeg
+  rated: boolean
+  distMap: Map<string, number>
+  onDist: (d: DistSeg) => void
+  onPrice: (p: PriceSeg) => void
+  onRated: () => void
+  onDecide: () => void
+  onAgain: () => void
+  onOpen: (r: Restaurant) => void
+}) {
+  const segBtn = (isActive: boolean): React.CSSProperties => ({
+    color: isActive ? '#fff' : 'rgba(255,255,255,.45)',
+    background: isActive ? 'rgba(107,118,255,.35)' : 'transparent',
+    fontWeight: 800,
+  })
+  const open = pick?.openingHours ? isOpenNow(pick.openingHours) : undefined
+  const todayHrs = pick?.openingHours ? getTodayHours(pick.openingHours) : null
+  const pickDist = pick ? distMap.get(pick.id) : undefined
+  const pickEmoji = pick
+    ? (SUB_CATS.ruokapaikat.concat(SUB_CATS.kahvilat, SUB_CATS.baarit, SUB_CATS.yokerhot)
+        .find(c => matchesSubCat(pick, 'ruokapaikat', c.id) || (pick.subCategories ?? []).includes(c.id))?.emoji
+      ?? (pick.type === 'kahvila' ? '☕' : pick.type === 'baari' ? '🍸' : pick.type === 'yokerho' ? '🌃' : '🍽'))
+    : '🍽'
+
+  return (
+    <section className="rounded-[20px] p-4 space-y-3"
+      style={{ background: 'rgba(107,118,255,.06)', border: '1px solid rgba(107,118,255,.3)' }}>
+      <h2 className="font-black text-white text-[16px]" style={{ letterSpacing: '-0.02em' }}>🎯 Auta valitsemaan</h2>
+
+      {/* Kompaktit suodattimet — aina näkyvissä yhdellä rivillä */}
+      <div className="flex flex-wrap gap-2">
+        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+          <span className="pl-2.5 pr-1 text-[13px]">🚶</span>
+          {(['0–1', '1–3', '3+ km'] as const).map((label, i) => (
+            <button key={label} onClick={() => onDist(dist === (i as DistSeg) ? null : (i as DistSeg))}
+              className={`px-2.5 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
+              style={segBtn(dist === i)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+          {([1, 2, 3] as const).map((p, i) => (
+            <button key={p} onClick={() => onPrice(price === p ? null : p)}
+              className={`px-3 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
+              style={segBtn(price === p)}>
+              {'€'.repeat(p)}
+            </button>
+          ))}
+        </div>
+        <button onClick={onRated}
+          className="px-3 py-2 rounded-xl text-[12px] font-black transition-all"
+          style={{
+            background: rated ? 'rgba(107,118,255,.35)' : 'rgba(255,255,255,.05)',
+            border: rated ? '1px solid rgba(107,118,255,.5)' : '1px solid rgba(255,255,255,.09)',
+            color: rated ? '#fff' : 'rgba(255,255,255,.45)',
+          }}>
+          ⭐ 4.5+
+        </button>
+      </div>
+
+      {/* Tulos / CTA / tyhjä */}
+      {pick ? (
+        <div className="rounded-[16px] p-3.5 space-y-3" style={{ background: 'rgba(10,10,14,.55)', border: '1px solid rgba(255,255,255,.08)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[22px] shrink-0"
+              style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(255,255,255,.08)' }}>
+              {pickEmoji}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-black text-white text-[15px] truncate" style={{ letterSpacing: '-0.01em' }}>{pick.name}</p>
+              <div className="flex items-center gap-2 flex-wrap text-[11.5px] font-bold mt-0.5">
+                {open !== undefined && (
+                  <span style={{ color: open ? '#5fd9a6' : '#e8c06a' }}>● {open ? 'Avoinna' : 'Suljettu'}</span>
+                )}
+                {todayHrs && <span className="text-white/40">🕐 {todayHrs}</span>}
+                {pick.googleRating && (pick.reviewCount ?? 0) > 0 && <span className="text-white/40">⭐ {pick.googleRating.toFixed(1)}</span>}
+                {pickDist !== undefined && <span className="text-white/40">{fmtDist(pickDist)}</span>}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={onAgain}
+              className="py-2.5 rounded-full text-[13px] font-black text-white/70 transition-all active:scale-[.97]"
+              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+              🔄 Anna toinen
+            </button>
+            <button onClick={() => onOpen(pick)}
+              className="py-2.5 rounded-full text-[13px] font-black text-white transition-all active:scale-[.97]"
+              style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 20px -8px rgba(91,101,230,.85)' }}>
+              Avaa →
+            </button>
+          </div>
+        </div>
+      ) : tried && pool.length === 0 ? (
+        <p className="text-[13px] font-bold text-white/45 text-center py-2">
+          Ei osumia näillä rajauksilla — löysää suodattimia.
+        </p>
+      ) : (
+        <button onClick={onDecide}
+          className="w-full py-3.5 rounded-2xl text-[14.5px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[.98]"
+          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
+          🎲 Päätä puolestani
+        </button>
+      )}
+    </section>
   )
 }
 
@@ -959,8 +1120,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [selectedChain, setSelectedChain] = useState<ChainGroup | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   const [news, setNews] = useState<NewsItem[]>([])
-  const [showCatPanel, setShowCatPanel] = useState(false)
-  const catBtnRef = useRef<HTMLButtonElement>(null)
+  // 🎯 Auta valitsemaan — kompaktit suodattimet + arvottu ehdotus
+  const [rcDist, setRcDist] = useState<0 | 1 | 2 | null>(null)
+  const [rcPrice, setRcPrice] = useState<1 | 2 | 3 | null>(null)
+  const [rcRated, setRcRated] = useState(false)
+  const [rcPick, setRcPick] = useState<Restaurant | null>(null)
+  const [rcTried, setRcTried] = useState(false)
 
   useEffect(() => {
     fetch('/api/restaurants')
@@ -985,7 +1150,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setVisibleCount(48) }, [restType])
+  useEffect(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setVisibleCount(48); setRcPick(null); setRcTried(false) }, [restType])
   useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby])
 
   const locateMe = useCallback(() => {
@@ -1087,18 +1252,46 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     return []
   }, [typePool, restType])
 
-  const isFilterActive = subCat !== 'all' || filterOpen || filterNearby
+  // ── 🎯 Auta valitsemaan: suodatettu arvontapooli ────────────────────────
+  const rcPool = useMemo(() => {
+    return typePool.filter(r => {
+      if (rcRated && !isHighRated(r)) return false
+      if (rcPrice !== null) {
+        if (!r.priceRange) return false
+        if (rcPrice === 3 ? r.priceRange < 3 : r.priceRange !== rcPrice) return false
+      }
+      if (rcDist !== null && userPos) {
+        const d = distMap.get(r.id)
+        if (d === undefined) return false
+        if (rcDist === 0 && d > 1) return false
+        if (rcDist === 1 && (d <= 1 || d > 3)) return false
+        if (rcDist === 2 && d <= 3) return false
+      }
+      return true
+    })
+  }, [typePool, rcRated, rcPrice, rcDist, userPos, distMap])
 
-  const activeFilterLabel = useMemo(() => {
-    const parts: string[] = []
-    if (filterOpen) parts.push(`🟢 ${t('idea.open_now')}`)
-    if (filterNearby) parts.push(`📍 ${t('restaurants.sort_nearby')}`)
-    if (subCat !== 'all') {
-      const cat = SUB_CATS[restType].find(c => c.id === subCat)
-      if (cat) parts.push(`${cat.emoji} ${cat.label}`)
-    }
-    return parts.join(' · ') || t('common.filters')
-  }, [subCat, filterOpen, filterNearby, restType])
+  const rollPick = useCallback((avoidId?: string) => {
+    const candidates = rcPool.length > 1 && avoidId ? rcPool.filter(r => r.id !== avoidId) : rcPool
+    if (candidates.length === 0) { setRcPick(null); return }
+    setRcPick(candidates[Math.floor(Math.random() * candidates.length)])
+  }, [rcPool])
+
+  const handleDecide = useCallback(() => { setRcTried(true); rollPick() }, [rollPick])
+  const handleAgain = useCallback(() => rollPick(rcPick?.id), [rollPick, rcPick])
+
+  // Suodattimen vaihto arpoo heti uuden osuman (design-speksi) — vain jos
+  // arvonta on jo käynnissä; etäisyysvalinta pyytää sijainnin laiskasti
+  const handleRcDist = useCallback((d: 0 | 1 | 2 | null) => {
+    setRcDist(d)
+    if (d !== null && !userPos) locateMe()
+  }, [userPos, locateMe])
+  useEffect(() => {
+    if (!rcTried) return
+    const candidates = rcPool
+    setRcPick(candidates.length === 0 ? null : candidates[Math.floor(Math.random() * candidates.length)])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rcDist, rcPrice, rcRated, userPos])
 
   const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false) }, [])
 
@@ -1114,78 +1307,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       </div>
 
       {/* Type tabs — always visible */}
-      <TypeTabs active={restType} onChange={(id) => { setRestType(id); setShowCatPanel(false) }} />
-
-      {/* Floating Kategoriat button */}
-      <button
-        ref={catBtnRef}
-        onClick={() => setShowCatPanel(v => !v)}
-        className="fixed right-3 z-[35] flex items-center gap-1.5 rounded-full overflow-hidden transition-all active:scale-[.94]"
-        style={{
-          top: 'calc(env(safe-area-inset-top, 0px) + 108px)',
-          padding: '7px 11px 7px 9px',
-          background: showCatPanel ? 'rgba(107,118,255,.25)' : 'rgba(255,255,255,.11)',
-          border: showCatPanel ? '1px solid rgba(107,118,255,.5)' : '1px solid rgba(255,255,255,.2)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
-          boxShadow: '0 3px 16px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12)',
-          color: showCatPanel ? '#a3abff' : '#fff',
-        }}
-      >
-        <span className="text-[13px] leading-none select-none">🍽</span>
-        <span className="text-[12px] font-black" style={{ letterSpacing: '-0.01em' }}>Kategoriat</span>
-        {subCat !== 'all' && (
-          <span className="flex items-center justify-center text-[9px] font-black text-white rounded-full"
-            style={{ background: 'rgba(255,255,255,.22)', minWidth: 16, height: 16, padding: '0 3px' }}>
-            1
-          </span>
-        )}
-        <span className="text-[9px] opacity-50 select-none">▾</span>
-      </button>
-
-      {/* Category panel */}
-      {showCatPanel && (
-        <>
-          <div className="fixed inset-0 z-[34]" onClick={() => setShowCatPanel(false)} />
-          <div className="fixed z-[35] right-3 rounded-2xl overflow-hidden"
-            style={{
-              top: 'calc(env(safe-area-inset-top, 0px) + 148px)',
-              width: 260,
-              background: 'rgba(16,16,26,0.97)',
-              border: '1px solid rgba(255,255,255,.1)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              boxShadow: '0 16px 48px rgba(0,0,0,.6)',
-            }}>
-            <div className="px-4 pt-3 pb-2">
-              <p className="text-[10px] font-black uppercase tracking-[.12em] text-white/30">
-                {TYPE_TABS.find(t => t.id === restType)?.label}
-              </p>
-            </div>
-            <div className="flex flex-col pb-2">
-              <button
-                onClick={() => { setSubCat('all'); setShowCatPanel(false) }}
-                className="flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/5"
-                style={{ color: subCat === 'all' ? '#a3abff' : 'rgba(255,255,255,.6)' }}>
-                <span className="text-[16px] leading-none">✨</span>
-                <span className="font-bold text-[13px]">Kaikki</span>
-                {subCat === 'all' && <span className="ml-auto text-[10px] font-black text-[#a3abff]">✓</span>}
-              </button>
-              {SUB_CATS[restType].map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => { setSubCat(subCat === cat.id ? 'all' : cat.id); setShowCatPanel(false) }}
-                  className="flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/5"
-                  style={{ color: subCat === cat.id ? '#a3abff' : 'rgba(255,255,255,.6)' }}>
-                  <span className="text-[16px] leading-none">{cat.emoji}</span>
-                  <span className="font-bold text-[13px]">{cat.label}</span>
-                  {subCat === cat.id && <span className="ml-auto text-[10px] font-black text-[#a3abff]">✓</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      <TypeTabs active={restType} onChange={setRestType} />
 
       {/* Loading skeletons */}
       {loading && (
@@ -1209,61 +1331,98 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
       {!loading && (
         <>
-          {/* Active filter bar */}
-          {isFilterActive && (
-            <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl"
-              style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-black text-[13px]" style={{ color: '#a3abff' }}>{activeFilterLabel}</span>
-                <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {sortedPool.length} {t('restaurants.places')}</span>
-              </div>
-              <button onClick={clearFilter}
-                className="text-[12px] font-black flex-shrink-0 ml-3 px-3 py-1 rounded-full transition-all"
-                style={{ color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}>
-                {t('discover.exit_search')}
-              </button>
-            </div>
-          )}
-
-          {/* Homepage view: hero + quick sorts + carousels + icon grid */}
-          {!isFilterActive && (
+          {/* ═══ ETUSIVU (restSub 'kaikki'): Auta valitsemaan → ruudukko → hero → rivit ═══ */}
+          {subCat === 'all' && (
             <>
+              <DecidePanel
+                pool={rcPool}
+                pick={rcPick}
+                tried={rcTried}
+                dist={rcDist}
+                price={rcPrice}
+                rated={rcRated}
+                distMap={distMap}
+                onDist={handleRcDist}
+                onPrice={setRcPrice}
+                onRated={() => setRcRated(v => !v)}
+                onDecide={handleDecide}
+                onAgain={handleAgain}
+                onOpen={setSelectedRest}
+              />
+
+              <SubCatGrid restType={restType} onSelect={setSubCat} />
+
               {heroRest && (
                 <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
               )}
 
               <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
-              {rows.filter(r => r.items.length > 0).map(row => (
-                <RestRow
-                  key={row.title}
-                  title={row.title}
-                  items={row.items}
-                  distMap={distMap}
-                  onCardClick={setSelectedRest}
-                  onChainClick={setSelectedChain}
-                  onShowOnMap={onShowOnMap}
-                />
-              ))}
-
-              <NewsSection items={news} />
-
-              <SubCatGrid
-                restType={restType}
-                active={subCat}
-                onSelect={setSubCat}
-              />
+              {/* Pika-suodattimet (auki/lähellä) päällä → grid-lista rivien sijaan */}
+              {(filterOpen || filterNearby) ? (
+                groupedSortedPool.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {groupedSortedPool.slice(0, visibleCount).map(item =>
+                        '_isChain' in item
+                          ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
+                          : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} />
+                      )}
+                    </div>
+                    {visibleCount < groupedSortedPool.length && (
+                      <button
+                        onClick={() => setVisibleCount(v => v + 24)}
+                        className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
+                        style={{ background: 'rgba(255,255,255,.05)' }}>
+                        {t('restaurants.load_more')} ({groupedSortedPool.length - visibleCount} {t('restaurants.places')})
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center py-16 text-center gap-3">
+                    <span className="text-5xl">🍽</span>
+                    <p className="text-white/40 font-bold">{t('discover.no_filter_match')}</p>
+                    <button onClick={clearFilter}
+                      className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
+                      style={{ borderColor: 'rgba(107,118,255,.3)' }}>
+                      {t('common.show_all')}
+                    </button>
+                  </div>
+                )
+              ) : (
+                <>
+                  {rows.filter(r => r.items.length > 0).map(row => (
+                    <RestRow
+                      key={row.title}
+                      title={row.title}
+                      items={row.items}
+                      distMap={distMap}
+                      onCardClick={setSelectedRest}
+                      onChainClick={setSelectedChain}
+                      onShowOnMap={onShowOnMap}
+                    />
+                  ))}
+                  <NewsSection items={news} />
+                </>
+              )}
             </>
           )}
 
-          {/* Filter active: list view */}
-          {isFilterActive && (
+          {/* ═══ ALAKATEGORIAN PYSTYLISTA — alleviivatabit + yksipalstainen lista ═══ */}
+          {subCat !== 'all' && (
             <>
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
+              <RestSubTabs restType={restType} active={subCat} onSelect={setSubCat} />
+
+              <div className="flex items-center justify-between">
+                <h2 className="font-black text-white text-[19px]" style={{ letterSpacing: '-0.02em' }}>
+                  {SUB_CATS[restType].find(c => c.id === subCat)?.emoji} {SUB_CATS[restType].find(c => c.id === subCat)?.label}
+                  <span className="text-white/30 text-[14px] font-bold"> · {groupedSortedPool.length} {t('restaurants.places')}</span>
+                </h2>
+              </div>
 
               {groupedSortedPool.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="max-w-2xl space-y-3">
                     {groupedSortedPool.slice(0, visibleCount).map(item =>
                       '_isChain' in item
                         ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
@@ -1273,7 +1432,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   {visibleCount < groupedSortedPool.length && (
                     <button
                       onClick={() => setVisibleCount(v => v + 24)}
-                      className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
+                      className="w-full max-w-2xl py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
                       style={{ background: 'rgba(255,255,255,.05)' }}>
                       {t('restaurants.load_more')} ({groupedSortedPool.length - visibleCount} {t('restaurants.places')})
                     </button>
