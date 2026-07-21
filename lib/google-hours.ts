@@ -55,5 +55,9 @@ export function googleTimetableToOsm(workTime: unknown): string | null {
 
   // No timetable at all, or every day closed/empty → unusable, keep OSM.
   if (!sawAnyDay || parts.length === 0) return null
-  return parts.join('; ')
+  // Join with ',' (ADDITIVE rules), not ';' (override rules): with ';' a day's
+  // own rule erases the previous day's past-midnight spillover — a bar tagged
+  // "Fr 14:00-02:00; Sa 14:00-02:00" would read CLOSED at Sat 01:30 even
+  // though Friday night is still going. Verified against the evaluator.
+  return parts.join(', ')
 }
