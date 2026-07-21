@@ -125,6 +125,8 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const { toggle, isFavorite } = useFavorites()
 
   const [typeFilter, setTypeFilter] = useState<SuggestionType | 'all'>('all')
+  // ⚡ Juuri nyt suosii pian alkavia / juuri nyt avoinna olevia; Koko ilta = kaikki
+  const [ideaMode, setIdeaMode] = useState<'now' | 'evening'>('now')
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [detailSuggestion, setDetailSuggestion] = useState<Suggestion | null>(null)
@@ -259,13 +261,27 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   }, [events, lang])
 
   const pool = useMemo(() => {
-    return shuffle([...activityPool, ...eventPool])
+    const base = shuffle([...activityPool, ...eventPool])
       .filter(s => !seenIds.has(s.id))
       .filter(s => typeFilter === 'all' || s.type === typeFilter)
+    if (ideaMode === 'now') {
+      // "Juuri nyt" SUOSII pian alkavia / avoinna olevia (design-speksi) —
+      // järjestetään etusijalle, ei suodateta pois (pakka ei tyhjene)
+      const score = (s: Suggestion) => {
+        if (s.type === 'event') {
+          if (s.minutesUntil !== undefined && s.minutesUntil >= 0 && s.minutesUntil <= 120) return 0
+          if (s.minutesUntil !== undefined && s.minutesUntil > 120) return 2
+          return 3
+        }
+        return s.isOpen === true ? 1 : 3
+      }
+      return [...base].sort((a, b) => score(a) - score(b))
+    }
+    return base
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter, activityPool.length, eventPool.length, seenIds])
+  }, [typeFilter, ideaMode, activityPool.length, eventPool.length, seenIds])
 
-  useEffect(() => { setSeenIds(new Set()) }, [typeFilter])
+  useEffect(() => { setSeenIds(new Set()) }, [typeFilter, ideaMode])
 
   const current = pool[0] ?? null
   const meta = current ? TYPE_META[current.type] : TYPE_META.event
@@ -475,34 +491,32 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           </h1>
           <p className="text-white/30 text-xs mt-1">{t('idea.tonight_all')}</p>
         </div>
-        {savedCount > 0 && (
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full shrink-0"
-            style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.2)' }}>
-            <Heart size={12} fill="#6b76ff" style={{ color: '#6b76ff' }} />
-            <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount} {t('idea.saved_suffix')}</span>
-          </div>
-        )}
       </div>
 
-      {/* ── Type filter pills ── */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
-        {([
-          { id: 'all' as const,      label: 'Kaikki',       icon: '✨' },
-          { id: 'event' as const,    label: 'Tapahtumat',   icon: '📅' },
-          { id: 'activity' as const, label: 'Aktiviteetit', icon: '🧖' },
-        ]).map(f => {
-          const active = typeFilter === f.id
-          return (
-            <button key={f.id} onClick={() => setTypeFilter(f.id)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black shrink-0 transition-all"
-              style={active
-                ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff', boxShadow: '0 4px 12px -4px rgba(91,101,230,.5)' }
-                : { background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.45)', border: '1px solid rgba(255,255,255,.1)' }}>
-              <span>{f.icon}</span>
-              {f.label}
-            </button>
-          )
-        })}
+      {/* ── ⚡ Juuri nyt / Koko ilta -valitsin (design 2-idea.png) ── */}
+      <div className="flex items-center gap-2">
+        <div className="flex flex-1 rounded-full p-1" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)' }}>
+          {([
+            { id: 'now' as const,     label: t('idea.mode_now') },
+            { id: 'evening' as const, label: t('idea.mode_evening') },
+          ]).map(m => {
+            const active = ideaMode === m.id
+            return (
+              <button key={m.id} onClick={() => setIdeaMode(m.id)}
+                className="flex-1 py-2 rounded-full text-[13px] font-black transition-all"
+                style={active
+                  ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff', boxShadow: '0 4px 12px -4px rgba(91,101,230,.5)' }
+                  : { color: 'rgba(255,255,255,.45)' }}>
+                {m.label}
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-full shrink-0"
+          style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.2)' }}>
+          <Heart size={12} fill="#6b76ff" style={{ color: '#6b76ff' }} />
+          <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount}</span>
+        </div>
       </div>
 
       {/* ── Swipeable card ── */}
