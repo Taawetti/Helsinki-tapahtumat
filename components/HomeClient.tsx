@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { Loader2, SlidersHorizontal, Heart, Bell } from 'lucide-react'
+import { Loader2, Heart, Bell, Plus, ChevronLeft } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, TERRACE_REGEX } from '@/lib/nightlife'
@@ -288,6 +288,9 @@ export default function HomeClient({
   const { lang, t } = useLanguage()
   const { favorites, count: favCount } = useFavorites()
   const [mode, setMode] = useState<AppMode>('discover')
+  // Kartta/Suosikit ovat "toisen tason" sivuja (yläpalkin pyöreät napit) —
+  // ‹-paluunappi palaa sivulle jolta tultiin
+  const [pageBack, setPageBack] = useState<AppMode>('discover')
   const [dateFilter, setDateFilter] = useState<DateFilter>('today')
   const [municipality, setMunicipality] = useState('helsinki')
   const [activeCategories, setActiveCategories] = useState<string[]>([])
@@ -568,6 +571,21 @@ export default function HomeClient({
     else if (tab === 'activities') setMode('activities')
   }, [])
 
+  // Kartta/Suosikit avataan yläpalkin pyöreistä napeista; muistetaan mistä
+  // tultiin niin ‹-paluunappi vie takaisin oikealle sivulle
+  const openOverlayMode = useCallback((m: 'map' | 'favorites') => {
+    setMode((prev) => {
+      if (prev !== 'map' && prev !== 'favorites') setPageBack(prev)
+      return m
+    })
+    setMobileTab(m)
+  }, [])
+
+  const goBack = useCallback(() => {
+    setMode(pageBack)
+    setMobileTab(pageBack as typeof mobileTab)
+  }, [pageBack])
+
 // Vibe-based client filter on top of API results
   const filteredEvents = useMemo(() => {
     let result = events
@@ -735,19 +753,27 @@ export default function HomeClient({
               <Bell size={15} />
             </button>
             <button
-              onClick={() => { setMode('favorites'); setMobileTab('favorites') }}
-              title="Suosikit"
+              onClick={() => openOverlayMode('map')}
+              title={t('nav.map')}
+              className={`relative p-2 rounded-xl border transition-all ${mode === 'map' ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 bg-white/4 hover:text-white/70'}`}
+            >
+              <span className="text-[15px] leading-none">🗺</span>
+            </button>
+            <button
+              onClick={() => openOverlayMode('favorites')}
+              title={t('fav.title')}
               className={`relative p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 bg-white/4 hover:text-white/70'}`}
             >
-              <span className="text-[15px] leading-none">❤️</span>
+              <Heart size={15} fill={favCount > 0 ? '#6b76ff' : 'none'} style={{ color: '#6b76ff' }} />
               {favCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{favCount}</span>
               )}
             </button>
             <button onClick={() => setShowJarjestajaForm((p) => !p)}
+              title={t('form.add_event')}
               className={`relative p-2 rounded-xl border transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4'}`}
               style={showJarjestajaForm ? { color: '#6b76ff' } : {}}>
-              <SlidersHorizontal size={15} />
+              <Plus size={16} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -773,11 +799,11 @@ export default function HomeClient({
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'idea', 'restaurants', 'activities', 'map'] as AppMode[]).map((m) => (
+            {(['discover', 'idea', 'restaurants', 'activities'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab) }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
                 style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
-                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'map' ? `🗺 ${t('nav.map')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🧖 ${t('nav.activities')}`}
+                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🧖 ${t('nav.activities')}`}
               </button>
             ))}
             <Link href="/suunnittele"
@@ -807,20 +833,29 @@ export default function HomeClient({
           </button>
 
           <button
-            onClick={() => { setMode('favorites'); setMobileTab('favorites') }}
-            title="Suosikit"
+            onClick={() => openOverlayMode('map')}
+            title={t('nav.map')}
+            className={`relative shrink-0 p-2 rounded-xl border transition-all ${mode === 'map' ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 bg-white/4 hover:text-white/70'}`}
+          >
+            <span className="text-[15px] leading-none">🗺</span>
+          </button>
+
+          <button
+            onClick={() => openOverlayMode('favorites')}
+            title={t('fav.title')}
             className={`relative shrink-0 p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 bg-white/4 hover:text-white/70'}`}
           >
-            <span className="text-[15px] leading-none">❤️</span>
+            <Heart size={15} fill={favCount > 0 ? '#6b76ff' : 'none'} style={{ color: '#6b76ff' }} />
             {favCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{favCount}</span>
             )}
           </button>
 
           <button onClick={() => setShowJarjestajaForm((p) => !p)}
+            title={t('form.add_event')}
             className={`relative shrink-0 p-2 rounded-xl border transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
             style={showJarjestajaForm ? { color: '#6b76ff' } : {}}>
-            <SlidersHorizontal size={15} />
+            <Plus size={16} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -863,19 +898,17 @@ export default function HomeClient({
       {/* ══ FAVORITES ══ */}
       {mode === 'favorites' && (
         <main className="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-4">
-          {/* Heading */}
-          <div>
-            <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
-            <div className="flex items-center gap-3">
-              <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
-                {t('fav.title')}
-              </h1>
-              {favCount > 0 && (
-                <span className="px-2.5 py-1 rounded-full text-sm font-black" style={{ background: 'rgba(107,118,255,.12)', color: '#6b76ff' }}>
-                  {favCount}
-                </span>
-              )}
-            </div>
+          {/* Heading + ‹ back */}
+          <div className="flex items-center gap-3">
+            <button onClick={goBack} aria-label="Takaisin"
+              className="shrink-0 w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
+              <ChevronLeft size={18} className="text-white" />
+            </button>
+            <Heart size={22} fill="#6b76ff" style={{ color: '#6b76ff' }} />
+            <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.6rem,5vw,2.4rem)', letterSpacing: '-0.03em' }}>
+              {t('fav.title')}
+            </h1>
+            <span className="text-white/35 text-sm font-bold">· {favCount} {t('fav.saved_count')}</span>
           </div>
 
           {favorites.length === 0 ? (
@@ -886,7 +919,7 @@ export default function HomeClient({
               <button onClick={() => { setMode('discover'); setMobileTab('discover') }}
                 className="px-5 py-2.5 rounded-full text-sm font-black text-white"
                 style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                Selaa tapahtumia →
+                {t('fav.browse')}
               </button>
             </div>
           ) : (
@@ -1185,6 +1218,15 @@ export default function HomeClient({
       {/* ══ MAP ══ */}
       {mode === 'map' && (
         <main className="px-2 pt-2 pb-0">
+          <div className="flex items-center gap-3 px-2 pb-2">
+            <button onClick={goBack} aria-label="Takaisin"
+              className="shrink-0 w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
+              <ChevronLeft size={18} className="text-white" />
+            </button>
+            <h1 className="font-black text-white leading-none text-[22px]" style={{ letterSpacing: '-0.02em' }}>
+              {t('nav.map')}
+            </h1>
+          </div>
           <MapView events={filteredEvents} onEventClick={setSelectedEvent} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}/>
         </main>
       )}
@@ -1198,13 +1240,12 @@ export default function HomeClient({
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
         style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-6 h-full">
+        <div className="grid grid-cols-4 h-full">
           {([
             { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
             { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
             { tab: 'restaurants' as const,   emoji: '🍽', labelKey: 'nav.restaurants' },
             { tab: 'activities' as const,    emoji: '🧖', labelKey: 'nav.activities'  },
-            { tab: 'map' as const,           emoji: '🗺', labelKey: 'nav.map'         },
           ] as const).map(({ tab, emoji, labelKey }) => {
             const isActive = mobileTab === tab
             return (
@@ -1216,13 +1257,6 @@ export default function HomeClient({
               </button>
             )
           })}
-          {/* Planner tab — navigates to /suunnittele */}
-          <Link href="/suunnittele"
-            className="relative flex flex-col items-center justify-center gap-0.5 transition-all"
-            style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>
-            <span className="text-lg leading-none">✈️</span>
-            <span className="text-[10px] font-bold">Suunnittele</span>
-          </Link>
         </div>
       </nav>
 

@@ -3,11 +3,11 @@ export type Lang = 'fi' | 'en'
 const t = {
   fi: {
     // ── Navigation ──────────────────────────────────────────
-    'nav.home':        'Etusivu',
-    'nav.idea':        'Mitä teen?',
+    'nav.home':        'Tapahtumat',
+    'nav.idea':        'Idea',
     'nav.map':         'Kartta',
     'nav.restaurants': 'Ravintolat',
-    'nav.activities':  'Aktiviteetit',
+    'nav.activities':  'Tekemistä',
     'nav.favorites':   'Suosikit',
     'nav.festivals':   'Festivaalit',
 
@@ -393,6 +393,8 @@ const t = {
     // ── Favorites sidebar ─────────────────────────────────────
     'fav.title':  'Suosikit',
     'fav.saved':  'tallennettu',
+    'fav.saved_count': 'tallennettu',
+    'fav.browse': 'Selaa tapahtumia →',
     'fav.empty':  'Ei vielä suosikkeja',
     'fav.hint':   'Paina ♥ tapahtumakortissa tallentaaksesi',
 
@@ -427,8 +429,8 @@ const t = {
 
   en: {
     // ── Navigation ──────────────────────────────────────────
-    'nav.home':        'Home',
-    'nav.idea':        'What to do?',
+    'nav.home':        'Events',
+    'nav.idea':        'Idea',
     'nav.map':         'Map',
     'nav.restaurants': 'Restaurants',
     'nav.activities':  'Things to do',
@@ -782,6 +784,8 @@ const t = {
     // ── Favorites sidebar ─────────────────────────────────────
     'fav.title':  'Favourites',
     'fav.saved':  'saved',
+    'fav.saved_count': 'saved',
+    'fav.browse': 'Browse events →',
     'fav.empty':  'No favourites yet',
     'fav.hint':   'Tap ♥ on a card to save it',
 
