@@ -35,6 +35,13 @@ export async function POST(req: NextRequest) {
   if (!body?.nimi || !body?.pvm || !body?.paikka || !body?.email) {
     return NextResponse.json({ error: 'Pakolliset kentät puuttuvat' }, { status: 400 })
   }
+  // Muotovalidointi palvelinpuolella (design-speksi): email + URL
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+    return NextResponse.json({ error: 'Virheellinen sähköpostiosoite' }, { status: 400 })
+  }
+  if (body.linkki && !/^https?:\/\/\S+\.\S+/i.test(body.linkki)) {
+    return NextResponse.json({ error: 'Virheellinen linkki — käytä muotoa https://…' }, { status: 400 })
+  }
 
   const apiKey = process.env.BREVO_API_KEY
   const adminEmail = process.env.ADMIN_EMAIL
