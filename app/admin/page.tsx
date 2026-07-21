@@ -149,13 +149,14 @@ export default function AdminPage() {
     let guard = 0
 
     try {
+      // ~2950 venues / 18 per batch ≈ 165 batches; cap at 400 as a hard net
       while (!enrichStopRef.current) {
-        if (++guard > 200) { setEnrichResult(`⏹ Pysäytetty turvarajaan`); break }
-        // 25/batch × ~5s stays well under the 300s serverless limit
+        if (++guard > 400) { setEnrichResult(`⏹ Pysäytetty turvarajaan`); break }
+        // 18/batch in waves of 6 concurrent ~26s lookups ≈ 80-120s per batch
         const res = await fetch('/api/admin/enrich-restaurants-all', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ limit: 25 }),
+          body: JSON.stringify({ limit: 18 }),
         })
         const data = await res.json()
         if (data.error) { setEnrichResult('Virhe: ' + data.error); break }

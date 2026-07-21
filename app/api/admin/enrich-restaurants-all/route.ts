@@ -49,7 +49,9 @@ async function fetchBusiness(query: string): Promise<Fetched> {
         location_name: 'Helsinki,Helsinki,Uusimaa,Finland',
         language_name: 'Finnish',
       }]),
-      signal: AbortSignal.timeout(10000),
+      // Live lookups are slow scrapes — measured ~25-26 s even on success.
+      // (A 10 s timeout aborted EVERY call and 502'd the whole run.)
+      signal: AbortSignal.timeout(40000),
     })
     if (!res.ok) return { status: 'error' }
     data = await res.json()
@@ -57,10 +59,11 @@ async function fetchBusiness(query: string): Promise<Fetched> {
     return { status: 'error' }
   }
 
-  // Only a genuine task success (20000) counts as "processed". Anything else
-  // (auth error, rate limit, malformed) is an error → NOT marked done → retryable.
+  // 20000 = Ok; 40102 = "No Search Results" — a normal not-in-Google outcome
+  // (measured live), NOT an error. Anything else (auth, rate limit, malformed)
+  // is an error → NOT marked done → retryable.
   const task = data?.tasks?.[0]
-  if (!task || task.status_code !== 20000) return { status: 'error' }
+  if (!task || (task.status_code !== 20000 && task.status_code !== 40102)) return { status: 'error' }
 
   const item = task.result?.[0]?.items?.[0] as
     | {
@@ -110,9 +113,17 @@ export async function POST(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
+  // Fail fast & loud on a missing token — otherwise every venue would just
+  // read "virhe" with no hint that the env var isn't set on this deployment.
+  if (!process.env.DATAFORSEO_TOKEN) {
+    return NextResponse.json({ error: 'DATAFORSEO_TOKEN puuttuu tältä ympäristöltä (Vercel → Settings → Environment Variables)' }, { status: 500 })
+  }
+
   const body = await req.json().catch(() => ({}))
-  // 20/batch × (10s timeout + 1.1s sleep) ≈ 222s worst case, under maxDuration 300
-  const limit: number = Math.min(body.limit ?? 20, 40)
+  // Lookups take ~26 s each, so they run in waves of 6 in parallel:
+  // 18/batch = 3 waves ≈ 80-120 s typical, worst (all hit the 40 s timeout)
+  // 4×40 ≈ 160 s — safely under maxDuration 300.
+  const limit: number = Math.min(body.limit ?? 18, 24)
   const dryRun: boolean = body.dryRun ?? false
 
   const osm = await fetchOSMCached()
@@ -144,51 +155,57 @@ export async function POST(req: NextRequest) {
   const errorKeys: string[] = [] // looked-up-but-failed → stamped done if the batch wasn't a total wipeout
   const results: { name: string; status: string }[] = []
 
-  for (const rest of toProcess) {
-    const query = rest.address ? `${rest.name} ${rest.address} Helsinki` : `${rest.name} Helsinki`
-    const f = await fetchBusiness(query)
+  // Waves of 6 concurrent lookups: each takes ~26 s, so sequential processing
+  // would spend ~22 h on the full backfill. Six in flight ≈ 0.25 req/s — far
+  // under DataForSEO's live-endpoint concurrency limits. DB writes happen
+  // after each wave, sequentially.
+  const CONCURRENCY = 6
+  for (let i = 0; i < toProcess.length; i += CONCURRENCY) {
+    const wave = toProcess.slice(i, i + CONCURRENCY)
+    const fetched = await Promise.all(wave.map(async (rest) => {
+      const query = rest.address ? `${rest.name} ${rest.address} Helsinki` : `${rest.name} Helsinki`
+      return { rest, f: await fetchBusiness(query) }
+    }))
 
-    if (f.status === 'error') {
-      errors++
-      errorKeys.push(rest.name.toLowerCase().trim())
-      results.push({ name: rest.name, status: 'virhe' })
-      await new Promise((r) => setTimeout(r, 1100))
-      continue
-    }
-
-    okTasks++
-    if (!dryRun) {
-      const now = new Date().toISOString()
-      const row: Record<string, unknown> = {
-        venue_key: rest.name.toLowerCase().trim(),
-        enriched_at: now,
-        last_updated: now,
-        google_rating: f.rating,
-        review_count: f.reviewCount,
-        price_level: f.priceLevel,
-        // OSM cuisine wins; else Google-derived; else [] (so the column is non-null)
-        cuisine_categories: rest.cuisineCategories.length > 0 ? rest.cuisineCategories : f.cuisineCats,
-        google_hours: f.hoursOsm,
-        google_hours_updated: now,
+    for (const { rest, f } of fetched) {
+      if (f.status === 'error') {
+        errors++
+        errorKeys.push(rest.name.toLowerCase().trim())
+        results.push({ name: rest.name, status: 'virhe' })
+        continue
       }
-      // Only write main_image when Google actually returned one — otherwise
-      // omit it so onConflict-update PRESERVES an image a previous pass stored
-      // (writing '' here would wipe ~900 existing restaurant images).
-      if (f.mainImage) row.main_image = f.mainImage
-      const { error } = await supabaseAdmin.from('venue_ratings').upsert(row, { onConflict: 'venue_key' })
-      if (error) {
-        return NextResponse.json(
-          { error: `Tallennus epäonnistui: ${error.message}`, withData, notInGoogle, errors },
-          { status: 500 },
-        )
+
+      okTasks++
+      if (!dryRun) {
+        const now = new Date().toISOString()
+        const row: Record<string, unknown> = {
+          venue_key: rest.name.toLowerCase().trim(),
+          enriched_at: now,
+          last_updated: now,
+          google_rating: f.rating,
+          review_count: f.reviewCount,
+          price_level: f.priceLevel,
+          // OSM cuisine wins; else Google-derived; else [] (so the column is non-null)
+          cuisine_categories: rest.cuisineCategories.length > 0 ? rest.cuisineCategories : f.cuisineCats,
+          google_hours: f.hoursOsm,
+          google_hours_updated: now,
+        }
+        // Only write main_image when Google actually returned one — otherwise
+        // omit it so onConflict-update PRESERVES an image a previous pass stored
+        // (writing '' here would wipe ~900 existing restaurant images).
+        if (f.mainImage) row.main_image = f.mainImage
+        const { error } = await supabaseAdmin.from('venue_ratings').upsert(row, { onConflict: 'venue_key' })
+        if (error) {
+          return NextResponse.json(
+            { error: `Tallennus epäonnistui: ${error.message}`, withData, notInGoogle, errors },
+            { status: 500 },
+          )
+        }
       }
+
+      if (f.found) { withData++; results.push({ name: rest.name, status: `⭐${f.rating ?? '–'}${f.mainImage ? ' 📸' : ''}${f.hoursOsm ? ' 🕐' : ''}` }) }
+      else { notInGoogle++; results.push({ name: rest.name, status: 'ei Googlessa' }) }
     }
-
-    if (f.found) { withData++; results.push({ name: rest.name, status: `⭐${f.rating ?? '–'}${f.mainImage ? ' 📸' : ''}${f.hoursOsm ? ' 🕐' : ''}` }) }
-    else { notInGoogle++; results.push({ name: rest.name, status: 'ei Googlessa' }) }
-
-    // DataForSEO basic plan ≈ 1 req/s
-    await new Promise((r) => setTimeout(r, 1100))
   }
 
   // Whole batch failed → systemic (bad token / outage). Stamp NOTHING and halt,
