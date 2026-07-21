@@ -49,9 +49,10 @@ async function fetchBusiness(query: string): Promise<Fetched> {
         location_name: 'Helsinki,Helsinki,Uusimaa,Finland',
         language_name: 'Finnish',
       }]),
-      // Live lookups are slow scrapes — measured ~25-26 s even on success.
-      // (A 10 s timeout aborted EVERY call and 502'd the whole run.)
-      signal: AbortSignal.timeout(40000),
+      // Live lookups are slow scrapes — measured ~25-26 s even on success,
+      // and under concurrency the provider queues requests so the tail runs
+      // longer. (A 10 s timeout aborted EVERY call; 40 s still lost ~30%.)
+      signal: AbortSignal.timeout(60000),
     })
     if (!res.ok) return { status: 'error' }
     data = await res.json()
@@ -120,10 +121,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}))
-  // Lookups take ~26 s each, so they run in waves of 6 in parallel:
-  // 18/batch = 3 waves ≈ 80-120 s typical, worst (all hit the 40 s timeout)
-  // 4×40 ≈ 160 s — safely under maxDuration 300.
-  const limit: number = Math.min(body.limit ?? 18, 24)
+  // Lookups take ~26-40 s each under load; waves of 4 concurrent.
+  // 12/batch = 3 waves ≈ 90-120 s typical, worst (all hit the 60 s timeout)
+  // 3×60 = 180 s — safely under maxDuration 300. Cap at 12 so an already-open
+  // admin tab still sending limit:18 stays within budget too.
+  const limit: number = Math.min(body.limit ?? 12, 12)
   const dryRun: boolean = body.dryRun ?? false
 
   const osm = await fetchOSMCached()
@@ -155,11 +157,11 @@ export async function POST(req: NextRequest) {
   const errorKeys: string[] = [] // looked-up-but-failed → stamped done if the batch wasn't a total wipeout
   const results: { name: string; status: string }[] = []
 
-  // Waves of 6 concurrent lookups: each takes ~26 s, so sequential processing
-  // would spend ~22 h on the full backfill. Six in flight ≈ 0.25 req/s — far
-  // under DataForSEO's live-endpoint concurrency limits. DB writes happen
-  // after each wave, sequentially.
-  const CONCURRENCY = 6
+  // Waves of 4 concurrent lookups: each takes ~26-40 s, so sequential
+  // processing would spend ~22 h on the full backfill. Six in flight queued
+  // at the provider and ~30% timed out; four keeps the tail under the 60 s
+  // budget. DB writes happen after each wave, sequentially.
+  const CONCURRENCY = 4
   for (let i = 0; i < toProcess.length; i += CONCURRENCY) {
     const wave = toProcess.slice(i, i + CONCURRENCY)
     const fetched = await Promise.all(wave.map(async (rest) => {
