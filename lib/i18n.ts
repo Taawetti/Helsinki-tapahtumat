@@ -15,6 +15,7 @@ const t = {
     'common.open':          'Avoinna',
     'common.closed':        'Suljettu',
     'common.free':          'Ilmainen',
+    'common.back':          'Takaisin',
     'common.free_badge':    'ILMAINEN',
     'common.free_ticket':   'Maksuton',
     'common.website':       'Nettisivu',
@@ -264,8 +265,15 @@ const t = {
     'discover.see_all':            'Katso kaikki',
     'discover.see_fewer':          'Näytä vähemmän ↑',
     'discover.hero_badge':         '✦ ILLAN NOSTO',
+    'discover.hero_gigs':          'ILLAN KEIKAT',
     'discover.tickets_from':       'Liput alk.',
+    'discover.tickets':            'Liput',
     'discover.exit_search':        'Poistu hausta ×',
+    'discover.grid_title':         'Tapahtumat tänään',
+    'discover.grid_sub':           'Selaa kategorioittain',
+    'discover.all_vibes':          'Kaikki aihepiirit',
+    'discover.events_today':       'tapahtumaa tänään',
+    'discover.details':            'Tiedot',
 
     // ── Vibes ─────────────────────────────────────────────────
     'vibe.keikka':   'Keikka',
@@ -279,6 +287,7 @@ const t = {
     'vibe.teatteri': 'Teatteri & Tanssi',
     'vibe.taide':    'Taide',
     'vibe.festivaali': 'Festivaalit',
+    'vibe.underground': 'Underground',
 
     // ── EventDetailPanel ─────────────────────────────────────
     'detail.tickets':    'Osta liput',
@@ -300,7 +309,7 @@ const t = {
     'detail.close':      'Sulje',
 
     // ── Search ───────────────────────────────────────────────
-    'search.placeholder': 'Mitä haluat tehdä?',
+    'search.placeholder': 'Etsi keikkoja, tapahtumia, artisteja…',
     'search.popular':     'Suosittuja hakuja',
 
     // ── Quick buttons ─────────────────────────────────────────
@@ -441,6 +450,7 @@ const t = {
     'common.open':          'Open',
     'common.closed':        'Closed',
     'common.free':          'Free',
+    'common.back':          'Back',
     'common.free_badge':    'FREE',
     'common.free_ticket':   'Free',
     'common.website':       'Website',
@@ -670,6 +680,7 @@ const t = {
     'vibe.teatteri': 'Theatre & Dance',
     'vibe.taide':    'Art',
     'vibe.festivaali': 'Festivals',
+    'vibe.underground': 'Underground',
 
     // ── EventDetailPanel ─────────────────────────────────────
     'detail.tickets':    'Buy tickets',
@@ -691,7 +702,7 @@ const t = {
     'detail.close':      'Close',
 
     // ── Search ───────────────────────────────────────────────
-    'search.placeholder': 'What do you want to do?',
+    'search.placeholder': 'Search gigs, events, artists…',
     'search.popular':     'Popular searches',
 
     // ── Quick buttons ─────────────────────────────────────────
@@ -850,7 +861,14 @@ const t = {
     'discover.see_all':            'See all',
     'discover.see_fewer':          'Show fewer ↑',
     'discover.hero_badge':         '✦ TONIGHT\'S PICK',
+    'discover.hero_gigs':          'TONIGHT\'S GIGS',
     'discover.tickets_from':       'Tickets from',
+    'discover.tickets':            'Tickets',
+    'discover.grid_title':         'Events today',
+    'discover.grid_sub':           'Browse by category',
+    'discover.all_vibes':          'All topics',
+    'discover.events_today':       'events today',
+    'discover.details':            'Details',
     'discover.exit_search':        'Clear search ×',
   },
 } as const

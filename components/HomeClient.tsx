@@ -12,12 +12,11 @@ import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { getCategoryScores } from '@/lib/preferences'
 import EventCard from '@/components/EventCard'
-import FeedCard from '@/components/FeedCard'
+import HeroSwiper from '@/components/HeroSwiper'
 import EventDetailPanel from '@/components/EventDetailPanel'
 import SearchBar from '@/components/SearchBar'
 import PosterCard from '@/components/PosterCard'
 import InstallBanner from '@/components/InstallBanner'
-import VibeBar from '@/components/VibeBar'
 import VibePanel from '@/components/VibePanel'
 import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
@@ -44,56 +43,62 @@ interface EmptyStateProps {
   onDateChange: (d: DateFilter) => void
 }
 
-// ── Horizontal carousel card ─────────────────────────────
+// ── Koti: kategoriaruudukon 8 laattaa (design 1-koti.png) ─────────────────
+// tint = RGB-tripletti radial-hehkulle — korttien sävyt vaihtelevat tarkoituksella
+const HOME_GRID_TILES: { id: string; tint: string }[] = [
+  { id: 'keikka',      tint: '255,107,107' },
+  { id: 'yoelama',     tint: '175,130,255' },
+  { id: 'standup',     tint: '95,217,166'  },
+  { id: 'urheilu',     tint: '95,150,255'  },
+  { id: 'baari',       tint: '232,192,106' },
+  { id: 'underground', tint: '160,160,190' },
+  { id: 'teatteri',    tint: '175,130,255' },
+  { id: 'taide',       tint: '232,192,106' },
+]
+
+// ── Kompakti vaakarivikortti (design: pieni kuvatiili + aikachip, 1-rivinen
+//    nimi, meta "kategoria · paikka") ─────────────────────────────────────
 function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void }) {
   const { lang, t } = useLanguage()
   const now = Date.now()
   const start = new Date(event.startTime)
   const msUntil = start.getTime() - now
-  const todayStr = new Date().toDateString()
-  const isToday = start.toDateString() === todayStr
+  const isToday = start.toDateString() === new Date().toDateString()
   const time = start.toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
   let dateLabel = isToday
-    ? `${t('date.today')} ${time}`
+    ? time
     : start.toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric' }) + ' ' + time
   if (msUntil > 0 && msUntil < 90 * 60 * 1000) dateLabel = `⏱ ${Math.round(msUntil / 60000)} min`
   return (
     <button
       onClick={() => onClick(event)}
-      className="group shrink-0 w-40 text-left rounded-[18px] overflow-hidden"
-      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}
+      className="group shrink-0 text-left rounded-[14px] overflow-hidden"
+      style={{ width: 148, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}
     >
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '3/4' }}>
+      <div className="relative w-full overflow-hidden" style={{ height: 84 }}>
         {event.image ? (
-          <img src={event.image} alt={event.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
+          <img src={event.image} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
         ) : (
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }} />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(100% 100% at 30% 0%, rgba(107,118,255,.28), transparent 70%), #12121a' }} />
         )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.9) 0%,rgba(10,10,12,.1) 50%,transparent 100%)' }} />
-        <div className="absolute top-2 left-2">
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white/90" style={{ background: 'rgba(10,10,12,.7)', backdropFilter: 'blur(8px)' }}>{dateLabel}</span>
-        </div>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.55) 0%,transparent 60%)' }} />
+        <span className="absolute top-1.5 left-1.5 text-[10px] font-black px-2 py-0.5 rounded-full text-white/90" style={{ background: 'rgba(10,10,12,.72)', backdropFilter: 'blur(8px)' }}>{dateLabel}</span>
         {event.isFree && (
-          <div className="absolute top-2 right-2">
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white bg-emerald-500">{t('common.free_badge')}</span>
-          </div>
+          <span className="absolute top-1.5 right-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(95,217,166,.9)', color: '#06281a' }}>{t('common.free_badge')}</span>
         )}
-        <div className="absolute bottom-0 left-0 right-0 p-3">
-          <p className="text-white font-black text-[13px] leading-tight line-clamp-2" style={{ letterSpacing: '-0.01em' }}>{event.title}</p>
-          {event.location?.name && <p className="text-white/50 text-[11px] truncate mt-0.5">{event.location.name}</p>}
-        </div>
       </div>
-      {!event.isFree && event.price && (
-        <div className="px-3 py-2.5">
-          <span className="text-[11px] font-black" style={{ color: '#a3abff' }}>{t('discover.tickets_from')} {event.price} →</span>
-        </div>
-      )}
+      <div className="px-2.5 py-2">
+        <p className="text-white font-black text-[12.5px] leading-tight truncate" style={{ letterSpacing: '-0.01em' }}>{event.title}</p>
+        <p className="text-[10.5px] font-semibold truncate mt-0.5" style={{ color: 'rgba(255,255,255,.45)' }}>
+          {[event.categories[0], event.location?.name].filter(Boolean).join(' · ')}
+        </p>
+      </div>
     </button>
   )
 }
 
 // ── Carousel row ─────────────────────────────────────────
-function CarouselRow({ title, events, onClick }: { title: string; events: Event[]; onClick: (e: Event) => void }) {
+function CarouselRow({ title, events, onClick, onSeeAll }: { title: string; events: Event[]; onClick: (e: Event) => void; onSeeAll?: () => void }) {
   const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
   if (events.length === 0) return null
@@ -101,23 +106,28 @@ function CarouselRow({ title, events, onClick }: { title: string; events: Event[
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-black text-white text-[17px] tracking-tight flex items-baseline gap-1.5" style={{ letterSpacing: '-0.02em' }}>
+        <h2 className="font-black text-white text-[16px] tracking-tight flex items-baseline gap-1.5" style={{ letterSpacing: '-0.02em' }}>
           {title}
           <span className="text-white/25 font-bold text-[13px]">· {events.length}</span>
         </h2>
-        {hasMore && !expanded && (
+        {onSeeAll ? (
+          <button onClick={onSeeAll}
+            className="text-[12px] font-black shrink-0 transition-colors"
+            style={{ color: '#a3abff' }}>
+            {t('discover.see_all')} ›
+          </button>
+        ) : hasMore && !expanded ? (
           <button onClick={() => setExpanded(true)}
             className="text-[12px] font-black shrink-0 transition-colors"
             style={{ color: '#a3abff' }}>
             {t('discover.see_all')} {events.length} →
           </button>
-        )}
-        {expanded && (
+        ) : expanded ? (
           <button onClick={() => setExpanded(false)}
             className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
             {t('discover.see_fewer')}
           </button>
-        )}
+        ) : null}
       </div>
       {!expanded ? (
         <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
@@ -308,6 +318,8 @@ export default function HomeClient({
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [showVibePanel, setShowVibePanel] = useState(false)
   const [liveOnly, setLiveOnly] = useState(false)
+  // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
+  const [koCat, setKoCat] = useState<string | null>(null)
   const vibeBtnRef = useRef<HTMLButtonElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -563,7 +575,7 @@ export default function HomeClient({
 
   const handleMobileTab = useCallback((tab: typeof mobileTab) => {
     setMobileTab(tab)
-    if (tab === 'discover') setMode('discover')
+    if (tab === 'discover') { setMode('discover'); setKoCat(null) }
     else if (tab === 'idea') setMode('idea')
     else if (tab === 'map') setMode('map')
     else if (tab === 'favorites') setMode('favorites')
@@ -664,22 +676,38 @@ export default function HomeClient({
 
   const heroEvent = useMemo(() => discoverEvents.find((e) => nightlifeScore(e) >= 3 && e.image) ?? null, [discoverEvents])
 
+  // "🎸 ILLAN KEIKAT" — pyyhkäisyheron 5 nostoa: parhaat pisteet ensin,
+  // näytöllä aikajärjestyksessä
+  const heroGigs = useMemo(() => {
+    const picks = baseEvents
+      .filter((e) => nightlifeScore(e) >= 3 && !!e.image)
+      .sort((a, b) => nightlifeScore(b) - nightlifeScore(a))
+      .slice(0, 5)
+    return picks.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  }, [baseEvents])
+
+  // Kompaktit vaakarivit (design: hero → ruudukko → Illan parhaat → Ilmaiseksi).
+  // Heron 5 nostoa jätetään pois "Illan parhaat" -rivistä ettei sama sisältö toistu.
   const carousels = useMemo(() => {
+    const heroIds = new Set(heroGigs.map((e) => e.id))
     const rows = [
-      { id: 'pian',      title: t('discover.carousel_soon'),      events: baseEvents.filter(isAlkaaPian) },
-      { id: 'parhaat',   title: t('discover.carousel_best'),      events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !!e.image) },
-      { id: 'ilmainen',  title: t('discover.carousel_free'),      events: baseEvents.filter(e => e.isFree) },
-      { id: 'terassit',  title: t('discover.carousel_terraces'),  events: baseEvents.filter(isTerrace) },
-      { id: 'ylatys',    title: t('discover.carousel_different'), events: baseEvents.filter(isSurprise) },
+      { id: 'parhaat',  title: t('discover.carousel_best'), events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !heroIds.has(e.id)) },
+      { id: 'ilmainen', title: t('discover.carousel_free'), events: baseEvents.filter(e => e.isFree) },
     ]
-    // Illalla (tai Illalla-chipillä) yöelämä johtaa: nostetaan keikat/klubit-rivi
-    // ensimmäiseksi — koko päivän tapahtumat pysyvät silti feedissä.
-    if (isEvening || dateFilter === 'tonight') {
-      const i = rows.findIndex(r => r.id === 'parhaat')
-      if (i > 0) rows.unshift(rows.splice(i, 1)[0])
-    }
     return rows.filter(r => r.events.length > 0)
-  }, [baseEvents, t, dateFilter, isEvening])
+  }, [baseEvents, t, heroGigs])
+
+  // Kategorian pystylista (koCat): ruudukon/aihepiirin napautus avaa tämän
+  const koCatEvents = useMemo(() => {
+    if (!koCat) return []
+    if (koCat === 'ilmainen') return baseEvents.filter((e) => e.isFree)
+    const vibe = VIBES.find((v) => v.id === koCat)
+    if (!vibe) return []
+    return baseEvents.filter((e) => {
+      const hay = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
+      return vibe.keywords.some((k) => hay.includes(k.toLowerCase()))
+    })
+  }, [koCat, baseEvents])
 
   // 'kaikki' counts as 0 — it's "show all", not a real filter selection
   const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0) + (liveOnly ? 1 : 0)
@@ -1085,62 +1113,115 @@ export default function HomeClient({
             </div>
           )}
 
-          {/* ── Hero "ILLAN NOSTO" ── */}
-          {heroEvent && (
-            <button onClick={() => setSelectedEvent(heroEvent)}
-              className="group relative w-full rounded-[22px] overflow-hidden text-left"
-              style={{ aspectRatio: '16/10', boxShadow: '0 22px 50px -20px rgba(91,101,230,.4)' }}>
-              <img src={heroEvent.image!} alt={heroEvent.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,0.97) 0%,rgba(10,10,12,0.2) 55%,transparent 100%)' }} />
-              {/* Badges row */}
-              <div className="absolute top-4 left-4 flex gap-2">
-                <span className="text-[9px] font-black px-2.5 py-1 rounded-full text-white tracking-[.08em] uppercase" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{t('discover.hero_badge')}</span>
-                {heroEvent.categories[0] && (
-                  <span className="text-[9px] font-black px-2.5 py-1 rounded-full text-white/80 uppercase tracking-[.08em]" style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.15)' }}>
-                    {heroEvent.categories[0]}
-                  </span>
-                )}
-              </div>
-              {/* Heart — div instead of button to avoid invalid button-in-button nesting */}
-              <div className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer" style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.15)' }}
-                role="button" onClick={e => { e.stopPropagation(); }}>
-                <Heart size={14} className="text-white/70" />
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-5">
-                {heroEvent.location?.name && (
-                  <p className="text-[11px] font-black uppercase tracking-[.1em] mb-1" style={{ color: 'rgba(255,255,255,.5)' }}>
-                    {heroEvent.categories[0] ? `${heroEvent.categories[0].toUpperCase()} · ` : ''}{heroEvent.location.name.toUpperCase()}
-                  </p>
-                )}
-                <h2 className="font-black text-white leading-tight mb-3" style={{ fontSize: 'clamp(1.4rem,5vw,2rem)', letterSpacing: '-0.02em' }}>
-                  {heroEvent.title}
+          {/* ═══ KATEGORIAN PYSTYLISTA (koCat) — ← Takaisin + rikkaat kortit ═══ */}
+          {koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && !liveOnly && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setKoCat(null)}
+                  className="shrink-0 flex items-center gap-1 px-3.5 py-2 rounded-full text-[13px] font-black text-white/70 hover:text-white transition-all"
+                  style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+                  ← {t('common.back')}
+                </button>
+                <h2 className="font-black text-white text-[19px] leading-none" style={{ letterSpacing: '-0.02em' }}>
+                  {koCat === 'ilmainen' ? `🎁 ${t('discover.carousel_free')}` : `${VIBES.find(v => v.id === koCat)?.emoji ?? ''} ${VIBES.find(v => v.id === koCat)?.label ?? ''}`}
                 </h2>
-                <div className="flex items-center gap-3">
-                  {!heroEvent.isFree && heroEvent.price ? (
-                    <span className="px-4 py-2 rounded-full text-white text-[13px] font-black" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
-                      {t('discover.tickets_from')} {heroEvent.price} →
-                    </span>
-                  ) : heroEvent.isFree ? (
-                    <span className="px-4 py-2 rounded-full text-white text-[13px] font-black bg-emerald-500">{t('common.free')} →</span>
-                  ) : null}
-                  <span className="text-white/50 text-[13px] font-bold">
-                    {new Date(heroEvent.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long' }).replace(/^./, c => c.toUpperCase())} {new Date(heroEvent.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
+                <span className="text-white/30 text-[13px] font-bold">· {koCatEvents.length}</span>
               </div>
-            </button>
+              {koCatEvents.length === 0 ? (
+                <div className="flex flex-col items-center py-16 text-center gap-3">
+                  <span className="text-4xl">🫥</span>
+                  <p className="text-white/40 font-bold">{t('discover.no_filter_match')}</p>
+                  <p className="text-white/20 text-sm">{t('discover.quiet_sub')}</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-w-2xl">
+                  {koCatEvents.map((e) => (
+                    <EventCard key={e.id} event={e} onClick={setSelectedEvent}
+                      distance={geo.coords && e.location?.lat && e.location?.lon
+                        ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
+                        : undefined} />
+                  ))}
+                </div>
+              )}
+            </section>
           )}
 
-          {/* ── Carousel rows — piilotetaan kun filtteri tai keyword aktiivinen ── */}
-          {!loading && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && !liveOnly && carousels.map(row => (
-            <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent} />
-          ))}
-          {/* Phase 2 spinner — carousel-näkymässä kun tuloksia on jo mutta lisää haetaan */}
-          {fetchingFull && baseEvents.length > 0 && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && !liveOnly && (
-            <div className="flex items-center justify-center gap-2 py-3">
-              <Loader2 size={14} className="animate-spin text-white/30" />
-              <span className="text-white/30 text-[13px]">Haetaan lisää...</span>
-            </div>
+          {/* ═══ ETUSIVU (koFront) — hero → ruudukko → kompaktit rivit → aihepiirit ═══ */}
+          {!koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && !liveOnly && (
+            <>
+              {/* Tilarivi: vihreä pulssipiste + päivän tapahtumamäärä */}
+              {!loading && baseEvents.length > 0 && (
+                <div className="flex items-center gap-2 -mb-1">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#5fd9a6', boxShadow: '0 0 8px rgba(95,217,166,.8)', animation: 'pulse-glow 2s ease-in-out infinite' }} />
+                  <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,.55)' }}>
+                    {baseEvents.length} {dateFilter === 'today' || dateFilter === 'tonight' ? t('discover.events_today') : t('discover.events_count')}
+                  </span>
+                </div>
+              )}
+
+              {/* HERO: 🎸 Illan keikat — pyyhkäistävä, 5 nostoa */}
+              {!loading && <HeroSwiper events={heroGigs} onOpen={setSelectedEvent} />}
+
+              {/* Kategoriaruudukko */}
+              {!loading && baseEvents.length > 0 && (
+                <section>
+                  <div className="flex items-baseline justify-between mb-3">
+                    <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>{t('discover.grid_title')}</h2>
+                    <span className="text-[12px] font-bold text-white/30">{t('discover.grid_sub')}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {HOME_GRID_TILES.map(({ id, tint }) => {
+                      const vibe = VIBES.find(v => v.id === id)
+                      if (!vibe) return null
+                      return (
+                        <button key={id} onClick={() => setKoCat(id)}
+                          className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-4 px-1 transition-transform active:scale-95"
+                          style={{
+                            background: `radial-gradient(120% 100% at 50% 0%, rgba(${tint},.16), rgba(255,255,255,.03) 70%)`,
+                            border: '1px solid rgba(255,255,255,.07)',
+                          }}>
+                          <span className="text-[26px] leading-none">{vibe.emoji}</span>
+                          <span className="text-[11px] font-black text-white/85 text-center leading-tight">{t(vibe.tKey as TranslationKey)}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Kompaktit vaakarivit: Illan parhaat + Ilmaiseksi tänään */}
+              {!loading && carousels.map(row => (
+                <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent}
+                  onSeeAll={row.id === 'ilmainen' ? () => setKoCat('ilmainen') : undefined} />
+              ))}
+
+              {/* Phase 2 spinner */}
+              {fetchingFull && baseEvents.length > 0 && (
+                <div className="flex items-center justify-center gap-2 py-3">
+                  <Loader2 size={14} className="animate-spin text-white/30" />
+                  <span className="text-white/30 text-[13px]">Haetaan lisää...</span>
+                </div>
+              )}
+
+              {/* 🎨 Kaikki aihepiirit — keskitetty pilleri */}
+              {!loading && baseEvents.length > 0 && (
+                <div className="flex justify-center pt-1">
+                  <button onClick={() => setShowVibePanel(true)}
+                    className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+                    style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+                    🎨 {t('discover.all_vibes')}
+                    <span className="text-white/40">▾</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Suunnittele-linkki mobiilissa (poistui alapalkista) */}
+              <div className="md:hidden flex justify-center">
+                <Link href="/suunnittele" className="text-[12px] font-bold text-white/35 hover:text-white/60 transition-colors" style={{ textDecoration: 'none' }}>
+                  ✈️ Suunnittele täydellinen ilta →
+                </Link>
+              </div>
+            </>
           )}
 
           {/* ── Flat grid — näkyy kun keyword, kategoria, vibe tai Nyt menossa valittu ── */}
@@ -1168,23 +1249,6 @@ export default function HomeClient({
                 <p className="text-white/20 text-sm mt-1">Katso 🌙 Illalla — illan menot alkavat pian</p>
               </div>
             </div>
-          )}
-
-          {/* ── Selaa aihepiireittäin — ikonigridi karusellivien jälkeen ── */}
-          {!loading && baseEvents.length > 0 && (
-            <section>
-              <h2 className="font-black text-white text-[17px] mb-4" style={{ letterSpacing: '-0.02em' }}>
-                Selaa aihepiireittäin
-              </h2>
-              <VibeBar
-                active={activeVibes}
-                onClearAll={() => { setActiveVibes([]); setPriceFilter('all') }}
-                onToggle={(id) => {
-                  if (id === 'ilmainen') { setPriceFilter((p) => p === 'free' ? 'all' : 'free'); return }
-                  setActiveVibes((prev) => prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id])
-                }}
-              />
-            </section>
           )}
 
           {!loading && !fetchingFull && baseEvents.length === 0 && (
@@ -1260,11 +1324,15 @@ export default function HomeClient({
         </div>
       </nav>
 
+      {/* Aihepiiripaneeli — valinta avaa kategorian pystylistan (koCat) */}
       <VibePanel
         open={showVibePanel}
-        active={activeVibes}
-        onToggle={handleVibeToggle}
-        onClear={() => { setActiveVibes([]); setPriceFilter('all') }}
+        active={koCat ? [koCat] : []}
+        onToggle={(id) => {
+          setKoCat(id === 'kaikki' ? null : id)
+          setShowVibePanel(false)
+        }}
+        onClear={() => setKoCat(null)}
         onClose={() => setShowVibePanel(false)}
       />
 

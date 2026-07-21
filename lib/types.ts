@@ -87,6 +87,7 @@ export const VIBES: Vibe[] = [
   { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'] },
   { id: 'taide',     label: 'Taide',             tKey: 'vibe.taide',    emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'art', 'gallery', 'exhibition', 'design'] },
   { id: 'festivaali', label: 'Festivaali',       tKey: 'vibe.festivaali', emoji: '🎪', keywords: ['festivaali', 'festival', 'festarit', 'fest'] },
+  { id: 'underground', label: 'Underground',     tKey: 'vibe.underground', emoji: '🔦', keywords: ['underground', 'rave', 'diy', 'kellari', 'vaihtoehto', 'kokeellinen', 'noise', 'punk'] },
 ]
 
 // ── COLLECTIONS ────────────────────────────────────────
