@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchOSMCached } from '@/app/api/restaurants/route'
+import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
 
 
 export const maxDuration = 300
@@ -97,17 +98,11 @@ export async function POST(req: NextRequest) {
     r.type === 'baari' || r.type === 'yokerho' || r.type === 'kahvila'
   )
 
-  // Skip venues already enriched with sub_categories
-  const { data: existingRows } = await supabaseAdmin
-    .from('venue_ratings')
-    .select('venue_key, sub_categories')
-    .not('sub_categories', 'is', null)
-
-  const alreadyDoneKeys = new Set(
-    (existingRows ?? [])
-      .filter((r: { sub_categories: string[] | null }) => Array.isArray(r.sub_categories))
-      .map((r: { venue_key: string }) => r.venue_key)
-  )
+  // Skip venues already enriched with sub_categories.
+  // PAGINATED: a single select caps at 1000 rows — once venue_ratings passed
+  // 1000 the truncated skip set re-processed & re-charged thousands of venues
+  // every batch, and the loop never finished. This fetches every done key.
+  const { keys: alreadyDoneKeys } = await fetchEnrichedKeys(supabaseAdmin, 'sub_categories')
 
   const toProcess = venues
     .filter(r => !alreadyDoneKeys.has(r.name.toLowerCase().trim()))

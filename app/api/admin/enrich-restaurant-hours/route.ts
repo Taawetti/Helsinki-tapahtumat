@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchOSMCached } from '@/app/api/restaurants/route'
 import { googleTimetableToOsm } from '@/lib/google-hours'
+import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
 
 export const maxDuration = 300
 
@@ -56,18 +57,15 @@ export async function POST(req: NextRequest) {
 
   // Skip venues already PROCESSED — keyed on google_hours_updated (set on every
   // processed venue, hours or not) so no-hours venues aren't re-fetched (and
-  // re-charged) forever. If this query errors, the migration hasn't run yet.
-  const { data: existingRows, error: skipErr } = await supabaseAdmin
-    .from('venue_ratings')
-    .select('venue_key')
-    .not('google_hours_updated', 'is', null)
+  // re-charged) forever. PAGINATED — a truncated skip set is what caused the
+  // runaway re-charge loop. If this errors, the migration hasn't run yet.
+  const { keys: doneKeys, error: skipErr } = await fetchEnrichedKeys(supabaseAdmin, 'google_hours_updated')
   if (skipErr) {
     return NextResponse.json(
       { error: 'venue_ratings.google_hours_updated puuttuu — aja sql/add-venue-google-hours.sql ensin' },
       { status: 500 },
     )
   }
-  const doneKeys = new Set((existingRows ?? []).map((r: { venue_key: string }) => r.venue_key))
 
   // De-dupe by venue_key up front: chains share one row (venue_key = name), so
   // processing every outlet would re-charge for the same key and let one

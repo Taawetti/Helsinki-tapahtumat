@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchOSMCached } from '@/app/api/restaurants/route'
+import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
 
 export const maxDuration = 300
 
@@ -111,12 +112,10 @@ export async function POST(req: NextRequest) {
 
   // Skip venues already processed (cuisine_categories set = done, image may or may not exist).
   // A separate "fetch images" pass handles venues that have cuisine but no image yet.
-  const { data: existingRows } = await supabaseAdmin
-    .from('venue_ratings')
-    .select('venue_key')
-    .not('cuisine_categories', 'is', null)
-
-  const alreadyDoneKeys = new Set((existingRows ?? []).map((r: { venue_key: string }) => r.venue_key))
+  // PAGINATED: a single select caps at 1000 rows — once venue_ratings passed
+  // 1000 the truncated skip set re-processed & re-charged thousands of venues
+  // every batch, and the loop never finished. This fetches every done key.
+  const { keys: alreadyDoneKeys } = await fetchEnrichedKeys(supabaseAdmin, 'cuisine_categories')
 
   // Process all restaurants not yet in Supabase — get ratings for everyone,
   // cuisine categories only for those OSM + name inference couldn't identify.

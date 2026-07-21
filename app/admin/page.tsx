@@ -148,8 +148,11 @@ export default function AdminPage() {
     setEnrichResult('Aloitetaan...')
     let totalProcessed = 0
     let totalEnriched = 0
+    let prevRemaining = Infinity
+    let guard = 0
 
     while (!enrichStopRef.current) {
+      if (++guard > 150) { setEnrichResult(`⏹ Pysäytetty turvarajaan (${totalProcessed} käsitelty)`); break }
       const res = await fetch('/api/admin/enrich-restaurant-cuisines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,6 +169,12 @@ export default function AdminPage() {
         setEnrichResult(`✓ Valmis — käsitelty ${totalProcessed}, kategoria ${totalEnriched}:lle`)
         break
       }
+      // Stall = skip-set not growing → abort before it re-charges (the old bug)
+      if (data.remaining >= prevRemaining) {
+        setEnrichResult(`⏹ Pysäytetty: ei edisty (jäljellä ${data.remaining}) — tarkista loki`)
+        break
+      }
+      prevRemaining = data.remaining
     }
     setEnriching(false)
   }
@@ -177,9 +186,14 @@ export default function AdminPage() {
     setEnrichHoursResult('Aloitetaan...')
     let totalProcessed = 0
     let totalStored = 0
+    // Runaway guards: stop if a batch doesn't shrink `remaining` (backend not
+    // marking venues done → would re-charge forever) or after a hard cap.
+    let prevRemaining = Infinity
+    let guard = 0
 
     try {
       while (!enrichHoursStopRef.current) {
+        if (++guard > 150) { setEnrichHoursResult(`⏹ Pysäytetty turvarajaan (${totalProcessed} käsitelty)`); break }
         // 40/batch × ~1.1s stays well under the 300s serverless limit
         const res = await fetch('/api/admin/enrich-restaurant-hours', {
           method: 'POST',
@@ -197,6 +211,12 @@ export default function AdminPage() {
           setEnrichHoursResult(`✓ Valmis — käsitelty ${totalProcessed}, aukiolot ${totalStored}:lle`)
           break
         }
+        // Stall = no progress → abort before it re-charges
+        if (data.remaining >= prevRemaining) {
+          setEnrichHoursResult(`⏹ Pysäytetty: ei edisty (jäljellä ${data.remaining}) — tarkista loki`)
+          break
+        }
+        prevRemaining = data.remaining
       }
     } catch (e) {
       setEnrichHoursResult('Virhe: ' + (e instanceof Error ? e.message : 'verkkovirhe — yritä uudelleen'))
@@ -212,8 +232,11 @@ export default function AdminPage() {
     setEnrichSubsResult('Aloitetaan...')
     let totalProcessed = 0
     let totalEnriched = 0
+    let prevRemaining = Infinity
+    let guard = 0
 
     while (!enrichSubsStopRef.current) {
+      if (++guard > 150) { setEnrichSubsResult(`⏹ Pysäytetty turvarajaan (${totalProcessed} käsitelty)`); break }
       const res = await fetch('/api/admin/enrich-subcategories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -230,6 +253,12 @@ export default function AdminPage() {
         setEnrichSubsResult(`✓ Valmis — käsitelty ${totalProcessed}, kategorioitu ${totalEnriched}:lle`)
         break
       }
+      // Stall = skip-set not growing → abort before it re-charges (the old bug)
+      if (data.remaining >= prevRemaining) {
+        setEnrichSubsResult(`⏹ Pysäytetty: ei edisty (jäljellä ${data.remaining}) — tarkista loki`)
+        break
+      }
+      prevRemaining = data.remaining
     }
     setEnrichingSubs(false)
   }
