@@ -38,7 +38,7 @@ const HELSINKI_CENTER: [number, number] = [60.1699, 24.9384]
 const LAYER_META = [
   { key: 'events'      as const, label: '🎟 Tapahtumat', bg: 'linear-gradient(150deg,#6b76ff,#5059e6)' },
   { key: 'restaurants' as const, label: '🍽 Ravintolat',  bg: 'linear-gradient(150deg,#2563eb,#5f96ff)' },
-  { key: 'activities'  as const, label: '🧖 Aktiviteetit', bg: 'linear-gradient(150deg,#10b981,#5fd9a6)' },
+  { key: 'activities'  as const, label: '🧖 Tekemistä',   bg: 'linear-gradient(150deg,#10b981,#5fd9a6)' },
 ]
 
 // ── Color helpers ─────────────────────────────────────────
@@ -67,28 +67,31 @@ function eventColor(event: Event): { color: string; emoji: string } {
   return { color: '#0072C6', emoji: '📍' }
 }
 
+// Ravintolapinnien pohjaväri = design-tokenin sininen #5f96ff; tyyppi näkyy emojista
 function restaurantColor(type: Restaurant['type']): { color: string; emoji: string } {
   switch (type) {
-    case 'ravintola': return { color: '#f97316', emoji: '🍽' }
-    case 'kahvila':   return { color: '#d97706', emoji: '☕' }
-    case 'baari':     return { color: '#d946ef', emoji: '🍺' }
-    case 'pikaruoka': return { color: '#ef4444', emoji: '🍔' }
-    default:          return { color: '#6b7280', emoji: '📍' }
+    case 'ravintola': return { color: '#5f96ff', emoji: '🍽' }
+    case 'kahvila':   return { color: '#5f96ff', emoji: '☕' }
+    case 'baari':     return { color: '#5f96ff', emoji: '🍸' }
+    case 'yokerho':   return { color: '#5f96ff', emoji: '🌃' }
+    case 'pikaruoka': return { color: '#5f96ff', emoji: '🍔' }
+    default:          return { color: '#5f96ff', emoji: '📍' }
   }
 }
 
+// Tekemistä-pinnien pohjaväri = design-tokenin vihreä #5fd9a6; kategoria emojista
 function activityColor(category: string): { color: string; emoji: string } {
   switch (category) {
-    case 'sauna':      return { color: '#f97316', emoji: '🧖' }
-    case 'museo':      return { color: '#06b6d4', emoji: '🏛' }
-    case 'nahtavyys':  return { color: '#3b82f6', emoji: '📍' }
-    case 'galleria':   return { color: '#a855f7', emoji: '🎨' }
-    case 'nakopaikka': return { color: '#f59e0b', emoji: '🔭' }
-    case 'uimaranta':  return { color: '#14b8a6', emoji: '🏊' }
-    case 'puisto':     return { color: '#22c55e', emoji: '🌿' }
-    case 'markkina':   return { color: '#d97706', emoji: '🏪' }
-    case 'urheilu':    return { color: '#ef4444', emoji: '⚽' }
-    default:           return { color: '#6b7280', emoji: '✨' }
+    case 'sauna':      return { color: '#5fd9a6', emoji: '🧖' }
+    case 'museo':      return { color: '#5fd9a6', emoji: '🏛' }
+    case 'nahtavyys':  return { color: '#5fd9a6', emoji: '📍' }
+    case 'galleria':   return { color: '#5fd9a6', emoji: '🎨' }
+    case 'nakopaikka': return { color: '#5fd9a6', emoji: '🔭' }
+    case 'uimaranta':  return { color: '#5fd9a6', emoji: '🏊' }
+    case 'puisto':     return { color: '#5fd9a6', emoji: '🌿' }
+    case 'markkina':   return { color: '#5fd9a6', emoji: '🏪' }
+    case 'urheilu':    return { color: '#5fd9a6', emoji: '⚽' }
+    default:           return { color: '#5fd9a6', emoji: '✨' }
   }
 }
 
@@ -143,11 +146,13 @@ const EVENT_SUBS = [
   { key: 'ilmainen', emoji: '🎁', label: 'Ilmainen',     color: '#10b981', tKey: 'legend.free' as const },
 ] as const
 
+// Tyyppinapit vastaavat Ravintolat-välilehden tyyppejä (design 6-kartta.png)
 const REST_SUBS = [
-  { key: 'ravintola', emoji: '🍽', label: 'Ravintola',  color: '#f97316', tKey: 'legend.restaurant' as const },
-  { key: 'kahvila',   emoji: '☕', label: 'Kahvila',    color: '#d97706', tKey: 'legend.cafe' as const },
-  { key: 'baari',     emoji: '🍺', label: 'Baari',      color: '#d946ef', tKey: 'legend.bar' as const },
-  { key: 'pikaruoka', emoji: '🍔', label: 'Pikaruoka',  color: '#ef4444', tKey: 'legend.fastfood' as const },
+  { key: 'ravintola', emoji: '🍽', label: 'Ruokapaikat', color: '#5f96ff', tKey: 'legend.restaurant' as const },
+  { key: 'kahvila',   emoji: '☕', label: 'Kahvilat',    color: '#5f96ff', tKey: 'legend.cafe' as const },
+  { key: 'baari',     emoji: '🍸', label: 'Baarit',      color: '#5f96ff', tKey: 'legend.bar' as const },
+  { key: 'yokerho',   emoji: '🌃', label: 'Yökerhot',    color: '#5f96ff', tKey: 'legend.nightclub' as const },
+  { key: 'pikaruoka', emoji: '🍔', label: 'Pikaruoka',   color: '#5f96ff', tKey: 'legend.fastfood' as const },
 ] as const
 
 const REST_CUISINE_SUBS = [
@@ -344,8 +349,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       : (L as any).layerGroup()
 
     eventClusterRef.current = mkCluster('#6b76ff')
-    restClusterRef.current  = mkCluster('#f97316')
-    actClusterRef.current   = mkCluster('#10b981')
+    restClusterRef.current  = mkCluster('#5f96ff')
+    actClusterRef.current   = mkCluster('#5fd9a6')
 
     map.addLayer(eventClusterRef.current)
     setTimeout(() => { if (mapRef.current) mapRef.current.invalidateSize() }, 120)
@@ -648,8 +653,9 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
           </div>
         )}
 
-        {/* Row 2: restaurant cuisine sub-filter (↳ appears only when a rest type is selected) */}
-        {layers.restaurants && restType && (
+        {/* Row 2: restaurant cuisine sub-filter (↳ only for Ruokapaikat —
+            cuisine categories don't apply to cafés/bars/nightclubs) */}
+        {layers.restaurants && restType === 'ravintola' && (
           <div style={{ borderRadius: 12, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)', border: '1px solid rgba(95,150,255,0.25)' }}>
             <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
               <span className="shrink-0 text-[10px] font-black self-center pr-1" style={{ color: '#5f96ff' }}>↳</span>
