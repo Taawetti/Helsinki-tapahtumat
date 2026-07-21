@@ -36,7 +36,7 @@ const GOOGLE_TO_CUISINE: [RegExp, string][] = [
   [/vegetarian|vegan/i,                                                                 'veggie'],
 ]
 
-function googleCategoriesToCuisine(cats: string[]): string[] {
+export function googleCategoriesToCuisine(cats: string[]): string[] {
   const result = new Set<string>()
   for (const cat of cats) {
     for (const [regex, cuisine] of GOOGLE_TO_CUISINE) {

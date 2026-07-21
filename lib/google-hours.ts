@@ -34,7 +34,9 @@ export function googleTimetableToOsm(workTime: unknown): string | null {
     if (!(day in timetable)) continue
     sawAnyDay = true
     const intervals = timetable[day]
-    if (!intervals || intervals.length === 0) continue // Google "Closed" → omit
+    // Array.isArray, not just truthiness: a malformed truthy non-array (object,
+    // number) would pass a `.length===0` check then throw in the for..of below.
+    if (!Array.isArray(intervals) || intervals.length === 0) continue // Google "Closed" → omit
 
     const ranges: string[] = []
     for (const iv of intervals) {

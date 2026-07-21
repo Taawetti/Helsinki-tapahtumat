@@ -123,12 +123,6 @@ export default function AdminPage() {
   const [enrichingSubs, setEnrichingSubs] = useState(false)
   const [enrichSubsResult, setEnrichSubsResult] = useState('')
   const enrichSubsStopRef = useRef(false)
-  const [enrichingHours, setEnrichingHours] = useState(false)
-  const [enrichHoursResult, setEnrichHoursResult] = useState('')
-  const enrichHoursStopRef = useRef(false)
-  const [enrichingImages, setEnrichingImages] = useState(false)
-  const [enrichImagesResult, setEnrichImagesResult] = useState('')
-  const enrichImagesStopRef = useRef(false)
   const [imageSamples, setImageSamples] = useState<{ name: string; image: string }[]>([])
   const imageTestDoneRef = useRef(false)
   const [enrichingActivityImages, setEnrichingActivityImages] = useState(false)
@@ -141,89 +135,54 @@ export default function AdminPage() {
     router.push('/admin/login')
   }
 
+  // Unified enrichment: one DataForSEO call per restaurant fills rating +
+  // reviews + cuisine + image + opening hours together.
   async function handleEnrichRestaurants() {
     if (enriching) { enrichStopRef.current = true; return }
     setEnriching(true)
     enrichStopRef.current = false
     setEnrichResult('Aloitetaan...')
-    let totalProcessed = 0
-    let totalEnriched = 0
-    let prevRemaining = Infinity
-    let guard = 0
-
-    while (!enrichStopRef.current) {
-      if (++guard > 150) { setEnrichResult(`⏹ Pysäytetty turvarajaan (${totalProcessed} käsitelty)`); break }
-      const res = await fetch('/api/admin/enrich-restaurant-cuisines', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 50 }),
-      })
-      const data = await res.json()
-      if (data.error) { setEnrichResult('Virhe: ' + data.error); break }
-
-      totalProcessed += data.processed
-      totalEnriched += data.enriched
-      setEnrichResult(`Käsitelty ${totalProcessed} • Kategoria löytyi ${totalEnriched} • Jäljellä ${data.remaining}`)
-
-      if (data.remaining === 0 || data.processed === 0) {
-        setEnrichResult(`✓ Valmis — käsitelty ${totalProcessed}, kategoria ${totalEnriched}:lle`)
-        break
-      }
-      // Stall = skip-set not growing → abort before it re-charges (the old bug)
-      if (data.remaining >= prevRemaining) {
-        setEnrichResult(`⏹ Pysäytetty: ei edisty (jäljellä ${data.remaining}) — tarkista loki`)
-        break
-      }
-      prevRemaining = data.remaining
-    }
-    setEnriching(false)
-  }
-
-  async function handleEnrichHours() {
-    if (enrichingHours) { enrichHoursStopRef.current = true; return }
-    setEnrichingHours(true)
-    enrichHoursStopRef.current = false
-    setEnrichHoursResult('Aloitetaan...')
-    let totalProcessed = 0
     let totalStored = 0
-    // Runaway guards: stop if a batch doesn't shrink `remaining` (backend not
-    // marking venues done → would re-charge forever) or after a hard cap.
+    let totalNone = 0
+    let totalErrors = 0
     let prevRemaining = Infinity
     let guard = 0
 
     try {
-      while (!enrichHoursStopRef.current) {
-        if (++guard > 150) { setEnrichHoursResult(`⏹ Pysäytetty turvarajaan (${totalProcessed} käsitelty)`); break }
-        // 40/batch × ~1.1s stays well under the 300s serverless limit
-        const res = await fetch('/api/admin/enrich-restaurant-hours', {
+      while (!enrichStopRef.current) {
+        if (++guard > 200) { setEnrichResult(`⏹ Pysäytetty turvarajaan`); break }
+        // 25/batch × ~5s stays well under the 300s serverless limit
+        const res = await fetch('/api/admin/enrich-restaurants-all', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ limit: 40 }),
+          body: JSON.stringify({ limit: 25 }),
         })
         const data = await res.json()
-        if (data.error) { setEnrichHoursResult('Virhe: ' + data.error); break }
+        if (data.error) { setEnrichResult('Virhe: ' + data.error); break }
 
-        totalProcessed += data.processed
         totalStored += data.stored
-        setEnrichHoursResult(`Käsitelty ${totalProcessed} • Google-aukiolot ${totalStored} • Jäljellä ${data.remaining}`)
+        totalNone += data.notInGoogle
+        totalErrors += data.errors
+        setEnrichResult(`Dataa ${totalStored} • ei Googlessa ${totalNone} • virheitä ${totalErrors} • jäljellä ${data.remaining}`)
 
         if (data.remaining === 0 || data.processed === 0) {
-          setEnrichHoursResult(`✓ Valmis — käsitelty ${totalProcessed}, aukiolot ${totalStored}:lle`)
+          setEnrichResult(`✓ Valmis — dataa ${totalStored}, ei Googlessa ${totalNone}, virheitä ${totalErrors}`)
           break
         }
-        // Stall = no progress → abort before it re-charges
+        // Stall = skip-set not shrinking → abort before it re-charges (the old bug)
         if (data.remaining >= prevRemaining) {
-          setEnrichHoursResult(`⏹ Pysäytetty: ei edisty (jäljellä ${data.remaining}) — tarkista loki`)
+          setEnrichResult(`⏹ Pysäytetty: ei edisty (jäljellä ${data.remaining}) — tarkista loki`)
           break
         }
         prevRemaining = data.remaining
       }
     } catch (e) {
-      setEnrichHoursResult('Virhe: ' + (e instanceof Error ? e.message : 'verkkovirhe — yritä uudelleen'))
+      setEnrichResult('Virhe: ' + (e instanceof Error ? e.message : 'verkkovirhe'))
     } finally {
-      setEnrichingHours(false)
+      setEnriching(false)
     }
   }
+
 
   async function handleEnrichSubcategories() {
     if (enrichingSubs) { enrichSubsStopRef.current = true; return }
@@ -301,36 +260,6 @@ export default function AdminPage() {
     setEnrichingActivityImages(false)
   }
 
-  async function handleEnrichImages() {
-    if (enrichingImages) { enrichImagesStopRef.current = true; return }
-    setEnrichingImages(true)
-    enrichImagesStopRef.current = false
-    setEnrichImagesResult('Aloitetaan...')
-    setImageSamples([])
-    let totalProcessed = 0
-    let totalUpdated = 0
-
-    while (!enrichImagesStopRef.current) {
-      const res = await fetch('/api/admin/enrich-restaurant-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 50 }),
-      })
-      const data = await res.json()
-      if (data.error) { setEnrichImagesResult('Virhe: ' + data.error); break }
-
-      totalProcessed += data.processed
-      totalUpdated += data.updated
-      if (data.samples?.length > 0) setImageSamples(data.samples)
-      setEnrichImagesResult(`Käsitelty ${totalProcessed} • Kuva löytyi ${totalUpdated}:lle • Jäljellä ${data.remaining}`)
-
-      if (data.remaining === 0 || data.processed === 0) {
-        setEnrichImagesResult(`✓ Valmis — käsitelty ${totalProcessed}, kuva ${totalUpdated}:lle`)
-        break
-      }
-    }
-    setEnrichingImages(false)
-  }
 
   async function handleRefreshRatings() {
     setRefreshing(true)
@@ -356,33 +285,19 @@ export default function AdminPage() {
         <div className="flex items-center gap-3 flex-wrap justify-end">
           {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
           {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
-          {enrichHoursResult && <span className={`text-xs ${enrichHoursResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichHoursResult}</span>}
-          {enrichImagesResult && <span className={`text-xs ${enrichImagesResult.startsWith('✓') ? 'text-green-400' : enrichImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichImagesResult}</span>}
           {enrichActivityImagesResult && <span className={`text-xs ${enrichActivityImagesResult.startsWith('✓') ? 'text-green-400' : enrichActivityImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivityImagesResult}</span>}
           {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
           <button
             onClick={handleEnrichRestaurants}
             className={`text-sm transition-colors ${enriching ? 'text-red-400 hover:text-red-300' : 'text-orange-400 hover:text-orange-300'}`}
           >
-            {enriching ? '⏹ Pysäytä' : '🍽 Rikasta ravintolat'}
+            {enriching ? '⏹ Pysäytä' : '🍽 Rikasta ravintolat (kaikki)'}
           </button>
           <button
             onClick={handleEnrichSubcategories}
             className={`text-sm transition-colors ${enrichingSubs ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'}`}
           >
             {enrichingSubs ? '⏹ Pysäytä' : '🎯 Enrichoi kategoriat'}
-          </button>
-          <button
-            onClick={handleEnrichHours}
-            className={`text-sm transition-colors ${enrichingHours ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}
-          >
-            {enrichingHours ? '⏹ Pysäytä' : '🕐 Google-aukiolot'}
-          </button>
-          <button
-            onClick={handleEnrichImages}
-            className={`text-sm transition-colors ${enrichingImages ? 'text-red-400 hover:text-red-300' : 'text-cyan-400 hover:text-cyan-300'}`}
-          >
-            {enrichingImages ? '⏹ Pysäytä' : '📸 Hae kuvat'}
           </button>
           <button
             onClick={handleEnrichActivityImages}
