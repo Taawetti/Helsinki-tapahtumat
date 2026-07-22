@@ -740,19 +740,34 @@ export default function ActivitiesView({ onShowOnMap }: {
   const handleAcClear = useCallback(() => { setAcDist(null); setAcAuki(false) }, [])
 
   const sortedPool = useMemo(() => {
-    let result = [...catPool]
-    if (filterOpen) {
-      result = result.filter(a => {
-        // Outdoor spots without opening_hours are always accessible
-        if (!a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category)) return true
-        return isOpenNow(a.openingHours) === true
+    const result = [...catPool]
+    const filtered = filterOpen
+      ? result.filter(a => {
+          // Outdoor spots without opening_hours are always accessible
+          if (!a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category)) return true
+          return isOpenNow(a.openingHours) === true
+        })
+      : result
+    if (filterNearby && userPos && distMap.size > 0) {
+      filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
+    } else {
+      // Oletus: paras laatu ensin (painotettu Bayes-arvosana venue-ratingeista),
+      // kuvalliset tasapelin kärkeen. Sama logiikka kuin ravintoloissa.
+      const score = (a: Activity) => {
+        const rt = ratingMap.get(a.name.toLowerCase())
+        if (!rt) return 0
+        return (rt.reviewCount * rt.rating + 50 * 4.2) / (rt.reviewCount + 50)
+      }
+      filtered.sort((a, b) => {
+        const d = score(b) - score(a)
+        if (d !== 0) return d
+        const ia = a.image ? 1 : 0, ib = b.image ? 1 : 0
+        if (ia !== ib) return ib - ia
+        return (ratingMap.get(b.name.toLowerCase())?.reviewCount ?? 0) - (ratingMap.get(a.name.toLowerCase())?.reviewCount ?? 0)
       })
     }
-    if (filterNearby && userPos && distMap.size > 0) {
-      result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
-    }
-    return result
-  }, [catPool, filterOpen, filterNearby, userPos, distMap])
+    return filtered
+  }, [catPool, filterOpen, filterNearby, userPos, distMap, ratingMap])
 
   const surpriseItems = useMemo(() => {
     const seed = shuffleSeed.current

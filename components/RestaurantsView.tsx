@@ -946,6 +946,22 @@ function RestSubTabs({ restType, active, onSelect }: {
   )
 }
 
+// ── Painotettu laatupisteytys listojen OLETUSJÄRJESTYKSELLE ──────────────────
+// Bayes-kutistus (IMDB-tyyli): harvoilla arvosteluilla arvosana vedetään kohti
+// globaalia keskiarvoa, jottei "5,0 (7 arvostelua)" ohita "4,6 (2000)".
+// Michelin/Bib nostaa; arvostelematon painuu listan loppuun (kuva ratkaisee
+// tasapelin erikseen). Vain lajitteluun — ei piilota mitään.
+const RATING_PRIOR_M = 50   // "näennäisarvostelujen" paino
+const RATING_PRIOR_C = 4.2  // globaali keskiarvo, johon harvat vedetään
+function restaurantQualityScore(r: Restaurant): number {
+  const award = r.michelinStars ? 0.6 : (r.bibGourmand || r.michelinRecommended) ? 0.35 : 0
+  if (r.googleRating !== undefined && r.googleRating !== null) {
+    const v = r.reviewCount ?? 0
+    return (v * r.googleRating + RATING_PRIOR_M * RATING_PRIOR_C) / (v + RATING_PRIOR_M) + award
+  }
+  return award > 0 ? RATING_PRIOR_C + award : 0
+}
+
 // ── "⭐ 4+ / 4.5+" — arvosana ≥ kynnys; Michelin/Bib-tunnustus korvaa
 //    arvostelumäärävaatimuksen ja puuttuvan arvosanan, mutta EI koskaan
 //    kynnyksen alittavaa näkyvää arvosanaa (kortti ei saa riidellä
@@ -1253,10 +1269,24 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   }, [typePool, subCat, restType])
 
   const sortedPool = useMemo(() => {
-    let result = [...subPool]
-    if (filterOpen) result = result.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
-    if (filterNearby && userPos) result = result.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
-    return result
+    const result = [...subPool]
+    const filtered = filterOpen
+      ? result.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
+      : result
+    if (filterNearby && userPos) {
+      // Käyttäjä pyysi eksplisiittisesti lähimpiä → etäisyys voittaa
+      filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
+    } else {
+      // Oletus: paras laatu ensin (painotettu), kuvalliset tasapelin kärkeen
+      filtered.sort((a, b) => {
+        const d = restaurantQualityScore(b) - restaurantQualityScore(a)
+        if (d !== 0) return d
+        const ia = a.image ? 1 : 0, ib = b.image ? 1 : 0
+        if (ia !== ib) return ib - ia
+        return (b.reviewCount ?? 0) - (a.reviewCount ?? 0)
+      })
+    }
+    return filtered
   }, [subPool, filterOpen, filterNearby, userPos, distMap])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
