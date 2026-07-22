@@ -840,7 +840,7 @@ function RestRow({ title, items, distMap, onCardClick, onChainClick, onShowOnMap
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {grouped.map(item =>
             '_isChain' in item
               ? <ChainListCard key={item.key} chain={item} onClick={onChainClick} />
@@ -1509,7 +1509,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {(filterOpen || filterNearby) ? (
                 groupedSortedPool.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       {groupedSortedPool.slice(0, visibleCount).map(item =>
                         '_isChain' in item
                           ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
@@ -1572,7 +1572,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {groupedSortedPool.length > 0 ? (
                 <>
                   {/* Mobiilissa pystylista; leveällä 2-3 vierekkäin kuten ennen */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
                     {groupedSortedPool.slice(0, visibleCount).map(item =>
                       '_isChain' in item
                         ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />

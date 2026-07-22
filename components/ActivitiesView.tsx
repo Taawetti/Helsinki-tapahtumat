@@ -229,7 +229,7 @@ function ActRow({ title, items, distMap, ratingMap, onCardClick, onShowOnMap }: 
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {items.map(a => (
             <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)} rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} />
           ))}
@@ -935,7 +935,7 @@ export default function ActivitiesView({ onShowOnMap }: {
               {(filterOpen || filterNearby) ? (
                 sortedPool.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       {sortedPool.slice(0, visibleCount).map(a => (
                         <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)}
                           rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} />
@@ -991,7 +991,7 @@ export default function ActivitiesView({ onShowOnMap }: {
               {sortedPool.length > 0 ? (
                 <>
                   {/* Mobiilissa pystylista; leveällä 2-3 vierekkäin kuten ennen */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
                     {sortedPool.slice(0, visibleCount).map(a => (
                       <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)}
                         rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} />
