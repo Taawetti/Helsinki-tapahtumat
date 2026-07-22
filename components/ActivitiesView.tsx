@@ -878,7 +878,8 @@ export default function ActivitiesView({ onShowOnMap }: {
 
               {sortedPool.length > 0 ? (
                 <>
-                  <div className="max-w-2xl space-y-3">
+                  {/* Mobiilissa pystylista; leveällä 2-3 vierekkäin kuten ennen */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                     {sortedPool.slice(0, visibleCount).map(a => (
                       <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)}
                         rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} />
@@ -886,7 +887,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                   </div>
                   {visibleCount < sortedPool.length && (
                     <button onClick={() => setVisibleCount(v => v + 24)}
-                      className="w-full max-w-2xl py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
+                      className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
                       style={{ background: 'rgba(255,255,255,.05)' }}>
                       Näytä lisää ({sortedPool.length - visibleCount} kohdetta)
                     </button>

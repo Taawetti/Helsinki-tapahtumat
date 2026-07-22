@@ -1136,7 +1136,8 @@ export default function HomeClient({
                   <p className="text-white/20 text-sm">{t('discover.quiet_sub')}</p>
                 </div>
               ) : (
-                <div className="space-y-2.5 max-w-2xl">
+                /* Mobiilissa designin pystylista; leveällä 2 korttia vierekkäin */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                   {koCatEvents.map((e) => (
                     <EventCard key={e.id} event={e} onClick={setSelectedEvent}
                       distance={geo.coords && e.location?.lat && e.location?.lon
