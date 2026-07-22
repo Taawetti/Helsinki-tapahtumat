@@ -242,11 +242,27 @@ export async function GET(req: NextRequest) {
       return `${base}|${date}`
     }
 
+    // LinkedEventsin OMAT duplikaatit pois: sama toistuva tapahtuma tulee
+    // syötteestä monena instanssina (esim. "Omatoiminen omahoitopiste" ×4,
+    // sama ohjelma klo 10 ja 14). Sama normalisoitu otsikko + Helsinki-päivä
+    // = yksi kortti; päivän varhaisin aika voittaa. Sama tapahtuma saa silti
+    // näkyä ERI päivinä (avain sisältää päivän).
+    {
+      const byKey = new Map<string, Event>()
+      for (const e of events) {
+        const k = dedupKey(e.title, helsinkiDateOf(e.startTime))
+        const prev = byKey.get(k)
+        if (!prev || new Date(e.startTime).getTime() < new Date(prev.startTime).getTime()) byKey.set(k, e)
+      }
+      events = [...byKey.values()]
+      total = events.length
+    }
+
     // Merge all external sources — deduplicate by normalized title+date.
     // When a duplicate is found, upgrade the existing event with coordinates
     // from the incoming version (e.g. recurring has coords, Linked Events doesn't).
     // Every attempted source gets a status entry so failures are visible instead of silent.
-    const seenMap = new Map(events.map((e, i) => [dedupKey(e.title, e.startTime.slice(0, 10)), i]))
+    const seenMap = new Map(events.map((e, i) => [dedupKey(e.title, helsinkiDateOf(e.startTime)), i]))
     const sources: SourceStatus[] = [{ name: 'linked-events', ok: leOk, count: events.length }]
 
     for (let i = 0; i < externalRes.length && attemptExternal; i++) {
@@ -260,7 +276,7 @@ export async function GET(req: NextRequest) {
           const data: { events?: Event[] } = await (res.value as Response).json()
           const incoming: Event[] = data.events ?? []
           for (const e of incoming) {
-            const key = dedupKey(e.title, e.startTime.slice(0, 10))
+            const key = dedupKey(e.title, helsinkiDateOf(e.startTime))
             const existingIdx = seenMap.get(key)
             if (existingIdx !== undefined) {
               // Upgrade existing event with best available data from the incoming duplicate
