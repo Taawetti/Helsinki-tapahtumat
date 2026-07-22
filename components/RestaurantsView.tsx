@@ -1030,10 +1030,16 @@ function DecidePanel({ pool, pick, tried, dist, price, rated, distMap, onDist, o
       {pick ? (
         <div className="rounded-[16px] p-3.5 space-y-3" style={{ background: 'rgba(10,10,14,.55)', border: '1px solid rgba(255,255,255,.08)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[22px] shrink-0"
-              style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(255,255,255,.08)' }}>
-              {pickEmoji}
-            </div>
+            {pick.image ? (
+              <div className="relative w-20 h-20 rounded-[14px] overflow-hidden shrink-0" style={{ border: '1px solid rgba(255,255,255,.1)' }}>
+                <img src={pick.image} alt={pick.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[22px] shrink-0"
+                style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(255,255,255,.08)' }}>
+                {pickEmoji}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="font-black text-white text-[15px] truncate" style={{ letterSpacing: '-0.01em' }}>{pick.name}</p>
               <div className="flex items-center gap-2 flex-wrap text-[11.5px] font-bold mt-0.5">
@@ -1277,7 +1283,11 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const rollPick = useCallback((avoidId?: string) => {
     const candidates = rcPool.length > 1 && avoidId ? rcPool.filter(r => r.id !== avoidId) : rcPool
     if (candidates.length === 0) { setRcPick(null); return }
-    setRcPick(candidates[Math.floor(Math.random() * candidates.length)])
+    // Suosi ravintoloita joilla on kuva — kuva auttaa käyttäjää päättämään.
+    // Ilman kuvaa oleviin turvaudutaan vain jos yhdelläkään ei ole kuvaa.
+    const withImg = candidates.filter(r => r.image)
+    const pool = withImg.length ? withImg : candidates
+    setRcPick(pool[Math.floor(Math.random() * pool.length)])
   }, [rcPool])
 
   const handleDecide = useCallback(() => { setRcTried(true); rollPick() }, [rollPick])
@@ -1291,8 +1301,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   }, [userPos, locateMe])
   useEffect(() => {
     if (!rcTried) return
-    const candidates = rcPool
-    setRcPick(candidates.length === 0 ? null : candidates[Math.floor(Math.random() * candidates.length)])
+    rollPick()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rcDist, rcPrice, rcRated, userPos])
 

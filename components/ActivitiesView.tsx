@@ -470,10 +470,16 @@ function ActDecidePanel({ pool, pick, tried, dist, auki, distMap, ratingMap, onD
       {pick ? (
         <div className="rounded-[16px] p-3.5 space-y-3" style={{ background: 'rgba(10,10,14,.55)', border: '1px solid rgba(255,255,255,.08)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[22px] shrink-0"
-              style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(255,255,255,.08)' }}>
-              {CATEGORY_META[pick.category]?.emoji ?? '✨'}
-            </div>
+            {pick.image ? (
+              <div className="relative w-20 h-20 rounded-[14px] overflow-hidden shrink-0" style={{ border: '1px solid rgba(255,255,255,.1)' }}>
+                <img src={pick.image} alt={pick.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[22px] shrink-0"
+                style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(255,255,255,.08)' }}>
+                {CATEGORY_META[pick.category]?.emoji ?? '✨'}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="font-black text-white text-[15px] truncate" style={{ letterSpacing: '-0.01em' }}>{pick.name}</p>
               <div className="flex items-center gap-2 flex-wrap text-[11.5px] font-bold mt-0.5">
@@ -641,7 +647,10 @@ export default function ActivitiesView({ onShowOnMap }: {
   const acRoll = useCallback((avoidId?: string) => {
     const candidates = acPool.length > 1 && avoidId ? acPool.filter(a => a.id !== avoidId) : acPool
     if (candidates.length === 0) { setAcPick(null); return }
-    setAcPick(candidates[Math.floor(Math.random() * candidates.length)])
+    // Suosi kohteita joilla on kuva — kuva auttaa päättämään
+    const withImg = candidates.filter(a => a.image)
+    const pool = withImg.length ? withImg : candidates
+    setAcPick(pool[Math.floor(Math.random() * pool.length)])
   }, [acPool])
 
   const handleAcDecide = useCallback(() => { setAcTried(true); acRoll() }, [acRoll])
@@ -653,7 +662,7 @@ export default function ActivitiesView({ onShowOnMap }: {
   // Suodattimen vaihto arpoo heti uuden osuman — vain kun arvonta käynnissä
   useEffect(() => {
     if (!acTried) return
-    setAcPick(acPool.length === 0 ? null : acPool[Math.floor(Math.random() * acPool.length)])
+    acRoll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acDist, acAuki, userPos])
 
