@@ -615,6 +615,8 @@ export default function ActivitiesView({ onShowOnMap }: {
   }, [])
 
   useEffect(() => { setFilterOpen(false); setFilterNearby(false); setVisibleCount(48) }, [catFilter])
+  // Kategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä"
+  useEffect(() => { if (catFilter !== 'all') window.scrollTo(0, 0) }, [catFilter])
   useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby])
 
   const locateMe = useCallback(() => {

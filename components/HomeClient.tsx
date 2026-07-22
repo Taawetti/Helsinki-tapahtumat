@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Loader2, Heart, Bell, Plus, ChevronLeft } from 'lucide-react'
-import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
+import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, Vibe, matchesVibeText } from '@/lib/types'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, TERRACE_REGEX } from '@/lib/nightlife'
 import { useFavorites } from '@/contexts/FavoritesContext'
@@ -321,6 +321,11 @@ export default function HomeClient({
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  // Kategorian avaus/vaihto vie aina listan alkuun — muuten näkymä jää
+  // etusivun scrollikohtaan ja lista aukeaa "puolesta välistä"
+  useEffect(() => {
+    if (koCat) window.scrollTo(0, 0)
+  }, [koCat])
 
   // Ilta-painotus: illalla NOSTETAAN yökeikat kärkeen mutta EI rajata päivää —
   // oletus pysyy 'today' (koko päivä näkyvissä). Aiempi 'tonight'-automaatti
@@ -579,11 +584,15 @@ export default function HomeClient({
     // Vibe filter — 'kaikki' shows all events unfiltered (list mode without keyword filter)
     const activeVibeIds = activeVibes.filter((v) => v !== 'ilmainen' && v !== 'kaikki')
     if (activeVibeIds.length > 0) {
-      const vibeKeywords = activeVibeIds.flatMap((id) => VIBES.find((v) => v.id === id)?.keywords ?? [])
+      const activeVibeObjs = activeVibeIds
+        .map((id) => VIBES.find((v) => v.id === id))
+        .filter((v): v is Vibe => !!v)
       const isNightlife = activeVibeIds.includes('yoelama')
       result = result.filter((e) => {
         const haystack = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
-        const kwMatch = vibeKeywords.some((kw) => haystack.includes(kw.toLowerCase()))
+        // Per-vibe matchaus poissulkusanoineen — flat-keyword-lista päästi
+        // vauvatapahtumat Keikkaan ("musiikkia" osui)
+        const kwMatch = activeVibeObjs.some((vb) => matchesVibeText(haystack, vb))
         // Evening events (19:30+) count as nightlife — but not sports matches
         const d = new Date(e.startTime)
         const eveningMatch = isNightlife && (d.getHours() > 19 || (d.getHours() === 19 && d.getMinutes() >= 30)) && !isUrheilu(e)
@@ -657,7 +666,7 @@ export default function HomeClient({
     if (!vibe) return []
     return baseEvents.filter((e) => {
       const hay = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
-      return vibe.keywords.some((k) => hay.includes(k.toLowerCase()))
+      return matchesVibeText(hay, vibe)
     })
   }, [koCat, baseEvents])
 

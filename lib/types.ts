@@ -72,23 +72,39 @@ export interface Vibe {
   tKey: string
   emoji: string
   keywords: string[]
+  // Poissulkusanat: osuma näihin hylkää tapahtuman tästä kategoriasta vaikka
+  // keywords osuisi. Esim. vauvojen lorutuokio sisältää sanan "musiikkia" →
+  // ilman poissulkua se päätyisi Keikka-kategoriaan.
+  excludeKeywords?: string[]
   searchText?: string
 }
 
+// Lapsi-/perhe-/senioritapahtumien tunnisteet — nämä eivät kuulu aikuisten
+// iltakategorioihin (keikka/yöelämä/baari/standup/underground)
+const KIDS_EXCLUDE = ['vauva', 'taapero', 'lapsi', 'lapsille', 'lasten', 'leikkipuisto', 'loru', 'muskari', 'satutunti', 'satutuokio', 'päiväkoti', 'koululais', 'eskarilais', 'perhe', 'ikäihmis', 'seniori', 'eläkeläis']
+
 export const VIBES: Vibe[] = [
-  { id: 'keikka',    label: 'Keikka',           tKey: 'vibe.keikka',   emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'] },
-  { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'] },
-  { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'pint'] },
+  { id: 'keikka',    label: 'Keikka',           tKey: 'vibe.keikka',   emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'], excludeKeywords: KIDS_EXCLUDE },
+  { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'], excludeKeywords: KIDS_EXCLUDE },
+  { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'pint'], excludeKeywords: KIDS_EXCLUDE },
   { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },
-  { id: 'standup',   label: 'Stand up',          tKey: 'vibe.standup',  emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'] },
+  { id: 'standup',   label: 'Stand up',          tKey: 'vibe.standup',  emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'], excludeKeywords: KIDS_EXCLUDE },
   { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma'] },
-  { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children'] },
+  { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'leikkipuisto'] },
   { id: 'tyopaja',   label: 'Työpaja & Kurssi',  tKey: 'vibe.tyopaja',  emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus'] },
   { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'] },
   { id: 'taide',     label: 'Taide',             tKey: 'vibe.taide',    emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'art', 'gallery', 'exhibition', 'design'] },
   { id: 'festivaali', label: 'Festivaali',       tKey: 'vibe.festivaali', emoji: '🎪', keywords: ['festivaali', 'festival', 'festarit', 'fest'] },
-  { id: 'underground', label: 'Underground',     tKey: 'vibe.underground', emoji: '🔦', keywords: ['underground', 'rave', 'diy', 'kellari', 'vaihtoehto', 'kokeellinen', 'noise', 'punk'] },
+  { id: 'underground', label: 'Underground',     tKey: 'vibe.underground', emoji: '🔦', keywords: ['underground', 'rave', 'diy', 'kellari', 'vaihtoehto', 'kokeellinen', 'noise', 'punk'], excludeKeywords: KIDS_EXCLUDE },
 ]
+
+/** Yksi totuus vibe-osumalle: keywords-osuma JA ei excludeKeywords-osumaa.
+ *  `hayLower` = valmiiksi pienaakkostettu teksti (otsikko + kuvaus + kategoriat). */
+export function matchesVibeText(hayLower: string, vibe: Vibe): boolean {
+  if (!vibe.keywords.some((k) => hayLower.includes(k.toLowerCase()))) return false
+  if (vibe.excludeKeywords?.some((k) => hayLower.includes(k.toLowerCase()))) return false
+  return true
+}
 
 // ── COLLECTIONS ────────────────────────────────────────
 export interface Collection {

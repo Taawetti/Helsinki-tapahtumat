@@ -1218,6 +1218,8 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // Etusivun pikasuodattimet eivät saa vuotaa näkymättöminä alakategorian
   // pystylistaan (siellä ei ole pillereitä joilla ne näkisi/poistaisi)
   useEffect(() => { setFilterOpen(false); setFilterNearby(false) }, [subCat])
+  // Alakategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä"
+  useEffect(() => { if (subCat !== 'all') window.scrollTo(0, 0) }, [subCat])
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) { setGeoStatus('failed'); return }

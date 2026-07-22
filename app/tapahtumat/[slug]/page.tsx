@@ -209,7 +209,12 @@ export default async function TapahtumaSivu({ params }: Props) {
   if (!vibe && !neighborhood) notFound()
 
   const events = vibe
-    ? await fetchByText(vibe.keywords)
+    ? (await fetchByText(vibe.keywords)).filter((e) => {
+        // Sama poissulku kuin sovelluksessa: vauvojen lorutuokio ei kuulu
+        // /tapahtumat/keikka-sivulle vaikka tekstihaku osui "musiikkiin"
+        const hay = `${e.title} ${e.venue}`.toLowerCase()
+        return !vibe.excludeKeywords?.some((k) => hay.includes(k.toLowerCase()))
+      })
     : await fetchByBbox(neighborhood!)
 
   const pageTitle = vibe
