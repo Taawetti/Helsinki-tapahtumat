@@ -456,8 +456,14 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
     { name: 'Latitude 25',            address: 'Helsinki',             lat: 60.1680, lon: 24.9422,                                           priceRange: 3 },
   ]
   for (const sup of AWARD_SUPPLEMENTS) {
-    const alreadyIn = results.some(r => awardMatch(r.name, sup.name))
-    if (alreadyIn) continue
+    const existing = results.find(r => awardMatch(r.name, sup.name))
+    if (existing) {
+      // Kuratoitu hintaluokka myös OSM:stä löytyvälle, jos hinta puuttuu —
+      // Google luokittelee fine diningin usein karkeasti vain "moderateksi",
+      // ja merge suojaa ≥3-arvot Googlen alennukselta.
+      if (sup.priceRange && !existing.priceRange) existing.priceRange = sup.priceRange
+      continue
+    }
     const entry: Partial<Restaurant> = {
       id: `supplement-${sup.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
       name: sup.name,
@@ -520,7 +526,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v15'],
+  ['restaurants-osm-v16'], // v16: supplement-hinta myös OSM-osumille
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
@@ -536,6 +542,16 @@ interface RestaurantEnrichment {
   subCategories?: string[]
   imageUrl?: string
   googleHours?: string  // OSM-format string derived from Google hours (fresher than OSM)
+  priceLevel?: 1 | 2 | 3 | 4  // Google price_level mapped to € scale
+}
+
+// Google price_level → € scale. Real data beats the OSM-side heuristics
+// (cafe→2, pizza→1) which produce a fictional distribution.
+const GOOGLE_PRICE: Record<string, 1 | 2 | 3 | 4> = {
+  inexpensive: 1,
+  moderate: 2,
+  expensive: 3,
+  very_expensive: 4,
 }
 
 async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEnrichment>> {
@@ -545,8 +561,8 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
   // `google_hours` is a newer column; if the migration hasn't run yet the
   // select would error and wipe ALL enrichment, so fall back to the legacy
   // column set on error (deploy order then doesn't matter).
-  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours'
-  const LEGACY_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image'
+  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours, price_level'
+  const LEGACY_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, price_level'
   let cols = FULL_COLS
   const PAGE = 1000
   const allRows: Record<string, unknown>[] = []
@@ -583,6 +599,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
     }
     if (row.main_image) entry.imageUrl = row.main_image as string
     if (typeof row.google_hours === 'string' && row.google_hours.trim()) entry.googleHours = row.google_hours as string
+    if (typeof row.price_level === 'string' && GOOGLE_PRICE[row.price_level]) entry.priceLevel = GOOGLE_PRICE[row.price_level]
     if (Object.keys(entry).length > 0) map[row.venue_key as string] = entry
   }
   return map
@@ -590,7 +607,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
 
 const fetchCuisineEnrichmentCached = unstable_cache(
   _fetchRestaurantEnrichment,
-  ['restaurant-enrichment-v8'], // v8: + google_hours
+  ['restaurant-enrichment-v9'], // v9: + price_level
   { revalidate: 3600 }
 )
 
@@ -629,6 +646,11 @@ export async function GET(req: NextRequest) {
     if (enriched.reviewCount) updates.reviewCount = enriched.reviewCount
     if (enriched.subCategories) updates.subCategories = enriched.subCategories
     if (enriched.imageUrl && !r.image) updates.image = enriched.imageUrl
+    // Real Google price level overrides the OSM heuristics (cafe→2, pizza→1),
+    // but hand-curated fine-dining stays: heuristics never produce ≥3, so an
+    // existing 3–4 is always Michelin/award-supplement data — Google's coarse
+    // "moderate" bucket must not downgrade e.g. Nolla/Nokka/Gaijin back to €€.
+    if (enriched.priceLevel && !(r.priceRange && r.priceRange >= 3)) updates.priceRange = enriched.priceLevel
     // Google opening hours override OSM — OSM restaurant hours are frequently
     // stale (venue open Sundays in OSM but closed per Google). Google wins,
     // but ONLY for unique names (chains share one row → would misapply).

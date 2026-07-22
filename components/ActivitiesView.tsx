@@ -6,7 +6,7 @@ import type { Activity, ActivityCategory } from '@/lib/types'
 import { getHighlight } from '@/lib/activity-highlights'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
-import { isOpenNow } from '@/lib/opening-hours'
+import { isOpenNow, helsinkiNow } from '@/lib/opening-hours'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -415,20 +415,26 @@ function ActSubTabs({ active, onSelect }: {
 }
 
 // ── 🎯 Auta valitsemaan (design 5-aktiviteetit.png): 🚶-etäisyys + 🟢 Auki ──
-function ActDecidePanel({ pool, pick, tried, dist, auki, distMap, ratingMap, onDist, onAuki, onDecide, onAgain, onOpen }: {
+type ActDistSeg = 1 | 3 | null  // ≤1 km | ≤3 km — kumulatiivinen säde
+
+function ActDecidePanel({ pool, pick, tried, dist, auki, geoNote, locPending, distMap, ratingMap, onDist, onAuki, onClear, onDecide, onAgain, onOpen }: {
   pool: Activity[]
   pick: Activity | null
   tried: boolean
-  dist: 0 | 1 | 2 | null
+  dist: ActDistSeg
   auki: boolean
+  geoNote: string | null
+  locPending: boolean
   distMap: Map<string, number>
   ratingMap: Map<string, { rating: number; reviewCount: number }>
-  onDist: (d: 0 | 1 | 2 | null) => void
+  onDist: (d: ActDistSeg) => void
   onAuki: () => void
+  onClear: () => void
   onDecide: () => void
   onAgain: () => void
   onOpen: (a: Activity) => void
 }) {
+  const hasFilters = dist !== null || auki
   const segBtn = (isActive: boolean): React.CSSProperties => ({
     color: isActive ? '#fff' : 'rgba(255,255,255,.45)',
     background: isActive ? 'rgba(107,118,255,.35)' : 'transparent',
@@ -448,11 +454,11 @@ function ActDecidePanel({ pool, pick, tried, dist, auki, distMap, ratingMap, onD
       <div className="flex flex-wrap gap-2">
         <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
           <span className="pl-2.5 pr-1 text-[13px]">🚶</span>
-          {(['0–1', '1–3', '3+ km'] as const).map((label, i) => (
-            <button key={label} onClick={() => onDist(dist === (i as 0 | 1 | 2) ? null : (i as 0 | 1 | 2))}
+          {([1, 3] as const).map((km, i) => (
+            <button key={km} onClick={() => onDist(dist === km ? null : km)}
               className={`px-2.5 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
-              style={segBtn(dist === i)}>
-              {label}
+              style={segBtn(dist === km)}>
+              ≤{km} km
             </button>
           ))}
         </div>
@@ -466,6 +472,10 @@ function ActDecidePanel({ pool, pick, tried, dist, auki, distMap, ratingMap, onD
           🟢 Auki
         </button>
       </div>
+
+      {geoNote && (
+        <p className="text-[11.5px] font-bold text-white/45">📍 {geoNote}</p>
+      )}
 
       {pick ? (
         <div className="rounded-[16px] p-3.5 space-y-3" style={{ background: 'rgba(10,10,14,.55)', border: '1px solid rgba(255,255,255,.08)' }}>
@@ -496,10 +506,10 @@ function ActDecidePanel({ pool, pick, tried, dist, auki, distMap, ratingMap, onD
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={onAgain}
-              className="py-2.5 rounded-full text-[13px] font-black text-white/70 transition-all active:scale-[.97]"
-              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
-              🔄 Anna toinen
+            <button onClick={onAgain} disabled={pool.length <= 1 || locPending}
+              className="py-2.5 rounded-full text-[13px] font-black text-white/70 transition-all active:scale-[.97] disabled:active:scale-100"
+              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', opacity: pool.length <= 1 || locPending ? 0.45 : 1 }}>
+              {pool.length <= 1 ? 'Ainoa osuma' : '🔄 Anna toinen'}
             </button>
             <button onClick={() => onOpen(pick)}
               className="py-2.5 rounded-full text-[13px] font-black text-white transition-all active:scale-[.97]"
@@ -509,14 +519,23 @@ function ActDecidePanel({ pool, pick, tried, dist, auki, distMap, ratingMap, onD
           </div>
         </div>
       ) : tried && pool.length === 0 ? (
-        <p className="text-[13px] font-bold text-white/45 text-center py-2">
-          Ei osumia näillä rajauksilla — löysää suodattimia.
-        </p>
+        <div className="text-center py-2 space-y-2">
+          <p className="text-[13px] font-bold text-white/45">Ei osumia näillä rajauksilla.</p>
+          {hasFilters && (
+            <button onClick={onClear}
+              className="px-4 py-2 rounded-full text-[12.5px] font-black text-white/80 transition-all active:scale-[.97]"
+              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+              Tyhjennä suodattimet
+            </button>
+          )}
+        </div>
       ) : (
-        <button onClick={onDecide}
-          className="w-full py-3.5 rounded-2xl text-[14.5px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[.98]"
-          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
+        <button onClick={onDecide} disabled={locPending}
+          className="w-full py-3.5 rounded-2xl text-[14.5px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[.98] disabled:active:scale-100"
+          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)', opacity: locPending ? 0.6 : 1 }}>
           🎲 Päätä puolestani
+          {/* Sijaintihaun aikana pooli on vielä rajaamaton — lukema valehtelisi */}
+          {!locPending && <span className="opacity-55 text-[12.5px]">· {pool.length}</span>}
         </button>
       )}
     </section>
@@ -566,10 +585,16 @@ export default function ActivitiesView({ onShowOnMap }: {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   // 🎯 Auta valitsemaan — etäisyys + auki-suodatin + arvottu ehdotus
-  const [acDist, setAcDist] = useState<0 | 1 | 2 | null>(null)
+  const [acDist, setAcDist] = useState<ActDistSeg>(null)
   const [acAuki, setAcAuki] = useState(false)
   const [acPick, setAcPick] = useState<Activity | null>(null)
   const [acTried, setAcTried] = useState(false)
+  // Sijainnin tila: pending = haku käynnissä, denied = lupa evätty,
+  // failed = tekninen virhe — jokainen uusi haku nollaa tilan
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'pending' | 'denied' | 'failed'>('idle')
+  const [distTried, setDistTried] = useState(false)
+  // Istunnon aikana jo ehdotetut — arvonta kiertää koko poolin ennen toistoa
+  const acSeen = useRef<Set<string>>(new Set())
 
   // Stable shuffle seed per session — makes Ylläty actually different each visit
   const shuffleSeed = useRef(Math.floor(Math.random() * 9973))
@@ -593,10 +618,11 @@ export default function ActivitiesView({ onShowOnMap }: {
   useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby])
 
   const locateMe = useCallback(() => {
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) { setGeoStatus('failed'); return }
+    setGeoStatus('pending')
     navigator.geolocation.getCurrentPosition(
-      pos => setUserPos([pos.coords.latitude, pos.coords.longitude]),
-      () => {},
+      pos => { setGeoStatus('idle'); setUserPos([pos.coords.latitude, pos.coords.longitude]) },
+      err => setGeoStatus(err.code === 1 ? 'denied' : 'failed'),
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
@@ -637,36 +663,81 @@ export default function ActivitiesView({ onShowOnMap }: {
       }
       if (acDist !== null && userPos) {
         const d = distMap.get(a.id)
-        if (d === undefined) return false
-        if (acDist === 0 && d > 1) return false
-        if (acDist === 1 && (d <= 1 || d > 3)) return false
-        if (acDist === 2 && d <= 3) return false
+        if (d === undefined || d > acDist) return false
       }
       return true
     })
   }, [activities, acAuki, acDist, userPos, distMap])
 
   const acRoll = useCallback((avoidId?: string) => {
-    const candidates = acPool.length > 1 && avoidId ? acPool.filter(a => a.id !== avoidId) : acPool
-    if (candidates.length === 0) { setAcPick(null); return }
-    // Suosi kohteita joilla on kuva — kuva auttaa päättämään
-    const withImg = candidates.filter(a => a.image)
-    const pool = withImg.length ? withImg : candidates
-    setAcPick(pool[Math.floor(Math.random() * pool.length)])
-  }, [acPool])
+    if (acPool.length === 0) { setAcPick(null); return }
+    const seen = acSeen.current
+    // Aukiolo-porrastus: auki nyt > tuntematon > kiinni (ulkokohteet ilman
+    // aukioloja lasketaan auki oleviksi). Kiinni olevaa ei ehdoteta niin
+    // kauan kuin parempi osuma on jäljellä.
+    const now = helsinkiNow()
+    const openState = (a: Activity) =>
+      !a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : isOpenNow(a.openingHours, now)
+    const tiers: [Activity[], Activity[], Activity[]] = [[], [], []]
+    for (const a of acPool) {
+      const o = openState(a)
+      tiers[o === true ? 0 : o === undefined ? 1 : 2].push(a)
+    }
+    // Kiinni olevia ehdotetaan vain jos poolissa ei ole yhtään auki olevaa
+    // tai tuntematonta — kierto alkaa mieluummin alusta kuin tarjoaa suljettua
+    const sources = tiers[0].length || tiers[1].length ? [tiers[0], tiers[1]] : [tiers[2]]
+    const draw = () => {
+      for (const t of sources) {
+        const c = t.filter(a => a.id !== avoidId && !seen.has(a.id))
+        if (c.length) return c
+      }
+      return null
+    }
+    let cands = draw()
+    if (!cands) {
+      seen.clear()
+      cands = draw() ?? acPool.filter(a => a.id !== avoidId)
+      if (!cands.length) cands = acPool
+    }
+    // Painotettu arvonta: kuva +1, laatu +1 — hyvät nousevat useammin,
+    // mutta jokainen poolin kohde on saavutettavissa
+    const weightOf = (a: Activity) => {
+      const rt = ratingMap.get(a.name.toLowerCase())
+      return 1 + (a.image ? 1 : 0) + (rt && rt.rating >= 4.2 && rt.reviewCount >= 50 ? 1 : 0)
+    }
+    const total = cands.reduce((s, a) => s + weightOf(a), 0)
+    let roll = Math.random() * total
+    let pick = cands[cands.length - 1]
+    for (const a of cands) { roll -= weightOf(a); if (roll <= 0) { pick = a; break } }
+    seen.add(pick.id)
+    setAcPick(pick)
+  }, [acPool, ratingMap])
 
   const handleAcDecide = useCallback(() => { setAcTried(true); acRoll() }, [acRoll])
   const handleAcAgain = useCallback(() => acRoll(acPick?.id), [acRoll, acPick])
-  const handleAcDist = useCallback((d: 0 | 1 | 2 | null) => {
+  const handleAcDist = useCallback((d: ActDistSeg) => {
     setAcDist(d)
-    if (d !== null && !userPos) locateMe()
+    if (d !== null) {
+      setDistTried(true)
+      if (!userPos) locateMe()
+    }
   }, [userPos, locateMe])
-  // Suodattimen vaihto arpoo heti uuden osuman — vain kun arvonta käynnissä
+  // Nollaus VAIN tilasiirtymässä (acDist ei depseissä) — uusi klikkaus
+  // käynnistää uuden haun eikä pyyhkiydy vanhan virheen takia
+  useEffect(() => {
+    if (geoStatus === 'denied' || geoStatus === 'failed') setAcDist(null)
+  }, [geoStatus])
+
+  // Suodattimen vaihto: jos nykyinen ehdotus kelpaa yhä, se pidetään —
+  // uusi arvonta vain kun ehdotus putoaa poolista
   useEffect(() => {
     if (!acTried) return
-    acRoll()
+    if (acPick && acPool.some(a => a.id === acPick.id)) return
+    acRoll(acPick?.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acDist, acAuki, userPos])
+
+  const handleAcClear = useCallback(() => { setAcDist(null); setAcAuki(false) }, [])
 
   const sortedPool = useMemo(() => {
     let result = [...catPool]
@@ -811,10 +882,19 @@ export default function ActivitiesView({ onShowOnMap }: {
                 tried={acTried}
                 dist={acDist}
                 auki={acAuki}
+                geoNote={acDist !== null && !userPos && geoStatus === 'pending'
+                  ? 'Haetaan sijaintia…'
+                  : distTried && geoStatus === 'denied'
+                    ? 'Sijaintia ei saatu — salli sijainti selaimessa'
+                    : distTried && geoStatus === 'failed'
+                      ? 'Sijaintia ei saatu — kokeile hetken päästä uudelleen'
+                      : null}
+                locPending={acDist !== null && !userPos && geoStatus === 'pending'}
                 distMap={distMap}
                 ratingMap={ratingMap}
                 onDist={handleAcDist}
                 onAuki={() => setAcAuki(v => !v)}
+                onClear={handleAcClear}
                 onDecide={handleAcDecide}
                 onAgain={handleAcAgain}
                 onOpen={setSelectedActivity}

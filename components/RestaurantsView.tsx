@@ -946,36 +946,43 @@ function RestSubTabs({ restType, active, onSelect }: {
   )
 }
 
-// ── "⭐ 4+ / 4.5+" — arvosana ≥ kynnys JA ≥50 arvostelua (luotettava otos),
-//    tai arvosanan puuttuessa Michelin/Bib-tunnustus ────────────────────────
+// ── "⭐ 4+ / 4.5+" — arvosana ≥ kynnys; Michelin/Bib-tunnustus korvaa
+//    arvostelumäärävaatimuksen ja puuttuvan arvosanan, mutta EI koskaan
+//    kynnyksen alittavaa näkyvää arvosanaa (kortti ei saa riidellä
+//    aktiivisen suodattimen kanssa) ─────────────────────────────────────────
 function isRatedAtLeast(r: Restaurant, min: number): boolean {
-  if (r.googleRating !== undefined && r.googleRating !== null) {
-    return r.googleRating >= min && (r.reviewCount ?? 0) >= 50
-  }
-  return !!(r.michelinStars || r.bibGourmand || r.michelinRecommended)
+  const award = !!(r.michelinStars || r.bibGourmand || r.michelinRecommended)
+  if (r.googleRating === undefined || r.googleRating === null) return award
+  if (r.googleRating < min) return false
+  return (r.reviewCount ?? 0) >= 50 || award
 }
 
 // ── 🎯 Auta valitsemaan -paneeli (design 3-ravintolat.png) ────────────────
 
-type DistSeg = 0 | 1 | 2 | null   // 0–1 km | 1–3 km | 3+ km
+type DistSeg = 1 | 3 | null       // ≤1 km | ≤3 km — kumulatiivinen säde
 type PriceSeg = 1 | 2 | 3 | null  // € | €€ | €€€
 type StarSeg = 4 | 4.5 | null     // ⭐ 4+ | ⭐ 4.5+
 
-function DecidePanel({ pool, pick, tried, dist, price, stars, distMap, onDist, onPrice, onStars, onDecide, onAgain, onOpen }: {
+function DecidePanel({ pool, pick, tried, dist, price, stars, showPrice, geoNote, locPending, distMap, onDist, onPrice, onStars, onClear, onDecide, onAgain, onOpen }: {
   pool: Restaurant[]
   pick: Restaurant | null
   tried: boolean
   dist: DistSeg
   price: PriceSeg
   stars: StarSeg
+  showPrice: boolean
+  geoNote: string | null
+  locPending: boolean
   distMap: Map<string, number>
   onDist: (d: DistSeg) => void
   onPrice: (p: PriceSeg) => void
   onStars: (s: StarSeg) => void
+  onClear: () => void
   onDecide: () => void
   onAgain: () => void
   onOpen: (r: Restaurant) => void
 }) {
+  const hasFilters = dist !== null || price !== null || stars !== null
   const segBtn = (isActive: boolean): React.CSSProperties => ({
     color: isActive ? '#fff' : 'rgba(255,255,255,.45)',
     background: isActive ? 'rgba(107,118,255,.35)' : 'transparent',
@@ -999,23 +1006,25 @@ function DecidePanel({ pool, pick, tried, dist, price, stars, distMap, onDist, o
       <div className="flex flex-wrap gap-2">
         <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
           <span className="pl-2.5 pr-1 text-[13px]">🚶</span>
-          {(['0–1', '1–3', '3+ km'] as const).map((label, i) => (
-            <button key={label} onClick={() => onDist(dist === (i as DistSeg) ? null : (i as DistSeg))}
+          {([1, 3] as const).map((km, i) => (
+            <button key={km} onClick={() => onDist(dist === km ? null : km)}
               className={`px-2.5 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
-              style={segBtn(dist === i)}>
-              {label}
+              style={segBtn(dist === km)}>
+              ≤{km} km
             </button>
           ))}
         </div>
-        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
-          {([1, 2, 3] as const).map((p, i) => (
-            <button key={p} onClick={() => onPrice(price === p ? null : p)}
-              className={`px-3 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
-              style={segBtn(price === p)}>
-              {'€'.repeat(p)}
-            </button>
-          ))}
-        </div>
+        {showPrice && (
+          <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+            {([1, 2, 3] as const).map((p, i) => (
+              <button key={p} onClick={() => onPrice(price === p ? null : p)}
+                className={`px-3 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
+                style={segBtn(price === p)}>
+                {'€'.repeat(p)}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
           <span className="pl-2.5 pr-1 text-[13px]">⭐</span>
           {([4, 4.5] as const).map((s, i) => (
@@ -1027,6 +1036,10 @@ function DecidePanel({ pool, pick, tried, dist, price, stars, distMap, onDist, o
           ))}
         </div>
       </div>
+
+      {geoNote && (
+        <p className="text-[11.5px] font-bold text-white/45">📍 {geoNote}</p>
+      )}
 
       {/* Tulos / CTA / tyhjä */}
       {pick ? (
@@ -1052,15 +1065,16 @@ function DecidePanel({ pool, pick, tried, dist, price, stars, distMap, onDist, o
                 )}
                 {todayHrs && <span className="text-white/40">🕐 {todayHrs}</span>}
                 {pick.googleRating && (pick.reviewCount ?? 0) > 0 && <span className="text-white/40">⭐ {pick.googleRating.toFixed(1)}</span>}
+                {pick.priceRange && <span className="text-white/40">{'€'.repeat(Math.min(pick.priceRange, 4))}</span>}
                 {pickDist !== undefined && <span className="text-white/40">{fmtDist(pickDist)}</span>}
               </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={onAgain}
-              className="py-2.5 rounded-full text-[13px] font-black text-white/70 transition-all active:scale-[.97]"
-              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
-              🔄 Anna toinen
+            <button onClick={onAgain} disabled={pool.length <= 1 || locPending}
+              className="py-2.5 rounded-full text-[13px] font-black text-white/70 transition-all active:scale-[.97] disabled:active:scale-100"
+              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', opacity: pool.length <= 1 || locPending ? 0.45 : 1 }}>
+              {pool.length <= 1 ? 'Ainoa osuma' : '🔄 Anna toinen'}
             </button>
             <button onClick={() => onOpen(pick)}
               className="py-2.5 rounded-full text-[13px] font-black text-white transition-all active:scale-[.97]"
@@ -1070,14 +1084,23 @@ function DecidePanel({ pool, pick, tried, dist, price, stars, distMap, onDist, o
           </div>
         </div>
       ) : tried && pool.length === 0 ? (
-        <p className="text-[13px] font-bold text-white/45 text-center py-2">
-          Ei osumia näillä rajauksilla — löysää suodattimia.
-        </p>
+        <div className="text-center py-2 space-y-2">
+          <p className="text-[13px] font-bold text-white/45">Ei osumia näillä rajauksilla.</p>
+          {hasFilters && (
+            <button onClick={onClear}
+              className="px-4 py-2 rounded-full text-[12.5px] font-black text-white/80 transition-all active:scale-[.97]"
+              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+              Tyhjennä suodattimet
+            </button>
+          )}
+        </div>
       ) : (
-        <button onClick={onDecide}
-          className="w-full py-3.5 rounded-2xl text-[14.5px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[.98]"
-          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
+        <button onClick={onDecide} disabled={locPending}
+          className="w-full py-3.5 rounded-2xl text-[14.5px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[.98] disabled:active:scale-100"
+          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)', opacity: locPending ? 0.6 : 1 }}>
           🎲 Päätä puolestani
+          {/* Sijaintihaun aikana pooli on vielä rajaamaton — lukema valehtelisi */}
+          {!locPending && <span className="opacity-55 text-[12.5px]">· {pool.length}</span>}
         </button>
       )}
     </section>
@@ -1131,11 +1154,19 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [visibleCount, setVisibleCount] = useState(48)
   const [news, setNews] = useState<NewsItem[]>([])
   // 🎯 Auta valitsemaan — kompaktit suodattimet + arvottu ehdotus
-  const [rcDist, setRcDist] = useState<0 | 1 | 2 | null>(null)
-  const [rcPrice, setRcPrice] = useState<1 | 2 | 3 | null>(null)
+  const [rcDist, setRcDist] = useState<DistSeg>(null)
+  const [rcPrice, setRcPrice] = useState<PriceSeg>(null)
   const [rcStars, setRcStars] = useState<StarSeg>(null)
   const [rcPick, setRcPick] = useState<Restaurant | null>(null)
   const [rcTried, setRcTried] = useState(false)
+  // Sijainnin tila: pending = haku käynnissä, denied = lupa evätty,
+  // failed = tekninen virhe (timeout/ei saatavilla) — eri viesti kuin epäys.
+  // Jokainen uusi haku nollaa tilan → yksi ohimennyt timeout ei salpaa
+  // etäisyyssuodatinta loppuistunnoksi.
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'pending' | 'denied' | 'failed'>('idle')
+  const [distTried, setDistTried] = useState(false)
+  // Istunnon aikana jo ehdotetut — arvonta kiertää koko poolin ennen toistoa
+  const rcSeen = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     fetch('/api/restaurants')
@@ -1160,17 +1191,24 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setVisibleCount(48); setRcPick(null); setRcTried(false) }, [restType])
+  useEffect(() => {
+    setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setVisibleCount(48)
+    // Uusi välilehti = uusi arvontaistunto. rcPrice nollataan koska
+    // €-segmentti näkyy vain ruokapaikoissa — aktiivinen mutta näkymätön
+    // suodatin muilla välilehdillä olisi selittämätön.
+    setRcPick(null); setRcTried(false); setRcPrice(null); rcSeen.current.clear()
+  }, [restType])
   useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby])
   // Etusivun pikasuodattimet eivät saa vuotaa näkymättöminä alakategorian
   // pystylistaan (siellä ei ole pillereitä joilla ne näkisi/poistaisi)
   useEffect(() => { setFilterOpen(false); setFilterNearby(false) }, [subCat])
 
   const locateMe = useCallback(() => {
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) { setGeoStatus('failed'); return }
+    setGeoStatus('pending')
     navigator.geolocation.getCurrentPosition(
-      pos => setUserPos([pos.coords.latitude, pos.coords.longitude]),
-      () => {},
+      pos => { setGeoStatus('idle'); setUserPos([pos.coords.latitude, pos.coords.longitude]) },
+      err => setGeoStatus(err.code === 1 ? 'denied' : 'failed'),
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
@@ -1237,7 +1275,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
         ? { title: '🍱 Lounas auki juuri nyt', items: base.filter(r => r.openingHours && isOpenNow(r.openingHours) === true && /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase())) }
         : isDinnerTime()
           ? { title: '🌙 Illallispaikat — auki nyt', items: base.filter(r => r.openingHours && isOpenNow(r.openingHours) === true) }
-          : { title: '☀️ Lounaalle mars', items: base.filter(r => /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase()) || (r.priceRange !== undefined && r.priceRange <= 2)) }
+          // Vain lounas-avainsanat — priceRange ≤ 2 kattoi ennen vain kebab/
+          // pizza-heuristiikan, mutta Google-hintadatan myötä se osuisi
+          // ~1300 paikkaan ja rivi laimenisi "kaikki ravintolat" -listaksi
+          : { title: '☀️ Lounaalle mars', items: base.filter(r => /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase())) }
       return [
         lunchRow,
         { title: '⭐ Michelin & palkitut',        items: base.filter(r => !!(r.michelinStars || r.bibGourmand || r.greenMichelin || r.michelinRecommended)) },
@@ -1275,39 +1316,88 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       }
       if (rcDist !== null && userPos) {
         const d = distMap.get(r.id)
-        if (d === undefined) return false
-        if (rcDist === 0 && d > 1) return false
-        if (rcDist === 1 && (d <= 1 || d > 3)) return false
-        if (rcDist === 2 && d <= 3) return false
+        if (d === undefined || d > rcDist) return false
       }
       return true
     })
   }, [typePool, rcStars, rcPrice, rcDist, userPos, distMap])
 
   const rollPick = useCallback((avoidId?: string) => {
-    const candidates = rcPool.length > 1 && avoidId ? rcPool.filter(r => r.id !== avoidId) : rcPool
-    if (candidates.length === 0) { setRcPick(null); return }
-    // Suosi ravintoloita joilla on kuva — kuva auttaa käyttäjää päättämään.
-    // Ilman kuvaa oleviin turvaudutaan vain jos yhdelläkään ei ole kuvaa.
-    const withImg = candidates.filter(r => r.image)
-    const pool = withImg.length ? withImg : candidates
-    setRcPick(pool[Math.floor(Math.random() * pool.length)])
+    if (rcPool.length === 0) { setRcPick(null); return }
+    const seen = rcSeen.current
+    // Aukiolo-porrastus: auki nyt > tuntematon > kiinni. Kiinni olevaa ei
+    // ehdoteta niin kauan kuin yksikin auki tai aukioloiltaan tuntematon
+    // osuma on jäljellä — "minne menen NYT" ei ratkea suljetulla paikalla.
+    const now = helsinkiNow()
+    const tiers: [Restaurant[], Restaurant[], Restaurant[]] = [[], [], []]
+    for (const r of rcPool) {
+      const o = isOpenNow(r.openingHours, now)
+      tiers[o === true ? 0 : o === undefined ? 1 : 2].push(r)
+    }
+    // Kiinni olevia (tier 3) ehdotetaan vain jos poolissa ei ole yhtään
+    // auki olevaa tai aukioloiltaan tuntematonta — kun auki olevat on
+    // kierretty, kierto alkaa mieluummin alusta kuin tarjoaa suljettua.
+    const sources = tiers[0].length || tiers[1].length ? [tiers[0], tiers[1]] : [tiers[2]]
+    const draw = () => {
+      for (const t of sources) {
+        const c = t.filter(r => r.id !== avoidId && !seen.has(r.id))
+        if (c.length) return c
+      }
+      return null
+    }
+    let cands = draw()
+    if (!cands) {
+      // Kierros käyty läpi — aloitetaan alusta, nykyinen kortti pysyy poissa
+      seen.clear()
+      cands = draw() ?? rcPool.filter(r => r.id !== avoidId)
+      if (!cands.length) cands = rcPool
+    }
+    // Painotettu arvonta: kuva +1, laatu +1 (1–3). Hyvät ja kuvalliset
+    // nousevat useammin, mutta jokainen poolin paikka on saavutettavissa —
+    // kova kuvasuodatus teki kuvattomista ikuisesti näkymättömiä.
+    const weightOf = (r: Restaurant) =>
+      1 + (r.image ? 1 : 0)
+        + ((((r.googleRating ?? 0) >= 4.2 && (r.reviewCount ?? 0) >= 50)
+            || r.michelinStars || r.bibGourmand || r.michelinRecommended) ? 1 : 0)
+    const total = cands.reduce((s, r) => s + weightOf(r), 0)
+    let roll = Math.random() * total
+    let pick = cands[cands.length - 1]
+    for (const r of cands) { roll -= weightOf(r); if (roll <= 0) { pick = r; break } }
+    seen.add(pick.id)
+    setRcPick(pick)
   }, [rcPool])
 
   const handleDecide = useCallback(() => { setRcTried(true); rollPick() }, [rollPick])
   const handleAgain = useCallback(() => rollPick(rcPick?.id), [rollPick, rcPick])
 
-  // Suodattimen vaihto arpoo heti uuden osuman (design-speksi) — vain jos
-  // arvonta on jo käynnissä; etäisyysvalinta pyytää sijainnin laiskasti
-  const handleRcDist = useCallback((d: 0 | 1 | 2 | null) => {
+  // Etäisyysvalinta pyytää sijainnin laiskasti
+  const handleRcDist = useCallback((d: DistSeg) => {
     setRcDist(d)
-    if (d !== null && !userPos) locateMe()
+    if (d !== null) {
+      setDistTried(true)
+      if (!userPos) locateMe()
+    }
   }, [userPos, locateMe])
+  // Kun paikannus epäonnistuu, etäisyysvalinta ei saa jäädä "päälle"
+  // valehtelemaan. Nollaus VAIN tilasiirtymässä (rcDist ei depseissä) —
+  // uusi klikkaus käynnistää aina uuden haun (pending), joten se ei
+  // pyyhkiydy vanhan virheen takia.
+  useEffect(() => {
+    if (geoStatus === 'denied' || geoStatus === 'failed') setRcDist(null)
+  }, [geoStatus])
+
+  // Suodattimen vaihto: jos nykyinen ehdotus kelpaa yhä, se PIDETÄÄN —
+  // uusi arvonta vain kun ehdotus putoaa poolista. Näin suodattimen
+  // säätö ei koskaan "arvo samaa korttia uusiksi" eikä alempaa tulevan
+  // 📍 Lähellä -pillerin sijaintihaku vaihda ehdotusta salaa.
   useEffect(() => {
     if (!rcTried) return
-    rollPick()
+    if (rcPick && rcPool.some(r => r.id === rcPick.id)) return
+    rollPick(rcPick?.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rcDist, rcPrice, rcStars, userPos])
+
+  const handleRcClear = useCallback(() => { setRcDist(null); setRcPrice(null); setRcStars(null) }, [])
 
   const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false) }, [])
 
@@ -1357,10 +1447,20 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 dist={rcDist}
                 price={rcPrice}
                 stars={rcStars}
+                showPrice={restType === 'ruokapaikat'}
+                geoNote={rcDist !== null && !userPos && geoStatus === 'pending'
+                  ? 'Haetaan sijaintia…'
+                  : distTried && geoStatus === 'denied'
+                    ? 'Sijaintia ei saatu — salli sijainti selaimessa'
+                    : distTried && geoStatus === 'failed'
+                      ? 'Sijaintia ei saatu — kokeile hetken päästä uudelleen'
+                      : null}
+                locPending={rcDist !== null && !userPos && geoStatus === 'pending'}
                 distMap={distMap}
                 onDist={handleRcDist}
                 onPrice={setRcPrice}
                 onStars={setRcStars}
+                onClear={handleRcClear}
                 onDecide={handleDecide}
                 onAgain={handleAgain}
                 onOpen={setSelectedRest}
