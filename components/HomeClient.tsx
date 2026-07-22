@@ -1073,9 +1073,25 @@ export default function HomeClient({
                     ? `🎁 ${t(dateFilter === 'today' || dateFilter === 'tonight' ? 'discover.carousel_free' : 'discover.carousel_free_generic')}`
                     : `${VIBES.find(v => v.id === koCat)?.emoji ?? ''} ${VIBES.find(v => v.id === koCat)?.label ?? ''}`}
                 </h2>
-                <span className="text-white/30 text-[13px] font-bold">· {koCatEvents.length}</span>
+                {!((loading || fetchingFull) && koCatEvents.length === 0) && (
+                  <span className="text-white/30 text-[13px] font-bold">· {koCatEvents.length}</span>
+                )}
               </div>
-              {koCatEvents.length === 0 ? (
+              {(loading || fetchingFull) && koCatEvents.length === 0 ? (
+                /* Haku kesken (esim. päivävalinnan vaihto) — skeleton eikä
+                   ennenaikainen "Ei tuloksia" */
+                <div className="space-y-4">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>Haetaan tapahtumia</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[0, 1, 2, 3].map(i => (
+                      <div key={i} className="rounded-2xl skeleton-shimmer" style={{ aspectRatio: '3/4' }} />
+                    ))}
+                  </div>
+                </div>
+              ) : koCatEvents.length === 0 ? (
                 <div className="flex flex-col items-center py-16 text-center gap-3">
                   <span className="text-4xl">🫥</span>
                   <p className="text-white/40 font-bold">{t('discover.no_filter_match')}</p>
