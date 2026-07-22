@@ -1215,10 +1215,9 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     setRcPick(null); setRcTried(false); setRcPrice(null); rcSeen.current.clear()
   }, [restType])
   useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby])
-  // Etusivun pikasuodattimet eivät saa vuotaa näkymättöminä alakategorian
-  // pystylistaan (siellä ei ole pillereitä joilla ne näkisi/poistaisi)
-  useEffect(() => { setFilterOpen(false); setFilterNearby(false) }, [subCat])
-  // Alakategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä"
+  // Alakategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
+  // Auki/Lähellä-pillerit näkyvät nykyään myös alakategoriassa, joten
+  // suodattimia ei enää nollata kategoriaan mentäessä (ei näkymätöntä vuotoa).
   useEffect(() => { if (subCat !== 'all') window.scrollTo(0, 0) }, [subCat])
 
   const locateMe = useCallback(() => {
@@ -1567,6 +1566,8 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   <span className="text-white/30 text-[14px] font-bold"> · {groupedSortedPool.length} {t('restaurants.places')}</span>
                 </h2>
               </div>
+
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
               {groupedSortedPool.length > 0 ? (
                 <>

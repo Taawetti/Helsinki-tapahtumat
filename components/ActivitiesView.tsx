@@ -614,8 +614,10 @@ export default function ActivitiesView({ onShowOnMap }: {
       .catch(() => {})
   }, [])
 
-  useEffect(() => { setFilterOpen(false); setFilterNearby(false); setVisibleCount(48) }, [catFilter])
-  // Kategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä"
+  useEffect(() => { setVisibleCount(48) }, [catFilter])
+  // Kategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
+  // Auki/Lähellä-pillerit näkyvät nykyään myös kategorialistassa, joten
+  // suodattimia ei enää nollata kategoriaan mentäessä.
   useEffect(() => { if (catFilter !== 'all') window.scrollTo(0, 0) }, [catFilter])
   useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby])
 
@@ -983,6 +985,8 @@ export default function ActivitiesView({ onShowOnMap }: {
                 {CATEGORY_META[catFilter].emoji} {CATEGORY_META[catFilter].label}
                 <span className="text-white/30 text-[14px] font-bold"> · {sortedPool.length} kohdetta</span>
               </h2>
+
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
               {sortedPool.length > 0 ? (
                 <>
