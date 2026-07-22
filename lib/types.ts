@@ -91,14 +91,17 @@ export const VIBES: Vibe[] = [
   { id: 'keikka',    label: 'Keikka',           tKey: 'vibe.keikka',   emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'], excludeKeywords: [...KIDS_EXCLUDE, ...NON_GIG_EXCLUDE] },
   { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'], excludeKeywords: KIDS_EXCLUDE },
   { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'pint'], excludeKeywords: KIDS_EXCLUDE },
-  { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },
+  // Urheilu = ottelut, turnaukset ja urheilutapahtumat — EI 'liikunta':
+  // se sana on jokaisessa kunnallisessa jumpassa ja leikkipuisto-ohjelmassa,
+  // jotka kuuluvat Harrastuksiin/Lapsiin
+  { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'salibandy', 'pesäpallo', 'tennis', 'ottelu', 'turnaus', 'maraton', 'sports', 'match'], excludeKeywords: KIDS_EXCLUDE },
   { id: 'standup',   label: 'Stand up',          tKey: 'vibe.standup',  emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'], excludeKeywords: KIDS_EXCLUDE },
   { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma'] },
   { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'leikkipuisto'] },
   // "Harrastukset & Kurssit" — myös matalan kynnyksen osallistumistapahtumat
   // (yhteislaulut, päivätanssit, harrasteryhmät, avoimet ovet) jotka suljetaan
   // pois Keikasta: ne ovat harrastamista, eivät keikkoja
-  { id: 'tyopaja',   label: 'Harrastukset & Kurssit', tKey: 'vibe.tyopaja', emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus', 'harrasteryhm', 'yhteislaul', 'päivätanssi', 'avoimet ovet'] },
+  { id: 'tyopaja',   label: 'Harrastukset & Kurssit', tKey: 'vibe.tyopaja', emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus', 'harrasteryhm', 'yhteislaul', 'päivätanssi', 'avoimet ovet', 'jumppa', 'liikuntaharrastus', 'kuntosali'] },
   // Puhtaasti esittävä taide — osallistuvat tanssitapahtumat (päivätanssit,
   // tanssikurssit) kuuluvat Harrastuksiin, eivät tänne
   { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'], excludeKeywords: ['päivätanssi', 'tanssikurssi'] },
