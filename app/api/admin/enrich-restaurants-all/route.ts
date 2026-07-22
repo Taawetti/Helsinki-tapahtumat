@@ -30,6 +30,7 @@ type Fetched =
       cuisineCats: string[]
       mainImage: string | null
       hoursOsm: string | null
+      description: string | null
     }
   | { status: 'error' }
 
@@ -74,6 +75,7 @@ async function fetchBusiness(query: string): Promise<Fetched> {
         additional_categories?: string[]
         main_image?: string
         work_time?: unknown
+        description?: string
       }
     | undefined
 
@@ -90,6 +92,7 @@ async function fetchBusiness(query: string): Promise<Fetched> {
     cuisineCats: googleCategoriesToCuisine(cats),
     mainImage: item?.main_image ?? null,
     hoursOsm: item?.work_time ? googleTimetableToOsm(item.work_time) : null,
+    description: typeof item?.description === 'string' && item.description.trim() ? item.description.trim() : null,
   }
 }
 
@@ -196,6 +199,8 @@ export async function POST(req: NextRequest) {
         // omit it so onConflict-update PRESERVES an image a previous pass stored
         // (writing '' here would wipe ~900 existing restaurant images).
         if (f.mainImage) row.main_image = f.mainImage
+        // Sama sääntö kuvaukselle: null ei saa pyyhkiä aiemmin tallennettua
+        if (f.description) row.description = f.description
         const { error } = await supabaseAdmin.from('venue_ratings').upsert(row, { onConflict: 'venue_key' })
         if (error) {
           return NextResponse.json(

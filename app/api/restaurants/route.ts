@@ -8,6 +8,7 @@ import {
   MICHELIN_RECOMMENDED,
   RESTAURANT_OF_YEAR,
   CURATED_IMAGES,
+  FEATURED_PICKS,
 } from '@/lib/restaurant-awards'
 import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 import { supabase } from '@/lib/supabase'
@@ -258,6 +259,12 @@ function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
       result.awards = awards
       result.featured = true
     }
+  }
+  // Kuratoitu toimitusteksti (paras laatu) — voittaa Google-tiivistelmän mergessä
+  const pick = FEATURED_PICKS.find(p => awardMatch(name, p.name))
+  if (pick) {
+    result.blurb = pick.note
+    if (pick.noteEn) result.blurbEn = pick.noteEn
   }
 }
 
@@ -526,7 +533,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 export const fetchOSMCached = unstable_cache(
   async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v16'], // v16: supplement-hinta myös OSM-osumille
+  ['restaurants-osm-v17'], // v17: kuratoitu blurb (FEATURED_PICKS.note) mukaan
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
@@ -543,6 +550,7 @@ interface RestaurantEnrichment {
   imageUrl?: string
   googleHours?: string  // OSM-format string derived from Google hours (fresher than OSM)
   priceLevel?: 1 | 2 | 3 | 4  // Google price_level mapped to € scale
+  description?: string  // Googlen tiivistelmä paikasta (Maps-esittelyteksti)
 }
 
 // Google price_level → € scale. Real data beats the OSM-side heuristics
@@ -561,8 +569,8 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
   // `google_hours` is a newer column; if the migration hasn't run yet the
   // select would error and wipe ALL enrichment, so fall back to the legacy
   // column set on error (deploy order then doesn't matter).
-  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours, price_level'
-  const LEGACY_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, price_level'
+  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours, price_level, description'
+  const LEGACY_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, price_level, description'
   let cols = FULL_COLS
   const PAGE = 1000
   const allRows: Record<string, unknown>[] = []
@@ -600,6 +608,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
     if (row.main_image) entry.imageUrl = row.main_image as string
     if (typeof row.google_hours === 'string' && row.google_hours.trim()) entry.googleHours = row.google_hours as string
     if (typeof row.price_level === 'string' && GOOGLE_PRICE[row.price_level]) entry.priceLevel = GOOGLE_PRICE[row.price_level]
+    if (typeof row.description === 'string' && row.description.trim()) entry.description = row.description.trim()
     if (Object.keys(entry).length > 0) map[row.venue_key as string] = entry
   }
   return map
@@ -607,7 +616,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
 
 const fetchCuisineEnrichmentCached = unstable_cache(
   _fetchRestaurantEnrichment,
-  ['restaurant-enrichment-v9'], // v9: + price_level
+  ['restaurant-enrichment-v10'], // v10: + description (Googlen tiivistelmä)
   { revalidate: 3600 }
 )
 
@@ -651,6 +660,12 @@ export async function GET(req: NextRequest) {
     // existing 3–4 is always Michelin/award-supplement data — Google's coarse
     // "moderate" bucket must not downgrade e.g. Nolla/Nokka/Gaijin back to €€.
     if (enriched.priceLevel && !(r.priceRange && r.priceRange >= 3)) updates.priceRange = enriched.priceLevel
+    // Googlen tiivistelmä VAIN uniikkinimisille (ketjut jakavat yhden rivin →
+    // väärä kuvaus voisi päätyä väärälle paikalle — sama sääntö kuin aukioloissa).
+    // Kuratoitu toimitusteksti (r.blurb) voittaa aina.
+    if (enriched.description && !r.blurb && nameCounts.get(r.name.toLowerCase().trim()) === 1) {
+      updates.blurb = enriched.description
+    }
     // Google opening hours override OSM — OSM restaurant hours are frequently
     // stale (venue open Sundays in OSM but closed per Google). Google wins,
     // but ONLY for unique names (chains share one row → would misapply).

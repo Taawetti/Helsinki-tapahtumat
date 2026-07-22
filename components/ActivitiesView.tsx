@@ -581,7 +581,7 @@ export default function ActivitiesView({ onShowOnMap }: {
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterNearby, setFilterNearby] = useState(false)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
-  const [venueRatings, setVenueRatings] = useState<Record<string, { rating: number; reviewCount: number; priceLevel: string | null }>>({})
+  const [venueRatings, setVenueRatings] = useState<Record<string, { rating: number; reviewCount: number; priceLevel: string | null; description?: string }>>({})
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   // 🎯 Auta valitsemaan — etäisyys + auki-suodatin + arvottu ehdotus
@@ -1051,7 +1051,13 @@ export default function ActivitiesView({ onShowOnMap }: {
                   <X size={16} />
                 </button>
               </div>
-              {selectedActivity.description && <p className="text-white/50 text-sm">{selectedActivity.description}</p>}
+              {(() => {
+                // Googlen tiivistelmä (esim. Löyly, Kiasma) ensin — laadukasta
+                // suomenkielistä esittelyä; muuten OSM-kuvaus kuten ennen
+                const gDesc = venueRatings[selectedActivity.name.toLowerCase()]?.description
+                if (gDesc) return <p className="text-white/70 text-sm leading-relaxed">{gDesc}</p>
+                return selectedActivity.description ? <p className="text-white/50 text-sm">{selectedActivity.description}</p> : null
+              })()}
               {selectedActivity.address && (
                 <div className="flex items-center gap-2 text-white/30 text-sm">
                   <MapPin size={13} /> {selectedActivity.address}

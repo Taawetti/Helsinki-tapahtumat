@@ -1157,7 +1157,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   jumpToId?: string
   jumpToKey?: object
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
   const [restType, setRestType] = useState<RestType>('ruokapaikat')
@@ -1665,7 +1665,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   <X size={16} />
                 </button>
               </div>
-              {selectedRest.description && <p className="text-white/50 text-sm">{selectedRest.description}</p>}
+              {(() => {
+                // Esittely: kuratoitu/Google-teksti jos on; muuten vanha
+                // keittiörivi. Puuttuvaa ei korvata koostetulla täytteellä —
+                // pillerit yllä kertovat faktat jo.
+                const blurb = lang === 'en' && selectedRest.blurbEn ? selectedRest.blurbEn : selectedRest.blurb
+                if (blurb) return <p className="text-white/70 text-sm leading-relaxed">{blurb}</p>
+                return selectedRest.description ? <p className="text-white/50 text-sm">{selectedRest.description}</p> : null
+              })()}
               {selectedRest.address && (
                 <div className="flex items-center gap-2 text-white/30 text-sm">
                   <MapPin size={13} /> {selectedRest.address}

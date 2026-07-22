@@ -167,6 +167,10 @@ export interface Restaurant {
   googleRating?: number
   reviewCount?: number
   subCategories?: string[]
+  // "Mistä paikassa on kyse" -esittely: kuratoitu toimitusteksti tai Googlen
+  // tiivistelmä. Ei koskaan generoitua tekstiä — puuttuva blurb jätetään pois.
+  blurb?: string
+  blurbEn?: string
 }
 
 // ── ACTIVITIES ─────────────────────────────────────────
