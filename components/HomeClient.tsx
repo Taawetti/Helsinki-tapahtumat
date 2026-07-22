@@ -203,8 +203,6 @@ function EmptyState({ keyword, activeVibes, activeCategories, priceFilter, dateF
 function matchesText(e: Event, pattern: RegExp): boolean {
   return pattern.test([e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase())
 }
-const isKeikka  = (e: Event) => matchesText(e, /keikka|konsertti|live[\s-]?musiikki|bändi|gig/)
-const isUrheilu = (e: Event) => matchesText(e, /urheilu|jääkiekko|jalkapallo|koripallo|ottelu|sm-liiga|khl|nba|liiga/)
 
 // Finnish concept words → category/title terms that identify matching events.
 // Needed because Linked Events full-text search is too permissive.
@@ -608,9 +606,11 @@ export default function HomeClient({
         // KERRAN per tapahtuma, ei kertaa/aktiivinen-vibe.
         const vibes = getEventVibes(e)
         const kwMatch = activeVibeIds.some((id) => vibes.includes(id))
-        // Evening events (19:30+) count as nightlife — but not sports matches
+        // Evening events (19:30+) count as nightlife — but not sports matches.
+        // Käytä yhtenäistä luokitinta (vibes), EI erillistä isUrheilu-regexiä,
+        // jotta salibandy/tennis/turnaus ei valu yöelämään.
         const d = new Date(e.startTime)
-        const eveningMatch = isNightlife && (d.getHours() > 19 || (d.getHours() === 19 && d.getMinutes() >= 30)) && !isUrheilu(e)
+        const eveningMatch = isNightlife && (d.getHours() > 19 || (d.getHours() === 19 && d.getMinutes() >= 30)) && !vibes.includes('urheilu')
         return kwMatch || eveningMatch
       })
     }

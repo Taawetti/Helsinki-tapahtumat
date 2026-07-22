@@ -101,9 +101,13 @@ export const VIBES: Vibe[] = [
   // sisällä 'keikka'-merkkijonoa. Visat/karaoke/levyraati ovat baarimenoa,
   // musiikkinäytelmät teatteria, 'osallistuminen' on kaupungin yhteisötalo-
   // feedin kategoria jota ei esiinny aidoilla keikoilla (seurannassa).
-  { id: 'keikka',    label: 'Keikka',           tKey: 'vibe.keikka',   emoji: '🎸', keywords: ['keikka', 'konsertti', 'keikat', 'konsert', 'live', 'bändi', 'musiikki', 'music', 'jazz', 'alppipuiston kesä'], excludeKeywords: [...KIDS_EXCLUDE, ...NON_GIG_EXCLUDE, 'tietovisa', 'musavisa', 'pubivisa', 'tietokilpailu', 'levyraati', 'karaoke', 'musiikkinäytelm', 'tanssikurssi', 'osallistuminen'] },
-  // Ei paljasta 'night'-sanaa (Quiz Night, Movie Night, knight, midnight…)
-  { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'nightclub', 'night club', 'club night', 'klubi-ill', 'dj-ilta', 'dj-set', 'dj set', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'], excludeKeywords: KIDS_EXCLUDE },
+  // 'konsert'-vartalo kattaa konsertit/konserttiin; 'keikat' koska monikko ei
+  // sisällä 'keikka'-merkkijonoa. ' live ' KOKONAISSANANA (hay pehmustettu) —
+  // paljas 'live' osui sanoihin oliver/olive/gulliver/deliver.
+  { id: 'keikka',    label: 'Keikka',           tKey: 'vibe.keikka',   emoji: '🎸', keywords: ['keikka', 'konsertti', 'keikat', 'konsert', ' live ', 'live-', 'livemus', 'livekeik', 'bändi', 'musiikki', 'music', 'jazz', 'alppipuiston kesä'], excludeKeywords: [...KIDS_EXCLUDE, ...NON_GIG_EXCLUDE, 'tietovisa', 'musavisa', 'pubivisa', 'tietokilpailu', 'levyraati', 'karaoke', 'musiikkinäytelm', 'tanssikurssi', 'osallistuminen'] },
+  // Ei paljasta 'night'-sanaa (Quiz Night, Movie Night, knight, midnight…);
+  // ' rave ' KOKONAISSANANA — paljas 'rave' osui travel/brave/grave/gravel
+  { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'nightclub', 'night club', 'club night', 'klubi-ill', 'dj-ilta', 'dj-set', 'dj set', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', ' rave ', 'rave-', 'raveil'], excludeKeywords: KIDS_EXCLUDE },
   // 'bar ' välilyönnillä + taivutukset ('bar' osui yhtyeeseen "Baraka");
   // 'pintti'/'tuoppi' koska 'pint' osui sanaan "pintojen"
   { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pub', 'bar ', 'barissa', 'bariin', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'pintti', 'tuoppi', 'karaoke', 'tasting', 'panimo', 'trivia'], excludeKeywords: KIDS_EXCLUDE },
@@ -111,16 +115,21 @@ export const VIBES: Vibe[] = [
   // se sana on jokaisessa kunnallisessa jumpassa ja leikkipuisto-ohjelmassa,
   // jotka kuuluvat Harrastuksiin/Lapsiin. 'matcha'-exclude koska keyword
   // 'match' on osamerkkijono siinä; 'pelailu' = harrastepelailu.
-  { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'salibandy', 'pesäpallo', 'tennis', 'ottelu', 'turnau', 'maraton', 'liiga', 'sports', 'match'], excludeKeywords: [...KIDS_EXCLUDE, 'pelailu', 'matcha'] },
-  { id: 'standup',   label: 'Stand up',          tKey: 'vibe.standup',  emoji: '😂', keywords: ['stand up', 'stand-up', 'standup', 'koomik', 'komedia', 'comedy'], excludeKeywords: [...KIDS_EXCLUDE, 'musiikkinäytelm'] },
-  // Veto: klubi-illat taidemuseoissa eivät ole "museo". (Kiasma-teatteri-
-  // esityslava rajataan pois L1:n notSub:lla, ei tekstivedolla.)
-  { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'], excludeKeywords: ['klubi', 'yökerho', 'dj-ilta', 'dj-set'] },
+  // 'maraton'/'match' ovat osamerkkijonoja ei-urheilusanoissa → poissulut
+  // (elokuvamaraton, matcha)
+  { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'salibandy', 'pesäpallo', 'tennis', 'ottelu', 'turnau', 'maraton', 'liiga', 'sports', 'match'], excludeKeywords: [...KIDS_EXCLUDE, 'pelailu', 'matcha', 'elokuvamaraton', 'lukumaraton', 'neulemaraton', 'pelimaraton', 'tanssimaraton'] },
+  // 'komedia' osuu myös sanoihin tragikomedia/draamakomedia (teatteria) → poissulut
+  { id: 'standup',   label: 'Stand up',          tKey: 'vibe.standup',  emoji: '😂', keywords: ['stand up', 'stand-up', 'standup', 'koomik', 'komedia', 'comedy'], excludeKeywords: [...KIDS_EXCLUDE, 'musiikkinäytelm', 'tragikomedia', 'draamakomedia', 'musiikkikomedia'] },
+  // Veto: klubi-illat ja "Lates"-DJ-illat taidemuseoissa eivät ole "museo";
+  // 'kiasma' osuu myös Kiasma-teatteriin jos venue-nimi on kuvauksessa → poissulku
+  { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'], excludeKeywords: ['klubi', 'yökerho', 'dj-ilta', 'dj-set', 'lates', 'kiasma-teatteri'] },
   { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'satutuokio', 'leikkipuisto', 'loru', 'temppurata', 'leikkiminen', 'eskari', 'päiväkoti'] },
   // "Harrastukset & Kurssit" — myös matalan kynnyksen osallistumistapahtumat
   // (yhteislaulut, päivätanssit, harrasteryhmät, avoimet ovet) jotka suljetaan
   // pois Keikasta: ne ovat harrastamista, eivät keikkoja
-  { id: 'tyopaja',   label: 'Harrastukset & Kurssit', tKey: 'vibe.tyopaja', emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus', 'harrasteryhm', 'yhteislaul', 'päivätanssi', 'avoimet ovet', 'jumppa', 'liikuntaharrastus', 'kuntosali', 'kielikahvila', 'digituki', 'digineuvo', 'bingo', 'lautapeli', 'luontopiiri', 'kirjallisuuspiiri', 'ryhmä kokoontuu'] },
+  // 'kurssi' tarvitaan yhdyssanoihin (tanssikurssi) → pidetään keywordina,
+  // mutta poissuljetaan sanat joissa 'kurssi' on eri merkitys (konkurssi/diskurssi)
+  { id: 'tyopaja',   label: 'Harrastukset & Kurssit', tKey: 'vibe.tyopaja', emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus', 'harrasteryhm', 'yhteislaul', 'päivätanssi', 'avoimet ovet', 'jumppa', 'liikuntaharrastus', 'kuntosali', 'kielikahvila', 'digituki', 'digineuvo', 'bingo', 'lautapeli', 'luontopiiri', 'kirjallisuuspiiri', 'ryhmä kokoontuu'], excludeKeywords: ['konkurssi', 'diskurssi', 'ekskurssi'] },
   // Puhtaasti esittävä taide — osallistuvat tanssitapahtumat (päivä-/kaupunki-/
   // lavatanssit, kurssit, työpajat) kuuluvat Harrastuksiin, eivät tänne
   // Poissulut TÄSMÄLLISINÄ yhdyssanoina — paljas 'kurssi'/'leiri' osuisi
@@ -130,10 +139,11 @@ export const VIBES: Vibe[] = [
   // Ei paljasta 'art'-sanaa (vartalo, askartelu, artisti…); leikkipuistojen
   // askartelut on lähteessä tagattu 'kuvataide' → poissulut
   { id: 'taide',     label: 'Taide',             tKey: 'vibe.taide',    emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'gallery', 'exhibition', 'design'], excludeKeywords: ['teatteritaide', 'leikkipuisto', 'askartelu', 'kädentaito'] },
-  { id: 'festivaali', label: 'Festivaali',       tKey: 'vibe.festivaali', emoji: '🎪', keywords: ['festivaali', 'festival', 'festar', 'fest', 'ropecon', 'alppipuiston kesä'] },
+  // 'fest' osuu sanaan manifesti/manifest → poissulku
+  { id: 'festivaali', label: 'Festivaali',       tKey: 'vibe.festivaali', emoji: '🎪', keywords: ['festivaali', 'festival', 'festar', 'fest', 'ropecon', 'alppipuiston kesä'], excludeKeywords: ['manifest', 'manifesti'] },
   // 'punk' osui sanaan "kaupunki", 'kellari' yhteisötalon kellarikerrokseen →
   // tarkemmat muodot. Lepakkomies & Post Bar = yksiselitteisiä ug-venueita.
-  { id: 'underground', label: 'Underground',     tKey: 'vibe.underground', emoji: '🔦', keywords: ['underground', 'rave', 'diy', 'kellariklubi', 'kellaribileet', 'vaihtoehto', 'kokeellinen', 'noise', 'punk rock', 'punkrock', 'punk-', 'punkbändi', 'suomipunk', 'lepakkomies', 'post bar', 'alppipuiston kesä'], excludeKeywords: KIDS_EXCLUDE },
+  { id: 'underground', label: 'Underground',     tKey: 'vibe.underground', emoji: '🔦', keywords: ['underground', ' rave ', 'rave-', 'raveil', 'diy', 'kellariklubi', 'kellaribileet', 'vaihtoehto', 'kokeellinen', 'noise', 'punk rock', 'punkrock', 'punk-', 'punkbändi', 'suomipunk', 'lepakkomies', 'post bar', 'alppipuiston kesä'], excludeKeywords: KIDS_EXCLUDE },
 ]
 
 /** Yksi totuus vibe-osumalle: keywords-osuma JA ei excludeKeywords-osumaa.

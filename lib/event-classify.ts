@@ -52,8 +52,10 @@ const VENUE_RULES: VenueRule[] = [
     // Aleksanterin teatteri (konsertit/standup/gaalat), Kansallisooppera
     // (kierrokset) — niiden aidot esitykset osuvat L3:n 'ooppera'/'baletti'/
     // 'tanssi'/'esitys'-avainsanoihin.
+    // Svenska Teatern poistettu — monikäyttöinen suuri näyttämö (kiertuekeikat,
+    // standup); sen aidot esitykset osuvat L3:n esitys-avainsanoihin
     vibes: ['teatteri'],
-    sub: ['kansallisteatteri', 'kaupunginteatteri', 'q-teatteri', 'kom-teatteri', 'svenska teatern', 'lilla teatern', 'teatteri jurkka'],
+    sub: ['kansallisteatteri', 'kaupunginteatteri', 'q-teatteri', 'kom-teatteri', 'lilla teatern', 'teatteri jurkka'],
   },
   {
     // Ateneum poistettu (Ateneum-sali = kamarikonsertit); 'kiasma' ei saa osua
@@ -97,7 +99,11 @@ export function classifyEvent(e: ClassifiableEvent): string[] {
   // osamerkkijonoveto siihen pudottaa oikeita tapahtumia (esim. "yhteisötalo"
   // osuu musiikkipaikkaan "Stadin yhteisötalo Saunabaari", "avoimet ovet"
   // teatteriin "Teatteri Avoimet Ovet"). Venue-logiikka elää VAIN L1:ssä.
-  const hay = [e.title, e.shortDescription ?? '', ...(e.categories ?? [])].join(' ').toLowerCase()
+  // Pehmustetaan molemmin puolin välilyönnillä, jotta kokonaissana-avainsanat
+  // muotoa ' live ' / ' rave ' osuvat myös otsikon alussa/lopussa mutta EIVÄT
+  // sanan sisällä (oliver/olive/gravel/travel) — kokonaissanamuoto on ainoa
+  // turvallinen tapa lyhyille englanninkielisille sanoille.
+  const hay = ` ${[e.title, e.shortDescription ?? '', ...(e.categories ?? [])].join(' ').toLowerCase()} `
   const venue = (e.location?.name ?? '').toLowerCase().trim()
   const vetoed = (vibe: Vibe) => !!vibe.excludeKeywords?.some((k) => hay.includes(k.toLowerCase()))
 

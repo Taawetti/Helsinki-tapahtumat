@@ -190,9 +190,9 @@ const CASES: Case[] = [
     in: ['keikka'],
   },
   {
-    name: "OSAMERKKIJONO: 'konkurssi'-niminen näytelmä ei putoa teatterista ('kurssi' ei enää veto)",
+    name: "OSAMERKKIJONO: 'konkurssi'-näytelmä → vain teatteri, EI harrastukset/standup/keikka",
     e: { title: 'Konkurssi', shortDescription: 'Draamakomedia rahan loppumisesta.', categories: ['teatteri'] },
-    in: ['teatteri'],
+    in: ['teatteri'], out: ['tyopaja', 'standup', 'keikka'],
   },
   {
     name: 'MONIKÄYTTÖ-VENUE: geneerinen tapahtuma Musiikkitalossa EI ole automaattisesti keikka (venue poistettu kartasta)',
@@ -228,6 +228,61 @@ const CASES: Case[] = [
     name: 'klubi-ilta taidemuseossa ei ole museo',
     e: { title: 'Amos Rex Lates: klubi-ilta', shortDescription: 'DJ-ilta museossa.', categories: [], location: { name: 'Amos Rex' } },
     out: ['museo'],
+  },
+
+  // ── Kolmannen adversariaalisen katselmoinnin löydökset (2026-07-23) ───────
+  // Paljaan osamerkkijonon törmäykset — jokainen synteettinen törmäyssana
+  // varmistaa ettei väärä kategoria synny. Uusi avainsana joka rikkoo jonkin
+  // näistä kaatuu tässä ennen tuotantoa.
+  {
+    name: "'live' EI osu sanaan Oliver — musikaali \"Oliver!\" ei ole keikka",
+    e: { title: 'Oliver!', shortDescription: 'Musikaali Charles Dickensin romaanista.', categories: ['teatteri'] },
+    in: ['teatteri'], out: ['keikka'],
+  },
+  {
+    name: "'live' EI osu sanaan olive — oliiviöljymaistelu ei ole keikka",
+    e: { title: 'Olive oil -maistelu', shortDescription: 'Maistellaan oliiviöljyjä.', categories: [] },
+    out: ['keikka'],
+  },
+  {
+    name: 'aito live-keikka löytyy yhä ( live kokonaissanana + live-/livemus)',
+    e: { title: 'Bar Loose Live', shortDescription: 'Livemusiikkia illan mittaan.', categories: [] },
+    in: ['keikka'],
+  },
+  {
+    name: "'komedia' EI tee tragikomediasta standuppia",
+    e: { title: 'Kirsikkatarha', shortDescription: 'Tšehovin tragikomedia näyttämöllä.', categories: ['teatteri'] },
+    in: ['teatteri'], out: ['standup'],
+  },
+  {
+    name: "'maraton' EI tee elokuvamaratonista urheilua",
+    e: { title: 'Kauhuelokuvamaraton', shortDescription: 'Yön yli kestävä elokuvamaraton.', categories: [] },
+    out: ['urheilu'],
+  },
+  {
+    name: "'fest' EI osu sanaan manifesti",
+    e: { title: 'Taiteilijan manifesti', shortDescription: 'Keskustelutilaisuus manifestista.', categories: [] },
+    out: ['festivaali'],
+  },
+  {
+    name: "'rave' EI osu sanaan travel — matkailuilta ei ole yöelämää",
+    e: { title: 'Travel Tuesday: reppureissu Aasiaan', shortDescription: 'Matkakertomuksia.', categories: [] },
+    out: ['yoelama', 'underground'],
+  },
+  {
+    name: "'rave' EI osu sanaan gravel/brave",
+    e: { title: 'Gravel-pyöräilyretki', shortDescription: 'Bravehearts-henkinen retki.', categories: [] },
+    out: ['yoelama', 'underground'],
+  },
+  {
+    name: 'aito rave löytyy yhä ( rave kokonaissanana)',
+    e: { title: 'Underground rave Suvilahdessa', shortDescription: 'Teknoa aamuun.', categories: [] },
+    in: ['underground'],
+  },
+  {
+    name: 'museo-veto: Kiasma-teatterin esitys kun venue on KUVAUKSESSA → ei museo',
+    e: { title: 'Nykytanssiesitys', shortDescription: 'Esitys Kiasma-teatterissa.', categories: [], location: { name: 'Kiasma-teatteri' } },
+    in: ['teatteri'], out: ['museo'],
   },
 ]
 
