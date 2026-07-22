@@ -255,7 +255,7 @@ function ActivityListCard({ a, distance, rating, onShowOnMap }: {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
       {a.image && (
-        <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/7' }}>
+        <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/10' }}>
           <img src={a.image} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.5) 0%,transparent 60%)' }} />
         </div>

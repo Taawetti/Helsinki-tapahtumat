@@ -548,7 +548,7 @@ function RestListCard({ r, distance, onShowOnMap }: {
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
       {/* Mini-header: real photo if available, else B2 emoji */}
-      <div className="relative flex items-center justify-center overflow-hidden" style={{ height: 72, background: '#141418' }}>
+      <div className="relative flex items-center justify-center overflow-hidden" style={{ aspectRatio: '16/10', background: '#141418' }}>
         {r.image ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -559,7 +559,7 @@ function RestListCard({ r, distance, onShowOnMap }: {
           <>
             <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 60%, ${cuisineStyle.color}28 0%, transparent 70%)` }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={38} height={38} style={{ objectFit: 'contain', position: 'relative', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.5))' }} />
+            <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={58} height={58} style={{ objectFit: 'contain', position: 'relative', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.5))' }} />
             <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.5 }} />
           </>
         )}
@@ -667,7 +667,7 @@ function ChainListCard({ chain, onClick }: {
   return (
     <button onClick={() => onClick(chain)} className="rounded-2xl overflow-hidden text-left w-full transition-all active:scale-[.98]"
       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
-      <div className="relative flex items-center justify-center overflow-hidden" style={{ height: 72, background: '#141418' }}>
+      <div className="relative flex items-center justify-center overflow-hidden" style={{ aspectRatio: '16/10', background: '#141418' }}>
         {r.image ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -678,7 +678,7 @@ function ChainListCard({ chain, onClick }: {
           <>
             <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 60%, ${cuisineStyle.color}28 0%, transparent 70%)` }} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={38} height={38} style={{ objectFit: 'contain', position: 'relative', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.5))' }} />
+            <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={58} height={58} style={{ objectFit: 'contain', position: 'relative', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.5))' }} />
             <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.5 }} />
           </>
         )}
