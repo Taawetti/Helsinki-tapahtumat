@@ -320,7 +320,6 @@ export default function HomeClient({
   const [liveOnly, setLiveOnly] = useState(false)
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
-  const vibeBtnRef = useRef<HTMLButtonElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Ilta-painotus: illalla NOSTETAAN yökeikat kärkeen mutta EI rajata päivää —
@@ -397,55 +396,6 @@ export default function HomeClient({
     setJumpToRestaurant({ id })
   }, [])
 
-  // Entry animation + scroll-hide for the floating Aihepiirit button.
-  // Uses direct style manipulation — CSS animation would block transitions via fill-mode.
-  useEffect(() => {
-    const el = vibeBtnRef.current
-    if (!el) return
-
-    const TRANS_ENTER = 'opacity .4s cubic-bezier(.34,1.5,.64,1), transform .4s cubic-bezier(.34,1.5,.64,1)'
-    const TRANS_SCROLL = 'opacity .2s ease, transform .22s ease'
-
-    el.style.transition = 'none'
-    el.style.opacity = '0'
-    el.style.transform = 'translateX(20px) scale(.88)'
-    el.style.pointerEvents = 'none'
-
-    const entryTimer = setTimeout(() => {
-      el.style.transition = TRANS_ENTER
-      el.style.opacity = '1'
-      el.style.transform = 'none'
-      el.style.pointerEvents = 'all'
-    }, 200)
-
-    let lastY = 0
-    let entryDone = false
-    const readyTimer = setTimeout(() => { entryDone = true }, 700)
-
-    const onScroll = () => {
-      if (!entryDone) return
-      const y = window.scrollY
-      if (y > lastY + 6 && y > 60) {
-        el.style.transition = TRANS_SCROLL
-        el.style.opacity = '0'
-        el.style.transform = 'translateY(-10px) scale(.93)'
-        el.style.pointerEvents = 'none'
-      } else if (y < lastY - 4) {
-        el.style.transition = TRANS_SCROLL
-        el.style.opacity = '1'
-        el.style.transform = 'none'
-        el.style.pointerEvents = 'all'
-      }
-      lastY = y
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      clearTimeout(entryTimer)
-      clearTimeout(readyTimer)
-      window.removeEventListener('scroll', onScroll)
-    }
-  }, [mode, showJarjestajaForm])
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [nearbyMode, setNearbyMode] = useState(false)
@@ -890,40 +840,6 @@ export default function HomeClient({
         </div>
 
       </header>
-
-      {/* ── Floating Aihepiirit button — only on discover, hidden when filter panel open ── */}
-      {mode === 'discover' && !showJarjestajaForm && (
-        <button
-          ref={vibeBtnRef}
-          onClick={() => setShowVibePanel(true)}
-          className="fixed right-3 z-[35] flex items-center gap-1.5 rounded-full overflow-hidden hover:bg-white/[.17] active:scale-[.94]"
-          style={{
-            top: 'calc(env(safe-area-inset-top, 0px) + 108px)',
-            padding: '7px 11px 7px 9px',
-            background: 'rgba(255,255,255,.11)',
-            border: '1px solid rgba(255,255,255,.2)',
-            backdropFilter: 'blur(18px)',
-            WebkitBackdropFilter: 'blur(18px)',
-            boxShadow: '0 3px 16px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12)',
-            color: '#fff',
-            // opacity/transform controlled by useEffect (JS transitions)
-          }}
-        >
-          <span className="text-[13px] leading-none select-none">🎨</span>
-          <span className="text-[12px] font-black" style={{ letterSpacing: '-0.01em' }}>
-            {t('vibes.title')}
-          </span>
-          {activeVibes.length > 0 && (
-            <span
-              className="flex items-center justify-center text-[9px] font-black text-white rounded-full"
-              style={{ background: 'rgba(255,255,255,.22)', minWidth: 16, height: 16, padding: '0 3px' }}
-            >
-              {activeVibes.length}
-            </span>
-          )}
-          <span className="text-[9px] opacity-50 select-none">▾</span>
-        </button>
-      )}
 
       {/* ══ FAVORITES ══ */}
       {mode === 'favorites' && (
