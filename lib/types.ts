@@ -83,8 +83,12 @@ export interface Vibe {
 // iltakategorioihin (keikka/yöelämä/baari/standup/underground)
 const KIDS_EXCLUDE = ['vauva', 'taapero', 'lapsi', 'lapsille', 'lasten', 'leikkipuisto', 'loru', 'muskari', 'satutunti', 'satutuokio', 'päiväkoti', 'koululais', 'eskarilais', 'perhe', 'ikäihmis', 'seniori', 'eläkeläis']
 
+// Musiikkiin liittyvä joka EI ole keikka: yhteisötalojen avoimet ovet,
+// palvelukeskusten harrasteryhmät, yhteislaulut, päivätanssit, työpajat
+const NON_GIG_EXCLUDE = ['avoimet ovet', 'yhteislaul', 'päivätanssi', 'palvelukeskus', 'palvelutalo', 'yhteisötalo', 'seniorikeskus', 'harrasteryhm', 'työpaja', 'askartelu']
+
 export const VIBES: Vibe[] = [
-  { id: 'keikka',    label: 'Keikka',           tKey: 'vibe.keikka',   emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'], excludeKeywords: KIDS_EXCLUDE },
+  { id: 'keikka',    label: 'Keikka',           tKey: 'vibe.keikka',   emoji: '🎸', keywords: ['keikka', 'konsertti', 'live', 'bändi', 'musiikki', 'music'], excludeKeywords: [...KIDS_EXCLUDE, ...NON_GIG_EXCLUDE] },
   { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'night', 'nightclub', 'cocktail', 'after party', 'afterparty', 'bileet', 'bileissä', 'disko', 'rave'], excludeKeywords: KIDS_EXCLUDE },
   { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pub', 'bar', 'olut', 'beer', 'drinkki', 'shot', 'viini', 'wine', 'lounge', 'taproom', 'pint'], excludeKeywords: KIDS_EXCLUDE },
   { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'liikunta', 'ottelu', 'sports', 'match'] },

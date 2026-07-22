@@ -557,9 +557,25 @@ export default function HomeClient({
     setMobileTab(pageBack as typeof mobileTab)
   }, [pageBack])
 
+  // Menneet piiloon: päättynyt tapahtuma ei kuulu millekään listalle.
+  // Ilman endTimeä tapahtuma lasketaan käynnissä olevaksi 3 h alusta (sama
+  // sääntö kuin "Nyt menossa"). nowTs asetetaan effectissä eikä
+  // initializerissa → ei SSR/hydraatioristiriitaa (vrt. isEvening).
+  const [nowTs, setNowTs] = useState<number | null>(null)
+  useEffect(() => { setNowTs(Date.now()) }, [])
+  const upcomingEvents = useMemo(() => {
+    if (!nowTs) return events
+    return events.filter((e) => {
+      const startTs = new Date(e.startTime).getTime()
+      if (startTs > nowTs) return true
+      if (e.endTime) return new Date(e.endTime).getTime() >= nowTs
+      return nowTs - startTs < 3 * 60 * 60 * 1000
+    })
+  }, [events, nowTs])
+
 // Vibe-based client filter on top of API results
   const filteredEvents = useMemo(() => {
-    let result = events
+    let result = upcomingEvents
 
     // Keyword concept filter — applied client-side because Linked Events full-text search
     // returns too many false positives (word "keikka" appears in unrelated descriptions).
@@ -623,7 +639,7 @@ export default function HomeClient({
       })
     }
     return result
-  }, [events, activeCategories, activeVibes, priceFilter, liveOnly, liveNow])
+  }, [upcomingEvents, activeCategories, activeVibes, priceFilter, liveOnly, liveNow])
 
   const discoverEvents = useMemo(
     () => [...filteredEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
@@ -633,8 +649,8 @@ export default function HomeClient({
   // Base events for carousels — date/keyword filtered but NOT vibe/category filtered
   // so rows always show content even when a specific vibe is active
   const baseEvents = useMemo(
-    () => [...events].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
-    [events]
+    () => [...upcomingEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
+    [upcomingEvents]
   )
 
   // "🎸 ILLAN KEIKAT" — pyyhkäisyheron 5 nostoa: parhaat pisteet ensin,
@@ -1061,8 +1077,8 @@ export default function HomeClient({
                   <p className="text-white/20 text-sm">{t('discover.quiet_sub')}</p>
                 </div>
               ) : (
-                /* Mobiilissa designin pystylista; leveällä 2 korttia vierekkäin */
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                /* Kaksi korttia rinnakkain myös kännykällä — enemmän kerralla näkyvissä */
+                <div className="grid grid-cols-2 gap-3 items-start">
                   {koCatEvents.map((e) => (
                     <EventCard key={e.id} event={e} onClick={setSelectedEvent}
                       distance={geo.coords && e.location?.lat && e.location?.lon
