@@ -667,12 +667,15 @@ export default function HomeClient({
   // Heron 5 nostoa jätetään pois "Illan parhaat" -rivistä ettei sama sisältö toistu.
   const carousels = useMemo(() => {
     const heroIds = new Set(heroGigs.map((e) => e.id))
+    // "Illan parhaat" / "Ilmaiseksi tänään" valehtelisivat Huomenna/Viikko-
+    // suodattimilla → aikaneutraalit otsikot kun päivävalinta ei ole tänään
+    const isTodayView = dateFilter === 'today' || dateFilter === 'tonight'
     const rows = [
-      { id: 'parhaat',  title: t('discover.carousel_best'), events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !heroIds.has(e.id)) },
-      { id: 'ilmainen', title: t('discover.carousel_free'), events: baseEvents.filter(e => e.isFree) },
+      { id: 'parhaat',  title: t(isTodayView ? 'discover.carousel_best' : 'discover.carousel_best_generic'), events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !heroIds.has(e.id)) },
+      { id: 'ilmainen', title: t(isTodayView ? 'discover.carousel_free' : 'discover.carousel_free_generic'), events: baseEvents.filter(e => e.isFree) },
     ]
     return rows.filter(r => r.events.length > 0)
-  }, [baseEvents, t, heroGigs])
+  }, [baseEvents, t, heroGigs, dateFilter])
 
   // Kategorian pystylista (koCat): ruudukon/aihepiirin napautus avaa tämän
   const koCatEvents = useMemo(() => {
@@ -1066,7 +1069,9 @@ export default function HomeClient({
                   ← {t('common.back')}
                 </button>
                 <h2 className="font-black text-white text-[19px] leading-none" style={{ letterSpacing: '-0.02em' }}>
-                  {koCat === 'ilmainen' ? `🎁 ${t('discover.carousel_free')}` : `${VIBES.find(v => v.id === koCat)?.emoji ?? ''} ${VIBES.find(v => v.id === koCat)?.label ?? ''}`}
+                  {koCat === 'ilmainen'
+                    ? `🎁 ${t(dateFilter === 'today' || dateFilter === 'tonight' ? 'discover.carousel_free' : 'discover.carousel_free_generic')}`
+                    : `${VIBES.find(v => v.id === koCat)?.emoji ?? ''} ${VIBES.find(v => v.id === koCat)?.label ?? ''}`}
                 </h2>
                 <span className="text-white/30 text-[13px] font-bold">· {koCatEvents.length}</span>
               </div>
@@ -1110,7 +1115,15 @@ export default function HomeClient({
               {!loading && baseEvents.length > 0 && (
                 <section>
                   <div className="flex items-baseline justify-between mb-3">
-                    <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>{t('discover.grid_title')}</h2>
+                    {/* Otsikko elää päivävalinnan mukana — "Tapahtumat tänään"
+                        Huomenna-suodattimella oli virhe */}
+                    <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
+                      {t(dateFilter === 'today' || dateFilter === 'tonight' ? 'discover.grid_title'
+                        : dateFilter === 'tomorrow' ? 'discover.grid_title_tomorrow'
+                        : dateFilter === 'weekend' ? 'discover.grid_title_weekend'
+                        : dateFilter === 'week' ? 'discover.grid_title_week'
+                        : 'discover.grid_title_generic')}
+                    </h2>
                     <span className="text-[12px] font-bold text-white/30">{t('discover.grid_sub')}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
