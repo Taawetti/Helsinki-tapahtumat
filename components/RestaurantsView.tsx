@@ -946,11 +946,11 @@ function RestSubTabs({ restType, active, onSelect }: {
   )
 }
 
-// ── "⭐ 4.5+" — korkea laatu: arvosana ≥4.5 JA ≥100 arvostelua, tai
-//    arvosanan puuttuessa Michelin/Bib-tunnustus ─────────────────────────
-function isHighRated(r: Restaurant): boolean {
+// ── "⭐ 4+ / 4.5+" — arvosana ≥ kynnys JA ≥50 arvostelua (luotettava otos),
+//    tai arvosanan puuttuessa Michelin/Bib-tunnustus ────────────────────────
+function isRatedAtLeast(r: Restaurant, min: number): boolean {
   if (r.googleRating !== undefined && r.googleRating !== null) {
-    return r.googleRating >= 4.5 && (r.reviewCount ?? 0) >= 100
+    return r.googleRating >= min && (r.reviewCount ?? 0) >= 50
   }
   return !!(r.michelinStars || r.bibGourmand || r.michelinRecommended)
 }
@@ -959,18 +959,19 @@ function isHighRated(r: Restaurant): boolean {
 
 type DistSeg = 0 | 1 | 2 | null   // 0–1 km | 1–3 km | 3+ km
 type PriceSeg = 1 | 2 | 3 | null  // € | €€ | €€€
+type StarSeg = 4 | 4.5 | null     // ⭐ 4+ | ⭐ 4.5+
 
-function DecidePanel({ pool, pick, tried, dist, price, rated, distMap, onDist, onPrice, onRated, onDecide, onAgain, onOpen }: {
+function DecidePanel({ pool, pick, tried, dist, price, stars, distMap, onDist, onPrice, onStars, onDecide, onAgain, onOpen }: {
   pool: Restaurant[]
   pick: Restaurant | null
   tried: boolean
   dist: DistSeg
   price: PriceSeg
-  rated: boolean
+  stars: StarSeg
   distMap: Map<string, number>
   onDist: (d: DistSeg) => void
   onPrice: (p: PriceSeg) => void
-  onRated: () => void
+  onStars: (s: StarSeg) => void
   onDecide: () => void
   onAgain: () => void
   onOpen: (r: Restaurant) => void
@@ -1015,23 +1016,26 @@ function DecidePanel({ pool, pick, tried, dist, price, rated, distMap, onDist, o
             </button>
           ))}
         </div>
-        <button onClick={onRated}
-          className="px-3 py-2 rounded-xl text-[12px] font-black transition-all"
-          style={{
-            background: rated ? 'rgba(107,118,255,.35)' : 'rgba(255,255,255,.05)',
-            border: rated ? '1px solid rgba(107,118,255,.5)' : '1px solid rgba(255,255,255,.09)',
-            color: rated ? '#fff' : 'rgba(255,255,255,.45)',
-          }}>
-          ⭐ 4.5+
-        </button>
+        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+          <span className="pl-2.5 pr-1 text-[13px]">⭐</span>
+          {([4, 4.5] as const).map((s, i) => (
+            <button key={s} onClick={() => onStars(stars === s ? null : s)}
+              className={`px-2.5 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
+              style={segBtn(stars === s)}>
+              {s === 4 ? '4+' : '4.5+'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tulos / CTA / tyhjä */}
       {pick ? (
         <div className="rounded-[16px] p-3.5 space-y-3" style={{ background: 'rgba(10,10,14,.55)', border: '1px solid rgba(255,255,255,.08)' }}>
-          <div className="flex items-center gap-3">
+          <div className={`flex gap-3 ${pick.image ? 'flex-col sm:flex-row sm:items-center' : 'items-center'}`}>
             {pick.image ? (
-              <div className="relative w-20 h-20 rounded-[14px] overflow-hidden shrink-0" style={{ border: '1px solid rgba(255,255,255,.1)' }}>
+              <div onClick={() => onOpen(pick)}
+                className="relative w-full aspect-[16/9] sm:w-48 sm:h-32 sm:aspect-auto rounded-[12px] overflow-hidden shrink-0 cursor-pointer"
+                style={{ border: '1px solid rgba(255,255,255,.1)' }}>
                 <img src={pick.image} alt={pick.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
               </div>
             ) : (
@@ -1129,7 +1133,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // 🎯 Auta valitsemaan — kompaktit suodattimet + arvottu ehdotus
   const [rcDist, setRcDist] = useState<0 | 1 | 2 | null>(null)
   const [rcPrice, setRcPrice] = useState<1 | 2 | 3 | null>(null)
-  const [rcRated, setRcRated] = useState(false)
+  const [rcStars, setRcStars] = useState<StarSeg>(null)
   const [rcPick, setRcPick] = useState<Restaurant | null>(null)
   const [rcTried, setRcTried] = useState(false)
 
@@ -1264,7 +1268,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // ── 🎯 Auta valitsemaan: suodatettu arvontapooli ────────────────────────
   const rcPool = useMemo(() => {
     return typePool.filter(r => {
-      if (rcRated && !isHighRated(r)) return false
+      if (rcStars !== null && !isRatedAtLeast(r, rcStars)) return false
       if (rcPrice !== null) {
         if (!r.priceRange) return false
         if (rcPrice === 3 ? r.priceRange < 3 : r.priceRange !== rcPrice) return false
@@ -1278,7 +1282,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       }
       return true
     })
-  }, [typePool, rcRated, rcPrice, rcDist, userPos, distMap])
+  }, [typePool, rcStars, rcPrice, rcDist, userPos, distMap])
 
   const rollPick = useCallback((avoidId?: string) => {
     const candidates = rcPool.length > 1 && avoidId ? rcPool.filter(r => r.id !== avoidId) : rcPool
@@ -1303,7 +1307,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     if (!rcTried) return
     rollPick()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rcDist, rcPrice, rcRated, userPos])
+  }, [rcDist, rcPrice, rcStars, userPos])
 
   const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false) }, [])
 
@@ -1352,11 +1356,11 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 tried={rcTried}
                 dist={rcDist}
                 price={rcPrice}
-                rated={rcRated}
+                stars={rcStars}
                 distMap={distMap}
                 onDist={handleRcDist}
                 onPrice={setRcPrice}
-                onRated={() => setRcRated(v => !v)}
+                onStars={setRcStars}
                 onDecide={handleDecide}
                 onAgain={handleAgain}
                 onOpen={setSelectedRest}

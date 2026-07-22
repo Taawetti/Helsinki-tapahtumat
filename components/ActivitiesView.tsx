@@ -469,9 +469,11 @@ function ActDecidePanel({ pool, pick, tried, dist, auki, distMap, ratingMap, onD
 
       {pick ? (
         <div className="rounded-[16px] p-3.5 space-y-3" style={{ background: 'rgba(10,10,14,.55)', border: '1px solid rgba(255,255,255,.08)' }}>
-          <div className="flex items-center gap-3">
+          <div className={`flex gap-3 ${pick.image ? 'flex-col sm:flex-row sm:items-center' : 'items-center'}`}>
             {pick.image ? (
-              <div className="relative w-20 h-20 rounded-[14px] overflow-hidden shrink-0" style={{ border: '1px solid rgba(255,255,255,.1)' }}>
+              <div onClick={() => onOpen(pick)}
+                className="relative w-full aspect-[16/9] sm:w-48 sm:h-32 sm:aspect-auto rounded-[12px] overflow-hidden shrink-0 cursor-pointer"
+                style={{ border: '1px solid rgba(255,255,255,.1)' }}>
                 <img src={pick.image} alt={pick.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
               </div>
             ) : (
