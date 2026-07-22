@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { VIBES, NEIGHBORHOODS, type Vibe, type Neighborhood } from '@/lib/types'
+import { classifyEvent } from '@/lib/event-classify'
 
 export const revalidate = 3600
 
@@ -27,6 +28,7 @@ const LOCATIVE: Record<string, string> = {
 interface LEEvent {
   id: string
   name: { fi?: string; en?: string; sv?: string }
+  short_description?: { fi?: string; en?: string }
   start_time: string
   end_time?: string | null
   images?: { url: string }[]
@@ -36,6 +38,7 @@ interface LEEvent {
     address_locality?: { fi?: string; en?: string }
     '@id'?: string
   }
+  keywords?: { name?: { fi?: string; en?: string } }[]
   offers?: { is_free: boolean; price?: { fi?: string }; info_url?: { fi?: string; en?: string } }[]
   info_url?: { fi?: string; en?: string }
 }
@@ -43,10 +46,12 @@ interface LEEvent {
 interface PageEvent {
   id: string
   title: string
+  shortDescription: string
   startTime: string
   endTime: string | null
   venue: string
   address: string
+  categories: string[]
   isFree: boolean
   price: string | null
   ticketUrl: string | null
@@ -55,14 +60,18 @@ interface PageEvent {
 
 function normalizeLE(raw: LEEvent): PageEvent {
   const title = raw.name?.fi || raw.name?.en || raw.name?.sv || 'Tapahtuma'
+  const shortDescription = raw.short_description?.fi || raw.short_description?.en || ''
   const venue = raw.location?.name?.fi || raw.location?.name?.en || ''
   const address = raw.location?.street_address?.fi || raw.location?.street_address?.en || ''
+  // slice(0,4) TÄSMÄLLEEN kuten /api/events normalize — muuten sama tapahtuma
+  // luokittuisi eri tavoin sovelluksessa ja SEO-sivulla (rikkoisi "yksi totuus")
+  const categories = (raw.keywords || []).map((k) => k.name?.fi || k.name?.en || '').filter(Boolean).slice(0, 4)
   const offer = raw.offers?.[0]
   const isFree = offer?.is_free ?? false
   const price = isFree ? null : (offer?.price?.fi || null)
   const ticketUrl = offer?.info_url?.fi || offer?.info_url?.en || raw.info_url?.fi || raw.info_url?.en || null
   const image = raw.images?.[0]?.url || null
-  return { id: raw.id, title, startTime: raw.start_time, endTime: raw.end_time || null, venue, address, isFree, price, ticketUrl, image }
+  return { id: raw.id, title, shortDescription, startTime: raw.start_time, endTime: raw.end_time || null, venue, address, categories, isFree, price, ticketUrl, image }
 }
 
 function dateRange() {
@@ -209,12 +218,17 @@ export default async function TapahtumaSivu({ params }: Props) {
   if (!vibe && !neighborhood) notFound()
 
   const events = vibe
-    ? (await fetchByText(vibe.keywords)).filter((e) => {
-        // Sama poissulku kuin sovelluksessa: vauvojen lorutuokio ei kuulu
-        // /tapahtumat/keikka-sivulle vaikka tekstihaku osui "musiikkiin"
-        const hay = `${e.title} ${e.venue}`.toLowerCase()
-        return !vibe.excludeKeywords?.some((k) => hay.includes(k.toLowerCase()))
-      })
+    ? (await fetchByText(vibe.keywords)).filter((e) =>
+        // Yksi totuus: sama kerroksellinen luokittelu kuin sovelluksessa
+        // (lib/event-classify) — tekstihaku tuo kandidaatit, classifyEvent
+        // rajaa ne oikeaan kategoriaan (vetot mukaan lukien)
+        classifyEvent({
+          title: e.title,
+          shortDescription: e.shortDescription,
+          categories: e.categories,
+          location: { name: e.venue },
+        }).includes(slug)
+      )
     : await fetchByBbox(neighborhood!)
 
   const pageTitle = vibe

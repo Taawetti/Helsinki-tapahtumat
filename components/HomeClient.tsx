@@ -4,7 +4,8 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Loader2, Heart, Bell, Plus, ChevronLeft } from 'lucide-react'
-import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, Vibe, matchesVibeText } from '@/lib/types'
+import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
+import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, TERRACE_REGEX } from '@/lib/nightlife'
 import { useFavorites } from '@/contexts/FavoritesContext'
@@ -600,15 +601,13 @@ export default function HomeClient({
     // Vibe filter — 'kaikki' shows all events unfiltered (list mode without keyword filter)
     const activeVibeIds = activeVibes.filter((v) => v !== 'ilmainen' && v !== 'kaikki')
     if (activeVibeIds.length > 0) {
-      const activeVibeObjs = activeVibeIds
-        .map((id) => VIBES.find((v) => v.id === id))
-        .filter((v): v is Vibe => !!v)
       const isNightlife = activeVibeIds.includes('yoelama')
       result = result.filter((e) => {
-        const haystack = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
-        // Per-vibe matchaus poissulkusanoineen — flat-keyword-lista päästi
-        // vauvatapahtumat Keikkaan ("musiikkia" osui)
-        const kwMatch = activeVibeObjs.some((vb) => matchesVibeText(haystack, vb))
+        // Keskitetty luokitus (venue + lähdekategoriat + avainsanat + vetot) —
+        // API laskee valmiiksi, seed-datalle lasketaan lennossa. Lasketaan
+        // KERRAN per tapahtuma, ei kertaa/aktiivinen-vibe.
+        const vibes = getEventVibes(e)
+        const kwMatch = activeVibeIds.some((id) => vibes.includes(id))
         // Evening events (19:30+) count as nightlife — but not sports matches
         const d = new Date(e.startTime)
         const eveningMatch = isNightlife && (d.getHours() > 19 || (d.getHours() === 19 && d.getMinutes() >= 30)) && !isUrheilu(e)
@@ -681,12 +680,8 @@ export default function HomeClient({
   const koCatEvents = useMemo(() => {
     if (!koCat) return []
     if (koCat === 'ilmainen') return baseEvents.filter((e) => e.isFree)
-    const vibe = VIBES.find((v) => v.id === koCat)
-    if (!vibe) return []
-    return baseEvents.filter((e) => {
-      const hay = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
-      return matchesVibeText(hay, vibe)
-    })
+    if (!VIBES.some((v) => v.id === koCat)) return []
+    return baseEvents.filter((e) => getEventVibes(e).includes(koCat))
   }, [koCat, baseEvents])
 
   // 'kaikki' counts as 0 — it's "show all", not a real filter selection

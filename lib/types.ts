@@ -21,6 +21,9 @@ export interface Event {
   infoUrl: string | null
   categories: string[]
   source: string
+  // Kategorialuokitus (vibe-id:t) — lasketaan kerran /api/events-aggregaatissa
+  // (lib/event-classify.ts). Puuttuessa klientti laskee getEventVibes-fallbackilla.
+  vibes?: string[]
 }
 
 // Per-source fetch status from /api/events — powers the freshness badge and admin health panel
@@ -110,7 +113,9 @@ export const VIBES: Vibe[] = [
   // 'match' on osamerkkijono siinä; 'pelailu' = harrastepelailu.
   { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'salibandy', 'pesäpallo', 'tennis', 'ottelu', 'turnau', 'maraton', 'liiga', 'sports', 'match'], excludeKeywords: [...KIDS_EXCLUDE, 'pelailu', 'matcha'] },
   { id: 'standup',   label: 'Stand up',          tKey: 'vibe.standup',  emoji: '😂', keywords: ['stand up', 'stand-up', 'standup', 'koomik', 'komedia', 'comedy'], excludeKeywords: [...KIDS_EXCLUDE, 'musiikkinäytelm'] },
-  { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'] },
+  // Veto: klubi-illat taidemuseoissa eivät ole "museo". (Kiasma-teatteri-
+  // esityslava rajataan pois L1:n notSub:lla, ei tekstivedolla.)
+  { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'], excludeKeywords: ['klubi', 'yökerho', 'dj-ilta', 'dj-set'] },
   { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'satutuokio', 'leikkipuisto', 'loru', 'temppurata', 'leikkiminen', 'eskari', 'päiväkoti'] },
   // "Harrastukset & Kurssit" — myös matalan kynnyksen osallistumistapahtumat
   // (yhteislaulut, päivätanssit, harrasteryhmät, avoimet ovet) jotka suljetaan
@@ -118,7 +123,10 @@ export const VIBES: Vibe[] = [
   { id: 'tyopaja',   label: 'Harrastukset & Kurssit', tKey: 'vibe.tyopaja', emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus', 'harrasteryhm', 'yhteislaul', 'päivätanssi', 'avoimet ovet', 'jumppa', 'liikuntaharrastus', 'kuntosali', 'kielikahvila', 'digituki', 'digineuvo', 'bingo', 'lautapeli', 'luontopiiri', 'kirjallisuuspiiri', 'ryhmä kokoontuu'] },
   // Puhtaasti esittävä taide — osallistuvat tanssitapahtumat (päivä-/kaupunki-/
   // lavatanssit, kurssit, työpajat) kuuluvat Harrastuksiin, eivät tänne
-  { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'ballet', 'sirkus', 'impro', 'theatre', 'dance', 'performance'], excludeKeywords: ['päivätanssi', 'tanssikurssi', 'kaupunkitanssi', 'lavatanssi', 'musiikkituokio', 'taidenäyttely', 'työpaja'] },
+  // Poissulut TÄSMÄLLISINÄ yhdyssanoina — paljas 'kurssi'/'leiri' osuisi
+  // sanoihin konkurssi/diskurssi. Osallistavat tanssit, kurssit ja lasten
+  // sirkusleirit kuuluvat Harrastuksiin, eivät esittävään taiteeseen.
+  { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'ballet', 'sirkus', 'impro', 'theatre', 'dance', 'performance'], excludeKeywords: ['päivätanssi', 'kaupunkitanssi', 'lavatanssi', 'tanssikurssi', 'musiikkituokio', 'taidenäyttely', 'työpaja', 'sirkuskoulu', 'sirkusleiri', 'sirkuskurssi', 'teatterikurssi', 'tanssileiri'] },
   // Ei paljasta 'art'-sanaa (vartalo, askartelu, artisti…); leikkipuistojen
   // askartelut on lähteessä tagattu 'kuvataide' → poissulut
   { id: 'taide',     label: 'Taide',             tKey: 'vibe.taide',    emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'gallery', 'exhibition', 'design'], excludeKeywords: ['teatteritaide', 'leikkipuisto', 'askartelu', 'kädentaito'] },

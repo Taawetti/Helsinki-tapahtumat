@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
 import { helsinkiDateOf } from '@/lib/helsinki-time'
+import { classifyEvent } from '@/lib/event-classify'
 
 // External sources fetched via internal API routes (api/<name>).
 // Order defines merge priority: earlier sources win dedup upgrades first.
@@ -333,6 +334,13 @@ export async function GET(req: NextRequest) {
         const fallback = getEventImage(e.location?.name, e.categories, venueMap, {})
         if (fallback) e.image = fallback
       }
+    }
+
+    // Kategorialuokitus KERRAN täällä (venue-kartta + lähdekategoriat +
+    // avainsanasäännöt + globaalit vetot) — klientti ja SEO lukevat valmiin
+    // tuloksen sen sijaan että jokainen laskisi omansa.
+    for (const e of events) {
+      e.vibes = classifyEvent(e)
     }
 
     return NextResponse.json({ events, hasMore, total, generatedAt: new Date().toISOString(), sources })
