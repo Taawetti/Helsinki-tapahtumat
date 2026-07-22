@@ -95,8 +95,13 @@ export const VIBES: Vibe[] = [
   { id: 'standup',   label: 'Stand up',          tKey: 'vibe.standup',  emoji: '😂', keywords: ['stand up', 'komedia', 'comedy'], excludeKeywords: KIDS_EXCLUDE },
   { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museon', 'museum', 'historia', 'perinne', 'kokoelma'] },
   { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'leikkipuisto'] },
-  { id: 'tyopaja',   label: 'Työpaja & Kurssi',  tKey: 'vibe.tyopaja',  emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus'] },
-  { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'] },
+  // "Harrastukset & Kurssit" — myös matalan kynnyksen osallistumistapahtumat
+  // (yhteislaulut, päivätanssit, harrasteryhmät, avoimet ovet) jotka suljetaan
+  // pois Keikasta: ne ovat harrastamista, eivät keikkoja
+  { id: 'tyopaja',   label: 'Harrastukset & Kurssit', tKey: 'vibe.tyopaja', emoji: '🛠', keywords: ['työpaja', 'kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus', 'harrasteryhm', 'yhteislaul', 'päivätanssi', 'avoimet ovet'] },
+  // Puhtaasti esittävä taide — osallistuvat tanssitapahtumat (päivätanssit,
+  // tanssikurssit) kuuluvat Harrastuksiin, eivät tänne
+  { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'sirkus', 'impro', 'theatre', 'dance', 'performance'], excludeKeywords: ['päivätanssi', 'tanssikurssi'] },
   { id: 'taide',     label: 'Taide',             tKey: 'vibe.taide',    emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'art', 'gallery', 'exhibition', 'design'] },
   { id: 'festivaali', label: 'Festivaali',       tKey: 'vibe.festivaali', emoji: '🎪', keywords: ['festivaali', 'festival', 'festarit', 'fest'] },
   { id: 'underground', label: 'Underground',     tKey: 'vibe.underground', emoji: '🔦', keywords: ['underground', 'rave', 'diy', 'kellari', 'vaihtoehto', 'kokeellinen', 'noise', 'punk'], excludeKeywords: KIDS_EXCLUDE },
