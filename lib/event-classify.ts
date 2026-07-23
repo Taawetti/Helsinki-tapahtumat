@@ -1,30 +1,94 @@
 // Tapahtumien kategorialuokittelu — yksi totuus koko sovellukselle.
 //
-// Arkkitehtuuri (syväauditointi 2026-07-22): kerrokset EHDOTTAVAT, globaalit
+// Arkkitehtuuri (syväauditointi 2026-07-22..23): kerrokset EHDOTTAVAT, globaalit
 // vetot PÄÄTTÄVÄT. Tarkkuus ennen kattavuutta: epävarma tapaus jää mieluummin
 // ilman kategoriaa (näkyy silti Kaikki-syötteessä ja haussa) kuin arvataan
 // väärin — paikallinen antaa anteeksi puuttuvan tapahtuman, ei väärää.
 //
+//   L0  yso-ONTOLOGIAKOODIT (LinkedEvents): vakaa, kielestä riippumaton,
+//       törmäyksetön PÄÄsignaali. 'yso:p916' (liikunta) ≠ 'yso:p965' (urheilu)
+//       ratkaisee ongelman jota mikään tekstisääntö ei ratkaissut. Data-
+//       pohjainen kartta (yso-freq.mjs, 800 tapahtuman otos). Tarkin kerros.
 //   L1  Venue-kartta: vain yksikäyttöiset paikat (Tavastia ≈ aina keikka).
-//       Monikäyttöpaikat (Korjaamo, Suvilahti, Stoa…) EIVÄT kuulu tänne —
-//       ne tuottaisivat virheitä eivätkä poistaisi niitä.
-//   L2  Lähteen rakenteiset kategoriat: täsmätoken-vastaavuus (ei osamerkki-
-//       jonoja) vain ≥95 % -tarkoille kategorianimille.
-//   L3  Viritetyt avainsanasäännöt (VIBES.keywords) — osamerkkijonohaku
-//       otsikko+kuvaus+kategoriat-tekstiin.
+//       Monikäyttöpaikat (Korjaamo, Suvilahti, Stoa…) EIVÄT kuulu tänne.
+//   L2  Lähteen kategorianimet täsmätokeneina (Map, ≥95 % -tarkat nimet).
+//   L3  Tokenisoiva avainsanamatchaus (VIBES.keywords) — VIIMEINEN keino
+//       lähteille joilla ei ole yso-koodeja (Ticketmaster, scraperit).
 //
 // Globaali veto: vibe.excludeKeywords tarkistetaan KAIKKIEN kerrosten
 // ehdotuksille — "Lastenkonsertti Tavastialla" saa venue-ehdotuksen keikka,
 // mutta lapsi-veto voittaa ja tapahtuma menee Lapset-kategoriaan.
 //
 // Luokittelu ajetaan kerran /api/events-aggregaatissa (event.vibes), ja
-// klientti käyttää getEventVibes-apuria joka laskee fallbackina itse
-// (seed-data ja vanhat välimuistivastaukset ilman vibes-kenttää).
+// klientti käyttää getEventVibes-apuria joka laskee fallbackina itse.
 //
 // Regressiotestit: scripts/test-categories.ts — aja `npm run test:categories`.
 // Jokainen kertaalleen löydetty luokitteluvirhe lisätään sinne testinä.
 
 import { VIBES, type Vibe, type Event } from './types'
+
+// Poimi vakaa yso-koodi keyword-objektin @id:stä
+// (…/keyword/yso:p11185/ → 'yso:p11185'). Kattaa myös kulke:/helsinki:/kultus:.
+export function extractYsoIds(keywords?: ({ '@id'?: string } | null)[]): string[] {
+  const ids: string[] = []
+  for (const k of keywords ?? []) {
+    const m = (k?.['@id'] ?? '').match(/keyword\/([^/]+)/)
+    if (m) ids.push(m[1])
+  }
+  return ids
+}
+
+// ── L0: yso-ontologiakoodi → vibe ────────────────────────────────────────────
+// Kuratoitu OIKEASTA Helsingin yso-sanastosta (800 tapahtuman taajuusotos).
+// PERIAATE (katselmointi 2026-07-23): kartoita vain koodit jotka nimeävät
+// tapahtuman TYYPIN/FORMAATIN (konsertit, näyttelyt, työpaja) tai jotka
+// osuvat audience-kategoriaan (lapset). EI aihe-/yleisö-/paikkakoodeja
+// (historia, keskustelu, pelit, opastus, ikääntyneet, palvelukeskukset,
+// Espan lava) — ne ovat moniselitteisiä ja täyttäisivät väärän kategorian.
+// Map (EI objektiliteraali) → feed-syötteinen 'constructor'/'__proto__'-avain
+// ei osu prototyyppiketjuun eikä kaada luokittelua (sama suoja kuin L2).
+// Vetot koskevat myös näitä ehdotuksia (propose).
+const YSO_TO_VIBE = new Map<string, string[]>([
+  // Keikat — vain spesifit musiikkikoodit (broad 'musiikki' p1808 jätetty pois)
+  ['yso:p11185', ['keikka']],      // konsertit
+  ['yso:p24765', ['keikka']],      // musiikkikeikat
+  // Teatteri & esittävä taide
+  ['yso:p2625',  ['teatteri']],    // teatteritaide
+  ['yso:p27081', ['teatteri']],    // esitystaide
+  ['yso:p5000',  ['teatteri']],    // näytelmät
+  ['yso:p1278',  ['teatteri']],    // tanssi
+  // Kuvataide / näyttelyt
+  ['yso:p5121',  ['taide']],       // näyttelyt
+  ['yso:p2739',  ['taide']],       // kuvataide
+  ['yso:p2851',  ['taide']],       // taide
+  // Museot
+  ['yso:p4934',  ['museo']],       // museot
+  // Urheilu — VAIN kilpaurheilu; liikunta/liikuntaharrastus → harrastukset
+  ['yso:p965',   ['urheilu']],     // urheilu
+  // Festivaalit
+  ['yso:p1304',  ['festivaali']],  // festivaalit
+  // Lapset & perhe (yleisökoodit → lapset on yleisökategoria)
+  ['yso:p316',   ['lapset']],      // leikkiminen
+  ['yso:p8105',  ['lapset']],      // leikkipuistot
+  ['yso:p13050', ['lapset']],      // lapsiperheet
+  ['yso:p4354',  ['lapset']],      // lapset (ikäryhmät)
+  ['yso:p4363',  ['lapset']],      // perheet
+  ['yso:p15937', ['lapset']],      // vauvat
+  ['yso:p20513', ['lapset']],      // vauvaperheet
+  ['yso:p16485', ['lapset']],      // koululaiset
+  ['yso:p14710', ['lapset']],      // satutunnit
+  // Harrastukset & Kurssit — vain selkeät osallistumis-/kurssiformaatit
+  ['kulke:732',  ['tyopaja']],     // Työpajat
+  ['yso:p916',   ['tyopaja']],     // liikunta (kunnallinen jumppa ym.)
+  ['yso:p13035', ['tyopaja']],     // liikuntaharrastus
+  ['yso:p15875', ['tyopaja']],     // luennot
+  ['yso:p20345', ['tyopaja']],     // bingo
+  ['yso:p4923',  ['tyopaja']],     // käsityöt
+  ['yso:p8630',  ['tyopaja']],     // kädentaidot
+  ['yso:p37943', ['tyopaja']],     // digineuvonta
+  ['helsinki:aflfbatker', ['tyopaja']], // digitaidot
+  ['helsinki:agjffu7tgq', ['tyopaja']], // Kielikahvilat
+])
 
 // ── L1: Venue-kartta ─────────────────────────────────────────────────────────
 // `sub` = erottuva osamerkkijono venue-nimessä (≥6 merkkiä tai selvästi
@@ -86,7 +150,7 @@ const SOURCE_CAT_VIBES = new Map<string, string[]>([
 // ── Luokittelu ───────────────────────────────────────────────────────────────
 
 type ClassifiableEvent = Pick<Event, 'title'> &
-  Partial<Pick<Event, 'shortDescription' | 'categories'>> & {
+  Partial<Pick<Event, 'shortDescription' | 'categories' | 'ysoIds'>> & {
     location?: { name?: string } | null
   }
 
@@ -129,10 +193,16 @@ export function classifyEvent(e: ClassifiableEvent): string[] {
 
   const out = new Set<string>()
 
-  // Ehdotus kerroksilta L1/L2 hyväksytään vain jos globaali veto ei osu
+  // Ehdotus kerroksilta L0/L1/L2 hyväksytään vain jos globaali veto ei osu
   const propose = (id: string) => {
     const vibe = VIBES.find((v) => v.id === id)
     if (vibe && !vetoed(vibe)) out.add(id)
+  }
+
+  // L0: yso-ontologiakoodit (tarkin signaali, kielestä riippumaton).
+  // Esim. 'yso:p916' (liikunta) → tyopaja, 'yso:p965' (urheilu) → urheilu.
+  for (const id of e.ysoIds ?? []) {
+    YSO_TO_VIBE.get(id)?.forEach(propose)
   }
 
   // L1: venue-kartta (positiivinen venue-tunnistus + notSub-poikkeukset)

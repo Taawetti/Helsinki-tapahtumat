@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
 import { helsinkiDateOf } from '@/lib/helsinki-time'
-import { classifyEvent } from '@/lib/event-classify'
+import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 
 // External sources fetched via internal API routes (api/<name>).
 // Order defines merge priority: earlier sources win dedup upgrades first.
@@ -42,7 +42,7 @@ interface LinkedEventsEvent {
   images?: LinkedEventsImage[]
   location?: LinkedEventsLocation
   offers?: LinkedEventsOffer[]
-  keywords?: { name: { fi?: string; en?: string } }[]
+  keywords?: { '@id'?: string; name: { fi?: string; en?: string } }[]
   info_url?: { fi?: string; en?: string }
 }
 
@@ -88,6 +88,7 @@ function normalize(raw: LinkedEventsEvent): Event {
     ticketUrl,
     infoUrl,
     categories,
+    ysoIds: extractYsoIds(raw.keywords),
     source: 'linked-events',
   }
 }

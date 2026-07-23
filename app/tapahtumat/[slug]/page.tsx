@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { VIBES, NEIGHBORHOODS, type Vibe, type Neighborhood } from '@/lib/types'
-import { classifyEvent } from '@/lib/event-classify'
+import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 
 export const revalidate = 3600
 
@@ -38,7 +38,7 @@ interface LEEvent {
     address_locality?: { fi?: string; en?: string }
     '@id'?: string
   }
-  keywords?: { name?: { fi?: string; en?: string } }[]
+  keywords?: { '@id'?: string; name?: { fi?: string; en?: string } }[]
   offers?: { is_free: boolean; price?: { fi?: string }; info_url?: { fi?: string; en?: string } }[]
   info_url?: { fi?: string; en?: string }
 }
@@ -52,6 +52,7 @@ interface PageEvent {
   venue: string
   address: string
   categories: string[]
+  ysoIds: string[]
   isFree: boolean
   price: string | null
   ticketUrl: string | null
@@ -66,12 +67,13 @@ function normalizeLE(raw: LEEvent): PageEvent {
   // slice(0,4) TÄSMÄLLEEN kuten /api/events normalize — muuten sama tapahtuma
   // luokittuisi eri tavoin sovelluksessa ja SEO-sivulla (rikkoisi "yksi totuus")
   const categories = (raw.keywords || []).map((k) => k.name?.fi || k.name?.en || '').filter(Boolean).slice(0, 4)
+  const ysoIds = extractYsoIds(raw.keywords)
   const offer = raw.offers?.[0]
   const isFree = offer?.is_free ?? false
   const price = isFree ? null : (offer?.price?.fi || null)
   const ticketUrl = offer?.info_url?.fi || offer?.info_url?.en || raw.info_url?.fi || raw.info_url?.en || null
   const image = raw.images?.[0]?.url || null
-  return { id: raw.id, title, shortDescription, startTime: raw.start_time, endTime: raw.end_time || null, venue, address, categories, isFree, price, ticketUrl, image }
+  return { id: raw.id, title, shortDescription, startTime: raw.start_time, endTime: raw.end_time || null, venue, address, categories, ysoIds, isFree, price, ticketUrl, image }
 }
 
 function dateRange() {
@@ -226,6 +228,7 @@ export default async function TapahtumaSivu({ params }: Props) {
           title: e.title,
           shortDescription: e.shortDescription,
           categories: e.categories,
+          ysoIds: e.ysoIds,
           location: { name: e.venue },
         }).includes(slug)
       )

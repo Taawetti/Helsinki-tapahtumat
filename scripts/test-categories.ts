@@ -7,11 +7,11 @@
 // testinä ENNEN kuin sääntöjä korjataan — näin sama virhe ei voi palata.
 // Testit ovat puhtaita fixtureita: ei verkkoa, ei ympäristöriippuvuuksia.
 
-import { classifyEvent } from '../lib/event-classify'
+import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 
 type Case = {
   name: string
-  e: { title: string; shortDescription?: string; categories?: string[]; location?: { name?: string } | null }
+  e: { title: string; shortDescription?: string; categories?: string[]; ysoIds?: string[]; location?: { name?: string } | null }
   in?: string[]   // kategoriat joihin PITÄÄ kuulua
   out?: string[]  // kategoriat joihin EI SAA kuulua
 }
@@ -336,6 +336,97 @@ const CASES: Case[] = [
     e: { title: 'Public viewing: jalkapallon MM-finaali', shortDescription: 'Katsotaan finaali yhdessä.', categories: [] },
     out: ['baari'],
   },
+
+  // ── L0 yso-ontologiakoodit (2026-07-23) — vakain signaali ─────────────────
+  {
+    name: 'yso: liikunta (p916) → Harrastukset, EI urheilu (kunnallinen jumppa)',
+    e: { title: 'Ohjattua liikuntaa', shortDescription: '', categories: [], ysoIds: ['yso:p916'] },
+    in: ['tyopaja'], out: ['urheilu'],
+  },
+  {
+    name: 'yso: urheilu (p965) → urheilu',
+    e: { title: 'Ottelu', shortDescription: '', categories: [], ysoIds: ['yso:p965'] },
+    in: ['urheilu'],
+  },
+  {
+    name: 'yso: konsertit (p11185) → keikka ilman tekstisignaalia',
+    e: { title: 'Illan ohjelma', shortDescription: '', categories: [], ysoIds: ['yso:p11185'] },
+    in: ['keikka'],
+  },
+  {
+    name: 'yso: näyttelyt (p5121) → taide',
+    e: { title: 'Uusi avaus', shortDescription: '', categories: [], ysoIds: ['yso:p5121'] },
+    in: ['taide'],
+  },
+  {
+    name: 'yso: museot (p4934) → museo',
+    e: { title: 'Avoimet ovet', shortDescription: '', categories: [], ysoIds: ['yso:p4934'] },
+    in: ['museo'],
+  },
+  {
+    name: 'yso: tanssi (p1278) → teatteri',
+    e: { title: 'Esitys', shortDescription: '', categories: [], ysoIds: ['yso:p1278'] },
+    in: ['teatteri'],
+  },
+  {
+    name: 'yso: vauvat (p15937) → lapset',
+    e: { title: 'Aamu', shortDescription: '', categories: [], ysoIds: ['yso:p15937'] },
+    in: ['lapset'],
+  },
+  {
+    name: 'GLOBAALI VETO voittaa yso: konsertit-yso + lapsi-teksti → ei keikka, on lapset',
+    e: { title: 'Vauvakonsertti', shortDescription: 'Konsertti vauvoille ja perheille.', categories: [], ysoIds: ['yso:p11185'] },
+    in: ['lapset'], out: ['keikka'],
+  },
+  {
+    name: 'yso puuttuu (ei-LinkedEvents-lähde) → tekstikerrokset hoitavat',
+    e: { title: 'Joulukonsertti', shortDescription: '', categories: [] },
+    in: ['keikka'],
+  },
+
+  // ── yso-kerroksen katselmoinnin löydökset (2026-07-23) ────────────────────
+  {
+    name: 'PROTOTYYPPISAASTE L0: yso-id constructor/__proto__/toString ei kaada',
+    e: { title: 'Tapahtuma', shortDescription: '', categories: [], ysoIds: ['constructor', '__proto__', 'toString', 'valueOf', 'hasOwnProperty'] },
+    out: [],
+  },
+  {
+    name: 'satutunnit (p14710) → lapset (lisätty recall-aukon takia)',
+    e: { title: 'Satutunti kirjastossa', shortDescription: '', categories: [], ysoIds: ['yso:p14710'] },
+    in: ['lapset'],
+  },
+  {
+    name: 'POISTETTU: opastus (p2149) EI enää tuota tyopaja-tagia näyttelykierrokseen',
+    e: { title: 'Näyttelyopastus', shortDescription: '', categories: [], ysoIds: ['yso:p2149', 'yso:p5121'] },
+    in: ['taide'], out: ['tyopaja'],
+  },
+  {
+    name: 'POISTETTU: historia (p1780) EI enää tee historialuennosta museota',
+    e: { title: 'Luento Helsingin historiasta', shortDescription: '', categories: [], ysoIds: ['yso:p1780', 'yso:p15875'] },
+    in: ['tyopaja'], out: ['museo'],
+  },
+  {
+    name: 'POISTETTU: keskustelu (p14004) liian laaja → ei tyopaja-tagia paneelille',
+    e: { title: 'Kirjailijapaneeli', shortDescription: '', categories: [], ysoIds: ['yso:p14004'] },
+    out: ['tyopaja'],
+  },
+  {
+    name: 'POISTETTU: Espan lava (kulke:48) monikäyttö-venue → ei automaattista keikkaa',
+    e: { title: 'Kesäohjelmaa Espan lavalla', shortDescription: '', categories: [], ysoIds: ['kulke:48'] },
+    out: ['keikka'],
+  },
+  {
+    name: 'pubivisa/tietovisa → baari (ei keikka)',
+    e: { title: 'Tietovisa', shortDescription: 'Viikoittainen pubivisa.', categories: [], ysoIds: [] },
+    in: ['baari'], out: ['keikka'],
+  },
+]
+
+// extractYsoIds — @id-poiminnan yksikkötestit
+const ysoChecks: { name: string; input: ({ '@id'?: string } | null)[]; expect: string[] }[] = [
+  { name: 'poimii yso-koodin @id:stä', input: [{ '@id': 'https://api.hel.fi/linkedevents/v1/keyword/yso:p11185/' }], expect: ['yso:p11185'] },
+  { name: 'poimii kulke-koodin', input: [{ '@id': 'https://api.hel.fi/linkedevents/v1/keyword/kulke:48/' }], expect: ['kulke:48'] },
+  { name: 'sietää tyhjän/null-avainsanan', input: [null, {}, { '@id': '' }], expect: [] },
 ]
 
 let pass = 0
@@ -354,8 +445,14 @@ for (const c of CASES) {
     )
   }
 }
+for (const c of ysoChecks) {
+  const got = extractYsoIds(c.input)
+  if (JSON.stringify(got) === JSON.stringify(c.expect)) pass++
+  else failures.push(`✗ extractYsoIds: ${c.name} → sai [${got.join(',')}], odotus [${c.expect.join(',')}]`)
+}
 
-console.log(`Kategoriatestit: ${pass}/${CASES.length} ok`)
+const total = CASES.length + ysoChecks.length
+console.log(`Kategoriatestit: ${pass}/${total} ok`)
 if (failures.length) {
   console.error('\n' + failures.join('\n\n'))
   process.exit(1)

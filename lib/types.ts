@@ -24,6 +24,10 @@ export interface Event {
   // Kategorialuokitus (vibe-id:t) — lasketaan kerran /api/events-aggregaatissa
   // (lib/event-classify.ts). Puuttuessa klientti laskee getEventVibes-fallbackilla.
   vibes?: string[]
+  // LinkedEventsin vakaat yso-ontologiakoodit (esim. 'yso:p11185' = konsertit).
+  // Kielestä riippumaton, törmäyksetön PÄÄsignaali luokittelulle (L0).
+  // Vain LinkedEvents-pohjaisilla lähteillä; muut → tyhjä → tekstikerrokset.
+  ysoIds?: string[]
 }
 
 // Per-source fetch status from /api/events — powers the freshness badge and admin health panel
@@ -104,7 +108,7 @@ export const VIBES: Vibe[] = [
   // hyphenit hoituvat tokenisoinnissa ('dj-ilta' → 'dj ilta')
   { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'nightclub', 'night club', 'club night', '^klubi', 'dj ilta', 'dj set', 'cocktail', 'after party', 'afterparty', '^bile', '^disko', '^rave'], excludeKeywords: KIDS_EXCLUDE },
   // 'baari' substringinä (kellaribaari); 'pubi' (ei 'pub' → osuisi 'public')
-  { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pubi', 'olut', 'beer', 'drinkki', 'viini', 'wine', 'lounge', 'taproom', 'pintti', 'tuoppi', 'karaoke', 'tasting', 'panimo', 'trivia'], excludeKeywords: KIDS_EXCLUDE },
+  { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pubi', 'olut', 'beer', 'drinkki', 'viini', 'wine', 'lounge', 'taproom', 'pintti', 'tuoppi', 'karaoke', 'tasting', 'panimo', 'trivia', 'tietovisa', 'pubivisa', 'visailu'], excludeKeywords: KIDS_EXCLUDE },
   // '^maraton' (ei elokuvamaraton), '^match' (matcha poissuljettu erikseen);
   // EI 'liikunta' (kunnalliset jumpat)
   { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'salibandy', 'pesäpallo', 'tennis', 'ottelu', 'turnau', '^maraton', 'liiga', 'sports', '^match'], excludeKeywords: [...KIDS_EXCLUDE, 'pelailu', 'matcha'] },
@@ -112,7 +116,9 @@ export const VIBES: Vibe[] = [
   { id: 'standup',   label: 'Stand up',          tKey: 'vibe.standup',  emoji: '😂', keywords: ['stand up', 'standup', 'koomik', '^komedia', '^comedy'], excludeKeywords: [...KIDS_EXCLUDE, 'musiikkinäytelm'] },
   // Klubi-/DJ-illat museoissa eivät ole "museo"; 'kiasma teatteri' -fraasi
   // rajaa Kiasma-teatterin esitykset pois. ('lates' poistettu → osui 'latest'.)
-  { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museum', 'historia', 'perinne', 'kokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'], excludeKeywords: ['klubi', 'yökerho', 'dj ilta', 'dj set', 'kiasma teatteri'] },
+  // 'historia' poistettu — aihe, ei tyyppi (teki historialuennosta/-kierroksesta
+  // museon); museonäyttelyt osuvat 'museo'/'näyttely'/venue-signaaleihin
+  { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museum', 'perinne', 'kokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'], excludeKeywords: ['klubi', 'yökerho', 'dj ilta', 'dj set', 'kiasma teatteri'] },
   { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'satutuokio', 'leikkipuisto', 'loru', 'temppurata', 'leikkiminen', 'eskari', 'päiväkoti'] },
   // "Harrastukset & Kurssit". '^kurssi' ei osu konkurssi/diskurssi; 'opetus'
   // substringinä osuu 'paritanssiopetus'; osallistavat tanssit lisätty tänne
