@@ -12,8 +12,38 @@ const ALERT_TO = process.env.ALERT_EMAIL || 'timo.heinamaki@broven.fi'
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
-  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const headerOk = !!process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`
+  // Testilaukaisin: ?test=<CRON_SECRET> selaimessa (Bearer-headeria ei voi
+  // asettaa selaimesta). Lähettää "kanaria pystyssä" -vahvistuksen → näet heti
+  // toimiiko sähköpostiputki. Kertakäyttöinen omistajan itsetesti.
+  const testParam = req.nextUrl.searchParams.get('test')
+  const isSelfTest = !!process.env.CRON_SECRET && testParam === process.env.CRON_SECRET
+
+  if (!headerOk && !isSelfTest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (isSelfTest) {
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json({ test: true, emailed: false, error: 'RESEND_API_KEY puuttuu' }, { status: 500 })
+    }
+    try {
+      await resend.emails.send({
+        from: FROM,
+        to: ALERT_TO,
+        subject: '✅ Mitä tänään — lähdekanaria pystyssä',
+        text:
+          `Tämä on kertaluontoinen itsetesti: lähdeterveyden kanaria toimii ja ` +
+          `sähköpostiputki osoitteeseen ${ALERT_TO} on kunnossa.\n\n` +
+          `Jatkossa saat viestin VAIN jos tapahtumasyöte romahtaa ` +
+          `(esim. jokin lähde kuolee hiljaa). Ei uutisia = hyvä uutinen.\n\n` +
+          `Kanaria: /api/cron/source-health (päivittäin 09:00 UTC).`,
+      })
+      return NextResponse.json({ test: true, emailed: true, to: ALERT_TO })
+    } catch (err) {
+      console.error('source-health self-test email failed:', err)
+      return NextResponse.json({ test: true, emailed: false, error: String(err) }, { status: 500 })
+    }
   }
 
   const start = new Date().toISOString().slice(0, 10)
