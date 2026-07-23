@@ -25,11 +25,17 @@ async function getHelsinkiAreaId(): Promise<number | null> {
   if (!res.ok) return null
 
   const data = await res.json()
-  const areas: { id: number; name: string }[] = data?.data?.areas ?? []
+  // RA palauttaa id:n MERKKIJONONA ("407"), mutta eventListings-filtterin
+  // areas.eq on GraphQL Int → string kaataisi haun hiljaa
+  // ("Int cannot represent non-integer value"). Muunna numeroksi.
+  const areas: { id: string | number; name: string }[] = data?.data?.areas ?? []
   const match = areas.find((a) => a.name.toLowerCase().includes('helsinki'))
   if (!match) return null
 
-  cachedAreaId = match.id
+  const numId = Number(match.id)
+  if (!Number.isInteger(numId)) return null
+
+  cachedAreaId = numId
   return cachedAreaId
 }
 

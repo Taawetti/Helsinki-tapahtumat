@@ -104,9 +104,12 @@ export const VIBES: Vibe[] = [
   // 'konsert' substringinä → osuu joulu-/kesä-/sinfoniakonsertti; '^live' vain
   // sananalussa (ei oliver/olive). Visat/karaoke ovat baaria.
   { id: 'keikka',    label: 'Keikka',           tKey: 'vibe.keikka',   emoji: '🎸', keywords: ['keikka', 'keikat', 'konsert', '^live', 'bändi', 'musiikki', 'jazz', 'alppipuiston kesä'], excludeKeywords: [...KIDS_EXCLUDE, ...NON_GIG_EXCLUDE, 'tietovisa', 'musavisa', 'pubivisa', 'tietokilpailu', 'levyraati', 'karaoke', 'musiikkinäytelm', 'tanssikurssi', 'osallistuminen'] },
-  // '^klubi' (ei luku-/elokuvaklubi), '^bile' (ei mobile), '^rave' (ei travel);
-  // hyphenit hoituvat tokenisoinnissa ('dj-ilta' → 'dj ilta')
-  { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'nightclub', 'night club', 'club night', '^klubi', 'dj ilta', 'dj set', 'cocktail', 'after party', 'afterparty', '^bile', '^disko', '^rave'], excludeKeywords: KIDS_EXCLUDE },
+  // Bare 'klubi' JÄTETTY POIS: suomen "klubi" on kaksimerkityksinen — rock-
+  // klubi/keikkapaikka ("Tavastia-klubi", "Kult-klubi") vs yökerho. Se poimi
+  // metallikeikat väärin. RA-klubilähteen tapahtumat kantavat aina 'Yöelämä'-
+  // kategorian → 'yöelämä'-avainsana kattaa ne; venuet Kaiku/Ääniwalli/Post Bar
+  // hoituvat L1:ssä. 'klubi-ilta'/'yöklubi' -yhdyssanat silti mukana.
+  { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'yöelämä', 'yöklubi', 'klubi ilta', 'klubi illat', 'nightclub', 'night club', 'club night', 'dj ilta', 'dj set', 'cocktail', 'after party', 'afterparty', '^bile', '^disko', '^rave'], excludeKeywords: KIDS_EXCLUDE },
   // 'baari' substringinä (kellaribaari); 'pubi' (ei 'pub' → osuisi 'public')
   { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pubi', 'olut', 'beer', 'drinkki', 'viini', 'wine', 'lounge', 'taproom', 'pintti', 'tuoppi', 'karaoke', 'tasting', 'panimo', 'trivia', 'tietovisa', 'pubivisa', 'visailu'], excludeKeywords: KIDS_EXCLUDE },
   // '^maraton' (ei elokuvamaraton), '^match' (matcha poissuljettu erikseen);

@@ -420,6 +420,16 @@ const CASES: Case[] = [
     e: { title: 'Tietovisa', shortDescription: 'Viikoittainen pubivisa.', categories: [], ysoIds: [] },
     in: ['baari'], out: ['keikka'],
   },
+  {
+    name: 'RA-klubitapahtuma (kategoriat Techno/Klubi/Yöelämä) → yoelama',
+    e: { title: 'Kaiku presents: Blawan (DJ Set)', shortDescription: 'Kaiku — techno', categories: ['Techno', 'Klubi', 'Yöelämä'], ysoIds: [] },
+    in: ['yoelama'],
+  },
+  {
+    name: 'metallikeikka rock-klubilla ("Tavastia-klubi") EI ole yöelämää (bare klubi pois)',
+    e: { title: 'Arch Enemy', shortDescription: 'Tavastia-klubi — melodic death metal', categories: [], ysoIds: [] },
+    out: ['yoelama'],
+  },
 ]
 
 // extractYsoIds — @id-poiminnan yksikkötestit
