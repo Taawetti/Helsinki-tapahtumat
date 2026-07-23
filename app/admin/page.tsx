@@ -127,12 +127,41 @@ export default function AdminPage() {
   const imageTestDoneRef = useRef(false)
   const [enrichingActivityImages, setEnrichingActivityImages] = useState(false)
   const [enrichActivityImagesResult, setEnrichActivityImagesResult] = useState('')
+
+  const [testingAlert, setTestingAlert] = useState(false)
+  const [testAlertResult, setTestAlertResult] = useState('')
   const enrichActivityImagesStopRef = useRef(false)
   const activityImageTestDoneRef = useRef(false)
 
   async function handleLogout() {
     await fetch('/api/admin/auth', { method: 'DELETE' })
     router.push('/admin/login')
+  }
+
+  // Testaa lähdeterveyden kanaria: ajaa sen kerran + lähettää testiviestin,
+  // jotta näkee toimiiko havainto JA sähköpostiputki.
+  async function handleTestAlert() {
+    if (testingAlert) return
+    setTestingAlert(true)
+    setTestAlertResult('Ajetaan kanaria + lähetetään testiviesti…')
+    try {
+      const res = await fetch('/api/admin/test-alert', { method: 'POST' })
+      const data = await res.json()
+      if (data.error) {
+        setTestAlertResult('Virhe: ' + data.error)
+      } else if (data.emailed) {
+        const status = data.issues?.length
+          ? `⚠️ ${data.issues.length} poikkeamaa`
+          : `ei poikkeamia (${data.total} tapahtumaa)`
+        setTestAlertResult(`✓ Testiviesti lähetetty → ${data.to} · ${status}`)
+      } else {
+        setTestAlertResult('✋ Kanaria toimii, mutta viesti ei lähtenyt: ' + (data.emailError || data.note || 'tarkista RESEND-asetukset'))
+      }
+    } catch (e) {
+      setTestAlertResult('Virhe: ' + (e instanceof Error ? e.message : 'verkkovirhe'))
+    } finally {
+      setTestingAlert(false)
+    }
   }
 
   // Unified enrichment: one DataForSEO call per restaurant fills rating +
@@ -287,6 +316,7 @@ export default function AdminPage() {
           {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
           {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
           {enrichActivityImagesResult && <span className={`text-xs ${enrichActivityImagesResult.startsWith('✓') ? 'text-green-400' : enrichActivityImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivityImagesResult}</span>}
+          {testAlertResult && <span className={`text-xs ${testAlertResult.startsWith('✓') ? 'text-green-400' : testAlertResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{testAlertResult}</span>}
           {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
           <button
             onClick={handleEnrichRestaurants}
@@ -312,6 +342,13 @@ export default function AdminPage() {
             className="text-gray-400 hover:text-white text-sm transition-colors disabled:opacity-40"
           >
             {refreshing ? 'Haetaan...' : '★ Päivitä arvosanat'}
+          </button>
+          <button
+            onClick={handleTestAlert}
+            disabled={testingAlert}
+            className="text-sky-400 hover:text-sky-300 text-sm transition-colors disabled:opacity-40"
+          >
+            {testingAlert ? 'Testataan…' : '🔔 Testaa hälytys'}
           </button>
           <button
             onClick={handleLogout}
