@@ -340,8 +340,16 @@ export async function GET(req: NextRequest) {
     // Kategorialuokitus KERRAN täällä (venue-kartta + lähdekategoriat +
     // avainsanasäännöt + globaalit vetot) — klientti ja SEO lukevat valmiin
     // tuloksen sen sijaan että jokainen laskisi omansa.
+    // ISOLOITU per-tapahtuma: yksittäisen tapahtuman luokitteluvirhe EI SAA
+    // kaataa koko syötettä (aiemmin poikkeus → 500 → sovellus tyhjä). Rikkinäinen
+    // tapahtuma jää luokittelematta (näkyy Kaikki-syötteessä), muut säilyvät.
     for (const e of events) {
-      e.vibes = classifyEvent(e)
+      try {
+        e.vibes = classifyEvent(e)
+      } catch (err) {
+        e.vibes = []
+        console.error('classifyEvent failed for event', e.id, err)
+      }
     }
 
     return NextResponse.json({ events, hasMore, total, generatedAt: new Date().toISOString(), sources })

@@ -229,7 +229,13 @@ export function classifyEvent(e: ClassifiableEvent): string[] {
 }
 
 /** Klientin apuri: API:n laskema event.vibes jos on; muuten laske itse
- *  (SSR-seedit ja vanhat välimuistivastaukset ilman vibes-kenttää). */
+ *  (SSR-seedit ja vanhat välimuistivastaukset ilman vibes-kenttää).
+ *  Isoloitu: luokitteluvirhe EI saa kaataa listan renderöintiä → []. */
 export function getEventVibes(e: Event): string[] {
-  return e.vibes ?? classifyEvent(e)
+  if (e.vibes) return e.vibes
+  try {
+    return classifyEvent(e)
+  } catch {
+    return []
+  }
 }

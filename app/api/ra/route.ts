@@ -25,9 +25,11 @@ async function getHelsinkiAreaId(): Promise<number | null> {
   if (!res.ok) return null
 
   const data = await res.json()
+  // Älä niele GraphQL-virheitä hiljaa — hiljainen nieleminen esti tämän lähteen
+  // kuoleman havaitsemisen (string-id → Int-virhe → tyhjä). Loki tekee näkyväksi.
+  if (data?.errors) console.error('RA areas GraphQL error:', JSON.stringify(data.errors))
   // RA palauttaa id:n MERKKIJONONA ("407"), mutta eventListings-filtterin
-  // areas.eq on GraphQL Int → string kaataisi haun hiljaa
-  // ("Int cannot represent non-integer value"). Muunna numeroksi.
+  // areas.eq on GraphQL Int → string kaataisi haun hiljaa. Muunna numeroksi.
   const areas: { id: string | number; name: string }[] = data?.data?.areas ?? []
   const match = areas.find((a) => a.name.toLowerCase().includes('helsinki'))
   if (!match) return null
@@ -161,6 +163,7 @@ export async function GET(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ events: [] })
 
     const data = await res.json()
+    if (data?.errors) console.error('RA eventListings GraphQL error:', JSON.stringify(data.errors))
     const listings: { event: RAEventPayload }[] = data?.data?.eventListings?.data ?? []
     const events: Event[] = listings.map((l) => normalize(l.event))
 
