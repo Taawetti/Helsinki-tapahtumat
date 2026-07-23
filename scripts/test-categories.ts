@@ -284,6 +284,58 @@ const CASES: Case[] = [
     e: { title: 'Nykytanssiesitys', shortDescription: 'Esitys Kiasma-teatterissa.', categories: [], location: { name: 'Kiasma-teatteri' } },
     in: ['teatteri'], out: ['museo'],
   },
+
+  // ── Neljännen katselmoinnin löydökset: tokenisoiva matcher (2026-07-23) ───
+  {
+    name: "välimerkki: \"SANNI Live!\" on keikka (huutomerkki normalisoidaan)",
+    e: { title: 'SANNI Live!', shortDescription: '', categories: [] },
+    in: ['keikka'],
+  },
+  {
+    name: 'välimerkki: "Radiohead (Live)" on keikka (sulkeet normalisoidaan)',
+    e: { title: 'Radiohead (Live)', shortDescription: '', categories: [] },
+    in: ['keikka'],
+  },
+  {
+    name: "taivutus: 'livenä'/'liveä' osuu keikkaan (sananalkuosuma)",
+    e: { title: 'Artisti esiintyy livenä', shortDescription: 'Musiikkia liveä.', categories: [] },
+    in: ['keikka'],
+  },
+  {
+    name: "taivutus: 'ravet'/'raveihin' osuu (sananalkuosuma)",
+    e: { title: 'Kesän ravet Suvilahdessa', shortDescription: '', categories: [] },
+    in: ['underground'],
+  },
+  {
+    name: "'lates' EI enää pudota museonäyttelyä jossa mainitaan 'latest'",
+    e: { title: 'Generation 2026', shortDescription: 'Showcasing the latest contemporary art.', categories: ['näyttelyt'], location: { name: 'Amos Rex' } },
+    in: ['museo', 'taide'],
+  },
+  {
+    name: "'lates' EI osu sanaan Pilates — aamupilates museossa ei pudota mitään väärin",
+    e: { title: 'Aamupilates', shortDescription: 'Rauhallinen pilatestunti.', categories: [], location: { name: 'Kansallismuseo' } },
+    in: ['museo'],
+  },
+  {
+    name: "'fest' EI osu sanaan manifesti — Manifesta-biennaali/manifesti-festivaali ei katoa",
+    e: { title: 'Manifesta-biennaali', shortDescription: 'Taidefestivaali ja manifesti nykytaiteesta.', categories: ['festivaalit'] },
+    in: ['festivaali'],
+  },
+  {
+    name: "'maraton' EI tee elokuvamaratonista urheilua (sananalkuosuma)",
+    e: { title: 'Kauhuelokuvamaraton', shortDescription: 'Yön yli kestävä elokuvamaraton.', categories: [] },
+    out: ['urheilu'],
+  },
+  {
+    name: "'komedia' EI tee tragikomediasta standuppia (sananalkuosuma)",
+    e: { title: 'Kirsikkatarha', shortDescription: 'Tšehovin tragikomedia näyttämöllä.', categories: ['teatteri'] },
+    in: ['teatteri'], out: ['standup'],
+  },
+  {
+    name: "'pubi' osuu, 'pub' EI enää tee sanasta 'public' baaria",
+    e: { title: 'Public viewing: jalkapallon MM-finaali', shortDescription: 'Katsotaan finaali yhdessä.', categories: [] },
+    out: ['baari'],
+  },
 ]
 
 let pass = 0

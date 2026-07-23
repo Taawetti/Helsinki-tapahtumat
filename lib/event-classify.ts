@@ -93,19 +93,39 @@ type ClassifiableEvent = Pick<Event, 'title'> &
 /** Luokittele tapahtuma kategorioihin. Palauttaa vibe-id:t (voi olla tyhjä —
  *  epävarma jää mieluummin ilman kategoriaa kuin väärään). Puhdas funktio,
  *  toimii sekä palvelimella että selaimessa. */
+// Tokenisointi: pienaakkoset, välimerkit → välilyönti (kuten dedupKey
+// route.ts:ssä), tokeneiksi. Näin "Live!"/"(Live)"/"live-ilta" → token "live".
+function tokenize(text: string): string[] {
+  const norm = text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+  return norm ? norm.split(' ') : []
+}
+
+// Avainsanaosuma — kolme moodia:
+//   '^live'  SANANALKUOSUMA (token alkaa avainsanalla) — törmäysalttiille
+//            lyhyille/englannin sanoille: '^live' osuu live/livenä/livemusiikki
+//            mutta EI oliver/olive; '^fest' ei manifesti; '^punk' ei kaupunki;
+//            '^kurssi' ei konkurssi; '^maraton' ei elokuvamaraton.
+//   'stand up' MONISANAINEN = normalisoidun tekstin substring.
+//   'konsert' YKSISANAINEN ilman ^ = substring → osuu myös suomen yhdyssanan
+//            LOPPUUN (joulu·konsertti, sinfonia·konsertti, nykytanssi). Näitä
+//            morfeemeja EI voi token-prefixata ilman että recall romahtaa.
+// Failure-moodi (aliosuma → Kaikki-syöte) on hyväksytympi kuin väärä kategoria.
+function matchesKeyword(keyword: string, tokens: string[], joined: string): boolean {
+  const k = keyword.toLowerCase().trim()
+  if (!k) return false
+  if (k.startsWith('^')) { const kk = k.slice(1); return tokens.some((t) => t.startsWith(kk)) }
+  return joined.includes(k)
+}
+
 export function classifyEvent(e: ClassifiableEvent): string[] {
   // Veto ja positiivinen matchaus katsovat SAMAA tekstiä: otsikko + kuvaus +
-  // kategoriat. Venue-nimeä EI koskaan lisätä tähän — se on erisnimi ja
-  // osamerkkijonoveto siihen pudottaa oikeita tapahtumia (esim. "yhteisötalo"
-  // osuu musiikkipaikkaan "Stadin yhteisötalo Saunabaari", "avoimet ovet"
-  // teatteriin "Teatteri Avoimet Ovet"). Venue-logiikka elää VAIN L1:ssä.
-  // Pehmustetaan molemmin puolin välilyönnillä, jotta kokonaissana-avainsanat
-  // muotoa ' live ' / ' rave ' osuvat myös otsikon alussa/lopussa mutta EIVÄT
-  // sanan sisällä (oliver/olive/gravel/travel) — kokonaissanamuoto on ainoa
-  // turvallinen tapa lyhyille englanninkielisille sanoille.
-  const hay = ` ${[e.title, e.shortDescription ?? '', ...(e.categories ?? [])].join(' ').toLowerCase()} `
+  // kategoriat. Venue-nimeä EI lisätä tähän (erisnimi → osamerkkijonoveto
+  // pudottaisi oikeita: "Stadin yhteisötalo Saunabaari"). Venue vain L1:ssä.
+  const text = [e.title, e.shortDescription ?? '', ...(e.categories ?? [])].join(' ')
+  const tokens = tokenize(text)
+  const joined = ` ${tokens.join(' ')} `
   const venue = (e.location?.name ?? '').toLowerCase().trim()
-  const vetoed = (vibe: Vibe) => !!vibe.excludeKeywords?.some((k) => hay.includes(k.toLowerCase()))
+  const vetoed = (vibe: Vibe) => !!vibe.excludeKeywords?.some((k) => matchesKeyword(k, tokens, joined))
 
   const out = new Set<string>()
 
@@ -130,9 +150,9 @@ export function classifyEvent(e: ClassifiableEvent): string[] {
     SOURCE_CAT_VIBES.get(cat.toLowerCase().trim())?.forEach(propose)
   }
 
-  // L3: avainsanasäännöt — keyword-osuma hay:ssä JA ei veto
+  // L3: avainsanasäännöt — sananalkuosuma JA ei veto
   for (const vibe of VIBES) {
-    if (vibe.keywords.some((k) => hay.includes(k.toLowerCase())) && !vetoed(vibe)) out.add(vibe.id)
+    if (vibe.keywords.some((k) => matchesKeyword(k, tokens, joined)) && !vetoed(vibe)) out.add(vibe.id)
   }
 
   return [...out]
