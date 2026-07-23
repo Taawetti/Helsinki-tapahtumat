@@ -8,6 +8,7 @@
 // Testit ovat puhtaita fixtureita: ei verkkoa, ei ympäristöriippuvuuksia.
 
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
+import { detectSourceAnomalies, type CanaryPayload } from '../lib/source-health'
 
 type Case = {
   name: string
@@ -461,8 +462,26 @@ for (const c of ysoChecks) {
   else failures.push(`✗ extractYsoIds: ${c.name} → sai [${got.join(',')}], odotus [${c.expect.join(',')}]`)
 }
 
-const total = CASES.length + ysoChecks.length
-console.log(`Kategoriatestit: ${pass}/${total} ok`)
+// Lähdeterveyden kanaria — anomalian havaitsemislogiikka (RA-tyylinen hiljainen
+// romahdus EI saa jäädä huomaamatta, mutta laillisesti tyhjät lähteet EIVÄT
+// saa hälyttää)
+const healthChecks: { name: string; payload: CanaryPayload | null; expectIssue: boolean }[] = [
+  { name: 'terve syöte → ei hälytystä', expectIssue: false, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 13 }, { name: 'pubivisat', ok: true, count: 94 }, { name: 'eventbrite', ok: true, count: 0 }] } },
+  { name: 'RA-tyylinen hiljainen kuolema (ra=0, muuten OK) → hälytys', expectIssue: true, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 0 }, { name: 'pubivisat', ok: true, count: 94 }] } },
+  { name: 'koko aggregaatti romahtaa → hälytys', expectIssue: true, payload: { total: 12, sources: [{ name: 'linked-events', ok: true, count: 5 }] } },
+  { name: 'runkolähde romahtaa → hälytys', expectIssue: true, payload: { total: 200, sources: [{ name: 'linked-events', ok: true, count: 10 }, { name: 'ra', ok: true, count: 13 }, { name: 'pubivisat', ok: true, count: 94 }] } },
+  { name: 'pubivisat-skraperi rikki (0) → hälytys', expectIssue: true, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 13 }, { name: 'pubivisat', ok: true, count: 0 }] } },
+  { name: 'koko haku alhaalla (null) → hälytys', expectIssue: true, payload: null },
+  { name: 'laillisesti tyhjät pikkulähteet EIVÄT hälytä', expectIssue: false, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 13 }, { name: 'pubivisat', ok: true, count: 94 }, { name: 'lepakkomies', ok: true, count: 0 }, { name: 'glivelab', ok: true, count: 0 }, { name: 'savoy', ok: true, count: 0 }] } },
+]
+for (const c of healthChecks) {
+  const issues = detectSourceAnomalies(c.payload)
+  if ((issues.length > 0) === c.expectIssue) pass++
+  else failures.push(`✗ kanaria: ${c.name} → sai [${issues.join(' | ') || '(ei poikkeamia)'}], odotus ${c.expectIssue ? 'HÄLYTYS' : 'ei hälytystä'}`)
+}
+
+const total = CASES.length + ysoChecks.length + healthChecks.length
+console.log(`Kategoria- + kanariatestit: ${pass}/${total} ok`)
 if (failures.length) {
   console.error('\n' + failures.join('\n\n'))
   process.exit(1)
