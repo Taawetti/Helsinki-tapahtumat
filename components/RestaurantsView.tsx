@@ -192,7 +192,7 @@ function NewsSection({ items }: { items: NewsItem[] }) {
   if (!items.length) return null
   return (
     <div className="space-y-3">
-      {/* Header — same style as RestRow */}
+      {/* Header — same style as the section headings */}
       <div className="flex items-baseline gap-2">
         <h2 className="font-black text-white text-[17px] leading-none" style={{ letterSpacing: '-0.02em' }}>
           📰 Tuoreita artikkeleita valinnan tueksi
@@ -231,29 +231,6 @@ function NewsSection({ items }: { items: NewsItem[] }) {
       </div>
     </div>
   )
-}
-
-function isLunchTime(): boolean {
-  const h = helsinkiNow().getHours()
-  return h >= 10 && h < 15
-}
-
-function isDinnerTime(): boolean {
-  const h = helsinkiNow().getHours()
-  return h >= 17 && h <= 22
-}
-
-function isLateNight(hours: string): boolean {
-  if (!hours) return false
-  if (hours === '24/7') return true
-  for (const part of hours.split(';')) {
-    const m = part.trim().match(/^[\w,\-]+\s+\d{1,2}:\d{2}-(\d{1,2}):\d{2}$/)
-    if (m) {
-      const h = parseInt(m[1])
-      if (h < 6) return true
-    }
-  }
-  return false
 }
 
 function formatOpeningHoursHuman(raw: string): string {
@@ -412,141 +389,23 @@ function HeroCard({ r, distance, onShowOnMap }: {
   )
 }
 
-// ── Carousel row card ────────────────────────────────────
-
-function RestRowCard({ r, distance, onClick }: {
-  r: Restaurant
-  distance?: number
-  onClick: (r: Restaurant) => void
-}) {
-  const { t } = useLanguage()
-  const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
-  const cuisineStyle = getCuisineStyle(r)
-  return (
-    <button onClick={() => onClick(r)}
-      className="group shrink-0 w-44 text-left rounded-[18px] overflow-hidden"
-      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
-        {r.image ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 60%)' }} />
-          </>
-        ) : (
-          <>
-            {/* B2: dark bg + cuisine-colored radial glow + Twemoji illustrated emoji */}
-            <div className="absolute inset-0" style={{ background: '#141418' }} />
-            <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 55%, ${cuisineStyle.color}30 0%, transparent 68%)` }} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={50} height={50} style={{ objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.5))' }} />
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.6 }} />
-          </>
-        )}
-        {open !== undefined && (
-          <div className="absolute top-2 right-2">
-            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-black/50 text-white/50'}`}>
-              {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
-            </span>
-          </div>
-        )}
-        {(r.michelinStars || r.bibGourmand || r.michelinRecommended) && (
-          <div className="absolute top-2 left-2">
-            {r.michelinStars ? (
-              <span className="text-[11px] font-black px-2 py-1 rounded-full text-white leading-none" style={{ background: 'rgba(185,28,28,.95)', boxShadow: '0 2px 8px rgba(0,0,0,.5)' }}>
-                {'⭐'.repeat(r.michelinStars)} Michelin
-              </span>
-            ) : r.bibGourmand ? (
-              <span className="text-[11px] font-black px-2 py-1 rounded-full text-white leading-none" style={{ background: 'rgba(194,65,12,.95)', boxShadow: '0 2px 8px rgba(0,0,0,.5)' }}>
-                😊 Bib Gourmand
-              </span>
-            ) : (
-              <span className="text-[11px] font-black px-2 py-1 rounded-full text-white leading-none" style={{ background: 'rgba(30,30,30,.92)', boxShadow: '0 2px 8px rgba(0,0,0,.5)' }}>
-                🍽 Michelin
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-      <div className="p-3">
-        <p className="text-white font-black text-[13px] leading-tight line-clamp-1" style={{ letterSpacing: '-0.01em' }}>{r.name}</p>
-        <p className="text-white/40 text-[11px] mt-0.5 truncate">{r.description || r.address}</p>
-        <div className="flex items-center gap-2 mt-1">
-          {r.googleRating && (
-            <span className="text-[11px] font-black" style={{ color: '#fbbf24' }}>
-              ⭐ {r.googleRating.toFixed(1)}
-              {r.reviewCount ? <span className="font-normal opacity-60"> ({r.reviewCount > 999 ? `${(r.reviewCount/1000).toFixed(1)}t` : r.reviewCount})</span> : null}
-            </span>
-          )}
-          {distance !== undefined && (
-            <span className="text-[11px] font-bold" style={{ color: '#a3abff' }}>{fmtDist(distance)}</span>
-          )}
-        </div>
-      </div>
-    </button>
-  )
-}
-
-// ── Chain carousel card ──────────────────────────────────
-
-function ChainRowCard({ chain, distMap, onClick }: {
-  chain: ChainGroup
-  distMap: Map<string, number>
-  onClick: (chain: ChainGroup) => void
-}) {
-  const r = chain.representative
-  const cuisineStyle = getCuisineStyle(r)
-  return (
-    <button onClick={() => onClick(chain)}
-      className="group shrink-0 w-44 text-left rounded-[18px] overflow-hidden"
-      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
-        {r.image ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 60%)' }} />
-          </>
-        ) : (
-          <>
-            <div className="absolute inset-0" style={{ background: '#141418' }} />
-            <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 55%, ${cuisineStyle.color}30 0%, transparent 68%)` }} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={twemojiUrl(cuisineStyle.cp)} alt="" width={50} height={50} style={{ objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,.5))' }} />
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: cuisineStyle.color, opacity: 0.6 }} />
-          </>
-        )}
-        <div className="absolute top-2 right-2">
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white"
-            style={{ background: 'rgba(107,118,255,.88)', boxShadow: '0 2px 6px rgba(0,0,0,.4)' }}>
-            📍 {chain.locations.length}
-          </span>
-        </div>
-      </div>
-      <div className="p-3">
-        <p className="text-white font-black text-[13px] leading-tight line-clamp-1" style={{ letterSpacing: '-0.01em' }}>{r.name}</p>
-        <p className="text-[11px] mt-0.5 font-bold" style={{ color: '#a3abff' }}>{chain.locations.length} sijaintia</p>
-      </div>
-    </button>
-  )
-}
-
 // ── List card ─────────────────────────────────────────────
 
-function RestListCard({ r, distance, onShowOnMap }: {
+function RestListCard({ r, distance, onShowOnMap, onOpen }: {
   r: Restaurant
   distance?: number
   onShowOnMap?: (lat: number, lon: number, name: string) => void
+  onOpen?: (r: Restaurant) => void
 }) {
   const { t } = useLanguage()
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
   const cuisineStyle = getCuisineStyle(r)
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
+    <div className={`rounded-2xl overflow-hidden ${onOpen ? 'cursor-pointer transition-transform active:scale-[.99]' : ''}`}
+      role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen ? () => onOpen(r) : undefined}
+      onKeyDown={onOpen ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(r) } }) : undefined}
+      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
       {/* Mini-header: real photo if available, else B2 emoji */}
       <div className="relative flex items-center justify-center overflow-hidden" style={{ aspectRatio: '16/10', background: '#141418' }}>
         {r.image ? (
@@ -622,7 +481,7 @@ function RestListCard({ r, distance, onShowOnMap }: {
             </div>
           )
         })()}
-        <div className="flex items-center gap-3 pt-0.5 flex-wrap">
+        <div className="flex items-center gap-3 pt-0.5 flex-wrap" onClick={e => e.stopPropagation()}>
           {r.www && (
             <a href={/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold hover:opacity-80 transition-opacity"
@@ -798,60 +657,6 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
   )
 }
 
-// ── Carousel row — expand in place ────────────────────────
-
-function RestRow({ title, items, distMap, onCardClick, onChainClick, onShowOnMap }: {
-  title: string
-  items: Restaurant[]
-  distMap: Map<string, number>
-  onCardClick: (r: Restaurant) => void
-  onChainClick: (chain: ChainGroup) => void
-  onShowOnMap?: (lat: number, lon: number, name: string) => void
-}) {
-  const { t } = useLanguage()
-  const [expanded, setExpanded] = useState(false)
-  const grouped = useMemo(() => groupByChain(items, distMap), [items, distMap])
-  if (grouped.length === 0) return null
-  const hasMore = grouped.length > 10
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-black text-white text-[17px] flex items-baseline gap-1.5" style={{ letterSpacing: '-0.02em' }}>
-          {title}
-          <span className="text-white/25 font-bold text-[13px]">· {items.length}</span>
-        </h2>
-        {hasMore && !expanded && (
-          <button onClick={() => setExpanded(true)} className="text-[12px] font-black shrink-0 transition-colors" style={{ color: '#a3abff' }}>
-            {t('discover.see_all')} {grouped.length} →
-          </button>
-        )}
-        {expanded && (
-          <button onClick={() => setExpanded(false)} className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
-            {t('discover.see_fewer')}
-          </button>
-        )}
-      </div>
-      {!expanded ? (
-        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-          {grouped.slice(0, 10).map(item =>
-            '_isChain' in item
-              ? <ChainRowCard key={item.key} chain={item} distMap={distMap} onClick={onChainClick} />
-              : <RestRowCard key={item.id} r={item} distance={distMap.get(item.id)} onClick={onCardClick} />
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {grouped.map(item =>
-            '_isChain' in item
-              ? <ChainListCard key={item.key} chain={item} onClick={onChainClick} />
-              : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} />
-          )}
-        </div>
-      )}
-    </section>
-  )
-}
-
 // ── "Selaa kategorioittain" — 3-sarakkeinen fiilisruudukko (design 3-ravintolat.png) ──
 
 // tint-hehkut per kategoria — sävyt vaihtelevat tarkoituksella
@@ -953,6 +758,12 @@ function RestSubTabs({ restType, active, onSelect }: {
 // tasapelin erikseen). Vain lajitteluun — ei piilota mitään.
 const RATING_PRIOR_M = 50   // "näennäisarvostelujen" paino
 const RATING_PRIOR_C = 4.2  // globaali keskiarvo, johon harvat vedetään
+// Kärkipoimintojen määrä oletusnäkymässä — loput löytyvät kategoria-selauksesta
+const TOP_PICKS = 60
+// Kuvan paino laatupisteessä — nostaa kuvalliset läheltä-tasapelissä, mutta ei
+// ohita selvää arvosanaeroa (Bayes-pisteiden hajonta kärjessä on kapea ~4.2–4.9).
+const IMG_WEIGHT = 0.25
+
 function restaurantQualityScore(r: Restaurant): number {
   const award = r.michelinStars ? 0.6 : (r.bibGourmand || r.michelinRecommended) ? 0.35 : 0
   if (r.googleRating !== undefined && r.googleRating !== null) {
@@ -1278,12 +1089,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       // Käyttäjä pyysi eksplisiittisesti lähimpiä → etäisyys voittaa
       filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     } else {
-      // Oletus: paras laatu ensin (painotettu), kuvalliset tasapelin kärkeen
+      // Oletus: laatu + kuva painottaen — kuvalliset vahvemmin kärkeen, mutta
+      // arvosana pysyy pääasiallisena signaalina; tasapelissä arvostelumäärä
       filtered.sort((a, b) => {
-        const d = restaurantQualityScore(b) - restaurantQualityScore(a)
-        if (d !== 0) return d
-        const ia = a.image ? 1 : 0, ib = b.image ? 1 : 0
-        if (ia !== ib) return ib - ia
+        const sa = restaurantQualityScore(a) + (a.image ? IMG_WEIGHT : 0)
+        const sb = restaurantQualityScore(b) + (b.image ? IMG_WEIGHT : 0)
+        if (sb !== sa) return sb - sa
         return (b.reviewCount ?? 0) - (a.reviewCount ?? 0)
       })
     }
@@ -1298,44 +1109,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       ?? typePool[0]
       ?? null
   }, [typePool])
-
-  const rows = useMemo(() => {
-    const base = typePool
-    if (restType === 'ruokapaikat') {
-      const lunchRow = isLunchTime()
-        ? { title: '🍱 Lounas auki juuri nyt', items: base.filter(r => r.openingHours && isOpenNow(r.openingHours) === true && /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase())) }
-        : isDinnerTime()
-          ? { title: '🌙 Illallispaikat — auki nyt', items: base.filter(r => r.openingHours && isOpenNow(r.openingHours) === true) }
-          // Vain lounas-avainsanat — priceRange ≤ 2 kattoi ennen vain kebab/
-          // pizza-heuristiikan, mutta Google-hintadatan myötä se osuisi
-          // ~1300 paikkaan ja rivi laimenisi "kaikki ravintolat" -listaksi
-          : { title: '☀️ Lounaalle mars', items: base.filter(r => /lounas|lunch|buffet/.test(`${r.name} ${r.description}`.toLowerCase())) }
-      return [
-        lunchRow,
-        { title: '⭐ Michelin & palkitut',        items: base.filter(r => !!(r.michelinStars || r.bibGourmand || r.greenMichelin || r.michelinRecommended)) },
-        { title: '🌙 Auki vielä myöhään illalla', items: base.filter(r => r.openingHours ? isLateNight(r.openingHours) : false) },
-      ]
-    }
-    if (restType === 'kahvilat') return [
-      { title: '🎩 Kaupungin legendat',          items: base.filter(r => matchesSubCat(r, 'kahvilat', 'klassikot')) },
-      { title: '☕ Kahviammattilaisten paahtimot', items: base.filter(r => matchesSubCat(r, 'kahvilat', 'paahtimo') || matchesSubCat(r, 'kahvilat', 'erikois')) },
-      { title: '🥐 Aamupala & brunssi',          items: base.filter(r => matchesSubCat(r, 'kahvilat', 'brunssi')) },
-      { title: '🥖 Pariisitunnelmaa',            items: base.filter(r => matchesSubCat(r, 'kahvilat', 'ranskalaiset')) },
-    ]
-    if (restType === 'baarit') return [
-      { title: '🍸 Illan paras drinkki ✦',       items: base.filter(r => matchesSubCat(r, 'baarit', 'cocktail')) },
-      { title: '🍺 Craft & hops',                items: base.filter(r => matchesSubCat(r, 'baarit', 'olut')) },
-      { title: '🍷 Viinituntuinen ilta',          items: base.filter(r => matchesSubCat(r, 'baarit', 'viini')) },
-      { title: '📺 Pelit & ottelu katsomossa',    items: base.filter(r => matchesSubCat(r, 'baarit', 'urheilu')) },
-    ]
-    if (restType === 'yokerhot') return [
-      { title: '🎉 Clubit',               items: base.filter(r => matchesSubCat(r, 'yokerhot', 'klubi')) },
-      { title: '🎤 Karaokebaaret',        items: base.filter(r => matchesSubCat(r, 'yokerhot', 'karaoke')) },
-      { title: '🎧 Tekno & underground',  items: base.filter(r => matchesSubCat(r, 'yokerhot', 'tekno')) },
-      { title: '🌃 Rooftops ✦',          items: base.filter(r => matchesSubCat(r, 'yokerhot', 'katto')) },
-    ]
-    return []
-  }, [typePool, restType])
 
   // ── 🎯 Auta valitsemaan: suodatettu arvontapooli ────────────────────────
   const rcPool = useMemo(() => {
@@ -1446,17 +1219,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       {/* Type tabs — always visible */}
       <TypeTabs active={restType} onChange={setRestType} />
 
-      {/* Loading skeletons */}
+      {/* Loading skeleton — sama muoto kuin ladattu näkymä: hero + ruudukko */}
       {loading && (
-        <div className="space-y-3">
-          <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-44 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
-            ))}
-          </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-44 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
+        <div className="space-y-4">
+          <div className="rounded-[22px] skeleton-shimmer" style={{ aspectRatio: '16/10' }} />
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -1468,9 +1237,16 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
       {!loading && (
         <>
-          {/* ═══ ETUSIVU (restSub 'kaikki'): Auta valitsemaan → ruudukko → hero → rivit ═══ */}
+          {/* ═══ ETUSIVU (restSub 'kaikki') — etusivun tyyli: hero → kategoriat →
+               Auta valitsemaan → yksi ruudukko (ei karuselleja) ═══ */}
           {subCat === 'all' && (
             <>
+              {heroRest && (
+                <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
+              )}
+
+              <SubCatGrid restType={restType} onSelect={setSubCat} />
+
               <DecidePanel
                 pool={rcPool}
                 pick={rcPick}
@@ -1497,60 +1273,43 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 onOpen={setSelectedRest}
               />
 
-              <SubCatGrid restType={restType} onSelect={setSubCat} />
-
-              {heroRest && (
-                <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
-              )}
+              {/* Tuoreita artikkeleita valinnan tueksi — tärkeä lokaaleille,
+                  pidetään näkyvillä heti valinta-avun jälkeen (ei karuselleja alla) */}
+              <NewsSection items={news} />
 
               <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
-              {/* Pika-suodattimet (auki/lähellä) päällä → grid-lista rivien sijaan */}
-              {(filterOpen || filterNearby) ? (
-                groupedSortedPool.length > 0 ? (
-                  <>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                      {groupedSortedPool.slice(0, visibleCount).map(item =>
-                        '_isChain' in item
-                          ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
-                          : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} />
-                      )}
-                    </div>
-                    {visibleCount < groupedSortedPool.length && (
-                      <button
-                        onClick={() => setVisibleCount(v => v + 24)}
-                        className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
-                        style={{ background: 'rgba(255,255,255,.05)' }}>
-                        {t('restaurants.load_more')} ({groupedSortedPool.length - visibleCount} {t('restaurants.places')})
-                      </button>
+              {/* Kärkipoiminnat: ~60 parasta (kuva + arvosana). Loput kategorioittain yltä. */}
+              {groupedSortedPool.length > 0 ? (
+                <section className="space-y-3">
+                  <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
+                    ⭐ Suosituimmat {TYPE_TABS.find(tt => tt.id === restType)?.label.toLowerCase()}
+                  </h2>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
+                    {groupedSortedPool
+                      .filter(item => '_isChain' in item || item.id !== heroRest?.id)
+                      .slice(0, TOP_PICKS).map(item =>
+                      '_isChain' in item
+                        ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
+                        : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} onOpen={setSelectedRest} />
                     )}
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center py-16 text-center gap-3">
-                    <span className="text-5xl">🍽</span>
-                    <p className="text-white/40 font-bold">{t('discover.no_filter_match')}</p>
-                    <button onClick={clearFilter}
-                      className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
-                      style={{ borderColor: 'rgba(107,118,255,.3)' }}>
-                      {t('common.show_all')}
-                    </button>
                   </div>
-                )
+                  {groupedSortedPool.length > TOP_PICKS && (
+                    <p className="text-center text-[13px] font-bold text-white/35 pt-1">
+                      Löydä lisää selaamalla kategorioita ↑
+                    </p>
+                  )}
+                </section>
               ) : (
-                <>
-                  {rows.filter(r => r.items.length > 0).map(row => (
-                    <RestRow
-                      key={row.title}
-                      title={row.title}
-                      items={row.items}
-                      distMap={distMap}
-                      onCardClick={setSelectedRest}
-                      onChainClick={setSelectedChain}
-                      onShowOnMap={onShowOnMap}
-                    />
-                  ))}
-                  <NewsSection items={news} />
-                </>
+                <div className="flex flex-col items-center py-16 text-center gap-3">
+                  <span className="text-5xl">🍽</span>
+                  <p className="text-white/40 font-bold">{t('discover.no_filter_match')}</p>
+                  <button onClick={clearFilter}
+                    className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
+                    style={{ borderColor: 'rgba(107,118,255,.3)' }}>
+                    {t('common.show_all')}
+                  </button>
+                </div>
               )}
             </>
           )}
@@ -1576,7 +1335,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                     {groupedSortedPool.slice(0, visibleCount).map(item =>
                       '_isChain' in item
                         ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
-                        : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} />
+                        : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} onOpen={setSelectedRest} />
                     )}
                   </div>
                   {visibleCount < groupedSortedPool.length && (

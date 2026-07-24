@@ -34,17 +34,26 @@ const HERO_ROTATION: ActivityCategory[] = [
   'sauna', 'nakopaikka', 'museo', 'uimaranta', 'galleria', 'puisto', 'markkina',
 ]
 
-// Helsinki's must-see attractions — used for "Helsingin helmet" row
-const HELMET_IDS_OR_NAMES = new Set([
-  'suomenlinna', 'temppeliaukion kirkko', 'helsingin tuomiokirkko',
-  'amos rex', 'löyly', 'allas sea pool', 'kansallismuseo', 'ateneum',
-  'kiasma', 'ham helsinki', 'linnanmäki', 'korkeasaari', 'oodi',
-])
-
 // Categories always accessible outdoors — shown even without opening_hours tag
 const OUTDOOR_ALWAYS_OPEN: string[] = ['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys']
 
-const INDOOR_CATS: ActivityCategory[] = ['museo', 'galleria', 'muu']
+// ── "Helsinkiläisten suosikit" -kärkipoiminnat ────────────────────────────
+// Oletusnäkymä näyttää vain ~60 lokaalisti kiinnostavinta kohdetta; loput
+// (mm. ~2500 geneeristä lähipuistoa/kenttää) löytyvät kategoria-selauksesta.
+const ACT_TOP_PICKS = 60
+// Lokaali kiinnostavuuspaino per kategoria — helsinkiläisen makuun: saunat &
+// näköpaikat kärkeen, geneeriset puistot/urheilukentät pohjalle.
+const ACT_CAT_WEIGHT: Record<string, number> = {
+  sauna: 5, nakopaikka: 5, uimaranta: 4, galleria: 4, markkina: 4,
+  museo: 3, nahtavyys: 2, muu: 1, puisto: 1, urheilu: 0.5,
+}
+// Kuratoinnin arvoiset kategoriat ilman kuvaa/arvosanaakin (aidot kohteet, ei
+// geneerisiä puistoja/kenttiä). Kuva tai arvosana nostaa lisäksi ikoniset puistot.
+const ACT_CURATED_CATS = new Set(['sauna', 'nakopaikka', 'uimaranta', 'galleria', 'museo', 'markkina', 'nahtavyys'])
+// Turistiklusteri — lokaali ei tarvitse näitä, demotoidaan kärjestä. Ankkuroitu
+// koko nimeen, ettei osu niche-kohteisiin (esim. "Suomenlinna-museo",
+// "Suomenlinnan merilinnoitus"), jotka kuratoinnin pitää päinvastoin nostaa.
+const ACT_TOURIST_DEMOTE = /^(suomenlinna|(helsingin )?tuomiokirkko|uspenskin katedraali|temppeliaukion kirkko|senaatintori|(vanha )?kauppatori)$/i
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -141,111 +150,15 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
   )
 }
 
-// ── Carousel row card ─────────────────────────────────────
-
-function ActivityRowCard({ a, distance, rating, onClick }: {
-  a: Activity
-  distance?: number
-  rating?: { rating: number; reviewCount: number }
-  onClick: (a: Activity) => void
-}) {
-  const { t } = useLanguage()
-  const open = isOpenNow(a.openingHours)
-  const meta = CATEGORY_META[a.category]
-  return (
-    <button onClick={() => onClick(a)}
-      className="group shrink-0 w-40 text-left rounded-[18px] overflow-hidden"
-      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3' }}>
-        {a.image ? (
-          <img src={a.image} alt={a.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-4xl" style={{ background: meta.gradient }}>
-            {meta.emoji}
-          </div>
-        )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.8) 0%,transparent 60%)' }} />
-        {open !== undefined && (
-          <div className="absolute top-2 right-2">
-            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${open ? 'bg-emerald-500 text-white' : 'bg-black/50 text-white/50'}`}>
-              {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
-            </span>
-          </div>
-        )}
-        {a.fee === false && (
-          <div className="absolute top-2 left-2">
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">{t('common.free_badge')}</span>
-          </div>
-        )}
-      </div>
-      <div className="p-3">
-        <p className="text-white font-black text-[13px] leading-tight line-clamp-1" style={{ letterSpacing: '-0.01em' }}>{a.name}</p>
-        {rating ? (
-          <p className="text-[11px] mt-0.5 font-bold" style={{ color: '#e8c06a' }}>★ {rating.rating.toFixed(1)} · {fmtReviews(rating.reviewCount)}</p>
-        ) : (
-          <p className="text-white/40 text-[11px] mt-0.5">{meta.label}{distance !== undefined ? ` · ${fmtDist(distance)}` : ''}</p>
-        )}
-      </div>
-    </button>
-  )
-}
-
-// ── Carousel row — expand in place ────────────────────────
-
-function ActRow({ title, items, distMap, ratingMap, onCardClick, onShowOnMap }: {
-  title: string
-  items: Activity[]
-  distMap: Map<string, number>
-  ratingMap: Map<string, { rating: number; reviewCount: number }>
-  onCardClick: (a: Activity) => void
-  onShowOnMap?: (lat: number, lon: number, name: string) => void
-}) {
-  const { t } = useLanguage()
-  const [expanded, setExpanded] = useState(false)
-  if (items.length === 0) return null
-  const hasMore = items.length > 10
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-black text-white text-[17px] flex items-baseline gap-1.5" style={{ letterSpacing: '-0.02em' }}>
-          {title}
-          <span className="text-white/25 font-bold text-[13px]">· {items.length}</span>
-        </h2>
-        {hasMore && !expanded && (
-          <button onClick={() => setExpanded(true)} className="text-[12px] font-black shrink-0 transition-colors" style={{ color: '#a3abff' }}>
-            {t('discover.see_all')} {items.length} →
-          </button>
-        )}
-        {expanded && (
-          <button onClick={() => setExpanded(false)} className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
-            {t('discover.see_fewer')}
-          </button>
-        )}
-      </div>
-      {!expanded ? (
-        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-          {items.slice(0, 10).map(a => (
-            <ActivityRowCard key={a.id} a={a} distance={distMap.get(a.id)} rating={ratingMap.get(a.name.toLowerCase())} onClick={onCardClick} />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {items.map(a => (
-            <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)} rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} />
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
 
 // ── List card ─────────────────────────────────────────────
 
-function ActivityListCard({ a, distance, rating, onShowOnMap }: {
+function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
   a: Activity
   distance?: number
   rating?: { rating: number; reviewCount: number }
   onShowOnMap?: (lat: number, lon: number, name: string) => void
+  onOpen?: (a: Activity) => void
 }) {
   const { t } = useLanguage()
   const open = isOpenNow(a.openingHours)
@@ -253,7 +166,11 @@ function ActivityListCard({ a, distance, rating, onShowOnMap }: {
   const meta = CATEGORY_META[a.category]
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
+    <div className={`rounded-2xl overflow-hidden ${onOpen ? 'cursor-pointer transition-transform active:scale-[.99]' : ''}`}
+      role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen ? () => onOpen(a) : undefined}
+      onKeyDown={onOpen ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(a) } }) : undefined}
+      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
       {a.image && (
         <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/10' }}>
           <img src={a.image} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
@@ -312,7 +229,7 @@ function ActivityListCard({ a, distance, rating, onShowOnMap }: {
           </div>
         )}
 
-        <div className="flex items-center gap-3 pt-0.5 flex-wrap">
+        <div className="flex items-center gap-3 pt-0.5 flex-wrap" onClick={e => e.stopPropagation()}>
           {a.www && (
             <a href={/^https?:\/\//i.test(a.www) ? a.www : '#'} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold hover:opacity-80 transition-opacity"
@@ -596,9 +513,6 @@ export default function ActivitiesView({ onShowOnMap }: {
   // Istunnon aikana jo ehdotetut — arvonta kiertää koko poolin ennen toistoa
   const acSeen = useRef<Set<string>>(new Set())
 
-  // Stable shuffle seed per session — makes Ylläty actually different each visit
-  const shuffleSeed = useRef(Math.floor(Math.random() * 9973))
-
   useEffect(() => {
     fetch('/api/activities')
       .then(r => r.json())
@@ -744,6 +658,9 @@ export default function ActivitiesView({ onShowOnMap }: {
   const handleAcClear = useCallback(() => { setAcDist(null); setAcAuki(false) }, [])
 
   const sortedPool = useMemo(() => {
+    // Oletusnäkymä (catFilter==='all') renderöi localPicksin, ei sortedPoolia —
+    // ei turhaan lajitella koko ~2500 kohteen listaa pillerivalinnoilla
+    if (catFilter === 'all') return []
     const result = [...catPool]
     const filtered = filterOpen
       ? result.filter(a => {
@@ -773,53 +690,6 @@ export default function ActivitiesView({ onShowOnMap }: {
     return filtered
   }, [catPool, filterOpen, filterNearby, userPos, distMap, ratingMap])
 
-  const surpriseItems = useMemo(() => {
-    const seed = shuffleSeed.current
-
-    // Commercial gym chains — not "surprising" to recommend
-    const GYM_PATTERN = /fressi|forever\s*sport|elixia|fitness first|kuntokeskus/i
-    // Generic park sub-types that are just infrastructure, not destinations
-    const DULL_PARK_PATTERN = /puistikko|leikkipuisto|liikuntapuisto|urheilupuisto|pallokenttä|ulkoilualue/i
-    // Well-known tourist staples — not surprising to recommend
-    const OBVIOUS_NAMES = /kauppahalli|hakaniemi.*halli|hietalahden.*halli|vanha kauppatori/i
-
-    function hashId(id: string): number {
-      return id.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0)
-    }
-
-    function score(a: Activity): number {
-      let s = 0
-      if (a.image) s += 3
-      if (a.category === 'sauna') s += 2
-      if (a.category === 'nakopaikka') s += 2
-      // galleria and muu tend to be genuinely off-the-beaten-path
-      if (a.category === 'galleria') s += 2
-      if (a.category === 'muu') s += 2
-      return s
-    }
-
-    const curated = activities.filter(a => {
-      // Already shown in "Helsingin helmet" row
-      if (HELMET_IDS_OR_NAMES.has(a.name.toLowerCase())) return false
-      // Commercial gym chains
-      if (GYM_PATTERN.test(a.name)) return false
-      // Generic park sub-types without an image (parks with photos can still be interesting)
-      if (a.category === 'puisto' && DULL_PARK_PATTERN.test(a.name) && !a.image) return false
-      // Well-known tourist staples that aren't "surprising"
-      if (OBVIOUS_NAMES.test(a.name)) return false
-      return true
-    })
-
-    return curated.sort((a, b) => {
-      const sd = score(b) - score(a)
-      if (sd !== 0) return sd
-      // Same score tier: seeded shuffle for variety
-      const ha = (hashId(a.id) + seed) % 9973
-      const hb = (hashId(b.id) + seed) % 9973
-      return ha - hb
-    })
-  }, [activities])
-
   // Hero rotates by day of week across different categories
   const heroActivity = useMemo(() => {
     if (catFilter !== 'all') return null
@@ -831,31 +701,88 @@ export default function ActivitiesView({ onShowOnMap }: {
       ?? null
   }, [activities, catFilter])
 
-  const rows = useMemo(() => {
+  // ── "✨ Helsinkiläisten suosikit" — ~60 lokaalisti kiinnostavinta ─────────
+  // Kuratoitu kärki oletusnäkymään: kategoriapaino (saunat/näköpaikat kärkeen)
+  // + Helsinki-kohteet edellä (muut kaupungit alas) + kuva & arvosana nostavat
+  // + turistiklusteri alas. Ei suora arvostelumäärä-boostia ("maineen katto"),
+  // vaan Bayes-kutistettu arvosana, ettei Suomenlinna jyrää.
+  const localPicks = useMemo(() => {
     if (catFilter !== 'all') return []
-    return [
-      { title: '✨ Ylläty — kokeile jotain uutta',          items: surpriseItems },
-      { title: '❤️ Tänne kannattaa mennä kerran elämässä', items: activities.filter(a => HELMET_IDS_OR_NAMES.has(a.name.toLowerCase())) },
-      { title: '🆓 Ilmaiseksi — ei maksa mitään',          items: activities.filter(a => a.fee === false) },
-      {
-        title: '🏛 Sadepäivän pelastajat',
-        items: activities.filter(a => {
-          if (!INDOOR_CATS.includes(a.category)) return false
-          // muu is a catch-all — require an image as minimum quality signal
-          if (a.category === 'muu') return !!a.image
-          return true
-        }),
-      },
-      {
-        title: '🟢 Ovet auki juuri nyt',
-        items: activities.filter(a => {
-          // Outdoor spots without opening_hours are always accessible
-          if (!a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category)) return true
-          return isOpenNow(a.openingHours) === true
-        }),
-      },
-    ]
-  }, [activities, catFilter, surpriseItems])
+    const localScore = (a: Activity): number => {
+      let s = ACT_CAT_WEIGHT[a.category] ?? 1
+      // Helsinki edellä: tunnettu muu kaupunki (Espoo/Vantaa…) sakotetaan,
+      // tagiton kohde jää neutraaliksi (moni oikea Helsinki-kohde on tagiton)
+      const c = (a.city || '').toLowerCase()
+      if (c === 'helsinki') s += 1
+      else if (c) s -= 2
+      if (a.image) s += 3
+      // Bayes-kutistus (prior 20 arvostelua @ 4.2) — harvat arvostelut eivät
+      // ali- eivätkä yliarvota; ei kovaa arvostelumääräkynnystä
+      const rt = ratingMap.get(a.name.toLowerCase())
+      if (rt) {
+        const shrunk = (rt.reviewCount * rt.rating + 20 * 4.2) / (rt.reviewCount + 20)
+        s += (shrunk - 4.0) * 1.5
+      }
+      if (ACT_TOURIST_DEMOTE.test(a.name)) s -= 4
+      return s
+    }
+    // Kuratoinnin arvoiset: kiinnostava kategoria TAI kuva/arvosana on. Hero
+    // suljetaan pois, ettei sama kohde näy sekä ylänostona että ruudukkona.
+    const candidates = activities.filter(a =>
+      a.id !== heroActivity?.id &&
+      (ACT_CURATED_CATS.has(a.category) || !!a.image || ratingMap.has(a.name.toLowerCase()))
+    )
+    const open = (a: Activity) =>
+      !a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : isOpenNow(a.openingHours) === true
+    const pool = filterOpen ? candidates.filter(open) : candidates
+    // Lähellä-tila: puhdas etäisyysjärjestys kuratoidusta setistä (ei kategoriakattoa)
+    if (filterNearby && userPos && distMap.size > 0) {
+      return [...pool]
+        .sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
+        .slice(0, ACT_TOP_PICKS)
+    }
+    const byScore = [...pool].sort((a, b) => {
+      const d = localScore(b) - localScore(a)
+      if (d !== 0) return d
+      const ia = a.image ? 1 : 0, ib = b.image ? 1 : 0
+      if (ia !== ib) return ib - ia
+      return (ratingMap.get(b.name.toLowerCase())?.reviewCount ?? 0) - (ratingMap.get(a.name.toLowerCase())?.reviewCount ?? 0)
+    })
+    // Round-robin kategorioiden yli: monipuolinen kärki (ei 20 saunaa peräkkäin),
+    // mutta paras-ensin — kategoriat parhaan kohteensa mukaan, korkeintaan CAP/kat.
+    const queues = new Map<string, Activity[]>()
+    for (const a of byScore) {
+      const q = queues.get(a.category)
+      if (q) q.push(a); else queues.set(a.category, [a])
+    }
+    const catOrder = [...queues.keys()].sort((x, y) =>
+      localScore(queues.get(y)![0]) - localScore(queues.get(x)![0]))
+    const CAP = 12
+    const perCat: Record<string, number> = {}
+    const picks: Activity[] = []
+    let added = true
+    while (picks.length < ACT_TOP_PICKS && added) {
+      added = false
+      for (const cat of catOrder) {
+        if (picks.length >= ACT_TOP_PICKS) break
+        const q = queues.get(cat)!
+        const n = perCat[cat] ?? 0
+        if (n >= CAP || n >= q.length) continue
+        picks.push(q[n])
+        perCat[cat] = n + 1
+        added = true
+      }
+    }
+    // Jos katto jätti alle 60, täytetään lopuilla parhausjärjestyksessä
+    if (picks.length < ACT_TOP_PICKS) {
+      const chosen = new Set(picks.map(p => p.id))
+      for (const a of byScore) {
+        if (picks.length >= ACT_TOP_PICKS) break
+        if (!chosen.has(a.id)) picks.push(a)
+      }
+    }
+    return picks
+  }, [activities, catFilter, ratingMap, filterOpen, filterNearby, userPos, distMap, heroActivity])
 
   const clearFilter = useCallback(() => { setCatFilter('all'); setFilterOpen(false); setFilterNearby(false) }, [])
 
@@ -870,17 +797,13 @@ export default function ActivitiesView({ onShowOnMap }: {
         </h1>
       </div>
 
-      {/* Loading skeletons */}
+      {/* Loading skeleton — sama muoto kuin ladattu näkymä: hero + ruudukko */}
       {loading && (
-        <div className="space-y-3">
-          <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
-            ))}
-          </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-40 rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
+        <div className="space-y-4">
+          <div className="rounded-[22px] skeleton-shimmer" style={{ aspectRatio: '16/10' }} />
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-[18px] overflow-hidden skeleton-shimmer" style={{ aspectRatio: '4/3' }} />
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -892,9 +815,21 @@ export default function ActivitiesView({ onShowOnMap }: {
 
       {!loading && (
         <>
-          {/* ═══ ETUSIVU (catFilter 'all'): Auta valitsemaan → ruudukko → hero → rivit ═══ */}
+          {/* ═══ ETUSIVU (catFilter 'all') — etusivun tyyli: hero → kategoriat →
+               Auta valitsemaan → yksi ruudukko (ei karuselleja) ═══ */}
           {catFilter === 'all' && (
             <>
+              {heroActivity && (
+                <ActivityHero
+                  a={heroActivity}
+                  distance={distMap.get(heroActivity.id)}
+                  rating={ratingMap.get(heroActivity.name.toLowerCase())}
+                  onShowOnMap={onShowOnMap}
+                />
+              )}
+
+              <CategoryGrid onSelect={setCatFilter} />
+
               <ActDecidePanel
                 pool={acPool}
                 pick={acPick}
@@ -919,59 +854,36 @@ export default function ActivitiesView({ onShowOnMap }: {
                 onOpen={setSelectedActivity}
               />
 
-              <CategoryGrid onSelect={setCatFilter} />
-
-              {heroActivity && (
-                <ActivityHero
-                  a={heroActivity}
-                  distance={distMap.get(heroActivity.id)}
-                  rating={ratingMap.get(heroActivity.name.toLowerCase())}
-                  onShowOnMap={onShowOnMap}
-                />
-              )}
-
               <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
 
-              {(filterOpen || filterNearby) ? (
-                sortedPool.length > 0 ? (
-                  <>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                      {sortedPool.slice(0, visibleCount).map(a => (
-                        <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)}
-                          rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} />
-                      ))}
-                    </div>
-                    {visibleCount < sortedPool.length && (
-                      <button onClick={() => setVisibleCount(v => v + 24)}
-                        className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
-                        style={{ background: 'rgba(255,255,255,.05)' }}>
-                        Näytä lisää ({sortedPool.length - visibleCount} kohdetta)
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center py-16 text-center gap-3">
-                    <span className="text-5xl">🔭</span>
-                    <p className="text-white/40 font-bold">Ei kohteita tällä suodatuksella</p>
-                    <button onClick={clearFilter}
-                      className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
-                      style={{ borderColor: 'rgba(107,118,255,.3)' }}>
-                      Näytä kaikki
-                    </button>
+              {/* Kärkipoiminnat: ~60 lokaalisti kiinnostavinta. Loput kategorioittain yltä. */}
+              {localPicks.length > 0 ? (
+                <section className="space-y-3">
+                  <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
+                    ✨ Helsinkiläisten suosikit
+                  </h2>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
+                    {localPicks.map(a => (
+                      <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)}
+                        rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} onOpen={setSelectedActivity} />
+                    ))}
                   </div>
-                )
+                  {localPicks.length >= ACT_TOP_PICKS && (
+                    <p className="text-center text-[13px] font-bold text-white/35 pt-1">
+                      Löydä lisää selaamalla kategorioita ↑
+                    </p>
+                  )}
+                </section>
               ) : (
-                rows.filter(r => r.items.length > 0).map(row => (
-                  <ActRow
-                    key={row.title}
-                    title={row.title}
-                    items={row.items}
-                    distMap={distMap}
-                    ratingMap={ratingMap}
-                    onCardClick={setSelectedActivity}
-                    onShowOnMap={onShowOnMap}
-                  />
-                ))
+                <div className="flex flex-col items-center py-16 text-center gap-3">
+                  <span className="text-5xl">🔭</span>
+                  <p className="text-white/40 font-bold">Ei kohteita tällä suodatuksella</p>
+                  <button onClick={clearFilter}
+                    className="text-sm font-bold px-4 py-2 rounded-xl border text-[#6b76ff]"
+                    style={{ borderColor: 'rgba(107,118,255,.3)' }}>
+                    Näytä kaikki
+                  </button>
+                </div>
               )}
             </>
           )}
@@ -994,7 +906,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
                     {sortedPool.slice(0, visibleCount).map(a => (
                       <ActivityListCard key={a.id} a={a} distance={distMap.get(a.id)}
-                        rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} />
+                        rating={ratingMap.get(a.name.toLowerCase())} onShowOnMap={onShowOnMap} onOpen={setSelectedActivity} />
                     ))}
                   </div>
                   {visibleCount < sortedPool.length && (
