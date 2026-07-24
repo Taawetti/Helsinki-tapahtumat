@@ -9,6 +9,7 @@
 
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 import { detectSourceAnomalies, type CanaryPayload } from '../lib/source-health'
+import { parseSuperterassi, parseSeason } from '../lib/superterassi'
 
 type Case = {
   name: string
@@ -480,7 +481,59 @@ for (const c of healthChecks) {
   else failures.push(`✗ kanaria: ${c.name} → sai [${issues.join(' | ') || '(ei poikkeamia)'}], odotus ${c.expectIssue ? 'HÄLYTYS' : 'ei hälytystä'}`)
 }
 
-const total = CASES.length + ysoChecks.length + healthChecks.length
+// Kausilattia (Superterassi/recurring): heinäkuussa 0 = hiljainen kuolema →
+// hälytys, mutta kauden ulkopuolella 0 on laillinen → ei hälytystä. Ilman
+// month-argumenttia kausilattiaa ei tarkisteta.
+const base = (recurringCount: number): CanaryPayload => ({
+  total: 780,
+  sources: [
+    { name: 'linked-events', ok: true, count: 425 },
+    { name: 'ra', ok: true, count: 13 },
+    { name: 'pubivisat', ok: true, count: 94 },
+    { name: 'recurring', ok: true, count: recurringCount },
+  ],
+})
+const seasonalChecks: { name: string; payload: CanaryPayload; month?: number; expectIssue: boolean }[] = [
+  { name: 'heinäkuu + recurring=0 → hälytys (kausikuolema)', month: 7, payload: base(0), expectIssue: true },
+  { name: 'heinäkuu + recurring=6 → ei hälytystä', month: 7, payload: base(6), expectIssue: false },
+  { name: 'joulukuu + recurring=0 → ei hälytystä (kauden ulkopuolella)', month: 12, payload: base(0), expectIssue: false },
+  { name: 'elokuu + recurring=0 → ei hälytystä (kauden reuna, ei tarkisteta)', month: 8, payload: base(0), expectIssue: false },
+  { name: 'ei month-arg + recurring=0 → ei kausitarkistusta', month: undefined, payload: base(0), expectIssue: false },
+]
+for (const c of seasonalChecks) {
+  const issues = detectSourceAnomalies(c.payload, c.month)
+  if ((issues.length > 0) === c.expectIssue) pass++
+  else failures.push(`✗ kausikanaria: ${c.name} → sai [${issues.join(' | ') || '(ei poikkeamia)'}], odotus ${c.expectIssue ? 'HÄLYTYS' : 'ei hälytystä'}`)
+}
+
+// Superterassi-parseri: kausi-ikkuna + yleinen viikkoaika (aikaväli) vain
+// päivämäärättömistä kappaleista; päivätyt kertaesiintymät ja niiden alaesiintymät
+// (yksittäinen "klo HH.MM Nimi") EIVÄT muutu viikkoajaksi → lauantai putoaa.
+const SUP_FIXTURE = `
+<div class="dates">12.6.-13.8.2026</div>
+<h4>MAANANTAI &ndash; Ole Fitiss&auml;</h4>
+<p>Aamujoogaa.</p><p>klo 10.30&ndash;11.15 Morning Flow</p>
+<h4>KESKIVIIKKO &ndash; Pepsi MAX -keikkakeskiviikko</h4>
+<p>Livemusiikkia.</p><p>klo 14.00&ndash;14.45</p><p>17.6. Hanhani<br/>24.6. High-D</p><p>klo 19.30 alkaen</p>
+<h4>LAUANTAI &ndash; Food &amp; Fun</h4>
+<p>Brunssia.</p><p>18.7. klo 18.00</p><p>klo 14.00 Three Shots on the Rocks</p>
+`
+const supDefs = parseSuperterassi(SUP_FIXTURE)
+const supSeason = parseSeason(SUP_FIXTURE)
+const byWd = new Map(supDefs.map((d) => [d.weekday, d]))
+const supChecks: { name: string; ok: boolean }[] = [
+  { name: 'kausi 12.6.–13.8.2026', ok: supSeason?.start === '2026-06-12' && supSeason?.end === '2026-08-13' },
+  { name: 'maanantai aikaväli 10:30', ok: byWd.get(1)?.startHour === 10 && byWd.get(1)?.startMinute === 30 },
+  { name: 'keskiviikko ilta 19:30 (ei iltapäivä 14:00)', ok: byWd.get(3)?.startHour === 19 && byWd.get(3)?.startMinute === 30 },
+  { name: 'lauantai pudotettu (vain päivättyjä/kertaesiintymiä)', ok: !byWd.has(6) },
+  { name: 'jokainen def kantaa kausirajan', ok: supDefs.length > 0 && supDefs.every((d) => d.seasonStart === '2026-06-12' && d.seasonEnd === '2026-08-13') },
+]
+for (const c of supChecks) {
+  if (c.ok) pass++
+  else failures.push(`✗ superterassi-parseri: ${c.name}`)
+}
+
+const total = CASES.length + ysoChecks.length + healthChecks.length + seasonalChecks.length + supChecks.length
 console.log(`Kategoria- + kanariatestit: ${pass}/${total} ok`)
 if (failures.length) {
   console.error('\n' + failures.join('\n\n'))

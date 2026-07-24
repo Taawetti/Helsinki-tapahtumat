@@ -14,6 +14,8 @@
 //
 // Kynnykset koskevat 7 PÄIVÄN ikkunaa (kanaria hakee start..+6d).
 
+import { helsinkiToday } from './helsinki-time'
+
 export const CANARY_MIN_TOTAL = 100          // koko aggregaatti (7 pv; ~780 normi)
 export const CANARY_MIN_LINKED_EVENTS = 50   // runkolähde (~425 normi)
 export const CANARY_MAX_DEAD_SOURCES = 20    // laajahäiriö: ei-vastanneet
@@ -23,6 +25,15 @@ export const CANARY_MAX_DEAD_SOURCES = 20    // laajahäiriö: ei-vastanneet
 export const CANARY_SOURCE_FLOORS: Record<string, number> = {
   ra: 1,          // Resident Advisor — Helsingin viikonloppuklubit, aina jotain
   pubivisat: 10,  // viikoittaiset pubivisat — rakenteellisesti kymmeniä
+}
+
+// Kausilähteet: tuottavat tapahtumia VAIN tiettyinä kuukausina. Lattia
+// tarkistetaan vain kun lähteen KUULUU olla aktiivinen, jottei laillinen kauden
+// ulkopuolinen 0 aiheuta väärää hälytystä. Superterassin kesäohjelma (recurring)
+// pyörii ~6 pv/viikko; heinäkuu on varmasti keskellä kautta (kausi ~12.6.–13.8.),
+// joten sen reunat (alku-kesäkuu, loppu-elokuu) jätetään ulos false-alarmien takia.
+export const SEASONAL_SOURCE_FLOORS: Record<string, { months: number[]; floor: number }> = {
+  recurring: { months: [7], floor: 3 },
 }
 
 export interface SourceStat { name: string; ok: boolean; count: number }
@@ -49,20 +60,23 @@ export async function checkSourceHealth(origin: string): Promise<{ issues: strin
       return null
     }
   }
+  const month = parseInt(helsinkiToday().slice(5, 7), 10) // 1-12, kausilattioille
   let payload = await fetchOnce()
-  let issues = detectSourceAnomalies(payload)
+  let issues = detectSourceAnomalies(payload, month)
   if (issues.length > 0) {
     // Voi olla kylmäkäynnistys — lämmitä (heitä hukkaan) ja hae uudelleen.
     await fetchOnce()
     payload = await fetchOnce()
-    issues = detectSourceAnomalies(payload)
+    issues = detectSourceAnomalies(payload, month)
   }
   return { issues, payload }
 }
 
 /** Palauttaa listan poikkeamia (tyhjä = terve). Puhdas funktio → testattava
- *  ilman verkkoa. */
-export function detectSourceAnomalies(payload: CanaryPayload | null): string[] {
+ *  ilman verkkoa. `month` (1-12) = nykyinen kuukausi kausilattioiden arviointiin;
+ *  jos annettu ja lähde on kaudessaan, tarkistetaan myös SEASONAL_SOURCE_FLOORS.
+ *  Ilman `month`:ia kausilattioita ei tarkisteta (testien determinismi). */
+export function detectSourceAnomalies(payload: CanaryPayload | null, month?: number): string[] {
   const issues: string[] = []
   if (!payload) {
     issues.push('/api/events ei palauttanut dataa — koko aggregaatti alhaalla')
@@ -92,6 +106,18 @@ export function detectSourceAnomalies(payload: CanaryPayload | null): string[] {
     const count = s?.ok ? s.count : 0
     if (count < floor) {
       issues.push(`Lähde '${name}' ${count} < ${floor} (odotetaan aina ≥${floor}/viikko) — todennäköisesti rikki`)
+    }
+  }
+
+  // Kausilattiat: vain kun kuukausi on annettu JA lähde on kaudessaan.
+  if (month !== undefined) {
+    for (const [name, cfg] of Object.entries(SEASONAL_SOURCE_FLOORS)) {
+      if (!cfg.months.includes(month)) continue
+      const s = byName.get(name)
+      const count = s?.ok ? s.count : 0
+      if (count < cfg.floor) {
+        issues.push(`Kausilähde '${name}' ${count} < ${cfg.floor} (kk ${month}, odotetaan ≥${cfg.floor}) — todennäköisesti rikki`)
+      }
     }
   }
 
