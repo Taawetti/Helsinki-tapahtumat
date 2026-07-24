@@ -230,7 +230,6 @@ export default function HomeClient({
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [showVibePanel, setShowVibePanel] = useState(false)
-  const [liveOnly, setLiveOnly] = useState(false)
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -249,16 +248,6 @@ export default function HomeClient({
     if (new Date().getHours() >= 17) setIsEvening(true)
   }, [])
 
-  // "Nyt menossa" -kello: päivitä minuutin välein kun suodatin on päällä —
-  // muuten käynnissä-tila jäätyy kytkentähetkeen (päättyneet jäävät listalle,
-  // juuri alkaneet eivät ilmesty).
-  const [liveNow, setLiveNow] = useState(0)
-  useEffect(() => {
-    if (!liveOnly) return
-    setLiveNow(Date.now())
-    const id = setInterval(() => setLiveNow(Date.now()), 60_000)
-    return () => clearInterval(id)
-  }, [liveOnly])
 
   // ── Unified search: lazy-load activities + restaurants on first keystroke ──
   const [allActivities, setAllActivities] = useState<Activity[]>([])
@@ -316,14 +305,7 @@ export default function HomeClient({
 
   const [mapTarget, setMapTarget] = useState<{ lat: number; lon: number; name: string; type?: 'event' | 'restaurant' | 'activity' } | null>(null)
   const [pushEnabled, setPushEnabled] = useState(false)
-  const [nearbyMode, setNearbyMode] = useState(false)
-  const geo = useGeolocation()
-
-  function handleNearbyToggle() {
-    if (nearbyMode) { setNearbyMode(false); return }
-    if (!geo.coords) geo.request()
-    setNearbyMode(true)
-  }
+  const geo = useGeolocation() // korttien etäisyyslaskuun (jos sijainti jo sallittu)
 
   const { events, loading, fetchingFull, error, hasMore, total, generatedAt, sources, loadMore } = useEvents({
     // Idea-näkymä on aina "tänään" — ei riipu Discoverin päivävalinnasta (muuten
@@ -331,14 +313,13 @@ export default function HomeClient({
     // dateFilteriä, joten Discoveriin palatessa käyttäjän valinta säilyy.
     dateFilter: mode === 'map' ? 'month' : mode === 'idea' ? 'today' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
-    nearbyCoords: nearbyMode && geo.coords ? geo.coords : null,
+    nearbyCoords: null,
   })
 
   const handleRangeChange = useCallback((start: string, end: string) => {
     setCustomDate(start)
     setCustomDateEnd(end)
     setDateFilter(start ? 'range' : 'today')
-    setLiveOnly(false)
   }, [])
 
   // Infinite scroll — trigger loadMore when sentinel scrolls into view
@@ -377,7 +358,7 @@ export default function HomeClient({
   const clearFilters = useCallback(() => {
     setActiveCategories([]); setActiveVibes([]); setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
-    setPriceFilter('all'); setCustomDate(''); setCustomDateEnd(''); setLiveOnly(false)
+    setPriceFilter('all'); setCustomDate(''); setCustomDateEnd('')
     setKoCat(null) // palauta etusivulle, ei jää orpoa fokusnäkymää
   }, [])
 
@@ -544,19 +525,8 @@ export default function HomeClient({
     if (priceFilter === 'free') result = result.filter((e) => e.isFree)
     if (priceFilter === 'paid') result = result.filter((e) => !e.isFree)
 
-    // "Nyt menossa" — started already and still running. Most sources omit
-    // endTime, so events without one count as live for 3 h after start.
-    if (liveOnly) {
-      const nowTs = liveNow || Date.now()
-      result = result.filter((e) => {
-        const startTs = new Date(e.startTime).getTime()
-        if (startTs > nowTs) return false
-        if (e.endTime) return new Date(e.endTime).getTime() >= nowTs
-        return nowTs - startTs < 3 * 60 * 60 * 1000
-      })
-    }
     return result
-  }, [upcomingEvents, activeCategories, activeVibes, priceFilter, liveOnly, liveNow])
+  }, [upcomingEvents, activeCategories, activeVibes, priceFilter])
 
   const discoverEvents = useMemo(
     () => [...filteredEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
@@ -648,14 +618,13 @@ export default function HomeClient({
   })()
 
   // 'kaikki' counts as 0 — it's "show all", not a real filter selection
-  const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0) + (liveOnly ? 1 : 0)
+  const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0)
 
   // Suodatinpalkin teksti: näytä KAIKKI aktiiviset suodattimet. Pelkän
   // ensimmäisen aihepiirin näyttäminen piilotti esim. hintasuodattimen —
   // "Stand up · 1 tapahtumaa" ilman selitystä, kun 🎁 Ilmainen oli päällä.
   // ('ilmainen'-vibe kartoittuu hintasuodattimeen → hintachip edustaa sitä.)
   const activeFilterLabel = [
-    ...(liveOnly ? ['🔴 Nyt menossa'] : []),
     ...activeVibes
       .filter((v) => v !== 'kaikki' && v !== 'ilmainen')
       .map((v) => { const vb = VIBES.find((x) => x.id === v); return vb ? `${vb.emoji} ${vb.label}` : v }),
@@ -939,7 +908,7 @@ export default function HomeClient({
             ]).map(({ d, label }) => {
               const isActive = dateFilter === d && !customDate && !customDateEnd
               return (
-                <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd(''); setLiveOnly(false) }}
+                <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
                   className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
                     isActive ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
                   }`}
@@ -948,36 +917,11 @@ export default function HomeClient({
                 </button>
               )
             })}
-            <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today'); setLiveOnly(false) }} />
-            <button
-              onClick={handleNearbyToggle}
-              title={geo.denied ? 'Sijaintia ei sallittu' : 'Lähellä sinua'}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
-                nearbyMode && geo.coords ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
-              }`}
-              style={nearbyMode && geo.coords ? { background: 'linear-gradient(150deg,#0ea5e9,#0284c7)', boxShadow: '0 4px 16px -4px rgba(14,165,233,.4)' } : {}}>
-              {geo.loading ? '⏳' : geo.denied ? '📍✕' : '📍'} Lähellä
-            </button>
-            <button
-              onClick={() => {
-                // Käynnissä olevat ovat alkaneet ennen nyt-hetkeä → tonight-raja (17→)
-                // piilottaisi ne, joten pakota päiväksi 'today' kun suodatin kytketään.
-                setLiveOnly(v => !v)
-                // Sulje mahdollinen koCat-fokusnäkymä, ettei se jää orvoksi
-                // (liveOnly ohittaa sekä fokus- että etusivunäkymän vartijat).
-                if (!liveOnly) { setKoCat(null); setDateFilter('today'); setCustomDate(''); setCustomDateEnd('') }
-              }}
-              title="Käynnissä juuri nyt"
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
-                liveOnly ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
-              }`}
-              style={liveOnly ? { background: 'linear-gradient(150deg,#ef4444,#b91c1c)', boxShadow: '0 4px 16px -4px rgba(239,68,68,.4)' } : {}}>
-              🔴 Nyt menossa
-            </button>
+            <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
           </div>
 
           {/* Aktiivinen filtteripalkki — ilmestyy kun kategoria valittu */}
-          {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all' || liveOnly) && (
+          {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && (
             <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl"
               style={{ background: 'rgba(107,118,255,.08)', border: '1px solid rgba(107,118,255,.2)' }}>
               <div className="flex items-center gap-2 min-w-0">
@@ -1020,7 +964,7 @@ export default function HomeClient({
           )}
 
           {/* ═══ KATEGORIAN PYSTYLISTA (koCat) — ← Takaisin + rikkaat kortit ═══ */}
-          {koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && !liveOnly && (
+          {koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <section className="space-y-4">
               <div className="flex items-center gap-3">
                 <button onClick={() => setKoCat(null)}
@@ -1074,7 +1018,7 @@ export default function HomeClient({
           )}
 
           {/* ═══ ETUSIVU (koFront) — hero → ruudukko → kompaktit rivit → aihepiirit ═══ */}
-          {!koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && !liveOnly && (
+          {!koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <>
               {/* Tilarivi: vihreä pulssipiste + päivän tapahtumamäärä */}
               {!loading && baseEvents.length > 0 && (
@@ -1188,7 +1132,7 @@ export default function HomeClient({
           )}
 
           {/* ── Flat grid — näkyy kun keyword, kategoria, vibe tai Nyt menossa valittu ── */}
-          {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all' || liveOnly) && discoverEvents.length > 0 && (
+          {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {discoverEvents.map(e => (
@@ -1204,16 +1148,6 @@ export default function HomeClient({
           )}
 
           {/* ── Nyt menossa: tyhjä tila — ilman tätä alue jäisi selittämättä tyhjäksi ── */}
-          {liveOnly && !loading && !fetchingFull && discoverEvents.length === 0 && baseEvents.length > 0 && (
-            <div className="flex flex-col items-center py-16 text-center gap-3">
-              <span className="text-4xl">🌃</span>
-              <div>
-                <p className="text-white/40 font-bold">Ei mitään käynnissä juuri nyt</p>
-                <p className="text-white/20 text-sm mt-1">Katso 🌙 Illalla — illan menot alkavat pian</p>
-              </div>
-            </div>
-          )}
-
           {!loading && !fetchingFull && baseEvents.length === 0 && (
             <EmptyState
               keyword={keyword}
@@ -1222,7 +1156,7 @@ export default function HomeClient({
               priceFilter={priceFilter}
               dateFilter={dateFilter}
               onClear={clearFilters}
-              onDateChange={(d) => { setDateFilter(d); setCustomDate(''); setLiveOnly(false) }}
+              onDateChange={(d) => { setDateFilter(d); setCustomDate('') }}
             />
           )}
 

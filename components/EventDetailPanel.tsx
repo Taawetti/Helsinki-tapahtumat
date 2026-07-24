@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
-import type { Restaurant } from '@/lib/types'
-import { affiliateUrl, formatDate, formatDateRange, formatTime, haversineKm, fmtDistance } from '@/lib/utils'
+import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -24,7 +23,6 @@ export default function EventDetailPanel({ event, onClose }: Props) {
   const [copied, setCopied] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [slideIn, setSlideIn] = useState(false)
-  const [nearbyRests, setNearbyRests] = useState<(Restaurant & { dist: number })[]>([])
   const { toggle, isFavorite } = useFavorites()
   const { t, lang } = useLanguage()
   const fav = event ? isFavorite(event.id) : false
@@ -35,28 +33,6 @@ export default function EventDetailPanel({ event, onClose }: Props) {
     const free = event.isFree ? ` 🎁 ${t('common.free_ticket')}` : ''
     return `${event.title}\n${date}${loc}${free}\n\n${t('share.found_in')}`
   }
-
-  // Fetch restaurants within 500 m when event has coordinates
-  useEffect(() => {
-    setNearbyRests([])
-    if (!event?.location?.lat || !event?.location?.lon) return
-    const { lat, lon } = event.location as { lat: number; lon: number }
-    let cancelled = false
-    fetch('/api/restaurants')
-      .then(r => r.json())
-      .then(data => {
-        if (cancelled) return
-        const withDist = ((data.restaurants ?? []) as Restaurant[])
-          .filter(r => r.lat && r.lon && r.type === 'ravintola')
-          .map(r => ({ ...r, dist: haversineKm(lat, lon, r.lat!, r.lon!) }))
-          .filter(r => r.dist < 0.5)
-          .sort((a, b) => a.dist - b.dist)
-          .slice(0, 3)
-        setNearbyRests(withDist)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [event?.id])
 
   // Slide-in: double-rAF so the panel is painted off-screen before transitioning.
   // Avoids the 1-2 frame flash at wrong position that CSS animation classes cause on iOS.
@@ -429,25 +405,6 @@ export default function EventDetailPanel({ event, onClose }: Props) {
               </div>
             )}
           </div>
-          {/* Nearby restaurants */}
-          {nearbyRests.length > 0 && (
-            <div className="pt-2 border-t border-white/6">
-              <p className="text-xs font-black uppercase tracking-widest text-white/25 mb-3">🍽 Syö ennen keikkaa</p>
-              <div className="space-y-2">
-                {nearbyRests.map(r => (
-                  <a key={r.id} href={r.www ? (/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www) : '#'}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-between bg-white/4 hover:bg-white/7 border border-white/6 rounded-xl px-4 py-3 transition-colors group">
-                    <div className="min-w-0">
-                      <p className="text-white font-semibold text-sm group-hover:text-purple-300 transition-colors truncate">{r.name}</p>
-                      <p className="text-white/35 text-xs truncate">{r.description || r.address}</p>
-                    </div>
-                    <span className="text-blue-400/70 text-xs font-medium shrink-0 ml-3">{fmtDistance(r.dist)}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>{/* /scrollable inner */}
       </div>{/* /animated outer */}
