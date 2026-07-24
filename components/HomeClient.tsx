@@ -57,92 +57,6 @@ const HOME_GRID_TILES: { id: string; tint: string }[] = [
   { id: 'taide',       tint: '232,192,106' },
 ]
 
-// ── Kompakti vaakarivikortti (design: pieni kuvatiili + aikachip, 1-rivinen
-//    nimi, meta "kategoria · paikka") ─────────────────────────────────────
-function RowCard({ event, onClick }: { event: Event; onClick: (e: Event) => void }) {
-  const { lang, t } = useLanguage()
-  const now = Date.now()
-  const start = new Date(event.startTime)
-  const msUntil = start.getTime() - now
-  const isToday = start.toDateString() === new Date().toDateString()
-  const time = start.toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
-  let dateLabel = isToday
-    ? time
-    : start.toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric' }) + ' ' + time
-  if (msUntil > 0 && msUntil < 90 * 60 * 1000) dateLabel = `⏱ ${Math.round(msUntil / 60000)} min`
-  return (
-    <button
-      onClick={() => onClick(event)}
-      className="group shrink-0 text-left rounded-[14px] overflow-hidden"
-      style={{ width: 148, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}
-    >
-      <div className="relative w-full overflow-hidden" style={{ height: 84 }}>
-        {event.image ? (
-          <img src={event.image} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
-        ) : (
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(100% 100% at 30% 0%, rgba(107,118,255,.28), transparent 70%), #12121a' }} />
-        )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.55) 0%,transparent 60%)' }} />
-        <span className="absolute top-1.5 left-1.5 text-[10px] font-black px-2 py-0.5 rounded-full text-white/90" style={{ background: 'rgba(10,10,12,.72)', backdropFilter: 'blur(8px)' }}>{dateLabel}</span>
-        {event.isFree && (
-          <span className="absolute top-1.5 right-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(95,217,166,.9)', color: '#06281a' }}>{t('common.free_badge')}</span>
-        )}
-      </div>
-      <div className="px-2.5 py-2">
-        <p className="text-white font-black text-[12.5px] leading-tight truncate" style={{ letterSpacing: '-0.01em' }}>{event.title}</p>
-        <p className="text-[10.5px] font-semibold truncate mt-0.5" style={{ color: 'rgba(255,255,255,.45)' }}>
-          {[event.categories[0], event.location?.name].filter(Boolean).join(' · ')}
-        </p>
-      </div>
-    </button>
-  )
-}
-
-// ── Carousel row ─────────────────────────────────────────
-function CarouselRow({ title, events, onClick, onSeeAll }: { title: string; events: Event[]; onClick: (e: Event) => void; onSeeAll?: () => void }) {
-  const { t } = useLanguage()
-  const [expanded, setExpanded] = useState(false)
-  if (events.length === 0) return null
-  const hasMore = events.length > 10
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-black text-white text-[16px] tracking-tight flex items-baseline gap-1.5" style={{ letterSpacing: '-0.02em' }}>
-          {title}
-          <span className="text-white/25 font-bold text-[13px]">· {events.length}</span>
-        </h2>
-        {onSeeAll ? (
-          <button onClick={onSeeAll}
-            className="text-[12px] font-black shrink-0 transition-colors"
-            style={{ color: '#a3abff' }}>
-            {t('discover.see_all')} ›
-          </button>
-        ) : hasMore && !expanded ? (
-          <button onClick={() => setExpanded(true)}
-            className="text-[12px] font-black shrink-0 transition-colors"
-            style={{ color: '#a3abff' }}>
-            {t('discover.see_all')} {events.length} →
-          </button>
-        ) : expanded ? (
-          <button onClick={() => setExpanded(false)}
-            className="text-[12px] font-black text-white/30 hover:text-white/60 shrink-0 transition-colors">
-            {t('discover.see_fewer')}
-          </button>
-        ) : null}
-      </div>
-      {!expanded ? (
-        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-          {events.slice(0, 10).map(e => <RowCard key={e.id} event={e} onClick={onClick} />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {events.map(e => <PosterCard key={e.id} event={e} onClick={onClick} />)}
-        </div>
-      )}
-    </section>
-  )
-}
-
 function EmptyState({ keyword, activeVibes, activeCategories, priceFilter, dateFilter, onClear, onDateChange }: EmptyStateProps) {
   const { t } = useLanguage()
   const hasFilters = keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all'
@@ -441,7 +355,7 @@ export default function HomeClient({
 
   const handleVibeToggle = useCallback((id: string) => {
     if (id === 'kaikki') {
-      // Toggle: if already active → back to carousels, else → list of all events
+      // Toggle: if already active → back to default picks grid, else → list of all events
       setActiveVibes((prev) => prev.includes('kaikki') ? [] : ['kaikki'])
       return
     }
@@ -464,6 +378,7 @@ export default function HomeClient({
     setActiveCategories([]); setActiveVibes([]); setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
     setPriceFilter('all'); setCustomDate(''); setCustomDateEnd(''); setLiveOnly(false)
+    setKoCat(null) // palauta etusivulle, ei jää orpoa fokusnäkymää
   }, [])
 
   const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
@@ -648,7 +563,7 @@ export default function HomeClient({
     [filteredEvents]
   )
 
-  // Base events for carousels — date/keyword filtered but NOT vibe/category filtered
+  // Base events for the picks grid — date/keyword filtered but NOT vibe/category filtered
   // so rows always show content even when a specific vibe is active
   const baseEvents = useMemo(
     () => [...upcomingEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
@@ -665,27 +580,72 @@ export default function HomeClient({
     return picks.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   }, [baseEvents])
 
-  // Kompaktit vaakarivit (design: hero → ruudukko → Illan parhaat → Ilmaiseksi).
-  // Heron 5 nostoa jätetään pois "Illan parhaat" -rivistä ettei sama sisältö toistu.
-  const carousels = useMemo(() => {
+  // "Parhaat poiminnat" -kärki etusivun ison ruudukon oletukseksi (korvaa
+  // vanhat vaakakarusellit). Kuratointi lokaalisti kiinnostavaksi: kuvalliset,
+  // keikat, festarit ja isot jutut kärkeen; pubivisa-spam (196 samaa) pohjalle
+  // ja rajattu max 2:een; heron 5 nostoa pois ettei sama toistu. Cap ~18.
+  const bestPicks = useMemo(() => {
     const heroIds = new Set(heroGigs.map((e) => e.id))
-    // "Illan parhaat" / "Ilmaiseksi tänään" valehtelisivat Huomenna/Viikko-
-    // suodattimilla → aikaneutraalit otsikot kun päivävalinta ei ole tänään
-    const isTodayView = dateFilter === 'today' || dateFilter === 'tonight'
-    const rows = [
-      { id: 'parhaat',  title: t(isTodayView ? 'discover.carousel_best' : 'discover.carousel_best_generic'), events: baseEvents.filter(e => nightlifeScore(e) >= 3 && !heroIds.has(e.id)) },
-      { id: 'ilmainen', title: t(isTodayView ? 'discover.carousel_free' : 'discover.carousel_free_generic'), events: baseEvents.filter(e => e.isFree) },
-    ]
-    return rows.filter(r => r.events.length > 0)
-  }, [baseEvents, t, heroGigs, dateFilter])
+    const QUIZ = /tietovisa|pubivisa|musavisa|\bvisa\b|tietokilpailu|quiz/i
+    const isQuiz = (e: Event) => QUIZ.test(`${e.title} ${e.categories.join(' ')}`)
+    const score = (e: Event): number => {
+      const vibes = getEventVibes(e)
+      let s = 0
+      if (e.image) s += 6                                                     // kuvalliset kärkeen
+      if (e.source === 'festivals' || vibes.includes('festivaali')) s += 5    // festarit
+      if (vibes.includes('keikka')) s += 4                                    // keikat
+      if (vibes.includes('yoelama') || vibes.includes('underground')) s += 3  // klubit / underground
+      if (vibes.includes('teatteri') || vibes.includes('taide') || vibes.includes('standup')) s += 2
+      if (vibes.includes('urheilu')) s += 2
+      if (e.isFree) s += 1
+      if ((e.shortDescription || e.description || '').length > 60) s += 1
+      if (isQuiz(e)) s -= 8                                                   // pubivisat alas
+      return s
+    }
+    const ranked = baseEvents
+      .filter((e) => !heroIds.has(e.id))
+      .map((e) => ({ e, s: score(e) }))
+      .sort((a, b) => b.s - a.s)
+    const out: Event[] = []
+    const overflowQuiz: Event[] = []
+    let quizzes = 0
+    for (const { e } of ranked) {
+      if (out.length >= 18) break
+      if (isQuiz(e)) {
+        if (quizzes >= 2) { overflowQuiz.push(e); continue } // yli 2 visaa → loppuun
+        quizzes++
+      }
+      out.push(e)
+    }
+    // Täytä ruudukko ylijäämävisoilla jos kärki jäisi ohueksi (visapainotteinen
+    // päivä) — visat pysyvät pohjalla, mutta ruudukko ei jää 2 kortin levyiseksi.
+    for (const e of overflowQuiz) { if (out.length >= 18) break; out.push(e) }
+    return out
+  }, [baseEvents, heroGigs])
 
   // Kategorian pystylista (koCat): ruudukon/aihepiirin napautus avaa tämän
   const koCatEvents = useMemo(() => {
     if (!koCat) return []
+    if (koCat === 'kaikki') return baseEvents                          // "Kaikki" — koko lista
     if (koCat === 'ilmainen') return baseEvents.filter((e) => e.isFree)
     if (!VIBES.some((v) => v.id === koCat)) return []
     return baseEvents.filter((e) => getEventVibes(e).includes(koCat))
   }, [koCat, baseEvents])
+
+  // "Parhaat poiminnat" -otsikko elää aikavälin mukaan: Illan / Huomisen /
+  // Viikon / Viikonlopun / oma väli "25.–27.7. parhaat poiminnat".
+  const picksHeading = (() => {
+    if (dateFilter === 'today' || dateFilter === 'tonight') return t('discover.picks_today')
+    if (dateFilter === 'tomorrow') return t('discover.picks_tomorrow')
+    if (dateFilter === 'weekend') return t('discover.picks_weekend')
+    if (dateFilter === 'week') return t('discover.picks_week')
+    if (customDate) {
+      const fmt = (d: string) => { const p = d.split('-'); return `${parseInt(p[2], 10)}.${parseInt(p[1], 10)}.` }
+      const range = customDateEnd && customDateEnd !== customDate ? `${fmt(customDate)}–${fmt(customDateEnd)}` : fmt(customDate)
+      return `${range} ${t('discover.picks_suffix')}`
+    }
+    return t('discover.picks_generic')
+  })()
 
   // 'kaikki' counts as 0 — it's "show all", not a real filter selection
   const activeCount = activeVibes.filter(v => v !== 'kaikki').length + activeCategories.length + (priceFilter !== 'all' ? 1 : 0) + (liveOnly ? 1 : 0)
@@ -1003,7 +963,9 @@ export default function HomeClient({
                 // Käynnissä olevat ovat alkaneet ennen nyt-hetkeä → tonight-raja (17→)
                 // piilottaisi ne, joten pakota päiväksi 'today' kun suodatin kytketään.
                 setLiveOnly(v => !v)
-                if (!liveOnly) { setDateFilter('today'); setCustomDate(''); setCustomDateEnd('') }
+                // Sulje mahdollinen koCat-fokusnäkymä, ettei se jää orvoksi
+                // (liveOnly ohittaa sekä fokus- että etusivunäkymän vartijat).
+                if (!liveOnly) { setKoCat(null); setDateFilter('today'); setCustomDate(''); setCustomDateEnd('') }
               }}
               title="Käynnissä juuri nyt"
               className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
@@ -1067,8 +1029,10 @@ export default function HomeClient({
                   ← {t('common.back')}
                 </button>
                 <h2 className="font-black text-white text-[19px] leading-none" style={{ letterSpacing: '-0.02em' }}>
-                  {koCat === 'ilmainen'
-                    ? `🎁 ${t(dateFilter === 'today' || dateFilter === 'tonight' ? 'discover.carousel_free' : 'discover.carousel_free_generic')}`
+                  {koCat === 'kaikki'
+                    ? `📋 ${t('discover.all_events')}`
+                    : koCat === 'ilmainen'
+                    ? `🎁 ${t('discover.free_events')}`
                     : `${VIBES.find(v => v.id === koCat)?.emoji ?? ''} ${VIBES.find(v => v.id === koCat)?.label ?? ''}`}
                 </h2>
                 {!((loading || fetchingFull) && koCatEvents.length === 0) && (
@@ -1096,8 +1060,8 @@ export default function HomeClient({
                   <p className="text-white/20 text-sm">{t('discover.quiet_sub')}</p>
                 </div>
               ) : (
-                /* Kaksi korttia rinnakkain myös kännykällä — enemmän kerralla näkyvissä */
-                <div className="grid grid-cols-2 gap-3 items-start">
+                /* Responsiivinen ruudukko: 2 mobiili · 3 tabletti · 4 desktop */
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                   {koCatEvents.map((e) => (
                     <EventCard key={e.id} event={e} onClick={setSelectedEvent}
                       distance={geo.coords && e.location?.lat && e.location?.lon
@@ -1157,14 +1121,42 @@ export default function HomeClient({
                       )
                     })}
                   </div>
+                  {/* Suodatinnapit: Kaikki + Ilmaiseksi (korvaavat vapaakarusellin) */}
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <button onClick={() => setKoCat('kaikki')}
+                      className="flex items-center justify-center gap-2 rounded-[16px] py-3.5 px-2 font-black text-[13px] text-white transition-transform active:scale-95"
+                      style={{ background: 'linear-gradient(150deg,rgba(107,118,255,.22),rgba(107,118,255,.07))', border: '1px solid rgba(107,118,255,.3)' }}>
+                      📋 {t('discover.all_events')}
+                    </button>
+                    <button onClick={() => setKoCat('ilmainen')}
+                      className="flex items-center justify-center gap-2 rounded-[16px] py-3.5 px-2 font-black text-[13px] text-white transition-transform active:scale-95"
+                      style={{ background: 'linear-gradient(150deg,rgba(95,217,166,.2),rgba(95,217,166,.06))', border: '1px solid rgba(95,217,166,.3)' }}>
+                      🎁 {t('discover.free_events')}
+                    </button>
+                  </div>
                 </section>
               )}
 
-              {/* Kompaktit vaakarivit: Illan parhaat + Ilmaiseksi tänään */}
-              {!loading && carousels.map(row => (
-                <CarouselRow key={row.id} title={row.title} events={row.events} onClick={setSelectedEvent}
-                  onSeeAll={row.id === 'ilmainen' ? () => setKoCat('ilmainen') : undefined} />
-              ))}
+              {/* Parhaat poiminnat — iso ruudukko (korvaa vaakakarusellit). Otsikko
+                  elää aikavälin mukaan; sisältö kuratoitu (kuvalliset/keikat/festarit). */}
+              {!loading && bestPicks.length > 0 && (
+                <section>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
+                      {picksHeading}
+                    </h2>
+                    <span className="text-[14px]" style={{ color: '#a3abff' }}>✦</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
+                    {bestPicks.map((e) => (
+                      <EventCard key={e.id} event={e} onClick={setSelectedEvent}
+                        distance={geo.coords && e.location?.lat && e.location?.lon
+                          ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
+                          : undefined} />
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* Phase 2 spinner */}
               {fetchingFull && baseEvents.length > 0 && (
