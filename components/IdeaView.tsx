@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { Globe, MapPin, Ticket, Map as MapIcon, Heart, X, Clock } from 'lucide-react'
+import { Globe, MapPin, Map as MapIcon, Heart, X, Clock } from 'lucide-react'
 import type { Event, Activity, ActivityCategory } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { ATTRACTION_HIGHLIGHTS, getHighlight } from '@/lib/activity-highlights'
 import { isOpenNow } from '@/lib/opening-hours'
+import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
 
 // ── Curated activity names ───────────────────────────────
 
@@ -21,9 +22,6 @@ const CURATED_NAMES = [
   { name: 'Ateneum',                emoji: '🖼', url: 'https://ateneum.fi' },
   { name: 'Kiasma',                 emoji: '🌀', url: 'https://kiasma.fi' },
   { name: 'Amos Rex',               emoji: '🎭', url: 'https://amosrex.fi' },
-  { name: 'Linnanmäki',             emoji: '🎢', url: 'https://www.linnanmaki.fi' },
-  { name: 'Korkeasaari',            emoji: '🦁', url: 'https://www.korkeasaari.fi' },
-  { name: 'Heureka',                emoji: '🔬', url: 'https://www.heureka.fi' },
   { name: 'Pihlajasaari',           emoji: '🏖', url: 'https://www.hel.fi/fi/kulttuuri-ja-vapaa-aika/ulkoilu-ja-luonto/uimarannat/pihlajasaari' },
   { name: 'Seurasaari',             emoji: '🌲', url: 'https://www.kansallismuseo.fi/fi/seurasaarenulkomuseo' },
   { name: 'Helsingin tuomiokirkko', emoji: '🕍', url: 'https://www.helsinginseurakunnat.fi/kirkot/tuomiokirkko' },
@@ -77,9 +75,15 @@ const CATEGORY_EMOJI: Partial<Record<ActivityCategory, string>> = {
   uimaranta: '🏖', markkina: '🛍', nahtavyys: '🌄', muu: '✨',
 }
 
-const SUPPLEMENTAL_CATS: ActivityCategory[] = [
-  'sauna', 'nakopaikka', 'galleria', 'museo', 'markkina', 'uimaranta', 'nahtavyys', 'muu',
-]
+// Lokaalius + "illan juttu": Idea-deck suosii kokemuksellisia paikkoja joihin
+// oikeasti lähdetään illalla — EI geneerisiä turistikohteita (kauppahalli, tori,
+// tavallinen nähtävyys), jotka latistivat pakan. Saunat + näköalapaikat jäävät.
+const SUPPLEMENTAL_CATS: ActivityCategory[] = ['sauna', 'nakopaikka']
+
+const SUPPLEMENTAL_WHY: Partial<Record<ActivityCategory, { fi: string; en: string }>> = {
+  sauna: { fi: 'Aito löyly ja rentoutuminen keskellä kaupunkia', en: 'Authentic Finnish sauna in the heart of the city' },
+  nakopaikka: { fi: 'Näköala yli Helsingin', en: 'A view over Helsinki' },
+}
 
 function scoreEvent(e: Event): number {
   let s = 0
@@ -124,9 +128,6 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const { lang, t } = useLanguage()
   const { toggle, isFavorite } = useFavorites()
 
-  const [typeFilter, setTypeFilter] = useState<SuggestionType | 'all'>('all')
-  // ⚡ Juuri nyt suosii pian alkavia / juuri nyt avoinna olevia; Koko ilta = kaikki
-  const [ideaMode, setIdeaMode] = useState<'now' | 'evening'>('now')
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [detailSuggestion, setDetailSuggestion] = useState<Suggestion | null>(null)
@@ -218,7 +219,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         id: `activity-db-${a.id}`,
         type: 'activity' as const,
         title: a.name,
-        why: a.description || '',
+        // SUPPLEMENTAL_WHY ENSIN: OSM:n description on aina geneerinen kaksisanainen
+        // luokkatunnus ("Julkinen sauna"), joka muuten peittäisi paremman tekstin
+        // (ja näyttäisi suomea myös en-käyttäjille).
+        why: (lang === 'en' ? SUPPLEMENTAL_WHY[a.category]?.en : SUPPLEMENTAL_WHY[a.category]?.fi)
+          || a.description
+          || (lang === 'en' ? 'A Helsinki favourite' : 'Helsinkiläinen suosikki'),
         image: a.image ?? null,
         address: a.address,
         lat: a.lat,
@@ -234,7 +240,18 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   }, [activities, lang])
 
   const eventPool = useMemo((): Suggestion[] => {
+    const today = helsinkiToday()
     return events
+      // Vain TÄNÄÄN (Helsingin kalenteripäivä; all-day 00:00 osuu tähän)
+      .filter(e => helsinkiDateOf(e.startTime) === today)
+      // Ei jo PÄÄTTYNEITÄ — endTime-tietoinen, kuten appin muu "on now" -logiikka.
+      // Pitää käynnissä olevat keikat + koko päivän tapahtumat; pudottaa loppuneet.
+      .filter(e => {
+        const startTs = new Date(e.startTime).getTime()
+        if (startTs > Date.now()) return true                             // ei vielä alkanut
+        if (e.endTime) return new Date(e.endTime).getTime() >= Date.now() // vielä käynnissä
+        return Date.now() - startTs < 3 * 60 * 60 * 1000                  // ei endTimeä → live 3h
+      })
       .filter(e => (e.shortDescription?.length ?? 0) > 15 || (e.description?.length ?? 0) > 15)
       .sort((a, b) => scoreEvent(b) - scoreEvent(a))
       .slice(0, 50)
@@ -263,25 +280,22 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const pool = useMemo(() => {
     const base = shuffle([...activityPool, ...eventPool])
       .filter(s => !seenIds.has(s.id))
-      .filter(s => typeFilter === 'all' || s.type === typeFilter)
-    if (ideaMode === 'now') {
-      // "Juuri nyt" SUOSII pian alkavia / avoinna olevia (design-speksi) —
-      // järjestetään etusijalle, ei suodateta pois (pakka ei tyhjene)
-      const score = (s: Suggestion) => {
-        if (s.type === 'event') {
-          if (s.minutesUntil !== undefined && s.minutesUntil >= 0 && s.minutesUntil <= 120) return 0
-          if (s.minutesUntil !== undefined && s.minutesUntil > 120) return 2
-          return 3
-        }
-        return s.isOpen === true ? 1 : 3
+    // "Tänään" (yksi tila): käynnissä/pian alkavat tapahtumat kärkeen, sitten
+    // muut tämän päivän tapahtumat, sitten avoinna olevat paikat, sitten paikat
+    // joiden aukiolo ei tiedossa (kuratoidut helmet), ja suljetut pohjalle.
+    // Kuvallinen nousee saman kaistan sisällä → ensimmäiset kortit näyttävät hyvältä.
+    const score = (s: Suggestion) => {
+      let band: number
+      if (s.type === 'event') {
+        band = (s.minutesUntil !== undefined && s.minutesUntil <= 180) ? 0 : 1
+      } else {
+        band = s.isOpen === false ? 4 : s.isOpen === undefined ? 3 : 2
       }
-      return [...base].sort((a, b) => score(a) - score(b))
+      return band - (s.image ? 0.5 : 0)
     }
-    return base
+    return [...base].sort((a, b) => score(a) - score(b))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter, ideaMode, activityPool.length, eventPool.length, seenIds])
-
-  useEffect(() => { setSeenIds(new Set()) }, [typeFilter, ideaMode])
+  }, [activityPool.length, eventPool.length, seenIds])
 
   const current = pool[0] ?? null
   const meta = current ? TYPE_META[current.type] : TYPE_META.event
@@ -482,41 +496,22 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     <>
     <main className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4" style={{ overscrollBehavior: 'none' }}>
 
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between">
+      {/* ── Header — yksi "tänään"-tila, ei valitsinta. Sydän-laskuri oikealla. ── */}
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
+          <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI · {t('date.today').toUpperCase()}</p>
           <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.6rem,6vw,2.6rem)', letterSpacing: '-0.03em' }}>
             {t('idea.dont_know')}
           </h1>
           <p className="text-white/30 text-xs mt-1">{t('idea.tonight_all')}</p>
         </div>
-      </div>
-
-      {/* ── ⚡ Juuri nyt / Koko ilta -valitsin (design 2-idea.png) ── */}
-      <div className="flex items-center gap-2">
-        <div className="flex flex-1 rounded-full p-1" style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)' }}>
-          {([
-            { id: 'now' as const,     label: t('idea.mode_now') },
-            { id: 'evening' as const, label: t('idea.mode_evening') },
-          ]).map(m => {
-            const active = ideaMode === m.id
-            return (
-              <button key={m.id} onClick={() => setIdeaMode(m.id)}
-                className="flex-1 py-2 rounded-full text-[13px] font-black transition-all"
-                style={active
-                  ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff', boxShadow: '0 4px 12px -4px rgba(91,101,230,.5)' }
-                  : { color: 'rgba(255,255,255,.45)' }}>
-                {m.label}
-              </button>
-            )
-          })}
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-full shrink-0"
-          style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.2)' }}>
-          <Heart size={12} fill="#6b76ff" style={{ color: '#6b76ff' }} />
-          <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount}</span>
-        </div>
+        {savedCount > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full shrink-0 mt-1"
+            style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.2)' }}>
+            <Heart size={12} fill="#6b76ff" style={{ color: '#6b76ff' }} />
+            <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount}</span>
+          </div>
+        )}
       </div>
 
       {/* ── Swipeable card ── */}
@@ -579,13 +574,10 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               </div>
             )}
 
-            {/* Type badge + progress */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+            {/* Type badge (laskuri "X jäljellä" poistettu — se latisti korttia) */}
+            <div className="absolute top-4 left-4">
               <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/90 bg-black/40 backdrop-blur-sm">
                 {current.type === 'event' ? t('idea.type_event') : current.type === 'activity' ? t('idea.type_activity') : t('idea.type_rest')}
-              </span>
-              <span className="text-[11px] font-bold text-white/40 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
-                {pool.length} {t('common.remaining')}
               </span>
             </div>
 

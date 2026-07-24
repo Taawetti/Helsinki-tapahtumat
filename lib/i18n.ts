@@ -234,9 +234,7 @@ const t = {
     'idea.loading':            'Ladataan ideoita…',
     'idea.today_at':           'Tänään klo',
     'idea.dont_know':          'Etkö tiedä mitä tehdä?',
-    'idea.tonight_all':        'Kaikki ehdotukset tapahtuvat tänä iltana',
-    'idea.mode_now':           '⚡ Juuri nyt',
-    'idea.mode_evening':       '🌙 Koko ilta',
+    'idea.tonight_all':        'Tapahtumia ja tekemistä tänään',
     'idea.saved_overlay':      'Tallennettu!',
     'idea.skipped':            'Ohitettu',
     'idea.why_this':           'Miksi juuri tämä?',
@@ -850,9 +848,7 @@ const t = {
 
     // ── IdeaView extras ───────────────────────────────────────
     'idea.dont_know':           "Not sure what to do?",
-    'idea.tonight_all':         'All suggestions are happening tonight',
-    'idea.mode_now':            '⚡ Right now',
-    'idea.mode_evening':        '🌙 All evening',
+    'idea.tonight_all':         'Events and things to do today',
     'idea.saved_overlay':       'Saved!',
     'idea.skipped':             'Skipped',
     'idea.why_this':            'Why this one?',

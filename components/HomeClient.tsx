@@ -412,7 +412,10 @@ export default function HomeClient({
   }
 
   const { events, loading, fetchingFull, error, hasMore, total, generatedAt, sources, loadMore } = useEvents({
-    dateFilter: mode === 'map' ? 'month' : dateFilter,
+    // Idea-näkymä on aina "tänään" — ei riipu Discoverin päivävalinnasta (muuten
+    // esim. "Huomenna" tyhjentäisi Idea-deckin tapahtumat). Ei muuta tallennettua
+    // dateFilteriä, joten Discoveriin palatessa käyttäjän valinta säilyy.
+    dateFilter: mode === 'map' ? 'month' : mode === 'idea' ? 'today' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
     nearbyCoords: nearbyMode && geo.coords ? geo.coords : null,
   })
