@@ -31,6 +31,7 @@ type Fetched =
       mainImage: string | null
       hoursOsm: string | null
       description: string | null
+      raw: Record<string, unknown> | null
     }
   | { status: 'error' }
 
@@ -93,6 +94,9 @@ async function fetchBusiness(query: string): Promise<Fetched> {
     mainImage: item?.main_image ?? null,
     hoursOsm: item?.work_time ? googleTimetableToOsm(item.work_time) : null,
     description: typeof item?.description === 'string' && item.description.trim() ? item.description.trim() : null,
+    // Koko Google-profiili talteen (attribuutit, tähtijakauma, ruuhka-ajat,
+    // varauslinkki ym.) — kuten aktiviteeteilla. Ei enää heitetä rikasta kerrosta.
+    raw: (item as Record<string, unknown>) ?? null,
   }
 }
 
@@ -201,6 +205,8 @@ export async function POST(req: NextRequest) {
         if (f.mainImage) row.main_image = f.mainImage
         // Sama sääntö kuvaukselle: null ei saa pyyhkiä aiemmin tallennettua
         if (f.description) row.description = f.description
+        // Koko raakaprofiili — vain kun Google palautti kohteen (ei pyyhi null:lla)
+        if (f.raw) row.google_raw = f.raw
         const { error } = await supabaseAdmin.from('venue_ratings').upsert(row, { onConflict: 'venue_key' })
         if (error) {
           return NextResponse.json(
