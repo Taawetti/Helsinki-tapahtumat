@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { isOpenNow, getTodayHours, helsinkiNow } from '@/lib/opening-hours'
+import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -784,179 +784,46 @@ function isRatedAtLeast(r: Restaurant, min: number): boolean {
   return (r.reviewCount ?? 0) >= 50 || award
 }
 
-// ── 🎯 Auta valitsemaan -paneeli (design 3-ravintolat.png) ────────────────
-
-type DistSeg = 1 | 3 | null       // ≤1 km | ≤3 km — kumulatiivinen säde
 type PriceSeg = 1 | 2 | 3 | null  // € | €€ | €€€
 type StarSeg = 4 | 4.5 | null     // ⭐ 4+ | ⭐ 4.5+
 
-function DecidePanel({ pool, pick, tried, dist, price, stars, showPrice, geoNote, locPending, distMap, onDist, onPrice, onStars, onClear, onDecide, onAgain, onOpen }: {
-  pool: Restaurant[]
-  pick: Restaurant | null
-  tried: boolean
-  dist: DistSeg
-  price: PriceSeg
-  stars: StarSeg
-  showPrice: boolean
-  geoNote: string | null
-  locPending: boolean
-  distMap: Map<string, number>
-  onDist: (d: DistSeg) => void
-  onPrice: (p: PriceSeg) => void
-  onStars: (s: StarSeg) => void
-  onClear: () => void
-  onDecide: () => void
-  onAgain: () => void
-  onOpen: (r: Restaurant) => void
-}) {
-  const hasFilters = dist !== null || price !== null || stars !== null
-  const segBtn = (isActive: boolean): React.CSSProperties => ({
-    color: isActive ? '#fff' : 'rgba(255,255,255,.45)',
-    background: isActive ? 'rgba(107,118,255,.35)' : 'transparent',
-    fontWeight: 800,
-  })
-  const open = pick?.openingHours ? isOpenNow(pick.openingHours) : undefined
-  const todayHrs = pick?.openingHours ? getTodayHours(pick.openingHours) : null
-  const pickDist = pick ? distMap.get(pick.id) : undefined
-  const pickEmoji = pick
-    ? (SUB_CATS.ruokapaikat.concat(SUB_CATS.kahvilat, SUB_CATS.baarit, SUB_CATS.yokerhot)
-        .find(c => matchesSubCat(pick, 'ruokapaikat', c.id) || (pick.subCategories ?? []).includes(c.id))?.emoji
-      ?? (pick.type === 'kahvila' ? '☕' : pick.type === 'baari' ? '🍸' : pick.type === 'yokerho' ? '🌃' : '🍽'))
-    : '🍽'
 
-  return (
-    <section className="rounded-[20px] p-4 space-y-3"
-      style={{ background: 'rgba(107,118,255,.06)', border: '1px solid rgba(107,118,255,.3)' }}>
-      <h2 className="font-black text-white text-[16px]" style={{ letterSpacing: '-0.02em' }}>🎯 Auta valitsemaan</h2>
-
-      {/* Kompaktit suodattimet — aina näkyvissä yhdellä rivillä */}
-      <div className="flex flex-wrap gap-2">
-        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
-          <span className="pl-2.5 pr-1 text-[13px]">🚶</span>
-          {([1, 3] as const).map((km, i) => (
-            <button key={km} onClick={() => onDist(dist === km ? null : km)}
-              className={`px-2.5 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
-              style={segBtn(dist === km)}>
-              ≤{km} km
-            </button>
-          ))}
-        </div>
-        {showPrice && (
-          <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
-            {([1, 2, 3] as const).map((p, i) => (
-              <button key={p} onClick={() => onPrice(price === p ? null : p)}
-                className={`px-3 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
-                style={segBtn(price === p)}>
-                {'€'.repeat(p)}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
-          <span className="pl-2.5 pr-1 text-[13px]">⭐</span>
-          {([4, 4.5] as const).map((s, i) => (
-            <button key={s} onClick={() => onStars(stars === s ? null : s)}
-              className={`px-2.5 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
-              style={segBtn(stars === s)}>
-              {s === 4 ? '4+' : '4.5+'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {geoNote && (
-        <p className="text-[11.5px] font-bold text-white/45">📍 {geoNote}</p>
-      )}
-
-      {/* Tulos / CTA / tyhjä */}
-      {pick ? (
-        <div className="rounded-[16px] p-3.5 space-y-3" style={{ background: 'rgba(10,10,14,.55)', border: '1px solid rgba(255,255,255,.08)' }}>
-          <div className={`flex gap-3 ${pick.image ? 'flex-col sm:flex-row sm:items-center' : 'items-center'}`}>
-            {pick.image ? (
-              <div onClick={() => onOpen(pick)}
-                className="relative w-full aspect-[16/9] sm:w-48 sm:h-32 sm:aspect-auto rounded-[12px] overflow-hidden shrink-0 cursor-pointer"
-                style={{ border: '1px solid rgba(255,255,255,.1)' }}>
-                <img src={pick.image} alt={pick.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
-              </div>
-            ) : (
-              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[22px] shrink-0"
-                style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(255,255,255,.08)' }}>
-                {pickEmoji}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="font-black text-white text-[15px] truncate" style={{ letterSpacing: '-0.01em' }}>{pick.name}</p>
-              <div className="flex items-center gap-2 flex-wrap text-[11.5px] font-bold mt-0.5">
-                {open !== undefined && (
-                  <span style={{ color: open ? '#5fd9a6' : '#e8c06a' }}>● {open ? 'Avoinna' : 'Suljettu'}</span>
-                )}
-                {todayHrs && <span className="text-white/40">🕐 {todayHrs}</span>}
-                {pick.googleRating && (pick.reviewCount ?? 0) > 0 && <span className="text-white/40">⭐ {pick.googleRating.toFixed(1)}</span>}
-                {pick.priceRange && <span className="text-white/40">{'€'.repeat(Math.min(pick.priceRange, 4))}</span>}
-                {pickDist !== undefined && <span className="text-white/40">{fmtDist(pickDist)}</span>}
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={onAgain} disabled={pool.length <= 1 || locPending}
-              className="py-2.5 rounded-full text-[13px] font-black text-white/70 transition-all active:scale-[.97] disabled:active:scale-100"
-              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', opacity: pool.length <= 1 || locPending ? 0.45 : 1 }}>
-              {pool.length <= 1 ? 'Ainoa osuma' : '🔄 Anna toinen'}
-            </button>
-            <button onClick={() => onOpen(pick)}
-              className="py-2.5 rounded-full text-[13px] font-black text-white transition-all active:scale-[.97]"
-              style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 20px -8px rgba(91,101,230,.85)' }}>
-              Avaa →
-            </button>
-          </div>
-        </div>
-      ) : tried && pool.length === 0 ? (
-        <div className="text-center py-2 space-y-2">
-          <p className="text-[13px] font-bold text-white/45">Ei osumia näillä rajauksilla.</p>
-          {hasFilters && (
-            <button onClick={onClear}
-              className="px-4 py-2 rounded-full text-[12.5px] font-black text-white/80 transition-all active:scale-[.97]"
-              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
-              Tyhjennä suodattimet
-            </button>
-          )}
-        </div>
-      ) : (
-        <button onClick={onDecide} disabled={locPending}
-          className="w-full py-3.5 rounded-2xl text-[14.5px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[.98] disabled:active:scale-100"
-          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)', opacity: locPending ? 0.6 : 1 }}>
-          🎲 Päätä puolestani
-          {/* Sijaintihaun aikana pooli on vielä rajaamaton — lukema valehtelisi */}
-          {!locPending && <span className="opacity-55 text-[12.5px]">· {pool.length}</span>}
-        </button>
-      )}
-    </section>
-  )
-}
-
-// ── Quick sort pills ──────────────────────────────────────
-
-function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby }: {
+// Hoikka suodatinrivi — näkyy KAIKISSA näkymissä (kaikki + alakategoriat).
+// Korvaa entisen "Auta valitsemaan" -paneelin: samat suodattimet, mutta
+// suoraan ruudukkoon eikä erilliseen arvontapooliin.
+function QuickSortPills({ filterOpen, filterNearby, priceMax, minStars, showPrice, onToggleOpen, onToggleNearby, onPrice, onStars }: {
   filterOpen: boolean
   filterNearby: boolean
+  priceMax: PriceSeg
+  minStars: StarSeg
+  showPrice: boolean
   onToggleOpen: () => void
   onToggleNearby: () => void
+  onPrice: (p: PriceSeg) => void
+  onStars: (s: StarSeg) => void
 }) {
   const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
   const off = { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
+  const pill = 'shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all'
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-      <button onClick={onToggleOpen}
-        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-        style={filterOpen ? on : off}>
+      <button onClick={onToggleOpen} className={pill} style={filterOpen ? on : off}>
         🟢 {t('idea.open_now')}
       </button>
-      <button onClick={onToggleNearby}
-        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-        style={filterNearby ? on : off}>
+      <button onClick={onToggleNearby} className={pill} style={filterNearby ? on : off}>
         📍 {t('restaurants.sort_nearby')}
       </button>
+      {showPrice && ([1, 2, 3] as const).map((p) => (
+        <button key={p} onClick={() => onPrice(priceMax === p ? null : p)} className={pill} style={priceMax === p ? on : off}>
+          {'€'.repeat(p)}
+        </button>
+      ))}
+      {([4, 4.5] as const).map((s) => (
+        <button key={s} onClick={() => onStars(minStars === s ? null : s)} className={pill} style={minStars === s ? on : off}>
+          ★ {s}+
+        </button>
+      ))}
     </div>
   )
 }
@@ -980,20 +847,9 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [selectedChain, setSelectedChain] = useState<ChainGroup | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   const [news, setNews] = useState<NewsItem[]>([])
-  // 🎯 Auta valitsemaan — kompaktit suodattimet + arvottu ehdotus
-  const [rcDist, setRcDist] = useState<DistSeg>(null)
-  const [rcPrice, setRcPrice] = useState<PriceSeg>(null)
-  const [rcStars, setRcStars] = useState<StarSeg>(null)
-  const [rcPick, setRcPick] = useState<Restaurant | null>(null)
-  const [rcTried, setRcTried] = useState(false)
-  // Sijainnin tila: pending = haku käynnissä, denied = lupa evätty,
-  // failed = tekninen virhe (timeout/ei saatavilla) — eri viesti kuin epäys.
-  // Jokainen uusi haku nollaa tilan → yksi ohimennyt timeout ei salpaa
-  // etäisyyssuodatinta loppuistunnoksi.
-  const [geoStatus, setGeoStatus] = useState<'idle' | 'pending' | 'denied' | 'failed'>('idle')
-  const [distTried, setDistTried] = useState(false)
-  // Istunnon aikana jo ehdotetut — arvonta kiertää koko poolin ennen toistoa
-  const rcSeen = useRef<Set<string>>(new Set())
+  // Suodattimet (QuickSortPills) — hinta-katto ja min-arvosana
+  const [priceMax, setPriceMax] = useState<PriceSeg>(null)
+  const [minStars, setMinStars] = useState<StarSeg>(null)
 
   useEffect(() => {
     fetch('/api/restaurants')
@@ -1019,24 +875,21 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   }, [])
 
   useEffect(() => {
-    setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setVisibleCount(48)
-    // Uusi välilehti = uusi arvontaistunto. rcPrice nollataan koska
-    // €-segmentti näkyy vain ruokapaikoissa — aktiivinen mutta näkymätön
-    // suodatin muilla välilehdillä olisi selittämätön.
-    setRcPick(null); setRcTried(false); setRcPrice(null); rcSeen.current.clear()
+    // Uusi tyyppivälilehti nollaa suodattimet (näkymätön aktiivinen suodatin
+    // muulla välilehdellä olisi selittämätön).
+    setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setPriceMax(null); setMinStars(null); setVisibleCount(48)
   }, [restType])
-  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby])
+  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby, priceMax, minStars])
   // Alakategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
   // Auki/Lähellä-pillerit näkyvät nykyään myös alakategoriassa, joten
   // suodattimia ei enää nollata kategoriaan mentäessä (ei näkymätöntä vuotoa).
   useEffect(() => { if (subCat !== 'all') window.scrollTo(0, 0) }, [subCat])
 
   const locateMe = useCallback(() => {
-    if (!navigator.geolocation) { setGeoStatus('failed'); return }
-    setGeoStatus('pending')
+    if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
-      pos => { setGeoStatus('idle'); setUserPos([pos.coords.latitude, pos.coords.longitude]) },
-      err => setGeoStatus(err.code === 1 ? 'denied' : 'failed'),
+      pos => setUserPos([pos.coords.latitude, pos.coords.longitude]),
+      () => {},
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
@@ -1081,10 +934,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   }, [typePool, subCat, restType])
 
   const sortedPool = useMemo(() => {
-    const result = [...subPool]
-    const filtered = filterOpen
-      ? result.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
-      : result
+    let filtered = [...subPool]
+    if (filterOpen) filtered = filtered.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
+    // Hintakatto: näytä ≤ valittu taso (€ = vain edulliset … €€€ = kaikki paitsi kalleimmat)
+    // Hintakatto ≤ valittu taso. Hinnattomat (OSM:ssä yleisiä) SÄILYVÄT — ei
+    // piiloteta tuntemattomia, vastaa palvelinsuodatinta ja "≤ katto" -lupausta.
+    if (priceMax !== null) filtered = filtered.filter(r => r.priceRange == null || r.priceRange <= priceMax)
+    // Min-arvosana (Michelin/Bib korvaa arvostelumäärävaatimuksen isRatedAtLeastissa)
+    if (minStars !== null) filtered = filtered.filter(r => isRatedAtLeast(r, minStars))
     if (filterNearby && userPos) {
       // Käyttäjä pyysi eksplisiittisesti lähimpiä → etäisyys voittaa
       filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
@@ -1099,7 +956,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       })
     }
     return filtered
-  }, [subPool, filterOpen, filterNearby, userPos, distMap])
+  }, [subPool, filterOpen, filterNearby, priceMax, minStars, userPos, distMap])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
 
@@ -1110,100 +967,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       ?? null
   }, [typePool])
 
-  // ── 🎯 Auta valitsemaan: suodatettu arvontapooli ────────────────────────
-  const rcPool = useMemo(() => {
-    return typePool.filter(r => {
-      if (rcStars !== null && !isRatedAtLeast(r, rcStars)) return false
-      if (rcPrice !== null) {
-        if (!r.priceRange) return false
-        if (rcPrice === 3 ? r.priceRange < 3 : r.priceRange !== rcPrice) return false
-      }
-      if (rcDist !== null && userPos) {
-        const d = distMap.get(r.id)
-        if (d === undefined || d > rcDist) return false
-      }
-      return true
-    })
-  }, [typePool, rcStars, rcPrice, rcDist, userPos, distMap])
-
-  const rollPick = useCallback((avoidId?: string) => {
-    if (rcPool.length === 0) { setRcPick(null); return }
-    const seen = rcSeen.current
-    // Aukiolo-porrastus: auki nyt > tuntematon > kiinni. Kiinni olevaa ei
-    // ehdoteta niin kauan kuin yksikin auki tai aukioloiltaan tuntematon
-    // osuma on jäljellä — "minne menen NYT" ei ratkea suljetulla paikalla.
-    const now = helsinkiNow()
-    const tiers: [Restaurant[], Restaurant[], Restaurant[]] = [[], [], []]
-    for (const r of rcPool) {
-      const o = isOpenNow(r.openingHours, now)
-      tiers[o === true ? 0 : o === undefined ? 1 : 2].push(r)
-    }
-    // Kiinni olevia (tier 3) ehdotetaan vain jos poolissa ei ole yhtään
-    // auki olevaa tai aukioloiltaan tuntematonta — kun auki olevat on
-    // kierretty, kierto alkaa mieluummin alusta kuin tarjoaa suljettua.
-    const sources = tiers[0].length || tiers[1].length ? [tiers[0], tiers[1]] : [tiers[2]]
-    const draw = () => {
-      for (const t of sources) {
-        const c = t.filter(r => r.id !== avoidId && !seen.has(r.id))
-        if (c.length) return c
-      }
-      return null
-    }
-    let cands = draw()
-    if (!cands) {
-      // Kierros käyty läpi — aloitetaan alusta, nykyinen kortti pysyy poissa
-      seen.clear()
-      cands = draw() ?? rcPool.filter(r => r.id !== avoidId)
-      if (!cands.length) cands = rcPool
-    }
-    // Painotettu arvonta: kuva +1, laatu +1 (1–3). Hyvät ja kuvalliset
-    // nousevat useammin, mutta jokainen poolin paikka on saavutettavissa —
-    // kova kuvasuodatus teki kuvattomista ikuisesti näkymättömiä.
-    const weightOf = (r: Restaurant) =>
-      1 + (r.image ? 1 : 0)
-        + ((((r.googleRating ?? 0) >= 4.2 && (r.reviewCount ?? 0) >= 50)
-            || r.michelinStars || r.bibGourmand || r.michelinRecommended) ? 1 : 0)
-    const total = cands.reduce((s, r) => s + weightOf(r), 0)
-    let roll = Math.random() * total
-    let pick = cands[cands.length - 1]
-    for (const r of cands) { roll -= weightOf(r); if (roll <= 0) { pick = r; break } }
-    seen.add(pick.id)
-    setRcPick(pick)
-  }, [rcPool])
-
-  const handleDecide = useCallback(() => { setRcTried(true); rollPick() }, [rollPick])
-  const handleAgain = useCallback(() => rollPick(rcPick?.id), [rollPick, rcPick])
-
-  // Etäisyysvalinta pyytää sijainnin laiskasti
-  const handleRcDist = useCallback((d: DistSeg) => {
-    setRcDist(d)
-    if (d !== null) {
-      setDistTried(true)
-      if (!userPos) locateMe()
-    }
-  }, [userPos, locateMe])
-  // Kun paikannus epäonnistuu, etäisyysvalinta ei saa jäädä "päälle"
-  // valehtelemaan. Nollaus VAIN tilasiirtymässä (rcDist ei depseissä) —
-  // uusi klikkaus käynnistää aina uuden haun (pending), joten se ei
-  // pyyhkiydy vanhan virheen takia.
-  useEffect(() => {
-    if (geoStatus === 'denied' || geoStatus === 'failed') setRcDist(null)
-  }, [geoStatus])
-
-  // Suodattimen vaihto: jos nykyinen ehdotus kelpaa yhä, se PIDETÄÄN —
-  // uusi arvonta vain kun ehdotus putoaa poolista. Näin suodattimen
-  // säätö ei koskaan "arvo samaa korttia uusiksi" eikä alempaa tulevan
-  // 📍 Lähellä -pillerin sijaintihaku vaihda ehdotusta salaa.
-  useEffect(() => {
-    if (!rcTried) return
-    if (rcPick && rcPool.some(r => r.id === rcPick.id)) return
-    rollPick(rcPick?.id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rcDist, rcPrice, rcStars, userPos])
-
-  const handleRcClear = useCallback(() => { setRcDist(null); setRcPrice(null); setRcStars(null) }, [])
-
-  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false) }, [])
+  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setPriceMax(null); setMinStars(null) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -1241,43 +1005,18 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                Auta valitsemaan → yksi ruudukko (ei karuselleja) ═══ */}
           {subCat === 'all' && (
             <>
-              {heroRest && (
+              {/* Hero piilotetaan kun kova suodatin (hinta/arvosana) on päällä —
+                  ettei ylänosto riitele suodatetun ruudukon kanssa */}
+              {heroRest && priceMax === null && minStars === null && (
                 <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
               )}
 
               <SubCatGrid restType={restType} onSelect={setSubCat} />
 
-              <DecidePanel
-                pool={rcPool}
-                pick={rcPick}
-                tried={rcTried}
-                dist={rcDist}
-                price={rcPrice}
-                stars={rcStars}
-                showPrice={restType === 'ruokapaikat'}
-                geoNote={rcDist !== null && !userPos && geoStatus === 'pending'
-                  ? 'Haetaan sijaintia…'
-                  : distTried && geoStatus === 'denied'
-                    ? 'Sijaintia ei saatu — salli sijainti selaimessa'
-                    : distTried && geoStatus === 'failed'
-                      ? 'Sijaintia ei saatu — kokeile hetken päästä uudelleen'
-                      : null}
-                locPending={rcDist !== null && !userPos && geoStatus === 'pending'}
-                distMap={distMap}
-                onDist={handleRcDist}
-                onPrice={setRcPrice}
-                onStars={setRcStars}
-                onClear={handleRcClear}
-                onDecide={handleDecide}
-                onAgain={handleAgain}
-                onOpen={setSelectedRest}
-              />
-
-              {/* Tuoreita artikkeleita valinnan tueksi — tärkeä lokaaleille,
-                  pidetään näkyvillä heti valinta-avun jälkeen (ei karuselleja alla) */}
+              {/* Tuoreita artikkeleita valinnan tueksi — tärkeä lokaaleille */}
               <NewsSection items={news} />
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} priceMax={priceMax} minStars={minStars} showPrice={restType === 'ruokapaikat'} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onPrice={setPriceMax} onStars={setMinStars} />
 
               {/* Kärkipoiminnat: ~60 parasta (kuva + arvosana). Loput kategorioittain yltä. */}
               {groupedSortedPool.length > 0 ? (
@@ -1287,7 +1026,8 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </h2>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
                     {groupedSortedPool
-                      .filter(item => '_isChain' in item || item.id !== heroRest?.id)
+                      // Sulje hero pois vain kun se näytetään (ei kovaa suodatinta) — muuten näyttäisi tyhjää
+                      .filter(item => priceMax !== null || minStars !== null || '_isChain' in item || item.id !== heroRest?.id)
                       .slice(0, TOP_PICKS).map(item =>
                       '_isChain' in item
                         ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
@@ -1326,7 +1066,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 </h2>
               </div>
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} priceMax={priceMax} minStars={minStars} showPrice={restType === 'ruokapaikat'} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onPrice={setPriceMax} onStars={setMinStars} />
 
               {groupedSortedPool.length > 0 ? (
                 <>

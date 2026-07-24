@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { MapPin, Globe, Phone, Navigation, Clock, Ticket, Timer, Map as MapIcon, X } from 'lucide-react'
 import type { Activity, ActivityCategory } from '@/lib/types'
 import { getHighlight } from '@/lib/activity-highlights'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
-import { isOpenNow, getTodayHours, helsinkiNow } from '@/lib/opening-hours'
+import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -416,156 +416,36 @@ function ActSubTabs({ active, onSelect }: {
   )
 }
 
-// ── 🎯 Auta valitsemaan (design 5-aktiviteetit.png): 🚶-etäisyys + 🟢 Auki ──
-type ActDistSeg = 1 | 3 | null  // ≤1 km | ≤3 km — kumulatiivinen säde
 
-function ActDecidePanel({ pool, pick, tried, dist, auki, geoNote, locPending, distMap, ratingMap, onDist, onAuki, onClear, onDecide, onAgain, onOpen }: {
-  pool: Activity[]
-  pick: Activity | null
-  tried: boolean
-  dist: ActDistSeg
-  auki: boolean
-  geoNote: string | null
-  locPending: boolean
-  distMap: Map<string, number>
-  ratingMap: Map<string, { rating: number; reviewCount: number }>
-  onDist: (d: ActDistSeg) => void
-  onAuki: () => void
-  onClear: () => void
-  onDecide: () => void
-  onAgain: () => void
-  onOpen: (a: Activity) => void
-}) {
-  const hasFilters = dist !== null || auki
-  const segBtn = (isActive: boolean): React.CSSProperties => ({
-    color: isActive ? '#fff' : 'rgba(255,255,255,.45)',
-    background: isActive ? 'rgba(107,118,255,.35)' : 'transparent',
-    fontWeight: 800,
-  })
-  const pickOpen = pick
-    ? (!pick.openingHours && OUTDOOR_ALWAYS_OPEN.includes(pick.category) ? true : isOpenNow(pick.openingHours))
-    : undefined
-  const pickDist = pick ? distMap.get(pick.id) : undefined
-  const pickRating = pick ? ratingMap.get(pick.name.toLowerCase()) : undefined
-
-  return (
-    <section className="rounded-[20px] p-4 space-y-3"
-      style={{ background: 'rgba(107,118,255,.06)', border: '1px solid rgba(107,118,255,.3)' }}>
-      <h2 className="font-black text-white text-[16px]" style={{ letterSpacing: '-0.02em' }}>🎯 Auta valitsemaan</h2>
-
-      <div className="flex flex-wrap gap-2">
-        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
-          <span className="pl-2.5 pr-1 text-[13px]">🚶</span>
-          {([1, 3] as const).map((km, i) => (
-            <button key={km} onClick={() => onDist(dist === km ? null : km)}
-              className={`px-2.5 py-2 text-[12px] transition-all ${i > 0 ? 'border-l border-white/8' : ''}`}
-              style={segBtn(dist === km)}>
-              ≤{km} km
-            </button>
-          ))}
-        </div>
-        <button onClick={onAuki}
-          className="px-3.5 py-2 rounded-xl text-[12px] font-black transition-all"
-          style={{
-            background: auki ? 'rgba(107,118,255,.35)' : 'rgba(255,255,255,.05)',
-            border: auki ? '1px solid rgba(107,118,255,.5)' : '1px solid rgba(255,255,255,.09)',
-            color: auki ? '#fff' : 'rgba(255,255,255,.45)',
-          }}>
-          🟢 Auki
-        </button>
-      </div>
-
-      {geoNote && (
-        <p className="text-[11.5px] font-bold text-white/45">📍 {geoNote}</p>
-      )}
-
-      {pick ? (
-        <div className="rounded-[16px] p-3.5 space-y-3" style={{ background: 'rgba(10,10,14,.55)', border: '1px solid rgba(255,255,255,.08)' }}>
-          <div className={`flex gap-3 ${pick.image ? 'flex-col sm:flex-row sm:items-center' : 'items-center'}`}>
-            {pick.image ? (
-              <div onClick={() => onOpen(pick)}
-                className="relative w-full aspect-[16/9] sm:w-48 sm:h-32 sm:aspect-auto rounded-[12px] overflow-hidden shrink-0 cursor-pointer"
-                style={{ border: '1px solid rgba(255,255,255,.1)' }}>
-                <img src={pick.image} alt={pick.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
-              </div>
-            ) : (
-              <div className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[22px] shrink-0"
-                style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(255,255,255,.08)' }}>
-                {CATEGORY_META[pick.category]?.emoji ?? '✨'}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="font-black text-white text-[15px] truncate" style={{ letterSpacing: '-0.01em' }}>{pick.name}</p>
-              <div className="flex items-center gap-2 flex-wrap text-[11.5px] font-bold mt-0.5">
-                <span className="text-white/40">{CATEGORY_META[pick.category]?.label}</span>
-                {pickOpen !== undefined && (
-                  <span style={{ color: pickOpen ? '#5fd9a6' : '#e8c06a' }}>● {pickOpen ? 'Avoinna' : 'Suljettu'}</span>
-                )}
-                {pick.fee === false && <span style={{ color: '#5fd9a6' }}>Ilmainen</span>}
-                {pickRating && <span className="text-white/40">⭐ {pickRating.rating.toFixed(1)}</span>}
-                {pickDist !== undefined && <span className="text-white/40">{fmtDist(pickDist)}</span>}
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={onAgain} disabled={pool.length <= 1 || locPending}
-              className="py-2.5 rounded-full text-[13px] font-black text-white/70 transition-all active:scale-[.97] disabled:active:scale-100"
-              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', opacity: pool.length <= 1 || locPending ? 0.45 : 1 }}>
-              {pool.length <= 1 ? 'Ainoa osuma' : '🔄 Anna toinen'}
-            </button>
-            <button onClick={() => onOpen(pick)}
-              className="py-2.5 rounded-full text-[13px] font-black text-white transition-all active:scale-[.97]"
-              style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 20px -8px rgba(91,101,230,.85)' }}>
-              Avaa →
-            </button>
-          </div>
-        </div>
-      ) : tried && pool.length === 0 ? (
-        <div className="text-center py-2 space-y-2">
-          <p className="text-[13px] font-bold text-white/45">Ei osumia näillä rajauksilla.</p>
-          {hasFilters && (
-            <button onClick={onClear}
-              className="px-4 py-2 rounded-full text-[12.5px] font-black text-white/80 transition-all active:scale-[.97]"
-              style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
-              Tyhjennä suodattimet
-            </button>
-          )}
-        </div>
-      ) : (
-        <button onClick={onDecide} disabled={locPending}
-          className="w-full py-3.5 rounded-2xl text-[14.5px] font-black text-white flex items-center justify-center gap-2 transition-all active:scale-[.98] disabled:active:scale-100"
-          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)', opacity: locPending ? 0.6 : 1 }}>
-          🎲 Päätä puolestani
-          {/* Sijaintihaun aikana pooli on vielä rajaamaton — lukema valehtelisi */}
-          {!locPending && <span className="opacity-55 text-[12.5px]">· {pool.length}</span>}
-        </button>
-      )}
-    </section>
-  )
-}
-
-// ── Quick sort pills ──────────────────────────────────────
-
-function QuickSortPills({ filterOpen, filterNearby, onToggleOpen, onToggleNearby }: {
+// Hoikka suodatinrivi — näkyy KAIKISSA näkymissä. Korvaa entisen
+// "Auta valitsemaan" -paneelin: suodattimet suoraan ruudukkoon.
+function QuickSortPills({ filterOpen, filterNearby, freeOnly, minRating, onToggleOpen, onToggleNearby, onToggleFree, onRating }: {
   filterOpen: boolean
   filterNearby: boolean
+  freeOnly: boolean
+  minRating: number | null
   onToggleOpen: () => void
   onToggleNearby: () => void
+  onToggleFree: () => void
+  onRating: (r: number | null) => void
 }) {
   const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
   const off = { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
+  const pill = 'shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all'
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-      <button onClick={onToggleOpen}
-        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-        style={filterOpen ? on : off}>
+      <button onClick={onToggleOpen} className={pill} style={filterOpen ? on : off}>
         🟢 {t('idea.open_now')}
       </button>
-      <button onClick={onToggleNearby}
-        className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-        style={filterNearby ? on : off}>
+      <button onClick={onToggleNearby} className={pill} style={filterNearby ? on : off}>
         📍 {t('activities.sort_nearby')}
+      </button>
+      <button onClick={onToggleFree} className={pill} style={freeOnly ? on : off}>
+        🆓 {t('common.free_badge')}
+      </button>
+      <button onClick={() => onRating(minRating === 4 ? null : 4)} className={pill} style={minRating === 4 ? on : off}>
+        ★ 4+
       </button>
     </div>
   )
@@ -587,17 +467,9 @@ export default function ActivitiesView({ onShowOnMap }: {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [activityGoogle, setActivityGoogle] = useState<ActivityGoogleData | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
-  // 🎯 Auta valitsemaan — etäisyys + auki-suodatin + arvottu ehdotus
-  const [acDist, setAcDist] = useState<ActDistSeg>(null)
-  const [acAuki, setAcAuki] = useState(false)
-  const [acPick, setAcPick] = useState<Activity | null>(null)
-  const [acTried, setAcTried] = useState(false)
-  // Sijainnin tila: pending = haku käynnissä, denied = lupa evätty,
-  // failed = tekninen virhe — jokainen uusi haku nollaa tilan
-  const [geoStatus, setGeoStatus] = useState<'idle' | 'pending' | 'denied' | 'failed'>('idle')
-  const [distTried, setDistTried] = useState(false)
-  // Istunnon aikana jo ehdotetut — arvonta kiertää koko poolin ennen toistoa
-  const acSeen = useRef<Set<string>>(new Set())
+  // Suodattimet (QuickSortPills): vain ilmaiset + min-arvosana
+  const [freeOnly, setFreeOnly] = useState(false)
+  const [minRating, setMinRating] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/activities')
@@ -632,14 +504,13 @@ export default function ActivitiesView({ onShowOnMap }: {
   // Auki/Lähellä-pillerit näkyvät nykyään myös kategorialistassa, joten
   // suodattimia ei enää nollata kategoriaan mentäessä.
   useEffect(() => { if (catFilter !== 'all') window.scrollTo(0, 0) }, [catFilter])
-  useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby])
+  useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby, freeOnly, minRating])
 
   const locateMe = useCallback(() => {
-    if (!navigator.geolocation) { setGeoStatus('failed'); return }
-    setGeoStatus('pending')
+    if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
-      pos => { setGeoStatus('idle'); setUserPos([pos.coords.latitude, pos.coords.longitude]) },
-      err => setGeoStatus(err.code === 1 ? 'denied' : 'failed'),
+      pos => setUserPos([pos.coords.latitude, pos.coords.longitude]),
+      () => {},
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
@@ -675,103 +546,22 @@ export default function ActivitiesView({ onShowOnMap }: {
     return activities.filter(a => a.category === catFilter)
   }, [activities, catFilter])
 
-  // ── 🎯 Auta valitsemaan: suodatettu arvontapooli ────────────────────────
-  const acPool = useMemo(() => {
-    return activities.filter(a => {
-      if (acAuki) {
-        const open = !a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : isOpenNow(a.openingHours)
-        if (open !== true) return false
-      }
-      if (acDist !== null && userPos) {
-        const d = distMap.get(a.id)
-        if (d === undefined || d > acDist) return false
-      }
-      return true
-    })
-  }, [activities, acAuki, acDist, userPos, distMap])
-
-  const acRoll = useCallback((avoidId?: string) => {
-    if (acPool.length === 0) { setAcPick(null); return }
-    const seen = acSeen.current
-    // Aukiolo-porrastus: auki nyt > tuntematon > kiinni (ulkokohteet ilman
-    // aukioloja lasketaan auki oleviksi). Kiinni olevaa ei ehdoteta niin
-    // kauan kuin parempi osuma on jäljellä.
-    const now = helsinkiNow()
-    const openState = (a: Activity) =>
-      !a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : isOpenNow(a.openingHours, now)
-    const tiers: [Activity[], Activity[], Activity[]] = [[], [], []]
-    for (const a of acPool) {
-      const o = openState(a)
-      tiers[o === true ? 0 : o === undefined ? 1 : 2].push(a)
-    }
-    // Kiinni olevia ehdotetaan vain jos poolissa ei ole yhtään auki olevaa
-    // tai tuntematonta — kierto alkaa mieluummin alusta kuin tarjoaa suljettua
-    const sources = tiers[0].length || tiers[1].length ? [tiers[0], tiers[1]] : [tiers[2]]
-    const draw = () => {
-      for (const t of sources) {
-        const c = t.filter(a => a.id !== avoidId && !seen.has(a.id))
-        if (c.length) return c
-      }
-      return null
-    }
-    let cands = draw()
-    if (!cands) {
-      seen.clear()
-      cands = draw() ?? acPool.filter(a => a.id !== avoidId)
-      if (!cands.length) cands = acPool
-    }
-    // Painotettu arvonta: kuva +1, laatu +1 — hyvät nousevat useammin,
-    // mutta jokainen poolin kohde on saavutettavissa
-    const weightOf = (a: Activity) => {
-      const rt = ratingMap.get(a.name.toLowerCase())
-      return 1 + (a.image ? 1 : 0) + (rt && rt.rating >= 4.2 && rt.reviewCount >= 50 ? 1 : 0)
-    }
-    const total = cands.reduce((s, a) => s + weightOf(a), 0)
-    let roll = Math.random() * total
-    let pick = cands[cands.length - 1]
-    for (const a of cands) { roll -= weightOf(a); if (roll <= 0) { pick = a; break } }
-    seen.add(pick.id)
-    setAcPick(pick)
-  }, [acPool, ratingMap])
-
-  const handleAcDecide = useCallback(() => { setAcTried(true); acRoll() }, [acRoll])
-  const handleAcAgain = useCallback(() => acRoll(acPick?.id), [acRoll, acPick])
-  const handleAcDist = useCallback((d: ActDistSeg) => {
-    setAcDist(d)
-    if (d !== null) {
-      setDistTried(true)
-      if (!userPos) locateMe()
-    }
-  }, [userPos, locateMe])
-  // Nollaus VAIN tilasiirtymässä (acDist ei depseissä) — uusi klikkaus
-  // käynnistää uuden haun eikä pyyhkiydy vanhan virheen takia
-  useEffect(() => {
-    if (geoStatus === 'denied' || geoStatus === 'failed') setAcDist(null)
-  }, [geoStatus])
-
-  // Suodattimen vaihto: jos nykyinen ehdotus kelpaa yhä, se pidetään —
-  // uusi arvonta vain kun ehdotus putoaa poolista
-  useEffect(() => {
-    if (!acTried) return
-    if (acPick && acPool.some(a => a.id === acPick.id)) return
-    acRoll(acPick?.id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acDist, acAuki, userPos])
-
-  const handleAcClear = useCallback(() => { setAcDist(null); setAcAuki(false) }, [])
 
   const sortedPool = useMemo(() => {
     // Oletusnäkymä (catFilter==='all') renderöi localPicksin, ei sortedPoolia —
     // ei turhaan lajitella koko ~2500 kohteen listaa pillerivalinnoilla
     if (catFilter === 'all') return []
-    const result = [...catPool]
-    const filtered = filterOpen
-      ? result.filter(a => {
-          // Outdoor spots without opening_hours are always accessible
-          if (!a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category)) return true
-          return isOpenNow(a.openingHours) === true
-        })
-      : result
+    let filtered = [...catPool]
+    if (filterOpen) filtered = filtered.filter(a => {
+      // Outdoor spots without opening_hours are always accessible
+      if (!a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category)) return true
+      return isOpenNow(a.openingHours) === true
+    })
+    if (freeOnly) filtered = filtered.filter(a => a.fee === false)
+    if (minRating !== null) filtered = filtered.filter(a => {
+      const rt = ratingMap.get(a.name.toLowerCase())
+      return rt != null && rt.rating >= minRating && rt.reviewCount >= 10
+    })
     if (filterNearby && userPos && distMap.size > 0) {
       filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     } else {
@@ -791,7 +581,7 @@ export default function ActivitiesView({ onShowOnMap }: {
       })
     }
     return filtered
-  }, [catPool, filterOpen, filterNearby, userPos, distMap, ratingMap])
+  }, [catPool, filterOpen, filterNearby, freeOnly, minRating, userPos, distMap, ratingMap])
 
   // Hero rotates by day of week across different categories
   const heroActivity = useMemo(() => {
@@ -829,15 +619,23 @@ export default function ActivitiesView({ onShowOnMap }: {
       if (ACT_TOURIST_DEMOTE.test(a.name)) s -= 4
       return s
     }
-    // Kuratoinnin arvoiset: kiinnostava kategoria TAI kuva/arvosana on. Hero
-    // suljetaan pois, ettei sama kohde näy sekä ylänostona että ruudukkona.
+    // Hero näytetään vain ilman kovaa suodatinta → sulje se pois ruudukosta vain
+    // silloin (muuten hero voi olla kelvollinen suodatettu kohde, ei duplikaattia).
+    const heroShown = !freeOnly && minRating === null
+    // Kuratoinnin arvoiset: kiinnostava kategoria TAI kuva/arvosana on.
     const candidates = activities.filter(a =>
-      a.id !== heroActivity?.id &&
+      (!heroShown || a.id !== heroActivity?.id) &&
       (ACT_CURATED_CATS.has(a.category) || !!a.image || ratingMap.has(a.name.toLowerCase()))
     )
     const open = (a: Activity) =>
       !a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : isOpenNow(a.openingHours) === true
-    const pool = filterOpen ? candidates.filter(open) : candidates
+    let pool = candidates
+    if (filterOpen) pool = pool.filter(open)
+    if (freeOnly) pool = pool.filter(a => a.fee === false)
+    if (minRating !== null) pool = pool.filter(a => {
+      const rt = ratingMap.get(a.name.toLowerCase())
+      return rt != null && rt.rating >= minRating && rt.reviewCount >= 10
+    })
     // Lähellä-tila: puhdas etäisyysjärjestys kuratoidusta setistä (ei kategoriakattoa)
     if (filterNearby && userPos && distMap.size > 0) {
       return [...pool]
@@ -885,9 +683,9 @@ export default function ActivitiesView({ onShowOnMap }: {
       }
     }
     return picks
-  }, [activities, catFilter, ratingMap, filterOpen, filterNearby, userPos, distMap, heroActivity])
+  }, [activities, catFilter, ratingMap, filterOpen, filterNearby, freeOnly, minRating, userPos, distMap, heroActivity])
 
-  const clearFilter = useCallback(() => { setCatFilter('all'); setFilterOpen(false); setFilterNearby(false) }, [])
+  const clearFilter = useCallback(() => { setCatFilter('all'); setFilterOpen(false); setFilterNearby(false); setFreeOnly(false); setMinRating(null) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -922,7 +720,9 @@ export default function ActivitiesView({ onShowOnMap }: {
                Auta valitsemaan → yksi ruudukko (ei karuselleja) ═══ */}
           {catFilter === 'all' && (
             <>
-              {heroActivity && (
+              {/* Hero piilotetaan kun kova suodatin (🆓/★) on päällä — ettei
+                  ylänosto riitele suodatetun ruudukon kanssa */}
+              {heroActivity && !freeOnly && minRating === null && (
                 <ActivityHero
                   a={heroActivity}
                   distance={distMap.get(heroActivity.id)}
@@ -933,31 +733,7 @@ export default function ActivitiesView({ onShowOnMap }: {
 
               <CategoryGrid onSelect={setCatFilter} />
 
-              <ActDecidePanel
-                pool={acPool}
-                pick={acPick}
-                tried={acTried}
-                dist={acDist}
-                auki={acAuki}
-                geoNote={acDist !== null && !userPos && geoStatus === 'pending'
-                  ? 'Haetaan sijaintia…'
-                  : distTried && geoStatus === 'denied'
-                    ? 'Sijaintia ei saatu — salli sijainti selaimessa'
-                    : distTried && geoStatus === 'failed'
-                      ? 'Sijaintia ei saatu — kokeile hetken päästä uudelleen'
-                      : null}
-                locPending={acDist !== null && !userPos && geoStatus === 'pending'}
-                distMap={distMap}
-                ratingMap={ratingMap}
-                onDist={handleAcDist}
-                onAuki={() => setAcAuki(v => !v)}
-                onClear={handleAcClear}
-                onDecide={handleAcDecide}
-                onAgain={handleAcAgain}
-                onOpen={setSelectedActivity}
-              />
-
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} freeOnly={freeOnly} minRating={minRating} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onToggleFree={() => setFreeOnly(v => !v)} onRating={setMinRating} />
 
               {/* Kärkipoiminnat: ~60 lokaalisti kiinnostavinta. Loput kategorioittain yltä. */}
               {localPicks.length > 0 ? (
@@ -1001,7 +777,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                 <span className="text-white/30 text-[14px] font-bold"> · {sortedPool.length} kohdetta</span>
               </h2>
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} freeOnly={freeOnly} minRating={minRating} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onToggleFree={() => setFreeOnly(v => !v)} onRating={setMinRating} />
 
               {sortedPool.length > 0 ? (
                 <>
