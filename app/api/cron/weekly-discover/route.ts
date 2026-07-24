@@ -52,7 +52,18 @@ export async function GET(req: NextRequest) {
       body: JSON.stringify({ candidates }),
     })
 
-    const { imported, skipped } = await importRes.json()
+    // Puolusteleva jäsennys: jos bulk-import timeouttaa (504) tai palauttaa
+    // ei-JSONia, älä kaada koko discovery-ajoa — discover-osa onnistui jo.
+    let imported: unknown[] = []
+    let skipped = 0
+    let importOk = importRes.ok
+    try {
+      const j = await importRes.json()
+      imported = Array.isArray(j.imported) ? j.imported : []
+      skipped = typeof j.skipped === 'number' ? j.skipped : 0
+    } catch {
+      importOk = false
+    }
 
     return NextResponse.json({
       success: true,
@@ -60,6 +71,7 @@ export async function GET(req: NextRequest) {
       candidates: candidates.length,
       imported: imported.length,
       skipped,
+      importOk,
     })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

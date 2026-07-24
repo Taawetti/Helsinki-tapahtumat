@@ -326,6 +326,46 @@ export async function GET(req: NextRequest) {
 
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
+    // Sarja-tason kuvan lainaus: monipäiväisen festarin/sarjan yksi instanssi voi
+    // olla kuvaton (esim. festivals-lähteen "Craft Beer Garden … – CoolHead Brew"
+    // lauantaina), kun sama sarja on TOISENA päivänä KUVALLISENA toisesta lähteestä
+    // ("Craft Beer Garden Festival 2026" perjantaina, linked-events). Päivä-avaimen
+    // dedup ei yhdistä eri päiviä, joten lainataan kuva saman sarjan (normalisoitu
+    // otsikko, 3 ensimmäistä sanaa) kuvalliselta instanssilta.
+    {
+      const normBase = (title: string): string => title
+        .replace(/\s*\|.*$/, '')
+        .replace(/\b20\d{2}\b/g, '')
+        .replace(/\s*\(päivä\s*\d+\/\d+\)/gi, '')
+        .replace(/[^\wäöåÄÖÅ\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase()
+      // Ryhmittely 3 ensimmäisellä sanalla (nopea); alle 3 sanaa = liian geneerinen.
+      const key3 = (base: string): string => {
+        const w = base.split(' ').filter(Boolean)
+        return w.length >= 3 ? w.slice(0, 3).join(' ') : ''
+      }
+      const donors = new Map<string, { base: string; image: string }>()
+      for (const e of events) {
+        if (!e.image) continue
+        const base = normBase(e.title)
+        const k = key3(base)
+        if (k && !donors.has(k)) donors.set(k, { base, image: e.image })
+      }
+      for (const e of events) {
+        if (e.image) continue
+        const base = normBase(e.title)
+        const k = key3(base)
+        if (!k) continue
+        const d = donors.get(k)
+        // Lainaa VAIN jos sama sarja: toinen normalisoitu otsikko on toisen alku
+        // ("craft beer garden festival" ⊂ "craft beer garden festival coolhead brew").
+        // Containment estää väärät osumat kuten "stand up comedy X" ↔ "…Y".
+        if (d && (base.startsWith(d.base) || d.base.startsWith(base))) e.image = d.image
+      }
+    }
+
     // Enrich events without images using venue-specific Wikipedia thumbnails only.
     // Category fallbacks are intentionally omitted — they cause every event of the
     // same category to share the same image, which looks wrong in carousels.
