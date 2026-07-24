@@ -132,6 +132,10 @@ export default function AdminPage() {
   const [testAlertResult, setTestAlertResult] = useState('')
   const enrichActivityImagesStopRef = useRef(false)
   const activityImageTestDoneRef = useRef(false)
+  const [enrichingActivities, setEnrichingActivities] = useState(false)
+  const [enrichActivitiesResult, setEnrichActivitiesResult] = useState('')
+  const enrichActivitiesStopRef = useRef(false)
+  const activityTestDoneRef = useRef(false)
 
   async function handleLogout() {
     await fetch('/api/admin/auth', { method: 'DELETE' })
@@ -291,6 +295,64 @@ export default function AdminPage() {
   }
 
 
+  // Aktiviteettien täysrikastus: yksi DataForSEO-kutsu / paikka → kuva, arvosana,
+  // arvostelut, aukiolot, kuvaus + koko raakadata. Ensimmäinen erä pysähtyy
+  // näyttämään otokset ennen kuin jatkat. Sama rahaturva kuin ravintoloilla.
+  async function handleEnrichActivities() {
+    if (enrichingActivities) { enrichActivitiesStopRef.current = true; return }
+    setEnrichingActivities(true)
+    enrichActivitiesStopRef.current = false
+    setEnrichActivitiesResult('Aloitetaan...')
+    let totalStored = 0
+    let totalNone = 0
+    let totalErrors = 0
+    let prevRemaining = Infinity
+    let guard = 0
+
+    try {
+      // ~509 paikkaa / 12 per erä ≈ 43 erää; katto 60 kova varmuusraja
+      while (!enrichActivitiesStopRef.current) {
+        if (++guard > 60) { setEnrichActivitiesResult('⏹ Pysäytetty turvarajaan'); break }
+        const res = await fetch('/api/admin/enrich-activities-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: 12 }),
+        })
+        const data = await res.json()
+        if (data.error) { setEnrichActivitiesResult('Virhe: ' + data.error); break }
+
+        totalStored += data.stored
+        totalNone += data.notInGoogle
+        totalErrors += data.errors
+
+        // Testiportti: ensimmäinen erä pysäyttää → näet otokset ennen lisäkulua
+        if (!activityTestDoneRef.current) {
+          activityTestDoneRef.current = true
+          const sampleStr = (data.samples ?? []).map((s: { name: string; status: string }) => `${s.name} ${s.status}`).join(' · ')
+          setEnrichActivitiesResult(`✋ Testierä valmis (dataa ${totalStored}) — ${sampleStr || 'ei osumia'} — paina uudelleen jatkaaksesi (jäljellä ${data.remaining})`)
+          break
+        }
+
+        setEnrichActivitiesResult(`Dataa ${totalStored} • ei Googlessa ${totalNone} • virheitä ${totalErrors} • jäljellä ${data.remaining}`)
+
+        if (data.remaining === 0 || data.processed === 0) {
+          setEnrichActivitiesResult(`✓ Valmis — dataa ${totalStored}, ei Googlessa ${totalNone}, virheitä ${totalErrors}`)
+          break
+        }
+        // Stall = skip-set ei kutistu → pysäytä ennen kuin veloittaa uudestaan
+        if (data.remaining >= prevRemaining) {
+          setEnrichActivitiesResult(`⏹ Pysäytetty: ei edisty (jäljellä ${data.remaining}) — tarkista loki`)
+          break
+        }
+        prevRemaining = data.remaining
+      }
+    } catch (e) {
+      setEnrichActivitiesResult('Virhe: ' + (e instanceof Error ? e.message : 'verkkovirhe'))
+    } finally {
+      setEnrichingActivities(false)
+    }
+  }
+
   async function handleRefreshRatings() {
     setRefreshing(true)
     setRefreshResult('')
@@ -316,6 +378,7 @@ export default function AdminPage() {
           {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
           {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
           {enrichActivityImagesResult && <span className={`text-xs ${enrichActivityImagesResult.startsWith('✓') ? 'text-green-400' : enrichActivityImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivityImagesResult}</span>}
+          {enrichActivitiesResult && <span className={`text-xs ${enrichActivitiesResult.startsWith('✓') ? 'text-green-400' : enrichActivitiesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivitiesResult}</span>}
           {testAlertResult && <span className={`text-xs ${testAlertResult.startsWith('✓') ? 'text-green-400' : testAlertResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{testAlertResult}</span>}
           {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
           <button
@@ -335,6 +398,12 @@ export default function AdminPage() {
             className={`text-sm transition-colors ${enrichingActivityImages ? 'text-red-400 hover:text-red-300' : 'text-teal-400 hover:text-teal-300'}`}
           >
             {enrichingActivityImages ? '⏹ Pysäytä' : '🏃 Aktiviteettien kuvat'}
+          </button>
+          <button
+            onClick={handleEnrichActivities}
+            className={`text-sm transition-colors ${enrichingActivities ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}
+          >
+            {enrichingActivities ? '⏹ Pysäytä' : '🧖 Rikasta aktiviteetit (kaikki tiedot)'}
           </button>
           <button
             onClick={handleRefreshRatings}

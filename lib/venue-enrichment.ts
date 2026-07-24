@@ -22,6 +22,11 @@ export async function fetchEnrichedKeys(
       .from('venue_ratings')
       .select('venue_key')
       .not(notNullColumn, 'is', null)
+      // Deterministinen järjestys on PAKOLLINEN sivutuksessa: ilman .order():a
+      // Postgres voi palauttaa rivit eri järjestyksessä eri sivuilla, jolloin jo
+      // rikastettu (maksettu) venue putoaa skip-setistä → haetaan ja VELOITETAAN
+      // uudestaan. Juuri se karkaava lasku jota tämä funktio estää.
+      .order('venue_key')
       .range(page * PAGE, (page + 1) * PAGE - 1)
     if (error) return { keys, error: error.message }
     if (!data || data.length === 0) break

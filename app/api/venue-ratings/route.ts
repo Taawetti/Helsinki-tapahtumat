@@ -16,6 +16,7 @@ export async function GET() {
     const resp = await supabase
       .from('venue_ratings')
       .select('venue_key, google_rating, review_count, price_level, description')
+      .order('venue_key')  // deterministinen sivutus — ilman tätä rivi voi jäädä väliin sivurajalla
       .range(page * PAGE, (page + 1) * PAGE - 1)
     if (resp.error || !resp.data || resp.data.length === 0) break
     data.push(...(resp.data as typeof data))

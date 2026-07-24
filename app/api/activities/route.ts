@@ -122,7 +122,7 @@ async function _fetchActivities(): Promise<Activity[]> {
 
       for (const el of data.elements ?? []) {
         const tags = el.tags ?? {}
-        const name = tags.name || tags['name:fi'] || ''
+        const name = (tags.name || tags['name:fi'] || '').trim()
         if (!name) continue
 
         const lat = el.type === 'node' ? el.lat : el.center?.lat
@@ -184,23 +184,38 @@ async function _fetchActivities(): Promise<Activity[]> {
         act.image = getEventImage(act.name, [act.category], venueMap, {})
       }
 
-      // Fill missing images from Supabase DataForSEO enrichment
+      // Täytä puuttuvat kuvat + Google-aukiolot Supabasen DataForSEO-rikastuksesta.
+      // Sivutettu: Supabase katkaisee SELECTin 1000 riviin, ja act:-rivejä voi
+      // rikastuksen jälkeen olla yli sen — sivuttamaton luku tiputtaisi osan.
       if (supabase) {
-        const { data: imageRows } = await supabase
-          .from('venue_ratings')
-          .select('venue_key, main_image')
-          .like('venue_key', 'act:%')
-          .not('main_image', 'is', null)
-          .neq('main_image', '')
+        // Ulkokohteet (rannat, puistot, näköpaikat, nähtävyydet) ovat aina
+        // saavutettavissa — niille EI aseteta Google-aukioloa, ettei "aina auki"
+        // -logiikka rikkoudu (Google listaa niille usein rajatun "käyntiajan").
+        const OUTDOOR_ALWAYS_OPEN = new Set(['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys'])
+        const PAGE = 1000
         const actImageMap: Record<string, string> = {}
-        for (const row of imageRows ?? []) {
-          actImageMap[row.venue_key.replace('act:', '')] = row.main_image
+        const actHoursMap: Record<string, string> = {}
+        for (let page = 0; ; page++) {
+          const { data: rows, error } = await supabase
+            .from('venue_ratings')
+            .select('venue_key, main_image, google_hours')
+            .like('venue_key', 'act:%')
+            .order('venue_key')  // deterministinen sivutus — ilman tätä rivi voi jäädä väliin >1000 kohdalla
+            .range(page * PAGE, (page + 1) * PAGE - 1)
+          if (error || !rows || rows.length === 0) break
+          for (const row of rows as { venue_key: string; main_image: string | null; google_hours: string | null }[]) {
+            const key = row.venue_key.replace('act:', '')
+            if (row.main_image) actImageMap[key] = row.main_image
+            if (row.google_hours) actHoursMap[key] = row.google_hours
+          }
+          if (rows.length < PAGE) break
         }
         for (const act of results) {
-          if (!act.image) {
-            const img = actImageMap[act.name.toLowerCase().trim()]
-            if (img) act.image = img
-          }
+          const key = act.name.toLowerCase().trim()
+          if (!act.image && actImageMap[key]) act.image = actImageMap[key]
+          // Google-aukiolot ovat tuoreempia kuin OSM → suositaan niitä, PAITSI
+          // ulkokohteille joiden "aina auki" -takuu säilytetään
+          if (actHoursMap[key] && !OUTDOOR_ALWAYS_OPEN.has(act.category)) act.openingHours = actHoursMap[key]
         }
       }
 

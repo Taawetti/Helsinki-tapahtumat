@@ -563,7 +563,11 @@ export default function ActivitiesView({ onShowOnMap }: {
 
   const ratingMap = useMemo(() => {
     const m = new Map<string, { rating: number; reviewCount: number }>()
-    Object.entries(venueRatings).forEach(([key, val]) => { if (val) m.set(key.toLowerCase(), val) })
+    // Aktiviteettien rikastus tallennetaan 'act:'-avaimella; kortit hakevat
+    // paljaalla nimellä. Paljasnimiset (ravintolapäällekkäisyys) ensin, sitten
+    // act:-rivit yliajavat → aktiviteettikohtainen arvosana voittaa.
+    Object.entries(venueRatings).forEach(([key, val]) => { if (val && !key.startsWith('act:')) m.set(key.toLowerCase(), val) })
+    Object.entries(venueRatings).forEach(([key, val]) => { if (val && key.startsWith('act:')) m.set(key.slice(4).toLowerCase(), val) })
     return m
   }, [venueRatings])
 
@@ -971,8 +975,10 @@ export default function ActivitiesView({ onShowOnMap }: {
               </div>
               {(() => {
                 // Googlen tiivistelmä (esim. Löyly, Kiasma) ensin — laadukasta
-                // suomenkielistä esittelyä; muuten OSM-kuvaus kuten ennen
-                const gDesc = venueRatings[selectedActivity.name.toLowerCase()]?.description
+                // suomenkielistä esittelyä; muuten OSM-kuvaus kuten ennen.
+                // act:-avain on aktiviteettikohtainen; paljasnimi ravintola-overlap.
+                const nk = selectedActivity.name.toLowerCase().trim()
+                const gDesc = venueRatings[`act:${nk}`]?.description ?? venueRatings[nk]?.description
                 if (gDesc) return <p className="text-white/70 text-sm leading-relaxed">{gDesc}</p>
                 return selectedActivity.description ? <p className="text-white/50 text-sm">{selectedActivity.description}</p> : null
               })()}
