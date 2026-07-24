@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { detectSourceAnomalies, type CanaryPayload } from '@/lib/source-health'
+import { checkSourceHealth } from '@/lib/source-health'
 
 // Päivittäinen lähdeterveyden kanaria — hälyttää jos tapahtumasyöte romahtaa
 // (ks. lib/source-health.ts). Ajastus: vercel.json.
@@ -47,22 +47,10 @@ export async function GET(req: NextRequest) {
   }
 
   const start = new Date().toISOString().slice(0, 10)
-  const end = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10)
 
-  // Hae koko aggregaatti 7 pv:n ikkunassa. Haun epäonnistuminen ON hälytys
-  // (koko sovellus alhaalla) — detectSourceAnomalies(null) hoitaa sen.
-  let payload: CanaryPayload | null = null
-  try {
-    const origin = req.nextUrl.origin
-    const params = new URLSearchParams({ start, end, page: '1', municipality: 'helsinki' })
-    const res = await fetch(`${origin}/api/events?${params}`, { signal: AbortSignal.timeout(45000) })
-    if (res.ok) payload = (await res.json()) as CanaryPayload
-    else console.error(`source-health: /api/events HTTP ${res.status}`)
-  } catch (err) {
-    console.error('source-health: /api/events fetch failed:', (err as Error).message)
-  }
-
-  const issues = detectSourceAnomalies(payload)
+  // Hae + havaitse poikkeamat (sisältää kylmäkäynnistys-uudelleenyrityksen,
+  // jottei väärä hälytys lähde cold-startin timeoutista).
+  const { issues, payload } = await checkSourceHealth(req.nextUrl.origin)
 
   if (issues.length === 0) {
     return NextResponse.json({ ok: true, total: payload?.total ?? null })

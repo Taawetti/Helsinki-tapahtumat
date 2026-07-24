@@ -32,6 +32,34 @@ export interface CanaryPayload {
   sources?: SourceStat[]
 }
 
+/** Hakee aggregaatin ja palauttaa poikkeamat — MUTTA yrittää kerran uudelleen
+ *  jos ensimmäinen haku näyttää ongelmia. Syy: /api/events tekee 40 rinnakkaista
+ *  alihakua, ja KYLMÄKÄYNNISTYKSESSÄ ne voivat timeoutata → kaikki lähteet
+ *  näyttävät kuolleilta vaikka syöte on terve. Uudelleenyritys lämpimänä
+ *  poistaa väärät hälytykset. Alertoi vain jos ongelma toistuu. */
+export async function checkSourceHealth(origin: string): Promise<{ issues: string[]; payload: CanaryPayload | null }> {
+  const fetchOnce = async (): Promise<CanaryPayload | null> => {
+    try {
+      const start = new Date().toISOString().slice(0, 10)
+      const end = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10)
+      const params = new URLSearchParams({ start, end, page: '1', municipality: 'helsinki' })
+      const res = await fetch(`${origin}/api/events?${params}`, { signal: AbortSignal.timeout(45000) })
+      return res.ok ? ((await res.json()) as CanaryPayload) : null
+    } catch {
+      return null
+    }
+  }
+  let payload = await fetchOnce()
+  let issues = detectSourceAnomalies(payload)
+  if (issues.length > 0) {
+    // Voi olla kylmäkäynnistys — lämmitä (heitä hukkaan) ja hae uudelleen.
+    await fetchOnce()
+    payload = await fetchOnce()
+    issues = detectSourceAnomalies(payload)
+  }
+  return { issues, payload }
+}
+
 /** Palauttaa listan poikkeamia (tyhjä = terve). Puhdas funktio → testattava
  *  ilman verkkoa. */
 export function detectSourceAnomalies(payload: CanaryPayload | null): string[] {

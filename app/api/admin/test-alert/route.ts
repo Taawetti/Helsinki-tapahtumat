@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { detectSourceAnomalies, type CanaryPayload } from '@/lib/source-health'
+import { checkSourceHealth } from '@/lib/source-health'
 
 // Admin-napin takana (app/admin) — ajaa lähdeterveyden kanarian KERRAN ja
 // lähettää testiviestin, jotta omistaja voi todeta: (1) anomaliahavainto toimii,
@@ -25,19 +25,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Aja kanaria kerran nykydataa vasten (näytetään tila paneelissa)
+  // Aja kanaria kerran nykydataa vasten (sisältää cold-start-retryn, jottei
+  // testinappi näytä väärää poikkeamaa kylmästä deploymentista).
   const start = new Date().toISOString().slice(0, 10)
-  const end = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10)
-  let payload: CanaryPayload | null = null
-  try {
-    const origin = req.nextUrl.origin
-    const params = new URLSearchParams({ start, end, page: '1', municipality: 'helsinki' })
-    const res = await fetch(`${origin}/api/events?${params}`, { signal: AbortSignal.timeout(45000) })
-    if (res.ok) payload = (await res.json()) as CanaryPayload
-  } catch {
-    // payload jää nulliksi → detectSourceAnomalies raportoi "aggregaatti alhaalla"
-  }
-  const issues = detectSourceAnomalies(payload)
+  const { issues, payload } = await checkSourceHealth(req.nextUrl.origin)
   const total = payload?.total ?? payload?.events?.length ?? 0
 
   // Lähetä testiviesti (sisältää nykytilan)
