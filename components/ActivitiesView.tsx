@@ -6,7 +6,7 @@ import type { Activity, ActivityCategory } from '@/lib/types'
 import { getHighlight } from '@/lib/activity-highlights'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
-import { isOpenNow, helsinkiNow } from '@/lib/opening-hours'
+import { isOpenNow, getTodayHours, helsinkiNow } from '@/lib/opening-hours'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -54,6 +54,80 @@ const ACT_CURATED_CATS = new Set(['sauna', 'nakopaikka', 'uimaranta', 'galleria'
 // koko nimeen, ettei osu niche-kohteisiin (esim. "Suomenlinna-museo",
 // "Suomenlinnan merilinnoitus"), jotka kuratoinnin pitää päinvastoin nostaa.
 const ACT_TOURIST_DEMOTE = /^(suomenlinna|(helsingin )?tuomiokirkko|uspenskin katedraali|temppeliaukion kirkko|senaatintori|(vanha )?kauppatori)$/i
+
+// Rikas Google-profiili avattuun korttiin (haetaan on-demand /api/activity-google)
+type ActivityGoogleData = {
+  rating: number | null
+  reviewCount: number | null
+  ratingDistribution: Record<string, number> | null
+  priceLevel: string | null
+  attributes: Record<string, string[]> | null
+  phone: string | null
+  url: string | null
+}
+
+// Googlen attribuutti-avaimet → suomenkielinen tagi + emoji. Tuntemattomat
+// avaimet ohitetaan (ei näytetä raakoja konekielisiä avaimia).
+const ATTR_LABELS: Record<string, { emoji: string; label: string }> = {
+  has_wheelchair_accessible_entrance: { emoji: '♿', label: 'Esteetön sisäänkäynti' },
+  has_wheelchair_accessible_restroom: { emoji: '♿', label: 'Esteetön WC' },
+  has_wheelchair_accessible_seating: { emoji: '♿', label: 'Esteetön istumapaikka' },
+  has_wheelchair_accessible_parking: { emoji: '♿', label: 'Esteetön parkki' },
+  has_wheelchair_accessible_elevator: { emoji: '♿', label: 'Esteetön hissi' },
+  has_restaurant: { emoji: '🍽', label: 'Ravintola' },
+  has_cafe: { emoji: '☕', label: 'Kahvila' },
+  has_bar: { emoji: '🍸', label: 'Baari' },
+  serves_beer: { emoji: '🍺', label: 'Olutta' },
+  serves_wine: { emoji: '🍷', label: 'Viiniä' },
+  serves_vegetarian: { emoji: '🥗', label: 'Kasvisruokaa' },
+  has_wi_fi: { emoji: '📶', label: 'Wifi' },
+  has_restroom: { emoji: '🚻', label: 'WC' },
+  has_restroom_unisex: { emoji: '🚻', label: 'Unisex-WC' },
+  has_gender_neutral_restroom: { emoji: '🚻', label: 'Sukupuolineutraali WC' },
+  has_admission_fee: { emoji: '🎫', label: 'Pääsymaksu' },
+  welcomes_children: { emoji: '👶', label: 'Lapsille sopiva' },
+  has_changing_tables: { emoji: '🍼', label: 'Hoitopöytä' },
+  has_live_performances: { emoji: '🎭', label: 'Esityksiä' },
+  has_parking: { emoji: '🅿️', label: 'Parkki' },
+  has_free_parking: { emoji: '🅿️', label: 'Ilmainen parkki' },
+  has_free_street_parking: { emoji: '🅿️', label: 'Katuparkki' },
+  welcomes_dogs: { emoji: '🐕', label: 'Koirat ok' },
+  allows_dogs: { emoji: '🐕', label: 'Koirat ok' },
+  has_outdoor_seating: { emoji: '☀️', label: 'Terassi' },
+  is_lgbtq_friendly: { emoji: '🏳️‍🌈', label: 'LGBTQ-ystävällinen' },
+  has_seating: { emoji: '🪑', label: 'Istumapaikkoja' },
+}
+
+const OSM_DAY_FI: Record<string, string> = { Mo: 'Ma', Tu: 'Ti', We: 'Ke', Th: 'To', Fr: 'Pe', Sa: 'La', Su: 'Su' }
+// OSM-muotoinen aukiolostringi → luettavat suomenkieliset rivit (yksi/päivä).
+// Google-aukiolot yhdistävät päivät ', ':lla ja OSM ';':lla — tuetaan molempia.
+// Päiväerotin: ';' TAI ', ' ennen viikonpäiväkoodia (iso kirjain); päivän
+// sisäiset useat jaksot ("10-12,13-18") on pilkku ILMAN väliä → ne säilyvät.
+function formatHoursFi(osm: string): string[] {
+  if (!osm) return []
+  if (osm === '24/7') return ['Auki 24/7']
+  return osm.split(/;\s*|,\s+(?=[A-Z])/).map((part) => {
+    let s = part.trim()
+    for (const [en, fi] of Object.entries(OSM_DAY_FI)) s = s.replace(new RegExp(en, 'g'), fi)
+    s = s.replace(/\boff\b/gi, 'suljettu')
+    return s
+  }).filter(Boolean)
+}
+// Poimi näytettävät attribuutit ryhmistä (litistetään + suomennetaan)
+function pickAttributes(attrs: Record<string, string[]> | null): { emoji: string; label: string }[] {
+  if (!attrs) return []
+  const out: { emoji: string; label: string }[] = []
+  const seen = new Set<string>()
+  for (const group of Object.values(attrs)) {
+    // google_raw on validoimatonta JSONia — varmista taulukko ettei render kaadu
+    for (const k of (Array.isArray(group) ? group : [])) {
+      const m = ATTR_LABELS[k]
+      // dedup labelin mukaan (esim. welcomes_dogs + allows_dogs = sama "Koirat ok")
+      if (m && !seen.has(m.label)) { seen.add(m.label); out.push(m) }
+    }
+  }
+  return out
+}
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -205,9 +279,9 @@ function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
         )}
 
         {highlight?.hook ? (
-          <p className="text-amber-300/70 text-xs leading-snug font-medium">{highlight.hook}</p>
+          <p className="text-amber-300/70 text-xs leading-snug font-medium line-clamp-2">{highlight.hook}</p>
         ) : a.description ? (
-          <p className="text-white/40 text-xs">{a.description}</p>
+          <p className="text-white/40 text-xs line-clamp-2">{a.description}</p>
         ) : null}
 
         {highlight?.duration && (
@@ -222,6 +296,17 @@ function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
             <span>{a.address}{a.city && a.city !== 'Helsinki' ? `, ${a.city}` : ''}</span>
           </div>
         )}
+
+        {(() => {
+          const today = getTodayHours(a.openingHours)
+          if (!today) return null
+          return (
+            <div className="flex items-center gap-1.5 text-white/25 text-xs">
+              <Clock size={10} className="shrink-0" />
+              <span className={open ? 'text-emerald-400/70' : ''}>Tänään {today}</span>
+            </div>
+          )
+        })()}
 
         {a.fee === true && a.charge && (
           <div className="flex items-center gap-1 text-xs text-amber-400/70">
@@ -500,6 +585,7 @@ export default function ActivitiesView({ onShowOnMap }: {
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [venueRatings, setVenueRatings] = useState<Record<string, { rating: number; reviewCount: number; priceLevel: string | null; description?: string }>>({})
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
+  const [activityGoogle, setActivityGoogle] = useState<ActivityGoogleData | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   // 🎯 Auta valitsemaan — etäisyys + auki-suodatin + arvottu ehdotus
   const [acDist, setAcDist] = useState<ActDistSeg>(null)
@@ -527,6 +613,19 @@ export default function ActivitiesView({ onShowOnMap }: {
       .then(data => setVenueRatings(data.ratings ?? {}))
       .catch(() => {})
   }, [])
+
+  // Rikas Google-profiili haetaan vasta kun kortti avataan (lista pysyy kevyenä)
+  useEffect(() => {
+    if (!selectedActivity) { setActivityGoogle(null); return }
+    const key = selectedActivity.name.toLowerCase().trim()
+    let cancelled = false
+    setActivityGoogle(null)
+    fetch(`/api/activity-google?key=${encodeURIComponent(key)}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setActivityGoogle(d.google ?? null) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [selectedActivity])
 
   useEffect(() => { setVisibleCount(48) }, [catFilter])
   // Kategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
@@ -976,22 +1075,83 @@ export default function ActivitiesView({ onShowOnMap }: {
               {(() => {
                 // Googlen tiivistelmä (esim. Löyly, Kiasma) ensin — laadukasta
                 // suomenkielistä esittelyä; muuten OSM-kuvaus kuten ennen.
-                // act:-avain on aktiviteettikohtainen; paljasnimi ravintola-overlap.
                 const nk = selectedActivity.name.toLowerCase().trim()
-                const gDesc = venueRatings[`act:${nk}`]?.description ?? venueRatings[nk]?.description
-                if (gDesc) return <p className="text-white/70 text-sm leading-relaxed">{gDesc}</p>
-                return selectedActivity.description ? <p className="text-white/50 text-sm">{selectedActivity.description}</p> : null
+                const gDesc = venueRatings[`act:${nk}`]?.description ?? venueRatings[nk]?.description ?? selectedActivity.description
+                return gDesc ? <p className="text-white/70 text-sm leading-relaxed">{gDesc}</p> : null
               })()}
+
+              {/* Arvosana + tähtijakauma (jakauma haetaan avattaessa) */}
+              {(() => {
+                const rt = ratingMap.get(selectedActivity.name.toLowerCase())
+                const rating = activityGoogle?.rating ?? rt?.rating ?? null
+                const count = activityGoogle?.reviewCount ?? rt?.reviewCount ?? null
+                if (rating == null) return null
+                const dist = activityGoogle?.ratingDistribution
+                const total = dist ? Object.values(dist).reduce((a, b) => a + b, 0) : 0
+                return (
+                  <div className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,.04)' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-black" style={{ color: '#e8c06a' }}>★ {rating.toFixed(1)}</span>
+                      {count != null && <span className="text-white/40 text-xs font-bold">{fmtReviews(count)} arvostelua</span>}
+                    </div>
+                    {dist && total > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                          const n = dist[String(star)] ?? 0
+                          const pct = total > 0 ? Math.round((n / total) * 100) : 0
+                          return (
+                            <div key={star} className="flex items-center gap-2">
+                              <span className="text-white/40 text-[10px] w-3 text-right">{star}</span>
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.08)' }}>
+                                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#e8c06a' }} />
+                              </div>
+                              <span className="text-white/30 text-[10px] w-8 text-right">{pct}%</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               {selectedActivity.address && (
                 <div className="flex items-center gap-2 text-white/30 text-sm">
                   <MapPin size={13} /> {selectedActivity.address}
                 </div>
               )}
+
+              {/* Aukiolot — koko viikko luettavasti (suomeksi) */}
               {selectedActivity.openingHours && (
-                <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <Clock size={13} /> {selectedActivity.openingHours}
+                <div className="flex items-start gap-2 text-white/40 text-sm">
+                  <Clock size={13} className="mt-0.5 shrink-0" />
+                  <div className="space-y-0.5">
+                    {formatHoursFi(selectedActivity.openingHours).map((line, i) => (
+                      <div key={i}>{line}</div>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Hintataso */}
+              {activityGoogle?.priceLevel && (
+                <div className="text-sm font-black text-emerald-400/80">{activityGoogle.priceLevel}</div>
+              )}
+
+              {/* Ominaisuudet (esteettömyys, mukavuudet, lapset…) */}
+              {(() => {
+                const tags = pickAttributes(activityGoogle?.attributes ?? null)
+                if (!tags.length) return null
+                return (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {tags.map((tg, i) => (
+                      <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/60" style={{ background: 'rgba(255,255,255,.06)' }}>
+                        {tg.emoji} {tg.label}
+                      </span>
+                    ))}
+                  </div>
+                )
+              })()}
               {selectedActivity.fee === true && selectedActivity.charge && (
                 <div className="flex items-center gap-2 text-amber-400/70 text-sm">
                   <Ticket size={13} /> {selectedActivity.charge}
@@ -1003,6 +1163,13 @@ export default function ActivitiesView({ onShowOnMap }: {
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
                     style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                     <Globe size={13} /> {ctaLabel(selectedActivity, t)}
+                  </a>
+                )}
+                {(activityGoogle?.phone ?? selectedActivity.phone) && (
+                  <a href={`tel:${activityGoogle?.phone ?? selectedActivity.phone}`}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
+                    style={{ background: 'rgba(255,255,255,.08)' }}>
+                    <Phone size={13} /> {activityGoogle?.phone ?? selectedActivity.phone}
                   </a>
                 )}
                 {onShowOnMap && selectedActivity.lat && selectedActivity.lon && (

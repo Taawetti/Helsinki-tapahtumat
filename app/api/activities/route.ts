@@ -195,18 +195,20 @@ async function _fetchActivities(): Promise<Activity[]> {
         const PAGE = 1000
         const actImageMap: Record<string, string> = {}
         const actHoursMap: Record<string, string> = {}
+        const actDescMap: Record<string, string> = {}
         for (let page = 0; ; page++) {
           const { data: rows, error } = await supabase
             .from('venue_ratings')
-            .select('venue_key, main_image, google_hours')
+            .select('venue_key, main_image, google_hours, description')
             .like('venue_key', 'act:%')
             .order('venue_key')  // deterministinen sivutus — ilman tätä rivi voi jäädä väliin >1000 kohdalla
             .range(page * PAGE, (page + 1) * PAGE - 1)
           if (error || !rows || rows.length === 0) break
-          for (const row of rows as { venue_key: string; main_image: string | null; google_hours: string | null }[]) {
+          for (const row of rows as { venue_key: string; main_image: string | null; google_hours: string | null; description: string | null }[]) {
             const key = row.venue_key.replace('act:', '')
             if (row.main_image) actImageMap[key] = row.main_image
             if (row.google_hours) actHoursMap[key] = row.google_hours
+            if (row.description) actDescMap[key] = row.description
           }
           if (rows.length < PAGE) break
         }
@@ -216,6 +218,8 @@ async function _fetchActivities(): Promise<Activity[]> {
           // Google-aukiolot ovat tuoreempia kuin OSM → suositaan niitä, PAITSI
           // ulkokohteille joiden "aina auki" -takuu säilytetään
           if (actHoursMap[key] && !OUTDOOR_ALWAYS_OPEN.has(act.category)) act.openingHours = actHoursMap[key]
+          // Google-kuvaus on laadukas suomenkielinen esittely → suositaan sitä
+          if (actDescMap[key]) act.description = actDescMap[key]
         }
       }
 
