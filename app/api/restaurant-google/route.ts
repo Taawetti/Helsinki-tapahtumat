@@ -29,6 +29,40 @@ export async function GET(req: NextRequest) {
   const pl = (g.price_level ?? null) as string | null
 
   const bookUrl = (g.book_online_url ?? null) as string | null
+  const gUrl = (g.url ?? null) as string | null
+
+  // popular_times → per-viikonpäivä tuntitaulukko [{hour, index 0-100}] (client
+  // laskee "ruuhka nyt" oman kellon mukaan). place_topics jätetty pois: DataForSEO
+  // ei palauta sitä Helsingin kohteille (0 osumaa koko datassa).
+  const ptDays = (g.popular_times as { popular_times_by_days?: Record<string, Array<{ time?: { hour?: number }; popular_index?: number }>> } | null)?.popular_times_by_days
+  let popularTimes: Record<string, { hour: number; index: number }[]> | null = null
+  if (ptDays && typeof ptDays === 'object') {
+    const out: Record<string, { hour: number; index: number }[]> = {}
+    for (const [day, arr] of Object.entries(ptDays)) {
+      if (!Array.isArray(arr)) continue
+      const hours = arr
+        .map((e) => ({ hour: typeof e?.time?.hour === 'number' ? e.time.hour : -1, index: typeof e?.popular_index === 'number' ? e.popular_index : 0 }))
+        .filter((e) => e.hour >= 0)
+      if (hours.length) out[day.toLowerCase()] = hours
+    }
+    if (Object.keys(out).length) popularTimes = out
+  }
+
+  // people_also_search → "vastaavat paikat" (nimi + arvosana), top 6
+  const pas = g.people_also_search
+  const peopleAlsoSearch = Array.isArray(pas)
+    ? pas
+        .map((p) => {
+          const o = p as { title?: unknown; rating?: { value?: number; votes_count?: number } }
+          return {
+            title: typeof o?.title === 'string' ? o.title : null,
+            rating: typeof o?.rating?.value === 'number' ? o.rating.value : null,
+            reviewCount: typeof o?.rating?.votes_count === 'number' ? o.rating.votes_count : null,
+          }
+        })
+        .filter((p): p is { title: string; rating: number | null; reviewCount: number | null } => !!p.title)
+        .slice(0, 6)
+    : null
 
   return NextResponse.json({
     google: {
@@ -39,9 +73,13 @@ export async function GET(req: NextRequest) {
       // available_attributes is grouped { offerings:[...], service_options:[...], ... }
       attributes: attrs?.available_attributes ?? null,
       phone: (g.phone ?? null) as string | null,
-      url: (g.url ?? null) as string | null,
+      url: gUrl && /^https?:\/\//i.test(gUrl) ? gUrl : null,
       // Todellinen varauslinkki (Google "Book online") — voittaa heuristisen
       bookOnlineUrl: bookUrl && /^https?:\/\//i.test(bookUrl) ? bookUrl : null,
+      popularTimes,
+      peopleAlsoSearch: peopleAlsoSearch && peopleAlsoSearch.length ? peopleAlsoSearch : null,
+      totalPhotos: typeof g.total_photos === 'number' ? g.total_photos : null,
+      isClaimed: g.is_claimed === true,
     },
   })
 }
