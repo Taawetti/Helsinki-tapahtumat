@@ -419,15 +419,13 @@ function ActSubTabs({ active, onSelect }: {
 
 // Hoikka suodatinrivi — näkyy KAIKISSA näkymissä. Korvaa entisen
 // "Auta valitsemaan" -paneelin: suodattimet suoraan ruudukkoon.
-function QuickSortPills({ filterOpen, filterNearby, freeOnly, minRating, onToggleOpen, onToggleNearby, onToggleFree, onRating }: {
+function QuickSortPills({ filterOpen, filterNearby, freeOnly, onToggleOpen, onToggleNearby, onToggleFree }: {
   filterOpen: boolean
   filterNearby: boolean
   freeOnly: boolean
-  minRating: number | null
   onToggleOpen: () => void
   onToggleNearby: () => void
   onToggleFree: () => void
-  onRating: (r: number | null) => void
 }) {
   const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
@@ -443,9 +441,6 @@ function QuickSortPills({ filterOpen, filterNearby, freeOnly, minRating, onToggl
       </button>
       <button onClick={onToggleFree} className={pill} style={freeOnly ? on : off}>
         🆓 {t('common.free_badge')}
-      </button>
-      <button onClick={() => onRating(minRating === 4 ? null : 4)} className={pill} style={minRating === 4 ? on : off}>
-        ★ 4+
       </button>
     </div>
   )
@@ -467,9 +462,8 @@ export default function ActivitiesView({ onShowOnMap }: {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [activityGoogle, setActivityGoogle] = useState<ActivityGoogleData | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
-  // Suodattimet (QuickSortPills): vain ilmaiset + min-arvosana
+  // Suodatin (QuickSortPills): vain ilmaiset
   const [freeOnly, setFreeOnly] = useState(false)
-  const [minRating, setMinRating] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/activities')
@@ -504,7 +498,7 @@ export default function ActivitiesView({ onShowOnMap }: {
   // Auki/Lähellä-pillerit näkyvät nykyään myös kategorialistassa, joten
   // suodattimia ei enää nollata kategoriaan mentäessä.
   useEffect(() => { if (catFilter !== 'all') window.scrollTo(0, 0) }, [catFilter])
-  useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby, freeOnly, minRating])
+  useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby, freeOnly])
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) return
@@ -558,10 +552,6 @@ export default function ActivitiesView({ onShowOnMap }: {
       return isOpenNow(a.openingHours) === true
     })
     if (freeOnly) filtered = filtered.filter(a => a.fee === false)
-    if (minRating !== null) filtered = filtered.filter(a => {
-      const rt = ratingMap.get(a.name.toLowerCase())
-      return rt != null && rt.rating >= minRating && rt.reviewCount >= 10
-    })
     if (filterNearby && userPos && distMap.size > 0) {
       filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     } else {
@@ -581,7 +571,7 @@ export default function ActivitiesView({ onShowOnMap }: {
       })
     }
     return filtered
-  }, [catPool, filterOpen, filterNearby, freeOnly, minRating, userPos, distMap, ratingMap])
+  }, [catPool, filterOpen, filterNearby, freeOnly, userPos, distMap, ratingMap])
 
   // Hero rotates by day of week across different categories
   const heroActivity = useMemo(() => {
@@ -621,7 +611,7 @@ export default function ActivitiesView({ onShowOnMap }: {
     }
     // Hero näytetään vain ilman kovaa suodatinta → sulje se pois ruudukosta vain
     // silloin (muuten hero voi olla kelvollinen suodatettu kohde, ei duplikaattia).
-    const heroShown = !freeOnly && minRating === null
+    const heroShown = !freeOnly
     // Kuratoinnin arvoiset: kiinnostava kategoria TAI kuva/arvosana on.
     const candidates = activities.filter(a =>
       (!heroShown || a.id !== heroActivity?.id) &&
@@ -632,10 +622,6 @@ export default function ActivitiesView({ onShowOnMap }: {
     let pool = candidates
     if (filterOpen) pool = pool.filter(open)
     if (freeOnly) pool = pool.filter(a => a.fee === false)
-    if (minRating !== null) pool = pool.filter(a => {
-      const rt = ratingMap.get(a.name.toLowerCase())
-      return rt != null && rt.rating >= minRating && rt.reviewCount >= 10
-    })
     // Lähellä-tila: puhdas etäisyysjärjestys kuratoidusta setistä (ei kategoriakattoa)
     if (filterNearby && userPos && distMap.size > 0) {
       return [...pool]
@@ -683,9 +669,9 @@ export default function ActivitiesView({ onShowOnMap }: {
       }
     }
     return picks
-  }, [activities, catFilter, ratingMap, filterOpen, filterNearby, freeOnly, minRating, userPos, distMap, heroActivity])
+  }, [activities, catFilter, ratingMap, filterOpen, filterNearby, freeOnly, userPos, distMap, heroActivity])
 
-  const clearFilter = useCallback(() => { setCatFilter('all'); setFilterOpen(false); setFilterNearby(false); setFreeOnly(false); setMinRating(null) }, [])
+  const clearFilter = useCallback(() => { setCatFilter('all'); setFilterOpen(false); setFilterNearby(false); setFreeOnly(false) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -722,7 +708,7 @@ export default function ActivitiesView({ onShowOnMap }: {
             <>
               {/* Hero piilotetaan kun kova suodatin (🆓/★) on päällä — ettei
                   ylänosto riitele suodatetun ruudukon kanssa */}
-              {heroActivity && !freeOnly && minRating === null && (
+              {heroActivity && !freeOnly && (
                 <ActivityHero
                   a={heroActivity}
                   distance={distMap.get(heroActivity.id)}
@@ -733,7 +719,7 @@ export default function ActivitiesView({ onShowOnMap }: {
 
               <CategoryGrid onSelect={setCatFilter} />
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} freeOnly={freeOnly} minRating={minRating} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onToggleFree={() => setFreeOnly(v => !v)} onRating={setMinRating} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} freeOnly={freeOnly} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onToggleFree={() => setFreeOnly(v => !v)} />
 
               {/* Kärkipoiminnat: ~60 lokaalisti kiinnostavinta. Loput kategorioittain yltä. */}
               {localPicks.length > 0 ? (
@@ -777,7 +763,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                 <span className="text-white/30 text-[14px] font-bold"> · {sortedPool.length} kohdetta</span>
               </h2>
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} freeOnly={freeOnly} minRating={minRating} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onToggleFree={() => setFreeOnly(v => !v)} onRating={setMinRating} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} freeOnly={freeOnly} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onToggleFree={() => setFreeOnly(v => !v)} />
 
               {sortedPool.length > 0 ? (
                 <>

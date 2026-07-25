@@ -680,6 +680,18 @@ function SubCatGrid({ restType, onSelect }: {
         Selaa kategorioittain
       </h2>
       <div className="grid grid-cols-3 gap-2">
+        {/* "Kaikki" — avaa selausnäkymän suodattimineen (koko lista, ei vain suosituimmat) */}
+        <button onClick={() => onSelect('kaikki')}
+          className="flex flex-col items-start gap-2 rounded-[16px] px-3.5 py-4 text-left transition-all active:scale-[.97]"
+          style={{
+            background: 'radial-gradient(130% 110% at 30% 0%, rgba(107,118,255,.22), rgba(255,255,255,.03) 70%)',
+            border: '1px solid rgba(107,118,255,.28)',
+          }}>
+          <span className="text-[24px] leading-none">🍽</span>
+          <span className="font-black text-[12.5px] leading-tight text-white/90" style={{ letterSpacing: '-0.01em' }}>
+            Kaikki
+          </span>
+        </button>
         {SUB_CATS[restType].map(cat => (
           <button key={cat.id} onClick={() => onSelect(cat.id)}
             className="flex flex-col items-start gap-2 rounded-[16px] px-3.5 py-4 text-left transition-all active:scale-[.97]"
@@ -730,7 +742,7 @@ function RestSubTabs({ restType, active, onSelect }: {
   active: string
   onSelect: (id: string) => void
 }) {
-  const items = [{ id: 'all', emoji: '', label: 'Kaikki' }, ...SUB_CATS[restType]]
+  const items = [{ id: 'all', emoji: '⭐', label: 'Suosituimmat' }, { id: 'kaikki', emoji: '', label: 'Kaikki' }, ...SUB_CATS[restType]]
   return (
     <div className="flex gap-5 overflow-x-auto scrollbar-none -mx-4 px-4 border-b border-white/6">
       {items.map(cat => {
@@ -784,22 +796,18 @@ function isRatedAtLeast(r: Restaurant, min: number): boolean {
   return (r.reviewCount ?? 0) >= 50 || award
 }
 
-type PriceSeg = 1 | 2 | 3 | null  // € | €€ | €€€
 type StarSeg = 4 | 4.5 | null     // ⭐ 4+ | ⭐ 4.5+
 
 
 // Hoikka suodatinrivi — näkyy KAIKISSA näkymissä (kaikki + alakategoriat).
 // Korvaa entisen "Auta valitsemaan" -paneelin: samat suodattimet, mutta
 // suoraan ruudukkoon eikä erilliseen arvontapooliin.
-function QuickSortPills({ filterOpen, filterNearby, priceMax, minStars, showPrice, onToggleOpen, onToggleNearby, onPrice, onStars }: {
+function QuickSortPills({ filterOpen, filterNearby, minStars, onToggleOpen, onToggleNearby, onStars }: {
   filterOpen: boolean
   filterNearby: boolean
-  priceMax: PriceSeg
   minStars: StarSeg
-  showPrice: boolean
   onToggleOpen: () => void
   onToggleNearby: () => void
-  onPrice: (p: PriceSeg) => void
   onStars: (s: StarSeg) => void
 }) {
   const { t } = useLanguage()
@@ -814,11 +822,6 @@ function QuickSortPills({ filterOpen, filterNearby, priceMax, minStars, showPric
       <button onClick={onToggleNearby} className={pill} style={filterNearby ? on : off}>
         📍 {t('restaurants.sort_nearby')}
       </button>
-      {showPrice && ([1, 2, 3] as const).map((p) => (
-        <button key={p} onClick={() => onPrice(priceMax === p ? null : p)} className={pill} style={priceMax === p ? on : off}>
-          {'€'.repeat(p)}
-        </button>
-      ))}
       {([4, 4.5] as const).map((s) => (
         <button key={s} onClick={() => onStars(minStars === s ? null : s)} className={pill} style={minStars === s ? on : off}>
           ★ {s}+
@@ -847,8 +850,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [selectedChain, setSelectedChain] = useState<ChainGroup | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   const [news, setNews] = useState<NewsItem[]>([])
-  // Suodattimet (QuickSortPills) — hinta-katto ja min-arvosana
-  const [priceMax, setPriceMax] = useState<PriceSeg>(null)
+  // Suodatin (QuickSortPills) — min-arvosana; näkyy vain selausnäkymässä
   const [minStars, setMinStars] = useState<StarSeg>(null)
 
   useEffect(() => {
@@ -877,13 +879,20 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   useEffect(() => {
     // Uusi tyyppivälilehti nollaa suodattimet (näkymätön aktiivinen suodatin
     // muulla välilehdellä olisi selittämätön).
-    setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setPriceMax(null); setMinStars(null); setVisibleCount(48)
+    setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null); setVisibleCount(48)
   }, [restType])
-  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby, priceMax, minStars])
+  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby, minStars])
   // Alakategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
   // Auki/Lähellä-pillerit näkyvät nykyään myös alakategoriassa, joten
   // suodattimia ei enää nollata kategoriaan mentäessä (ei näkymätöntä vuotoa).
-  useEffect(() => { if (subCat !== 'all') window.scrollTo(0, 0) }, [subCat])
+  // Palattaessa "Suosituimmat"-landingiin (subCat==='all') suodatintila nollataan
+  // — tämä pitää pillerit ylhäällä ja aloittaa selauksen tuoreena kun käyttäjä
+  // menee taas selausnäkymään. Kuratoidun listan visuaalisen suodattamattomuuden
+  // TAKAA sortedPoolin `browsing`-gate (yllä), ei tämä paint-jälkeinen efekti.
+  useEffect(() => {
+    if (subCat === 'all') { setFilterOpen(false); setFilterNearby(false); setMinStars(null) }
+    else window.scrollTo(0, 0)
+  }, [subCat])
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) return
@@ -929,20 +938,23 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   }, [restaurants, restType])
 
   const subPool = useMemo(() => {
-    if (subCat === 'all') return typePool
+    // 'all' (Suosituimmat-landing) ja 'kaikki' (selaa kaikki -näkymä) = koko tyyppipooli
+    if (subCat === 'all' || subCat === 'kaikki') return typePool
     return typePool.filter(r => matchesSubCat(r, restType, subCat))
   }, [typePool, subCat, restType])
 
   const sortedPool = useMemo(() => {
     let filtered = [...subPool]
-    if (filterOpen) filtered = filtered.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
-    // Hintakatto: näytä ≤ valittu taso (€ = vain edulliset … €€€ = kaikki paitsi kalleimmat)
-    // Hintakatto ≤ valittu taso. Hinnattomat (OSM:ssä yleisiä) SÄILYVÄT — ei
-    // piiloteta tuntemattomia, vastaa palvelinsuodatinta ja "≤ katto" -lupausta.
-    if (priceMax !== null) filtered = filtered.filter(r => r.priceRange == null || r.priceRange <= priceMax)
+    // Suosituimmat-landing (subCat==='all') on kuratoitu laatulista jota EI
+    // suodateta — suodattimet vaikuttavat vain selausnäkymässä. Gate tehdään
+    // tässä renderissä (ei vain paint-jälkeisessä nollausefektissä), jotta
+    // selausnäkymästä palatessa vanha suodatintila (esim. ★4.5+) ei koskaan
+    // ehdi välähtää yhtä frameä kuratoituun ruudukkoon.
+    const browsing = subCat !== 'all'
+    if (browsing && filterOpen) filtered = filtered.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
     // Min-arvosana (Michelin/Bib korvaa arvostelumäärävaatimuksen isRatedAtLeastissa)
-    if (minStars !== null) filtered = filtered.filter(r => isRatedAtLeast(r, minStars))
-    if (filterNearby && userPos) {
+    if (browsing && minStars !== null) filtered = filtered.filter(r => isRatedAtLeast(r, minStars))
+    if (browsing && filterNearby && userPos) {
       // Käyttäjä pyysi eksplisiittisesti lähimpiä → etäisyys voittaa
       filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     } else {
@@ -956,18 +968,30 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       })
     }
     return filtered
-  }, [subPool, filterOpen, filterNearby, priceMax, minStars, userPos, distMap])
+  }, [subPool, filterOpen, filterNearby, minStars, userPos, distMap, subCat])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
 
   const heroRest = useMemo(() => {
-    return typePool.find(r => r.image && r.openingHours && isOpenNow(r.openingHours))
-      ?? typePool.find(r => r.image)
+    // Hero on sivun käyntikortti → AINA laadukas paikka + hyvä kuva. Vaaditaan
+    // kuva ja todistettu laatu (isRatedAtLeast 4 = ≥4★ & ≥50 arvostelua tai
+    // Michelin/Bib) — ei nosteta huonoa kuvaa eikä matalan arvosanan pikaruokaa.
+    // Lajitellaan samalla laatupisteellä kuin kärkipoiminnat; auki nyt -paikka
+    // voittaa kärjen tasavertaisista, muttei koskaan tiputa laatua.
+    const quality = typePool
+      .filter(r => r.image && isRatedAtLeast(r, 4))
+      .sort((a, b) => restaurantQualityScore(b) - restaurantQualityScore(a))
+    const top = quality.slice(0, 12)
+    return (
+      top.find(r => r.openingHours && isOpenNow(r.openingHours) === true)
+      ?? quality[0]
+      ?? typePool.find(r => r.image)   // varapaikka: laatugate tyhjä (esim. harva tyyppi)
       ?? typePool[0]
       ?? null
+    )
   }, [typePool])
 
-  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setPriceMax(null); setMinStars(null) }, [])
+  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -1001,13 +1025,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
       {!loading && (
         <>
-          {/* ═══ ETUSIVU (restSub 'kaikki') — etusivun tyyli: hero → kategoriat →
-               Auta valitsemaan → yksi ruudukko (ei karuselleja) ═══ */}
+          {/* ═══ ETUSIVU (subCat 'all') — Suosituimmat-landing: hero → kategoriat
+               (+ Kaikki) → uutiset → kuratoitu top-60. EI suodattimia — kuratoitua
+               suosituinta listaa ei suodateta (suodattimet ovat selausnäkymässä). ═══ */}
           {subCat === 'all' && (
             <>
-              {/* Hero piilotetaan kun kova suodatin (hinta/arvosana) on päällä —
-                  ettei ylänosto riitele suodatetun ruudukon kanssa */}
-              {heroRest && priceMax === null && minStars === null && (
+              {heroRest && (
                 <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
               )}
 
@@ -1016,9 +1039,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {/* Tuoreita artikkeleita valinnan tueksi — tärkeä lokaaleille */}
               <NewsSection items={news} />
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} priceMax={priceMax} minStars={minStars} showPrice={restType === 'ruokapaikat'} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onPrice={setPriceMax} onStars={setMinStars} />
-
-              {/* Kärkipoiminnat: ~60 parasta (kuva + arvosana). Loput kategorioittain yltä. */}
+              {/* Kärkipoiminnat: ~60 parasta (kuva + arvosana). Loput kategorioittain / Kaikki-napista yltä. */}
               {groupedSortedPool.length > 0 ? (
                 <section className="space-y-3">
                   <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
@@ -1026,8 +1047,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </h2>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
                     {groupedSortedPool
-                      // Sulje hero pois vain kun se näytetään (ei kovaa suodatinta) — muuten näyttäisi tyhjää
-                      .filter(item => priceMax !== null || minStars !== null || '_isChain' in item || item.id !== heroRest?.id)
+                      .filter(item => '_isChain' in item || item.id !== heroRest?.id)
                       .slice(0, TOP_PICKS).map(item =>
                       '_isChain' in item
                         ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
@@ -1061,12 +1081,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
               <div className="flex items-center justify-between">
                 <h2 className="font-black text-white text-[19px]" style={{ letterSpacing: '-0.02em' }}>
-                  {SUB_CATS[restType].find(c => c.id === subCat)?.emoji} {SUB_CATS[restType].find(c => c.id === subCat)?.label}
+                  {subCat === 'kaikki'
+                    ? `Kaikki ${TYPE_TABS.find(tt => tt.id === restType)?.label.toLowerCase()}`
+                    : `${SUB_CATS[restType].find(c => c.id === subCat)?.emoji ?? ''} ${SUB_CATS[restType].find(c => c.id === subCat)?.label ?? ''}`}
                   <span className="text-white/30 text-[14px] font-bold"> · {groupedSortedPool.length} {t('restaurants.places')}</span>
                 </h2>
               </div>
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} priceMax={priceMax} minStars={minStars} showPrice={restType === 'ruokapaikat'} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onPrice={setPriceMax} onStars={setMinStars} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} minStars={minStars} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onStars={setMinStars} />
 
               {groupedSortedPool.length > 0 ? (
                 <>
