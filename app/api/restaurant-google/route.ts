@@ -29,7 +29,11 @@ export async function GET(req: NextRequest) {
   const pl = (g.price_level ?? null) as string | null
 
   const bookUrl = (g.book_online_url ?? null) as string | null
-  const gUrl = (g.url ?? null) as string | null
+  // Google Maps -LISTAUKSEN url rakennetaan cid:stä (items-tason kenttä,
+  // tallessa google_raw:ssa). HUOM: g.url on ravintolan OMA nettisivu (= sama
+  // kuin Nettisivu-nappi), EI Maps-listaus, joten sitä ei käytetä tähän.
+  const cid = g.cid != null ? String(g.cid) : null
+  const mapsUrl = cid && /^\d+$/.test(cid) ? `https://www.google.com/maps?cid=${cid}` : null
 
   // popular_times → per-viikonpäivä tuntitaulukko [{hour, index 0-100}] (client
   // laskee "ruuhka nyt" oman kellon mukaan). place_topics jätetty pois: DataForSEO
@@ -73,7 +77,7 @@ export async function GET(req: NextRequest) {
       // available_attributes is grouped { offerings:[...], service_options:[...], ... }
       attributes: attrs?.available_attributes ?? null,
       phone: (g.phone ?? null) as string | null,
-      url: gUrl && /^https?:\/\//i.test(gUrl) ? gUrl : null,
+      mapsUrl,
       // Todellinen varauslinkki (Google "Book online") — voittaa heuristisen
       bookOnlineUrl: bookUrl && /^https?:\/\//i.test(bookUrl) ? bookUrl : null,
       popularTimes,

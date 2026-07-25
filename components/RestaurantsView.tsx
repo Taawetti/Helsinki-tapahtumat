@@ -808,7 +808,7 @@ type RestGoogleData = {
   priceLevel: string | null
   attributes: Record<string, string[]> | null
   phone: string | null
-  url: string | null
+  mapsUrl: string | null
   bookOnlineUrl: string | null
   popularTimes: Record<string, { hour: number; index: number }[]> | null
   peopleAlsoSearch: { title: string; rating: number | null; reviewCount: number | null }[] | null
@@ -1289,26 +1289,29 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               })()}
 
               {/* Ruuhka-ajat (popular_times) — tänään, "nyt" korostettuna.
-                  new Date() on selaimen aika (Helsinki) — venue-ajat samassa tz:ssa. */}
+                  Viikonpäivä + tunti johdetaan HELSINGIN ajasta (venue-ajat ovat
+                  Helsinki-lokaalia), ei selaimen tz:sta — muuten ulkomailta
+                  selaava turisti näkisi väärän päivän/tunnin. */}
               {(() => {
                 const pt = restGoogle?.popularTimes
                 if (!pt) return null
-                const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-                const DAYS_FI = ['Su', 'Ma', 'Ti', 'Ke', 'To', 'Pe', 'La']
-                const now = new Date()
-                const dow = now.getDay()
-                const today = pt[DAYS[dow]]
+                const DAY_FI: Record<string, string> = { sunday: 'Su', monday: 'Ma', tuesday: 'Ti', wednesday: 'Ke', thursday: 'To', friday: 'Pe', saturday: 'La' }
+                const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Helsinki', weekday: 'long', hour: 'numeric', hour12: false }).formatToParts(new Date())
+                const wd = (parts.find(p => p.type === 'weekday')?.value ?? '').toLowerCase()
+                let curHour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '-1', 10)
+                if (curHour === 24) curHour = 0   // hour12:false voi antaa 24 keskiyöllä
+                const today = pt[wd]
                 if (!today || today.length === 0) return null
-                const curHour = now.getHours()
+                const maxIdx = Math.max(...today.map(h => h.index))
+                if (maxIdx <= 0) return null       // kiinni / kaikki nollia → piilota (ei litteää tyhjää kaaviota)
                 const cur = today.find(h => h.hour === curHour)
                 const level = cur && cur.index > 0
                   ? (cur.index >= 67 ? { t: 'Vilkasta', c: '#f0776a' } : cur.index >= 34 ? { t: 'Kohtalaista', c: '#e8c06a' } : { t: 'Rauhallista', c: '#8ee6a0' })
                   : null
-                const maxIdx = Math.max(...today.map(h => h.index), 1)
                 return (
                   <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,.04)' }}>
                     <div className="flex items-center justify-between">
-                      <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">Ruuhka-ajat · {DAYS_FI[dow]}</span>
+                      <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">Ruuhka-ajat · {DAY_FI[wd] ?? ''}</span>
                       {level && <span className="text-[11px] font-black" style={{ color: level.c }}>Nyt: {level.t}</span>}
                     </div>
                     <div className="flex items-end gap-[3px]" style={{ height: 34 }}>
@@ -1402,9 +1405,9 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 )}
               </div>
 
-              {/* Kuvamäärä + linkki Google-listaukseen (kuvat, arvostelut) */}
-              {restGoogle?.url && (
-                <a href={restGoogle.url} target="_blank" rel="noopener noreferrer"
+              {/* Kuvamäärä + linkki Google Maps -LISTAUKSEEN (kuvat, arvostelut) */}
+              {restGoogle?.mapsUrl && (
+                <a href={restGoogle.mapsUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-white/35 text-xs font-bold pt-0.5 hover:text-white/60">
                   {restGoogle.totalPhotos != null && restGoogle.totalPhotos > 0 ? `${restGoogle.totalPhotos} kuvaa · ` : ''}Katso Google Mapsissa →
                 </a>
