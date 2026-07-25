@@ -7,6 +7,7 @@ import { getHighlight } from '@/lib/activity-highlights'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
+import { pickAttributes } from '@/lib/google-attributes'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -66,37 +67,7 @@ type ActivityGoogleData = {
   url: string | null
 }
 
-// Googlen attribuutti-avaimet → suomenkielinen tagi + emoji. Tuntemattomat
-// avaimet ohitetaan (ei näytetä raakoja konekielisiä avaimia).
-const ATTR_LABELS: Record<string, { emoji: string; label: string }> = {
-  has_wheelchair_accessible_entrance: { emoji: '♿', label: 'Esteetön sisäänkäynti' },
-  has_wheelchair_accessible_restroom: { emoji: '♿', label: 'Esteetön WC' },
-  has_wheelchair_accessible_seating: { emoji: '♿', label: 'Esteetön istumapaikka' },
-  has_wheelchair_accessible_parking: { emoji: '♿', label: 'Esteetön parkki' },
-  has_wheelchair_accessible_elevator: { emoji: '♿', label: 'Esteetön hissi' },
-  has_restaurant: { emoji: '🍽', label: 'Ravintola' },
-  has_cafe: { emoji: '☕', label: 'Kahvila' },
-  has_bar: { emoji: '🍸', label: 'Baari' },
-  serves_beer: { emoji: '🍺', label: 'Olutta' },
-  serves_wine: { emoji: '🍷', label: 'Viiniä' },
-  serves_vegetarian: { emoji: '🥗', label: 'Kasvisruokaa' },
-  has_wi_fi: { emoji: '📶', label: 'Wifi' },
-  has_restroom: { emoji: '🚻', label: 'WC' },
-  has_restroom_unisex: { emoji: '🚻', label: 'Unisex-WC' },
-  has_gender_neutral_restroom: { emoji: '🚻', label: 'Sukupuolineutraali WC' },
-  has_admission_fee: { emoji: '🎫', label: 'Pääsymaksu' },
-  welcomes_children: { emoji: '👶', label: 'Lapsille sopiva' },
-  has_changing_tables: { emoji: '🍼', label: 'Hoitopöytä' },
-  has_live_performances: { emoji: '🎭', label: 'Esityksiä' },
-  has_parking: { emoji: '🅿️', label: 'Parkki' },
-  has_free_parking: { emoji: '🅿️', label: 'Ilmainen parkki' },
-  has_free_street_parking: { emoji: '🅿️', label: 'Katuparkki' },
-  welcomes_dogs: { emoji: '🐕', label: 'Koirat ok' },
-  allows_dogs: { emoji: '🐕', label: 'Koirat ok' },
-  has_outdoor_seating: { emoji: '☀️', label: 'Terassi' },
-  is_lgbtq_friendly: { emoji: '🏳️‍🌈', label: 'LGBTQ-ystävällinen' },
-  has_seating: { emoji: '🪑', label: 'Istumapaikkoja' },
-}
+// ATTR_LABELS + pickAttributes jaettu ravintolakorttien kanssa → lib/google-attributes.
 
 const OSM_DAY_FI: Record<string, string> = { Mo: 'Ma', Tu: 'Ti', We: 'Ke', Th: 'To', Fr: 'Pe', Sa: 'La', Su: 'Su' }
 // OSM-muotoinen aukiolostringi → luettavat suomenkieliset rivit (yksi/päivä).
@@ -112,21 +83,6 @@ function formatHoursFi(osm: string): string[] {
     s = s.replace(/\boff\b/gi, 'suljettu')
     return s
   }).filter(Boolean)
-}
-// Poimi näytettävät attribuutit ryhmistä (litistetään + suomennetaan)
-function pickAttributes(attrs: Record<string, string[]> | null): { emoji: string; label: string }[] {
-  if (!attrs) return []
-  const out: { emoji: string; label: string }[] = []
-  const seen = new Set<string>()
-  for (const group of Object.values(attrs)) {
-    // google_raw on validoimatonta JSONia — varmista taulukko ettei render kaadu
-    for (const k of (Array.isArray(group) ? group : [])) {
-      const m = ATTR_LABELS[k]
-      // dedup labelin mukaan (esim. welcomes_dogs + allows_dogs = sama "Koirat ok")
-      if (m && !seen.has(m.label)) { seen.add(m.label); out.push(m) }
-    }
-  }
-  return out
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -906,7 +862,7 @@ export default function ActivitiesView({ onShowOnMap }: {
                 if (!tags.length) return null
                 return (
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {tags.map((tg, i) => (
+                    {tags.slice(0, 10).map((tg, i) => (
                       <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/60" style={{ background: 'rgba(255,255,255,.06)' }}>
                         {tg.emoji} {tg.label}
                       </span>

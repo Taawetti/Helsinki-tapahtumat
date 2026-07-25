@@ -6,6 +6,7 @@ import type { Restaurant } from '@/lib/types'
 import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
+import { pickAttributes } from '@/lib/google-attributes'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -798,6 +799,19 @@ function isRatedAtLeast(r: Restaurant, min: number): boolean {
 
 type StarSeg = 4 | 4.5 | null     // ⭐ 4+ | ⭐ 4.5+
 
+// Rikas Google-profiili avattuun ravintolakorttiin (haetaan on-demand
+// /api/restaurant-google). Sama muoto kuin aktiviteeteilla + varauslinkki.
+type RestGoogleData = {
+  rating: number | null
+  reviewCount: number | null
+  ratingDistribution: Record<string, number> | null
+  priceLevel: string | null
+  attributes: Record<string, string[]> | null
+  phone: string | null
+  url: string | null
+  bookOnlineUrl: string | null
+}
+
 
 // Hoikka suodatinrivi — näkyy KAIKISSA näkymissä (kaikki + alakategoriat).
 // Korvaa entisen "Auta valitsemaan" -paneelin: samat suodattimet, mutta
@@ -847,6 +861,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [filterNearby, setFilterNearby] = useState(false)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [selectedRest, setSelectedRest] = useState<Restaurant | null>(null)
+  const [restGoogle, setRestGoogle] = useState<RestGoogleData | null>(null)
   const [selectedChain, setSelectedChain] = useState<ChainGroup | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   const [news, setNews] = useState<NewsItem[]>([])
@@ -868,6 +883,20 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     const r = restaurants.find(r => r.id === jumpToId)
     if (r) setSelectedRest(r)
   }, [jumpToKey, restaurants])
+
+  // Rikas Google-profiili (attribuutit, tähtijakauma, varauslinkki) haetaan
+  // vasta kun kortti avataan — lista pysyy kevyenä. Sama malli kuin aktiviteeteilla.
+  useEffect(() => {
+    if (!selectedRest) { setRestGoogle(null); return }
+    const key = selectedRest.name.toLowerCase().trim()
+    let cancelled = false
+    setRestGoogle(null)
+    fetch(`/api/restaurant-google?key=${encodeURIComponent(key)}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setRestGoogle(d.google ?? null) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [selectedRest])
 
   useEffect(() => {
     fetch('/api/restaurant-news')
@@ -1222,6 +1251,49 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </div>
                 )
               })()}
+
+              {/* Tähtijakauma (google_raw:sta) — arvosanaluku näkyy jo
+                  yläpillereissä, tässä vain palkit. Arvot voivat olla
+                  validoimatonta JSONia → coercataan numeroiksi (ei NaN). */}
+              {(() => {
+                const dist = restGoogle?.ratingDistribution
+                if (!dist) return null
+                const num = (v: unknown) => (typeof v === 'number' && isFinite(v) ? v : 0)
+                const total = Object.values(dist).reduce((a, b) => a + num(b), 0)
+                if (total === 0) return null
+                return (
+                  <div className="rounded-2xl p-3 space-y-1" style={{ background: 'rgba(255,255,255,.04)' }}>
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const pct = Math.round((num(dist[String(star)]) / total) * 100)
+                      return (
+                        <div key={star} className="flex items-center gap-2">
+                          <span className="text-white/40 text-[10px] w-3 text-right">{star}</span>
+                          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.08)' }}>
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#e8c06a' }} />
+                          </div>
+                          <span className="text-white/30 text-[10px] w-8 text-right">{pct}%</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+
+              {/* Ominaisuudet (terassi, varattavissa, olut/viini, esteettömyys…) */}
+              {(() => {
+                const tags = pickAttributes(restGoogle?.attributes ?? null)
+                if (!tags.length) return null
+                return (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {tags.slice(0, 10).map((tg, i) => (
+                      <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/60" style={{ background: 'rgba(255,255,255,.06)' }}>
+                        {tg.emoji} {tg.label}
+                      </span>
+                    ))}
+                  </div>
+                )
+              })()}
+
               <div className="flex gap-3 pt-1 flex-wrap">
                 {selectedRest.www && (
                   <a href={/^https?:\/\//i.test(selectedRest.www) ? selectedRest.www : 'https://' + selectedRest.www} target="_blank" rel="noopener noreferrer"
@@ -1231,12 +1303,24 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </a>
                 )}
                 {(() => {
-                  const url = reservationUrl(selectedRest)
+                  // Todellinen Google-varauslinkki voittaa heuristisen (TheFork-haku)
+                  const url = restGoogle?.bookOnlineUrl || reservationUrl(selectedRest)
                   return url ? (
                     <a href={url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
                       style={{ background: 'linear-gradient(150deg,#10b981,#059669)' }}>
                       🍽 Varaa pöytä
+                    </a>
+                  ) : null
+                })()}
+                {(() => {
+                  // Google-puhelin voittaa, mutta putoa OSM-numeroon (kuten aktiviteeteilla)
+                  const phone = restGoogle?.phone ?? selectedRest.phone
+                  return phone ? (
+                    <a href={`tel:${phone}`}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
+                      style={{ background: 'rgba(255,255,255,.08)' }}>
+                      <Phone size={13} /> {phone}
                     </a>
                   ) : null
                 })()}

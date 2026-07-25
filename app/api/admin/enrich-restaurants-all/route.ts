@@ -101,21 +101,26 @@ async function fetchBusiness(query: string): Promise<Fetched> {
 }
 
 /**
- * Unified restaurant enrichment: one my_business_info call per venue → stores
- * rating, reviews, cuisine, image and Google opening hours together, marked by
- * a single `enriched_at` stamp.
+ * Comprehensive restaurant RE-enrichment: one my_business_info call per venue →
+ * stores the FULL Google profile (google_raw: attributes, reservation link,
+ * rating distribution, popular times, place_topics) plus refreshed rating,
+ * reviews, cuisine, image and opening hours. Targets the curated keep-set only
+ * — restaurants proven good (rating >4.0 & ≥50 reviews) whose rich layer wasn't
+ * kept on the first pass.
  *
  * Money-safety (see the deep-audit notes in the PR):
- * - `enriched_at` is stamped on EVERY successfully-looked-up venue (data found
- *   or not), so no venue is ever looked up — or billed — twice.
- * - The skip-set is PAGINATED (fetchEnrichedKeys), so it can't truncate at 1000
- *   and re-charge everything past that (the old runaway bug).
+ * - `google_raw` is the done-marker: written on EVERY looked-up keep-set venue
+ *   (real profile when found, {} when Google had nothing), so no venue is ever
+ *   looked up — or billed — twice. Candidate set = keep-set AND google_raw NULL.
+ * - The candidate query is PAGINATED + .order('venue_key'), so it can't truncate
+ *   at 1000 and re-charge everything past that (the old runaway bug).
+ * - The rating floor scopes spend to exactly the keep-set (~1393 venues).
  * - If a whole batch's lookups all fail (bad token / outage), returns 502 so the
  *   caller stops immediately instead of looping.
  * - A write error (e.g. missing column) aborts with 500 before more spend.
  * - Chains are de-duped by name (they share one venue_ratings row).
  *
- * POST body: { limit?: number (default 25, max 50), dryRun?: boolean }
+ * POST body: { limit?: number (default 12, max 12), dryRun?: boolean }
  */
 export async function POST(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -132,30 +137,86 @@ export async function POST(req: NextRequest) {
   // 12/batch = 3 waves ≈ 90-120 s typical, worst (all hit the 60 s timeout)
   // 3×60 = 180 s — safely under maxDuration 300. Cap at 12 so an already-open
   // admin tab still sending limit:18 stays within budget too.
-  const limit: number = Math.min(body.limit ?? 12, 12)
+  // Math.max(1, …) estää negatiivisen limitin: pelkkä Math.min(-50,12)=-50 →
+  // candidates.slice(0,-50) käsittelisi lähes KOKO keep-joukon yhdellä kutsulla
+  // ohittaen 12-katon. Floor karsii desimaalit.
+  const limit: number = Math.max(1, Math.min(Math.floor(body.limit ?? 12), 12))
   const dryRun: boolean = body.dryRun ?? false
 
   const osm = await fetchOSMCached()
 
-  // Paginated skip-set on the single unified marker. Errors → migration not run.
-  const { keys: doneKeys, error: skipErr } = await fetchEnrichedKeys(supabaseAdmin, 'enriched_at')
-  if (skipErr) {
-    return NextResponse.json(
-      { error: 'venue_ratings.enriched_at puuttuu — aja sql/add-venue-enrichment-columns.sql ensin' },
-      { status: 500 },
-    )
+  // ── Ehdokasjoukko (kuratoitu keep-joukko) — kootaan KAHDESTA signaalista:
+  //  1) Arvosana: venue_ratings-rivit joilla google_rating >4.0 & ≥50 arvostelua
+  //     (todistetusti hyvät) — haetaan sivutettuna alle.
+  //  2) OSM-laatuleima: award (Michelin/Bib/suositeltu) TAI finedining. Nämä
+  //     priimapaikat (esim. Savoy, Nokka, Nolla, Kuurna) ovat AWARD_SUPPLEMENTS-
+  //     listalla eikä niillä ole vielä venue_ratings-riviä/arvosanaa lainkaan →
+  //     pelkkä arvosanasuodatin missaisi ne. Signaali luetaan OSM-Restaurant-
+  //     oliosta (michelinStars/bibGourmand/michelinRecommended/description).
+  //
+  // google_raw on done-merkki: doneKeys = rivit joilla google_raw jo on → niitä
+  // ei haeta/veloiteta toiste. MOLEMMAT haut SIVUTETTU + .order('venue_key'):
+  // ilman deterministististä järjestystä setti katkeaa 1000 rivin kohdalla ja jo
+  // maksettu venue putoaa → karkaava DataForSEO-lasku (fetchEnrichedKeysin
+  // estämä bugi). act:-rivit karsiutuvat luonnostaan OSM-leikkauksessa.
+  const { keys: doneKeys, error: doneErr } = await fetchEnrichedKeys(supabaseAdmin, 'google_raw')
+  if (doneErr) {
+    return NextResponse.json({ error: `google_raw-skip-setin haku epäonnistui: ${doneErr}` }, { status: 500 })
+  }
+  const ratingTargetKeys = new Set<string>()
+  {
+    const PAGE = 1000
+    for (let page = 0; ; page++) {
+      const { data, error } = await supabaseAdmin
+        .from('venue_ratings')
+        .select('venue_key')
+        .gt('google_rating', 4.0)
+        .gte('review_count', 50)
+        .is('google_raw', null)
+        .order('venue_key')
+        .range(page * PAGE, (page + 1) * PAGE - 1)
+      if (error) {
+        return NextResponse.json({ error: `Keep-joukon haku epäonnistui: ${error.message}` }, { status: 500 })
+      }
+      if (!data || data.length === 0) break
+      for (const row of data as { venue_key: string }[]) ratingTargetKeys.add(row.venue_key)
+      if (data.length < PAGE) break
+    }
   }
 
-  // De-dupe by venue_key (chains share one row) and drop already-done venues.
+  // De-dupe by venue_key (chains share one row); keep venues still MISSING
+  // google_raw that are keep-worthy: proven rating OR award OR finedining.
   const seen = new Set<string>()
   const candidates = osm.filter((r) => {
     const k = r.name.toLowerCase().trim()
-    if (!k || doneKeys.has(k) || seen.has(k)) return false
+    if (!k || seen.has(k)) return false
     seen.add(k)
-    return true
+    if (doneKeys.has(k)) return false                                   // google_raw jo → valmis
+    const award = !!(r.michelinStars || r.bibGourmand || r.michelinRecommended)
+    const finedining = r.description === 'finedining'
+    return ratingTargetKeys.has(k) || award || finedining
   })
   const toProcess = candidates.slice(0, limit)
   const remaining = candidates.length - toProcess.length
+
+  // dryRun = ILMAINEN esikatselu: ei yhtään DataForSEO-hakua (ei kuluja).
+  // Kertoo tasan montako keep-joukon ravintolaa nappi käsittelisi + arvion.
+  if (dryRun) {
+    const awardOrFine = candidates.filter(
+      (r) => r.michelinStars || r.bibGourmand || r.michelinRecommended || r.description === 'finedining',
+    )
+    return NextResponse.json({
+      dryRun: true,
+      candidatesThisCall: toProcess.length,    // käsiteltäisiin tällä kutsulla (≤ limit)
+      totalCandidates: candidates.length,      // koko ehdokasjoukko (ennen käsittelyä)
+      remainingAfterThisCall: remaining,
+      ratingKeepSet: ratingTargetKeys.size,    // arvosanaperusteinen osajoukko
+      awardOrFinedining: awardOrFine.length,   // award/finedining-signaalilla mukaan (vaikka ei arvosanaa)
+      awardOrFineSample: awardOrFine.slice(0, 12).map((r) => r.name),
+      estimatedCostUsd: +(candidates.length * 0.0054).toFixed(2),
+      sample: toProcess.slice(0, 8).map((r) => r.name),
+    })
+  }
 
   let okTasks = 0
   let withData = 0
@@ -191,22 +252,26 @@ export async function POST(req: NextRequest) {
           venue_key: rest.name.toLowerCase().trim(),
           enriched_at: now,
           last_updated: now,
-          google_rating: f.rating,
-          review_count: f.reviewCount,
-          price_level: f.priceLevel,
           // OSM cuisine wins; else Google-derived; else [] (so the column is non-null)
           cuisine_categories: rest.cuisineCategories.length > 0 ? rest.cuisineCategories : f.cuisineCats,
-          google_hours: f.hoursOsm,
-          google_hours_updated: now,
         }
-        // Only write main_image when Google actually returned one — otherwise
-        // omit it so onConflict-update PRESERVES an image a previous pass stored
-        // (writing '' here would wipe ~900 existing restaurant images).
+        // KRIITTINEN (re-rikastus): kirjoita arvosana/arvostelut/hinta/aukiolot/kuva/
+        // kuvaus VAIN kun Google palautti arvon. Muuten ohimennyt query-miss
+        // (found=false tai puuttuva kenttä) NOLLAISI priiman jo tallennetun datan
+        // — esim. Savoy 4.8/500 → null/null — ja koska google_raw={} leimaa sen
+        // valmiiksi, paikka putoaisi keep-joukosta pysyvästi köyhtyneenä.
+        if (f.rating != null) row.google_rating = f.rating
+        if (f.reviewCount != null) row.review_count = f.reviewCount
+        if (f.priceLevel) row.price_level = f.priceLevel
+        if (f.hoursOsm) { row.google_hours = f.hoursOsm; row.google_hours_updated = now }
         if (f.mainImage) row.main_image = f.mainImage
-        // Sama sääntö kuvaukselle: null ei saa pyyhkiä aiemmin tallennettua
         if (f.description) row.description = f.description
-        // Koko raakaprofiili — vain kun Google palautti kohteen (ei pyyhi null:lla)
-        if (f.raw) row.google_raw = f.raw
+        // google_raw on re-rikastuksen done-merkki → kirjoitetaan AINA: raaka
+        // Google-profiili kun paikka löytyi, muuten {} ("tarkistettu, ei dataa")
+        // jottei venue palaa ehdokasjoukkoon ja veloitu uudestaan. Uudelleen-
+        // haku myöhemmin: UPDATE venue_ratings SET google_raw=NULL WHERE
+        // google_raw = '{}'::jsonb (ja aja nappi uudestaan).
+        row.google_raw = f.raw ?? {}
         const { error } = await supabaseAdmin.from('venue_ratings').upsert(row, { onConflict: 'venue_key' })
         if (error) {
           return NextResponse.json(
@@ -231,19 +296,30 @@ export async function POST(req: NextRequest) {
   }
 
   // Batch had successes → the failures are per-venue quirks, not systemic.
-  // Mark them done (no data) so they're never re-looked-up/re-billed and can't
-  // cluster at the front of the queue and stall the whole run. To retry them
-  // later: UPDATE venue_ratings SET enriched_at=NULL WHERE google_hours IS NULL
-  //         AND google_rating IS NULL (and re-run).
+  // Mark them done (google_raw={} = "attempted, no data") so they're never
+  // re-looked-up/re-billed and can't cluster at the front of the candidate set
+  // and stall the whole run. To retry them later: UPDATE venue_ratings SET
+  // google_raw=NULL WHERE google_raw = '{}'::jsonb (and re-run).
   if (!dryRun && errorKeys.length > 0) {
     const now = new Date().toISOString()
     const { error } = await supabaseAdmin
       .from('venue_ratings')
-      .upsert(errorKeys.map((k) => ({ venue_key: k, enriched_at: now, last_updated: now })), { onConflict: 'venue_key' })
+      .upsert(errorKeys.map((k) => ({ venue_key: k, enriched_at: now, last_updated: now, google_raw: {} })), { onConflict: 'venue_key' })
     if (error) {
       return NextResponse.json({ error: `Tallennus epäonnistui: ${error.message}`, withData, notInGoogle, errors }, { status: 500 })
     }
   }
+
+  // Systeeminen nolladatan katkaisija: jos KOKO (täysi) erä onnistui teknisesti
+  // mutta EI tuottanut yhtään dataa ja jokainen oli "ei Googlessa", kyse on
+  // lähes varmasti systeemisestä estosta/konfiguraatiovirheestä (provider muutti
+  // location_name/language-formaattia tai Google soft-blokkaa). Kuratoidun keep-
+  // joukon (todistetusti hyvät + award/finedining) pitäisi lähes aina löytyä.
+  // Merkitään varoitus → admin-loop pysähtyy ennen kuin koko joukko valuu tyhjänä.
+  const systemicWarning =
+    okTasks > 0 && withData === 0 && notInGoogle === toProcess.length && toProcess.length >= 8
+      ? 'Erä ei tuottanut yhtään dataa (kaikki "ei Googlessa") — mahdollinen esto/konfiguraatiovirhe. Ajo pysäytetty.'
+      : null
 
   return NextResponse.json({
     processed: toProcess.length,
@@ -251,7 +327,8 @@ export async function POST(req: NextRequest) {
     notInGoogle,           // looked up, Google had no listing
     errors,                // per-venue failures (marked done to keep the run moving)
     remaining,
-    alreadyDone: doneKeys.size,
+    keepSetPending: candidates.length,  // keep-worthy paikkoja ilman google_raw:ta (OSM-täsmääviä)
+    systemicWarning,
     dryRun,
     results,
   })

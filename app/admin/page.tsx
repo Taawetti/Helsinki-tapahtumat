@@ -120,6 +120,7 @@ export default function AdminPage() {
   const [enriching, setEnriching] = useState(false)
   const [enrichResult, setEnrichResult] = useState('')
   const enrichStopRef = useRef(false)
+  const restTestDoneRef = useRef(false)
   const [enrichingSubs, setEnrichingSubs] = useState(false)
   const [enrichSubsResult, setEnrichSubsResult] = useState('')
   const enrichSubsStopRef = useRef(false)
@@ -168,8 +169,11 @@ export default function AdminPage() {
     }
   }
 
-  // Unified enrichment: one DataForSEO call per restaurant fills rating +
-  // reviews + cuisine + image + opening hours together.
+  // Ravintoloiden kokonaisvaltainen RE-rikastus: yksi DataForSEO-kutsu / paikka
+  // → arvosana, arvostelut, keittiö, kuva, aukiolot, kuvaus + koko google_raw
+  // (attribuutit, varauslinkki, tähtijakauma…). Kohteena kuratoitu keep-joukko
+  // (rating >4.0 & ≥50 arv. + award/finedining). Ensimmäinen erä pysähtyy
+  // näyttämään otokset ennen lisäkulua; nolladatan erä pysäyttää automaattisesti.
   async function handleEnrichRestaurants() {
     if (enriching) { enrichStopRef.current = true; return }
     setEnriching(true)
@@ -182,14 +186,14 @@ export default function AdminPage() {
     let guard = 0
 
     try {
-      // ~2950 venues / 18 per batch ≈ 165 batches; cap at 400 as a hard net
+      // ~1400 keep-joukkoa / 12 per erä ≈ 117 erää; katto 200 kova varmuusraja
       while (!enrichStopRef.current) {
-        if (++guard > 400) { setEnrichResult(`⏹ Pysäytetty turvarajaan`); break }
-        // 18/batch in waves of 6 concurrent ~26s lookups ≈ 80-120s per batch
+        if (++guard > 200) { setEnrichResult(`⏹ Pysäytetty turvarajaan`); break }
+        // 12/erä (endpointin katto) waves of 4 ~26-40 s lookups ≈ 90-120 s per erä
         const res = await fetch('/api/admin/enrich-restaurants-all', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ limit: 18 }),
+          body: JSON.stringify({ limit: 12 }),
         })
         const data = await res.json()
         if (data.error) { setEnrichResult('Virhe: ' + data.error); break }
@@ -197,6 +201,18 @@ export default function AdminPage() {
         totalStored += data.stored
         totalNone += data.notInGoogle
         totalErrors += data.errors
+
+        // Testiportti: ensimmäinen erä pysäyttää → näet otokset ennen lisäkulua
+        if (!restTestDoneRef.current) {
+          restTestDoneRef.current = true
+          const sampleStr = (data.results ?? []).slice(0, 6).map((s: { name: string; status: string }) => `${s.name} ${s.status}`).join(' · ')
+          setEnrichResult(`✋ Testierä valmis (dataa ${totalStored}/${data.processed}) — ${sampleStr || 'ei osumia'} — paina uudelleen jatkaaksesi (jäljellä ${data.remaining})`)
+          break
+        }
+
+        // Systeeminen nolladatan katkaisija (esto/konfiguraatiovirhe) → älä valuta koko joukkoa
+        if (data.systemicWarning) { setEnrichResult('⏹ ' + data.systemicWarning); break }
+
         setEnrichResult(`Dataa ${totalStored} • ei Googlessa ${totalNone} • virheitä ${totalErrors} • jäljellä ${data.remaining}`)
 
         if (data.remaining === 0 || data.processed === 0) {
