@@ -531,11 +531,32 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
 
 // ── Cached wrapper ────────────────────────────────────────
 
-export const fetchOSMCached = unstable_cache(
-  async () => applySupplements(await _fetchOSM()),
-  ['restaurants-osm-v17'], // v17: kuratoitu blurb (FEATURED_PICKS.note) mukaan
+// KRIITTINEN: tyhjää OSM-tulosta EI SAA cachettaa. _fetchOSM palauttaa []
+// kun kaikki Overpass-mirrorit pettävät → aiemmin applySupplements([]) (= vain
+// ~57 kovakoodattua supplementtia) cachettui 24 h:ksi ja koko ravintolalista
+// romahti supplementteihin päiväksi. Nyt tyhjä HEITTÄÄ → unstable_cache ei
+// talleta hylättyä promisea → seuraava pyyntö yrittää OSM:ää uudestaan. Vain
+// onnistunut (ei-tyhjä) haku cachetetaan. Ulompi wrapper tarjoaa supplementit
+// varana TÄLLE pyynnölle (cachettamatta), ettei sivu kaadu Overpass-katkoon.
+const _fetchOSMCachedOrThrow = unstable_cache(
+  async () => {
+    const osm = await _fetchOSM()
+    if (osm.length === 0) throw new Error('OSM fetch empty — not caching (Overpass mirrors down)')
+    return applySupplements(osm)
+  },
+  ['restaurants-osm-v18'], // v18: älä cacheta tyhjää OSM-tulosta (bustaa aiemman myrkytetyn cachen)
   { revalidate: 86400, tags: ['restaurants'] }
 )
+
+export const fetchOSMCached = async (): Promise<Restaurant[]> => {
+  try {
+    return await _fetchOSMCachedOrThrow()
+  } catch {
+    // Overpass-katko → tarjoa pelkät supplementit varana (ei cachea);
+    // seuraava pyyntö yrittää täyttä OSM-hakua taas.
+    return applySupplements([])
+  }
+}
 
 export const fetchPKCached = async () => [] as Restaurant[]
 
