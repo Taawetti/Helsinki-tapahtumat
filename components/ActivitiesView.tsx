@@ -758,8 +758,8 @@ export default function ActivitiesView({ onShowOnMap }: {
       {selectedActivity && (
         <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)' }}
           onClick={() => setSelectedActivity(null)}>
-          <div className="w-full max-w-2xl mx-auto rounded-t-[28px] overflow-hidden animate-sheet-up"
-            style={{ background: '#0f0f13', border: '1px solid rgba(255,255,255,.1)' }}
+          <div className="w-full max-w-2xl mx-auto rounded-t-[28px] overflow-y-auto animate-sheet-up"
+            style={{ background: '#0f0f13', border: '1px solid rgba(255,255,255,.1)', maxHeight: '85vh', overscrollBehavior: 'contain' }}
             onClick={e => e.stopPropagation()}>
             {selectedActivity.image && (
               <div className="relative w-full" style={{ aspectRatio: '16/7' }}>
