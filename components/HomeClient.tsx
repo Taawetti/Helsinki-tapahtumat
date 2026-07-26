@@ -741,10 +741,10 @@ export default function HomeClient({
                 {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🧖 ${t('nav.activities')}`}
               </button>
             ))}
-            <Link href="/suunnittele"
+            <Link href="/paatakaa"
               className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-white/35 hover:text-white/65"
               style={{ textDecoration: 'none' }}>
-              ✈️ Suunnittele
+              🗳 Päättäkää yhdessä
             </Link>
           </div>
 
@@ -1122,10 +1122,10 @@ export default function HomeClient({
                 </div>
               )}
 
-              {/* Suunnittele-linkki mobiilissa (poistui alapalkista) */}
+              {/* Päättäkää yhdessä -linkki mobiilissa */}
               <div className="md:hidden flex justify-center">
-                <Link href="/suunnittele" className="text-[12px] font-bold text-white/35 hover:text-white/60 transition-colors" style={{ textDecoration: 'none' }}>
-                  ✈️ Suunnittele täydellinen ilta →
+                <Link href="/paatakaa" className="text-[12px] font-bold text-white/35 hover:text-white/60 transition-colors" style={{ textDecoration: 'none' }}>
+                  🗳 Päättäkää yhdessä mitä tehdään →
                 </Link>
               </div>
             </>
