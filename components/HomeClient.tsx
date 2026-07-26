@@ -1201,7 +1201,7 @@ export default function HomeClient({
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
         style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-4 h-full">
+        <div className="grid grid-cols-5 h-full">
           {([
             { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
             { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
@@ -1214,10 +1214,17 @@ export default function HomeClient({
                 className="relative flex flex-col items-center justify-center gap-0.5 transition-all"
                 style={{ color: isActive ? '#6b76ff' : 'rgba(255,255,255,0.4)' }}>
                 <span className="text-lg leading-none" style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(91,101,230,.5))' } : {}}>{emoji}</span>
-                <span className="text-[10px] font-bold">{t(labelKey)}</span>
+                <span className="text-[10px] font-bold whitespace-nowrap">{t(labelKey)}</span>
               </button>
             )
           })}
+          {/* Lippulaiva — reitti /paatakaa (ei mode-välilehti), aina näkyvissä */}
+          <Link href="/paatakaa"
+            className="relative flex flex-col items-center justify-center gap-0.5 transition-all"
+            style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>
+            <span className="text-lg leading-none">🗳</span>
+            <span className="text-[10px] font-bold whitespace-nowrap">Yhdessä</span>
+          </Link>
         </div>
       </nav>
 
