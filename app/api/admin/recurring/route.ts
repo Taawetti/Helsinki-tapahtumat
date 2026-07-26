@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-
-function checkAuth(req: NextRequest) {
-  const session = req.cookies.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return expected && session === expected
-}
+import { requireAdmin } from '@/lib/admin-auth'
 
 export async function GET(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   const { data, error } = await supabaseAdmin
@@ -24,7 +18,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   const body = await req.json()
@@ -41,7 +36,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   const body = await req.json()
@@ -60,7 +56,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   const id = req.nextUrl.searchParams.get('id')

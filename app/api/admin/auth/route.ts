@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-
-const SESSION_COOKIE = 'admin_session'
-const MAX_AGE = 60 * 60 * 24 * 7 // 7 days
-
-function getExpectedToken(pw: string) {
-  return Buffer.from(pw).toString('base64')
-}
+import {
+  SESSION_COOKIE,
+  SESSION_MAX_AGE,
+  createAdminSessionToken,
+  timingSafeCompare,
+} from '@/lib/admin-auth'
 
 // POST /api/admin/auth — login
 export async function POST(req: NextRequest) {
@@ -22,18 +21,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'ADMIN_PASSWORD ei ole asetettu' }, { status: 500 })
   }
 
-  if (password !== adminPw) {
+  if (!timingSafeCompare(password, adminPw)) {
     return NextResponse.json({ error: 'Väärä salasana' }, { status: 401 })
   }
 
-  const expectedToken = getExpectedToken(adminPw)
+  const token = await createAdminSessionToken(adminPw)
 
   const cookieStore = await cookies()
-  cookieStore.set(SESSION_COOKIE, expectedToken, {
+  cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: MAX_AGE,
+    maxAge: SESSION_MAX_AGE,
     path: '/',
   })
 

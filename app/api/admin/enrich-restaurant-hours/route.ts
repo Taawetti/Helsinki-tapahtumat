@@ -3,16 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { fetchOSMCached } from '@/app/api/restaurants/route'
 import { googleTimetableToOsm } from '@/lib/google-hours'
 import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export const maxDuration = 300
-
-function checkAuth(req: NextRequest) {
-  const session = req.cookies.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return expected && session === expected
-}
 
 // Fetch Google opening hours for one venue and convert to an OSM string.
 // Returns null when Google has no usable timetable (caller keeps OSM).
@@ -46,7 +39,8 @@ async function fetchGoogleHours(query: string): Promise<string | null> {
  * POST body: { limit?: number (default 50, max 200), dryRun?: boolean }
  */
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   const body = await req.json().catch(() => ({}))

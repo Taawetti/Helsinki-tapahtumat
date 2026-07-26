@@ -4,16 +4,9 @@ import { fetchOSMCached } from '@/app/api/restaurants/route'
 import { googleTimetableToOsm } from '@/lib/google-hours'
 import { googleCategoriesToCuisine } from '@/app/api/admin/enrich-restaurant-cuisines/route'
 import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export const maxDuration = 300
-
-function checkAuth(req: NextRequest) {
-  const session = req.cookies.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return expected && session === expected
-}
 
 // One DataForSEO my_business_info lookup returns rating, reviews, categories,
 // image AND opening hours together — so ONE call enriches everything. Running
@@ -123,7 +116,8 @@ async function fetchBusiness(query: string): Promise<Fetched> {
  * POST body: { limit?: number (default 12, max 12), dryRun?: boolean }
  */
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   // Fail fast & loud on a missing token — otherwise every venue would just

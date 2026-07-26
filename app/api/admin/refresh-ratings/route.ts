@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-
-
-function checkAuth(req: NextRequest) {
-  const session = req.cookies.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return expected && session === expected
-}
+import { requireAdmin } from '@/lib/admin-auth'
 
 // Map venue key → Google Business search query
 const VENUE_QUERIES: Record<string, string> = {
@@ -85,7 +77,8 @@ async function fetchRating(query: string): Promise<{
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   const results: { key: string; status: string; rating?: number | null }[] = []

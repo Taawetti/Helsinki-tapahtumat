@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { checkSourceHealth } from '@/lib/source-health'
+import { requireAdmin } from '@/lib/admin-auth'
 
 // Admin-napin takana (app/admin) — ajaa lähdeterveyden kanarian KERRAN ja
 // lähettää testiviestin, jotta omistaja voi todeta: (1) anomaliahavainto toimii,
@@ -12,18 +13,9 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'Mitä tänään <onboarding@resend.dev>'
 const ALERT_TO = process.env.ALERT_EMAIL || 'timo.heinamaki@broven.fi'
 
-function checkAuth(req: NextRequest): boolean {
-  const session = req.cookies.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return !!expected && session === expected
-}
-
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const authError = await requireAdmin(req)
+  if (authError) return authError
 
   // Aja kanaria kerran nykydataa vasten (sisältää cold-start-retryn, jottei
   // testinappi näytä väärää poikkeamaa kylmästä deploymentista).

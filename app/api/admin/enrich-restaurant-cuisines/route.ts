@@ -2,18 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchOSMCached } from '@/app/api/restaurants/route'
 import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export const maxDuration = 300
-
-// ── Auth ─────────────────────────────────────────────────────
-
-function checkAuth(req: NextRequest) {
-  const session = req.cookies.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return expected && session === expected
-}
 
 // ── Google category → our cuisine category ───────────────────
 
@@ -100,7 +91,8 @@ async function fetchGoogleData(query: string): Promise<GoogleData> {
 // ── Route handler ────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   const body = await req.json().catch(() => ({}))

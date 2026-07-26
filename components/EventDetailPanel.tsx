@@ -179,7 +179,15 @@ export default function EventDetailPanel({ event, onClose }: Props) {
     : null
 
   const shareText = buildShareText(event)
-  const shareUrl = event.infoUrl || event.ticketUrl || 'https://helsinki-tapahtumat.fi'
+  // Jaetaan oma tapahtumasivu (/e/[id], OG-kuvalla ja JSON-LD:llä) aina kun sivu
+  // osaa ratkaista id:n — LinkedEvents-, Ticketmaster- ja festivaalitapahtumat.
+  // Muiden lähteiden id:t (scrapatut yms.) eivät ratkea → fallback ulkoiseen
+  // linkkiin. Näin jakaminen ohjaa kävijät palveluun, ei pois siitä.
+  const hasOwnPage =
+    event.source === 'linked-events' || event.id.startsWith('tm-') || event.id.startsWith('festival-')
+  const shareUrl = hasOwnPage
+    ? `https://mitatanaan.fi/e/${encodeURIComponent(event.id)}`
+    : event.infoUrl || event.ticketUrl || 'https://mitatanaan.fi'
 
   async function handleNativeShare() {
     if (navigator.share) {

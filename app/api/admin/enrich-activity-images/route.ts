@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchActivitiesCached } from '@/app/api/activities/route'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export const maxDuration = 300
 
 // Skip parks — they have no Google Business profiles
 const SKIP_CATEGORIES = new Set(['puisto'])
-
-function checkAuth(req: NextRequest) {
-  const session = req.cookies.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return expected && session === expected
-}
 
 async function fetchGoogleImage(query: string): Promise<string | null> {
   const token = process.env.DATAFORSEO_TOKEN
@@ -36,7 +29,8 @@ async function fetchGoogleImage(query: string): Promise<string | null> {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
   const body = await req.json().catch(() => ({}))

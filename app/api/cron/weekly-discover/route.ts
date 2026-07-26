@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createAdminSessionToken } from '@/lib/admin-auth'
 
 export const maxDuration = 300
 
@@ -17,8 +18,9 @@ export async function GET(req: NextRequest) {
   }
 
   const baseUrl = getBaseUrl()
-  const { createHmac } = await import('crypto')
-  const sessionValue = createHmac('sha256', process.env.ADMIN_PASSWORD ?? '').update('admin-session').digest('hex')
+  // Sama token-muoto kuin admin-reiteissä (lib/admin-auth) — aiempi paikallinen
+  // HMAC ei täsmännyt reittien base64-tarkistukseen, joten kutsut saivat 401:n.
+  const sessionValue = await createAdminSessionToken(process.env.ADMIN_PASSWORD ?? '')
   const cookieHeader = `admin_session=${sessionValue}`
 
   try {

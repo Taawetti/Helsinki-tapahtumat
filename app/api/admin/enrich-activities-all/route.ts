@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { fetchActivitiesCached } from '@/app/api/activities/route'
 import { googleTimetableToOsm } from '@/lib/google-hours'
 import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export const maxDuration = 300
 
@@ -10,14 +11,6 @@ export const maxDuration = 300
 // "Helsinkiläisten suosikit" grid + category tabs actually show). Parks/sports
 // fields/misc have no useful Google business profile, so we don't pay for them.
 const CURATED = new Set(['sauna', 'nakopaikka', 'uimaranta', 'galleria', 'museo', 'markkina', 'nahtavyys'])
-
-function checkAuth(req: NextRequest) {
-  const session = req.cookies.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return expected && session === expected
-}
 
 // One my_business_info lookup returns the WHOLE Google profile. We keep the raw
 // item (google_raw) so nothing is ever lost, and pull the fields the UI uses
@@ -104,7 +97,8 @@ async function fetchBusiness(query: string): Promise<Fetched> {
  * POST body: { limit?: number (default 12, max 12), dryRun?: boolean }
  */
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
   if (!process.env.DATAFORSEO_TOKEN) {
     return NextResponse.json({ error: 'DATAFORSEO_TOKEN puuttuu tältä ympäristöltä' }, { status: 500 })

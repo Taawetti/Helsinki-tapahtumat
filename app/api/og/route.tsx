@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
               </div>
             )}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.3)', fontSize: '16px' }}>
-              <span>helsinki-tapahtumat.fi</span>
+              <span>mitatanaan.fi</span>
             </div>
           </div>
         </div>

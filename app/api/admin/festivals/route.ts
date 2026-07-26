@@ -1,21 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { supabaseAdmin, DbFestival } from '@/lib/supabase'
-
-async function requireAdmin(): Promise<boolean> {
-  const cookieStore = await cookies()
-  const session = cookieStore.get('admin_session')?.value
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString('base64')
-    : null
-  return Boolean(session && expected && session === expected)
-}
+import { requireAdmin } from '@/lib/admin-auth'
 
 // GET /api/admin/festivals — list all festivals
-export async function GET() {
-  if (!await requireAdmin()) {
-    return NextResponse.json({ error: 'Ei oikeuksia' }, { status: 401 })
-  }
+export async function GET(req: NextRequest) {
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 503 })
   }
@@ -31,9 +21,8 @@ export async function GET() {
 
 // POST /api/admin/festivals — create new
 export async function POST(req: NextRequest) {
-  if (!await requireAdmin()) {
-    return NextResponse.json({ error: 'Ei oikeuksia' }, { status: 401 })
-  }
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 503 })
   }
@@ -72,9 +61,8 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/admin/festivals — update existing
 export async function PUT(req: NextRequest) {
-  if (!await requireAdmin()) {
-    return NextResponse.json({ error: 'Ei oikeuksia' }, { status: 401 })
-  }
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 503 })
   }
@@ -115,9 +103,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/admin/festivals?id=xxx — delete
 export async function DELETE(req: NextRequest) {
-  if (!await requireAdmin()) {
-    return NextResponse.json({ error: 'Ei oikeuksia' }, { status: 401 })
-  }
+  const authError = await requireAdmin(req)
+  if (authError) return authError
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 503 })
   }

@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import Footer from '@/components/Footer'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -117,6 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <FavoritesProvider>
             {children}
+            <Footer />
           </FavoritesProvider>
         </LanguageProvider>
         <script dangerouslySetInnerHTML={{ __html: `
