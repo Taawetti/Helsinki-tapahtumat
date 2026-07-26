@@ -35,6 +35,7 @@ export default function PaatakaaSession({ code }: { code: string }) {
 
   useEffect(() => {
     const v = getVoter()
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- äänestäjätiedon mount-synkkaus localStoragesta
     setVoter(v)
     if (v.name) setJoined(true)
     try {
@@ -56,6 +57,7 @@ export default function PaatakaaSession({ code }: { code: string }) {
   }, [code])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ensimmäinen pollaus mountissa; jatkuvuus hoituu setIntervallilla
     refresh()
     const iv = setInterval(() => { if (!synthesizing) refresh() }, 2500)
     return () => clearInterval(iv)

@@ -8,6 +8,7 @@ export function TramLoader({ loading }: { loading: boolean }) {
 
   useEffect(() => {
     if (loading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset exit state when the loading prop flips back
       setExiting(false)
       // Only show if loading takes > 150 ms — no flash on ISR cache hit
       const t = setTimeout(() => setVisible(true), 150)

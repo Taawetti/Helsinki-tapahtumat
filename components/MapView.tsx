@@ -329,7 +329,6 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     const Lcjs = (L as any).default ?? L
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hasMCG = typeof (Lcjs as any).markerClusterGroup === 'function'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mkCluster = (color: string) => hasMCG
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? (Lcjs as any).markerClusterGroup({
@@ -361,7 +360,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
     const map = mapRef.current
-    const sync = (cluster: any, on: boolean) => {
+    const sync = (cluster: L.Layer | null, on: boolean) => {
       if (!cluster) return
       if (on && !map.hasLayer(cluster)) map.addLayer(cluster)
       else if (!on && map.hasLayer(cluster)) map.removeLayer(cluster)
@@ -375,6 +374,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   useEffect(() => {
     if (!mapReady || !mapTarget || !mapRef.current) return
     // Auto-enable relevant layer
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- karttatason synkkaus mapTarget-propin mukaan
     if (mapTarget.type === 'restaurant') setLayers(l => ({ ...l, restaurants: true }))
     else if (mapTarget.type === 'activity') setLayers(l => ({ ...l, activities: true }))
 
@@ -393,6 +393,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   // ── Fetch data on demand ──────────────────────────────────
   useEffect(() => {
     if (!layers.restaurants || restaurants.length > 0 || restsLoading) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- latauslipun synkkaus fetch-efektissä
     setRestsLoading(true)
     fetch('/api/restaurants').then(r => r.json())
       .then(d => setRestaurants(d.restaurants ?? []))
@@ -401,6 +402,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
 
   useEffect(() => {
     if (!layers.activities || activities.length > 0 || activitiesLoading) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- latauslipun synkkaus fetch-efektissä
     setActivitiesLoading(true)
     fetch('/api/activities').then(r => r.json())
       .then(d => setActivities((d.activities ?? []).slice(0, 400)))

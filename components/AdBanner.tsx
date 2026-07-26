@@ -19,7 +19,7 @@ export default function AdBanner({ slot, format = 'auto', className = '' }: Prop
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     try {
-      // @ts-ignore
+      // @ts-expect-error — AdSense global is injected by the external script
       ;(window.adsbygoogle = window.adsbygoogle || []).push({})
     } catch {}
   }, [])

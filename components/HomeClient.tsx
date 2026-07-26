@@ -185,6 +185,7 @@ export default function HomeClient({
         new URLSearchParams({ start: data.start, end: data.end, page: '1', municipality: 'helsinki' }).toString(),
         data.events,
         data.total,
+        // eslint-disable-next-line react-hooks/purity -- tahmean cache-siemenen aikaleima lasketaan tarkoituksella renderissä ennen ekaa paintia
         Date.now() - 6 * 60 * 1000,
       )
     }
@@ -196,6 +197,7 @@ export default function HomeClient({
   // Client-only + once per load: avoids per-render Date parsing and keeps the
   // server-side module cache untouched.
   if (typeof window !== 'undefined' && !tonightSeeded && preloadedData.today.events.length > 0) {
+    // eslint-disable-next-line react-hooks/globals -- "kerran per lataus" -vahti: refiä ei saa kirjoittaa renderissä ja efekti ehtisi ekan paintin jälkeen
     tonightSeeded = true
     const tonightRange = getDateRange('tonight')
     if (tonightRange.startAfter && tonightRange.start === preloadedData.today.start && tonightRange.end === preloadedData.today.end) {
@@ -204,6 +206,7 @@ export default function HomeClient({
       if (tonightEvents.length > 0) {
         const tonightParams = new URLSearchParams({ start: tonightRange.start, end: tonightRange.end, page: '1', municipality: 'helsinki' })
         tonightParams.set('startAfter', tonightRange.startAfter)
+        // eslint-disable-next-line react-hooks/purity -- tahmean cache-siemenen aikaleima lasketaan tarkoituksella renderissä ennen ekaa paintia
         preloadEventsCache(tonightParams.toString(), tonightEvents, tonightEvents.length, Date.now() - 6 * 60 * 1000)
       }
     }
@@ -245,6 +248,7 @@ export default function HomeClient({
   // näköisen. useEffect (ei initializer) → ei SSR/hydraatioristiriitaa.
   const [isEvening, setIsEvening] = useState(false)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kellonajan luku mountissa SSR-hydraatioristiriidan välttämiseksi (vrt. kommentti yllä)
     if (new Date().getHours() >= 17) setIsEvening(true)
   }, [])
 
@@ -460,6 +464,7 @@ export default function HomeClient({
   // sääntö kuin "Nyt menossa"). nowTs asetetaan effectissä eikä
   // initializerissa → ei SSR/hydraatioristiriitaa (vrt. isEvening).
   const [nowTs, setNowTs] = useState<number | null>(null)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- nowTs asetetaan mountissa SSR-hydraatioristiriidan välttämiseksi (vrt. kommentti yllä)
   useEffect(() => { setNowTs(Date.now()) }, [])
   const upcomingEvents = useMemo(() => {
     if (!nowTs) return events

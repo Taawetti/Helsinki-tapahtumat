@@ -240,6 +240,7 @@ export function useEvents({
   )
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pagination when filters change
     setPage(1)
     // Only clear events if there's no cached result for the new filter — avoids flash
     const { start, end, startAfter } = getDateRange(dateFilter, customDate, customDateEnd)

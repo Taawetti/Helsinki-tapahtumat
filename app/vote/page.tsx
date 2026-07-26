@@ -40,6 +40,7 @@ function VoteContent() {
     const d = params.get('d')
     if (!d) return
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- äänestyslistan mount-synkkaus URL-parametrista
       setEvents(JSON.parse(atob(d)))
     } catch {}
     const s = params.get('s') || ''

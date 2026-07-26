@@ -885,12 +885,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   useEffect(() => {
     if (!jumpToId || !restaurants.length) return
     const r = restaurants.find(r => r.id === jumpToId)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- navigointiparametrin (jumpToId) synkkaus valintatilaan; data tulee propseista, ei cascadea
     if (r) setSelectedRest(r)
   }, [jumpToKey, restaurants])
 
   // Rikas Google-profiili (attribuutit, tähtijakauma, varauslinkki) haetaan
   // vasta kun kortti avataan — lista pysyy kevyenä. Sama malli kuin aktiviteeteilla.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- profiilin nollaus ennen uutta hakua, kun valinta sulkeutuu
     if (!selectedRest) { setRestGoogle(null); return }
     const key = selectedRest.name.toLowerCase().trim()
     let cancelled = false
@@ -912,8 +914,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   useEffect(() => {
     // Uusi tyyppivälilehti nollaa suodattimet (näkymätön aktiivinen suodatin
     // muulla välilehdellä olisi selittämätön).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- tarkoituksellinen suodatinreset välilehden vaihtuessa
     setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null); setVisibleCount(48)
   }, [restType])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sivutuksen reset suodattimien muuttuessa
   useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby, minStars])
   // Alakategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
   // Auki/Lähellä-pillerit näkyvät nykyään myös alakategoriassa, joten
@@ -923,6 +927,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // menee taas selausnäkymään. Kuratoidun listan visuaalisen suodattamattomuuden
   // TAKAA sortedPoolin `browsing`-gate (yllä), ei tämä paint-jälkeinen efekti.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pillerisuodattimien reset "Suosituimmat"-landingiin palattaessa
     if (subCat === 'all') { setFilterOpen(false); setFilterNearby(false); setMinStars(null) }
     else window.scrollTo(0, 0)
   }, [subCat])

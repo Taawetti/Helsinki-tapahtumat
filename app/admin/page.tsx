@@ -523,6 +523,7 @@ function SourcesTab() {
   }, [])
 
   // Aja automaattisesti vain kun tulosta ei vielä ole — välilehden vaihto ei laukaise uutta fanoutia
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- automaattinen ensiajo mountissa, kun tuloscache on tyhjä
   useEffect(() => { if (!sourcesResultCache) runCheck() }, [runCheck])
 
   const okCount = sources.filter(s => s.ok).length
@@ -620,6 +621,7 @@ function FestivalsTab() {
     setLoading(false)
   }, [router])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- datan mount-lataus (load on useCallback, joka hakee ja asettaa tilan)
   useEffect(() => { load() }, [load])
 
   function openAdd(prefill?: Partial<Omit<Festival, 'id'>>, fromUrl?: string) {
@@ -956,6 +958,7 @@ function RecurringTab() {
     setLoading(false)
   }, [router])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- datan mount-lataus (load on useCallback, joka hakee ja asettaa tilan)
   useEffect(() => { load() }, [load])
 
   function openAdd() { setForm(EMPTY_RECURRING); setEditing(null); setModal('add') }

@@ -11,6 +11,7 @@ export default function NewsletterBanner() {
   const [hidden, setHidden] = useState(true)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage-synkka mountissa
     if (!localStorage.getItem(STORAGE_KEY)) setHidden(false)
   }, [])
 

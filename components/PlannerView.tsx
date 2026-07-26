@@ -252,6 +252,7 @@ export default function PlannerView() {
     const i  = params.get('i')?.split(',').filter(Boolean) || []
     const b  = params.get('b') || 'normal'
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- jaetun linkin URL-parametrien mount-synkkaus lomaketilaan
     setGroupType(g as GroupType)
     setTravelDate(d)
     setDayCount(n)

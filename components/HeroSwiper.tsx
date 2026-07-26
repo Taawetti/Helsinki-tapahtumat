@@ -80,7 +80,9 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
           boxShadow: '0 22px 50px -20px rgba(0,0,0,.6)',
           background: 'rgba(255,255,255,.03)',
           border: '1px solid rgba(255,255,255,.08)',
+          // eslint-disable-next-line react-hooks/refs -- raahauksen lippu refissä tarkoituksella (ei turhia rendereitä); renderöinnin triggeröi dragX-tila
           transform: dragging.current ? `translateX(${dragX * 0.25}px)` : 'translateX(0)',
+          // eslint-disable-next-line react-hooks/refs -- raahauksen lippu refissä tarkoituksella (ei turhia rendereitä); renderöinnin triggeröi dragX-tila
           transition: dragging.current ? 'none' : 'transform .25s ease',
           touchAction: 'pan-y',
         }}

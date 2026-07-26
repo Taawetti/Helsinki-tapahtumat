@@ -61,7 +61,10 @@ export default function SwipeDeck<T extends { id: string }>({
   // deps-listaan (muuten parentin re-render kesken dragin remounttaisi kuuntelijat
   // ja nollaisi dragin — esim. 2.5 s pollaus).
   const endDragRef = useRef(endDrag)
-  endDragRef.current = endDrag
+  // Refin kirjoitus efektissä: touch-kuuntelijat kutsuvat tätä vasta commit-vaiheen jälkeen
+  useEffect(() => {
+    endDragRef.current = endDrag
+  })
 
   // Pointer-polku (hiiri/stylus) — kosketus ohitetaan, natiivipolku hoitaa
   const onPointerDown = useCallback((e: React.PointerEvent) => {
@@ -145,6 +148,7 @@ export default function SwipeDeck<T extends { id: string }>({
           className="select-none"
           style={{
             transform: cardTransform,
+            // eslint-disable-next-line react-hooks/refs -- isDragging elää refissä ilman re-renderiä; transition-valinta tarvitsee sen
             transition: isDragging.current ? 'none' : 'transform 220ms cubic-bezier(.34,1.56,.64,1)',
             touchAction: 'pan-y',
             cursor: 'grab',

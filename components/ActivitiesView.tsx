@@ -438,6 +438,7 @@ export default function ActivitiesView({ onShowOnMap }: {
 
   // Rikas Google-profiili haetaan vasta kun kortti avataan (lista pysyy kevyenä)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- profiilin nollaus ennen uutta hakua, kun valinta sulkeutuu
     if (!selectedActivity) { setActivityGoogle(null); return }
     const key = selectedActivity.name.toLowerCase().trim()
     let cancelled = false
@@ -449,11 +450,13 @@ export default function ActivitiesView({ onShowOnMap }: {
     return () => { cancelled = true }
   }, [selectedActivity])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sivutuksen reset kategorian vaihtuessa
   useEffect(() => { setVisibleCount(48) }, [catFilter])
   // Kategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
   // Auki/Lähellä-pillerit näkyvät nykyään myös kategorialistassa, joten
   // suodattimia ei enää nollata kategoriaan mentäessä.
   useEffect(() => { if (catFilter !== 'all') window.scrollTo(0, 0) }, [catFilter])
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sivutuksen reset suodattimien muuttuessa
   useEffect(() => { setVisibleCount(48) }, [filterOpen, filterNearby, freeOnly])
 
   const locateMe = useCallback(() => {

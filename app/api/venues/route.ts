@@ -251,7 +251,7 @@ export async function GET(req: NextRequest) {
   const allRaw = [tavastiaRes, semifinalRes, kuudesLinjaRes, barLooseRes, aaniwalliRes]
     .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
 
-  let events = allRaw
+  const events = allRaw
     .map(toEvent)
     .filter((e) => {
       const ts = new Date(e.startTime).getTime()

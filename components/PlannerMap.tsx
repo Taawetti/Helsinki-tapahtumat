@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import type { Map as LeafletMap } from 'leaflet'
 
 interface MapItem {
   title: string
@@ -10,7 +11,7 @@ interface MapItem {
 
 export default function PlannerMap({ items }: { items: MapItem[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const instanceRef  = useRef<any>(null)
+  const instanceRef  = useRef<LeafletMap | null>(null)
 
   useEffect(() => {
     const geocoded = items.filter(i => i.coords) as (MapItem & { coords: [number, number] })[]
@@ -33,7 +34,7 @@ export default function PlannerMap({ items }: { items: MapItem[] }) {
         instanceRef.current = null
       }
 
-      delete (L.Icon.Default.prototype as any)._getIconUrl
+      delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl
 
       const map = L.map(containerRef.current, {
         center: geocoded[0].coords,
@@ -76,7 +77,7 @@ export default function PlannerMap({ items }: { items: MapItem[] }) {
           weight:    2,
           dashArray: '6, 6',
         }).addTo(map)
-        map.fitBounds(latLngs as any, { padding: [44, 44] })
+        map.fitBounds(latLngs, { padding: [44, 44] })
       } else {
         map.setView(latLngs[0], 15)
       }

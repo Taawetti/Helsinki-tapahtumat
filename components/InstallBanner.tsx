@@ -18,6 +18,7 @@ export default function InstallBanner() {
   useEffect(() => {
     // Check if already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time sync with matchMedia
       setInstalled(true)
       return
     }

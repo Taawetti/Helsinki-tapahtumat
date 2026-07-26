@@ -20,6 +20,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage-synkka mountissa
       if (raw) setFavorites(JSON.parse(raw))
     } catch {}
   }, [])

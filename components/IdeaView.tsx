@@ -241,6 +241,8 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   const eventPool = useMemo((): Suggestion[] => {
     const today = helsinkiToday()
+    // eslint-disable-next-line react-hooks/purity -- kellonaika ei johdu depsien datasta; yksi luku riittää (vertailu 3 h ikkunalla)
+    const now = Date.now()
     return events
       // Vain TÄNÄÄN (Helsingin kalenteripäivä; all-day 00:00 osuu tähän)
       .filter(e => helsinkiDateOf(e.startTime) === today)
@@ -248,9 +250,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       // Pitää käynnissä olevat keikat + koko päivän tapahtumat; pudottaa loppuneet.
       .filter(e => {
         const startTs = new Date(e.startTime).getTime()
-        if (startTs > Date.now()) return true                             // ei vielä alkanut
-        if (e.endTime) return new Date(e.endTime).getTime() >= Date.now() // vielä käynnissä
-        return Date.now() - startTs < 3 * 60 * 60 * 1000                  // ei endTimeä → live 3h
+        if (startTs > now) return true                             // ei vielä alkanut
+        if (e.endTime) return new Date(e.endTime).getTime() >= now // vielä käynnissä
+        return now - startTs < 3 * 60 * 60 * 1000                  // ei endTimeä → live 3h
       })
       .filter(e => (e.shortDescription?.length ?? 0) > 15 || (e.description?.length ?? 0) > 15)
       .sort((a, b) => scoreEvent(b) - scoreEvent(a))
@@ -534,6 +536,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             touchAction: 'pan-y',
             border: '1px solid rgba(255,255,255,.1)',
             transform: cardTransform,
+            // eslint-disable-next-line react-hooks/refs -- raahauksen lippu refissä tarkoituksella (ei turhia rendereitä); renderöinnin triggeröi swipe-tila
             transition: isDragging.current ? 'none' : 'transform 220ms cubic-bezier(.34,1.56,.64,1)',
             boxShadow: '0 24px 60px -20px rgba(0,0,0,.9)',
           }}>

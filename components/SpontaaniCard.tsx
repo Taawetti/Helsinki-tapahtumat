@@ -43,6 +43,7 @@ export default function SpontaaniCard({ events, onOpen }: Props) {
   if (candidates.length === 0) return null
 
   const event = candidates[idx % candidates.length]
+  // eslint-disable-next-line react-hooks/purity -- lähtöön jäljellä oleva aika lasketaan tuoreena joka renderissä (idx:n vaihto päivittää labelin)
   const minsUntil = Math.round((new Date(event.startTime).getTime() - Date.now()) / 60000)
   const hoursUntil = Math.floor(minsUntil / 60)
   const timeLabel = hoursUntil >= 1
