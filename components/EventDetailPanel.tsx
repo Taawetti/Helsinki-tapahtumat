@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import Link from 'next/link'
 import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
@@ -370,6 +371,13 @@ export default function EventDetailPanel({ event, onClose }: Props) {
                 </span>
               </button>
             </div>
+            {/* Kontekstuaalinen sisääntulo ryhmäpäätöskoneeseen */}
+            <Link
+              href="/paatakaa"
+              className="flex items-center justify-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25 rounded-xl py-2.5 transition-colors"
+            >
+              <span className="text-indigo-300 text-[12px] font-semibold">{t('detail.group_decide')}</span>
+            </Link>
           </div>
 
           {/* CTA buttons */}

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import PaatakaaSession from '@/components/PaatakaaSession'
+import { supabase } from '@/lib/supabase'
+import type { GroupResult } from '@/lib/group'
 
 // Käyttäjän ajossa luomat koodit → ei esigeneroida, aina dynaaminen.
 export const dynamic = 'force-dynamic'
@@ -8,13 +10,49 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 type Props = { params: Promise<{ koodi: string }> }
 
+// Kun sessio on päätetty, OG-esikatselu näyttää itse tuloksen (kaaren vaiheet /
+// voittajan) → jaettu linkki WhatsAppissa näyttää aidolta suunnitelmalta.
+async function fetchResult(code: string): Promise<GroupResult | null> {
+  if (!supabase) return null
+  try {
+    const { data } = await supabase
+      .from('group_sessions')
+      .select('status, result_plan')
+      .eq('id', code)
+      .maybeSingle()
+    if (data?.status !== 'done' || !data.result_plan) return null
+    return data.result_plan as GroupResult
+  } catch {
+    return null
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { koodi } = await params
   const code = koodi.toUpperCase()
-  const title = `Liity päättämään · ${code} — Päättäkää yhdessä`
-  const description = 'Swaippaa ehdotuksia ja päätetään yhdessä mitä tänään tehdään. AI kutoo äänistä valmiin illan kaaren.'
+
+  const result = await fetchResult(code)
+
+  let title = `Liity päättämään · ${code} — Päättäkää yhdessä`
+  let description = 'Swaippaa ehdotuksia ja päätetään yhdessä mitä tänään tehdään. AI kutoo äänistä valmiin illan kaaren.'
+  let ogTitle = 'Päättäkää yhdessä'
+  let ogLocation = `Koodi ${code}`
+
+  if (result?.kind === 'arc' && result.arc.length > 0) {
+    const stops = result.arc.map(s => s.title).slice(0, 3).join(' → ')
+    title = `Teidän iltanne 🎉 · ${code}`
+    description = `Ryhmän yhteinen suunnitelma: ${stops}${result.arc.length > 3 ? ' → …' : ''}. Tehty Mitä tänään -palvelun Päättäkää yhdessä -toiminnolla.`
+    ogTitle = 'Teidän iltanne 🎉'
+    ogLocation = stops
+  } else if (result?.kind === 'quick') {
+    title = `${result.title} — päätös tehty! 🎉`
+    description = `Ryhmä valitsi yhdessä: ${result.title}. Tehty Mitä tänään -palvelun Päättäkää yhdessä -toiminnolla.`
+    ogTitle = 'Päätös tehty! 🎉'
+    ogLocation = result.title
+  }
+
   const pageUrl = `${BASE}/paatakaa/${code}`
-  const ogImageUrl = `${BASE}/api/og?title=${encodeURIComponent('Päättäkää yhdessä')}&location=${encodeURIComponent(`Koodi ${code}`)}`
+  const ogImageUrl = `${BASE}/api/og?title=${encodeURIComponent(ogTitle)}&location=${encodeURIComponent(ogLocation)}`
   return {
     title,
     description,

@@ -12,15 +12,17 @@ interface SwipeDeckProps<T extends { id: string }> {
   onSwipeRight: (card: T) => void   // ❤️
   onSwipeLeft: (card: T) => void    // ✕
   onTap?: (card: T) => void
+  onUndo?: (card: T) => void        // ↩️ peruuta edellinen swaippi (parent siivoaa äänen)
   renderCard: (card: T, drag: { dragX: number; swipeRight: boolean; swipeLeft: boolean }) => ReactNode
   emptyState?: ReactNode
   threshold?: number
 }
 
 export default function SwipeDeck<T extends { id: string }>({
-  cards, onSwipeRight, onSwipeLeft, onTap, renderCard, emptyState, threshold = 80,
+  cards, onSwipeRight, onSwipeLeft, onTap, onUndo, renderCard, emptyState, threshold = 80,
 }: SwipeDeckProps<T>) {
   const [seen, setSeen] = useState<Set<string>>(new Set())
+  const [history, setHistory] = useState<T[]>([])  // swaippausjärjestys undoa varten
   const [dragX, setDragX] = useState(0)
   const [exitDir, setExitDir] = useState<'left' | 'right' | null>(null)
   const isDragging = useRef(false)
@@ -32,6 +34,7 @@ export default function SwipeDeck<T extends { id: string }>({
   const cardRef = useRef<HTMLDivElement>(null)
 
   const current = cards.find(c => !seen.has(c.id)) ?? null
+  const next = current ? cards.find(c => !seen.has(c.id) && c.id !== current.id) ?? null : null
 
   const commit = useCallback((dir: 'left' | 'right') => {
     if (!current || committing.current) return
@@ -41,10 +44,20 @@ export default function SwipeDeck<T extends { id: string }>({
     setExitDir(dir)
     setTimeout(() => {
       setSeen(s => { const n = new Set(s); n.add(card.id); return n })
+      setHistory(h => [...h, card])
       setDragX(0); setExitDir(null)
       committing.current = false
     }, 220)
   }, [current, onSwipeRight, onSwipeLeft])
+
+  // ↩️ Peruuta: palauta viimeisin kortti pakkaan ja ilmoita parentille (äänen siivous).
+  const undo = () => {
+    const last = history[history.length - 1]
+    if (!last || committing.current) return
+    setHistory(h => h.slice(0, -1))
+    setSeen(s => { const n = new Set(s); n.delete(last.id); return n })
+    onUndo?.(last)
+  }
 
   const endDrag = useCallback((dx: number, dy: number) => {
     isDragging.current = false
@@ -138,6 +151,13 @@ export default function SwipeDeck<T extends { id: string }>({
     <div className="w-full" style={{ overscrollBehavior: 'none' }}>
       {/* Pino: overflow-hidden estää lentävän kortin sivuvuodon (iOS-zoom) */}
       <div className="relative w-full overflow-hidden" style={{ touchAction: 'pan-y' }}>
+        {/* Seuraavan kortin silmäys taustalla — Tinder-tyylinen pinonsyvyys */}
+        {next && (
+          <div className="absolute inset-0" aria-hidden
+            style={{ transform: 'scale(0.94) translateY(12px)', opacity: 0.65, pointerEvents: 'none' }}>
+            {renderCard(next, { dragX: 0, swipeRight: false, swipeLeft: false })}
+          </div>
+        )}
         <div
           ref={cardRef}
           key={current.id}
@@ -160,12 +180,19 @@ export default function SwipeDeck<T extends { id: string }>({
 
       {/* Napit — sama logiikka kuin swaipilla */}
       <div className="flex items-center justify-center gap-6 pt-5">
+        {onUndo && (
+          <button onClick={undo} disabled={!history.length} aria-label="Peruuta edellinen"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-lg active:scale-90 transition-all disabled:opacity-30"
+            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>↩️</button>
+        )}
         <button onClick={() => commit('left')} aria-label="Ohita"
           className="w-14 h-14 rounded-full flex items-center justify-center text-2xl active:scale-90 transition-transform"
           style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,90,90,.35)' }}>✕</button>
         <button onClick={() => commit('right')} aria-label="Tykkää"
           className="w-16 h-16 rounded-full flex items-center justify-center text-3xl active:scale-90 transition-transform"
           style={{ background: 'linear-gradient(150deg,#10b981,#059669)', boxShadow: '0 10px 24px -8px rgba(16,185,129,.7)' }}>❤️</button>
+        {/* Symmetrinen täyte undo-napille → ✕/❤️ pysyvät keskellä */}
+        {onUndo && <div className="w-11 h-11" aria-hidden />}
       </div>
     </div>
   )

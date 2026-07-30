@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { aggregateVotes } from '@/lib/group'
-import type { GroupSession, GroupStatus, GroupPlan } from '@/lib/group'
+import type { GroupSession, GroupStatus, GroupResult, GroupMode } from '@/lib/group'
 import type { Candidate, GroupWhen, Fiilis } from '@/lib/candidate'
 
 // Pollattava sessiotila (selain hakee ~2-3 s välein). Anon-luku palvelimella.
@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cod
 
   const { data: session, error } = await supabase
     .from('group_sessions')
-    .select('id, when_filter, fiilis, candidates, status, result_plan, host_id')
+    .select('id, when_filter, fiilis, mode, round, candidates, status, result_plan, host_id')
     .eq('id', code.toUpperCase())
     .maybeSingle()
 
@@ -25,15 +25,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cod
     .select('voter_id, voter_name, card_id, vote')
     .eq('session_id', code.toUpperCase())
 
-  const { votes, participants, voteCount } = aggregateVotes(voteRows ?? [])
+  const candidates = (session.candidates ?? []) as Candidate[]
+  const { votes, participants, voteCount } = aggregateVotes(voteRows ?? [], candidates.length)
 
   const payload: GroupSession = {
     code: session.id,
     when: session.when_filter as GroupWhen,
     fiilis: (session.fiilis ?? []) as Fiilis[],
-    candidates: (session.candidates ?? []) as Candidate[],
+    mode: (session.mode ?? 'arc') as GroupMode,
+    round: (session.round ?? 1) as number,
+    candidates,
+    deckSize: candidates.length,
     status: session.status as GroupStatus,
-    resultPlan: (session.result_plan ?? null) as GroupPlan | null,
+    resultPlan: (session.result_plan ?? null) as GroupResult | null,
     hostId: session.host_id ?? null,
     participants,
     votes,

@@ -19,6 +19,17 @@ export async function GET(req: NextRequest) {
   // Pre-warm restaurant cache in background (don't block the cron response)
   void Promise.allSettled([fetchOSMCached(), fetchPKCached()])
 
+  // Siivoa vanhentuneet ryhmäpäätös-sessiot (äänet + push-tilaukset CASCADE:lla).
+  // expires_at on oletuksena created_at + 2 vrk, rematch pidentää sitä.
+  void (async () => {
+    try {
+      const { supabaseAdmin } = await import('@/lib/supabase')
+      if (supabaseAdmin) {
+        await supabaseAdmin.from('group_sessions').delete().lt('expires_at', new Date().toISOString())
+      }
+    } catch { /* siivous epäonnistui — huomisen cron yrittää uudelleen */ }
+  })()
+
   // Send daily push notifications
   const origin = req.nextUrl.origin
   void fetch(`${origin}/api/push`, {

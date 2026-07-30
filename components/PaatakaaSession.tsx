@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import SwipeDeck from '@/components/SwipeDeck'
+import CandidateSheet from '@/components/CandidateSheet'
+import GroupResultView from '@/components/GroupResultView'
 import type { Candidate } from '@/lib/candidate'
 import { ROLE_META } from '@/lib/candidate'
 import type { GroupSession } from '@/lib/group'
+import { GROUP_WHEN_LABELS, FIILIS_LABELS } from '@/lib/group'
 
 function getVoter(): { id: string; name: string } {
   if (typeof window === 'undefined') return { id: '', name: '' }
@@ -27,6 +30,11 @@ export default function PaatakaaSession({ code }: { code: string }) {
   const [joined, setJoined] = useState(false)
   const [synthesizing, setSynthesizing] = useState(false)
   const [swipedCount, setSwipedCount] = useState(0)
+  const [sheet, setSheet] = useState<Candidate | null>(null)      // napautettu kortti (detail sheet)
+  const [pushOn, setPushOn] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
+  const [actionBusy, setActionBusy] = useState(false)             // regenerate/rematch menossa
+  const [swappingIdx, setSwappingIdx] = useState<number | null>(null)
   const votedRef = useRef<Set<string>>(new Set())          // kaikki äänestetyt (kasvaa, persistoidaan)
   // JÄÄDYTETTY mount-hetken äänestetyt → deckCards-suodatin, joka EI kutistu
   // swaippauksen aikana (muuten doneSwiping laukeaisi puolivälissä).
@@ -41,6 +49,7 @@ export default function PaatakaaSession({ code }: { code: string }) {
     try {
       const saved = JSON.parse(localStorage.getItem(`paatakaa-voted-${code}`) || '[]')
       if (Array.isArray(saved)) { votedRef.current = new Set(saved); setInitialVoted(new Set(saved)) }
+      setPushOn(localStorage.getItem(`paatakaa-push-${code}`) === '1')
     } catch { /* ignore */ }
   }, [code])
 
@@ -52,6 +61,23 @@ export default function PaatakaaSession({ code }: { code: string }) {
       const data = await res.json()
       if (seq !== reqSeq.current) return                    // vanhentunut vastaus → ohita (out-of-order)
       if (!res.ok) { setError(data.error || 'Sessiota ei löydy'); return }
+
+      // REMATCH-havainto: kierrosnumero vaihtui → nollaa paikallinen äänestysmuisti
+      // (voted-setti on kierroskohtainen; serveri on jo poistanut äänet kannasta).
+      try {
+        const roundKey = `paatakaa-round-${code}`
+        const stored = Number(localStorage.getItem(roundKey) || '0')
+        if (data.round && data.round !== stored) {
+          localStorage.setItem(roundKey, String(data.round))
+          if (stored !== 0) { // eka lataus ei ole rematch
+            votedRef.current = new Set()
+            setInitialVoted(new Set())
+            setSwipedCount(0)
+            localStorage.removeItem(`paatakaa-voted-${code}`)
+          }
+        }
+      } catch { /* privaattitila — round-nollaus ei toimi, ei kriittistä */ }
+
       setSession(data as GroupSession)
     } catch { /* verkko-ongelma, seuraava poll yrittää */ }
   }, [code])
@@ -80,12 +106,23 @@ export default function PaatakaaSession({ code }: { code: string }) {
     }).then(() => refresh()).catch(() => {})
   }, [code, voter, refresh])
 
-  const synthesize = useCallback(async () => {
+  // ↩️ Peruuta edellinen swaippi: poista ääni serveriltä + paikallisesta muistista.
+  const undo = useCallback((card: Candidate) => {
+    votedRef.current.delete(card.id)
+    try { localStorage.setItem(`paatakaa-voted-${code}`, JSON.stringify([...votedRef.current])) } catch { /* ignore */ }
+    setSwipedCount(c => Math.max(0, c - 1))
+    fetch(`/api/group/${code}/vote`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voterId: voter.id, cardId: card.id }),
+    }).then(() => refresh()).catch(() => {})
+  }, [code, voter.id, refresh])
+
+  const synthesize = useCallback(async (regenerate = false) => {
     setSynthesizing(true); setError(null)
     try {
       const res = await fetch(`/api/group/${code}/synthesize`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostId: voter.id }),
+        body: JSON.stringify({ hostId: voter.id, regenerate }),
       })
       const data = await res.json().catch(() => ({}))
       // 202 = joku kutoo jo → ei virhe, pollaus hakee tuloksen. res.ok kattaa 202:n.
@@ -94,6 +131,77 @@ export default function PaatakaaSession({ code }: { code: string }) {
     } catch { setError('Verkkovirhe kutomisessa') }
     setSynthesizing(false)
   }, [code, refresh, voter.id])
+
+  // 🔀 Vaihda askel (deterministinen, ei AI:ta) — palauttaa koko päivitetyn kaaren.
+  const swap = useCallback(async (stepIndex: number) => {
+    setSwappingIdx(stepIndex)
+    try {
+      const res = await fetch(`/api/group/${code}/swap`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostId: voter.id, stepIndex }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(data.error || 'Vaihto epäonnistui'); return }
+      if (data.plan && session) setSession({ ...session, resultPlan: data.plan })
+      await refresh()
+    } catch { setError('Verkkovirhe vaihdossa') }
+    setSwappingIdx(null)
+  }, [code, voter.id, session, refresh])
+
+  // 🔁 Jatka samalla porukalla — uusi pakka, äänet nollaantuvat (round-bump).
+  const rematch = useCallback(async () => {
+    setActionBusy(true)
+    try {
+      const res = await fetch(`/api/group/${code}/rematch`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostId: voter.id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(data.error || 'Uusi kierros epäonnistui'); setActionBusy(false); return }
+      await refresh() // round-havainto nollaa paikallisen äänestysmuistin
+    } catch { setError('Verkkovirhe uudessa kierroksessa') }
+    setActionBusy(false)
+  }, [code, voter.id, refresh])
+
+  // 🔔 Ilmoita kun tulos valmis — sessiokohtainen push-tilaus.
+  const togglePush = useCallback(async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+    setPushBusy(true)
+    try {
+      const reg = await navigator.serviceWorker.ready
+      if (pushOn) {
+        const existing = await reg.pushManager.getSubscription()
+        if (existing) {
+          await fetch(`/api/group/${code}/push-subscribe`, {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: existing.endpoint }),
+          }).catch(() => {})
+          await existing.unsubscribe().catch(() => {})
+        }
+        setPushOn(false)
+        try { localStorage.removeItem(`paatakaa-push-${code}`) } catch { /* ignore */ }
+        return
+      }
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') return
+      const existing = await reg.pushManager.getSubscription()
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      })
+      const j = sub.toJSON()
+      const res = await fetch(`/api/group/${code}/push-subscribe`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voterId: voter.id, endpoint: j.endpoint, keys: j.keys }),
+      })
+      if (res.ok) {
+        setPushOn(true)
+        try { localStorage.setItem(`paatakaa-push-${code}`, '1') } catch { /* ignore */ }
+      }
+    } finally {
+      setPushBusy(false)
+    }
+  }, [code, pushOn, voter.id])
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://mitatanaan.fi/paatakaa/${code}`
   const share = async () => {
@@ -116,7 +224,17 @@ export default function PaatakaaSession({ code }: { code: string }) {
     if (!session) return 0
     return Object.values(session.votes).filter(v => v.love > 0 && v.love >= v.skip).length
   }, [session])
+  // Ryhmän top-tykätyt (näytetään VASTA kun omat swaippaukset tehty — ei bandwagon-biasta).
+  const topLoved = useMemo(() => {
+    if (!session) return []
+    return session.candidates
+      .map(c => ({ c, v: session.votes[c.id] }))
+      .filter((x): x is { c: Candidate; v: { love: number; skip: number } } => !!x.v && x.v.love > 0 && x.v.love >= x.v.skip)
+      .sort((a, b) => b.v.love - a.v.love || b.c._score - a.c._score)
+      .slice(0, 6)
+  }, [session])
   const isHost = !!session && (!session.hostId || session.hostId === voter.id)
+  const allDone = !!session && session.participants.length > 0 && session.participants.every(p => p.done)
 
   // ── Virhe / lataus ──
   if (error) return (
@@ -133,42 +251,75 @@ export default function PaatakaaSession({ code }: { code: string }) {
     </main>
   )
 
-  // ── TULOS (AI-kaari valmis) ──
-  if (session.status === 'done' && session.resultPlan) {
+  // ── TULOS: PIKAPÄÄTÖS (enemmistö valitsi voittajan) ──
+  if (session.status === 'done' && session.resultPlan?.kind === 'quick') {
     const plan = session.resultPlan
-    const byId = new Map(session.candidates.map(c => [c.id, c]))
+    const cta = plan.url ? (plan.role === 'program' ? 'Liput / lisätiedot →' : 'Verkkosivu →') : null
     return (
-      <main className="max-w-lg mx-auto px-4 pt-6 pb-24 space-y-5">
-        <div>
+      <main className="max-w-lg mx-auto px-4 pt-8 pb-24 space-y-5">
+        <div className="text-center">
           <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-1">PÄÄTÖS · {code}</p>
-          <h1 className="font-black text-white leading-tight" style={{ fontSize: 'clamp(1.6rem,6vw,2.3rem)', letterSpacing: '-0.03em' }}>Teidän iltanne 🎉</h1>
-          {plan.intro && <p className="text-white/60 text-[15px] font-semibold mt-2 leading-snug">{plan.intro}</p>}
+          <p className="text-6xl mb-2">🎉</p>
+          <h1 className="font-black text-white leading-tight" style={{ fontSize: 'clamp(1.6rem,6vw,2.3rem)', letterSpacing: '-0.03em' }}>Päätös tehty!</h1>
+          <p className="text-white/60 text-[15px] font-semibold mt-2">{plan.intro}</p>
+          {plan.votesFor != null && plan.voterCount != null && (
+            <p className="text-white/40 text-sm font-bold mt-1">Äänet {plan.votesFor}/{plan.voterCount} ❤️</p>
+          )}
         </div>
-        <div className="space-y-3">
-          {plan.arc.map((step, i) => {
-            const c = step.cardId ? byId.get(step.cardId) : undefined
-            return (
-              <div key={i} className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
-                {c?.image && <div className="w-full" style={{ aspectRatio: '16/7' }}><img src={c.image} alt={step.title} className="w-full h-full object-cover" /></div>}
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{step.emoji}</span>
-                    <span className="text-white/40 text-[11px] font-black uppercase tracking-wide">{i + 1}. vaihe{step.time ? ` · ${step.time}` : ''}</span>
-                  </div>
-                  <h3 className="font-black text-white text-[17px] leading-tight">{step.title}</h3>
-                  {step.why && <p className="text-white/60 text-sm mt-1 leading-snug">{step.why}</p>}
-                  {c?.url && <a href={c.url} target="_blank" rel="noopener noreferrer" className="inline-block text-[#8b93ff] text-xs font-black mt-2">Lisätiedot →</a>}
-                </div>
-              </div>
-            )
-          })}
+
+        <div className="rounded-3xl overflow-hidden" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)' }}>
+          {plan.image
+            ? <div className="w-full" style={{ aspectRatio: '16/9' }}><img src={plan.image} alt={plan.title} className="w-full h-full object-cover" /></div>
+            : <div className="w-full flex items-center justify-center text-7xl py-10" style={{ background: 'linear-gradient(150deg,#1e1e28,#12121a)' }}>{plan.emoji}</div>}
+          <div className="p-5 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {plan.badge && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">{plan.badge}</span>}
+              {plan.rating != null && <span className="text-[11px] font-black" style={{ color: '#fbbf24' }}>⭐ {plan.rating.toFixed(1)}</span>}
+              {plan.time && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/10 text-white/70">{plan.time}</span>}
+              {plan.isFree && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Ilmainen</span>}
+            </div>
+            <h2 className="font-black text-white text-2xl leading-tight">{plan.title}</h2>
+            {plan.address && (
+              <a href={`https://maps.google.com/?q=${encodeURIComponent(plan.address)}`} target="_blank" rel="noopener noreferrer"
+                className="inline-block text-white/40 text-sm font-bold hover:text-white/70 transition-colors">📍 {plan.address} →</a>
+            )}
+            {cta && plan.url && (
+              <a href={plan.url} target="_blank" rel="noopener noreferrer"
+                className="block w-full rounded-2xl py-3.5 text-center text-white font-black mt-2"
+                style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{cta}</a>
+            )}
+          </div>
         </div>
-        {plan.outro && <p className="text-white/60 text-[15px] font-semibold leading-snug">{plan.outro}</p>}
-        <div className="flex gap-3">
-          <button onClick={share} className="flex-1 rounded-2xl py-3.5 text-white font-black" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>Jaa 🔗</button>
-          <Link href="/paatakaa" className="flex-1 rounded-2xl py-3.5 text-center text-white/70 font-black" style={{ background: 'rgba(255,255,255,.08)' }}>Uusi päätös</Link>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={share} className="rounded-2xl py-3.5 text-white font-black" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>Jaa 🔗</button>
+          <Link href="/paatakaa" className="rounded-2xl py-3.5 text-center text-white/70 font-black" style={{ background: 'rgba(255,255,255,.08)' }}>Uusi päätös</Link>
+          {isHost && (
+            <button onClick={rematch} disabled={actionBusy}
+              className="col-span-2 rounded-2xl py-3.5 font-black disabled:opacity-50"
+              style={{ background: 'linear-gradient(150deg,#10b981,#059669)', color: '#fff' }}>
+              {actionBusy ? '⏳ Kootaan pakkaa…' : '🔁 Jatka samalla porukalla'}
+            </button>
+          )}
         </div>
       </main>
+    )
+  }
+
+  // ── TULOS: ILLAN KAARI (AI-synteesi) ──
+  if (session.status === 'done' && session.resultPlan?.kind === 'arc') {
+    return (
+      <GroupResultView
+        plan={session.resultPlan}
+        code={code}
+        isHost={isHost}
+        busy={actionBusy || synthesizing}
+        swappingIdx={swappingIdx}
+        onSwap={swap}
+        onRegenerate={() => { setActionBusy(true); synthesize(true).finally(() => setActionBusy(false)) }}
+        onRematch={rematch}
+        onShare={share}
+      />
     )
   }
 
@@ -179,6 +330,20 @@ export default function PaatakaaSession({ code }: { code: string }) {
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-1">LIITY · {code}</p>
         <h1 className="font-black text-white leading-tight" style={{ fontSize: 'clamp(1.7rem,6vw,2.4rem)', letterSpacing: '-0.03em' }}>Kuka olet?</h1>
         <p className="text-white/50 font-semibold mt-2">Etunimi riittää — muut näkevät kuka on mukana.</p>
+      </div>
+      {/* Sessiokonteksti näkyviin jo portilla: mitä ja milloin päätetään */}
+      <div className="flex flex-wrap gap-1.5">
+        <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/70" style={{ background: 'rgba(107,118,255,.15)' }}>
+          {session.mode === 'quick' ? '⚡ Pikapäätös' : '🗺 Illan kaari'}
+        </span>
+        <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/70" style={{ background: 'rgba(255,255,255,.07)' }}>
+          {GROUP_WHEN_LABELS[session.when].emoji} {GROUP_WHEN_LABELS[session.when].label}
+        </span>
+        {session.fiilis.map(f => (
+          <span key={f} className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/70" style={{ background: 'rgba(255,255,255,.07)' }}>
+            {FIILIS_LABELS[f].emoji} {FIILIS_LABELS[f].label}
+          </span>
+        ))}
       </div>
       <input value={nameDraft} onChange={e => setNameDraft(e.target.value)} placeholder="Etunimi" maxLength={40}
         onKeyDown={e => { if (e.key === 'Enter') saveName() }}
@@ -193,62 +358,130 @@ export default function PaatakaaSession({ code }: { code: string }) {
   // ── SWAIPPAUS + LIVE ──
   const doneSwiping = deckCards.length === 0 || swipedCount >= deckCards.length
   const isSynthesizing = synthesizing || session.status === 'synthesizing'
+  const progressPct = deckCards.length ? Math.min(100, (swipedCount / deckCards.length) * 100) : 0
 
   return (
     <main className="max-w-lg mx-auto px-4 pt-5 pb-24">
-      {/* Header: koodi, osallistujat, jako */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Header: moodi + koodi, osallistujat, jako */}
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em]">KOODI {code}</p>
+          <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em]">
+            {session.mode === 'quick' ? '⚡ PIKAPÄÄTÖS' : '🗺 ILLAN KAARI'} · KOODI {code}{session.round > 1 ? ` · KIERROS ${session.round}` : ''}
+          </p>
           <p className="text-white/60 text-[13px] font-bold">
             {session.participants.length} mukana · {lovedCount} ❤️ tykättyä
           </p>
         </div>
         <div className="flex gap-2">
+          <button onClick={togglePush} disabled={pushBusy} aria-label="Ilmoita kun tulos valmis"
+            className="rounded-full px-3 py-2 text-sm font-black disabled:opacity-50"
+            style={{ background: pushOn ? 'rgba(16,185,129,.2)' : 'rgba(255,255,255,.1)', color: pushOn ? '#34d399' : '#fff' }}>
+            {pushOn ? '🔕' : '🔔'}
+          </button>
           <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="rounded-full px-3 py-2 text-sm font-black" style={{ background: 'rgba(37,211,102,.15)', color: '#25d366' }}>WhatsApp</a>
           <button onClick={share} className="rounded-full px-3 py-2 text-sm font-black text-white" style={{ background: 'rgba(255,255,255,.1)' }}>Jaa 🔗</button>
         </div>
       </div>
 
-      {/* Osallistujat */}
+      {/* Sessiokonteksti: milloin + fiilis */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
+          {GROUP_WHEN_LABELS[session.when].emoji} {GROUP_WHEN_LABELS[session.when].label}
+        </span>
+        {session.fiilis.map(f => (
+          <span key={f} className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
+            {FIILIS_LABELS[f].emoji} {FIILIS_LABELS[f].label}
+          </span>
+        ))}
+      </div>
+
+      {/* Osallistujat + valmistilat */}
       {session.participants.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
           {session.participants.map(p => (
-            <span key={p.id} className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/70" style={{ background: 'rgba(255,255,255,.07)' }}>
-              {p.id === voter.id ? `${p.name} (sinä)` : p.name}
+            <span key={p.id} className="text-[11px] font-black px-2.5 py-1 rounded-full"
+              style={{
+                background: p.done ? 'rgba(16,185,129,.15)' : 'rgba(255,255,255,.07)',
+                color: p.done ? '#34d399' : 'rgba(255,255,255,.7)',
+              }}>
+              {p.id === voter.id ? `${p.name} (sinä)` : p.name} {p.done ? '✅' : `${p.swiped}/${session.deckSize}`}
             </span>
           ))}
         </div>
       )}
 
       {!doneSwiping ? (
-        <SwipeDeck<Candidate>
-          cards={deckCards}
-          onSwipeRight={c => vote(c, 'love')}
-          onSwipeLeft={c => vote(c, 'skip')}
-          renderCard={(c, drag) => <CandidateCard c={c} drag={drag} />}
-        />
+        <>
+          {/* Edistymispalkki */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.08)' }}>
+              <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg,#6b76ff,#5059e6)' }} />
+            </div>
+            <span className="text-white/40 text-[11px] font-black whitespace-nowrap">
+              {Math.min(swipedCount + 1, deckCards.length)}/{deckCards.length}
+            </span>
+          </div>
+
+          <SwipeDeck<Candidate>
+            key={session.round}
+            cards={deckCards}
+            onSwipeRight={c => vote(c, 'love')}
+            onSwipeLeft={c => vote(c, 'skip')}
+            onTap={c => setSheet(c)}
+            onUndo={undo}
+            renderCard={(c, drag) => <CandidateCard c={c} drag={drag} />}
+          />
+          <p className="text-center text-white/25 text-[11px] font-bold mt-3">Napauta korttia nähdäksesi lisätiedot</p>
+        </>
       ) : (
-        <div className="rounded-3xl p-6 text-center space-y-3" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
-          <p className="text-4xl">✅</p>
-          <p className="text-white font-black text-lg">Kiitos, äänesi on tallessa!</p>
-          <p className="text-white/50 font-semibold text-sm">Odota että muut swaippaavat — tai kutokaa kaari kun olette valmiita.</p>
+        <div className="space-y-4">
+          <div className="rounded-3xl p-6 text-center space-y-3" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+            <p className="text-4xl">✅</p>
+            <p className="text-white font-black text-lg">Kiitos, äänesi on tallessa!</p>
+            {allDone ? (
+              <p className="text-emerald-300 font-black text-sm">🎉 Kaikki ovat valmiita — kaari voidaan kutoa!</p>
+            ) : (
+              <p className="text-white/50 font-semibold text-sm">
+                {session.mode === 'quick'
+                  ? '⚡ Voittaja ratkeaa heti kun enemmistö tykkää samasta — odota hetki.'
+                  : 'Odota että muut swaippaavat — tai kutokaa kaari kun olette valmiita.'}
+              </p>
+            )}
+          </div>
+
+          {/* Ryhmän tilanne — top-tykätyt näkyviin vasta kun omat äänet annettu */}
+          {topLoved.length > 0 && (
+            <div className="rounded-3xl p-5 space-y-2.5" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+              <p className="text-white/40 text-[11px] font-black uppercase tracking-wide">Ryhmän suosikit nyt</p>
+              {topLoved.map(({ c, v }, i) => (
+                <div key={c.id} className="flex items-center gap-3">
+                  <span className="text-white/25 text-xs font-black w-4">{i + 1}.</span>
+                  <span className="text-lg leading-none">{c.emoji}</span>
+                  <span className="flex-1 text-white/80 text-sm font-bold truncate">{c.title}</span>
+                  <span className="text-[12px] font-black" style={{ color: '#34d399' }}>{v.love} ❤️</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Kutominen — host (tai jos ei hostia) kun tykättyjä on. Näyttää "kutoo"
-          myös kun serverin status on 'synthesizing' (toinen host käynnisti). */}
-      {isHost && lovedCount >= 1 && (
-        <button onClick={synthesize} disabled={isSynthesizing}
-          className="w-full rounded-2xl py-4 mt-5 text-white font-black text-[16px] disabled:opacity-70"
+      {/* Kutominen — vain arc-moodi (quick ratkeaa äänistä automaattisesti).
+          Näyttää "kutoo" myös kun serverin status on 'synthesizing'. */}
+      {session.mode === 'arc' && isHost && lovedCount >= 1 && (
+        <button onClick={() => synthesize()} disabled={isSynthesizing}
+          className={`w-full rounded-2xl py-4 mt-5 text-white font-black text-[16px] disabled:opacity-70 ${allDone && !isSynthesizing ? 'animate-pulse' : ''}`}
           style={{ background: 'linear-gradient(150deg,#10b981,#059669)', boxShadow: '0 12px 28px -10px rgba(16,185,129,.6)' }}>
-          {isSynthesizing ? '🪄 AI kutoo kaarta…' : `🪄 Kutokaa illan kaari (${lovedCount} ❤️)`}
+          {isSynthesizing ? '🪄 AI kutoo kaarta…' : allDone ? `🎉 Kaikki valmiita — kutokaa kaari (${lovedCount} ❤️)` : `🪄 Kutokaa illan kaari (${lovedCount} ❤️)`}
         </button>
       )}
-      {isSynthesizing && <p className="text-white/40 text-center text-sm font-bold mt-3">AI punoo tykätyistä johdonmukaisen illan… hetki.</p>}
-      {!isHost && lovedCount >= 1 && !isSynthesizing && (
+      {session.mode === 'arc' && isSynthesizing && <p className="text-white/40 text-center text-sm font-bold mt-3">AI punoo tykätyistä johdonmukaisen illan… hetki.</p>}
+      {session.mode === 'arc' && !isHost && lovedCount >= 1 && !isSynthesizing && (
         <p className="text-white/35 text-center text-[13px] font-bold mt-5">Aloittaja kutoo kaaren kun ryhmä on valmis.</p>
       )}
+
+      {/* Kortin detail sheet (napautus) */}
+      {sheet && <CandidateSheet c={sheet} onClose={() => setSheet(null)} />}
     </main>
   )
 }
@@ -276,6 +509,7 @@ function CandidateCard({ c, drag }: { c: Candidate; drag: { swipeRight: boolean;
         <div className="flex items-center gap-2 flex-wrap mb-1.5">
           {c.badge && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">{c.badge}</span>}
           {c.rating != null && <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,.15)', color: '#fbbf24' }}>⭐ {c.rating.toFixed(1)}</span>}
+          {c.priceLevel != null && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/10 text-white/60">{'€'.repeat(Math.min(4, c.priceLevel))}</span>}
           {c.time && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/10 text-white/70">{c.time}</span>}
           {c.isOpen === true && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Auki</span>}
         </div>

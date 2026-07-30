@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { GroupWhen, Fiilis } from '@/lib/candidate'
+import type { GroupMode } from '@/lib/group'
 
 // Osallistujan pysyvä anon-tunniste (localStorage).
 function participantId(): string {
@@ -12,6 +13,11 @@ function participantId(): string {
   if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('paatakaa-voter-id', id) }
   return id
 }
+
+const MODES: { id: GroupMode; emoji: string; label: string; desc: string }[] = [
+  { id: 'quick', emoji: '⚡', label: 'Pikapäätös', desc: 'Yksi voittaja — ratkeaa heti kun enemmistö tykkää samasta' },
+  { id: 'arc', emoji: '🗺', label: 'Illan kaari', desc: 'AI kutoo tykätyistä koko illan suunnelman vaiheineen' },
+]
 
 const WHENS: { id: GroupWhen; emoji: string; label: string }[] = [
   { id: 'tonight', emoji: '🌙', label: 'Tänä iltana' },
@@ -28,6 +34,7 @@ const FIILIKSET: { id: Fiilis; emoji: string; label: string }[] = [
 
 export default function PaatakaaView() {
   const router = useRouter()
+  const [mode, setMode] = useState<GroupMode>('quick')
   const [when, setWhen] = useState<GroupWhen>('tonight')
   const [fiilis, setFiilis] = useState<Fiilis[]>([])
   const [joinCode, setJoinCode] = useState('')
@@ -41,7 +48,7 @@ export default function PaatakaaView() {
     try {
       const res = await fetch('/api/group/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ when, fiilis, hostId: participantId() }),
+        body: JSON.stringify({ when, fiilis, mode, hostId: participantId() }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Luonti epäonnistui'); setLoading(false); return }
@@ -62,6 +69,27 @@ export default function PaatakaaView() {
           Jaa linkki kavereille → jokainen swaippaa ehdotuksia omalla puhelimellaan → AI kutoo äänistä valmiin illan kaaren. 🍸🍽✨🎸
         </p>
       </div>
+
+      {/* Moodi */}
+      <section>
+        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Miten päätetään?</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {MODES.map(m => {
+            const active = mode === m.id
+            return (
+              <button key={m.id} onClick={() => setMode(m.id)}
+                className="flex flex-col items-start gap-1 rounded-2xl p-4 text-left transition-all active:scale-[.97]"
+                style={active
+                  ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 8px 20px -8px rgba(91,101,230,.6)' }
+                  : { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+                <span className="text-2xl leading-none">{m.emoji}</span>
+                <span className="text-[13.5px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.7)' }}>{m.label}</span>
+                <span className="text-[11px] font-semibold leading-snug" style={{ color: active ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.35)' }}>{m.desc}</span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
 
       {/* Milloin */}
       <section>
