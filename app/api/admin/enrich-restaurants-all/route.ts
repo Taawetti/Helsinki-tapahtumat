@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { fetchOSMCached } from '@/app/api/restaurants/route'
 import { googleTimetableToOsm } from '@/lib/google-hours'
-import { googleCategoriesToCuisine } from '@/app/api/admin/enrich-restaurant-cuisines/route'
+import { googleCategoriesToCuisine } from '@/lib/cuisine'
 import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
 import { requireAdmin } from '@/lib/admin-auth'
 

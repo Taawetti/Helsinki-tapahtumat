@@ -115,8 +115,6 @@ type Tab = 'festivals' | 'recurring' | 'sources'
 export default function AdminPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('festivals')
-  const [refreshing, setRefreshing] = useState(false)
-  const [refreshResult, setRefreshResult] = useState('')
   const [enriching, setEnriching] = useState(false)
   const [enrichResult, setEnrichResult] = useState('')
   const enrichStopRef = useRef(false)
@@ -124,15 +122,9 @@ export default function AdminPage() {
   const [enrichingSubs, setEnrichingSubs] = useState(false)
   const [enrichSubsResult, setEnrichSubsResult] = useState('')
   const enrichSubsStopRef = useRef(false)
-  const [imageSamples, setImageSamples] = useState<{ name: string; image: string }[]>([])
-  const imageTestDoneRef = useRef(false)
-  const [enrichingActivityImages, setEnrichingActivityImages] = useState(false)
-  const [enrichActivityImagesResult, setEnrichActivityImagesResult] = useState('')
 
   const [testingAlert, setTestingAlert] = useState(false)
   const [testAlertResult, setTestAlertResult] = useState('')
-  const enrichActivityImagesStopRef = useRef(false)
-  const activityImageTestDoneRef = useRef(false)
   const [enrichingActivities, setEnrichingActivities] = useState(false)
   const [enrichActivitiesResult, setEnrichActivitiesResult] = useState('')
   const enrichActivitiesStopRef = useRef(false)
@@ -272,45 +264,6 @@ export default function AdminPage() {
     setEnrichingSubs(false)
   }
 
-  async function handleEnrichActivityImages() {
-    if (enrichingActivityImages) { enrichActivityImagesStopRef.current = true; return }
-    setEnrichingActivityImages(true)
-    enrichActivityImagesStopRef.current = false
-    setEnrichActivityImagesResult('Aloitetaan...')
-    let totalProcessed = 0
-    let totalUpdated = 0
-
-    while (!enrichActivityImagesStopRef.current) {
-      const limit = !activityImageTestDoneRef.current ? 20 : 50
-      const res = await fetch('/api/admin/enrich-activity-images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit }),
-      })
-      const data = await res.json()
-      if (data.error) { setEnrichActivityImagesResult('Virhe: ' + data.error); break }
-
-      totalProcessed += data.processed
-      totalUpdated += data.updated
-      if (data.samples?.length > 0) setImageSamples(data.samples)
-      setEnrichActivityImagesResult(`Käsitelty ${totalProcessed} • Kuva löytyi ${totalUpdated}:lle • Jäljellä ${data.remaining}`)
-
-      if (!activityImageTestDoneRef.current) {
-        activityImageTestDoneRef.current = true
-        setEnrichActivityImagesResult(`✋ Ensimmäinen erä valmis — tarkista kuvat alla, paina uudelleen jatkaaksesi (Jäljellä ${data.remaining})`)
-        setEnrichingActivityImages(false)
-        return
-      }
-
-      if (data.remaining === 0 || data.processed === 0) {
-        setEnrichActivityImagesResult(`✓ Valmis — käsitelty ${totalProcessed}, kuva ${totalUpdated}:lle`)
-        break
-      }
-    }
-    setEnrichingActivityImages(false)
-  }
-
-
   // Aktiviteettien täysrikastus: yksi DataForSEO-kutsu / paikka → kuva, arvosana,
   // arvostelut, aukiolot, kuvaus + koko raakadata. Ensimmäinen erä pysähtyy
   // näyttämään otokset ennen kuin jatkat. Sama rahaturva kuin ravintoloilla.
@@ -369,19 +322,6 @@ export default function AdminPage() {
     }
   }
 
-  async function handleRefreshRatings() {
-    setRefreshing(true)
-    setRefreshResult('')
-    const res = await fetch('/api/admin/refresh-ratings', { method: 'POST' })
-    const data = await res.json()
-    if (data.error) {
-      setRefreshResult('Virhe: ' + data.error)
-    } else {
-      setRefreshResult(`Päivitetty ${data.updated} paikan arvosanat`)
-    }
-    setRefreshing(false)
-  }
-
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
@@ -393,10 +333,8 @@ export default function AdminPage() {
         <div className="flex items-center gap-3 flex-wrap justify-end">
           {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
           {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
-          {enrichActivityImagesResult && <span className={`text-xs ${enrichActivityImagesResult.startsWith('✓') ? 'text-green-400' : enrichActivityImagesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivityImagesResult}</span>}
           {enrichActivitiesResult && <span className={`text-xs ${enrichActivitiesResult.startsWith('✓') ? 'text-green-400' : enrichActivitiesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivitiesResult}</span>}
           {testAlertResult && <span className={`text-xs ${testAlertResult.startsWith('✓') ? 'text-green-400' : testAlertResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{testAlertResult}</span>}
-          {refreshResult && <span className="text-green-400 text-xs">{refreshResult}</span>}
           <button
             onClick={handleEnrichRestaurants}
             className={`text-sm transition-colors ${enriching ? 'text-red-400 hover:text-red-300' : 'text-orange-400 hover:text-orange-300'}`}
@@ -407,26 +345,13 @@ export default function AdminPage() {
             onClick={handleEnrichSubcategories}
             className={`text-sm transition-colors ${enrichingSubs ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'}`}
           >
-            {enrichingSubs ? '⏹ Pysäytä' : '🎯 Enrichoi kategoriat'}
-          </button>
-          <button
-            onClick={handleEnrichActivityImages}
-            className={`text-sm transition-colors ${enrichingActivityImages ? 'text-red-400 hover:text-red-300' : 'text-teal-400 hover:text-teal-300'}`}
-          >
-            {enrichingActivityImages ? '⏹ Pysäytä' : '🏃 Aktiviteettien kuvat'}
+            {enrichingSubs ? '⏹ Pysäytä' : '🎯 Baarien & kahviloiden alatyypit (AI)'}
           </button>
           <button
             onClick={handleEnrichActivities}
             className={`text-sm transition-colors ${enrichingActivities ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}
           >
             {enrichingActivities ? '⏹ Pysäytä' : '🧖 Rikasta aktiviteetit (kaikki tiedot)'}
-          </button>
-          <button
-            onClick={handleRefreshRatings}
-            disabled={refreshing}
-            className="text-gray-400 hover:text-white text-sm transition-colors disabled:opacity-40"
-          >
-            {refreshing ? 'Haetaan...' : '★ Päivitä arvosanat'}
           </button>
           <button
             onClick={handleTestAlert}
@@ -443,21 +368,6 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
-
-      {/* Image samples preview */}
-      {imageSamples.length > 0 && (
-        <div className="border-b border-white/8 px-6 py-3 bg-cyan-500/5">
-          <div className="text-xs text-cyan-400 mb-2 font-medium">Esimerkkikuvia Google Businessista — tarkista laatu:</div>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {imageSamples.map((s, i) => (
-              <div key={i} className="shrink-0 w-24">
-                <img src={s.image} alt={s.name} className="w-24 h-16 object-cover rounded-lg bg-gray-800" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                <div className="text-xs text-gray-400 mt-1 truncate">{s.name}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="border-b border-white/8 px-6 flex gap-1">
