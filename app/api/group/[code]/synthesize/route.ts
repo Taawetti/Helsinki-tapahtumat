@@ -1,29 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { aggregateVotes, lovedCards, superMatchIds, walkMinutesBetween } from '@/lib/group'
-import type { GroupArcPlan, PlanStep } from '@/lib/group'
+import { aggregateVotes, lovedCards, superMatchIds } from '@/lib/group'
+import type { GroupArcPlan } from '@/lib/group'
 import type { Candidate, GroupWhen, Fiilis } from '@/lib/candidate'
 import { ROLE_META } from '@/lib/candidate'
 import { sendGroupPush } from '@/lib/group-push'
+import { buildDeterministicArc, groundSteps } from '@/lib/group-arc'
+import type { AiStep } from '@/lib/group-arc'
 
-// AI kutoo ryhmän ❤️-korteista YHDEN johdonmukaisen illan/päivän kaaren.
-// v2: AI päättää vain JÄRJESTYKSEN ja kirjoittaa perustelut — kaikki faktat
-// (nimi, osoite, linkki, kuva, koordinaatit, aika) GROUNDATAAN palvelimella
-// session candidates-snapshotista, joten hallusinoituja paikkoja ei pääse tulokseen.
+// Illan kaaren kutominen. OLETUS: deterministinen moottori (lib/group-arc) —
+// 0 €, välitön, ei ulkoisia riippuvuuksia. AI-polku (Claude) on valinnainen
+// tehoste ja kytketään päälle env:llä GROUP_AI_MODE=anthropic (+ ANTHROPIC_API_KEY).
 export const maxDuration = 60
 
 const WHEN_FI: Record<GroupWhen, string> = { tonight: 'tänä iltana', day: 'koko päivän', weekend: 'viikonloppuna' }
 const FIILIS_FI: Record<Fiilis, string> = { menoa: 'menoa/energiaa', rento: 'rento', kulttuuri: 'kulttuuri', ulkoilu: 'ulkoilu', ruoka: 'ruoka pääosassa' }
-
-// AI:n palauttama välimuoto (ennen groundausta).
-interface AiStep {
-  cardId?: string
-  role: string
-  emoji: string
-  title: string
-  time?: string
-  why: string
-}
 
 function buildPrompt(loved: Candidate[], when: GroupWhen, fiilis: Fiilis[], superIds: Set<string>): { system: string; user: string } {
   const cardLines = loved
@@ -83,49 +74,9 @@ function extractJson(text: string): { intro: string; arc: AiStep[]; outro?: stri
   } catch { return null }
 }
 
-// GROUNDAUS: AI:n vaiheet + candidates-snapshot → lopulliset PlanStep-faktat.
-// Vaiheet ilman tunnistettua cardId:tä KARSITAAN (hallusinaatiosuoja).
-// Laskee samalla kävelyajat peräkkäisten vaiheiden välille ja täysosuma-liput.
-export function groundSteps(aiSteps: AiStep[], candidates: Candidate[], superIds: Set<string>): PlanStep[] {
-  const byId = new Map(candidates.map(c => [c.id, c]))
-  const steps: PlanStep[] = []
-
-  for (const ai of aiSteps) {
-    const c = ai.cardId ? byId.get(ai.cardId) : undefined
-    if (!c) continue // tuntematon/hallusinoitu kortti → pois
-    steps.push({
-      cardId: c.id,
-      role: c.role,
-      emoji: c.emoji,
-      title: c.title,
-      time: c.time || ai.time,     // tapahtuman todellinen aika voittaa AI:n arvauksen
-      why: ai.why,
-      address: c.address,
-      url: c.url,
-      image: c.image,
-      lat: c.lat,
-      lon: c.lon,
-      rating: c.rating,
-      badge: c.badge,
-      isFree: c.isFree,
-      priceLevel: c.priceLevel,
-      superMatch: superIds.has(c.id) || undefined,
-    })
-  }
-
-  // Kävelysiirtymät peräkkäisten vaiheiden välille (haversine).
-  for (let i = 1; i < steps.length; i++) {
-    const min = walkMinutesBetween(steps[i - 1], steps[i])
-    if (min != null) steps[i].travelFromPrevMin = min
-  }
-  return steps
-}
-
 export async function POST(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params
   if (!supabaseAdmin) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY puuttuu' }, { status: 500 })
 
   const body = await req.json().catch(() => ({}))
   const hostId: string | null = typeof body.hostId === 'string' ? body.hostId.slice(0, 64) : null
@@ -140,13 +91,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   if (session.mode === 'quick') {
     return NextResponse.json({ error: 'Pikapäätös-sessiossa voittaja ratkeaa äänillä automaattisesti' }, { status: 400 })
   }
-  if (session.status === 'done' && session.result_plan && !regenerate) {
-    return NextResponse.json({ plan: session.result_plan, status: 'done' }) // idempotentti
+  const prevPlan = session.result_plan as GroupArcPlan | null
+  if (session.status === 'done' && prevPlan && !regenerate) {
+    return NextResponse.json({ plan: prevPlan, status: 'done' }) // idempotentti
   }
   if (session.status === 'synthesizing') {
     return NextResponse.json({ status: 'synthesizing' }, { status: 202 }) // joku kutoo jo — pollaa
   }
-  // Vain aloittaja saa kutoa (jos host_id on asetettu) — estää maksullisen kutsun spämmäyksen.
+  // Vain aloittaja saa kutoa (jos host_id on asetettu).
   if (session.host_id && session.host_id !== hostId) {
     return NextResponse.json({ error: 'Vain aloittaja voi kutoa kaaren' }, { status: 403 })
   }
@@ -158,23 +110,53 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const loved = lovedCards(candidates, votes)
   if (loved.length < 1) return NextResponse.json({ error: 'Ei vielä tykättyjä kortteja — swaipatkaa ensin' }, { status: 400 })
 
-  // ATOMINEN lukko (compare-and-swap): päivitä 'synthesizing' VAIN jos status on
-  // odotettu ('open', tai 'done' kun kyseessä on tietoinen uudelleenkutominen).
-  // Jos 0 riviä päivittyi, joku toinen kutsu ehti ensin → älä kutsu maksullista
-  // Clauda toiste. Estää julkisen reitin N-kertaisen laskutuksen.
+  const superIds = superMatchIds(votes, participants.length)
+  const when = session.when_filter as GroupWhen
+  const fiilis = (session.fiilis ?? []) as Fiilis[]
   const fromStatus = regenerate ? 'done' : 'open'
+  // Kiertovariantti: "kudo uudelleen" antaa eri yhdistelmän (myös rules-moottorilla)
+  const variant = regenerate ? (prevPlan?.variant ?? 0) + 1 : 0
+
+  // ── Moottorin valinta: rules (oletus, 0 €) tai AI (env-lipulla) ──
+  const useAi = process.env.GROUP_AI_MODE === 'anthropic' && !!process.env.ANTHROPIC_API_KEY
+
+  if (!useAi) {
+    // DETERMINISTINEN POLKU — välitön, ei lukkoa tarvita AI-kutsun ajaksi;
+    // pelkkä atomipäivitys (CAS) riittää kilpailevien kutsujen varalta.
+    const plan = buildDeterministicArc(loved, votes, superIds, { when, variant })
+    if (!plan) return NextResponse.json({ error: 'Ei vielä tykättyjä kortteja — swaipatkaa ensin' }, { status: 400 })
+
+    const { data: updated } = await supabaseAdmin
+      .from('group_sessions').update({ status: 'done', result_plan: plan })
+      .eq('id', sessionId).eq('status', fromStatus).select('id')
+    if (!updated?.length) {
+      // Joku ehti ensin → palauta ajantasainen tila
+      return NextResponse.json({ status: 'synthesizing' }, { status: 202 })
+    }
+
+    await sendGroupPush(sessionId, {
+      title: '🎉 Suunnitelma valmis!',
+      body: plan.arc[0] ? `Alkuun: ${plan.arc[0].title} — katso koko kaari.` : 'Teidän kaari on valmis — katso suunnitelma.',
+      url: `/paatakaa/${sessionId}`,
+    })
+    return NextResponse.json({ plan, status: 'done' })
+  }
+
+  // ── AI-POLKU (GROUP_AI_MODE=anthropic) ──
+  const apiKey = process.env.ANTHROPIC_API_KEY!
+
+  // ATOMINEN lukko (compare-and-swap): päivitä 'synthesizing' VAIN jos status on
+  // odotettu. Estää maksullisen kutsun toistumisen kilpailevilta kutsuilta.
   const { data: locked } = await supabaseAdmin
     .from('group_sessions').update({ status: 'synthesizing' })
     .eq('id', sessionId).eq('status', fromStatus).select('id')
   if (!locked || locked.length === 0) {
     return NextResponse.json({ status: 'synthesizing' }, { status: 202 })
   }
-  // Paikallinen viite: TS ei kavenna import-bindingia closureen asti.
   const db = supabaseAdmin
   const releaseLock = () => db.from('group_sessions').update({ status: fromStatus }).eq('id', sessionId)
 
-  const superIds = superMatchIds(votes, participants.length)
-  const { system, user } = buildPrompt(loved, session.when_filter as GroupWhen, (session.fiilis ?? []) as Fiilis[], superIds)
+  const { system, user } = buildPrompt(loved, when, fiilis, superIds)
 
   let planText = ''
   try {
@@ -211,17 +193,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
     return NextResponse.json({ error: 'AI:n vastausta ei voitu jäsentää, yritä uudelleen' }, { status: 502 })
   }
 
-  const plan: GroupArcPlan = { kind: 'arc', intro: parsed.intro, arc: grounded, outro: parsed.outro }
+  const plan: GroupArcPlan = { kind: 'arc', engine: 'ai', variant, intro: parsed.intro, arc: grounded, outro: parsed.outro }
 
   const { error } = await supabaseAdmin
     .from('group_sessions').update({ status: 'done', result_plan: plan }).eq('id', sessionId)
   if (error) {
-    // Älä jätä lukkoa 'synthesizing'-tilaan jumiin → vapauta, jotta voi yrittää uudelleen.
     await releaseLock()
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Awaitataan lähetys (vrt. vote-reitti): serverless voi jäätyä vastauksen jälkeen.
   await sendGroupPush(sessionId, {
     title: '🎉 Illan kaari valmis!',
     body: plan.arc[0] ? `Alkuun: ${plan.arc[0].title} — katso koko suunnitelma.` : 'AI kutoi teille illan kaaren — katso suunnitelma.',

@@ -52,6 +52,8 @@ export interface PlanStep {
 
 export interface GroupArcPlan {
   kind: 'arc'
+  engine?: 'ai' | 'rules'      // 'rules' = deterministinen (0 €), 'ai' = Claude
+  variant?: number             // deterministisen kiertovariantti ("kudo uudelleen")
   intro: string
   arc: PlanStep[]
   outro?: string
