@@ -78,12 +78,20 @@ const DEFAULT_HOUR: Record<GroupWhen, Record<CandidateRole, number>> = {
 
 const WHEN_TEXT: Record<GroupWhen, string> = { tonight: 'iltanne', day: 'päivänne', weekend: 'viikonlopunne' }
 
+// "to 20.50" → 20.83 (fi-FI Intl -muoto). Palauttaa null jos ei kellonaikaa.
+function parseHour(t?: string): number | null {
+  if (!t) return null
+  const m = t.match(/(\d{1,2})\.(\d{2})/)
+  if (!m) return null
+  return Number(m[1]) + Number(m[2]) / 60
+}
+
 function whyFor(c: Candidate, superMatch: boolean): string {
   if (superMatch) return 'Koko porukan suosikki — tätä ei voi ohittaa! 🎉'
+  if (c.isFree) return 'Ilmainen, mutta täyttä laatua.'
   if (c.badge) return `${c.badge} — taso on kunnossa.`
   if (c.rating != null && c.rating >= 4.5 && c.reviewCount) return `⭐ ${c.rating.toFixed(1)} ja ${c.reviewCount} arvostelua puhuu puolestaan.`
   if (c.rating != null && c.rating >= 4.5) return `⭐ ${c.rating.toFixed(1)} — varma valinta.`
-  if (c.isFree) return 'Ilmainen, mutta täyttä laatua.'
   switch (c.role) {
     case 'activity': return 'Mukava avaus, joka virittää porukan tunnelmaan.'
     case 'food': return 'Illan ankkuri — hyvä ruoka pitää porukan kasassa.'
@@ -137,9 +145,21 @@ export function buildDeterministicArc(
   // 4. Pohjajärjestys roolien mukaan (saman roolin sisällä äänijärjestys säilyy)
   picked.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role))
 
-  // 5. Vaiheet + faktat + kävelyajat
+  // 5. Kellonajat: todelliset ajat voittavat aina; oletukset sovitetaan
+  //    pääohjelman TODELLISEN ajan mukaan, jottei esim. drinks ole myöhemmin
+  //    kuin 20.50 alkava keikka.
+  const hours = { ...DEFAULT_HOUR[opts.when] }
+  const programCard = picked.find(c => c.role === 'program')
+  const anchorH = programCard ? parseHour(programCard.time) : null
+  if (anchorH != null) {
+    hours.drinks = Math.max(1, Math.floor(anchorH) - 1)
+    hours.food = Math.min(hours.food, Math.max(1, Math.floor(anchorH) - 2))
+    hours.activity = Math.min(hours.activity, Math.max(1, hours.food - 1))
+  }
+
+  // 6. Vaiheet + faktat + kävelyajat
   const steps: PlanStep[] = picked.map(c =>
-    candidateToStep(c, whyFor(c, superIds.has(c.id)), c.time || `klo ${DEFAULT_HOUR[opts.when][c.role]}`, superIds.has(c.id)),
+    candidateToStep(c, whyFor(c, superIds.has(c.id)), c.time || `klo ${hours[c.role]}`, superIds.has(c.id)),
   )
   withTravelTimes(steps)
 

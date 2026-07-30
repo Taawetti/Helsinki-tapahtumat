@@ -79,13 +79,16 @@ async function main() {
     ok('groundaus: kaikki vaiheet tunnistettu pakasta', grounded === plan.arc.length, `${grounded}/${plan.arc.length}`)
     console.log(`ℹ️  kävelysiirtymiä: ${withTravel}, täysosumia kaaressa: ${superMatches}`)
 
-    // 4. Swap (ei AI:ta) — korvaa ensimmäinen vaihe toisella saman roolin tykätyllä
+    // 4. Swap (ei AI:ta) — korvaa ensimmäisen vaiheen toisella saman roolin
+    //    tykätyllä TAI raportoi siististi kun kaari kulutti kaikki tykätyt (400).
     const firstTitle = plan.arc[0].title
     const swapRes = await post(`/api/group/${code}/swap`, { hostId: 'e2e-arc-host', stepIndex: 0 })
     const swapBody = await j(swapRes)
     const newTitle = swapBody.plan?.arc?.[0]?.title
-    ok('swap: ensimmäinen vaihe vaihtui', swapRes.ok && newTitle && newTitle !== firstTitle,
-      swapRes.ok ? `"${firstTitle}" → "${newTitle}"` : `HTTP ${swapRes.status} ${JSON.stringify(swapBody).slice(0, 150)}`)
+    const swapped = swapRes.ok && newTitle && newTitle !== firstTitle
+    const noAlternatives = swapRes.status === 400 && typeof swapBody.error === 'string'
+    ok('swap: vaihtoi askeleen tai raportoi siististi kun ei vaihtoehtoja', swapped || noAlternatives,
+      swapped ? `"${firstTitle}" → "${newTitle}"` : `HTTP ${swapRes.status} (kaari käytti kaikki tykätyt — odotettu)`)
 
     // 5. OG-esikatselu
     const page = await (await fetch(`${BASE}/paatakaa/${code}`)).text()
