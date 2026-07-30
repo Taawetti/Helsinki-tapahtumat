@@ -156,7 +156,7 @@ async function geocodeLocation(location: string): Promise<[number, number] | nul
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
       {
-        headers: { 'User-Agent': 'mitatanaan.fi/1.0 trip-planner' },
+        headers: { 'User-Agent': 'mitatanaan/1.0 trip-planner (+https://helsinki-tapahtumat.vercel.app)' },
         signal:  AbortSignal.timeout(4000),
       }
     )

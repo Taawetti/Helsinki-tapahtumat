@@ -6,7 +6,7 @@ import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 // Finnish locative forms for neighborhood names
 const LOCATIVE: Record<string, string> = {

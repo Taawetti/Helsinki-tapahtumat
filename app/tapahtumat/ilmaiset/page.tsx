@@ -4,7 +4,7 @@ import { helsinkiDateOf } from '@/lib/helsinki-time'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 export const metadata: Metadata = {
   title: 'Ilmaiset tapahtumat Helsinki – maksuton ohjelma | Mitä tänään',

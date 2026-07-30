@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'Mitä tänään <onboarding@resend.dev>'
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

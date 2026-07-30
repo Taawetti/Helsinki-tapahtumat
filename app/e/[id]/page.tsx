@@ -6,7 +6,7 @@ import ShareButton from '@/components/ShareButton'
 import { supabase, DbFestival } from '@/lib/supabase'
 import { FESTIVALS_STATIC, fromDb, FestivalDef } from '@/lib/festivals-data'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
 const TM_KEY = process.env.TICKETMASTER_API_KEY
 

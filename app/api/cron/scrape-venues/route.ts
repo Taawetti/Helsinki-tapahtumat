@@ -17,7 +17,7 @@ interface ScrapedEvent {
   is_free: boolean
 }
 
-const UA = 'mitatanaan.fi event aggregator (+https://mitatanaan.fi)'
+const UA = 'Mitä tänään event aggregator (+https://helsinki-tapahtumat.vercel.app)'
 
 function decodeHtml(str: string): string {
   return str

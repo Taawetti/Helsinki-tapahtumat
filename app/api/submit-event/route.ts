@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   const link = safeLink(body.linkki)
   const htmlContent = `
-    <h2 style="font-family:sans-serif;color:#a855f7;">Uusi tapahtumaehdotus — mitatanaan.fi</h2>
+    <h2 style="font-family:sans-serif;color:#a855f7;">Uusi tapahtumaehdotus — Mitä tänään</h2>
     <table style="font-family:sans-serif;font-size:14px;border-collapse:collapse;width:100%;max-width:600px;">
       <tr><td style="padding:6px 12px;font-weight:bold;color:#666;width:140px;">Nimi</td><td style="padding:6px 12px;">${escHtml(body.nimi)}</td></tr>
       <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Päivämäärä</td><td style="padding:6px 12px;">${escHtml(body.pvm)}${body.aika ? ' klo ' + escHtml(body.aika) : ''}</td></tr>
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       ${body.kuvaus ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kuvaus</td><td style="padding:6px 12px;">${escHtml(body.kuvaus)}</td></tr>` : ''}
       <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Järjestäjä</td><td style="padding:6px 12px;"><a href="mailto:${escHtml(body.email)}">${escHtml(body.email)}</a></td></tr>
     </table>
-    <p style="font-family:sans-serif;font-size:12px;color:#999;margin-top:24px;">Lähetetty osoitteesta mitatanaan.fi</p>
+    <p style="font-family:sans-serif;font-size:12px;color:#999;margin-top:24px;">Lähetetty osoitteesta helsinki-tapahtumat.vercel.app</p>
   `
 
   try {

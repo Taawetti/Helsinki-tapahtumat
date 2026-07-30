@@ -6,7 +6,7 @@ import type { GroupResult } from '@/lib/group'
 // Käyttäjän ajossa luomat koodit → ei esigeneroida, aina dynaaminen.
 export const dynamic = 'force-dynamic'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 type Props = { params: Promise<{ koodi: string }> }
 

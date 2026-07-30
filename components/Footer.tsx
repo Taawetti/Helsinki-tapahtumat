@@ -70,7 +70,7 @@ export default function Footer() {
         </div>
 
         <p className="text-white/30 text-xs mt-10">
-          © {new Date().getFullYear()} mitatanaan.fi
+          © {new Date().getFullYear()} Mitä tänään
         </p>
       </div>
     </footer>

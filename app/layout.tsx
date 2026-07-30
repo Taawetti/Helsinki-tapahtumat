@@ -13,7 +13,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
@@ -86,7 +86,7 @@ const webSiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Mitä tänään',
-  alternateName: ['Mitä tänään Helsinki', 'mitatanaan.fi'],
+  alternateName: ['Mitä tänään Helsinki', 'helsinki-tapahtumat.vercel.app'],
   url: BASE,
   inLanguage: 'fi-FI',
   description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa.',

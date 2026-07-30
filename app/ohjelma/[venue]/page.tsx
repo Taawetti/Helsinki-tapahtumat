@@ -7,7 +7,7 @@ import { helsinkiDateRange, helsinkiOffset, formatEventDate } from '@/lib/helsin
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 interface PageEvent {
   id: string

@@ -4,7 +4,7 @@ import { fetchVisas, nextOccurrenceISO, WEEKDAY_FI, PUBIVISAT_SOURCE_URL } from 
 
 export const revalidate = 86400 // schedule changes rarely
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 const DESC = 'Kaikki Helsingin pubivisat viikonpäivittäin: missä baarissa on tietovisa maanantaina, tiistaina tai muina iltoina. Aikataulut ja osoitteet yhdessä paikassa.'
 

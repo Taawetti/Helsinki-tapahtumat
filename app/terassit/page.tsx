@@ -6,7 +6,7 @@ import { helsinkiDateRange, formatEventDate } from '@/lib/helsinki-time'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 const DESC = 'Helsingin terassit ja terassitapahtumat: kattoterassit, rooftop-baarit ja ulkoilmatapahtumat seuraavan kahden viikon ajalta yhdessä paikassa.'
 

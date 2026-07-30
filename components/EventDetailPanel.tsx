@@ -187,8 +187,8 @@ export default function EventDetailPanel({ event, onClose }: Props) {
   const hasOwnPage =
     event.source === 'linked-events' || event.id.startsWith('tm-') || event.id.startsWith('festival-')
   const shareUrl = hasOwnPage
-    ? `https://mitatanaan.fi/e/${encodeURIComponent(event.id)}`
-    : event.infoUrl || event.ticketUrl || 'https://mitatanaan.fi'
+    ? `https://helsinki-tapahtumat.vercel.app/e/${encodeURIComponent(event.id)}`
+    : event.infoUrl || event.ticketUrl || 'https://helsinki-tapahtumat.vercel.app'
 
   async function handleNativeShare() {
     if (navigator.share) {

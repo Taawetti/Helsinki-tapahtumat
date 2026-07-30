@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
               </div>
             )}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.3)', fontSize: '16px' }}>
-              <span>mitatanaan.fi</span>
+              <span>helsinki-tapahtumat.vercel.app</span>
             </div>
           </div>
         </div>

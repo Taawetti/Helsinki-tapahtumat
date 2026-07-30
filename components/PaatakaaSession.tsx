@@ -203,7 +203,7 @@ export default function PaatakaaSession({ code }: { code: string }) {
     }
   }, [code, pushOn, voter.id])
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://mitatanaan.fi/paatakaa/${code}`
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://helsinki-tapahtumat.vercel.app/paatakaa/${code}`
   const share = async () => {
     const text = `Päätetään yhdessä mitä tehdään! Liity koodilla ${code}:`
     try {

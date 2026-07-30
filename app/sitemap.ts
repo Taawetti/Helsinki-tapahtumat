@@ -4,7 +4,7 @@ import { supabase, DbFestival } from '@/lib/supabase'
 import { FESTIVALS_STATIC } from '@/lib/festivals-data'
 import { VENUE_PAGES } from '@/lib/venue-pages'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
 
 async function fetchUpcomingLinkedEventIds(): Promise<string[]> {

@@ -216,7 +216,7 @@ export async function fetchSuperterassiProgram(): Promise<RecurringDef[]> {
   if (cached && Date.now() - cacheTime < CACHE_TTL) return cached
   try {
     const res = await fetch(SUPERTERASSI_URL, {
-      headers: { 'User-Agent': 'mitatanaan.fi event aggregator (+https://mitatanaan.fi)' },
+      headers: { 'User-Agent': 'Mitä tänään event aggregator (+https://helsinki-tapahtumat.vercel.app)' },
       signal: AbortSignal.timeout(10000),
       next: { revalidate: 86400 },
     })
