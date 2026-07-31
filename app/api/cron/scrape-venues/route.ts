@@ -19,6 +19,68 @@ interface ScrapedEvent {
 
 const UA = 'Mitä tänään event aggregator (+https://helsinki-tapahtumat.vercel.app)'
 
+// ── TEC-probe (The Events Calendar, WP-plugin) ──────────────────────────────
+// Jos venue ajaa WordPressiä + TEC:ä, tapahtumat saadaan strukturoituna REST:stä
+// regex-scrapingin sijaan. Palauttaa null jos TEC:ää ei ole → regex-fallback.
+interface TecEvent {
+  id: number
+  title?: string | { rendered?: string }
+  start_date?: string        // "2026-08-01 19:00:00" (paikallinen)
+  end_date?: string
+  url?: string
+  image?: { url?: string } | false
+  venues?: { venue?: string; address?: string }[]
+  cost?: string
+}
+
+async function tryTEC(origin: string, venueId: string, venueName: string): Promise<ScrapedEvent[] | null> {
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    const res = await fetch(`${origin}/wp-json/tribe/events/v1/events?start_date=${today}&per_page=50`, {
+      headers: { 'User-Agent': UA },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const events: TecEvent[] = Array.isArray(data?.events) ? data.events : []
+    if (events.length === 0) return null
+
+    const out: ScrapedEvent[] = []
+    for (const e of events) {
+      if (!e.start_date || !e.url) continue
+      const title = decodeHtml(
+        (typeof e.title === 'string' ? e.title : e.title?.rendered ?? '').replace(/<[^>]+>/g, ''),
+      )
+      if (!title) continue
+      const tecVenue = e.venues?.[0]?.venue ?? ''
+      // Tavastian TEC kattaa myös Semifinalin — venue-nimi erottaa
+      const vid = venueId === 'tavastia' && /semifinal/i.test(tecVenue) ? 'semifinal' : venueId
+      out.push({
+        id: `tec-${vid}-${e.id}`,
+        venue_id: vid,
+        venue_name: tecVenue || venueName,
+        title,
+        start_datetime: e.start_date.replace(' ', 'T'),
+        image_url: e.image && typeof e.image === 'object' ? e.image.url ?? null : null,
+        ticket_url: e.url,
+        price_info: e.cost || null,
+        is_free: !e.cost || /ilmainen|free|0\s*€/i.test(e.cost),
+      })
+    }
+    return out.length > 0 ? out : null
+  } catch {
+    return null
+  }
+}
+
+// TEC-first -kääre: kokeilee strukturoitua endpointia, fallback annettuun scraperiin.
+async function scrapeWithTEC(origin: string, venueId: string, venueName: string, fallback: () => Promise<ScrapedEvent[]>): Promise<ScrapedEvent[]> {
+  const tec = await tryTEC(origin, venueId, venueName)
+  if (tec) return tec
+  return fallback()
+}
+
+
 function decodeHtml(str: string): string {
   return str
     .replace(/&amp;/g, '&')
@@ -515,13 +577,13 @@ export async function GET(req: NextRequest) {
   const counts = { otr: 0, tavastia: 0, semifinal: 0, korjaamo: 0, kaiku: 0, storyville: 0 }
   const errors: string[] = []
 
-  // Scrapataan kaikki paikat rinnakkain
+  // Scrapataan kaikki paikat rinnakkain — TEC-probe ensin, regex-fallback per venue
   const [otrResult, tavastiaResult, korjaamoResult, kaikuResult, storyvilleResult] = await Promise.allSettled([
-    scrapeOnTheRocks(),
-    scrapeTavastia(),
-    scrapeKorjaamo(),
-    scrapeKaiku(),
-    scrapeStoryville(),
+    scrapeWithTEC('https://www.rocks.fi', 'otr', 'On the Rocks', scrapeOnTheRocks),
+    scrapeWithTEC('https://tavastiaklubi.fi', 'tavastia', 'Tavastia', scrapeTavastia),
+    scrapeWithTEC('https://www.korjaamo.fi', 'korjaamo', 'Korjaamo', scrapeKorjaamo),
+    scrapeWithTEC('https://kaiku.fi', 'kaiku', 'Kaiku', scrapeKaiku),
+    scrapeWithTEC('https://www.storyville.fi', 'storyville', 'Storyville', scrapeStoryville),
   ])
 
   const allEvents: ScrapedEvent[] = []

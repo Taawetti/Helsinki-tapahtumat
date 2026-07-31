@@ -7,7 +7,7 @@ import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 // External sources fetched via internal API routes (api/<name>).
 // Order defines merge priority: earlier sources win dedup upgrades first.
 const EXTERNAL_SOURCES = [
-  'ticketmaster', 'eventbrite', 'meetup', 'rss', 'venues', 'culture', 'espoo',
+  'ticketmaster', 'fienta', 'billetto', 'meetup', 'rss', 'venues', 'culture', 'espoo',
   'helmet', 'ilmonet', 'finna', 'visitfinland', 'sports', 'festivals', 'theatre',
   'bars', 'ra', 'museums', 'liiga', 'kide', 'arenas', 'recurring', 'pubivisat',
   'stadissa', 'myhelsinki', 'openings', 'allas', 'lippu', 'scraped',

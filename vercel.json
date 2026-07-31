@@ -9,7 +9,7 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/weekly-discover",
+      "path": "/api/cron/festival-watch",
       "schedule": "0 7 * * 1"
     },
     {
