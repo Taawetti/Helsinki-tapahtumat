@@ -5,12 +5,17 @@
 // signaaleihin kuin näkymien kuratointi (RestaurantsView restaurantQualityScore /
 // isRatedAtLeast, ActivitiesView localScore, HomeClient bestPicks).
 import type { Event, Restaurant, Activity, ActivityCategory } from '@/lib/types'
+import { NEIGHBORHOODS } from '@/lib/types'
 import { isOpenNow } from '@/lib/opening-hours'
 
 export type CandidateType = 'event' | 'restaurant' | 'activity'
 export type CandidateRole = 'drinks' | 'food' | 'activity' | 'program'
 export type GroupWhen = 'tonight' | 'day' | 'weekend'
+// Legacy-fiilis (vanhat sessiot) — uudet scene-id:t menevät samassa sarakkeessa.
 export type Fiilis = 'menoa' | 'rento' | 'kulttuuri' | 'ulkoilu' | 'ruoka'
+// Scene-id:t (v3): konkreettiset valinnat abstraktien fiilisten tilalle.
+export type SceneId = 'ruoka' | 'keikka' | 'kulttuuri' | 'ulkona' | 'baarit' | 'sauna' | 'perhe' | 'ilmaista'
+export type BudgetId = 'any' | 'free' | 'e' | 'ee'
 
 export interface Candidate {
   id: string
@@ -28,6 +33,7 @@ export interface Candidate {
   time?: string
   isFree?: boolean
   priceLevel?: number      // 1–4
+  tags?: string[]          // scene-osumia varten: event→vibes, activity→kategoria, restaurant→tyyppi
   rating?: number
   reviewCount?: number
   isOpen?: boolean         // isOpenNow-tulos (undefined = tuntematon; ei arvattu)
@@ -112,6 +118,7 @@ function restaurantToCandidate(r: Restaurant): Candidate {
     rating: r.googleRating,
     reviewCount: r.reviewCount,
     isOpen: isOpenNow(r.openingHours),
+    tags: [r.type],
     _score: bayes(r.googleRating, r.reviewCount) + award + (r.image ? 0.25 : 0),
   }
 }
@@ -151,6 +158,7 @@ function activityToCandidate(a: Activity, rating?: { rating: number; reviewCount
     rating: rating?.rating,
     reviewCount: rating?.reviewCount,
     isOpen: openRaw === undefined && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : openRaw,
+    tags: [a.category],
     _score: s,
   }
 }
@@ -187,23 +195,56 @@ function eventToCandidate(e: Event): Candidate {
     badge: e.isFree ? 'Ilmainen' : undefined,
     time,
     isFree: e.isFree,
+    tags: vibes,
     _score: s,
   }
 }
 
-// ── Fiilis-painotus (PAINOTTAA roolin sisällä, ei koskaan poista alatyyppiä) ──
-function fiilisBoost(c: Candidate, fiilis: Fiilis[]): number {
+// ── Scene- ja legacy-painotus (PAINOTTAA roolin sisällä, ei poista alatyyppiä) ──
+function hasAnyTag(c: Candidate, wanted: string[]): boolean {
+  return !!c.tags && wanted.some(t => c.tags!.includes(t))
+}
+
+function fiilisBoost(c: Candidate, fiilis: string[]): number {
   if (fiilis.length === 0) return 0
   let b = 0
   for (const f of fiilis) {
-    if (f === 'ruoka' && c.role === 'food') b += 2
+    // Scene-id:t (v3) — vahvempi vaikutus, koska ne ovat konkreettisia
+    if (f === 'ruoka' && c.role === 'food') b += 3
+    if (f === 'baarit' && c.role === 'drinks') b += 3
+    if (f === 'keikka' && c.role === 'program') b += 3
+    if (f === 'kulttuuri' && (hasAnyTag(c, ['teatteri', 'taide', 'museo', 'klassinen', 'galleria', 'nahtavyys']) || c.type === 'event')) b += 2.5
+    if (f === 'ulkona' && hasAnyTag(c, ['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys', 'markkina'])) b += 2.5
+    if (f === 'sauna' && hasAnyTag(c, ['sauna'])) b += 4
+    if (f === 'perhe' && hasAnyTag(c, ['lapset'])) b += 4
+    // Legacy-fiilis (vanhat sessiot toimivat edelleen)
     if (f === 'menoa' && (c.role === 'program' || c.role === 'drinks')) b += 1.5
     if (f === 'rento' && (c.role === 'food' || c.role === 'activity')) b += 0.6
-    if (f === 'kulttuuri' && c.type === 'event') b += 1.2
-    if (f === 'kulttuuri' && c.type === 'activity') b += 1.2   // museot/galleriat ovat activity-roolissa
     if (f === 'ulkoilu' && c.role === 'activity') b += 1.2
   }
   return b
+}
+
+// Budjettisuodatin (KOVAT rajat): ravintoloilla hintataso, tapahtumilla isFree.
+// Tapahtumien tarkkaa hintaa ei tiedetä → vain 'free' rajoittaa niitä.
+function budgetOk(c: Candidate, budget: BudgetId): boolean {
+  if (budget === 'any') return true
+  if (budget === 'free') return c.isFree === true
+  const maxLevel = budget === 'e' ? 2 : 3
+  if (c.type === 'restaurant') return (c.priceLevel ?? 2) <= maxLevel
+  return true
+}
+
+// Aluesuodatin kaupunginosan bbox:lla. Koordinaatittomat kortit SÄILYTETÄÄN —
+// puuttuvasta datasta ei rangaista (LinkedEvents- ja venue-koordinaatit ovat
+// pääosin olemassa, joten suodatin puree silti).
+function areaOk(c: Candidate, area?: string): boolean {
+  if (!area || area === 'kaikki') return true
+  const bbox = NEIGHBORHOODS.find(n => n.id === area)?.bbox
+  if (!bbox) return true
+  if (c.lat == null || c.lon == null) return true
+  const [minLon, minLat, maxLon, maxLat] = bbox.split(',').map(Number)
+  return c.lon >= minLon && c.lon <= maxLon && c.lat >= minLat && c.lat <= maxLat
 }
 
 export interface DeckInput {
@@ -214,14 +255,17 @@ export interface DeckInput {
 }
 export interface DeckOptions {
   when: GroupWhen
-  fiilis: Fiilis[]
+  fiilis: string[]       // legacy-fiilis JA uudet scene-id:t (tietokannassa vapaamuotoisena)
   size?: number          // pakan koko (oletus 24)
+  budget?: BudgetId      // v3: budjettisuodatin
+  area?: string          // v3: kaupunginosa-id ('kaikki' = ei rajaa)
 }
 
 // Takaa kirjon: jokaisesta roolista vähintään minPerRole (jos ehdokkaita on),
 // loput parhaan pisteen mukaan. Interleave roolien yli → swaippaus vaihtelee.
 export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
   const size = opts.size ?? 24
+  const budget: BudgetId = opts.budget ?? 'any'
   const enforceOpen = opts.when === 'tonight'   // vain "tänä iltana" karsii kiinniolevat nyt
   const all: Candidate[] = []
 
@@ -238,10 +282,11 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
     if (eventPasses(e)) all.push(eventToCandidate(e))
   }
 
-  // Fiilis painottaa (soft), sitten dedup titlellä
+  // Fiilis/scene painottaa (soft), budjetti+alue suodattavat (hard), sitten dedup titlellä
   const seen = new Set<string>()
   const scored = all
     .map(c => ({ ...c, _score: c._score + fiilisBoost(c, opts.fiilis) }))
+    .filter(c => budgetOk(c, budget) && areaOk(c, opts.area) && (!opts.fiilis.includes('ilmaista') || c.isFree === true))
     .sort((x, y) => y._score - x._score)
     .filter(c => {
       const k = c.title.toLowerCase().trim()
@@ -259,14 +304,16 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
   const picked: Candidate[] = []
   const cursor: Record<CandidateRole, number> = { drinks: 0, food: 0, activity: 0, program: 0 }
 
-  // Fiilis kasvattaa suosikkiroolin osuutta pakassa (2 korttia/kierros vs 1) —
+  // Scene/fiilis kasvattaa suosikkiroolin osuutta pakassa (3 korttia/kierros vs 1) —
   // PAINOTUS, ei poissulku: kaikki roolit saavat silti minPerRole-takuun.
   const roleWeight = (role: CandidateRole): number => {
     for (const f of opts.fiilis) {
-      if (f === 'ruoka' && role === 'food') return 2
-      if (f === 'menoa' && (role === 'program' || role === 'drinks')) return 2
-      if (f === 'ulkoilu' && role === 'activity') return 2
-      if (f === 'kulttuuri' && (role === 'activity' || role === 'program')) return 2
+      if (f === 'ruoka' && role === 'food') return 3
+      if (f === 'baarit' && role === 'drinks') return 3
+      if ((f === 'keikka' || f === 'menoa') && (role === 'program' || role === 'drinks')) return 3
+      if ((f === 'ulkona' || f === 'ulkoilu') && role === 'activity') return 3
+      if (f === 'kulttuuri' && (role === 'activity' || role === 'program')) return 3
+      if ((f === 'sauna' || f === 'perhe') && role === 'activity') return 3
     }
     return 1
   }

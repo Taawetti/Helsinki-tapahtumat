@@ -4,13 +4,33 @@
 // HTTP-kutsuilla ja kokoaa kuratoidun swaippauspakan.
 import { getDateRange } from '@/lib/utils'
 import { buildDeck } from '@/lib/candidate'
-import type { Candidate, GroupWhen, Fiilis, DeckInput } from '@/lib/candidate'
+import type { Candidate, GroupWhen, DeckInput, BudgetId } from '@/lib/candidate'
 import type { Event, Restaurant, Activity, DateFilter } from '@/lib/types'
 
 const WHEN_TO_FILTER: Record<GroupWhen, DateFilter> = { tonight: 'tonight', day: 'today', weekend: 'weekend' }
 
-export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: Fiilis[]): Promise<Candidate[]> {
-  const { start, end, startAfter } = getDateRange(WHEN_TO_FILTER[when])
+export interface DeckBuildOptions {
+  customStart?: string | null   // v3: oma päivävalinta ohittaa when-esivalinnan
+  customEnd?: string | null
+  budget?: BudgetId
+  area?: string
+}
+
+export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: string[], opts: DeckBuildOptions = {}): Promise<Candidate[]> {
+  let start: string
+  let end: string
+  let startAfter: string | undefined
+  if (opts.customStart) {
+    // Oma päivävalinta — käytetään suoraan (ei startAfter-karsintaa tuleville päiville)
+    start = opts.customStart
+    end = opts.customEnd ?? opts.customStart
+  } else {
+    const r = getDateRange(WHEN_TO_FILTER[when])
+    start = r.start
+    end = r.end
+    startAfter = r.startAfter
+  }
+
   const evParams = new URLSearchParams({ start, end, page: '1', municipality: 'helsinki', quick: '1' })
   if (startAfter) evParams.set('startAfter', startAfter)
 
@@ -38,5 +58,5 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: Fi
     activities: act.activities ?? [],
     activityRatings,
   }
-  return buildDeck(input, { when, fiilis, size: 24 })
+  return buildDeck(input, { when, fiilis, size: 24, budget: opts.budget, area: opts.area })
 }

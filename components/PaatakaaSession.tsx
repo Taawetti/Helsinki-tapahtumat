@@ -8,7 +8,8 @@ import GroupResultView from '@/components/GroupResultView'
 import type { Candidate } from '@/lib/candidate'
 import { ROLE_META } from '@/lib/candidate'
 import type { GroupSession } from '@/lib/group'
-import { GROUP_WHEN_LABELS, FIILIS_LABELS } from '@/lib/group'
+import { GROUP_WHEN_LABELS, FIILIS_LABELS, BUDGET_LABELS } from '@/lib/group'
+import { NEIGHBORHOODS } from '@/lib/types'
 
 function getVoter(): { id: string; name: string } {
   if (typeof window === 'undefined') return { id: '', name: '' }
@@ -336,14 +337,7 @@ export default function PaatakaaSession({ code }: { code: string }) {
         <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/70" style={{ background: 'rgba(107,118,255,.15)' }}>
           {session.mode === 'quick' ? '⚡ Pikapäätös' : '🗺 Illan kaari'}
         </span>
-        <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/70" style={{ background: 'rgba(255,255,255,.07)' }}>
-          {GROUP_WHEN_LABELS[session.when].emoji} {GROUP_WHEN_LABELS[session.when].label}
-        </span>
-        {session.fiilis.map(f => (
-          <span key={f} className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/70" style={{ background: 'rgba(255,255,255,.07)' }}>
-            {FIILIS_LABELS[f].emoji} {FIILIS_LABELS[f].label}
-          </span>
-        ))}
+        <ContextChips session={session} />
       </div>
       <input value={nameDraft} onChange={e => setNameDraft(e.target.value)} placeholder="Etunimi" maxLength={40}
         onKeyDown={e => { if (e.key === 'Enter') saveName() }}
@@ -383,16 +377,9 @@ export default function PaatakaaSession({ code }: { code: string }) {
         </div>
       </div>
 
-      {/* Sessiokonteksti: milloin + fiilis */}
+      {/* Sessiokonteksti: milloin + missä + mitä + budjetti */}
       <div className="flex flex-wrap gap-1.5 mb-3">
-        <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
-          {GROUP_WHEN_LABELS[session.when].emoji} {GROUP_WHEN_LABELS[session.when].label}
-        </span>
-        {session.fiilis.map(f => (
-          <span key={f} className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
-            {FIILIS_LABELS[f].emoji} {FIILIS_LABELS[f].label}
-          </span>
-        ))}
+        <ContextChips session={session} />
       </div>
 
       {/* Osallistujat + valmistilat */}
@@ -518,5 +505,44 @@ function CandidateCard({ c, drag }: { c: Candidate; drag: { swipeRight: boolean;
         {c.address && <p className="text-white/40 text-xs font-bold mt-1.5">📍 {c.address}</p>}
       </div>
     </div>
+  )
+}
+
+// ── Sessiokontekstin chipit (milloin/missä/mitä/budjetti) ──
+function ContextChips({ session }: { session: GroupSession }) {
+  const fmtDay = (iso: string) =>
+    new Intl.DateTimeFormat('fi-FI', { timeZone: 'Europe/Helsinki', weekday: 'short', day: 'numeric', month: 'numeric' })
+      .format(new Date(`${iso}T12:00:00`))
+
+  const whenText = session.customStart
+    ? `📅 ${fmtDay(session.customStart)}${session.customEnd && session.customEnd !== session.customStart ? `–${fmtDay(session.customEnd)}` : ''}`
+    : `${GROUP_WHEN_LABELS[session.when].emoji} ${GROUP_WHEN_LABELS[session.when].label}`
+
+  const area = session.area && session.area !== 'kaikki'
+    ? NEIGHBORHOODS.find(n => n.id === session.area)
+    : null
+  const budget = session.budget && session.budget !== 'any' ? BUDGET_LABELS[session.budget] : null
+
+  return (
+    <>
+      <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
+        {whenText}
+      </span>
+      {area && (
+        <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
+          {area.emoji} {area.name}
+        </span>
+      )}
+      {budget && (
+        <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
+          {budget.emoji} {budget.label}
+        </span>
+      )}
+      {session.fiilis.map(f => FIILIS_LABELS[f] ? (
+        <span key={f} className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
+          {FIILIS_LABELS[f].emoji} {FIILIS_LABELS[f].label}
+        </span>
+      ) : null)}
+    </>
   )
 }

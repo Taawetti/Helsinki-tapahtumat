@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildGroupDeck } from '@/lib/group-deck'
-import type { GroupWhen, Fiilis } from '@/lib/candidate'
+import type { GroupWhen, Fiilis, BudgetId } from '@/lib/candidate'
 
 // REMATCH — "jatka samalla porukalla": sama sessio (ja linkki) elää, mutta
 // pakka rakennetaan uudelleen ja äänet nollataan. round+1 kertoo klienteille
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const sessionId = code.toUpperCase()
   const { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('status, when_filter, fiilis, host_id, round')
+    .select('status, when_filter, fiilis, custom_start, custom_end, area, budget, host_id, round')
     .eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
   if (session.host_id && session.host_id !== hostId) {
@@ -27,8 +27,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   }
 
   const when = session.when_filter as GroupWhen
-  const fiilis = (session.fiilis ?? []) as Fiilis[]
-  const candidates = await buildGroupDeck(req.nextUrl.origin, when, fiilis)
+  const fiilis = (session.fiilis ?? []) as string[]
+  // v3: rematch säilyttää kaikki valinnat — myös oman päivän, alueen ja budjetin
+  const candidates = await buildGroupDeck(req.nextUrl.origin, when, fiilis, {
+    customStart: (session.custom_start ?? null) as string | null,
+    customEnd: (session.custom_end ?? null) as string | null,
+    budget: (session.budget ?? 'any') as BudgetId,
+    area: (session.area ?? 'kaikki') as string,
+  })
   if (candidates.length < 4) {
     return NextResponse.json({ error: 'Ei tarpeeksi ehdokkaita juuri nyt — kokeile myöhemmin uudelleen' }, { status: 503 })
   }

@@ -1,5 +1,5 @@
 // Ryhmäpäätöskoneen jaetut tyypit + apurit (client + server).
-import type { Candidate, GroupWhen, Fiilis, CandidateRole } from '@/lib/candidate'
+import type { Candidate, GroupWhen, CandidateRole } from '@/lib/candidate'
 
 export type GroupStatus = 'open' | 'synthesizing' | 'done'
 // 'arc' = AI kutoo illan kaaren tykätyistä · 'quick' = ensimmäinen
@@ -10,9 +10,13 @@ export type GroupMode = 'arc' | 'quick'
 export interface GroupSession {
   code: string
   when: GroupWhen
-  fiilis: Fiilis[]
+  fiilis: string[]               // legacy-fiilis ja/tai scene-id:t
   mode: GroupMode
   round: number                    // kasvaa rematchissa → klientit nollaavat paikallisen äänestysmuistin
+  customStart: string | null       // v3: oma päivävalinta (ISO), ohittaa when-esivalinnan näytössä
+  customEnd: string | null
+  area: string                     // v3: kaupunginosa-id ('kaikki' = ei rajaa)
+  budget: string                   // v3: 'any' | 'free' | 'e' | 'ee'
   candidates: Candidate[]
   deckSize: number                 // = candidates.length (selkeys koodissa)
   status: GroupStatus
@@ -115,12 +119,27 @@ export const GROUP_WHEN_LABELS: Record<GroupWhen, { emoji: string; label: string
   day:     { emoji: '☀️', label: 'Koko päivä' },
   weekend: { emoji: '🗓', label: 'Viikonloppu' },
 }
-export const FIILIS_LABELS: Record<Fiilis, { emoji: string; label: string }> = {
+export const FIILIS_LABELS: Record<string, { emoji: string; label: string }> = {
+  // Legacy-fiilis (vanhat sessiot)
   menoa:     { emoji: '🔥', label: 'Menoa' },
   rento:     { emoji: '😌', label: 'Rento' },
   kulttuuri: { emoji: '🎭', label: 'Kulttuuri' },
   ulkoilu:   { emoji: '🌲', label: 'Ulkoilu' },
   ruoka:     { emoji: '🍽', label: 'Ruoka' },
+  // Scene-id:t (v3) — konkreettiset valinnat
+  keikka:    { emoji: '🎸', label: 'Keikka/klubi' },
+  ulkona:    { emoji: '🌳', label: 'Ulkona' },
+  baarit:    { emoji: '🍸', label: 'Baarit' },
+  sauna:     { emoji: '🧖', label: 'Sauna' },
+  perhe:     { emoji: '👨‍👩‍👧', label: 'Perhe' },
+  ilmaista:  { emoji: '💸', label: 'Ilmaista' },
+}
+
+export const BUDGET_LABELS: Record<string, { emoji: string; label: string }> = {
+  any:  { emoji: '✨', label: 'Kaikki' },
+  free: { emoji: '💸', label: 'Vain ilmaiset' },
+  e:    { emoji: '€', label: '€' },
+  ee:   { emoji: '€€', label: '€€' },
 }
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // ei sekoittavia (0/O, 1/I/L)

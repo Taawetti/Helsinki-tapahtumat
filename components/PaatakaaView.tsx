@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { GroupWhen, Fiilis } from '@/lib/candidate'
+import DatePicker from '@/components/DatePicker'
+import { NEIGHBORHOODS } from '@/lib/types'
+import type { GroupWhen, BudgetId } from '@/lib/candidate'
 import type { GroupMode } from '@/lib/group'
 
 // Osallistujan pysyvä anon-tunniste (localStorage).
@@ -16,39 +18,66 @@ function participantId(): string {
 
 const MODES: { id: GroupMode; emoji: string; label: string; desc: string }[] = [
   { id: 'quick', emoji: '⚡', label: 'Pikapäätös', desc: 'Yksi voittaja — ratkeaa heti kun enemmistö tykkää samasta' },
-  { id: 'arc', emoji: '🗺', label: 'Illan kaari', desc: 'AI kutoo tykätyistä koko illan suunnelman vaiheineen' },
+  { id: 'arc', emoji: '🗺', label: 'Illan kaari', desc: 'Tykätyistä kudotaan koko illan suunnitelma vaiheineen' },
 ]
 
 const WHENS: { id: GroupWhen; emoji: string; label: string }[] = [
   { id: 'tonight', emoji: '🌙', label: 'Tänä iltana' },
-  { id: 'day', emoji: '☀️', label: 'Koko päivä' },
+  { id: 'day', emoji: '☀️', label: 'Tänään koko päivä' },
   { id: 'weekend', emoji: '🗓', label: 'Viikonloppu' },
 ]
-const FIILIKSET: { id: Fiilis; emoji: string; label: string }[] = [
-  { id: 'menoa', emoji: '🔥', label: 'Menoa' },
-  { id: 'rento', emoji: '😌', label: 'Rento' },
+
+const SCENES: { id: string; emoji: string; label: string }[] = [
+  { id: 'ruoka', emoji: '🍽', label: 'Ruoka & juoma' },
+  { id: 'keikka', emoji: '🎸', label: 'Keikka/klubi' },
   { id: 'kulttuuri', emoji: '🎭', label: 'Kulttuuri' },
-  { id: 'ulkoilu', emoji: '🌲', label: 'Ulkoilu' },
-  { id: 'ruoka', emoji: '🍽', label: 'Ruoka' },
+  { id: 'ulkona', emoji: '🌳', label: 'Ulkona' },
+  { id: 'baarit', emoji: '🍸', label: 'Baarit' },
+  { id: 'sauna', emoji: '🧖', label: 'Sauna' },
+  { id: 'perhe', emoji: '👨‍👩‍👧', label: 'Perhe' },
+  { id: 'ilmaista', emoji: '💸', label: 'Ilmaista' },
 ]
+
+const BUDGETS: { id: BudgetId; label: string }[] = [
+  { id: 'any', label: 'Kaikki' },
+  { id: 'free', label: '💸 Vain ilmaiset' },
+  { id: 'e', label: '€' },
+  { id: 'ee', label: '€€' },
+]
+
+const ACTIVE = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 8px 20px -8px rgba(91,101,230,.6)' } as const
+const INACTIVE = { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' } as const
 
 export default function PaatakaaView() {
   const router = useRouter()
   const [mode, setMode] = useState<GroupMode>('quick')
   const [when, setWhen] = useState<GroupWhen>('tonight')
-  const [fiilis, setFiilis] = useState<Fiilis[]>([])
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
+  const [area, setArea] = useState('kaikki')
+  const [scenes, setScenes] = useState<string[]>([])
+  const [budget, setBudget] = useState<BudgetId>('any')
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const toggleFiilis = (f: Fiilis) => setFiilis(cur => cur.includes(f) ? cur.filter(x => x !== f) : [...cur, f])
+  const toggleScene = (s: string) => setScenes(cur => cur.includes(s) ? cur.filter(x => x !== s) : [...cur, s])
 
   async function create() {
     setLoading(true); setError(null)
     try {
       const res = await fetch('/api/group/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ when, fiilis, mode, hostId: participantId() }),
+        body: JSON.stringify({
+          when,
+          fiilis: scenes,
+          mode,
+          hostId: participantId(),
+          customStart: customStart || null,
+          customEnd: customEnd || null,
+          area,
+          budget,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Luonti epäonnistui'); setLoading(false); return }
@@ -66,7 +95,7 @@ export default function PaatakaaView() {
           Päättäkää yhdessä
         </h1>
         <p className="text-white/50 text-[15px] font-semibold mt-2 leading-snug">
-          Jaa linkki kavereille → jokainen swaippaa ehdotuksia omalla puhelimellaan → AI kutoo äänistä valmiin illan kaaren. 🍸🍽✨🎸
+          Jaa linkki kavereille → jokainen swaippaa ehdotuksia omalla puhelimellaan → äänistä valmis suunnitelma. 🍸🍽✨🎸
         </p>
       </div>
 
@@ -79,9 +108,7 @@ export default function PaatakaaView() {
             return (
               <button key={m.id} onClick={() => setMode(m.id)}
                 className="flex flex-col items-start gap-1 rounded-2xl p-4 text-left transition-all active:scale-[.97]"
-                style={active
-                  ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 8px 20px -8px rgba(91,101,230,.6)' }
-                  : { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+                style={active ? ACTIVE : INACTIVE}>
                 <span className="text-2xl leading-none">{m.emoji}</span>
                 <span className="text-[13.5px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.7)' }}>{m.label}</span>
                 <span className="text-[11px] font-semibold leading-snug" style={{ color: active ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.35)' }}>{m.desc}</span>
@@ -94,44 +121,97 @@ export default function PaatakaaView() {
       {/* Milloin */}
       <section>
         <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Milloin?</h2>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 mb-3">
           {WHENS.map(w => {
-            const active = when === w.id
+            const active = when === w.id && !customStart
             return (
-              <button key={w.id} onClick={() => setWhen(w.id)}
+              <button key={w.id} onClick={() => { setWhen(w.id); setCustomStart(''); setCustomEnd('') }}
                 className="flex flex-col items-center gap-1.5 rounded-2xl py-4 transition-all active:scale-[.97]"
-                style={active
-                  ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 8px 20px -8px rgba(91,101,230,.6)' }
-                  : { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+                style={active ? ACTIVE : INACTIVE}>
                 <span className="text-2xl leading-none">{w.emoji}</span>
-                <span className="text-[12.5px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.6)' }}>{w.label}</span>
+                <span className="text-[12.5px] font-black text-center leading-tight" style={{ color: active ? '#fff' : 'rgba(255,255,255,.6)' }}>{w.label}</span>
               </button>
             )
           })}
+        </div>
+        <div className="rounded-2xl p-3" style={customStart ? { background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.4)' } : { background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+          <p className="text-white/50 text-[11px] font-black uppercase tracking-wide mb-2 px-1">📅 Tai valitse päivä(t) itse</p>
+          <DatePicker
+            value={customStart}
+            onChange={setCustomStart}
+            valueEnd={customEnd}
+            onChangeRange={(s, e) => { setCustomStart(s); setCustomEnd(e) }}
+          />
+          {customStart && (
+            <button onClick={() => { setCustomStart(''); setCustomEnd('') }}
+              className="text-white/40 text-[11px] font-bold mt-2 px-1 hover:text-white/70 transition-colors">
+              ✕ Tyhjennä oma valinta
+            </button>
+          )}
         </div>
       </section>
 
-      {/* Fiilis (valinnainen) */}
+      {/* Missä */}
       <section>
-        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">
-          Fiiliksellä <span className="text-white/30 normal-case font-bold">· valinnainen</span>
-        </h2>
+        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Missä?</h2>
         <div className="flex flex-wrap gap-2">
-          {FIILIKSET.map(f => {
-            const active = fiilis.includes(f.id)
+          <button onClick={() => setArea('kaikki')}
+            className="rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
+            style={area === 'kaikki' ? ACTIVE : INACTIVE}>
+            <span className="text-[13px] font-black" style={{ color: area === 'kaikki' ? '#fff' : 'rgba(255,255,255,.55)' }}>🌆 Koko kaupunki</span>
+          </button>
+          {NEIGHBORHOODS.map(n => {
+            const active = area === n.id
             return (
-              <button key={f.id} onClick={() => toggleFiilis(f.id)}
-                className="flex items-center gap-1.5 rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
-                style={active
-                  ? { background: 'rgba(107,118,255,.2)', border: '1px solid rgba(107,118,255,.5)' }
-                  : { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
-                <span className="text-[15px] leading-none">{f.emoji}</span>
-                <span className="text-[13px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.55)' }}>{f.label}</span>
+              <button key={n.id} onClick={() => setArea(n.id)}
+                className="rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
+                style={active ? ACTIVE : INACTIVE}>
+                <span className="text-[13px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.55)' }}>{n.emoji} {n.name}</span>
               </button>
             )
           })}
         </div>
-        <p className="text-white/25 text-[12px] font-semibold mt-2">Fiilis vain painottaa — ei rajaa mitään pois.</p>
+        {area !== 'kaikki' && (
+          <p className="text-white/25 text-[12px] font-semibold mt-2">Kaari pysyy kävelyetäisyydellä — ei hyppelyä kaupungin yli.</p>
+        )}
+      </section>
+
+      {/* Mitä */}
+      <section>
+        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">
+          Mitä tehdään? <span className="text-white/30 normal-case font-bold">· valinnainen</span>
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {SCENES.map(s => {
+            const active = scenes.includes(s.id)
+            return (
+              <button key={s.id} onClick={() => toggleScene(s.id)}
+                className="flex items-center gap-1.5 rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
+                style={active ? { background: 'rgba(107,118,255,.2)', border: '1px solid rgba(107,118,255,.5)' } : INACTIVE}>
+                <span className="text-[15px] leading-none">{s.emoji}</span>
+                <span className="text-[13px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.55)' }}>{s.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-white/25 text-[12px] font-semibold mt-2">Valitut painottavat pakkaa vahvasti — ei rajaa pois.</p>
+      </section>
+
+      {/* Budjetti */}
+      <section>
+        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Budjetti?</h2>
+        <div className="flex flex-wrap gap-2">
+          {BUDGETS.map(b => {
+            const active = budget === b.id
+            return (
+              <button key={b.id} onClick={() => setBudget(b.id)}
+                className="rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
+                style={active ? ACTIVE : INACTIVE}>
+                <span className="text-[13px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.55)' }}>{b.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </section>
 
       {error && <p className="text-red-400/80 text-sm font-bold">{error}</p>}
@@ -152,7 +232,7 @@ export default function PaatakaaView() {
             style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.12)' }} />
           <Link href={joinCode.length === 4 ? `/paatakaa/${joinCode}` : '#'}
             className="rounded-xl px-5 flex items-center font-black text-sm"
-            style={{ background: joinCode.length === 4 ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.04)', color: joinCode.length === 4 ? '#fff' : 'rgba(255,255,255,.3)' }}>
+            style={{ background: joinCode.length === 4 ? 'rgba(255,255,255.1)' : 'rgba(255,255,255,.04)', color: joinCode.length === 4 ? '#fff' : 'rgba(255,255,255,.3)' }}>
             Liity →
           </Link>
         </div>
