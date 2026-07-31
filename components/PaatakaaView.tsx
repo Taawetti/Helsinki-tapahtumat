@@ -54,7 +54,7 @@ export default function PaatakaaView() {
   const [when, setWhen] = useState<GroupWhen>('tonight')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
-  const [area, setArea] = useState('kaikki')
+  const [areas, setAreas] = useState<string[]>([])
   const [scenes, setScenes] = useState<string[]>([])
   const [budget, setBudget] = useState<BudgetId>('any')
   const [joinCode, setJoinCode] = useState('')
@@ -62,6 +62,7 @@ export default function PaatakaaView() {
   const [error, setError] = useState<string | null>(null)
 
   const toggleScene = (s: string) => setScenes(cur => cur.includes(s) ? cur.filter(x => x !== s) : [...cur, s])
+  const toggleArea = (a: string) => setAreas(cur => cur.includes(a) ? cur.filter(x => x !== a) : [...cur, a])
 
   async function create() {
     setLoading(true); setError(null)
@@ -75,7 +76,7 @@ export default function PaatakaaView() {
           hostId: participantId(),
           customStart: customStart || null,
           customEnd: customEnd || null,
-          area,
+          areas,
           budget,
         }),
       })
@@ -151,28 +152,43 @@ export default function PaatakaaView() {
         </div>
       </section>
 
-      {/* Missä */}
+      {/* Missä — monivalinta, ryhmitelty kunnittain (Espoo ja Vantaa ovat
+          eri kaupunkeja kuin Helsinki, mutta kuuluvat pääkaupunkiseutuun) */}
       <section>
         <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Missä?</h2>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setArea('kaikki')}
+        <div className="flex flex-wrap gap-2 mb-3">
+          <button onClick={() => setAreas([])}
             className="rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
-            style={area === 'kaikki' ? ACTIVE : INACTIVE}>
-            <span className="text-[13px] font-black" style={{ color: area === 'kaikki' ? '#fff' : 'rgba(255,255,255,.55)' }}>🌆 Koko kaupunki</span>
+            style={areas.length === 0 ? ACTIVE : INACTIVE}>
+            <span className="text-[13px] font-black" style={{ color: areas.length === 0 ? '#fff' : 'rgba(255,255,255,.55)' }}>🌆 Koko kaupunki</span>
           </button>
-          {NEIGHBORHOODS.map(n => {
-            const active = area === n.id
-            return (
-              <button key={n.id} onClick={() => setArea(n.id)}
-                className="rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
-                style={active ? ACTIVE : INACTIVE}>
-                <span className="text-[13px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.55)' }}>{n.emoji} {n.name}</span>
-              </button>
-            )
-          })}
         </div>
-        {area !== 'kaikki' && (
-          <p className="text-white/25 text-[12px] font-semibold mt-2">Kaari pysyy kävelyetäisyydellä — ei hyppelyä kaupungin yli.</p>
+        {(['helsinki', 'espoo', 'vantaa'] as const).map(muni => {
+          const areasOfMuni = NEIGHBORHOODS.filter(n => n.municipality === muni)
+          if (areasOfMuni.length === 0) return null
+          const muniLabel = muni === 'helsinki' ? 'Helsingin kaupunginosat' : muni === 'espoo' ? 'Espoo (ei Helsinkiä)' : 'Vantaa (ei Helsinkiä)'
+          return (
+            <div key={muni} className="mb-3">
+              <p className="text-white/30 text-[11px] font-black uppercase tracking-wide mb-1.5">{muniLabel}</p>
+              <div className="flex flex-wrap gap-2">
+                {areasOfMuni.map(n => {
+                  const active = areas.includes(n.id)
+                  return (
+                    <button key={n.id} onClick={() => toggleArea(n.id)}
+                      className="rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
+                      style={active ? ACTIVE : INACTIVE}>
+                      <span className="text-[13px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.55)' }}>{n.emoji} {n.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+        {areas.length > 0 && (
+          <p className="text-white/25 text-[12px] font-semibold mt-1">
+            {areas.length === 1 ? 'Kaari pysyy kävelyetäisyydellä.' : `${areas.length} aluetta valittu — kaari pysyy tiiviinä.`}
+          </p>
         )}
       </section>
 

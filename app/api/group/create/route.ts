@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildGroupDeck } from '@/lib/group-deck'
+import { NEIGHBORHOODS } from '@/lib/types'
 import type { GroupWhen, BudgetId } from '@/lib/candidate'
 import { genCode } from '@/lib/group'
 import type { GroupMode } from '@/lib/group'
@@ -32,8 +33,13 @@ export async function POST(req: NextRequest) {
   }
   const area: string = typeof body.area === 'string' ? body.area.slice(0, 40) : 'kaikki'
   const budget: BudgetId = VALID_BUDGETS.includes(body.budget) ? body.budget : 'any'
+  // v3.1: monivalitut alueet (validoidaan tunnetut id:t)
+  const VALID_AREAS = new Set(NEIGHBORHOODS.map(n => n.id))
+  const areas: string[] = Array.isArray(body.areas)
+    ? body.areas.filter((a: unknown): a is string => typeof a === 'string' && VALID_AREAS.has(a)).slice(0, 14)
+    : []
 
-  const candidates = await buildGroupDeck(req.nextUrl.origin, when, fiilis, { customStart, customEnd, budget, area })
+  const candidates = await buildGroupDeck(req.nextUrl.origin, when, fiilis, { customStart, customEnd, budget, areas })
 
   if (candidates.length < 4) {
     return NextResponse.json({ error: 'Ei tarpeeksi ehdokkaita juuri nyt — kokeile eri ajankohtaa tai laajenna valintoja' }, { status: 503 })
@@ -56,6 +62,7 @@ export async function POST(req: NextRequest) {
     custom_start: customStart,
     custom_end: customEnd,
     area,
+    areas,
     budget,
     candidates,
     status: 'open',

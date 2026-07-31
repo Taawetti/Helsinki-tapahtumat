@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cod
 
   const { data: session, error } = await supabase
     .from('group_sessions')
-    .select('id, when_filter, fiilis, mode, round, custom_start, custom_end, area, budget, candidates, status, result_plan, host_id')
+    .select('id, when_filter, fiilis, mode, round, custom_start, custom_end, area, areas, budget, candidates, status, result_plan, host_id')
     .eq('id', code.toUpperCase())
     .maybeSingle()
 
@@ -37,6 +37,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cod
     customStart: (session.custom_start ?? null) as string | null,
     customEnd: (session.custom_end ?? null) as string | null,
     area: (session.area ?? 'kaikki') as string,
+    areas: (session.areas ?? []) as string[],
     budget: (session.budget ?? 'any') as string,
     candidates,
     deckSize: candidates.length,

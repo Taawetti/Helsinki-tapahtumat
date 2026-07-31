@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const sessionId = code.toUpperCase()
   const { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('status, when_filter, fiilis, custom_start, custom_end, area, budget, host_id, round')
+    .select('status, when_filter, fiilis, custom_start, custom_end, area, areas, budget, host_id, round')
     .eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
   if (session.host_id && session.host_id !== hostId) {
@@ -28,12 +28,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
 
   const when = session.when_filter as GroupWhen
   const fiilis = (session.fiilis ?? []) as string[]
-  // v3: rematch säilyttää kaikki valinnat — myös oman päivän, alueen ja budjetin
+  // v3: rematch säilyttää kaikki valinnat — myös oman päivän, alueet ja budjetin
   const candidates = await buildGroupDeck(req.nextUrl.origin, when, fiilis, {
     customStart: (session.custom_start ?? null) as string | null,
     customEnd: (session.custom_end ?? null) as string | null,
     budget: (session.budget ?? 'any') as BudgetId,
-    area: (session.area ?? 'kaikki') as string,
+    areas: ((session.areas ?? []) as string[]).length > 0
+      ? (session.areas ?? []) as string[]
+      : ((session.area ?? 'kaikki') !== 'kaikki' ? [session.area as string] : []),
   })
   if (candidates.length < 4) {
     return NextResponse.json({ error: 'Ei tarpeeksi ehdokkaita juuri nyt — kokeile myöhemmin uudelleen' }, { status: 503 })

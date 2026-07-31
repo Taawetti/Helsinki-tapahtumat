@@ -70,10 +70,11 @@ export function groundSteps(aiSteps: AiStep[], candidates: Candidate[], superIds
 const ROLE_ORDER: CandidateRole[] = ['activity', 'food', 'drinks', 'program']
 
 // Oletuskellonajat rooleittain kun kortilla ei ole todellista aikaa (tapahtumat).
+// Ikkunat on valittu realistisiksi: ruoka lounaaksi päivällä, illalliseksi illalla.
 const DEFAULT_HOUR: Record<GroupWhen, Record<CandidateRole, number>> = {
-  tonight: { activity: 18, food: 19, drinks: 21, program: 22 },
-  day:     { activity: 11, food: 13, drinks: 15, program: 17 },
-  weekend: { activity: 14, food: 17, drinks: 19, program: 21 },
+  tonight: { activity: 17, food: 18.5, drinks: 21, program: 22 },
+  day:     { activity: 10, food: 12, drinks: 16, program: 18 },
+  weekend: { activity: 12, food: 13.5, drinks: 17, program: 20 },
 }
 
 const WHEN_TEXT: Record<GroupWhen, string> = { tonight: 'iltanne', day: 'päivänne', weekend: 'viikonlopunne' }
@@ -145,26 +146,58 @@ export function buildDeterministicArc(
   // 4. Pohjajärjestys roolien mukaan (saman roolin sisällä äänijärjestys säilyy)
   picked.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role))
 
-  // 5. Kellonajat: todelliset ajat voittavat aina; oletukset sovitetaan
-  //    pääohjelman TODELLISEN ajan mukaan, jottei esim. drinks ole myöhemmin
-  //    kuin 20.50 alkava keikka.
-  const hours = { ...DEFAULT_HOUR[opts.when] }
+  // 5. Kellonajat REALISTISIKSI:
+  //    - tapahtumat pitävät aina todellisen aikansa (ankkuri, ei koskaan siirretä)
+  //    - ruoka on LOUNAS (11.30–13.30) kun pääohjelma on päivällä, ILLALLINEN
+  //      (17–19.30) kun ohjelma on illalla
+  //    - drinks vasta ruuan jälkeen — tai ohjelman jälkeen ("jatkot"), jos
+  //      ohjelma alkaa ≤21
+  //    - lopuksi vaiheet laitetaan KRONOLOGISEEN järjestykseen, jottei
+  //      kaaren järjestys ja kellonajat voi koskaan olla ristiriidassa.
+  const base = { ...DEFAULT_HOUR[opts.when] }
   const programCard = picked.find(c => c.role === 'program')
   const anchorH = programCard ? parseHour(programCard.time) : null
   if (anchorH != null) {
-    hours.drinks = Math.max(1, Math.floor(anchorH) - 1)
-    hours.food = Math.min(hours.food, Math.max(1, Math.floor(anchorH) - 2))
-    hours.activity = Math.min(hours.activity, Math.max(1, hours.food - 1))
+    if (anchorH <= 17) {
+      base.food = Math.min(Math.max(anchorH - 3.5, 11.5), 13.5)
+      base.drinks = Math.min(Math.max(anchorH + 2, 18), 22)
+    } else {
+      base.food = Math.min(Math.max(anchorH - 2.5, 17), 19.5)
+      base.drinks = anchorH <= 21 ? Math.min(anchorH + 2, 23.5) : anchorH - 1
+    }
+    base.activity = Math.min(base.activity, base.food - 2)
   }
 
+  // Minimiväli edellisestä vaiheesta roolin mukaan (sauna ~2h, ruoka ~1.5h…)
+  const GAP: Record<CandidateRole, number> = { activity: 2, food: 1.5, drinks: 1, program: 2 }
+  const timed: { c: Candidate; h: number }[] = []
+  let prevH: number | null = null
+  let prevRole: CandidateRole | null = null
+  for (const c of picked) {
+    const realH = parseHour(c.time)
+    let h = realH ?? base[c.role]
+    if (realH == null && prevH != null && prevRole != null) {
+      h = Math.max(h, prevH + GAP[prevRole])
+    }
+    h = Math.min(h, 23.5)
+    timed.push({ c, h })
+    prevH = h
+    prevRole = c.role
+  }
+  // Kronologinen loppujärjestys — kaari seuraa aina kelloa, ei roolipohjaa
+  timed.sort((a, b) => a.h - b.h)
+
+  const fmtHour = (h: number): string =>
+    h % 1 >= 0.5 ? `klo ${Math.floor(h)}.30` : `klo ${Math.floor(h)}`
+
   // 6. Vaiheet + faktat + kävelyajat
-  const steps: PlanStep[] = picked.map(c =>
-    candidateToStep(c, whyFor(c, superIds.has(c.id)), c.time || `klo ${hours[c.role]}`, superIds.has(c.id)),
+  const steps: PlanStep[] = timed.map(({ c, h }) =>
+    candidateToStep(c, whyFor(c, superIds.has(c.id)), c.time || fmtHour(h), superIds.has(c.id)),
   )
   withTravelTimes(steps)
 
-  const first = picked[0].title
-  const last = picked[picked.length - 1].title
+  const first = timed[0].c.title
+  const last = timed[timed.length - 1].c.title
   const intro = picked.length === 1
     ? `Teidän valintanne: ${first}.`
     : `Teidän ${WHEN_TEXT[opts.when]}: ${first} → ${last}. ${picked.length} vaihetta porukan tykätyistä.`

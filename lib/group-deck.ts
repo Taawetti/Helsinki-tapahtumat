@@ -3,6 +3,7 @@
 // (tapahtumat, ravintolat, aktiviteetit, arvosanat) rinnakkain sisäisillä
 // HTTP-kutsuilla ja kokoaa kuratoidun swaippauspakan.
 import { getDateRange } from '@/lib/utils'
+import { NEIGHBORHOODS } from '@/lib/types'
 import { buildDeck } from '@/lib/candidate'
 import type { Candidate, GroupWhen, DeckInput, BudgetId } from '@/lib/candidate'
 import type { Event, Restaurant, Activity, DateFilter } from '@/lib/types'
@@ -13,7 +14,7 @@ export interface DeckBuildOptions {
   customStart?: string | null   // v3: oma päivävalinta ohittaa when-esivalinnan
   customEnd?: string | null
   budget?: BudgetId
-  area?: string
+  areas?: string[]              // v3.1: valitut alueet (tyhjä = koko kaupunki)
 }
 
 export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: string[], opts: DeckBuildOptions = {}): Promise<Candidate[]> {
@@ -31,8 +32,23 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: st
     startAfter = r.startAfter
   }
 
-  const evParams = new URLSearchParams({ start, end, page: '1', municipality: 'helsinki', quick: '1' })
-  if (startAfter) evParams.set('startAfter', startAfter)
+  // Kunnat valittujen alueiden mukaan: pelkät Helsinki-alueet → helsinki;
+  // Espoo/Vantaa mukana → haetaan myös niiden division-tapahtumat.
+  // (LinkedEvents jakaa kunnittain; ravintolat/aktiviteetit ovat pk-seutu-
+  // painotteita joka tapauksessa — aluesuodatin hoitaa loput bbox:lla.)
+  const areas = opts.areas ?? []
+  const municipalities = [...new Set(
+    areas
+      .map(id => NEIGHBORHOODS.find(n => n.id === id)?.municipality)
+      .filter((m): m is string => Boolean(m)),
+  )]
+  const munisToFetch = municipalities.length > 0 ? municipalities : ['helsinki']
+
+  const eventFetches = munisToFetch.map(muni => {
+    const evParams = new URLSearchParams({ start, end, page: '1', municipality: muni, quick: '1' })
+    if (startAfter) evParams.set('startAfter', startAfter)
+    return `${origin}/api/events?${evParams}`
+  })
 
   // Yksittäisen lähteen kaatuminen ei estä pakkaa.
   const j = async <T,>(url: string, fallback: T): Promise<T> => {
@@ -42,21 +58,21 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: st
       return (await r.json()) as T
     } catch { return fallback }
   }
-  const [ev, rest, act, rat] = await Promise.all([
-    j<{ events: Event[] }>(`${origin}/api/events?${evParams}`, { events: [] }),
+  const [rest, act, rat, ...eventResponses] = await Promise.all([
     j<{ restaurants: Restaurant[] }>(`${origin}/api/restaurants`, { restaurants: [] }),
     j<{ activities: Activity[] }>(`${origin}/api/activities`, { activities: [] }),
     j<{ ratings: Record<string, { rating: number; reviewCount: number }> }>(`${origin}/api/venue-ratings`, { ratings: {} }),
+    ...eventFetches.map(url => j<{ events: Event[] }>(url, { events: [] })),
   ])
 
   const activityRatings = new Map<string, { rating: number; reviewCount: number }>()
   for (const [k, v] of Object.entries(rat.ratings ?? {})) activityRatings.set(k, { rating: v.rating, reviewCount: v.reviewCount })
 
   const input: DeckInput = {
-    events: ev.events ?? [],
+    events: eventResponses.flatMap(e => e.events ?? []),
     restaurants: rest.restaurants ?? [],
     activities: act.activities ?? [],
     activityRatings,
   }
-  return buildDeck(input, { when, fiilis, size: 24, budget: opts.budget, area: opts.area })
+  return buildDeck(input, { when, fiilis, size: 24, budget: opts.budget, areas })
 }

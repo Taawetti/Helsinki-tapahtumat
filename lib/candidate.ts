@@ -235,16 +235,18 @@ function budgetOk(c: Candidate, budget: BudgetId): boolean {
   return true
 }
 
-// Aluesuodatin kaupunginosan bbox:lla. Koordinaatittomat kortit SÄILYTETÄÄN —
-// puuttuvasta datasta ei rangaista (LinkedEvents- ja venue-koordinaatit ovat
-// pääosin olemassa, joten suodatin puree silti).
-function areaOk(c: Candidate, area?: string): boolean {
-  if (!area || area === 'kaikki') return true
-  const bbox = NEIGHBORHOODS.find(n => n.id === area)?.bbox
-  if (!bbox) return true
+// Aluesuodatin valittujen alueiden bbox-unionilla. Koordinaatittomat kortit
+// SÄILYTETÄÄN — puuttuvasta datasta ei rangaista. Tyhjä/kaikki = ei rajaa.
+function areaOk(c: Candidate, areas?: string[]): boolean {
+  if (!areas || areas.length === 0) return true
   if (c.lat == null || c.lon == null) return true
-  const [minLon, minLat, maxLon, maxLat] = bbox.split(',').map(Number)
-  return c.lon >= minLon && c.lon <= maxLon && c.lat >= minLat && c.lat <= maxLat
+  for (const id of areas) {
+    const bbox = NEIGHBORHOODS.find(n => n.id === id)?.bbox
+    if (!bbox) continue
+    const [minLon, minLat, maxLon, maxLat] = bbox.split(',').map(Number)
+    if (c.lon >= minLon && c.lon <= maxLon && c.lat >= minLat && c.lat <= maxLat) return true
+  }
+  return false
 }
 
 export interface DeckInput {
@@ -258,7 +260,7 @@ export interface DeckOptions {
   fiilis: string[]       // legacy-fiilis JA uudet scene-id:t (tietokannassa vapaamuotoisena)
   size?: number          // pakan koko (oletus 24)
   budget?: BudgetId      // v3: budjettisuodatin
-  area?: string          // v3: kaupunginosa-id ('kaikki' = ei rajaa)
+  areas?: string[]       // v3.1: valitut alueet (bbox-unioni; tyhjä = ei rajaa)
 }
 
 // Takaa kirjon: jokaisesta roolista vähintään minPerRole (jos ehdokkaita on),
@@ -286,7 +288,7 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
   const seen = new Set<string>()
   const scored = all
     .map(c => ({ ...c, _score: c._score + fiilisBoost(c, opts.fiilis) }))
-    .filter(c => budgetOk(c, budget) && areaOk(c, opts.area) && (!opts.fiilis.includes('ilmaista') || c.isFree === true))
+    .filter(c => budgetOk(c, budget) && areaOk(c, opts.areas) && (!opts.fiilis.includes('ilmaista') || c.isFree === true))
     .sort((x, y) => y._score - x._score)
     .filter(c => {
       const k = c.title.toLowerCase().trim()

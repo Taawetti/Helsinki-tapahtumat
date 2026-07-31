@@ -518,9 +518,13 @@ function ContextChips({ session }: { session: GroupSession }) {
     ? `📅 ${fmtDay(session.customStart)}${session.customEnd && session.customEnd !== session.customStart ? `–${fmtDay(session.customEnd)}` : ''}`
     : `${GROUP_WHEN_LABELS[session.when].emoji} ${GROUP_WHEN_LABELS[session.when].label}`
 
-  const area = session.area && session.area !== 'kaikki'
-    ? NEIGHBORHOODS.find(n => n.id === session.area)
-    : null
+  // Alueet: uusi areas-lista ensisijainen, vanha area-kenttä varalla
+  const areaIds = (session.areas?.length ?? 0) > 0
+    ? session.areas
+    : (session.area && session.area !== 'kaikki' ? [session.area] : [])
+  const areaNames = areaIds
+    .map(id => NEIGHBORHOODS.find(n => n.id === id))
+    .filter((n): n is NonNullable<typeof n> => Boolean(n))
   const budget = session.budget && session.budget !== 'any' ? BUDGET_LABELS[session.budget] : null
 
   return (
@@ -528,9 +532,10 @@ function ContextChips({ session }: { session: GroupSession }) {
       <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
         {whenText}
       </span>
-      {area && (
+      {areaNames.length > 0 && (
         <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
-          {area.emoji} {area.name}
+          {areaNames.slice(0, 2).map(n => `${n.emoji} ${n.name}`).join(' · ')}
+          {areaNames.length > 2 ? ` +${areaNames.length - 2}` : ''}
         </span>
       )}
       {budget && (

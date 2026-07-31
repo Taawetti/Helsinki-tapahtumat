@@ -15,7 +15,8 @@ export interface GroupSession {
   round: number                    // kasvaa rematchissa → klientit nollaavat paikallisen äänestysmuistin
   customStart: string | null       // v3: oma päivävalinta (ISO), ohittaa when-esivalinnan näytössä
   customEnd: string | null
-  area: string                     // v3: kaupunginosa-id ('kaikki' = ei rajaa)
+  area: string                     // v3: ensisijainen alue (back-compat)
+  areas: string[]                  // v3.1: kaikki valitut alueet (tyhjä = koko kaupunki)
   budget: string                   // v3: 'any' | 'free' | 'e' | 'ee'
   candidates: Candidate[]
   deckSize: number                 // = candidates.length (selkeys koodissa)
