@@ -53,6 +53,8 @@ export interface PlanStep {
   priceLevel?: number
   superMatch?: boolean             // kaikki osallistujat tykkäsivät
   travelFromPrevMin?: number       // kävelyaika edellisestä vaiheesta (haversine)
+  travelFromPrevMode?: 'walk' | 'transit'  // 'transit' kun kävely > 25 min → Reittiopas-linkki
+  travelFromPrevUrl?: string       // reittiopas.hsl.fi-reittilinkki (vain transit-moodissa)
 }
 
 export interface GroupArcPlan {

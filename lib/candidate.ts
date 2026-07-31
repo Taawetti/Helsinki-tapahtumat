@@ -34,6 +34,7 @@ export interface Candidate {
   isFree?: boolean
   priceLevel?: number      // 1–4
   tags?: string[]          // scene-osumia varten: event→vibes, activity→kategoria, restaurant→tyyppi
+  openingHours?: string    // OSM opening_hours (restaurant/activity) — aukiolotietoinen aikataulutus
   rating?: number
   reviewCount?: number
   isOpen?: boolean         // isOpenNow-tulos (undefined = tuntematon; ei arvattu)
@@ -119,6 +120,7 @@ function restaurantToCandidate(r: Restaurant): Candidate {
     reviewCount: r.reviewCount,
     isOpen: isOpenNow(r.openingHours),
     tags: [r.type],
+    openingHours: r.openingHours ?? undefined,
     _score: bayes(r.googleRating, r.reviewCount) + award + (r.image ? 0.25 : 0),
   }
 }
@@ -159,6 +161,7 @@ function activityToCandidate(a: Activity, rating?: { rating: number; reviewCount
     reviewCount: rating?.reviewCount,
     isOpen: openRaw === undefined && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : openRaw,
     tags: [a.category],
+    openingHours: a.openingHours ?? undefined,
     _score: s,
   }
 }

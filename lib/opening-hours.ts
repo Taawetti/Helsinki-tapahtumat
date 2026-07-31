@@ -62,6 +62,62 @@ export function isOpenNow(hours?: string | null, now?: Date): boolean | undefine
   }
 }
 
+/** true = open at the given Helsinki wall-clock Date, false = closed, undefined = unknown. */
+export function isOpenAt(hours: string | null | undefined, at: Date): boolean | undefined {
+  if (!hours) return undefined
+  const oh = parse(hours)
+  if (!oh) return undefined
+  try {
+    return oh.getState(at)
+  } catch {
+    return undefined
+  }
+}
+
+/** Päivän aukioloikkunat liukulukutunteina ([{from, to}], esim. 17.5 = 17:30).
+ *  `day` on Helsinki wall-clock Date (vain pv/kk/vuosi merkitsevät).
+ *  null = suljettu koko päivän tai parsimaton. */
+export function openIntervalsForDate(hours: string | null | undefined, day: Date): { from: number; to: number }[] | null {
+  if (!hours) return null
+  if (hours.trim() === '24/7') return [{ from: 0, to: 24 }]
+  const oh = parse(hours)
+  if (!oh) return null
+  try {
+    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0)
+    const nextDay = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 0, 0, 0)
+    const windowStart = new Date(dayStart.getTime() - 12 * 3600 * 1000)
+    const windowEnd = new Date(dayStart.getTime() + 34 * 3600 * 1000)
+    const intervals = oh.getOpenIntervals(windowStart, windowEnd)
+      .filter(([from]) => from >= dayStart && from < nextDay)
+    if (!intervals.length) return null
+    const toFloat = (d: Date) => d.getHours() + d.getMinutes() / 60 + (d.getDate() > day.getDate() ? 24 : 0)
+    return intervals.map(([from, to]) => ({ from: toFloat(from), to: Math.min(toFloat(to), 26) }))
+  } catch {
+    return null
+  }
+}
+
+/** Sovittaa toivotun kellonajan aukioloaikoihin:
+ *  1. Jos [h, h+minDur] mahtuu johonkin ikkunaan → h kelpaa sellaisenaan.
+ *  2. Muuten valitaan viimeisin ikkuna joka sulkeutuu ENNEN h:ta → alku to−minDur.
+ *  3. Jos ei sellaista, valitaan seuraava ikkuna (max 4h myöhemmin) → sen alku.
+ *  4. null = kiinni koko päivän (kutsuja päättää fallbacks). */
+export function clampToOpenHour(hours: string | null | undefined, day: Date, h: number, minDurH: number): number | null {
+  const intervals = openIntervalsForDate(hours, day)
+  if (!intervals) return null
+  for (const iv of intervals) {
+    if (h >= iv.from && h + minDurH <= iv.to) return h
+  }
+  let best: number | null = null
+  for (const iv of intervals) {
+    if (iv.to <= h && iv.to - minDurH >= iv.from) best = iv.to - minDurH
+  }
+  if (best != null) return Math.round(best * 2) / 2
+  const next = intervals.find(iv => iv.from > h && iv.from - h <= 4)
+  if (next) return next.from
+  return null
+}
+
 const pad = (n: number) => String(n).padStart(2, '0')
 // A close at exactly midnight is the end of THIS day → show "24:00", not the
 // confusing "00:00"; overnight closes (02:00) keep their real time.

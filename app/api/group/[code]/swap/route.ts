@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { aggregateVotes, lovedCards, superMatchIds, walkMinutesBetween } from '@/lib/group'
+import { aggregateVotes, lovedCards, superMatchIds } from '@/lib/group'
 import type { GroupArcPlan, PlanStep } from '@/lib/group'
+import { withTravelTimes } from '@/lib/group-arc'
 import type { Candidate } from '@/lib/candidate'
 
 // VAIHDA ASKEL — deterministinen korvaus ilman AI:ta: korvaa kaaren yhden
@@ -86,15 +87,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const arc = plan.arc.slice()
   arc[stepIndex] = newStep
 
-  // Laske kävelysiirtymät uudelleen koko kaarelle (vaihto vaikuttaa naapureihin).
+  // Laske siirtymät uudelleen koko kaarelle (vaihto vaikuttaa naapureihin).
+  // withTravelTimes hoitaa myös walk/transit-moodin ja Reittiopas-linkit.
   for (let i = 0; i < arc.length; i++) {
     arc[i] = { ...arc[i] }
     delete arc[i].travelFromPrevMin
-    if (i > 0) {
-      const min = walkMinutesBetween(arc[i - 1], arc[i])
-      if (min != null) arc[i].travelFromPrevMin = min
-    }
+    delete arc[i].travelFromPrevMode
+    delete arc[i].travelFromPrevUrl
   }
+  withTravelTimes(arc)
 
   const newPlan: GroupArcPlan = { ...plan, arc }
   const { error } = await supabaseAdmin

@@ -8,6 +8,7 @@
 import type { Candidate, GroupWhen, CandidateRole } from '@/lib/candidate'
 import type { GroupArcPlan, PlanStep } from '@/lib/group'
 import { walkMinutesBetween } from '@/lib/group'
+import { clampToOpenHour } from '@/lib/opening-hours'
 
 // ── Yhteiset rakennuspalat (myös AI-polku käyttää) ────────────────────────
 
@@ -42,11 +43,22 @@ export function candidateToStep(c: Candidate, why: string, time: string | undefi
   }
 }
 
-// Kävelysiirtymät peräkkäisten vaiheiden välille (haversine).
+// Kävelysiirtymät peräkkäisten vaiheiden välille (haversine). Yli 25 min
+// kävelyn kohdalla tarjotaan Reittiopas-linkki joukkoliikenteeseen.
 export function withTravelTimes(steps: PlanStep[]): PlanStep[] {
   for (let i = 1; i < steps.length; i++) {
     const min = walkMinutesBetween(steps[i - 1], steps[i])
-    if (min != null) steps[i].travelFromPrevMin = min
+    if (min == null) continue
+    steps[i].travelFromPrevMin = min
+    if (min > 25) {
+      const a = steps[i - 1]
+      const b = steps[i]
+      steps[i].travelFromPrevMode = 'transit'
+      steps[i].travelFromPrevUrl =
+        `https://reittiopas.hsl.fi/reitti/${a.lat},${a.lon}/${b.lat},${b.lon}`
+    } else {
+      steps[i].travelFromPrevMode = 'walk'
+    }
   }
   return steps
 }
@@ -108,7 +120,7 @@ export function buildDeterministicArc(
   loved: Candidate[],
   votes: Record<string, { love: number; skip: number }>,
   superIds: Set<string>,
-  opts: { when: GroupWhen; variant?: number },
+  opts: { when: GroupWhen; variant?: number; date?: string },
 ): GroupArcPlan | null {
   if (loved.length === 0) return null
   const variant = opts.variant ?? 0
@@ -170,6 +182,10 @@ export function buildDeterministicArc(
 
   // Minimiväli edellisestä vaiheesta roolin mukaan (sauna ~2h, ruoka ~1.5h…)
   const GAP: Record<CandidateRole, number> = { activity: 2, food: 1.5, drinks: 1, program: 2 }
+  // Aukiolotietoinen aikataulutus: ravintolat/aktiviteetit, joilla on
+  // opening_hours-data, sovitetaan päivän aukioloaikoihin (esim. ei saunaa
+  // klo 21 jos se sulkeutuu 20). Session todellinen päivä ratkaisee viikonpäivän.
+  const arcDay = opts.date ? new Date(`${opts.date}T12:00:00`) : null
   const timed: { c: Candidate; h: number }[] = []
   let prevH: number | null = null
   let prevRole: CandidateRole | null = null
@@ -178,6 +194,12 @@ export function buildDeterministicArc(
     let h = realH ?? base[c.role]
     if (realH == null && prevH != null && prevRole != null) {
       h = Math.max(h, prevH + GAP[prevRole])
+    }
+    if (realH == null && c.openingHours && arcDay) {
+      const minDur = c.role === 'food' || c.role === 'activity' ? 1.25 : 1
+      const clamped = clampToOpenHour(c.openingHours, arcDay, h, minDur)
+      if (clamped != null) h = clamped
+      // kiinni koko päivän → pidä oletus (ei parempaakaan vaihtoehtoa)
     }
     h = Math.min(h, 23.5)
     timed.push({ c, h })

@@ -7,6 +7,7 @@ import { ROLE_META } from '@/lib/candidate'
 import { sendGroupPush } from '@/lib/group-push'
 import { buildDeterministicArc, groundSteps } from '@/lib/group-arc'
 import type { AiStep } from '@/lib/group-arc'
+import { helsinkiToday } from '@/lib/helsinki-time'
 
 // Illan kaaren kutominen. OLETUS: deterministinen moottori (lib/group-arc) —
 // 0 €, välitön, ei ulkoisia riippuvuuksia. AI-polku (Claude) on valinnainen
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const sessionId = code.toUpperCase()
   const { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('candidates, status, when_filter, fiilis, mode, result_plan, host_id')
+    .select('candidates, status, when_filter, fiilis, mode, custom_start, result_plan, host_id')
     .eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
   if (session.mode === 'quick') {
@@ -117,13 +118,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   // Kiertovariantti: "kudo uudelleen" antaa eri yhdistelmän (myös rules-moottorilla)
   const variant = regenerate ? (prevPlan?.variant ?? 0) + 1 : 0
 
+  // Kaaren todellinen päivä — ratkaisee viikonpäivän aukioloaikoihin:
+  // oma päivävalinta > viikonloppu (seuraava la) > tänään.
+  const arcDate = ((): string => {
+    const custom = (session.custom_start ?? null) as string | null
+    if (custom) return custom
+    const d = new Date(`${helsinkiToday()}T12:00:00`)
+    if (when === 'weekend') {
+      const dow = (d.getDay() + 6) % 7 // ma=0 … su=6
+      d.setDate(d.getDate() + ((5 - dow + 7) % 7))
+    }
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
   // ── Moottorin valinta: rules (oletus, 0 €) tai AI (env-lipulla) ──
   const useAi = process.env.GROUP_AI_MODE === 'anthropic' && !!process.env.ANTHROPIC_API_KEY
 
   if (!useAi) {
     // DETERMINISTINEN POLKU — välitön, ei lukkoa tarvita AI-kutsun ajaksi;
     // pelkkä atomipäivitys (CAS) riittää kilpailevien kutsujen varalta.
-    const plan = buildDeterministicArc(loved, votes, superIds, { when, variant })
+    const plan = buildDeterministicArc(loved, votes, superIds, { when, variant, date: arcDate })
     if (!plan) return NextResponse.json({ error: 'Ei vielä tykättyjä kortteja — swaipatkaa ensin' }, { status: 400 })
 
     const { data: updated } = await supabaseAdmin
