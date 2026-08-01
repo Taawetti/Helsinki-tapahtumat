@@ -68,16 +68,21 @@ async function main() {
   })
   ok('vote DELETE (undo) hyväksytty', undoRes.ok, `HTTP ${undoRes.status}`)
 
-  // 5. Love-ääni → 1 osallistujan pikapäätöksessä pitää voittaa heti
+  // 5. Yksi ❤️ solo-sessiossa EI vielä ratkea (ryhmäbugi-fix: eka ääni ei
+  //    päättänyt ennen kuin muut ehtivät mukaan)
   const cardB = s.candidates[1].id
   const loveRes = await post(`/api/group/${code}/vote`, { voterId: 'e2e-voter', voterName: 'E2E', cardId: cardB, vote: 'love' })
   const loveBody = await j(loveRes)
-  ok('pikapäätös: enemmistövoitto ratkesi (won)', loveRes.ok && loveBody.won === true, JSON.stringify(loveBody))
+  ok('eka ❤️ ei ratkaise vielä (solo odottaa koko pakkaa)', loveRes.ok && loveBody.won !== true, JSON.stringify(loveBody))
 
-  // 6. GET → done + groundattu quick-tulos
+  // 6. Swaippaa loput kortit → solo-sessio ratkeaa valmistuessa
+  for (const c of s.candidates.slice(2)) {
+    await post(`/api/group/${code}/vote`, { voterId: 'e2e-voter', voterName: 'E2E', cardId: c.id, vote: 'skip' })
+  }
+  // Viimeinen ääni saattoi jo ratkaista; pollataan tilaa
   s = await (await fetch(`${BASE}/api/group/${code}`, { cache: 'no-store' })).json()
   const qp = s.resultPlan
-  ok('tulos: status=done, kind=quick, groundattu otsikko',
+  ok('solo-sessio ratkesi pakan loputtua (fallback/majority)',
     s.status === 'done' && qp?.kind === 'quick' && typeof qp?.title === 'string' && qp.title.length > 0,
     qp ? `"${qp.title}" (${qp.votesFor}/${qp.voterCount} ääntä)` : `status=${s.status}`)
 
