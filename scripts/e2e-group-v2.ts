@@ -75,8 +75,9 @@ async function main() {
   const loveBody = await j(loveRes)
   ok('eka ❤️ ei ratkaise vielä (solo odottaa koko pakkaa)', loveRes.ok && loveBody.won !== true, JSON.stringify(loveBody))
 
-  // 6. Swaippaa loput kortit → solo-sessio ratkeaa valmistuessa
-  for (const c of s.candidates.slice(2)) {
+  // 6. Swaippaa loput kortit (myös cardA uudelleen — undo poisti sen äänen) →
+  //    solo-sessio ratkeaa pakan valmistuttua
+  for (const c of s.candidates.filter(c => c.id !== cardB)) {
     await post(`/api/group/${code}/vote`, { voterId: 'e2e-voter', voterName: 'E2E', cardId: c.id, vote: 'skip' })
   }
   // Viimeinen ääni saattoi jo ratkaista; pollataan tilaa
