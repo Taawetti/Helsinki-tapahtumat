@@ -8,6 +8,7 @@ import { sendGroupPush } from '@/lib/group-push'
 import { buildDeterministicArc, groundSteps } from '@/lib/group-arc'
 import type { AiStep } from '@/lib/group-arc'
 import { helsinkiToday } from '@/lib/helsinki-time'
+import { enrichTransitTimes } from '@/lib/digitransit'
 
 // Illan kaaren kutominen. OLETUS: deterministinen moottori (lib/group-arc) —
 // 0 €, välitön, ei ulkoisia riippuvuuksia. AI-polku (Claude) on valinnainen
@@ -140,6 +141,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
     const plan = buildDeterministicArc(loved, votes, superIds, { when, variant, date: arcDate })
     if (!plan) return NextResponse.json({ error: 'Ei vielä tykättyjä kortteja — swaipatkaa ensin' }, { status: 400 })
 
+    // Todelliset joukkoliikenneajat transit-väleille (Digitransit, jos avain on)
+    plan.arc = await enrichTransitTimes(plan.arc)
+
     const { data: updated } = await supabaseAdmin
       .from('group_sessions').update({ status: 'done', result_plan: plan })
       .eq('id', sessionId).eq('status', fromStatus).select('id')
@@ -207,7 +211,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
     return NextResponse.json({ error: 'AI:n vastausta ei voitu jäsentää, yritä uudelleen' }, { status: 502 })
   }
 
-  const plan: GroupArcPlan = { kind: 'arc', engine: 'ai', variant, intro: parsed.intro, arc: grounded, outro: parsed.outro }
+  const plan: GroupArcPlan = { kind: 'arc', engine: 'ai', variant, date: arcDate, intro: parsed.intro, arc: grounded, outro: parsed.outro }
 
   const { error } = await supabaseAdmin
     .from('group_sessions').update({ status: 'done', result_plan: plan }).eq('id', sessionId)

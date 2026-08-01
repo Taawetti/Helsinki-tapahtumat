@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
 
   const sessionId = code.toUpperCase()
   // Varmista sessio + että se on vielä auki (ei äänestetä valmiin tuloksen jälkeen).
-  const { data: session } = await supabaseAdmin.from('group_sessions').select('status, mode, candidates').eq('id', sessionId).maybeSingle()
+  const { data: session } = await supabaseAdmin.from('group_sessions').select('status, mode, candidates, host_id').eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
   if (session.status === 'done') return NextResponse.json({ error: 'Sessio on jo päätetty' }, { status: 409 })
 
@@ -42,6 +42,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
       { onConflict: 'session_id,voter_id,card_id' },
     )
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // MUISTUTUSPUSH (arc-moodi): kun joku saa koko pakan swaippattua, katsotaan
+  // jäljellä olijat — yksi jäljellä → "sinua odotetaan"; kaikki valmiita →
+  // "aloittaja voi kutoa kaaren". Laukeaa vain valmistumishetkellä (ei spämmiä).
+  if (session.mode === 'arc') {
+    const deckSize = cards.length
+    if (deckSize > 0) {
+      const { data: voteRows } = await supabaseAdmin
+        .from('group_votes').select('voter_id, voter_name, card_id, vote').eq('session_id', sessionId)
+      const { participants } = aggregateVotes(voteRows ?? [], deckSize)
+      const me = participants.find(p => p.id === voterId)
+      const remaining = participants.filter(p => !p.done)
+      if (me?.done && participants.length >= 2 && remaining.length === 1) {
+        await sendGroupPush(sessionId, {
+          title: '⏳ Sinua odotetaan!',
+          body: `${remaining[0].name}, kaikki muut ovat swaippaneet — vuorosi päättää ilta.`,
+          url: `/paatakaa/${sessionId}`,
+        }, { voterId: remaining[0].id })
+      } else if (me?.done && participants.length >= 2 && remaining.length === 0 && session.host_id) {
+        await sendGroupPush(sessionId, {
+          title: '🎉 Kaikki ovat valmiita!',
+          body: 'Koko ryhmä on swaippanut — kutokaa illan kaari kun sopii.',
+          url: `/paatakaa/${sessionId}`,
+        }, { voterId: session.host_id })
+      }
+    }
+  }
 
   // PIKAPÄÄTÖS: onko jokin kortti saavuttanut enemmistön? Tarkista jokaisen
   // äänen jälkeen — voittaja lukitaan atomisesti (CAS) → vain yksi kirjoittaa tuloksen.

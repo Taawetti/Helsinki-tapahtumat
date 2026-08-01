@@ -5,13 +5,20 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendToSubscribers } from '@/lib/webpush'
 
-export async function sendGroupPush(sessionId: string, payload: { title: string; body: string; url: string }): Promise<void> {
+export async function sendGroupPush(
+  sessionId: string,
+  payload: { title: string; body: string; url: string },
+  opts?: { voterId?: string },
+): Promise<void> {
   if (!supabaseAdmin) return
   try {
-    const { data: subs } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('group_push')
-      .select('endpoint, p256dh, auth')
+      .select('endpoint, p256dh, auth, voter_id')
       .eq('session_id', sessionId)
+    // Kohdennus yhdelle osallistujalle (esim. viimeinen swaippaamaton)
+    if (opts?.voterId) query = query.eq('voter_id', opts.voterId)
+    const { data: subs } = await query
     if (!subs?.length) return
 
     const { staleEndpoints } = await sendToSubscribers(subs, () =>

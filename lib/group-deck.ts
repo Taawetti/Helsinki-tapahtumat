@@ -5,6 +5,7 @@
 import { getDateRange } from '@/lib/utils'
 import { NEIGHBORHOODS } from '@/lib/types'
 import { buildDeck } from '@/lib/candidate'
+import { fetchRainExpected } from '@/lib/weather'
 import type { Candidate, GroupWhen, DeckInput, BudgetId } from '@/lib/candidate'
 import type { Event, Restaurant, Activity, DateFilter } from '@/lib/types'
 
@@ -58,10 +59,11 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: st
       return (await r.json()) as T
     } catch { return fallback }
   }
-  const [rest, act, rat, ...eventResponses] = await Promise.all([
+  const [rest, act, rat, weather, ...eventResponses] = await Promise.all([
     j<{ restaurants: Restaurant[] }>(`${origin}/api/restaurants`, { restaurants: [] }),
     j<{ activities: Activity[] }>(`${origin}/api/activities`, { activities: [] }),
     j<{ ratings: Record<string, { rating: number; reviewCount: number }> }>(`${origin}/api/venue-ratings`, { ratings: {} }),
+    fetchRainExpected(start).catch(() => null), // sade-ennuste pakan päivälle (ei avainta)
     ...eventFetches.map(url => j<{ events: Event[] }>(url, { events: [] })),
   ])
 
@@ -74,5 +76,5 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: st
     activities: act.activities ?? [],
     activityRatings,
   }
-  return buildDeck(input, { when, fiilis, size: 24, budget: opts.budget, areas })
+  return buildDeck(input, { when, fiilis, size: 24, budget: opts.budget, areas, weather })
 }

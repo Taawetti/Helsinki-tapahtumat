@@ -51,16 +51,19 @@ export interface PlanStep {
   badge?: string
   isFree?: boolean
   priceLevel?: number
+  openingHours?: string          // OSM opening_hours — "auki kaaren ajankohtana" -merkintöjä varten
   superMatch?: boolean             // kaikki osallistujat tykkäsivät
   travelFromPrevMin?: number       // kävelyaika edellisestä vaiheesta (haversine)
   travelFromPrevMode?: 'walk' | 'transit'  // 'transit' kun kävely > 25 min → Reittiopas-linkki
   travelFromPrevUrl?: string       // reittiopas.hsl.fi-reittilinkki (vain transit-moodissa)
+  travelFromPrevSummary?: string   // Digitransit-tarkennus: "~32 min · bussi 14"
 }
 
 export interface GroupArcPlan {
   kind: 'arc'
   engine?: 'ai' | 'rules'      // 'rules' = deterministinen (0 €), 'ai' = Claude
   variant?: number             // deterministisen kiertovariantti ("kudo uudelleen")
+  date?: string                // kaaren päivämäärä (ISO) — aukioloarkojen ratkaisu
   intro: string
   arc: PlanStep[]
   outro?: string
@@ -83,6 +86,7 @@ export interface GroupQuickPlan {
   isFree?: boolean
   lat?: number
   lon?: number
+  openingHours?: string
   votesFor?: number
   voterCount?: number
 }
@@ -110,6 +114,7 @@ export function quickPlanFromCandidate(c: Candidate, votesFor: number, voterCoun
     isFree: c.isFree,
     lat: c.lat,
     lon: c.lon,
+    openingHours: c.openingHours,
     votesFor,
     voterCount,
   }

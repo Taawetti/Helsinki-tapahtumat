@@ -2,11 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import type { GroupArcPlan } from '@/lib/group'
+import type { GroupArcPlan, PlanStep } from '@/lib/group'
 import { roleLabel } from '@/lib/group'
+import { isOpenAt } from '@/lib/opening-hours'
 
 // PlannerMap lataa leafletin dynaamisesti — ei SSR:ää.
 const PlannerMap = dynamic(() => import('@/components/PlannerMap'), { ssr: false })
+
+// "Auki kaaren ajankohtana": true = auki, false = kiinni silloin, null = ei tietoa
+function openAtStepTime(step: PlanStep, date?: string): boolean | null {
+  if (!step.openingHours || !step.time || !date) return null
+  const m = step.time.match(/(\d{1,2})[.:](\d{2})/)
+  if (!m) return null
+  const [y, mo, d] = date.split('-').map(Number)
+  const open = isOpenAt(step.openingHours, new Date(y, mo - 1, d, Number(m[1]), Number(m[2])))
+  return open === undefined ? null : open
+}
 
 interface Props {
   plan: GroupArcPlan
@@ -43,6 +54,7 @@ export default function GroupResultView({
           const cta = step.url
             ? step.role === 'program' ? 'Liput / lisätiedot →' : step.role === 'food' || step.role === 'drinks' ? 'Verkkosivu →' : 'Lisätiedot →'
             : null
+          const openAt = openAtStepTime(step, plan.date)
           return (
             <div key={`${step.cardId ?? i}-${i}`}>
               {/* Kävelysiirtymä / joukkoliikenne edellisestä vaiheesta */}
@@ -76,6 +88,16 @@ export default function GroupResultView({
                     {step.superMatch && (
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
                         🎉 TÄYSOSUMA
+                      </span>
+                    )}
+                    {openAt === true && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                        Auki ✓
+                      </span>
+                    )}
+                    {openAt === false && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">
+                        ⚠ Kiinni ~tähän aikaan
                       </span>
                     )}
                   </div>

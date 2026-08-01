@@ -39,6 +39,7 @@ export function candidateToStep(c: Candidate, why: string, time: string | undefi
     badge: c.badge,
     isFree: c.isFree,
     priceLevel: c.priceLevel,
+    openingHours: c.openingHours,
     superMatch: superMatch || undefined,
   }
 }
@@ -228,6 +229,7 @@ export function buildDeterministicArc(
     kind: 'arc',
     engine: 'rules',
     variant,
+    date: opts.date,
     intro,
     arc: steps,
     outro: 'Hyvää menoa — nauttikaa! 🎉',

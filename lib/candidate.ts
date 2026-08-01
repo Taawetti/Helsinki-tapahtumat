@@ -264,7 +264,12 @@ export interface DeckOptions {
   size?: number          // pakan koko (oletus 24)
   budget?: BudgetId      // v3: budjettisuodatin
   areas?: string[]       // v3.1: valitut alueet (bbox-unioni; tyhjä = ei rajaa)
+  weather?: { rainExpected: boolean } | null  // sade: ulkokohteet alas, sisä ylös
 }
+
+// Sateen vaikutukset pisteytykseen (open-meteo, ryhmäpäätöspakka)
+const OUTDOOR_RAIN_CATS: ActivityCategory[] = ['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys']
+const INDOOR_RAIN_BOOST_CATS: ActivityCategory[] = ['museo', 'galleria', 'sauna', 'markkina']
 
 // Takaa kirjon: jokaisesta roolista vähintään minPerRole (jos ehdokkaita on),
 // loput parhaan pisteen mukaan. Interleave roolien yli → swaippaus vaihtelee.
@@ -287,10 +292,17 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
     if (eventPasses(e)) all.push(eventToCandidate(e))
   }
 
-  // Fiilis/scene painottaa (soft), budjetti+alue suodattavat (hard), sitten dedup titlellä
+  // Fiilis/scene painottaa (soft), budjetti+alue suodattavat (hard), sää
+  // säätää ulkokohteita (sade), sitten dedup titlellä
+  const rain = opts.weather?.rainExpected === true
   const seen = new Set<string>()
   const scored = all
-    .map(c => ({ ...c, _score: c._score + fiilisBoost(c, opts.fiilis) }))
+    .map(c => {
+      let s = c._score + fiilisBoost(c, opts.fiilis)
+      if (rain && c.type === 'activity' && c.tags?.some(t => OUTDOOR_RAIN_CATS.includes(t as ActivityCategory))) s -= 3.5
+      if (rain && c.tags?.some(t => INDOOR_RAIN_BOOST_CATS.includes(t as ActivityCategory))) s += 0.8
+      return { ...c, _score: s }
+    })
     .filter(c => budgetOk(c, budget) && areaOk(c, opts.areas) && (!opts.fiilis.includes('ilmaista') || c.isFree === true))
     .sort((x, y) => y._score - x._score)
     .filter(c => {

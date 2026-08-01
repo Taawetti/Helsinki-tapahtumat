@@ -79,6 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
     badge: next.badge,
     isFree: next.isFree,
     priceLevel: next.priceLevel,
+    openingHours: next.openingHours,
     superMatch: superIds.has(next.id) || undefined,
   }
   // Perustelu pitää vaihtaa koskemaan uutta paikkaa — käytä kortin omaa why-tekstiä.
