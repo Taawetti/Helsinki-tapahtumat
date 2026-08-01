@@ -194,7 +194,11 @@ export function buildDeterministicArc(
     const realH = parseHour(c.time)
     let h = realH ?? base[c.role]
     if (realH == null && prevH != null && prevRole != null) {
-      h = Math.max(h, prevH + GAP[prevRole])
+      // Väli = roolin kesto + KÄVELYAIKA edellisestä paikasta — kaaren ajat
+      // eivät voi olla ristiriidassa siirtymien kanssa.
+      const prevC = timed[timed.length - 1]?.c
+      const travelH = prevC ? (walkMinutesBetween(prevC, c) ?? 0) / 60 : 0
+      h = Math.max(h, prevH + GAP[prevRole] + travelH)
     }
     if (realH == null && c.openingHours && arcDay) {
       const minDur = c.role === 'food' || c.role === 'activity' ? 1.25 : 1

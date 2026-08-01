@@ -81,9 +81,11 @@ async function main() {
     s.status === 'done' && qp?.kind === 'quick' && typeof qp?.title === 'string' && qp.title.length > 0,
     qp ? `"${qp.title}" (${qp.votesFor}/${qp.voterCount} ääntä)` : `status=${s.status}`)
 
-  // 7. OG-metadata valmiista sessiosta
+  // 7. OG-metadata valmiista sessiosta (& escapetetaan meta-tagissa → molemmat muodot)
   const page = await (await fetch(`${BASE}/paatakaa/${code}`)).text()
-  ok('OG: tulossivun og:title sisältää voittajan', page.includes('og:title') && page.includes(qp?.title?.slice(0, 20) ?? '---'),
+  const rawTitle = (qp?.title ?? '').slice(0, 20)
+  const escTitle = rawTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  ok('OG: tulossivun og:title sisältää voittajan', page.includes('og:title') && (page.includes(rawTitle) || page.includes(escTitle)),
     'esikatselu renderöityy')
 
   // 8. Rematch — uusi kierros samalla koodilla
