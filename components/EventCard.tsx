@@ -73,6 +73,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
         <div className={`absolute inset-0 h-full w-full bg-gradient-to-br ${gradient}`} />
         {event.image && (
           <img
+            loading="lazy"
             src={event.image}
             alt={event.title}
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

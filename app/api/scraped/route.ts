@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { helsinkiOffset } from '@/lib/helsinki-time'
 import { Event } from '@/lib/types'
 
 // Venue-sijaintitiedot — kovakoodattu, ei muutu
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
     .from('scraped_events')
     .select('*')
     .gte('start_datetime', startTs.toISOString())
-    .lte('start_datetime', `${end}T23:59:59+03:00`)
+    .lte('start_datetime', `${end}T23:59:59${helsinkiOffset(new Date(`${end}T12:00:00Z`))}`)
     .order('start_datetime', { ascending: true })
 
   if (error || !data) {

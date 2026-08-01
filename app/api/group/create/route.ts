@@ -22,6 +22,10 @@ export async function POST(req: NextRequest) {
   const fiilis: string[] = Array.isArray(body.fiilis) ? body.fiilis.filter((f: unknown): f is string => typeof f === 'string' && VALID_FIILIS.includes(f)) : []
   const mode: GroupMode = body.mode === 'quick' ? 'quick' : 'arc'
   const hostId: string | null = typeof body.hostId === 'string' ? body.hostId.slice(0, 64) : null
+  // Salainen host-tunniste (host_toiminnot: kudo/vaihda/rematch) — ei koskaan
+  // palauteta API:sta toisin kuin julkinen host_id
+  const hostSecret: string | null = typeof body.hostSecret === 'string' && body.hostSecret.length >= 8
+    ? body.hostSecret.slice(0, 80) : null
 
   // v3: oma päivävalinta (ISO-muodossa), alue ja budjetti
   const customStart: string | null = typeof body.customStart === 'string' && ISO_DATE.test(body.customStart) ? body.customStart : null
@@ -67,6 +71,7 @@ export async function POST(req: NextRequest) {
     candidates,
     status: 'open',
     host_id: hostId,
+    host_secret: hostSecret,
   })
   if (error) return NextResponse.json({ error: `Session luonti epäonnistui: ${error.message}` }, { status: 500 })
 

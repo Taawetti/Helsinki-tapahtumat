@@ -51,6 +51,9 @@ export function withTravelTimes(steps: PlanStep[]): PlanStep[] {
     const min = walkMinutesBetween(steps[i - 1], steps[i])
     if (min == null) continue
     steps[i].travelFromPrevMin = min
+    // Summary on aina väliä edeltävän laskennan tulos — poistetaan vanha,
+    // enrichTransitTimes lisää tuoreen (Digitransit) tarvittaessa.
+    delete steps[i].travelFromPrevSummary
     if (min > 25) {
       const a = steps[i - 1]
       const b = steps[i]

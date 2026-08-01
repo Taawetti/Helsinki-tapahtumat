@@ -16,6 +16,12 @@ function participantId(): string {
   return id
 }
 
+// Salainen host-tunniste: tallennetaan vain omaan selaimeen + palvelimelle
+// (ei koskaan jaeta) → todistaa host-oikeuden ilman julkista host_id:tä.
+function genHostSecret(): string {
+  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Date.now().toString(36)
+}
+
 const MODES: { id: GroupMode; emoji: string; label: string; desc: string }[] = [
   { id: 'quick', emoji: '⚡', label: 'Pikapäätös', desc: 'Yksi voittaja — ratkeaa heti kun enemmistö tykkää samasta' },
   { id: 'arc', emoji: '🗺', label: 'Illan kaari', desc: 'Tykätyistä kudotaan koko illan suunnitelma vaiheineen' },
@@ -66,6 +72,7 @@ export default function PaatakaaView() {
 
   async function create() {
     setLoading(true); setError(null)
+    const hostSecret = genHostSecret()
     try {
       const res = await fetch('/api/group/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -74,6 +81,7 @@ export default function PaatakaaView() {
           fiilis: scenes,
           mode,
           hostId: participantId(),
+          hostSecret,
           customStart: customStart || null,
           customEnd: customEnd || null,
           areas,
@@ -82,6 +90,7 @@ export default function PaatakaaView() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Luonti epäonnistui'); setLoading(false); return }
+      try { localStorage.setItem(`paatakaa-host-${data.code}`, hostSecret) } catch { /* privaattitila */ }
       router.push(`/paatakaa/${data.code}`)
     } catch {
       setError('Verkkovirhe — yritä uudelleen'); setLoading(false)
@@ -248,7 +257,7 @@ export default function PaatakaaView() {
             style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.12)' }} />
           <Link href={joinCode.length === 4 ? `/paatakaa/${joinCode}` : '#'}
             className="rounded-xl px-5 flex items-center font-black text-sm"
-            style={{ background: joinCode.length === 4 ? 'rgba(255,255,255.1)' : 'rgba(255,255,255,.04)', color: joinCode.length === 4 ? '#fff' : 'rgba(255,255,255,.3)' }}>
+            style={{ background: joinCode.length === 4 ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.04)', color: joinCode.length === 4 ? '#fff' : 'rgba(255,255,255,.3)' }}>
             Liity →
           </Link>
         </div>

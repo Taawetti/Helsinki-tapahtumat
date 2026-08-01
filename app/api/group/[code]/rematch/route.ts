@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildGroupDeck } from '@/lib/group-deck'
-import type { GroupWhen, Fiilis, BudgetId } from '@/lib/candidate'
+import type { GroupWhen, BudgetId } from '@/lib/candidate'
+import { isHostSession } from '@/lib/group-host'
 
 // REMATCH — "jatka samalla porukalla": sama sessio (ja linkki) elää, mutta
 // pakka rakennetaan uudelleen ja äänet nollataan. round+1 kertoo klienteille
@@ -15,14 +16,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
 
   const body = await req.json().catch(() => ({}))
   const hostId: string | null = typeof body.hostId === 'string' ? body.hostId.slice(0, 64) : null
+  const hostSecret: string | null = typeof body.hostSecret === 'string' ? body.hostSecret.slice(0, 80) : null
 
   const sessionId = code.toUpperCase()
   const { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('status, when_filter, fiilis, custom_start, custom_end, area, areas, budget, host_id, round')
+    .select('status, when_filter, fiilis, custom_start, custom_end, area, areas, budget, host_id, host_secret, round')
     .eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
-  if (session.host_id && session.host_id !== hostId) {
+  if (!isHostSession(session, { hostId, hostSecret })) {
     return NextResponse.json({ error: 'Vain aloittaja voi aloittaa uuden kierroksen' }, { status: 403 })
   }
 

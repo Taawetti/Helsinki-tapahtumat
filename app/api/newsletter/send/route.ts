@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
+import { helsinkiToday } from '@/lib/helsinki-time'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'Mitä tänään <onboarding@resend.dev>'
@@ -32,22 +33,30 @@ function url(ev: LinkedEvent) { return ev.info_url?.fi || `${BASE}?ref=newslette
 function venue(ev: LinkedEvent) { return ev.location?.name?.fi || '' }
 
 function finnishDate(iso: string): string {
-  const d = new Date(iso)
-  const days = ['su', 'ma', 'ti', 'ke', 'to', 'pe', 'la']
+  // Helsinki-aikavyöhykkeessä — palvelin on UTC, jolloin muuten kaikki ajat
+  // näkyvät 2–3 h liian aikaisin ja yömyöhään jälkeen väärällä viikonpäivällä.
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Helsinki',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date(iso))
+  const g = (t: string) => Number(parts.find((p) => p.type === t)!.value)
+  const days = ['ma', 'ti', 'ke', 'to', 'pe', 'la', 'su']
   const months = ['tam', 'hel', 'maa', 'huh', 'tou', 'kes', 'hei', 'elo', 'syy', 'lok', 'mar', 'jou']
-  return `${days[d.getDay()]} ${d.getDate()}. ${months[d.getMonth()]} klo ${String(d.getHours()).padStart(2,'0')}.${String(d.getMinutes()).padStart(2,'0')}`
+  const y = g('year'), m = g('month'), d = g('day'), h = g('hour') % 24, min = g('minute') % 60
+  const dow = (new Date(Date.UTC(y, m - 1, d)).getDay() + 6) % 7
+  return `${days[dow]} ${d}. ${months[m - 1]} klo ${String(h).padStart(2, '0')}.${String(min).padStart(2, '0')}`
 }
 
 async function fetchWeekendEvents(): Promise<LinkedEvent[]> {
-  const now = new Date()
-  const day = now.getDay()
-  const daysToFri = day === 5 ? 0 : day === 6 ? 6 : day === 0 ? 5 : 5 - day
-  const fri = new Date(now)
-  fri.setDate(fri.getDate() + daysToFri)
-  fri.setHours(0, 0, 0, 0)
+  // Viikonlopun päivämäärät Helsinki-aikavyöhykkeessä (palvelin on UTC)
+  const [y, m, d] = helsinkiToday().split('-').map(Number)
+  const todayUtc = new Date(Date.UTC(y, m - 1, d))
+  const dow = (todayUtc.getDay() + 6) % 7 // ma=0 … su=6
+  const daysToFri = (4 - dow + 7) % 7
+  const fri = new Date(todayUtc)
+  fri.setUTCDate(fri.getUTCDate() + daysToFri)
   const sun = new Date(fri)
-  sun.setDate(sun.getDate() + 2)
-  sun.setHours(23, 59, 59, 0)
+  sun.setUTCDate(sun.getUTCDate() + 2)
 
   const start = fri.toISOString().slice(0, 10)
   const end = sun.toISOString().slice(0, 10)

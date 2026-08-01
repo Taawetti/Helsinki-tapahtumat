@@ -8,7 +8,7 @@ import Footer from '@/components/Footer'
 const inter = Inter({ subsets: ['latin'] })
 
 export const viewport: Viewport = {
-  themeColor: '#0072C6',
+  themeColor: '#6b76ff',
   width: 'device-width',
   initialScale: 1,
 }
@@ -94,25 +94,18 @@ const webSiteJsonLd = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_ID
+  // AdSense-loaderia ei ladata toistaiseksi: mikään komponentti ei renderöi
+  // mainoksia (AdBanner on käyttämätön) → turha ~100 KB kolmannen osapuolen JS.
+  // Palauta kun mainokset kytketään oikeasti johonkin näkymään.
   return (
     <html lang="fi" className={inter.className}>
       <head>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" precedence="default" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" precedence="default" />
         <link rel="apple-touch-icon" href="/icon-180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppJsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }} />
-        {adsenseId && (
-          <script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}`}
-            crossOrigin="anonymous"
-          />
-        )}
       </head>
       <body className="min-h-screen">
         <LanguageProvider>

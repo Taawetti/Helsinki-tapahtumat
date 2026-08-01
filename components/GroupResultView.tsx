@@ -61,15 +61,23 @@ export default function GroupResultView({
               {step.travelFromPrevMin != null && (
                 <div className="flex items-center gap-2 py-2 pl-5">
                   <span className="text-white/25 text-xs font-black">↓</span>
-                  <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
-                    🚶 {step.travelFromPrevMin} min kävely
-                  </span>
-                  {step.travelFromPrevMode === 'transit' && step.travelFromPrevUrl && (
-                    <a href={step.travelFromPrevUrl} target="_blank" rel="noopener noreferrer"
-                      className="text-[11px] font-black px-2.5 py-1 rounded-full"
-                      style={{ background: 'rgba(107,118,255,.15)', color: '#a3abff' }}>
-                      🚋 Reittiopas →
-                    </a>
+                  {step.travelFromPrevMode === 'transit' ? (
+                    <>
+                      <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
+                        {step.travelFromPrevSummary ?? `🚶 ${step.travelFromPrevMin} min kävelyllä`}
+                      </span>
+                      {step.travelFromPrevUrl && (
+                        <a href={step.travelFromPrevUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-[11px] font-black px-2.5 py-1 rounded-full"
+                          style={{ background: 'rgba(107,118,255,.15)', color: '#a3abff' }}>
+                          🚋 Reittiopas →
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/50" style={{ background: 'rgba(255,255,255,.05)' }}>
+                      🚶 {step.travelFromPrevMin} min kävely
+                    </span>
                   )}
                 </div>
               )}

@@ -11,7 +11,7 @@ async function fetchUpcomingLinkedEventIds(): Promise<string[]> {
   try {
     const today = new Date().toISOString().split('T')[0]
     const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    const url = `${LE_BASE}/event/?start=${today}&end=${in30days}&language=fi&page_size=200&format=json`
+    const url = `${LE_BASE}/event/?start=${today}&end=${in30days}&language=fi&division=helsinki&page_size=200&format=json`
     const res = await fetch(url, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) })
     if (!res.ok) return []
     const data = await res.json()
@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     } catch { /* jatketaan staattisella listalla */ }
   }
 
-  // Linked Events -tapahtumat seuraavalle 30 päivälle
+  // Linked Events -tapahtumat seuraavalle 30 päivälle (vain Helsinki)
   const linkedEventIds = await fetchUpcomingLinkedEventIds()
 
   return [
@@ -43,12 +43,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: 'hourly',
       priority: 1,
-    },
-    {
-      url: `${BASE}/vote`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.4,
     },
     // Aikaperusteinen SEO-laskeutumissivut — korkean hakuvolyymin termit
     { url: `${BASE}/tapahtumat/tanaan`,     lastModified: now, changeFrequency: 'hourly' as const, priority: 0.95 },

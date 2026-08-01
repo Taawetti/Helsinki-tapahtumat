@@ -421,11 +421,13 @@ export default function ActivitiesView({ onShowOnMap }: {
   // Suodatin (QuickSortPills): vain ilmaiset
   const [freeOnly, setFreeOnly] = useState(false)
 
+  const [loadError, setLoadError] = useState(false)
+
   useEffect(() => {
     fetch('/api/activities')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then(data => setActivities(data.activities ?? []))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }, [])
 
@@ -659,7 +661,20 @@ export default function ActivitiesView({ onShowOnMap }: {
         </div>
       )}
 
-      {!loading && (
+      {/* Latausvirhe — ei harhaanjohtavaa tyhjää näkymää */}
+      {!loading && loadError && activities.length === 0 && (
+        <div className="rounded-2xl p-6 text-center space-y-3 my-4" style={{ background: 'rgba(255,80,80,.06)', border: '1px solid rgba(255,80,80,.2)' }}>
+          <p className="text-4xl">📡</p>
+          <p className="text-white font-black">{t('activities.error')}</p>
+          <button onClick={() => window.location.reload()}
+            className="rounded-xl px-5 py-3 font-black text-white"
+            style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+            Yritä uudelleen
+          </button>
+        </div>
+      )}
+
+      {!loading && !(loadError && activities.length === 0) && (
         <>
           {/* ═══ ETUSIVU (catFilter 'all') — etusivun tyyli: hero → kategoriat →
                Auta valitsemaan → yksi ruudukko (ei karuselleja) ═══ */}

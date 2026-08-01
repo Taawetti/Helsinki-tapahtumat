@@ -4,7 +4,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'fs'
 
-const BASE = process.env.E2E_BASE || 'https://mitatanaan.fi'
+const BASE = process.env.E2E_BASE || 'https://helsinki-tapahtumat.vercel.app'
 
 const env = Object.fromEntries(
   readFileSync('.env.local', 'utf8')

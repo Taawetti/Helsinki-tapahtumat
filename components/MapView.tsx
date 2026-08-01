@@ -556,6 +556,9 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   return (
     <div className="relative w-full rounded-2xl border border-white/8"
       style={{ height: 'calc(100dvh - 148px)', minHeight: 480, clipPath: 'inset(0 round 1rem)' }}>
+      {/* Leaflet-CSS vain karttaa käytettäessä (ennen render-block kaikilla sivuilla layoutin kautta) */}
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
       <div ref={containerRef} className="w-full h-full" />
 
       {/* ── Layer toggles ── */}

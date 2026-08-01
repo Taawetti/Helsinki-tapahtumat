@@ -102,7 +102,7 @@ export default async function FestivalPage({ params }: Props) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Mitä tänään', item: BASE },
-      { '@type': 'ListItem', position: 2, name: 'Festivaalit', item: `${BASE}/tapahtumat/festivaalit` },
+      { '@type': 'ListItem', position: 2, name: 'Festivaalit', item: `${BASE}/tapahtumat/festivaali` },
       { '@type': 'ListItem', position: 3, name: fest.name, item: pageUrl },
     ],
   }
@@ -114,9 +114,8 @@ export default async function FestivalPage({ params }: Props) {
     description: fest.description,
     startDate: fest.startDate,
     endDate: fest.endDate,
-    eventStatus: isPast
-      ? 'https://schema.org/EventCancelled'
-      : 'https://schema.org/EventScheduled',
+    // Mennyt festivaali on suoritettu, ei peruttu — status pysyy Scheduled.
+    eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: {
       '@type': 'Place',

@@ -1,29 +1,12 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { VIBES, NEIGHBORHOODS, type Vibe, type Neighborhood } from '@/lib/types'
+import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE, type Vibe, type Neighborhood } from '@/lib/types'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 
 export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
-
-// Finnish locative forms for neighborhood names
-const LOCATIVE: Record<string, string> = {
-  kallio:      'Kalliossa',
-  punavuori:   'Punavuoressa',
-  keskusta:    'Keskustassa',
-  kamppi:      'Kampissa',
-  'sornäinen': 'Sörnäisissä',
-  hakaniemi:   'Hakaniemessä',
-  toolo:       'Töölössä',
-  vallila:     'Vallilassa',
-  kruununhaka: 'Kruununhaassa',
-  hermanni:    'Hermannissa',
-  tapiola:     'Tapiolassa',
-  leppavaara:  'Leppävaarassa',
-  tikkurila:   'Tikkurilassa',
-}
 
 interface LEEvent {
   id: string
@@ -198,7 +181,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const n = NEIGHBORHOODS.find((nb) => nb.id === slug)
   if (n) {
-    const locative = LOCATIVE[slug] || `${n.name}ssa`
+    const locative = NEIGHBORHOOD_INESSIVE[slug] || `${n.name}ssa`
     const desc = `Kaikki tapahtumat ${locative} – ${n.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${n.name}sta.`
     return {
       title: `Tapahtumat ${locative} | Mitä tänään`,
@@ -236,7 +219,7 @@ export default async function TapahtumaSivu({ params }: Props) {
 
   const pageTitle = vibe
     ? `${vibe.emoji} ${vibe.label} Helsingissä`
-    : `${neighborhood!.emoji} Tapahtumat ${LOCATIVE[slug] || neighborhood!.name + 'ssa'}`
+    : `${neighborhood!.emoji} Tapahtumat ${NEIGHBORHOOD_INESSIVE[slug] || neighborhood!.name + 'ssa'}`
 
   const pageSubtitle = vibe
     ? `${events.length} tapahtumaa seuraavan 30 päivän aikana`
@@ -285,7 +268,7 @@ export default async function TapahtumaSivu({ params }: Props) {
 
   const staticDesc = vibe
     ? VIBE_DESCRIPTIONS[vibe.id]
-    : `Kaikki tapahtumat ${LOCATIVE[slug] || neighborhood!.name + 'ssa'} — ${neighborhood!.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${neighborhood!.name}sta.`
+    : `Kaikki tapahtumat ${NEIGHBORHOOD_INESSIVE[slug] || neighborhood!.name + 'ssa'} — ${neighborhood!.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${neighborhood!.name}sta.`
 
   return (
     <>

@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { aggregateVotes, lovedCards, superMatchIds } from '@/lib/group'
 import type { GroupArcPlan, PlanStep } from '@/lib/group'
 import { withTravelTimes } from '@/lib/group-arc'
+import { isHostSession } from '@/lib/group-host'
 import type { Candidate } from '@/lib/candidate'
 
 // VAIHDA ASKEL — deterministinen korvaus ilman AI:ta: korvaa kaaren yhden
@@ -17,15 +18,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
 
   const body = await req.json().catch(() => ({}))
   const hostId: string | null = typeof body.hostId === 'string' ? body.hostId.slice(0, 64) : null
+  const hostSecret: string | null = typeof body.hostSecret === 'string' ? body.hostSecret.slice(0, 80) : null
   const stepIndex: number = typeof body.stepIndex === 'number' ? body.stepIndex : -1
 
   const sessionId = code.toUpperCase()
   const { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('status, mode, candidates, result_plan, host_id')
+    .select('status, mode, candidates, result_plan, host_id, host_secret')
     .eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
-  if (session.host_id && session.host_id !== hostId) {
+  if (!isHostSession(session, { hostId, hostSecret })) {
     return NextResponse.json({ error: 'Vain aloittaja voi muokata kaarta' }, { status: 403 })
   }
   const plan = session.result_plan as GroupArcPlan | null
@@ -95,6 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
     delete arc[i].travelFromPrevMin
     delete arc[i].travelFromPrevMode
     delete arc[i].travelFromPrevUrl
+    delete arc[i].travelFromPrevSummary
   }
   withTravelTimes(arc)
 

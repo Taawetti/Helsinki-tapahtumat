@@ -332,7 +332,7 @@ function HeroCard({ r, distance, onShowOnMap }: {
       {r.image ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+          <img loading="lazy" src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.4) 50%,rgba(0,0,0,.15) 100%)' }} />
         </>
       ) : (
@@ -412,7 +412,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
         {r.image ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+            <img loading="lazy" src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.4) 0%,transparent 60%)' }} />
           </>
         ) : (
@@ -531,7 +531,7 @@ function ChainListCard({ chain, onClick }: {
         {r.image ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+            <img loading="lazy" src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.4) 0%,transparent 60%)' }} />
           </>
         ) : (
@@ -872,11 +872,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // Suodatin (QuickSortPills) — min-arvosana; näkyy vain selausnäkymässä
   const [minStars, setMinStars] = useState<StarSeg>(null)
 
+  const [loadError, setLoadError] = useState(false)
+
   useEffect(() => {
     fetch('/api/restaurants')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then(data => setRestaurants(data.restaurants ?? []))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }, [])
 
@@ -1061,7 +1063,20 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
         </div>
       )}
 
-      {!loading && (
+      {/* Latausvirhe — ei harhaanjohtavaa tyhjää näkymää */}
+      {!loading && loadError && restaurants.length === 0 && (
+        <div className="rounded-2xl p-6 text-center space-y-3 my-4" style={{ background: 'rgba(255,80,80,.06)', border: '1px solid rgba(255,80,80,.2)' }}>
+          <p className="text-4xl">📡</p>
+          <p className="text-white font-black">{t('restaurants.error')}</p>
+          <button onClick={() => window.location.reload()}
+            className="rounded-xl px-5 py-3 font-black text-white"
+            style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+            Yritä uudelleen
+          </button>
+        </div>
+      )}
+
+      {!loading && !(loadError && restaurants.length === 0) && (
         <>
           {/* ═══ ETUSIVU (subCat 'all') — Suosituimmat-landing: hero → kategoriat
                (+ Kaikki) → uutiset → kuratoitu top-60. EI suodattimia — kuratoitua

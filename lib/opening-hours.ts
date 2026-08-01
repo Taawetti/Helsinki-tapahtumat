@@ -90,8 +90,15 @@ export function openIntervalsForDate(hours: string | null | undefined, day: Date
     const intervals = oh.getOpenIntervals(windowStart, windowEnd)
       .filter(([from]) => from >= dayStart && from < nextDay)
     if (!intervals.length) return null
-    const toFloat = (d: Date) => d.getHours() + d.getMinutes() / 60 + (d.getDate() > day.getDate() ? 24 : 0)
-    return intervals.map(([from, to]) => ({ from: toFloat(from), to: Math.min(toFloat(to), 26) }))
+    const fromFloat = (d: Date) => d.getHours() + d.getMinutes() / 60
+    return intervals.map(([from, to]) => {
+      const f = fromFloat(from)
+      let t = fromFloat(to)
+      // Yön yli menevä sulkeutuminen (02:00) — myös kuun vaihteessa: jos
+      // loppu on alun jälkeen tai sama, se on seuraavan päivän puolella.
+      if (t <= f) t += 24
+      return { from: f, to: Math.min(t, 26) }
+    })
   } catch {
     return null
   }

@@ -9,6 +9,18 @@ export function helsinkiToday(): string {
   return HKI_DATE_FMT.format(new Date())
 }
 
+/** Helsinki wall-clock as a locally-constructed Date — weekday/hour getters
+ *  return Helsinki time on any server (UTC Vercel included). */
+export function helsinkiNow(): Date {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Helsinki',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(new Date())
+  const g = (t: string) => Number(parts.find((x) => x.type === t)!.value)
+  return new Date(g('year'), g('month') - 1, g('day'), g('hour') % 24, g('minute'), g('second') % 60)
+}
+
 /** Helsinki calendar date (YYYY-MM-DD) of a timestamp — a 00:30 Helsinki event
  *  serialized as 21:30Z belongs to the NEXT Helsinki day, not the UTC day. */
 export function helsinkiDateOf(iso: string): string {

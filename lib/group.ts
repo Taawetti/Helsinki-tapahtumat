@@ -212,18 +212,36 @@ export function superMatchIds(
 }
 
 // PIKAPÄÄTÖS: ensimmäinen kortti (pakka-järjestyksessä) jolla on tiukka
-// enemmistö nykyäänestäjistä. Yhden äänestäjän sessiossa ensimmäinen ❤️ riittää.
+// enemmistö nykyäänestäjistä. TURVALLISUUSVARMISTUS: yhden äänestäjän sessiossa
+// voitto ratkeaa vasta kun koko pakka on swaippattu (allDone) — muuten ryhmän
+// ensimmäinen ❤️ päättäisi session ennen kuin muut ehtivät mukaan.
 export function majorityWinner(
   candidates: Candidate[],
   votes: Record<string, { love: number; skip: number }>,
   participantCount: number,
+  allDone = false,
 ): Candidate | null {
-  const needed = participantCount <= 1 ? 1 : Math.floor(participantCount / 2) + 1
+  const needed = participantCount <= 1
+    ? (allDone ? 1 : Number.POSITIVE_INFINITY)
+    : Math.floor(participantCount / 2) + 1
   for (const c of candidates) {
     const v = votes[c.id]
     if (v && v.love >= needed) return c
   }
   return null
+}
+
+// ALL-DONE FALLBACK: kaikki swaippanneet mutta ei enemmistöä → voittaa eniten
+// ❤️ saanut kortti (tasatilanteessa laatupisteet). Palauttaa null jos kukaan
+// ei tykännyt mistään — silloin ei ole voittajaa ollenkaan.
+export function fallbackWinner(
+  candidates: Candidate[],
+  votes: Record<string, { love: number; skip: number }>,
+): Candidate | null {
+  const loved = candidates
+    .filter(c => (votes[c.id]?.love ?? 0) > 0)
+    .sort((a, b) => (votes[b.id].love - votes[a.id].love) || (b._score - a._score))
+  return loved[0] ?? null
 }
 
 // ── Etäisyys ──────────────────────────────────────────────────────────────

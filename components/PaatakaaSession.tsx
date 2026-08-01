@@ -36,6 +36,7 @@ export default function PaatakaaSession({ code }: { code: string }) {
   const [pushBusy, setPushBusy] = useState(false)
   const [actionBusy, setActionBusy] = useState(false)             // regenerate/rematch menossa
   const [swappingIdx, setSwappingIdx] = useState<number | null>(null)
+  const [hostSecret, setHostSecret] = useState('')                // host-oikeuden todiste (vain luojan selaimessa)
   const votedRef = useRef<Set<string>>(new Set())          // kaikki äänestetyt (kasvaa, persistoidaan)
   // JÄÄDYTETTY mount-hetken äänestetyt → deckCards-suodatin, joka EI kutistu
   // swaippauksen aikana (muuten doneSwiping laukeaisi puolivälissä).
@@ -51,6 +52,7 @@ export default function PaatakaaSession({ code }: { code: string }) {
       const saved = JSON.parse(localStorage.getItem(`paatakaa-voted-${code}`) || '[]')
       if (Array.isArray(saved)) { votedRef.current = new Set(saved); setInitialVoted(new Set(saved)) }
       setPushOn(localStorage.getItem(`paatakaa-push-${code}`) === '1')
+      setHostSecret(localStorage.getItem(`paatakaa-host-${code}`) || '')
     } catch { /* ignore */ }
   }, [code])
 
@@ -116,14 +118,14 @@ export default function PaatakaaSession({ code }: { code: string }) {
       method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ voterId: voter.id, cardId: card.id }),
     }).then(() => refresh()).catch(() => {})
-  }, [code, voter.id, refresh])
+  }, [code, voter.id, refresh, hostSecret])
 
   const synthesize = useCallback(async (regenerate = false) => {
     setSynthesizing(true); setError(null)
     try {
       const res = await fetch(`/api/group/${code}/synthesize`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostId: voter.id, regenerate }),
+        body: JSON.stringify({ hostId: voter.id, hostSecret, regenerate }),
       })
       const data = await res.json().catch(() => ({}))
       // 202 = joku kutoo jo → ei virhe, pollaus hakee tuloksen. res.ok kattaa 202:n.
@@ -131,7 +133,7 @@ export default function PaatakaaSession({ code }: { code: string }) {
       await refresh()
     } catch { setError('Verkkovirhe kutomisessa') }
     setSynthesizing(false)
-  }, [code, refresh, voter.id])
+  }, [code, refresh, voter.id, hostSecret])
 
   // 🔀 Vaihda askel (deterministinen, ei AI:ta) — palauttaa koko päivitetyn kaaren.
   const swap = useCallback(async (stepIndex: number) => {
@@ -139,15 +141,15 @@ export default function PaatakaaSession({ code }: { code: string }) {
     try {
       const res = await fetch(`/api/group/${code}/swap`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostId: voter.id, stepIndex }),
+        body: JSON.stringify({ hostId: voter.id, hostSecret, stepIndex }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(data.error || 'Vaihto epäonnistui'); return }
+      if (!res.ok) { setError(data.error || 'Vaihto epäonnistui'); setSwappingIdx(null); return }
       if (data.plan && session) setSession({ ...session, resultPlan: data.plan })
       await refresh()
     } catch { setError('Verkkovirhe vaihdossa') }
     setSwappingIdx(null)
-  }, [code, voter.id, session, refresh])
+  }, [code, voter.id, session, refresh, hostSecret])
 
   // 🔁 Jatka samalla porukalla — uusi pakka, äänet nollaantuvat (round-bump).
   const rematch = useCallback(async () => {
@@ -155,14 +157,14 @@ export default function PaatakaaSession({ code }: { code: string }) {
     try {
       const res = await fetch(`/api/group/${code}/rematch`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostId: voter.id }),
+        body: JSON.stringify({ hostId: voter.id, hostSecret }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { setError(data.error || 'Uusi kierros epäonnistui'); setActionBusy(false); return }
       await refresh() // round-havainto nollaa paikallisen äänestysmuistin
     } catch { setError('Verkkovirhe uudessa kierroksessa') }
     setActionBusy(false)
-  }, [code, voter.id, refresh])
+  }, [code, voter.id, refresh, hostSecret])
 
   // 🔔 Ilmoita kun tulos valmis — sessiokohtainen push-tilaus.
   const togglePush = useCallback(async () => {
@@ -234,7 +236,8 @@ export default function PaatakaaSession({ code }: { code: string }) {
       .sort((a, b) => b.v.love - a.v.love || b.c._score - a.c._score)
       .slice(0, 6)
   }, [session])
-  const isHost = !!session && (!session.hostId || session.hostId === voter.id)
+  // Host: uusilla sessioilla salainen tunniste omassa selaimessa; legacy-sessioilla julkinen host_id
+  const isHost = !!session && (hostSecret !== '' || !session.hostId || session.hostId === voter.id)
   const allDone = !!session && session.participants.length > 0 && session.participants.every(p => p.done)
 
   // ── Virhe / lataus ──
@@ -425,7 +428,9 @@ export default function PaatakaaSession({ code }: { code: string }) {
           <div className="rounded-3xl p-6 text-center space-y-3" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
             <p className="text-4xl">✅</p>
             <p className="text-white font-black text-lg">Kiitos, äänesi on tallessa!</p>
-            {allDone ? (
+            {allDone && lovedCount === 0 ? (
+              <p className="text-white/50 font-semibold text-sm">Ei yhteistä osumaa tällä kierroksella — kukaan ei tykännyt mistään.</p>
+            ) : allDone ? (
               <p className="text-emerald-300 font-black text-sm">🎉 Kaikki ovat valmiita — kaari voidaan kutoa!</p>
             ) : (
               <p className="text-white/50 font-semibold text-sm">
@@ -435,6 +440,15 @@ export default function PaatakaaSession({ code }: { code: string }) {
               </p>
             )}
           </div>
+
+          {/* Uusi pakka — kun rakentavaa ei ole (kaikki skippasivat tai ei yhteistä) */}
+          {isHost && allDone && lovedCount === 0 && (
+            <button onClick={rematch} disabled={actionBusy}
+              className="w-full rounded-2xl py-4 font-black text-[16px] disabled:opacity-60"
+              style={{ background: 'linear-gradient(150deg,#10b981,#059669)', color: '#fff' }}>
+              {actionBusy ? '⏳ Kootaan pakkaa…' : '🔁 Uusi pakka samalla porukalla'}
+            </button>
+          )}
 
           {/* Ryhmän tilanne — top-tykätyt näkyviin vasta kun omat äänet annettu */}
           {topLoved.length > 0 && (

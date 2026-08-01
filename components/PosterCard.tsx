@@ -71,10 +71,13 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
   const emoji = getCategoryEmoji(event.categories)
   const hasImage = !!event.image
   const { t } = useLanguage()
+  // Crawlable href vain id:lle, jotka /e/[id] oikeasti ratkaisee (Google ei
+  // saa massa-404:ia muiden lähteiden id:istä — klikki avaa aina paneelin).
+  const hasOwnPage = event.source === 'linked-events' || event.id.startsWith('tm-') || event.id.startsWith('festival-')
 
   return (
     <Link
-      href={`/e/${encodeURIComponent(event.id)}`}
+      href={hasOwnPage ? `/e/${encodeURIComponent(event.id)}` : '#'}
       onClick={(e) => { e.preventDefault(); onClick(event) }}
       className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff] block"
     >
@@ -90,6 +93,7 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
             <img
               src={event.image!}
               alt={event.title}
+              loading="lazy"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               onError={e => { (e.target as HTMLElement).style.display = 'none' }}
             />

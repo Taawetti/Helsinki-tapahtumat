@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { aggregateVotes, majorityWinner, quickPlanFromCandidate } from '@/lib/group'
+import { aggregateVotes, majorityWinner, fallbackWinner, quickPlanFromCandidate } from '@/lib/group'
 import { sendGroupPush } from '@/lib/group-push'
 import type { Candidate } from '@/lib/candidate'
 
@@ -35,6 +35,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const cards = (session.candidates ?? []) as Candidate[]
   if (!cards.some(c => c.id === cardId)) return NextResponse.json({ error: 'Tuntematon kortti' }, { status: 400 })
 
+  // Onko tämä kortti jo äänestetty tällä osallistujalla? (muistutuspushin
+  // spam-esto — laukaistaan vain oikealla valmistumisella)
+  const { data: priorVote } = await supabaseAdmin
+    .from('group_votes').select('id')
+    .eq('session_id', sessionId).eq('voter_id', voterId).eq('card_id', cardId)
+    .maybeSingle()
+
   const { error } = await supabaseAdmin
     .from('group_votes')
     .upsert(
@@ -43,12 +50,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
     )
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // MUISTUTUSPUSH (arc-moodi): kun joku saa koko pakan swaippattua, katsotaan
-  // jäljellä olijat — yksi jäljellä → "sinua odotetaan"; kaikki valmiita →
-  // "aloittaja voi kutoa kaaren". Laukeaa vain valmistumishetkellä (ei spämmiä).
+  // MUISTUTUSPUSH (arc-moodi): laukeaa VAIN kun tämä ääni valmistaa äänestäjän
+  // koko pakan (ei ennestään äänestettyä korttia) — re-swaippaus ei spämmää.
   if (session.mode === 'arc') {
     const deckSize = cards.length
-    if (deckSize > 0) {
+    if (deckSize > 0 && !priorVote) {
       const { data: voteRows } = await supabaseAdmin
         .from('group_votes').select('voter_id, voter_name, card_id, vote').eq('session_id', sessionId)
       const { participants } = aggregateVotes(voteRows ?? [], deckSize)
@@ -76,7 +82,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
     const { data: voteRows } = await supabaseAdmin
       .from('group_votes').select('voter_id, voter_name, card_id, vote').eq('session_id', sessionId)
     const { votes, participants } = aggregateVotes(voteRows ?? [], cards.length)
-    const winner = majorityWinner(cards, votes, participants.length)
+    const allDone = participants.length > 0 && participants.every(p => p.done)
+    const winner = majorityWinner(cards, votes, participants.length, allDone)
+      // All-done fallback: kukaan ei saanut enemmistöä → eniten ❤️ saanut voittaa
+      ?? (allDone ? fallbackWinner(cards, votes) : null)
     if (winner) {
       const plan = quickPlanFromCandidate(winner, votes[winner.id]?.love ?? 0, participants.length)
       const { data: locked } = await supabaseAdmin

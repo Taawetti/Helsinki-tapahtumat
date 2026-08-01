@@ -94,7 +94,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
         aria-label={e.title}
       >
         {e.image ? (
-          <img src={e.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" />
+          <img loading="lazy" src={e.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 120% at 20% 0%, rgba(107,118,255,.25), transparent 60%), #101019' }} />
         )}

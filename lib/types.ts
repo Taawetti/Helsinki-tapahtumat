@@ -42,6 +42,23 @@ export type ViewMode = 'list' | 'map'
 export type PriceFilter = 'all' | 'free' | 'paid'
 
 // ── NEIGHBORHOODS ──────────────────────────────────────
+// Inessiivimuodot ("Tapahtumat Kalliossa") — Footer + /tapahtumat/[slug]
+export const NEIGHBORHOOD_INESSIVE: Record<string, string> = {
+  kallio:      'Kalliossa',
+  punavuori:   'Punavuoressa',
+  keskusta:    'Keskustassa',
+  kamppi:      'Kampissa',
+  'sornäinen': 'Sörnäisissä',
+  hakaniemi:   'Hakaniemessä',
+  toolo:       'Töölössä',
+  vallila:     'Vallilassa',
+  kruununhaka: 'Kruununhaassa',
+  hermanni:    'Hermannissa',
+  tapiola:     'Tapiolassa',
+  leppavaara:  'Leppävaarassa',
+  tikkurila:   'Tikkurilassa',
+}
+
 export interface Neighborhood {
   id: string
   name: string

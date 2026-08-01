@@ -1,9 +1,11 @@
 import { DateFilter } from './types'
+import { helsinkiNow, helsinkiISO } from './helsinki-time'
 
+// HUOM: lasketaan aina Helsinki-aikavyöhykkeessä — palvelimella (UTC) ja
+// selaimessa. Muuten "tänään" on väärä päivä 00:00–03:00 Helsinki-aikaa ja
+// tonight-startAfter osuu 2–3 h pieleen ympäri vuoden.
 export function getDateRange(filter: DateFilter, customDate?: string, customDateEnd?: string): { start: string; end: string; startAfter?: string } {
-  const now = new Date()
-  // Use local date components (not UTC) — avoids returning yesterday's date for Helsinki
-  // users between midnight and 3 AM when UTC is still on the previous day.
+  const now = helsinkiNow()
   const fmt = (d: Date) => {
     const y = d.getFullYear()
     const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -16,9 +18,9 @@ export function getDateRange(filter: DateFilter, customDate?: string, customDate
       return { start: fmt(now), end: fmt(now) }
 
     case 'tonight': {
-      const tonightStart = new Date(now)
-      tonightStart.setHours(17, 0, 0, 0)
-      return { start: fmt(now), end: fmt(now), startAfter: tonightStart.toISOString() }
+      // 17:00 HELSINKI-aikaa (ei UTC) — muuten ilta- ja iltapäivätapahtumat karsiutuvat
+      const startAfter = helsinkiISO(now.getFullYear(), now.getMonth() + 1, now.getDate(), 17, 0)
+      return { start: fmt(now), end: fmt(now), startAfter }
     }
 
     case 'tomorrow': {

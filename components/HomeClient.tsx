@@ -1152,8 +1152,22 @@ export default function HomeClient({
             </section>
           )}
 
+          {/* ── Virhetila: haku epäonnistui — ei harhaanjohtavaa "ei tapahtumia" -tilaa ── */}
+          {!loading && !fetchingFull && error && (
+            <div className="rounded-2xl p-6 text-center space-y-3 my-6" style={{ background: 'rgba(255,80,80,.06)', border: '1px solid rgba(255,80,80,.2)' }}>
+              <p className="text-4xl">📡</p>
+              <p className="text-white font-black text-lg">Tapahtumien lataaminen epäonnistui</p>
+              <p className="text-white/50 text-sm font-semibold">{error}</p>
+              <button onClick={() => window.location.reload()}
+                className="rounded-xl px-5 py-3 font-black text-white"
+                style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                Yritä uudelleen
+              </button>
+            </div>
+          )}
+
           {/* ── Nyt menossa: tyhjä tila — ilman tätä alue jäisi selittämättä tyhjäksi ── */}
-          {!loading && !fetchingFull && baseEvents.length === 0 && (
+          {!loading && !fetchingFull && !error && baseEvents.length === 0 && (
             <EmptyState
               keyword={keyword}
               activeVibes={activeVibes}

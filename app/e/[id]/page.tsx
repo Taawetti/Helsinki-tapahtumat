@@ -258,9 +258,8 @@ export default async function EventPage({ params }: Props) {
     description: event.shortDescription || event.description.slice(0, 300),
     startDate: event.startTime,
     ...(event.endTime ? { endDate: event.endTime } : {}),
-    eventStatus: event.isPast
-      ? 'https://schema.org/EventPostponed'
-      : 'https://schema.org/EventScheduled',
+    // Mennyt tapahtuma on suoritettu, ei lykätty/peruttu — status pysyy Scheduled.
+    eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: {
       '@type': 'Place',
@@ -281,7 +280,12 @@ export default async function EventPage({ params }: Props) {
       : {
           offers: {
             '@type': 'Offer',
-            ...(event.price ? { price: event.price } : {}),
+            // schema.org vaatii numerisen hinnan + valuutan — vapaatekstistä
+            // ("15 €", "10–20 EUR") poimitaan johtava numero, muuten jätetään pois
+            ...(() => {
+              const m = event.price?.replace(',', '.').match(/\d+(\.\d+)?/)
+              return m ? { price: Number(m[0]), priceCurrency: 'EUR' } : {}
+            })(),
             ...(event.ticketUrl ? { url: event.ticketUrl } : {}),
             availability: event.isPast ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
           },

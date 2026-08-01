@@ -9,6 +9,7 @@ import { buildDeterministicArc, groundSteps } from '@/lib/group-arc'
 import type { AiStep } from '@/lib/group-arc'
 import { helsinkiToday } from '@/lib/helsinki-time'
 import { enrichTransitTimes } from '@/lib/digitransit'
+import { isHostSession } from '@/lib/group-host'
 
 // Illan kaaren kutominen. OLETUS: deterministinen moottori (lib/group-arc) —
 // 0 €, välitön, ei ulkoisia riippuvuuksia. AI-polku (Claude) on valinnainen
@@ -82,12 +83,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
 
   const body = await req.json().catch(() => ({}))
   const hostId: string | null = typeof body.hostId === 'string' ? body.hostId.slice(0, 64) : null
+  const hostSecret: string | null = typeof body.hostSecret === 'string' ? body.hostSecret.slice(0, 80) : null
   const regenerate = body.regenerate === true
 
   const sessionId = code.toUpperCase()
   const { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('candidates, status, when_filter, fiilis, mode, custom_start, result_plan, host_id')
+    .select('candidates, status, when_filter, fiilis, mode, custom_start, result_plan, host_id, host_secret')
     .eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
   if (session.mode === 'quick') {
@@ -100,8 +102,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   if (session.status === 'synthesizing') {
     return NextResponse.json({ status: 'synthesizing' }, { status: 202 }) // joku kutoo jo — pollaa
   }
-  // Vain aloittaja saa kutoa (jos host_id on asetettu).
-  if (session.host_id && session.host_id !== hostId) {
+  // Host-portti: salainen host_secret (uudet sessiot) tai julkinen host_id (legacy)
+  if (!isHostSession(session, { hostId, hostSecret })) {
     return NextResponse.json({ error: 'Vain aloittaja voi kutoa kaaren' }, { status: 403 })
   }
 

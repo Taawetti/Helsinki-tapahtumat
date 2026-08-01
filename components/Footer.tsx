@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { VIBES, NEIGHBORHOODS } from '@/lib/types'
+import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { VENUE_PAGES } from '@/lib/venue-pages'
 
 // Sivuston footer — ainoa paikka joka linkittää SPA:sta SEO-laskeutumissivuille
@@ -21,7 +21,7 @@ export default function Footer() {
             <p className="font-semibold text-white/80 mb-2">Tapahtumat</p>
             <ul className="space-y-1.5 text-white/50">
               <li><Link className="hover:text-white transition-colors" href="/tapahtumat/tanaan">Tapahtumat tänään</Link></li>
-              <li><Link className="hover:text-white transition-colors" href="/tapahtumat/viikonloppu">Tapahtumat viikonloppu</Link></li>
+              <li><Link className="hover:text-white transition-colors" href="/tapahtumat/viikonloppu">Tapahtumat viikonloppuna</Link></li>
               <li><Link className="hover:text-white transition-colors" href="/tapahtumat/ilmaiset">Ilmaiset tapahtumat</Link></li>
               <li><Link className="hover:text-white transition-colors" href="/terassit">Terassit</Link></li>
               <li><Link className="hover:text-white transition-colors" href="/yokerhot">Yökerhot</Link></li>
@@ -48,7 +48,7 @@ export default function Footer() {
               {NEIGHBORHOODS.map((n) => (
                 <li key={n.id}>
                   <Link className="hover:text-white transition-colors" href={`/tapahtumat/${n.id}`}>
-                    Tapahtumat {n.name}
+                    Tapahtumat {NEIGHBORHOOD_INESSIVE[n.id] ?? n.name}
                   </Link>
                 </li>
               ))}

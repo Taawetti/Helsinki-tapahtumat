@@ -1,11 +1,12 @@
 {
+  "id": "/",
   "name": "Mitä tänään",
   "short_name": "Mitä tänään",
   "description": "Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#08080c",
-  "theme_color": "#a855f7",
+  "theme_color": "#6b76ff",
   "orientation": "portrait",
   "categories": ["entertainment", "lifestyle", "social"],
   "icons": [
