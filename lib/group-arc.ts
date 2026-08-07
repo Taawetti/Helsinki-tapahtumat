@@ -2,13 +2,22 @@
 // alhaalla). AI-polku on säilytetty synthesize-reitissä valinnaisena tehosteena
 // (GROUP_AI_MODE=anthropic).
 //
-// Periaate: faktat tulevat aina candidates-snapshotista (groundaus), koodi vain
-// 1) valitsee ja järjestää kortit roolipohjalla + äänillä, 2) kirjoittaa
-// suomenkieliset tekstit valmiista pohjista kortin faktoilla.
+// Periaate: faktat tulevat aina candidates-snapshotista (groundaus). Valinta on
+// TIUKKA (max 1 per rooli + max 1 per alatyyppi, kiinni olevat karsitaan) ja
+// aikataulutus tehdään lib/group-scheduler.ts:n kovin rajoittein (kesto +
+// kulkuaika + puskuri, aukiolot, ei menneitä aikoja).
 import type { Candidate, GroupWhen, CandidateRole } from '@/lib/candidate'
 import type { GroupArcPlan, PlanStep } from '@/lib/group'
 import { walkMinutesBetween } from '@/lib/group'
-import { clampToOpenHour } from '@/lib/opening-hours'
+import {
+  ROLE_ORDER,
+  closedOnArcDay,
+  optimizeForTravel,
+  scheduleSteps,
+  subtypeOf,
+  type ScheduleOpts,
+} from '@/lib/group-scheduler'
+import { helsinkiToday } from '@/lib/helsinki-time'
 
 // ── Yhteiset rakennuspalat (myös AI-polku käyttää) ────────────────────────
 
@@ -69,12 +78,19 @@ export function withTravelTimes(steps: PlanStep[]): PlanStep[] {
 
 // GROUNDAUS AI-polulle: vaiheet ilman tunnistettua cardId:tä KARSITAAN
 // (hallusinaatiosuoja). Faktat snapshotista, AI antaa vain järjestyksen + perustelut.
+// Roli- ja alatyyppisuoja PÄTEE MYÖS TÄÄLLÄ — AI:n ehdottamat duplikaatit
+// (esim. 2 saunaa) karsitaan ensimmäiseen osumaan.
 export function groundSteps(aiSteps: AiStep[], candidates: Candidate[], superIds: Set<string>): PlanStep[] {
   const byId = new Map(candidates.map(c => [c.id, c]))
+  const usedRoles = new Set<string>()
+  const usedSubs = new Set<string>()
   const steps: PlanStep[] = []
   for (const ai of aiSteps) {
     const c = ai.cardId ? byId.get(ai.cardId) : undefined
     if (!c) continue
+    if (usedRoles.has(c.role) || usedSubs.has(subtypeOf(c))) continue
+    usedRoles.add(c.role)
+    usedSubs.add(subtypeOf(c))
     steps.push(candidateToStep(c, ai.why, c.time || ai.time, superIds.has(c.id)))
   }
   return withTravelTimes(steps)
@@ -82,26 +98,7 @@ export function groundSteps(aiSteps: AiStep[], candidates: Candidate[], superIds
 
 // ── Deterministinen moottori ───────────────────────────────────────────────
 
-// Illan luontainen kulku: tekeminen → ruoka → drinkit → pääohjelma.
-const ROLE_ORDER: CandidateRole[] = ['activity', 'food', 'drinks', 'program']
-
-// Oletuskellonajat rooleittain kun kortilla ei ole todellista aikaa (tapahtumat).
-// Ikkunat on valittu realistisiksi: ruoka lounaaksi päivällä, illalliseksi illalla.
-const DEFAULT_HOUR: Record<GroupWhen, Record<CandidateRole, number>> = {
-  tonight: { activity: 17, food: 18.5, drinks: 21, program: 22 },
-  day:     { activity: 10, food: 12, drinks: 16, program: 18 },
-  weekend: { activity: 12, food: 13.5, drinks: 17, program: 20 },
-}
-
 const WHEN_TEXT: Record<GroupWhen, string> = { tonight: 'iltanne', day: 'päivänne', weekend: 'viikonlopunne' }
-
-// "to 20.50" → 20.83 (fi-FI Intl -muoto). Palauttaa null jos ei kellonaikaa.
-function parseHour(t?: string): number | null {
-  if (!t) return null
-  const m = t.match(/(\d{1,2})\.(\d{2})/)
-  if (!m) return null
-  return Number(m[1]) + Number(m[2]) / 60
-}
 
 function whyFor(c: Candidate, superMatch: boolean): string {
   if (superMatch) return 'Koko porukan suosikki — tätä ei voi ohittaa! 🎉'
@@ -118,20 +115,82 @@ function whyFor(c: Candidate, superMatch: boolean): string {
   }
 }
 
-// Valitsee ja järjestää tykätyt kortit kaareksi. variant > 0 kiertää
-// roolisisäisiä valintoja ("kudo uudelleen" → eri yhdistelmä, edelleen 0 €).
+// Kellonaika 15 min tarkkuudella: 19.49 → "klo 19.30", 19.9 → "klo 20".
+function fmtHour(h: number): string {
+  const q = Math.round(h * 4) / 4
+  const hh = Math.floor(q)
+  const mm = Math.round((q - hh) * 60)
+  return mm === 0 ? `klo ${hh}` : `klo ${hh}.${String(mm).padStart(2, '0')}`
+}
+
+/** Ydin: pakotettu valinta → aikataulutus → vaiheet. Käyttävät sekä
+ *  buildDeterministicArc (vapaavalintainen kaari) että swap-reitti
+ *  (hostin pinnama valinta, aikataulu lasketaan aina uudelleen). */
+export function arcFromSelection(
+  cards: Candidate[],
+  votes: Record<string, { love: number; skip: number }>,
+  superIds: Set<string>,
+  opts: { when: GroupWhen; variant?: number; date?: string; nowH?: number; alternatives?: Map<CandidateRole, Candidate[]> },
+): GroupArcPlan | null {
+  if (cards.length === 0) return null
+  const variant = opts.variant ?? 0
+  const date = opts.date ?? helsinkiToday()
+
+  const sopts: ScheduleOpts = { when: opts.when, date, nowH: opts.nowH }
+  let timed = scheduleSteps(cards, sopts)
+  if (!timed) return null
+
+  // Reittioptimointi roolisisäisten vaihtoehtojen sisällä (vain kun vaihtoehtoja
+  // on annettu — swap-polulla hostin eksplisiittiset valinnat säilyvät sellaisenaan).
+  if (opts.alternatives) {
+    timed = optimizeForTravel(timed, opts.alternatives, sopts)
+  }
+
+  const steps: PlanStep[] = timed.map(t => ({
+    ...candidateToStep(t.c, whyFor(t.c, superIds.has(t.c.id)), t.c.time || fmtHour(t.startH), superIds.has(t.c.id)),
+    durH: t.durH,
+  }))
+  withTravelTimes(steps)
+
+  const first = steps[0].title
+  const last = steps[steps.length - 1].title
+  const intro = steps.length === 1
+    ? `Teidän valintanne: ${first}.`
+    : `Teidän ${WHEN_TEXT[opts.when]}: ${first} → ${last}. ${steps.length} vaihetta porukan tykätyistä.`
+
+  return {
+    kind: 'arc',
+    engine: 'rules',
+    variant,
+    date,
+    intro,
+    arc: steps,
+    outro: 'Hyvää menoa — nauttikaa! 🎉',
+  }
+}
+
+// Valitsee tykätyt kortit kaareksi TIUKOIN säännöin ja aikatauluttaa ne
+// luottamusmoottorilla. variant > 0 kiertää roolisisäisiä valintoja
+// ("kudo uudelleen" → eri yhdistelmä, edelleen 0 €).
 export function buildDeterministicArc(
   loved: Candidate[],
   votes: Record<string, { love: number; skip: number }>,
   superIds: Set<string>,
-  opts: { when: GroupWhen; variant?: number; date?: string },
+  opts: { when: GroupWhen; variant?: number; date?: string; nowH?: number },
 ): GroupArcPlan | null {
   if (loved.length === 0) return null
   const variant = opts.variant ?? 0
+  const date = opts.date ?? helsinkiToday()
+  const arcDay = new Date(`${date}T12:00:00`)
+
+  // 0. Kiinni koko kaarpäivän olevat kortit eivät voi olla kaaressa LAINKAAN
+  //    (ennen: jäivät kaareen pelkällä "⚠ Kiinni"-badgeella).
+  const available = loved.filter(c => !closedOnArcDay(c, arcDay))
+  if (available.length === 0) return null
 
   // 1. Roolijonot: eniten ❤️, sitten laatupisteet
   const byRole = new Map<CandidateRole, Candidate[]>()
-  for (const c of loved) {
+  for (const c of available) {
     const q = byRole.get(c.role) ?? []
     q.push(c)
     byRole.set(c.role, q)
@@ -140,105 +199,23 @@ export function buildDeterministicArc(
     (votes[b.id]?.love ?? 0) - (votes[a.id]?.love ?? 0) || b._score - a._score
   for (const q of byRole.values()) q.sort(byLove)
 
-  // 2. Yksi kortti per rooli pohjajärjestyksessä; variant kiertää jonoa
+  // 2. TIIKKA valinta: max 1 per rooli + max 1 per alatyyppi (esim. 2 saunaa
+  //    on aina virhe). variant kiertää roolin sisäistä jonoa aloittaen
+  //    kierroksesta mutta palaa aina parhaaseen kun variant=0.
   const picked: Candidate[] = []
+  const usedSub = new Set<string>()
   for (const role of ROLE_ORDER) {
     const q = byRole.get(role)
     if (!q?.length) continue
-    picked.push(q[variant % q.length])
-  }
-
-  // 3. Täydennys parhailla käyttämättömillä (max 5 vaihetta) — ei kuitenkaan
-  //    enempää kuin tykättyjä on
-  const used = new Set(picked.map(c => c.id))
-  const maxSteps = Math.min(5, loved.length)
-  const fillers = loved.filter(c => !used.has(c.id)).sort(byLove)
-  for (const c of fillers) {
-    if (picked.length >= maxSteps) break
-    picked.push(c)
-    used.add(c.id)
-  }
-
-  // 4. Pohjajärjestys roolien mukaan (saman roolin sisällä äänijärjestys säilyy)
-  picked.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role))
-
-  // 5. Kellonajat REALISTISIKSI:
-  //    - tapahtumat pitävät aina todellisen aikansa (ankkuri, ei koskaan siirretä)
-  //    - ruoka on LOUNAS (11.30–13.30) kun pääohjelma on päivällä, ILLALLINEN
-  //      (17–19.30) kun ohjelma on illalla
-  //    - drinks vasta ruuan jälkeen — tai ohjelman jälkeen ("jatkot"), jos
-  //      ohjelma alkaa ≤21
-  //    - lopuksi vaiheet laitetaan KRONOLOGISEEN järjestykseen, jottei
-  //      kaaren järjestys ja kellonajat voi koskaan olla ristiriidassa.
-  const base = { ...DEFAULT_HOUR[opts.when] }
-  const programCard = picked.find(c => c.role === 'program')
-  const anchorH = programCard ? parseHour(programCard.time) : null
-  if (anchorH != null) {
-    if (anchorH <= 17) {
-      base.food = Math.min(Math.max(anchorH - 3.5, 11.5), 13.5)
-      base.drinks = Math.min(Math.max(anchorH + 2, 18), 22)
-    } else {
-      base.food = Math.min(Math.max(anchorH - 2.5, 17), 19.5)
-      base.drinks = anchorH <= 21 ? Math.min(anchorH + 2, 23.5) : anchorH - 1
+    for (let k = 0; k < q.length; k++) {
+      const cand = q[(variant + k) % q.length]
+      if (usedSub.has(subtypeOf(cand))) continue
+      picked.push(cand)
+      usedSub.add(subtypeOf(cand))
+      break
     }
-    base.activity = Math.min(base.activity, base.food - 2)
   }
+  if (picked.length === 0) return null
 
-  // Minimiväli edellisestä vaiheesta roolin mukaan (sauna ~2h, ruoka ~1.5h…)
-  const GAP: Record<CandidateRole, number> = { activity: 2, food: 1.5, drinks: 1, program: 2 }
-  // Aukiolotietoinen aikataulutus: ravintolat/aktiviteetit, joilla on
-  // opening_hours-data, sovitetaan päivän aukioloaikoihin (esim. ei saunaa
-  // klo 21 jos se sulkeutuu 20). Session todellinen päivä ratkaisee viikonpäivän.
-  const arcDay = opts.date ? new Date(`${opts.date}T12:00:00`) : null
-  const timed: { c: Candidate; h: number }[] = []
-  let prevH: number | null = null
-  let prevRole: CandidateRole | null = null
-  for (const c of picked) {
-    const realH = parseHour(c.time)
-    let h = realH ?? base[c.role]
-    if (realH == null && prevH != null && prevRole != null) {
-      // Väli = roolin kesto + KÄVELYAIKA edellisestä paikasta — kaaren ajat
-      // eivät voi olla ristiriidassa siirtymien kanssa.
-      const prevC = timed[timed.length - 1]?.c
-      const travelH = prevC ? (walkMinutesBetween(prevC, c) ?? 0) / 60 : 0
-      h = Math.max(h, prevH + GAP[prevRole] + travelH)
-    }
-    if (realH == null && c.openingHours && arcDay) {
-      const minDur = c.role === 'food' || c.role === 'activity' ? 1.25 : 1
-      const clamped = clampToOpenHour(c.openingHours, arcDay, h, minDur)
-      if (clamped != null) h = clamped
-      // kiinni koko päivän → pidä oletus (ei parempaakaan vaihtoehtoa)
-    }
-    h = Math.min(h, 23.5)
-    timed.push({ c, h })
-    prevH = h
-    prevRole = c.role
-  }
-  // Kronologinen loppujärjestys — kaari seuraa aina kelloa, ei roolipohjaa
-  timed.sort((a, b) => a.h - b.h)
-
-  const fmtHour = (h: number): string =>
-    h % 1 >= 0.5 ? `klo ${Math.floor(h)}.30` : `klo ${Math.floor(h)}`
-
-  // 6. Vaiheet + faktat + kävelyajat
-  const steps: PlanStep[] = timed.map(({ c, h }) =>
-    candidateToStep(c, whyFor(c, superIds.has(c.id)), c.time || fmtHour(h), superIds.has(c.id)),
-  )
-  withTravelTimes(steps)
-
-  const first = timed[0].c.title
-  const last = timed[timed.length - 1].c.title
-  const intro = picked.length === 1
-    ? `Teidän valintanne: ${first}.`
-    : `Teidän ${WHEN_TEXT[opts.when]}: ${first} → ${last}. ${picked.length} vaihetta porukan tykätyistä.`
-
-  return {
-    kind: 'arc',
-    engine: 'rules',
-    variant,
-    date: opts.date,
-    intro,
-    arc: steps,
-    outro: 'Hyvää menoa — nauttikaa! 🎉',
-  }
+  return arcFromSelection(picked, votes, superIds, { ...opts, date, alternatives: byRole })
 }

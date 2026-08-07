@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DatePicker from '@/components/DatePicker'
+import ThemeArcs from '@/components/ThemeArcs'
+import type { ThemeArc, ThemeArcPreset } from '@/components/ThemeArcs'
 import { NEIGHBORHOODS } from '@/lib/types'
 import type { GroupWhen, BudgetId } from '@/lib/candidate'
 import type { GroupMode } from '@/lib/group'
@@ -66,35 +68,60 @@ export default function PaatakaaView() {
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [launchingArc, setLaunchingArc] = useState<string | null>(null)
 
   const toggleScene = (s: string) => setScenes(cur => cur.includes(s) ? cur.filter(x => x !== s) : [...cur, s])
   const toggleArea = (a: string) => setAreas(cur => cur.includes(a) ? cur.filter(x => x !== a) : [...cur, a])
 
-  async function create() {
+  // Session luonti. Ilman argumenttia käytetään lomakkeen tilaa; teemakaari
+  // antaa overrides-arvot (ohittaa myös custom-päivät ja alueet → koko kaupunki).
+  async function create(overrides?: ThemeArcPreset): Promise<boolean> {
+    if (loading) return false
+    const m = overrides?.mode ?? mode
+    const w = overrides?.when ?? when
+    const s: string[] = overrides?.scenes ?? scenes
+    const b = overrides?.budget ?? budget
+    // Preset-laukaisu: synkataan lomake näkyviin arvoihin (jos luonti feilaa,
+    // käyttäjä näkee mitä lähetettiin ja voi muokata).
+    if (overrides) {
+      setMode(m); setWhen(w); setScenes(s); setBudget(b)
+      setAreas([]); setCustomStart(''); setCustomEnd('')
+    }
     setLoading(true); setError(null)
     const hostSecret = genHostSecret()
     try {
       const res = await fetch('/api/group/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          when,
-          fiilis: scenes,
-          mode,
+          when: w,
+          fiilis: s,
+          mode: m,
           hostId: participantId(),
           hostSecret,
-          customStart: customStart || null,
-          customEnd: customEnd || null,
-          areas,
-          budget,
+          customStart: overrides ? null : (customStart || null),
+          customEnd: overrides ? null : (customEnd || null),
+          areas: overrides ? [] : areas,
+          budget: b,
         }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Luonti epäonnistui'); setLoading(false); return }
+      if (!res.ok) { setError(data.error || 'Luonti epäonnistui'); setLoading(false); return false }
       try { localStorage.setItem(`paatakaa-host-${data.code}`, hostSecret) } catch { /* privaattitila */ }
       router.push(`/paatakaa/${data.code}`)
+      return true
     } catch {
       setError('Verkkovirhe — yritä uudelleen'); setLoading(false)
+      return false
     }
+  }
+
+  // Teemakaaren laukaisu: yksi nappi → preset + välitön luonti.
+  // Tuplaklikkaus estyy loading-guardilla + korttien disabled-tilalla.
+  async function launchArc(arc: ThemeArc) {
+    if (loading) return
+    setLaunchingArc(arc.id)
+    const ok = await create(arc.preset)
+    if (!ok) setLaunchingArc(null)
   }
 
   return (
@@ -108,6 +135,13 @@ export default function PaatakaaView() {
           Jaa linkki kavereille → jokainen swaippaa ehdotuksia omalla puhelimellaan → äänistä valmis suunnitelma. 🍸🍽✨🎸
         </p>
       </div>
+
+      {/* Teemakaaret — valmiit kaavat yhdellä napilla */}
+      <ThemeArcs launchingId={launchingArc} onLaunch={launchArc} />
+
+      <p className="text-white/25 text-[11px] font-black uppercase tracking-[.2em] text-center pt-1">
+        — tai rakenna itse ↓ —
+      </p>
 
       {/* Moodi */}
       <section>
@@ -241,7 +275,7 @@ export default function PaatakaaView() {
 
       {error && <p className="text-red-400/80 text-sm font-bold">{error}</p>}
 
-      <button onClick={create} disabled={loading}
+      <button onClick={() => create()} disabled={loading}
         className="w-full rounded-2xl py-4 text-white font-black text-[16px] transition-all active:scale-[.98] disabled:opacity-60"
         style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 12px 28px -10px rgba(91,101,230,.7)' }}>
         {loading ? 'Kootaan pakkaa…' : 'Luo ja jaa 🔗'}

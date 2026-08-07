@@ -7,7 +7,7 @@ import { ROLE_META } from '@/lib/candidate'
 import { sendGroupPush } from '@/lib/group-push'
 import { buildDeterministicArc, groundSteps } from '@/lib/group-arc'
 import type { AiStep } from '@/lib/group-arc'
-import { helsinkiToday } from '@/lib/helsinki-time'
+import { helsinkiNow, helsinkiToday } from '@/lib/helsinki-time'
 import { enrichTransitTimes } from '@/lib/digitransit'
 import { isHostSession } from '@/lib/group-host'
 
@@ -140,8 +140,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   if (!useAi) {
     // DETERMINISTINEN POLKU — välitön, ei lukkoa tarvita AI-kutsun ajaksi;
     // pelkkä atomipäivitys (CAS) riittää kilpailevien kutsujen varalta.
-    const plan = buildDeterministicArc(loved, votes, superIds, { when, variant, date: arcDate })
-    if (!plan) return NextResponse.json({ error: 'Ei vielä tykättyjä kortteja — swaipatkaa ensin' }, { status: 400 })
+    // nowH: kaari ei ala menneessä ajassa (vain kun kaari on TÄNÄÄN).
+    const nowH = arcDate === helsinkiToday()
+      ? helsinkiNow().getHours() + helsinkiNow().getMinutes() / 60
+      : undefined
+    const plan = buildDeterministicArc(loved, votes, superIds, { when, variant, date: arcDate, nowH })
+    if (!plan) return NextResponse.json({ error: 'Tykätyistä ei saada muodostettua kaarta — tykätkää lisää kohteita tai kudokaa uudelleen' }, { status: 400 })
 
     // Todelliset joukkoliikenneajat transit-väleille (Digitransit, jos avain on)
     plan.arc = await enrichTransitTimes(plan.arc)

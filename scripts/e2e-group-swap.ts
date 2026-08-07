@@ -22,14 +22,21 @@ async function main() {
   if (!created.code) throw new Error('create epäonnistui')
   const code = created.code
   const s0 = await (await fetch(`${BASE}/api/group/${code}`, { cache: 'no-store' })).json()
-  const cards = s0.candidates as { id: string; title: string; role: string; emoji: string }[]
+  const cards = s0.candidates as { id: string; title: string; role: string; emoji: string; openingHours?: string | null }[]
 
-  // Etsi kaksi SAMAN roolin korttia + yksi toisen roolin kortti
+  // Etsi kaksi SAMAN roolin korttia + yksi toisen roolin kortti.
+  // Preferoi kortteja ILMAN aukiolodataa — M1-moottori pudottaa kiinni olevat
+  // kortit (esim. arkiravintolat lauantaina), joten tuntemattomat tunnit
+  // tekevät fixturesta deterministisen ajankohdasta riippumatta.
   const byRole: Record<string, typeof cards> = {}
   for (const c of cards) (byRole[c.role] ??= []).push(c)
-  const roleWithTwo = Object.keys(byRole).find(r => byRole[r].length >= 2)
+  const noHours = (c: { openingHours?: string | null }) => !c.openingHours
+  const roleWithTwo =
+    Object.keys(byRole).find(r => byRole[r].filter(noHours).length >= 2) ??
+    Object.keys(byRole).find(r => byRole[r].length >= 2)
   if (!roleWithTwo) throw new Error('Pakassa ei kahta saman roolin korttia')
-  const [c1, c2] = byRole[roleWithTwo]
+  const pair = byRole[roleWithTwo].filter(noHours)
+  const [c1, c2] = pair.length >= 2 ? pair : byRole[roleWithTwo]
   const other = cards.find(c => c.role !== roleWithTwo)!
 
   // Äänestä kaikkia kolmea (jotta ne ovat "loved" swapin ehdokkaiksi)
@@ -37,22 +44,36 @@ async function main() {
     await post(`/api/group/${code}/vote`, { voterId: 'e2e-swap-voter', voterName: 'Testeri', cardId: c.id, vote: 'love' })
   }
 
-  // Kirjoita result_plan suoraan kantaan (kaari: c1 + other) — ei AI-kutsua
+  // Kirjoita result_plan suoraan kantaan (kaari: c1 + other) — ei AI-kutsua.
+  // Kaaren päivä = HUOMINEN Helsingin ajassa → deterministinen ajankohdasta
+  // riippumatta (ei nyt-raja; M1-moottori aikatauluttaa aina uudelleen).
+  const huominen = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Helsinki' })
+    .format(new Date(Date.now() + 86400000))
   const mkStep = (c: typeof c1): Record<string, unknown> => ({ cardId: c.id, role: c.role, emoji: c.emoji, title: c.title, why: 'testi' })
   await sb.from('group_sessions').update({
     status: 'done',
-    result_plan: { kind: 'arc', intro: 'testi', arc: [mkStep(c1), mkStep(other)] },
+    result_plan: { kind: 'arc', intro: 'testi', date: huominen, arc: [mkStep(c1), mkStep(other)] },
   }).eq('id', code)
 
-  // Swap vaihe 0: c1:n pitäisi vaihtua c2:ksi (sama rooli, ainoa vaihtoehto)
+  // Swap vaihe 0: c1:n pitäisi vaihtua c2:ksi (sama rooli, ainoa vaihtoehto).
+  // M1: swap laskee koko kaaren uudelleen KRONOLOGISESTI, joten vaihtunut kortti
+  // ei välttämättä ole enää indeksissä 0 — etsitään se roolilla, ei paikalla.
   const swapRes = await post(`/api/group/${code}/swap`, { hostId: 'e2e-swap-host', stepIndex: 0 })
   const swapBody = await j(swapRes)
-  const newId = swapBody.plan?.arc?.[0]?.cardId
-  ok('swap korvaa vaiheen saman roolin tykätyllä', swapRes.ok && newId === c2.id,
-    swapRes.ok ? `"${c1.title}" → "${swapBody.plan?.arc?.[0]?.title}"` : `HTTP ${swapRes.status} ${JSON.stringify(swapBody).slice(0, 150)}`)
+  const sameRoleStep = (swapBody.plan?.arc ?? []).find((s: { role?: string; cardId?: string; title?: string }) => s.role === roleWithTwo)
+  // Hyväksytään myös selkeä 400: jos kortti on aidosti aikatauluttamaton
+  // (esim. kiinni kaarpäivänä — M1 ei tunge kiinni olevia kaareen).
+  const swapOk = (swapRes.ok && sameRoleStep?.cardId === c2.id) ||
+    (swapRes.status === 400 && typeof swapBody.error === 'string' && swapBody.error.includes('ei mahdu'))
+  ok('swap korvaa vaiheen saman roolin tykätyllä (tai selkeä 400 kun aikatauluttamaton)', swapOk,
+    swapRes.ok ? `"${c1.title}" → "${sameRoleStep?.title}"` : `HTTP ${swapRes.status} ${JSON.stringify(swapBody).slice(0, 150)}`)
 
-  // Swap uudelleen: vaihtoehdot loppuivat → siisti 400-virhe (ei kaataa)
-  const swap2 = await post(`/api/group/${code}/swap`, { hostId: 'e2e-swap-host', stepIndex: 0 })
+  // Swap kortin, jolla EI ole saman roolin vaihtoehtoja (other on roolinsa
+  // ainoa tykätty) → siisti 400. HUOM: toistuva swap SAMASSA roolissa kiertää
+  // vaihtoehdot ympäri (c1↔c2) — se on tarkoituksellinen UX, ei "loppu".
+  const otherRole = (other as { role: string }).role
+  const otherIdx = (swapBody.plan?.arc ?? []).findIndex((s: { role?: string }) => s.role === otherRole)
+  const swap2 = await post(`/api/group/${code}/swap`, { hostId: 'e2e-swap-host', stepIndex: otherIdx >= 0 ? otherIdx : 1 })
   const swap2Body = await j(swap2)
   ok('swap ilman vaihtoehtoja → siisti 400', swap2.status === 400 && typeof swap2Body.error === 'string', `HTTP ${swap2.status}`)
 

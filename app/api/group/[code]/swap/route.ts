@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { aggregateVotes, lovedCards, superMatchIds } from '@/lib/group'
-import type { GroupArcPlan, PlanStep } from '@/lib/group'
-import { withTravelTimes } from '@/lib/group-arc'
+import type { GroupArcPlan } from '@/lib/group'
+import { arcFromSelection } from '@/lib/group-arc'
 import { isHostSession } from '@/lib/group-host'
-import type { Candidate } from '@/lib/candidate'
+import { helsinkiNow, helsinkiToday } from '@/lib/helsinki-time'
+import type { Candidate, GroupWhen } from '@/lib/candidate'
 
 // VAIHDA ASKEL — deterministinen korvaus ilman AI:ta: korvaa kaaren yhden
-// vaiheen saman roolin toiseksi parhaalla tykätyllä kortilla. Toistuvat painallukset
-// kiertävät vaihtoehtoja (seuraava rankatun listan kortti nykyisen jälkeen).
-// Vain aloittaja. Faktat groundataan candidates-snapshotista kuten synteesissä.
+// vaiheen saman roolin toiseksi parhaalla tykätyllä kortilla JA laskee koko
+// kaaren aikataulun uudelleen luottamusmoottorilla (M1: vaihto ei voi enää
+// rikkoa siirtymiä tai jättää mennyttä aikaa). Toistuvat painallukset kiertävät
+// vaihtoehtoja. Vain aloittaja. Faktat groundataan candidates-snapshotista.
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const sessionId = code.toUpperCase()
   const { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('status, mode, candidates, result_plan, host_id, host_secret')
+    .select('status, mode, candidates, result_plan, host_id, host_secret, when_filter')
     .eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
   if (!isHostSession(session, { hostId, hostSecret })) {
@@ -65,43 +67,39 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   }
   const superIds = superMatchIds(votes, participants.length)
 
-  const newStep: PlanStep = {
-    cardId: next.id,
-    role: next.role,
-    emoji: next.emoji,
-    title: next.title,
-    time: next.time,
-    why: current.why, // AI:n perustelu ei koske uutta paikkaa → korvataan alla
-    address: next.address,
-    url: next.url,
-    image: next.image,
-    lat: next.lat,
-    lon: next.lon,
-    rating: next.rating,
-    badge: next.badge,
-    isFree: next.isFree,
-    priceLevel: next.priceLevel,
-    openingHours: next.openingHours,
-    superMatch: superIds.has(next.id) || undefined,
+  // Pakotettu valinta: kaaren nykyiset kortit, vaihdettu kohdallaan.
+  // (Kortit joita ei enää löydy snapshotista putoavat pois — ne eivät ole
+  // enää pätevää dataa.)
+  const byId = new Map(candidates.map(c => [c.id, c]))
+  const forced: Candidate[] = []
+  for (let i = 0; i < plan.arc.length; i++) {
+    if (i === stepIndex) { forced.push(next); continue }
+    const cid = plan.arc[i].cardId
+    const c = cid ? byId.get(cid) : undefined
+    if (c) forced.push(c)
   }
-  // Perustelu pitää vaihtaa koskemaan uutta paikkaa — käytä kortin omaa why-tekstiä.
-  newStep.why = next.why || current.why
 
-  const arc = plan.arc.slice()
-  arc[stepIndex] = newStep
-
-  // Laske siirtymät uudelleen koko kaarelle (vaihto vaikuttaa naapureihin).
-  // withTravelTimes hoitaa myös walk/transit-moodin ja Reittiopas-linkit.
-  for (let i = 0; i < arc.length; i++) {
-    arc[i] = { ...arc[i] }
-    delete arc[i].travelFromPrevMin
-    delete arc[i].travelFromPrevMode
-    delete arc[i].travelFromPrevUrl
-    delete arc[i].travelFromPrevSummary
+  // Koko kaaren aikataulu UUDELLEEN moottorilla: siirtymät, puskurit,
+  // aukiolot ja nyt-raja lasketaan aina puhtaasti. Ei eksplisiittistä
+  // reittioptimointia — hostin valinnat säilyvät sellaisinaan.
+  const when = session.when_filter as GroupWhen
+  const date = plan.date ?? helsinkiToday()
+  const nowH = date === helsinkiToday()
+    ? helsinkiNow().getHours() + helsinkiNow().getMinutes() / 60
+    : undefined
+  const rescheduled = arcFromSelection(forced, votes, superIds, { when, date, nowH, variant: plan.variant })
+  if (!rescheduled) {
+    return NextResponse.json({ error: 'Korvausta ei saada aikataulutettua järkevästi — kokeile toista askelta' }, { status: 400 })
   }
-  withTravelTimes(arc)
+  // Hostin eksplisiittinen valinta ei saa kadota hiljaa: jos korvauskortti
+  // putosi aikataulusta (kiinni / ei mahdu), kerro se selvästi 400:na —
+  // älä tallenna kaarta, jossa hostin askel on vain kadonnut.
+  if (!rescheduled.arc.some(s => s.cardId === next.id)) {
+    return NextResponse.json({ error: `"${next.title}" ei mahdu kaaren aikatauluun (kiinni tai liian myöhään) — kokeile toista vaihtoehtoa` }, { status: 400 })
+  }
 
-  const newPlan: GroupArcPlan = { ...plan, arc }
+  // Hostin perustelu säilyy (moottori kirjoittaa oman intronsa; käytetään sitä).
+  const newPlan: GroupArcPlan = { ...plan, arc: rescheduled.arc, intro: rescheduled.intro }
   const { error } = await supabaseAdmin
     .from('group_sessions').update({ result_plan: newPlan }).eq('id', sessionId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

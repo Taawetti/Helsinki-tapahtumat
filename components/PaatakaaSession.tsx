@@ -88,9 +88,13 @@ export default function PaatakaaSession({ code }: { code: string }) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- ensimmäinen pollaus mountissa; jatkuvuus hoituu setIntervallilla
     refresh()
+    // Pollaus vain kun sessio on auki — valmista kaarta ei tarvitse enää
+    // hakea 2,5 s välein loputtomiin. Rematch palauttaa statuksen 'open':ksi
+    // → tämä efekti käynnistää poltauksen uudelleen (dep: session?.status).
+    if (session?.status === 'done') return
     const iv = setInterval(() => { if (!synthesizing) refresh() }, 2500)
     return () => clearInterval(iv)
-  }, [refresh, synthesizing])
+  }, [refresh, synthesizing, session?.status])
 
   const saveName = () => {
     const n = nameDraft.trim().slice(0, 40)
@@ -473,10 +477,10 @@ export default function PaatakaaSession({ code }: { code: string }) {
         <button onClick={() => synthesize()} disabled={isSynthesizing}
           className={`w-full rounded-2xl py-4 mt-5 text-white font-black text-[16px] disabled:opacity-70 ${allDone && !isSynthesizing ? 'animate-pulse' : ''}`}
           style={{ background: 'linear-gradient(150deg,#10b981,#059669)', boxShadow: '0 12px 28px -10px rgba(16,185,129,.6)' }}>
-          {isSynthesizing ? '🪄 AI kutoo kaarta…' : allDone ? `🎉 Kaikki valmiita — kutokaa kaari (${lovedCount} ❤️)` : `🪄 Kutokaa illan kaari (${lovedCount} ❤️)`}
+          {isSynthesizing ? '🪄 Kudotaan kaarta…' : allDone ? `🎉 Kaikki valmiita — kutokaa kaari (${lovedCount} ❤️)` : `🪄 Kutokaa illan kaari (${lovedCount} ❤️)`}
         </button>
       )}
-      {session.mode === 'arc' && isSynthesizing && <p className="text-white/40 text-center text-sm font-bold mt-3">AI punoo tykätyistä johdonmukaisen illan… hetki.</p>}
+      {session.mode === 'arc' && isSynthesizing && <p className="text-white/40 text-center text-sm font-bold mt-3">Punotaan tykätyistä johdonmukainen ilta… hetki.</p>}
       {session.mode === 'arc' && !isHost && lovedCount >= 1 && !isSynthesizing && (
         <p className="text-white/35 text-center text-[13px] font-bold mt-5">Aloittaja kutoo kaaren kun ryhmä on valmis.</p>
       )}

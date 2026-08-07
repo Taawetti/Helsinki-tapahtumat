@@ -18,6 +18,10 @@ import {
 import { parseSuperterassi, parseSeason } from '../lib/superterassi'
 import { parseSetlistText, parseFinnishDate } from '../lib/flyingdutchman-parse'
 import { weekParamDates } from '../lib/stadissa-weeks'
+import { buildDeterministicArc } from '../lib/group-arc'
+import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
+import { walkMinutesBetween } from '../lib/group'
+import type { Candidate, CandidateRole } from '../lib/candidate'
 
 type Case = {
   name: string
@@ -659,8 +663,143 @@ for (const c of streakChecks) {
   else failures.push(`✗ streak: ${c.name} → hälytykset indekseissä [${alerts}], tila ${state.zeroStreak}/${state.errorStreak}`)
 }
 
-const total = CASES.length + ysoChecks.length + healthChecks.length + seasonalChecks.length + supChecks.length + fdChecks.length + fdDateChecks.length + weekChecks.length + streakChecks.length
-console.log(`Kategoria- + kanariatestit: ${pass}/${total} ok`)
+for (const c of streakChecks) {
+  let state: StreakState = { zeroStreak: 0, errorStreak: 0 }
+  const alerts: number[] = []
+  c.seq.forEach((sample, i) => {
+    const r = nextStreak(state, sample)
+    if (r.alert) alerts.push(i)
+    state = r.next
+  })
+  const okAlerts = JSON.stringify(alerts) === JSON.stringify(c.expectAlerts)
+  const okState = state.zeroStreak === c.finalZero && state.errorStreak === c.finalError
+  if (okAlerts && okState) pass++
+  else failures.push(`✗ streak: ${c.name} → hälytykset indekseissä [${alerts}], tila ${state.zeroStreak}/${state.errorStreak}`)
+}
+
+// ── Kaarimoottori (M1 luottamusmoottori) — tuotantoviat 8/2026: kaareen tuli
+// kaksi saunaa, seuraavaan paikkaan ei ehtinyt, kiinni oleva paikka jäi kaareen,
+// tonight-kaari alkoi menneessä. Fixture-malli: puhdas logiikka, ei verkkoa.
+let arcCid = 0
+const mkCand = (over: Partial<Candidate> & { role: CandidateRole }): Candidate => ({
+  id: `arc-${++arcCid}`,
+  type: 'activity',
+  title: `Kohde ${arcCid}`,
+  why: '',
+  emoji: '📍',
+  image: null,
+  tags: [],
+  _score: 1,
+  ...over,
+})
+const mkVotes = (loves: Record<string, number>): Record<string, { love: number; skip: number }> =>
+  Object.fromEntries(Object.entries(loves).map(([id, love]) => [id, { love, skip: 0 }]))
+
+const saunaA = mkCand({ role: 'activity', title: 'Sauna A', tags: ['sauna'], _score: 5 })
+const saunaB = mkCand({ role: 'activity', title: 'Sauna B', tags: ['sauna'], _score: 4 })
+const ruokaX = mkCand({ type: 'restaurant', role: 'food', title: 'Ravintola X', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-23:00', _score: 3 })
+const ruokaY = mkCand({ type: 'restaurant', role: 'food', title: 'Ravintola Y', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-23:00', _score: 2 })
+const kiinniSu = mkCand({ type: 'restaurant', role: 'food', title: 'Suljettu sunnuntaina', tags: ['ravintola'], openingHours: 'Mo-Fr 10:00-18:00', _score: 9 })
+
+// Keskipiste Helsinki + kaukopiste (~4–5 h kävelyä) toteutettavuustestiin
+const CENTER = { lat: 60.1699, lon: 24.9384 }
+const FAR = { lat: 60.35, lon: 25.2 }
+const ruokaKesk = mkCand({ type: 'restaurant', role: 'food', title: 'Keskusta', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-23:00', ...CENTER, _score: 3 })
+const ruokaFar = mkCand({ type: 'restaurant', role: 'food', title: 'Kaukana', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-23:00', ...FAR, _score: 4 })
+const keikka19 = mkCand({ type: 'event', role: 'program', title: 'Keikka klo 19', tags: ['keikka'], time: 'to 19.00', ...CENTER, _score: 5 })
+const keikka19Far = mkCand({ type: 'event', role: 'program', title: 'Keikka klo 19 kaukana', tags: ['keikka'], time: 'to 19.00', ...FAR, _score: 5 })
+const keikkaB = mkCand({ type: 'event', role: 'program', title: 'Keikka B', tags: ['keikka'], time: 'to 21.00', ...CENTER, _score: 4 })
+
+const ARC_DAY = '2026-08-09' // sunnuntai (kiinniSu-fixture vaatii arkisulun)
+const superEi = new Set<string>()
+
+const arcFixtures: { name: string; ok: boolean }[] = []
+
+// 1. Kaksi saunaa tykättynä → kaareen TASAN YKSI sauna (se jolla enemmän ❤️)
+{
+  const plan = buildDeterministicArc([saunaA, saunaB, ruokaX], mkVotes({ [saunaA.id]: 3, [saunaB.id]: 2, [ruokaX.id]: 2 }), superEi, { when: 'tonight', date: ARC_DAY })
+  const saunas = plan?.arc.filter(s => subtypeOf({ tags: ['sauna'] } as Candidate) && s.title.startsWith('Sauna')) ?? []
+  arcFixtures.push({ name: 'duplikaattisuoja: max 1 sauna kaaressa', ok: plan != null && saunas.length === 1 && saunas[0].title === 'Sauna A' })
+}
+
+// 2. Kaksi ravintolaa tykättynä → max 1 food-vaihe
+{
+  const plan = buildDeterministicArc([ruokaX, ruokaY], mkVotes({ [ruokaX.id]: 2, [ruokaY.id]: 1 }), superEi, { when: 'tonight', date: ARC_DAY })
+  arcFixtures.push({ name: 'duplikaattisuoja: max 1 ravintola kaaressa', ok: plan != null && plan.arc.filter(s => s.role === 'food').length === 1 && plan.arc[0].title === 'Ravintola X' })
+}
+
+// 3. Kiinni koko kaarpäivän oleva paikka KARSITAAN (ei "⚠ kiinni" -badgea kaaressa)
+{
+  const closed = closedOnArcDay(kiinniSu, new Date(`${ARC_DAY}T12:00:00`))
+  const plan = buildDeterministicArc([kiinniSu, ruokaX], mkVotes({ [kiinniSu.id]: 5, [ruokaX.id]: 1 }), superEi, { when: 'tonight', date: ARC_DAY })
+  arcFixtures.push({ name: 'kiinni-portti: su kiinni oleva karsitaan', ok: closed && plan != null && plan.arc.every(s => !s.title.includes('Suljettu')) && plan.arc.some(s => s.title === 'Ravintola X') })
+}
+
+// 4. Kaksi tapahtumaa samalle illalle → max 1 program
+{
+  const plan = buildDeterministicArc([keikka19, keikkaB], mkVotes({ [keikka19.id]: 2, [keikkaB.id]: 1 }), superEi, { when: 'tonight', date: ARC_DAY })
+  arcFixtures.push({ name: 'max 1 ohjelma kaaressa', ok: plan != null && plan.arc.filter(s => s.role === 'program').length === 1 })
+}
+
+// 5. Toteutettavuus: ruoka siirtyy AIKAISEMMIN jotta keikalle (19:00) ehditään
+//    (matka ~4–5 h → ruuan on alettava jo päivällä, ei oletusajalla 18.5)
+{
+  const plan = buildDeterministicArc([ruokaFar, keikka19], mkVotes({ [ruokaFar.id]: 2, [keikka19.id]: 2 }), superEi, { when: 'tonight', date: ARC_DAY })
+  const food = plan?.arc.find(s => s.role === 'food')
+  const prog = plan?.arc.find(s => s.role === 'program')
+  const travelH = (walkMinutesBetween(ruokaFar, keikka19) ?? 0) / 60
+  let ok = !!(plan && food && prog && prog.time === 'to 19.00')
+  if (ok && food && prog) {
+    const m = food.time?.match(/(\d{1,2})(?:\.(\d{2}))?/)
+    const foodH = m ? Number(m[1]) + Number(m[2] ?? 0) / 60 : 99
+    // ruoka + kesto 1.5h + matka + puskuri 0.25 ≤ 19.00 (15 min pyöristysvara)
+    ok = foodH + 1.5 + travelH + 0.25 <= 19.01
+  }
+  arcFixtures.push({ name: 'toteutettavuus: ruoka aikaisemmin jotta keikalle ehditään', ok })
+}
+
+// 6. Mahdoton tilanne: ohjelma 18:00, aktiviteetti (2h) ja nyt klo 17 →
+//    aktiviteetti PUTOSI (ei mennyttä/kiireistä vaihetta kaaressa)
+{
+  const aktiviteetti = mkCand({ role: 'activity', title: 'Aktiviteetti', tags: ['museo'], openingHours: 'Mo-Su 09:00-23:00', ...CENTER, _score: 3 })
+  const keikka18 = mkCand({ type: 'event', role: 'program', title: 'Keikka klo 18', tags: ['keikka'], time: 'to 18.00', ...CENTER, _score: 5 })
+  const plan = buildDeterministicArc([aktiviteetti, keikka18], mkVotes({ [aktiviteetti.id]: 2, [keikka18.id]: 2 }), superEi, { when: 'tonight', date: ARC_DAY, nowH: 17 })
+  arcFixtures.push({ name: 'mahdoton joustava vaihe putoaa ankkurin tieltä', ok: plan != null && !plan.arc.some(s => s.title === 'Aktiviteetti') && plan.arc.some(s => s.role === 'program') })
+}
+
+// 7. Nyt-tietoisuus: klo 22 tonight → eka vaihe ≥ 22.45 (ei mennyttä aikaa)
+//    (paikka auki puoleenyöhön, jotta 22.45 alkava ruoka on toteutettava)
+{
+  const ruokaYo = mkCand({ type: 'restaurant', role: 'food', title: 'Yöravintola', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-24:00', _score: 3 })
+  const plan = buildDeterministicArc([ruokaYo], mkVotes({ [ruokaYo.id]: 1 }), superEi, { when: 'tonight', date: ARC_DAY, nowH: 22 })
+  const m = plan?.arc[0]?.time?.match(/(\d{1,2})(?:\.(\d{2}))?/)
+  const h = m ? Number(m[1]) + Number(m[2] ?? 0) / 60 : 0
+  arcFixtures.push({ name: 'nyt-tietoisuus: kaari ei ala menneessä (22 → ≥22.45)', ok: plan != null && h >= 22.7 })
+}
+
+// 8. Reittioptimointi: samassa roolissa kaksi yhtä tykättyä → lähempi valikoituu
+{
+  const plan = buildDeterministicArc([ruokaFar, ruokaKesk, keikka19], mkVotes({ [ruokaFar.id]: 2, [ruokaKesk.id]: 2, [keikka19.id]: 2 }), superEi, { when: 'tonight', date: ARC_DAY })
+  const food = plan?.arc.find(s => s.role === 'food')
+  arcFixtures.push({ name: 'reittioptimointi: lähempi ravintola valikoituu', ok: plan != null && food?.title === 'Keskusta' })
+}
+
+// 9. Kellonaikaformatointi 15 min tarkkuudella (ei "klo 19" kun tarkalleen 19.49)
+{
+  const ruokaYo2 = mkCand({ type: 'restaurant', role: 'food', title: 'Yöravintola 2', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-24:00', _score: 3 })
+  const plan = buildDeterministicArc([ruokaYo2], mkVotes({ [ruokaYo2.id]: 1 }), superEi, { when: 'tonight', date: ARC_DAY, nowH: 22 })
+  arcFixtures.push({ name: 'fmtHour: 22.75 → "klo 22.45"', ok: plan?.arc[0]?.time === 'klo 22.45' })
+}
+
+const arcChecks = arcFixtures
+for (const c of arcChecks) {
+  if (c.ok) pass++
+  else failures.push(`✗ kaarimoottori: ${c.name}`)
+}
+
+// Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.
+const total = pass + failures.length
+console.log(`Kategoria- + kanaria- + kaaritestit: ${pass}/${total} ok`)
 if (failures.length) {
   console.error('\n' + failures.join('\n\n'))
   process.exit(1)

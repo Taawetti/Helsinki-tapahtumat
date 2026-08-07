@@ -35,24 +35,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   let title = `Liity päättämään · ${code} — Päättäkää yhdessä`
   let description = 'Swaippaa ehdotuksia ja päätetään yhdessä mitä tänään tehdään. AI kutoo äänistä valmiin illan kaaren.'
-  let ogTitle = 'Päättäkää yhdessä'
-  let ogLocation = `Koodi ${code}`
 
   if (result?.kind === 'arc' && result.arc.length > 0) {
     const stops = result.arc.map(s => s.title).slice(0, 3).join(' → ')
     title = `Teidän iltanne 🎉 · ${code}`
     description = `Ryhmän yhteinen suunnitelma: ${stops}${result.arc.length > 3 ? ' → …' : ''}. Tehty Mitä tänään -palvelun Päättäkää yhdessä -toiminnolla.`
-    ogTitle = 'Teidän iltanne 🎉'
-    ogLocation = stops
   } else if (result?.kind === 'quick') {
     title = `${result.title} — päätös tehty! 🎉`
     description = `Ryhmä valitsi yhdessä: ${result.title}. Tehty Mitä tänään -palvelun Päättäkää yhdessä -toiminnolla.`
-    ogTitle = 'Päätös tehty! 🎉'
-    ogLocation = result.title
   }
 
   const pageUrl = `${BASE}/paatakaa/${code}`
-  const ogImageUrl = `${BASE}/api/og?title=${encodeURIComponent(ogTitle)}&location=${encodeURIComponent(ogLocation)}`
+  // Omistettu julistereitti — hakee tuloksen itse kannasta (arc/quick/yleinen).
+  const ogImageUrl = `${BASE}/api/og/paatakaa/${code}`
   return {
     title,
     description,

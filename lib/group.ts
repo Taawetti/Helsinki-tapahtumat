@@ -53,6 +53,7 @@ export interface PlanStep {
   priceLevel?: number
   openingHours?: string          // OSM opening_hours — "auki kaaren ajankohtana" -merkintöjä varten
   superMatch?: boolean             // kaikki osallistujat tykkäsivät
+  durH?: number                    // suunniteltu kesto tunteina (aikajanan/slack-laskennan apu)
   travelFromPrevMin?: number       // kävelyaika edellisestä vaiheesta (haversine)
   travelFromPrevMode?: 'walk' | 'transit'  // 'transit' kun kävely > 25 min → Reittiopas-linkki
   travelFromPrevUrl?: string       // reittiopas.hsl.fi-reittilinkki (vain transit-moodissa)
