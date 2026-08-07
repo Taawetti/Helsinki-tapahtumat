@@ -61,10 +61,21 @@ async function main() {
   const synthRes = await post(`/api/group/${code}/synthesize`, { hostId: 'e2e-arc-host' })
   const synthBody = await j(synthRes)
   const plan = synthBody.plan
-  ok('synthesize: kaari syntyi', synthRes.ok && plan?.kind === 'arc' && Array.isArray(plan.arc) && plan.arc.length >= 2,
+  // Vaihemäärä on ympäristöstä riippuvainen (myöhään illalla osa tykätyistä
+  // on perustellusti aikatauluttamattomia) — kaaren TÄYTYY syntyä ≥1 vaiheella,
+  // ja M1-sääntö: MIKÄÄN vaihe ei saa alkaa menneessä ajassa.
+  ok('synthesize: kaari syntyi', synthRes.ok && plan?.kind === 'arc' && Array.isArray(plan.arc) && plan.arc.length >= 1,
     synthRes.ok ? `${plan?.arc?.length} vaihetta` : `HTTP ${synthRes.status} ${JSON.stringify(synthBody).slice(0, 200)}`)
 
   if (plan?.kind === 'arc') {
+    const nowParts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Helsinki', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date()).split(':')
+    const nowH = Number(nowParts[0]) + Number(nowParts[1]) / 60
+    const pastSteps = plan.arc.filter((s: { time?: string }) => {
+      const m = s.time?.match(/(\d{1,2})[.:](\d{2})/)
+      return m != null && Number(m[1]) + Number(m[2]) / 60 < nowH - 0.1
+    })
+    ok('M1: mikään vaihe ei ala menneessä ajassa', pastSteps.length === 0,
+      pastSteps.length ? `menneitä: ${pastSteps.map((s: { title?: string }) => s.title).join(', ')}` : `Helsinki nyt ${nowH.toFixed(1)}`)
     console.log(`\n📝 Kaari: "${plan.intro}"`)
     const byId = new Map(cards.map(c => [c.id, c]))
     let grounded = 0, withTravel = 0, superMatches = 0

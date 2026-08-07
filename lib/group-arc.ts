@@ -13,6 +13,7 @@ import {
   ROLE_ORDER,
   closedOnArcDay,
   optimizeForTravel,
+  parseHour,
   scheduleSteps,
   subtypeOf,
   type ScheduleOpts,
@@ -183,9 +184,24 @@ export function buildDeterministicArc(
   const date = opts.date ?? helsinkiToday()
   const arcDay = new Date(`${date}T12:00:00`)
 
-  // 0. Kiinni koko kaarpäivän olevat kortit eivät voi olla kaaressa LAINKAAN
-  //    (ennen: jäivät kaareen pelkällä "⚠ Kiinni"-badgeella).
-  const available = loved.filter(c => !closedOnArcDay(c, arcDay))
+  // 0. Kovat portit ENNEN valintaa:
+  //    - kiinni koko kaarpäivän olevat kortit eivät voi olla kaaressa LAINKAAN
+  //    - JO ALKANUT tapahtuma (kaari tänään + kellonaika mennyt) pois — sessio
+  //      voi luoda pakkaa ennen kaaren kutomista (käyttäjätapaus 8/2026)
+  //    - tapahtuma VAARALLA PÄIVÄLLÄ (monipäiväinen sessio) pois — kaari on
+  //      aina yhden päivän, dateISO todistaa tapahtuman oikean päivän
+  const nowH = opts.nowH
+  const available = loved.filter(c => {
+    if (closedOnArcDay(c, arcDay)) return false
+    if (c.type === 'event') {
+      if (c.dateISO && c.dateISO !== date) return false
+      if (nowH != null) {
+        const h = parseHour(c.time)
+        if (h != null && h < nowH) return false
+      }
+    }
+    return true
+  })
   if (available.length === 0) return null
 
   // 1. Roolijonot: eniten ❤️, sitten laatupisteet

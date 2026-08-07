@@ -221,6 +221,16 @@ export function scheduleSteps(cards: Candidate[], opts: ScheduleOpts): TimedStep
     out.push(t)
   }
 
+  // Viimeinen nyt-raja: aukiolo-clamp voi siirtää joustavan vaiheen takaisin
+  // menneisyyteen (paikka sulkeutuu pian → ainoa ikkuna oli aikaisemmin).
+  // Sellainen vaihe PUTOSI — kaari ei saa koskaan näyttää mennyttä aikaa.
+  if (opts.nowH != null) {
+    const cutoff = opts.nowH + 0.1 // 6 min armo pyöristyksille
+    for (let i = out.length - 1; i >= 0; i--) {
+      if (!out[i].fixed && out[i].startH < cutoff) out.splice(i, 1)
+    }
+  }
+
   return out.length > 0 ? out : null
 }
 

@@ -21,7 +21,10 @@ import { weekParamDates } from '../lib/stadissa-weeks'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
+import { buildDeck } from '../lib/candidate'
+import { venueHoursOverride } from '../lib/venue-hours-overrides'
 import type { Candidate, CandidateRole } from '../lib/candidate'
+import type { Event } from '../lib/types'
 
 type Case = {
   name: string
@@ -695,6 +698,22 @@ const mkCand = (over: Partial<Candidate> & { role: CandidateRole }): Candidate =
 const mkVotes = (loves: Record<string, number>): Record<string, { love: number; skip: number }> =>
   Object.fromEntries(Object.entries(loves).map(([id, love]) => [id, { love, skip: 0 }]))
 
+const mkEvent = (over: Partial<Event> & { id: string; title: string; startTime: string }): Event => ({
+  shortDescription: 'Lyhyt kuvaus tapahtumasta, joka on tarpeeksi pitkä laatukynnykseen',
+  description: '',
+  endTime: null,
+  location: null,
+  image: 'https://example.com/kuva.jpg',
+  isFree: true,
+  price: null,
+  ticketUrl: null,
+  infoUrl: null,
+  categories: [],
+  source: 'linked-events',
+  vibes: ['keikka'],
+  ...over,
+} as Event)
+
 const saunaA = mkCand({ role: 'activity', title: 'Sauna A', tags: ['sauna'], _score: 5 })
 const saunaB = mkCand({ role: 'activity', title: 'Sauna B', tags: ['sauna'], _score: 4 })
 const ruokaX = mkCand({ type: 'restaurant', role: 'food', title: 'Ravintola X', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-23:00', _score: 3 })
@@ -789,6 +808,50 @@ const arcFixtures: { name: string; ok: boolean }[] = []
   const ruokaYo2 = mkCand({ type: 'restaurant', role: 'food', title: 'Yöravintola 2', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-24:00', _score: 3 })
   const plan = buildDeterministicArc([ruokaYo2], mkVotes({ [ruokaYo2.id]: 1 }), superEi, { when: 'tonight', date: ARC_DAY, nowH: 22 })
   arcFixtures.push({ name: 'fmtHour: 22.75 → "klo 22.45"', ok: plan?.arc[0]?.time === 'klo 22.45' })
+}
+
+// 10. JO ALKANUT tapahtuma karsitaan kaaresta (sessio luotu ennen klo 18,
+//     kaari kudottu klo 20 — käyttäjätapaus 8/2026)
+{
+  const joAlkanut = mkCand({ type: 'event', role: 'program', title: 'Jo alkanut keikka', tags: ['keikka'], time: 'pe 18.00', dateISO: ARC_DAY, ...CENTER, _score: 5 })
+  const myohemmin = mkCand({ type: 'event', role: 'program', title: 'Myöhemmin tänään', tags: ['keikka'], time: 'pe 21.00', dateISO: ARC_DAY, ...CENTER, _score: 4 })
+  const plan = buildDeterministicArc([joAlkanut, myohemmin, ruokaX], mkVotes({ [joAlkanut.id]: 3, [myohemmin.id]: 2, [ruokaX.id]: 1 }), superEi, { when: 'tonight', date: ARC_DAY, nowH: 20 })
+  arcFixtures.push({ name: 'jo alkanut tapahtuma karsitaan (nowH=20)', ok: plan != null && !plan.arc.some(s => s.title === 'Jo alkanut keikka') && plan.arc.some(s => s.title === 'Myöhemmin tänään') })
+}
+
+// 11. Tapahtuma VAARALLA PÄIVÄLLÄ (monipäiväinen sessio) ei tule kaareen
+{
+  const huomisenKeikka = mkCand({ type: 'event', role: 'program', title: 'Huomisen keikka', tags: ['keikka'], time: 'la 19.00', dateISO: '2026-08-10', ...CENTER, _score: 5 })
+  const plan = buildDeterministicArc([huomisenKeikka, ruokaX], mkVotes({ [huomisenKeikka.id]: 3, [ruokaX.id]: 2 }), superEi, { when: 'tonight', date: ARC_DAY })
+  arcFixtures.push({ name: 'väärän päivän tapahtuma karsitaan (dateISO)', ok: plan != null && !plan.arc.some(s => s.title === 'Huomisen keikka') })
+}
+
+// 12. Kyrö Sauna Bar -override: paikan oikeat ajat (Su 12–19) yliajavat
+//     vanhentuneen OSM-datan → klo 21.45 saunaa EI SAA tarjota sunnuntaina
+{
+  const kyroHours = venueHoursOverride('Kyrö Sauna Bar')
+  const kyro = mkCand({ role: 'activity', title: 'Kyrö Sauna Bar', tags: ['sauna'], openingHours: kyroHours, ...CENTER, _score: 5 })
+  const plan = buildDeterministicArc([kyro], mkVotes({ [kyro.id]: 2 }), superEi, { when: 'tonight', date: ARC_DAY /* sunnuntai */, nowH: 21 })
+  arcFixtures.push({ name: 'Kyrö-override: su 21 jälkeen ei sauna-aikataulua', ok: kyroHours === 'Mo-Sa 12:00-21:00; Su 12:00-19:00' && plan === null })
+}
+
+// 13. Aukiolo-clamp ei saa jättää vaihetta menneisyyteen (paikka sulkeutuu
+//     22, nyt 22 → ainoa ikkuna oli aikaisemmin → ei kaarta ollenkaan)
+{
+  const sulkeutuu22 = mkCand({ type: 'restaurant', role: 'food', title: 'Sulkeutuu 22', tags: ['ravintola'], openingHours: 'Mo-Su 12:00-22:00', _score: 3 })
+  const plan = buildDeterministicArc([sulkeutuu22], mkVotes({ [sulkeutuu22.id]: 1 }), superEi, { when: 'tonight', date: ARC_DAY, nowH: 22 })
+  arcFixtures.push({ name: 'menneisyyteen clampattu vaihe putoaa (ei kaarta)', ok: plan === null })
+}
+
+// 14. PAKKA: mennyt tapahtuma ei tule mukaan kortteihin (deck-taso)
+{
+  const eilen = mkEvent({ id: 'ev-eilen', title: 'Eilinen keikka', startTime: '2026-08-06T19:00:00+03:00' })
+  const tuleva = mkEvent({ id: 'ev-tuleva', title: 'Tuleva keikka', startTime: '2026-12-31T19:00:00+02:00' })
+  const deck = buildDeck(
+    { events: [eilen, tuleva], restaurants: [], activities: [], activityRatings: new Map() },
+    { when: 'tonight', fiilis: [] },
+  )
+  arcFixtures.push({ name: 'pakka: mennyt tapahtuma karsitaan, tuleva säilyy', ok: deck.some(c => c.id === 'e-ev-tuleva') && !deck.some(c => c.id === 'e-ev-eilen') })
 }
 
 const arcChecks = arcFixtures

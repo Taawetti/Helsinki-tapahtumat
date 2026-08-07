@@ -7,6 +7,8 @@
 import type { Event, Restaurant, Activity, ActivityCategory } from '@/lib/types'
 import { NEIGHBORHOODS } from '@/lib/types'
 import { isOpenNow } from '@/lib/opening-hours'
+import { helsinkiDateOf } from '@/lib/helsinki-time'
+import { venueHoursOverride } from '@/lib/venue-hours-overrides'
 
 export type CandidateType = 'event' | 'restaurant' | 'activity'
 export type CandidateRole = 'drinks' | 'food' | 'activity' | 'program'
@@ -38,6 +40,7 @@ export interface Candidate {
   rating?: number
   reviewCount?: number
   isOpen?: boolean         // isOpenNow-tulos (undefined = tuntematon; ei arvattu)
+  dateISO?: string         // vain tapahtumat: tapahtuman alkupäivä (YYYY-MM-DD, Helsinki) — kaarpäiväsuodatusta varten
   _score: number           // sisäinen järjestys, ei UI:hin
 }
 
@@ -161,7 +164,8 @@ function activityToCandidate(a: Activity, rating?: { rating: number; reviewCount
     reviewCount: rating?.reviewCount,
     isOpen: openRaw === undefined && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : openRaw,
     tags: [a.category],
-    openingHours: a.openingHours ?? undefined,
+    // Kuratoidut aukiolokorjaukset yliajavat lähteen (venue-hours-overrides.ts)
+    openingHours: venueHoursOverride(a.name) ?? a.openingHours ?? undefined,
     _score: s,
   }
 }
@@ -198,6 +202,7 @@ function eventToCandidate(e: Event): Candidate {
     badge: e.isFree ? 'Ilmainen' : undefined,
     time,
     isFree: e.isFree,
+    dateISO: helsinkiDateOf(e.startTime),
     tags: vibes,
     _score: s,
   }
@@ -288,7 +293,11 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
     const rt = input.activityRatings.get(`act:${key}`)
     if (activityPasses(a, rt, enforceOpen)) all.push(activityToCandidate(a, rt))
   }
+  // Menneet tapahtumat EIVÄT saa tulla pakkaan: sessio voi luoda paitsi
+  // kaaren kutomisajankohdan — 30 min armo (keikkaan klo 19.05 ei enää ehdi).
+  const nowMs = Date.now()
   for (const e of input.events) {
+    if (new Date(e.startTime).getTime() < nowMs - 30 * 60 * 1000) continue
     if (eventPasses(e)) all.push(eventToCandidate(e))
   }
 

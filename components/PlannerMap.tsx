@@ -2,6 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 import type { Map as LeafletMap } from 'leaflet'
+// KRIITTINEN: leaflet.css pitää ladata TÄSSÄ komponentissa — MapView lataa sen
+// vain omilla sivuillaan (unpkg-linkki), joten /paatakaa-sivuilla ilman tätä
+// kartta hajosi layoutiltaan eivätkä markerit näkyneet (käyttäjätapaus 8/2026).
+import 'leaflet/dist/leaflet.css'
 
 interface MapItem {
   title: string
