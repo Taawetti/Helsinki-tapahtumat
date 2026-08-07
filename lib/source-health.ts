@@ -103,9 +103,13 @@ export function detectSourceAnomalies(payload: CanaryPayload | null, month?: num
 
   for (const [name, floor] of Object.entries(CANARY_SOURCE_FLOORS)) {
     const s = byName.get(name)
-    const count = s?.ok ? s.count : 0
-    if (count < floor) {
-      issues.push(`Lähde '${name}' ${count} < ${floor} (odotetaan aina ≥${floor}/viikko) — todennäköisesti rikki`)
+    // Hälytä vain kun lähde VASTASI mutta palautti liian vähän — se on se
+    // "hiljainen kuolema" (200 OK + 0 tapahtumaa, RA-tapaus 7/2026), jota
+    // varten kanaria rakennettiin. Kokonaan vastaamaton lähde (ok=false) on
+    // lähes aina hetkellinen verkkohäiriö eikä saa yksin laukaista hälytystä;
+    // se näkyy jo dead-laskurissa ja adminin Lähteet-näkymässä.
+    if (s?.ok && s.count < floor) {
+      issues.push(`Lähde '${name}' ${s.count} < ${floor} (odotetaan aina ≥${floor}/viikko) — todennäköisesti rikki`)
     }
   }
 
@@ -114,9 +118,10 @@ export function detectSourceAnomalies(payload: CanaryPayload | null, month?: num
     for (const [name, cfg] of Object.entries(SEASONAL_SOURCE_FLOORS)) {
       if (!cfg.months.includes(month)) continue
       const s = byName.get(name)
-      const count = s?.ok ? s.count : 0
-      if (count < cfg.floor) {
-        issues.push(`Kausilähde '${name}' ${count} < ${cfg.floor} (kk ${month}, odotetaan ≥${cfg.floor}) — todennäköisesti rikki`)
+      // Sama periaate kuin yllä: vain vastaus, joka on liian tyhjä, on
+      // "hiljainen kuolema". Vastaamattomuus on hetkellinen häiriö.
+      if (s?.ok && s.count < cfg.floor) {
+        issues.push(`Kausilähde '${name}' ${s.count} < ${cfg.floor} (kk ${month}, odotetaan ≥${cfg.floor}) — todennäköisesti rikki`)
       }
     }
   }

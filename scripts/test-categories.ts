@@ -465,7 +465,9 @@ for (const c of ysoChecks) {
 
 // Lähdeterveyden kanaria — anomalian havaitsemislogiikka (RA-tyylinen hiljainen
 // romahdus EI saa jäädä huomaamatta, mutta laillisesti tyhjät lähteet EIVÄT
-// saa hälyttää)
+// saa hälyttää — eikä myöskään yksittäisen lähteen hetkellinen
+// vastaamattomuus (ok=false), joka on verkkohäiriö, ei lähteen kuolema;
+// tuotannossa 8/2026: minuutin pätkäisy → 30 min välimuisti → väärä DOWN-hälytys)
 const healthChecks: { name: string; payload: CanaryPayload | null; expectIssue: boolean }[] = [
   { name: 'terve syöte → ei hälytystä', expectIssue: false, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 13 }, { name: 'pubivisat', ok: true, count: 94 }, { name: 'eventbrite', ok: true, count: 0 }] } },
   { name: 'RA-tyylinen hiljainen kuolema (ra=0, muuten OK) → hälytys', expectIssue: true, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 0 }, { name: 'pubivisat', ok: true, count: 94 }] } },
@@ -474,6 +476,8 @@ const healthChecks: { name: string; payload: CanaryPayload | null; expectIssue: 
   { name: 'pubivisat-skraperi rikki (0) → hälytys', expectIssue: true, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 13 }, { name: 'pubivisat', ok: true, count: 0 }] } },
   { name: 'koko haku alhaalla (null) → hälytys', expectIssue: true, payload: null },
   { name: 'laillisesti tyhjät pikkulähteet EIVÄT hälytä', expectIssue: false, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 13 }, { name: 'pubivisat', ok: true, count: 94 }, { name: 'lepakkomies', ok: true, count: 0 }, { name: 'glivelab', ok: true, count: 0 }, { name: 'savoy', ok: true, count: 0 }] } },
+  { name: 'pubivisat vastaamaton (ok=false) → EI hälytystä (hetkellinen häiriö)', expectIssue: false, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: true, count: 13 }, { name: 'pubivisat', ok: false, count: 0 }] } },
+  { name: 'ra vastaamaton (ok=false) → EI hälytystä (hetkellinen häiriö)', expectIssue: false, payload: { total: 780, sources: [{ name: 'linked-events', ok: true, count: 425 }, { name: 'ra', ok: false, count: 0 }, { name: 'pubivisat', ok: true, count: 94 }] } },
 ]
 for (const c of healthChecks) {
   const issues = detectSourceAnomalies(c.payload)
@@ -484,18 +488,19 @@ for (const c of healthChecks) {
 // Kausilattia (Superterassi/recurring): heinäkuussa 0 = hiljainen kuolema →
 // hälytys, mutta kauden ulkopuolella 0 on laillinen → ei hälytystä. Ilman
 // month-argumenttia kausilattiaa ei tarkisteta.
-const base = (recurringCount: number): CanaryPayload => ({
+const base = (recurringCount: number, recurringOk = true): CanaryPayload => ({
   total: 780,
   sources: [
     { name: 'linked-events', ok: true, count: 425 },
     { name: 'ra', ok: true, count: 13 },
     { name: 'pubivisat', ok: true, count: 94 },
-    { name: 'recurring', ok: true, count: recurringCount },
+    { name: 'recurring', ok: recurringOk, count: recurringCount },
   ],
 })
 const seasonalChecks: { name: string; payload: CanaryPayload; month?: number; expectIssue: boolean }[] = [
   { name: 'heinäkuu + recurring=0 → hälytys (kausikuolema)', month: 7, payload: base(0), expectIssue: true },
   { name: 'heinäkuu + recurring=6 → ei hälytystä', month: 7, payload: base(6), expectIssue: false },
+  { name: 'heinäkuu + recurring vastaamaton → ei hälytystä (hetkellinen häiriö)', month: 7, payload: base(0, false), expectIssue: false },
   { name: 'joulukuu + recurring=0 → ei hälytystä (kauden ulkopuolella)', month: 12, payload: base(0), expectIssue: false },
   { name: 'elokuu + recurring=0 → ei hälytystä (kauden reuna, ei tarkisteta)', month: 8, payload: base(0), expectIssue: false },
   { name: 'ei month-arg + recurring=0 → ei kausitarkistusta', month: undefined, payload: base(0), expectIssue: false },

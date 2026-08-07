@@ -12,8 +12,11 @@ import { checkSourceHealth } from '@/lib/source-health'
 //                          runko). Nopea, sopii 5 min pingiin.
 //   /api/health?deep=1    — SYVÄ: onko jokin avainlähde (RA/pubivisat/runko)
 //                          kuollut hiljaa vaikka runko toimii — se RA/Yöelämä-
-//                          tapaus jota kevyt tarkistus ei huomaa. Verdikti
-//                          välimuistissa 30 min, joten tiheät pingit ovat halpoja.
+//                          tapaus jota kevyt tarkistus ei huomaa. OK-verdikti
+//                          välimuistissa 30 min (tiheät pingit halpoja), mutta
+//                          DOWN-verdikti varmistetaan aina yhdellä tuoreella
+//                          ajolla ennen 503:ta — muuten minuutin lähtöhäiriö
+//                          paisuisi välimuistin vuoksi puolituntiseksi hälytykseksi.
 export const dynamic = 'force-dynamic'
 
 // Tänään Helsingissä aina kymmeniä LinkedEvents-tapahtumia → alle 5 = romahdus.
@@ -33,8 +36,15 @@ export async function GET(req: NextRequest) {
   // cold-start-uudelleenyrityksen → ei väärää 503:a kylmästä deploymentista.
   if (req.nextUrl.searchParams.get('deep') === '1') {
     try {
-      const issues = await getDeepIssues(origin)
+      let issues = await getDeepIssues(origin)
       if (issues.length === 0) return NextResponse.json({ status: 'ok', mode: 'deep' })
+      // Välimuistitettu "down" voi olla vanha (jopa 30 min) ja perustua
+      // hetkelliseen lähteen pätkäisyyn → varmista yhdellä tuoreella ajolla
+      // ennen 503:ta. checkSourceHealth tekee sisäisesti vielä lämmitys-
+      // uudelleenyrityksen, joten hälytys vaatii nyt peräkkäisiä vahvistuksia
+      // useasta itsenäisestä hausta.
+      issues = (await checkSourceHealth(origin)).issues
+      if (issues.length === 0) return NextResponse.json({ status: 'ok', mode: 'deep', recovered: true })
       return NextResponse.json({ status: 'down', mode: 'deep', issues }, { status: 503 })
     } catch (err) {
       return NextResponse.json({ status: 'down', mode: 'deep', reason: (err as Error).message }, { status: 503 })
