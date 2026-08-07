@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const result = await fetchResult(code)
 
   let title = `Liity päättämään · ${code} — Päättäkää yhdessä`
-  let description = 'Swaippaa ehdotuksia ja päätetään yhdessä mitä tänään tehdään. AI kutoo äänistä valmiin illan kaaren.'
+  let description = 'Swaippaa ehdotuksia ja päätetään yhdessä mitä tänään tehdään. Äänistä syntyy valmis illan kaari aikatauluineen.'
 
   if (result?.kind === 'arc' && result.arc.length > 0) {
     const stops = result.arc.map(s => s.title).slice(0, 3).join(' → ')

@@ -262,7 +262,7 @@ function GenericPoster({ code }: { code: string }) {
           Päättäkää yhdessä
         </div>
         <div style={{ fontSize: '26px', color: 'rgba(255,255,255,0.6)', maxWidth: '820px', lineHeight: 1.35 }}>
-          Swaippaa ja päätetään yhdessä mitä tehdään — AI kutoo äänistä valmiin illan kaaren.
+          Swaippaa ja päätetään yhdessä mitä tehdään — äänistä syntyy valmis illan kaari aikatauluineen.
         </div>
         <div style={{ display: 'flex', marginTop: '8px' }}>
           <span
