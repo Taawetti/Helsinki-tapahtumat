@@ -77,7 +77,7 @@ async function main() {
 
   // 6. Swaippaa loput kortit (myös cardA uudelleen — undo poisti sen äänen) →
   //    solo-sessio ratkeaa pakan valmistuttua
-  for (const c of s.candidates.filter(c => c.id !== cardB)) {
+  for (const c of s.candidates.filter((c: { id: string }) => c.id !== cardB)) {
     await post(`/api/group/${code}/vote`, { voterId: 'e2e-voter', voterName: 'E2E', cardId: c.id, vote: 'skip' })
   }
   // Viimeinen ääni saattoi jo ratkaista; pollataan tilaa
