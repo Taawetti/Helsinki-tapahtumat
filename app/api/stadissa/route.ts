@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { weekParamDates } from '@/lib/stadissa-weeks'
 
 const BASE = 'https://www.stadissa.fi'
 const CACHE_TTL = 2 * 60 * 60 * 1000 // 2h
@@ -106,39 +107,42 @@ function toEvent(e: StadissaRaw): Event {
   }
 }
 
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
+// Viikkokohtainen välimuisti (avain = date-parametri). Korvaa aiemman
+// yhden globaalin välimuistin, joka toimi vain koska haku oli aina
+// "tänään + 4 vko" — ikkunakohtaisilla hauilla globaali kaappasi väärän datan.
+const pageCache = new Map<string, { events: StadissaRaw[]; ts: number }>()
+
+async function fetchWeek(dt: string): Promise<StadissaRaw[]> {
+  const hit = pageCache.get(dt)
+  if (hit && Date.now() - hit.ts < CACHE_TTL) return hit.events
+
+  // Stadissa: /index.php?date=YYYY-MM-DD — mikä tahansa viikon sisällä oleva päivä käy.
+  const res = await fetch(`${BASE}/index.php?date=${dt}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' },
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`stadissa week ${dt}: HTTP ${res.status}`)
+
+  const events = parseWeekPage(await res.text())
+  pageCache.set(dt, { events, ts: Date.now() })
+  return events
 }
 
-let cache: { events: StadissaRaw[]; ts: number } | null = null
-
-async function fetchAllEvents(): Promise<StadissaRaw[]> {
-  if (cache && Date.now() - cache.ts < CACHE_TTL) return cache.events
-
-  // Stadissa uses /index.php?date=YYYY-MM-DD — any date within the target week works.
-  // Fetch 4 consecutive weeks (7-day offsets from today).
-  const now = new Date()
-  const weekDates = [0, 7, 14, 21].map((offset) => {
-    const d = new Date(now)
-    d.setDate(d.getDate() + offset)
-    return isoDate(d)
-  })
-
-  const fetches = await Promise.allSettled(
-    weekDates.map((dt) =>
-      fetch(`${BASE}/index.php?date=${dt}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' },
-        signal: AbortSignal.timeout(10000),
-      }).then((r) => r.text())
-    )
-  )
+// Hakee viikkosivut siten, että ne kattavat pyydetyn [start, end]-ikkunan.
+// (Aiemmin haettiin AINA vain "tänään + 4 vko" pyynnöstä riippumatta →
+// menneet tapahtumat eivät löytyneet historiasta eivätkä festivaalit
+// yli 4 viikon päästä tulevaisuuteen. Vika 8/2026.)
+async function fetchEventsForRange(start: string, end: string): Promise<{ all: StadissaRaw[]; weeks: number; failedWeeks: number }> {
+  const dates = weekParamDates(start, end, 12)
+  const fetches = await Promise.allSettled(dates.map(fetchWeek))
 
   const seenIds = new Set<string>()
   const all: StadissaRaw[] = []
+  let failedWeeks = 0
 
   for (const result of fetches) {
-    if (result.status !== 'fulfilled') continue
-    for (const e of parseWeekPage(result.value)) {
+    if (result.status !== 'fulfilled') { failedWeeks++; continue }
+    for (const e of result.value) {
       if (!seenIds.has(e.id)) {
         seenIds.add(e.id)
         all.push(e)
@@ -146,8 +150,7 @@ async function fetchAllEvents(): Promise<StadissaRaw[]> {
     }
   }
 
-  if (all.length > 0) cache = { events: all, ts: Date.now() }
-  return all
+  return { all, weeks: dates.length, failedWeeks }
 }
 
 export async function GET(req: NextRequest) {
@@ -156,7 +159,8 @@ export async function GET(req: NextRequest) {
   const end   = searchParams.get('end')   || start
 
   try {
-    const all = await fetchAllEvents()
+    const { all, weeks, failedWeeks } = await fetchEventsForRange(start, end)
+    if (failedWeeks > 0) console.error(`stadissa: ${failedWeeks}/${weeks} viikkohakua epäonnistui (${start}..${end})`)
 
     const startTs = new Date(start).getTime()
     const endTs   = new Date(end).getTime() + 24 * 60 * 60 * 1000
@@ -169,7 +173,12 @@ export async function GET(req: NextRequest) {
     const events = filtered.map(toEvent)
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
-    return NextResponse.json({ events, total: events.length, source: 'stadissa' })
+    return NextResponse.json({
+      events,
+      total: events.length,
+      source: 'stadissa',
+      meta: { weeks, failedWeeks },
+    })
   } catch (err) {
     console.error('Stadissa error:', err)
     return NextResponse.json({ events: [] })

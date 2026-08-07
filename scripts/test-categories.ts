@@ -10,6 +10,8 @@
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 import { detectSourceAnomalies, type CanaryPayload } from '../lib/source-health'
 import { parseSuperterassi, parseSeason } from '../lib/superterassi'
+import { parseSetlistText, parseFinnishDate } from '../lib/flyingdutchman-parse'
+import { weekParamDates } from '../lib/stadissa-weeks'
 
 type Case = {
   name: string
@@ -538,7 +540,62 @@ for (const c of supChecks) {
   else failures.push(`✗ superterassi-parseri: ${c.name}`)
 }
 
-const total = CASES.length + ysoChecks.length + healthChecks.length + seasonalChecks.length + supChecks.length
+// Flying Dutch -settilistan parseri (tuotantoviat 8/2026: split-regex ei
+// osunut koskaan → live-skrape aina 0 → lähde eli vain staattisella listalla;
+// eilinen keikka siirtyi ensi vuoteen ja katosi näkymästä seuraavana päivänä).
+const FD_TEXT =
+  'At Flying Dutch, we unwind to live. - Hanski SUMMER SETLIST ' +
+  '23.5. Markus Holkko Quartet 3.6. The Shubie Brothers 11.6. Emma Salokoski & Jarmo Saari ' +
+  '12.6. DJ Borzin: Balkan Fever (17-21) 25.6. Tuomo 5.7. Flying Dutch: Stand Up ' +
+  '9.7. The Stance Brothers 22.7. Django Collective Helsinki ' +
+  '25.7. Paleface DJ Set: Toven & Tootin levykokoelma (18-21) ' +
+  '6.8. Paleface & Räjähtävä Nyrkki 20.8. Lightboxer ' +
+  '29.8. Season wrap up: DJs Daddy Pales & Borzin Showtime 19.00 unless informed otherwise. ' +
+  'Free entry. OPENING HOURS Bar: Mon-Sat 12-24'
+const fdParsed = parseSetlistText(FD_TEXT, '2026-08-07')
+const fdByDate = new Map(fdParsed.map((e) => [e.date, e]))
+const fdChecks: { name: string; ok: boolean }[] = [
+  { name: 'kaikki 12 settilistan keikkaa parsittu (split-regex toimii)', ok: fdParsed.length === 12 },
+  { name: 'eilinen keikka 6.8. jää KULUVALLE vuodelle (ei katoa)', ok: fdByDate.get('2026-08-06')?.title === 'Paleface & Räjähtävä Nyrkki' },
+  { name: 'tuleva keikka 20.8. parsittu', ok: fdByDate.get('2026-08-20')?.title === 'Lightboxer' },
+  { name: 'aikaväli (17-21) → 17:00, sulkeiset pois nimestä', ok: fdByDate.get('2026-06-12')?.time === '17:00' && fdByDate.get('2026-06-12')?.title === 'DJ Borzin: Balkan Fever' },
+  { name: 'viimeinen keikka ei sisällä Showtime-jätettä', ok: fdByDate.get('2026-08-29')?.title === 'Season wrap up: DJs Daddy Pales & Borzin' },
+  { name: '>60 vrk mennyt (23.5.) siirtyy ensi vuoteen', ok: fdByDate.has('2027-05-23') },
+]
+for (const c of fdChecks) {
+  if (c.ok) pass++
+  else failures.push(`✗ flyingdutchman-parseri: ${c.name} → sai ${JSON.stringify(fdParsed.find((e) => e.title.includes('Paleface')) ?? fdParsed.slice(0, 3))}`)
+}
+const fdDateChecks: { name: string; in: string; today: string; expect: string }[] = [
+  { name: 'eilinen 6.8. → kuluva vuosi', in: '6.8.', today: '2026-08-07', expect: '2026-08-06' },
+  { name: 'kuukausi sitten 9.7. → kuluva vuosi', in: '9.7.', today: '2026-08-07', expect: '2026-07-09' },
+  { name: '76 vrk sitten 23.5. → ensi vuosi', in: '23.5.', today: '2026-08-07', expect: '2027-05-23' },
+  { name: 'vuodenvaihde: 29.12. tammikuisena → viime vuosi', in: '29.12.', today: '2026-01-05', expect: '2025-12-29' },
+  { name: 'vuodenvaihde: 15.1. joulukuisena → ensi vuosi', in: '15.1.', today: '2025-12-20', expect: '2026-01-15' },
+  { name: '1.1. uutenavuotena → ensi vuosi', in: '1.1.', today: '2026-12-31', expect: '2027-01-01' },
+  { name: 'virheellinen 32.1. → tyhjä', in: '32.1.', today: '2026-08-07', expect: '' },
+]
+for (const c of fdDateChecks) {
+  const got = parseFinnishDate(c.in, c.today)
+  if (got === c.expect) pass++
+  else failures.push(`✗ parseFinnishDate: ${c.name} → sai '${got}', odotus '${c.expect}'`)
+}
+
+// Stadissa-viikkoikkunointi (tuotantovika 8/2026: haku aina "tänään + 4 vko"
+// pyydetystä ikkunasta riippumatta → Thailand Festival 9.–10.5. ei löytynyt).
+const weekChecks: { name: string; got: string[]; expectLen: number; expectFirst: string }[] = [
+  { name: 'yksi päivä → yksi viikkosivu', got: weekParamDates('2026-05-06', '2026-05-06'), expectLen: 1, expectFirst: '2026-05-06' },
+  { name: 'Thailand-festivaali-ikkuna 6.–10.5. → yksi sivu', got: weekParamDates('2026-05-06', '2026-05-10'), expectLen: 1, expectFirst: '2026-05-06' },
+  { name: '15 vrk:n ikkuna → kolme kalenteriviikkoa', got: weekParamDates('2026-05-06', '2026-05-20'), expectLen: 3, expectFirst: '2026-05-06' },
+  { name: 'elokuu+syyskuu → 9 sivua', got: weekParamDates('2026-08-01', '2026-09-30'), expectLen: 9, expectFirst: '2026-08-01' },
+  { name: 'vuoden ikkuna → katkaistu 12 sivuun', got: weekParamDates('2026-01-01', '2026-12-31'), expectLen: 12, expectFirst: '2026-01-01' },
+]
+for (const c of weekChecks) {
+  if (c.got.length === c.expectLen && c.got[0] === c.expectFirst) pass++
+  else failures.push(`✗ weekParamDates: ${c.name} → sai ${c.got.length} sivua, ensimmäinen ${c.got[0]}`)
+}
+
+const total = CASES.length + ysoChecks.length + healthChecks.length + seasonalChecks.length + supChecks.length + fdChecks.length + fdDateChecks.length + weekChecks.length
 console.log(`Kategoria- + kanariatestit: ${pass}/${total} ok`)
 if (failures.length) {
   console.error('\n' + failures.join('\n\n'))

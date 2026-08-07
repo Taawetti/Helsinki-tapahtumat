@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { parseSetlistText, stripHtml, type SetlistItem } from '@/lib/flyingdutchman-parse'
 
 const VENUE = {
   name: 'Flying Dutch',
@@ -10,9 +11,12 @@ const VENUE = {
   url: 'https://flyingdutch.fi',
 }
 
-// Static 2026 summer lineup — fallback if live fetch fails or yields no results
-// Source: flyingdutch.fi/HOME/ (fetched 2026-07-05)
-const STATIC_2026: { title: string; date: string; time: string }[] = [
+// Staattinen 2026 kesäsettilista — TÄYDENTÄÄ live-skrapen: jos parseri
+// hajoaa tai sivu kaatuu, nämä päivät eivät katoa. Live voittaa aina
+// saman päivän tapahtuman (tuoreempi tieto). Päivitetään uuden kauden
+// myötä; ilman päivitystä live-skrape kantaa yksin.
+// Lähde: flyingdutch.fi/HOME/ (haettu 2026-07-05)
+const STATIC_2026: SetlistItem[] = [
   { title: 'Markus Holkko Quartet',                       date: '2026-05-23', time: '19:00' },
   { title: 'The Shubie Brothers',                         date: '2026-06-03', time: '19:00' },
   { title: 'Emma Salokoski & Jarmo Saari',                date: '2026-06-11', time: '19:00' },
@@ -27,72 +31,23 @@ const STATIC_2026: { title: string; date: string; time: string }[] = [
   { title: 'Season Wrap Up – DJs Daddy Pales & Borzin',  date: '2026-08-29', time: '19:00' },
 ]
 
-// Parse "D.M." or "DD.MM." to YYYY-MM-DD
-function parseFinnishDate(s: string): string {
-  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.$/)
-  if (!m) return ''
-  const day = parseInt(m[1])
-  const month = parseInt(m[2])
-  if (day < 1 || day > 31 || month < 1 || month > 12) return ''
-  const todayStr = new Date().toISOString().slice(0, 10)
-  let year = parseInt(todayStr.slice(0, 4))
-  const mm = String(month).padStart(2, '0')
-  const dd = String(day).padStart(2, '0')
-  if (`${year}-${mm}-${dd}` < todayStr) year++
-  return `${year}-${mm}-${dd}`
-}
-
-async function scrapeLive(): Promise<{ title: string; date: string; time: string }[]> {
-  const res = await fetch('https://flyingdutch.fi/HOME/', {
-    next: { revalidate: 3600, tags: ['events'] },
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
-    signal: AbortSignal.timeout(8000),
-  })
-  if (!res.ok) return []
-
-  const html = await res.text()
-
-  // Strip scripts, styles, then all tags; decode common entities
-  const text = html
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-
-  // Split at every "D.M." or "DD.MM." — each chunk starts with its own date
-  const chunks = text.split(/(?=\b\d{1,2}\.\d{1,2}\.\b)/)
-  const results: { title: string; date: string; time: string }[] = []
-
-  for (const chunk of chunks) {
-    const dateMatch = chunk.match(/^(\d{1,2}\.\d{1,2}\.)/)
-    if (!dateMatch) continue
-
-    const date = parseFinnishDate(dateMatch[1])
-    if (!date) continue
-
-    // Everything after the date (up to ~80 chars) is artist + optional time
-    const rest = chunk.slice(dateMatch[1].length).trim().slice(0, 120)
-
-    // Extract explicit time like "17:00", "17.00", "17-21"
-    const timeMatch = rest.match(/\b(\d{1,2})[.:](\d{2})\b/)
-    const time = timeMatch
-      ? `${String(parseInt(timeMatch[1])).padStart(2, '0')}:${timeMatch[2]}`
-      : '19:00'
-
-    // Artist name: strip time notations and trailing junk
-    const title = rest
-      .replace(/\b\d{1,2}[.:]\d{2}(?:-\d{1,2}[.:]\d{2})?\b/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-
-    if (title.length >= 3 && title.length <= 100) {
-      results.push({ title, date, time })
-    }
+async function scrapeLive(): Promise<{ lineup: SetlistItem[]; error: string | null }> {
+  try {
+    const res = await fetch('https://flyingdutch.fi/HOME/', {
+      next: { revalidate: 3600, tags: ['events'] },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return { lineup: [], error: `HTTP ${res.status}` }
+    const lineup = parseSetlistText(stripHtml(await res.text()))
+    // Parseri voi palauttaa 0 sivumuutoksessa — raportoi erroreksi, jotta
+    // hiljainen kuolema näkyy meta-kentässä ja lokeissa (vrt. 8/2026-vika).
+    return lineup.length > 0
+      ? { lineup, error: null }
+      : { lineup, error: 'parse yielded 0 (sivun rakenne muuttunut?)' }
+  } catch (err) {
+    return { lineup: [], error: String(err) }
   }
-
-  return results
 }
 
 export async function GET(req: NextRequest) {
@@ -103,8 +58,14 @@ export async function GET(req: NextRequest) {
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 24 * 60 * 60 * 1000
 
-  let lineup = await scrapeLive().catch(() => [])
-  if (lineup.length === 0) lineup = STATIC_2026
+  const { lineup: live, error } = await scrapeLive()
+  if (error) console.error('flyingdutchman scrape:', error)
+
+  // Unioni: live päiväkohtaisesti ensisijainen, staattinen täydentää
+  // puuttuvat päivät. Yksi keikka/ilta paikassa — dedup päivämäärällä.
+  const liveDates = new Set(live.map((e) => e.date))
+  const staticFill = STATIC_2026.filter((s) => !liveDates.has(s.date))
+  const lineup = [...live, ...staticFill]
 
   const events: Event[] = []
   for (const e of lineup) {
@@ -135,5 +96,8 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ events })
+  return NextResponse.json({
+    events,
+    meta: { live: live.length, staticFill: staticFill.length, scrapeError: error },
+  })
 }
