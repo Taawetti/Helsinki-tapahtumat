@@ -43,7 +43,7 @@ export function parseSetlistText(text: string, today?: string): SetlistItem[] {
     if (!date) continue
 
     // Kaikki päivämäärän jälkeen (rajoitettu pätkä) on artisti + mahdollinen aika
-    let rest = chunk.slice(dateMatch[1].length).trim().slice(0, 120)
+    const rest = chunk.slice(dateMatch[1].length).trim().slice(0, 120)
 
     // Kellonaika: eksplisiittinen "17:00"/"17.00", tai suluissa oleva
     // aikaväli "(17-21)" → aloitusaika. Oletus 19:00 ("Showtime 19.00 unless
