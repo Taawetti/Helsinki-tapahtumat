@@ -3,8 +3,9 @@
 import type { GroupWhen, BudgetId, SceneId } from '@/lib/candidate'
 import type { GroupMode } from '@/lib/group'
 
-// Teemakaari-preset: valmis kaava, jolla ryhmäpäätössessio luodaan yhdellä
-// napilla ilman lomakkeen konfigurointia. Arvot vastaavat luontilomakkeen kenttiä.
+// Teemakaari-preset: valmis kaava, joka TÄYTTÄÄ luontilomakkeen yhdellä
+// napilla — käyttäjä valitsee itse päivän (tai muuttaa mitä tahansa) ennen
+// kuin sessio luodaan. Arvot vastaavat luontilomakkeen kenttiä.
 export interface ThemeArcPreset {
   mode: GroupMode
   when: GroupWhen
@@ -42,7 +43,7 @@ const ARCS: ThemeArc[] = [
     id: 'nollabudjetti',
     emoji: '🆓',
     name: 'Nollabudjetti',
-    desc: 'Vain ilmaisia juttuja tänä iltana',
+    desc: 'Vain ilmaisia juttuja',
     gradient: 'linear-gradient(150deg,#2dd4bf,#0d9488)',
     preset: { mode: 'arc', when: 'tonight', scenes: ['ilmaista'], budget: 'free' },
   },
@@ -66,36 +67,38 @@ const ARCS: ThemeArc[] = [
     id: 'ulkoilu',
     emoji: '🌳',
     name: 'Ulkoilupäivä',
-    desc: 'Viikonlopun ulkokohteet + sapuska',
+    desc: 'Ulkokohteet + sapuska',
     gradient: 'linear-gradient(150deg,#84cc16,#4d7c0f)',
     preset: { mode: 'arc', when: 'weekend', scenes: ['ulkona', 'ruoka'], budget: 'any' },
   },
 ]
 
-export default function ThemeArcs({ launchingId, onLaunch }: {
-  launchingId: string | null
-  onLaunch: (arc: ThemeArc) => void
+export default function ThemeArcs({ selectedId, onSelect }: {
+  selectedId: string | null
+  onSelect: (arc: ThemeArc) => void
 }) {
-  const busy = launchingId !== null
   return (
     <section>
       <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-1">Valmis kaava</h2>
-      <p className="text-white/40 text-[12px] font-semibold mb-3">Yksi nappi ja porukka swaippaa — ei säätöä.</p>
+      <p className="text-white/40 text-[12px] font-semibold mb-3">Yksi nappi täyttää kaavan — valitse vain päivä ja paina Luo.</p>
       <div className="grid grid-cols-2 gap-2">
         {ARCS.map(arc => {
-          const launching = launchingId === arc.id
+          const selected = selectedId === arc.id
           return (
-            <button key={arc.id} onClick={() => onLaunch(arc)} disabled={busy}
-              className="relative flex flex-col items-start gap-1 rounded-2xl p-4 text-left transition-all active:scale-[.97] disabled:opacity-60"
-              style={{ background: arc.gradient, boxShadow: '0 10px 24px -12px rgba(0,0,0,.55)' }}>
-              {launching && (
-                <span className="absolute right-3 top-3 h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            <button key={arc.id} onClick={() => onSelect(arc)}
+              className="relative flex flex-col items-start gap-1 rounded-2xl p-4 text-left transition-all active:scale-[.97]"
+              style={{
+                background: arc.gradient,
+                boxShadow: selected
+                  ? '0 0 0 2.5px rgba(255,255,255,.85), 0 10px 24px -12px rgba(0,0,0,.55)'
+                  : '0 10px 24px -12px rgba(0,0,0,.55)',
+              }}>
+              {selected && (
+                <span className="absolute right-3 top-3 text-[13px] font-black text-white bg-black/30 rounded-full px-2 py-0.5">✓</span>
               )}
               <span className="text-2xl leading-none">{arc.emoji}</span>
               <span className="text-[13.5px] font-black text-white leading-tight">{arc.name}</span>
-              <span className="text-[11px] font-semibold leading-snug text-white/75">
-                {launching ? 'Luodaan sessiota…' : arc.desc}
-              </span>
+              <span className="text-[11px] font-semibold leading-snug text-white/75">{arc.desc}</span>
             </button>
           )
         })}

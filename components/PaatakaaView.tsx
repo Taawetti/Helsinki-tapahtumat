@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import DatePicker from '@/components/DatePicker'
 import ThemeArcs from '@/components/ThemeArcs'
-import type { ThemeArc, ThemeArcPreset } from '@/components/ThemeArcs'
+import type { ThemeArc } from '@/components/ThemeArcs'
 import { NEIGHBORHOODS } from '@/lib/types'
 import type { GroupWhen, BudgetId } from '@/lib/candidate'
 import type { GroupMode } from '@/lib/group'
@@ -68,25 +68,33 @@ export default function PaatakaaView() {
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [launchingArc, setLaunchingArc] = useState<string | null>(null)
+  const [appliedArc, setAppliedArc] = useState<string | null>(null) // valitun teemakaavan id (korostus)
+  const [milloinFlash, setMilloinFlash] = useState(false)          // ohjaa katseen päivävalintaan kaavan jälkeen
+  const milloinRef = useRef<HTMLElement>(null)
 
-  const toggleScene = (s: string) => setScenes(cur => cur.includes(s) ? cur.filter(x => x !== s) : [...cur, s])
+  const toggleScene = (s: string) => { setAppliedArc(null); setScenes(cur => cur.includes(s) ? cur.filter(x => x !== s) : [...cur, s]) }
   const toggleArea = (a: string) => setAreas(cur => cur.includes(a) ? cur.filter(x => x !== a) : [...cur, a])
 
-  // Session luonti. Ilman argumenttia käytetään lomakkeen tilaa; teemakaari
-  // antaa overrides-arvot (ohittaa myös custom-päivät ja alueet → koko kaupunki).
-  async function create(overrides?: ThemeArcPreset): Promise<boolean> {
+  // Teemakaaren valinta: TÄYTTÄÄ lomakkeen presetin arvoilla ja ohjaa käyttäjän
+  // päivävalintaan — sessiota EI luoda vielä (käyttäjä saattaa haluta toisen
+  // päivän; aiemmin kaava hyppäsi suoraan tähän päivään, mikä oli virhe).
+  function applyArc(arc: ThemeArc) {
+    const { mode: m, when: w, scenes: s, budget: b } = arc.preset
+    setMode(m); setWhen(w); setScenes(s); setBudget(b)
+    setAppliedArc(arc.id)
+    setMilloinFlash(true)
+    setTimeout(() => setMilloinFlash(false), 2200)
+    // Vieritä päivävalinnan kohdalle (custom-päivät ja omat säätämiset säilyvät)
+    setTimeout(() => milloinRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+  }
+
+  // Session luonti lomakkeen tilasta (myös teemakaaren esitäyttämistä arvoista).
+  async function create(): Promise<boolean> {
     if (loading) return false
-    const m = overrides?.mode ?? mode
-    const w = overrides?.when ?? when
-    const s: string[] = overrides?.scenes ?? scenes
-    const b = overrides?.budget ?? budget
-    // Preset-laukaisu: synkataan lomake näkyviin arvoihin (jos luonti feilaa,
-    // käyttäjä näkee mitä lähetettiin ja voi muokata).
-    if (overrides) {
-      setMode(m); setWhen(w); setScenes(s); setBudget(b)
-      setAreas([]); setCustomStart(''); setCustomEnd('')
-    }
+    const m = mode
+    const w = when
+    const s: string[] = scenes
+    const b = budget
     setLoading(true); setError(null)
     const hostSecret = genHostSecret()
     try {
@@ -98,9 +106,9 @@ export default function PaatakaaView() {
           mode: m,
           hostId: participantId(),
           hostSecret,
-          customStart: overrides ? null : (customStart || null),
-          customEnd: overrides ? null : (customEnd || null),
-          areas: overrides ? [] : areas,
+          customStart: customStart || null,
+          customEnd: customEnd || null,
+          areas,
           budget: b,
         }),
       })
@@ -115,15 +123,6 @@ export default function PaatakaaView() {
     }
   }
 
-  // Teemakaaren laukaisu: yksi nappi → preset + välitön luonti.
-  // Tuplaklikkaus estyy loading-guardilla + korttien disabled-tilalla.
-  async function launchArc(arc: ThemeArc) {
-    if (loading) return
-    setLaunchingArc(arc.id)
-    const ok = await create(arc.preset)
-    if (!ok) setLaunchingArc(null)
-  }
-
   return (
     <main className="max-w-lg mx-auto px-4 pt-6 pb-24 space-y-7">
       <div>
@@ -136,8 +135,8 @@ export default function PaatakaaView() {
         </p>
       </div>
 
-      {/* Teemakaaret — valmiit kaavat yhdellä napilla */}
-      <ThemeArcs launchingId={launchingArc} onLaunch={launchArc} />
+      {/* Teemakaaret — valmis kaava täyttää lomakkeen; päivä valitaan itse */}
+      <ThemeArcs selectedId={appliedArc} onSelect={applyArc} />
 
       <p className="text-white/25 text-[11px] font-black uppercase tracking-[.2em] text-center pt-1">
         — tai rakenna itse ↓ —
@@ -150,7 +149,7 @@ export default function PaatakaaView() {
           {MODES.map(m => {
             const active = mode === m.id
             return (
-              <button key={m.id} onClick={() => setMode(m.id)}
+              <button key={m.id} onClick={() => { setMode(m.id); setAppliedArc(null) }}
                 className="flex flex-col items-start gap-1 rounded-2xl p-4 text-left transition-all active:scale-[.97]"
                 style={active ? ACTIVE : INACTIVE}>
                 <span className="text-2xl leading-none">{m.emoji}</span>
@@ -163,13 +162,17 @@ export default function PaatakaaView() {
       </section>
 
       {/* Milloin */}
-      <section>
-        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Milloin?</h2>
+      <section ref={milloinRef}
+        className="rounded-2xl transition-shadow"
+        style={milloinFlash ? { boxShadow: '0 0 0 2.5px rgba(107,118,255,.9), 0 0 32px -4px rgba(107,118,255,.55)' } : undefined}>
+        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2 pt-1 px-1">
+          Milloin?{milloinFlash ? ' — valitse päivä tästä 👇' : ''}
+        </h2>
         <div className="grid grid-cols-3 gap-2 mb-3">
           {WHENS.map(w => {
             const active = when === w.id && !customStart
             return (
-              <button key={w.id} onClick={() => { setWhen(w.id); setCustomStart(''); setCustomEnd('') }}
+              <button key={w.id} onClick={() => { setWhen(w.id); setCustomStart(''); setCustomEnd(''); setAppliedArc(null) }}
                 className="flex flex-col items-center gap-1.5 rounded-2xl py-4 transition-all active:scale-[.97]"
                 style={active ? ACTIVE : INACTIVE}>
                 <span className="text-2xl leading-none">{w.emoji}</span>
@@ -263,7 +266,7 @@ export default function PaatakaaView() {
           {BUDGETS.map(b => {
             const active = budget === b.id
             return (
-              <button key={b.id} onClick={() => setBudget(b.id)}
+              <button key={b.id} onClick={() => { setBudget(b.id); setAppliedArc(null) }}
                 className="rounded-full px-3.5 py-2 transition-all active:scale-[.97]"
                 style={active ? ACTIVE : INACTIVE}>
                 <span className="text-[13px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.55)' }}>{b.label}</span>
