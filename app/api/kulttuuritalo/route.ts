@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { scrapeMeta } from '@/lib/scrape-meta'
 
 const VENUE = {
   name: 'Kulttuuritalo',
@@ -27,7 +28,7 @@ async function scrape(): Promise<{ title: string; date: string; ticketUrl: strin
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
     signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const html = await res.text()
   const results: { title: string; date: string; ticketUrl: string }[] = []
@@ -61,7 +62,14 @@ export async function GET(req: NextRequest) {
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 86400000
 
-  const lineup = await scrape().catch(() => [])
+  let lineup: { title: string; date: string; ticketUrl: string }[] = []
+  let scrapeError: string | null = null
+  try {
+    lineup = await scrape()
+  } catch (err) {
+    scrapeError = String(err)
+    console.error('[kulttuuritalo] scrape failed:', err)
+  }
   const events: Event[] = []
   const seen = new Set<string>()
 
@@ -89,5 +97,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ events })
+  return NextResponse.json({ events, ...scrapeMeta(lineup.length, scrapeError) })
 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { parseFinnishDate } from '@/lib/finnish-date'
+import { scrapeMeta } from '@/lib/scrape-meta'
 
 const VENUE = {
   name: 'Juttutupa',
@@ -19,18 +21,10 @@ function decodeHTML(s: string): string {
     .replace(/&[a-z]+;/gi, ' ')
 }
 
+// "02.07." → YYYY-MM-DD; vuoden päättely jaetulla parseFinnishDate:lla
+// (60/183-sääntö: äskeiset eivät hyppää ensi vuoteen)
 function parseDDMM(s: string): string {
-  const m = s.match(/(\d{1,2})\.(\d{2})\./)
-  if (!m) return ''
-  const day = parseInt(m[1])
-  const month = parseInt(m[2])
-  if (day < 1 || day > 31 || month < 1 || month > 12) return ''
-  const todayStr = new Date().toISOString().slice(0, 10)
-  let year = parseInt(todayStr.slice(0, 4))
-  const mm = String(month).padStart(2, '0')
-  const dd = String(day).padStart(2, '0')
-  if (`${year}-${mm}-${dd}` < todayStr) year++
-  return `${year}-${mm}-${dd}`
+  return parseFinnishDate(s)
 }
 
 async function scrape(): Promise<{ title: string; date: string }[]> {
@@ -39,7 +33,7 @@ async function scrape(): Promise<{ title: string; date: string }[]> {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
     signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const html = await res.text()
   const text = decodeHTML(html
@@ -67,8 +61,15 @@ export async function GET(req: NextRequest) {
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 86400000
 
-  const lineup = await scrape().catch(() => [])
-  if (lineup.length === 0) console.warn('[juttutupa] scraper returned 0 events')
+  let lineup: { title: string; date: string }[] = []
+  let scrapeError: string | null = null
+  try {
+    lineup = await scrape()
+  } catch (err) {
+    scrapeError = String(err)
+    console.error('[juttutupa] scrape failed:', err)
+  }
+  if (lineup.length === 0 && !scrapeError) console.warn('[juttutupa] scraper returned 0 events')
   const events: Event[] = []
 
   for (const e of lineup) {
@@ -92,5 +93,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ events })
+  return NextResponse.json({ events, ...scrapeMeta(lineup.length, scrapeError) })
 }

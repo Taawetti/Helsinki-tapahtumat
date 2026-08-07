@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { PAST_DAYS_SAME_YEAR, FUTURE_DAYS_SAME_YEAR } from '@/lib/finnish-date'
+import { scrapeMeta } from '@/lib/scrape-meta'
 
 interface VenueEvent {
   url: string
@@ -22,7 +24,7 @@ async function scrapeTavastiaLike(pageUrl: string, venueName: string, address: s
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
     signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const html = await res.text()
   const daysectionMatch = html.match(/id="block-tiketti-daylist"[\s\S]*/)
@@ -71,7 +73,14 @@ function parseFinnishDate(pvm: string): string {
   const month = parseInt(m[2])
   const today = new Date()
   let year = today.getFullYear()
-  if (new Date(year, month - 1, day) < today) year++
+  // Vuoden päättely 60/183-säännöllä (jaetut vakiot lib/finnish-date.ts):
+  // äskeiset tapahtumat pysyvät kuluvalla vuodella, yli ~puoli vuotta
+  // tulevat tulkitaan edellisen vuoden lopuksi.
+  const msDay = 86400000
+  const candMs = Date.UTC(year, month - 1, day)
+  const todayMs = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  if (candMs > todayMs + FUTURE_DAYS_SAME_YEAR * msDay) year--
+  else if (todayMs - candMs > PAST_DAYS_SAME_YEAR * msDay) year++
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
@@ -81,7 +90,7 @@ async function scrapeKuudesLinja(): Promise<VenueEvent[]> {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
     signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const html = await res.text()
   const articles = html.match(/<article class="event">([\s\S]*?)<\/article>/g) ?? []
@@ -132,7 +141,7 @@ async function scrapeBarLoose(): Promise<VenueEvent[]> {
     `https://barloose.com/wp-json/tribe/events/v1/events?per_page=50&start_date=${today}`,
     { next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(8000) }
   )
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const data = await res.json()
   const events: BarLooseEvent[] = data.events ?? []
@@ -163,7 +172,7 @@ async function scrapeAaniwalli(): Promise<VenueEvent[]> {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
     signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const html = await res.text()
 
@@ -248,8 +257,15 @@ export async function GET(req: NextRequest) {
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 24 * 60 * 60 * 1000
 
-  const allRaw = [tavastiaRes, semifinalRes, kuudesLinjaRes, barLooseRes, aaniwalliRes]
-    .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+  const results = [tavastiaRes, semifinalRes, kuudesLinjaRes, barLooseRes, aaniwalliRes]
+  const scraperNames = ['Tavastia', 'Semifinal', 'Kuudes Linja', 'Bar Loose', 'Ääniwalli']
+
+  const allRaw = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+  // Kovat virheet eivät enää muutu hiljaiseksi []:ksi — ne näkyvät meta.scrapeErrorissa
+  const failed = results
+    .map((r, i) => (r.status === 'rejected' ? `${scraperNames[i]}: ${r.reason}` : null))
+    .filter((s): s is string => s !== null)
+  const scrapeError = failed.length > 0 ? failed.join('; ') : null
 
   const events = allRaw
     .map(toEvent)
@@ -258,5 +274,5 @@ export async function GET(req: NextRequest) {
       return ts >= startTs && ts <= endTs
     })
 
-  return NextResponse.json({ events })
+  return NextResponse.json({ events, ...scrapeMeta(allRaw.length, scrapeError) })
 }

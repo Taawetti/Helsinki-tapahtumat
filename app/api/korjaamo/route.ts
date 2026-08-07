@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { scrapeMeta } from '@/lib/scrape-meta'
 
 const VENUE = {
   name: 'Kulttuuritehdas Korjaamo',
@@ -35,7 +36,7 @@ function parseOvet(s: string): string {
   return m ? `${String(parseInt(m[1])).padStart(2, '0')}:${m[2]}` : '19:00'
 }
 
-async function scrape(startTs: number, endTs: number): Promise<{ title: string; date: string; time: string; ticketUrl: string }[]> {
+async function scrape(): Promise<{ title: string; date: string; time: string; ticketUrl: string }[]> {
   // Use custom event post type exposed by Korjaamo's WordPress
   const res = await fetch(
     'https://korjaamo.fi/wp-json/wp/v2/event?per_page=100&_fields=id,title,link,content',
@@ -45,7 +46,7 @@ async function scrape(startTs: number, endTs: number): Promise<{ title: string; 
       signal: AbortSignal.timeout(8000),
     }
   )
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const posts: WPEvent[] = await res.json()
   const results: { title: string; date: string; time: string; ticketUrl: string }[] = []
@@ -58,9 +59,6 @@ async function scrape(startTs: number, endTs: number): Promise<{ title: string; 
     const content = post.content.rendered
     const date = parseDDMMYYYY(content)
     if (!date) continue
-
-    const ts = new Date(date).getTime()
-    if (ts < startTs || ts >= endTs) continue
 
     const time = parseOvet(content.replace(/<[^>]+>/g, ' '))
     results.push({ title, date, time, ticketUrl: post.link })
@@ -75,11 +73,21 @@ export async function GET(req: NextRequest) {
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 86400000
 
-  const lineup = await scrape(startTs, endTs).catch(() => [])
-  if (lineup.length === 0) console.warn('[korjaamo] scraper returned 0 events')
+  let lineup: { title: string; date: string; time: string; ticketUrl: string }[] = []
+  let scrapeError: string | null = null
+  try {
+    lineup = await scrape()
+  } catch (err) {
+    scrapeError = String(err)
+    console.error('[korjaamo] scrape failed:', err)
+  }
+  if (lineup.length === 0 && !scrapeError) console.warn('[korjaamo] scraper returned 0 events')
   const events: Event[] = []
 
   for (const e of lineup) {
+    // Ikkunafiltteri (siirretty scrapestä, jotta meta.live kertoo parsitut ennen suodatusta)
+    const ts = new Date(e.date).getTime()
+    if (ts < startTs || ts >= endTs) continue
     events.push({
       id: `korjaamo-${e.date.replace(/-/g, '')}-${e.title.slice(0, 20).replace(/\W+/g, '-').toLowerCase()}`,
       title: e.title,
@@ -98,5 +106,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ events })
+  return NextResponse.json({ events, ...scrapeMeta(lineup.length, scrapeError) })
 }

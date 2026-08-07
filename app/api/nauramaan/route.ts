@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { scrapeMeta } from '@/lib/scrape-meta'
 
 // Nauramaan.com lists all Helsinki stand-up events in JSON-LD (schema.org ItemList)
 // embedded in the HTML — no HTML parsing needed, just extract the script tag.
@@ -41,7 +42,7 @@ async function scrape(): Promise<ComedyEvent[]> {
     },
     signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const html = await res.text()
 
@@ -71,8 +72,15 @@ export async function GET(req: NextRequest) {
   const start = searchParams.get('start') || new Date().toISOString().slice(0, 10)
   const end = searchParams.get('end') || start
 
-  const raw = await scrape().catch(() => [])
-  if (raw.length === 0) console.warn('[nauramaan] scraper returned 0 events')
+  let raw: ComedyEvent[] = []
+  let scrapeError: string | null = null
+  try {
+    raw = await scrape()
+  } catch (err) {
+    scrapeError = String(err)
+    console.error('[nauramaan] scrape failed:', err)
+  }
+  if (raw.length === 0 && !scrapeError) console.warn('[nauramaan] scraper returned 0 events')
 
   const events: Event[] = []
   const seen = new Set<string>()
@@ -115,5 +123,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ events })
+  return NextResponse.json({ events, ...scrapeMeta(raw.length, scrapeError) })
 }

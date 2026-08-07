@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { scrapeMeta } from '@/lib/scrape-meta'
 
 // LinkedEvents location id for Vuotalo (tprek:7260)
 const LOCATION_ID = 'tprek:7260'
@@ -55,9 +56,13 @@ export async function GET(req: NextRequest) {
     signal: AbortSignal.timeout(8000),
   }).catch(() => null)
 
-  if (!res?.ok) return NextResponse.json({ events: [] })
+  // HTTP 200 säilyy virheestäkin, jotta aggregaatti ei merkitse lähdettä kuolleeksi
+  if (!res) return NextResponse.json({ events: [], ...scrapeMeta(0, 'fetch epäonnistui') })
+  if (!res.ok) return NextResponse.json({ events: [], ...scrapeMeta(0, 'HTTP ' + res.status) })
 
-  const data = await res.json()
+  const data = await res.json().catch(() => null)
+  if (!data) return NextResponse.json({ events: [], ...scrapeMeta(0, 'JSON-parsevirhe') })
+  const live: number = data.data?.length ?? 0
   const events: Event[] = (data.data || []).map(normalize).filter(Boolean)
-  return NextResponse.json({ events })
+  return NextResponse.json({ events, ...scrapeMeta(live) })
 }

@@ -128,3 +128,60 @@ export function detectSourceAnomalies(payload: CanaryPayload | null, month?: num
 
   return issues
 }
+
+// ── Venue-skraperien terveysputket (meta-itseraportointi + streak-hälytys) ──
+//
+// Jokainen venue-skraperireitti palauttaa meta { live, scrapeError }. Päivittäinen
+// kanaria lukee ne ja päivittää source_health_state-tauluun putket. Hälytys vain
+// kun putki YLITTÄÄ kynnyksen (ei joka päivä uudelleen) — yksittäinen häiriö tai
+// laillinen hiljainen viikko ei saa hälyttää, mutta parserin hiljainen kuolema
+// (vrt. flyingdutchman 8/2026) tulee ilmi ennen kuin käyttäjä huomaa.
+
+export const VENUE_SCRAPERS = [
+  'flyingdutchman',
+  'juttutupa',
+  'lepakkomies',
+  'glivelab',
+  'kulttuuritalo',
+  'postbar',
+  'korjaamo',
+  'nauramaan',
+  'malmitalo',
+  'vuotalo',
+  'savoy',
+] as const
+
+export const VENUE_ZERO_STREAK_ALERT_DAYS = 5   // 0 parsittua ≥5 pv peräkkäin
+export const VENUE_ERROR_STREAK_ALERT_DAYS = 2  // kova virhe ≥2 pv peräkkäin
+
+export interface VenueScrapeSample {
+  live: number | null        // parsittuja ennen ikkunafiltteriä (null = meta puuttui)
+  scrapeError: string | null
+}
+export interface StreakState { zeroStreak: number; errorStreak: number }
+
+// FD-tyylinen "sivu vastasi mutta parse antoi 0" on NOLLAsignaali, ei kova virhe —
+// off-season-kaudella se on laillinen. Kova virhe = fetch/HTTP/JSON-poikkeus.
+function isHardError(scrapeError: string | null): boolean {
+  return !!scrapeError && !scrapeError.includes('parse yielded 0')
+}
+
+/** Puhdas streak-tilakone. Palauttaa uuden tilan ja lipun: hälytetäänkö NYT
+ *  (true vain kynnyksen ylittyessä — ei jokaisena seuraavana päivänä uudelleen). */
+export function nextStreak(prev: StreakState, sample: VenueScrapeSample): { next: StreakState; alert: boolean } {
+  let next: StreakState
+  if (isHardError(sample.scrapeError)) {
+    next = { zeroStreak: 0, errorStreak: prev.errorStreak + 1 }
+    return { next, alert: prev.errorStreak < VENUE_ERROR_STREAK_ALERT_DAYS && next.errorStreak >= VENUE_ERROR_STREAK_ALERT_DAYS }
+  }
+  if (sample.live === 0 || (sample.scrapeError && !isHardError(sample.scrapeError))) {
+    next = { zeroStreak: prev.zeroStreak + 1, errorStreak: 0 }
+    return { next, alert: prev.zeroStreak < VENUE_ZERO_STREAK_ALERT_DAYS && next.zeroStreak >= VENUE_ZERO_STREAK_ALERT_DAYS }
+  }
+  if (sample.live === null) {
+    // Meta puuttui (esim. verkko- tai reittivirhe haettaessa) — älä muuta putkia.
+    return { next: prev, alert: false }
+  }
+  // live > 0, ei virhettä → terve
+  return { next: { zeroStreak: 0, errorStreak: 0 }, alert: false }
+}

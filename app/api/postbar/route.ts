@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { parseFinnishDate } from '@/lib/finnish-date'
+import { scrapeMeta } from '@/lib/scrape-meta'
 
 const VENUE = {
   name: 'Post Bar',
@@ -15,19 +17,15 @@ const MONTHS: Record<string, number> = {
   July: 7, August: 8, September: 9, October: 10, November: 11, December: 12,
 }
 
-// "Saturday July 4th" → "2026-07-04"
+// "Saturday July 4th" → "2026-07-04"; vuoden päättely jaetulla
+// parseFinnishDate:lla (60/183-sääntö)
 function parseEnglishDate(s: string): string {
   const m = s.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d+)/i)
   if (!m) return ''
   const month = MONTHS[m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase()]
   if (!month) return ''
   const day = parseInt(m[2])
-  const todayStr = new Date().toISOString().slice(0, 10)
-  let year = parseInt(todayStr.slice(0, 4))
-  const mm = String(month).padStart(2, '0')
-  const dd = String(day).padStart(2, '0')
-  if (`${year}-${mm}-${dd}` < todayStr) year++
-  return `${year}-${mm}-${dd}`
+  return parseFinnishDate(`${day}.${month}.`)
 }
 
 // "Doors 22-05" or "Doors 22:00" → "22:00"
@@ -42,7 +40,7 @@ async function scrape(): Promise<{ title: string; date: string; time: string }[]
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
     signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const html = await res.text()
   const results: { title: string; date: string; time: string }[] = []
@@ -78,8 +76,15 @@ export async function GET(req: NextRequest) {
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 86400000
 
-  const lineup = await scrape().catch(() => [])
-  if (lineup.length === 0) console.warn('[postbar] scraper returned 0 events')
+  let lineup: { title: string; date: string; time: string }[] = []
+  let scrapeError: string | null = null
+  try {
+    lineup = await scrape()
+  } catch (err) {
+    scrapeError = String(err)
+    console.error('[postbar] scrape failed:', err)
+  }
+  if (lineup.length === 0 && !scrapeError) console.warn('[postbar] scraper returned 0 events')
   const events: Event[] = []
 
   for (const e of lineup) {
@@ -103,5 +108,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ events })
+  return NextResponse.json({ events, ...scrapeMeta(lineup.length, scrapeError) })
 }

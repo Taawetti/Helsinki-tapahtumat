@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { scrapeMeta } from '@/lib/scrape-meta'
 
 const VENUE = {
   name: 'Lepakkomies',
@@ -39,7 +40,7 @@ async function scrape(): Promise<{ title: string; date: string; time: string; ti
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
     signal: AbortSignal.timeout(8000),
   })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error('HTTP ' + res.status)
 
   const html = await res.text()
   const results: { title: string; date: string; time: string; ticketUrl: string }[] = []
@@ -78,8 +79,15 @@ export async function GET(req: NextRequest) {
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 86400000
 
-  const lineup = await scrape().catch(() => [])
-  if (lineup.length === 0) console.warn('[lepakkomies] scraper returned 0 events')
+  let lineup: { title: string; date: string; time: string; ticketUrl: string }[] = []
+  let scrapeError: string | null = null
+  try {
+    lineup = await scrape()
+  } catch (err) {
+    scrapeError = String(err)
+    console.error('[lepakkomies] scrape failed:', err)
+  }
+  if (lineup.length === 0 && !scrapeError) console.warn('[lepakkomies] scraper returned 0 events')
   const events: Event[] = []
 
   for (const e of lineup) {
@@ -103,5 +111,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ events })
+  return NextResponse.json({ events, ...scrapeMeta(lineup.length, scrapeError) })
 }

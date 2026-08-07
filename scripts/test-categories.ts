@@ -8,7 +8,13 @@
 // Testit ovat puhtaita fixtureita: ei verkkoa, ei ympäristöriippuvuuksia.
 
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
-import { detectSourceAnomalies, type CanaryPayload } from '../lib/source-health'
+import {
+  detectSourceAnomalies,
+  nextStreak,
+  type CanaryPayload,
+  type StreakState,
+  type VenueScrapeSample,
+} from '../lib/source-health'
 import { parseSuperterassi, parseSeason } from '../lib/superterassi'
 import { parseSetlistText, parseFinnishDate } from '../lib/flyingdutchman-parse'
 import { weekParamDates } from '../lib/stadissa-weeks'
@@ -595,7 +601,65 @@ for (const c of weekChecks) {
   else failures.push(`✗ weekParamDates: ${c.name} → sai ${c.got.length} sivua, ensimmäinen ${c.got[0]}`)
 }
 
-const total = CASES.length + ysoChecks.length + healthChecks.length + seasonalChecks.length + supChecks.length + fdChecks.length + fdDateChecks.length + weekChecks.length
+// Venue-skraperien streak-tilakone: hiljainen parserikuolema tulee ilmi
+// putkessa, mutta yksittäiset häiriöt ja lailliset hiljaiset viikot EIVÄT hälytä.
+const streakChecks: { name: string; seq: VenueScrapeSample[]; expectAlerts: number[]; finalZero: number; finalError: number }[] = [
+  {
+    name: 'terve putki → ei hälytystä, putket nollassa',
+    seq: [{ live: 12, scrapeError: null }, { live: 3, scrapeError: null }],
+    expectAlerts: [], finalZero: 0, finalError: 0,
+  },
+  {
+    name: 'kova virhe 1 pv → ei hälytystä; 2 pv → hälytys; 3 pv → ei uutta (ei spämmiä)',
+    seq: [
+      { live: null, scrapeError: 'HTTP 500' },
+      { live: null, scrapeError: 'HTTP 500' },
+      { live: null, scrapeError: 'HTTP 500' },
+    ],
+    expectAlerts: [1], finalZero: 0, finalError: 3,
+  },
+  {
+    name: '0 parsittua 4 pv → ei hälytystä; 5. pv → hälytys (hiljainen kuolema)',
+    seq: [
+      { live: 0, scrapeError: null }, { live: 0, scrapeError: null }, { live: 0, scrapeError: null },
+      { live: 0, scrapeError: null }, { live: 0, scrapeError: null },
+    ],
+    expectAlerts: [4], finalZero: 5, finalError: 0,
+  },
+  {
+    name: '"parse yielded 0" on NOLLAsignaali, ei kova virhe (off-season ei spämmää)',
+    seq: [
+      { live: 0, scrapeError: 'parse yielded 0 (sivun rakenne muuttunut?)' },
+      { live: 0, scrapeError: 'parse yielded 0 (sivun rakenne muuttunut?)' },
+    ],
+    expectAlerts: [], finalZero: 2, finalError: 0,
+  },
+  {
+    name: '0-putki katkeaa kun lähde tervehtyy → putket nollautuvat',
+    seq: [{ live: 0, scrapeError: null }, { live: 0, scrapeError: null }, { live: 5, scrapeError: null }],
+    expectAlerts: [], finalZero: 0, finalError: 0,
+  },
+  {
+    name: 'meta puuttuu (live null, ei virhettä) → ei muuta putkia eikä hälytä',
+    seq: [{ live: 0, scrapeError: null }, { live: null, scrapeError: null }, { live: null, scrapeError: null }],
+    expectAlerts: [], finalZero: 1, finalError: 0,
+  },
+]
+for (const c of streakChecks) {
+  let state: StreakState = { zeroStreak: 0, errorStreak: 0 }
+  const alerts: number[] = []
+  c.seq.forEach((sample, i) => {
+    const r = nextStreak(state, sample)
+    if (r.alert) alerts.push(i)
+    state = r.next
+  })
+  const okAlerts = JSON.stringify(alerts) === JSON.stringify(c.expectAlerts)
+  const okState = state.zeroStreak === c.finalZero && state.errorStreak === c.finalError
+  if (okAlerts && okState) pass++
+  else failures.push(`✗ streak: ${c.name} → hälytykset indekseissä [${alerts}], tila ${state.zeroStreak}/${state.errorStreak}`)
+}
+
+const total = CASES.length + ysoChecks.length + healthChecks.length + seasonalChecks.length + supChecks.length + fdChecks.length + fdDateChecks.length + weekChecks.length + streakChecks.length
 console.log(`Kategoria- + kanariatestit: ${pass}/${total} ok`)
 if (failures.length) {
   console.error('\n' + failures.join('\n\n'))

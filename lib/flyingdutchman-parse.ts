@@ -7,6 +7,11 @@
 // varalistalla. Toinen virhe: parseFinnishDate siirsi eilisen keikan
 // ensi vuoteen, joten se katosi näkymästä heti keikkapäivän jälkeen.
 
+// Re-export yhteensopivuuden vuoksi (reitti + testit käyttävät tätä polkua);
+// varsinainen toteutus on jaetussa lib/finnish-date.ts:ssä.
+import { parseFinnishDate } from './finnish-date'
+export { parseFinnishDate }
+
 export interface SetlistItem { title: string; date: string; time: string }
 
 /** HTML → normalisoitu teksti (tagit pois, välilyönnit tiivistetty). */
@@ -18,36 +23,6 @@ export function stripHtml(html: string): string {
     .replace(/&amp;/g, '&')
     .replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
-}
-
-// Kuinka kauas menneisyyteen päivämäärä vielä tulkitaan KULUVAN vuoden
-// tapahtumaksi (esim. eilinen keikka 6.8. kun tänään on 7.8.). Tämän jälkeen
-// oletetaan kyseessä olevan ensi vuoden alun tapahtuma (kausilistan reuna).
-const PAST_DAYS_SAME_YEAR = 60
-// Kuinka kauas tulevaisuuteen päivämäärä vielä tulkitaan kuluvan vuoden
-// tapahtumaksi. Tämän jälkeen oletetaan viime vuoden lopun tapahtumaksi
-// (esim. 29.12. kun tänään on 5.1.).
-const FUTURE_DAYS_SAME_YEAR = 183
-
-/** Parse "D.M." tai "DD.MM." → YYYY-MM-DD. `today` (YYYY-MM-DD) injektoitavissa
- *  testejä varten; oletuksena tämä päivä. */
-export function parseFinnishDate(s: string, today?: string): string {
-  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.$/)
-  if (!m) return ''
-  const day = parseInt(m[1])
-  const month = parseInt(m[2])
-  if (day < 1 || day > 31 || month < 1 || month > 12) return ''
-  const todayStr = today ?? new Date().toISOString().slice(0, 10)
-  const year = parseInt(todayStr.slice(0, 4))
-  const mm = String(month).padStart(2, '0')
-  const dd = String(day).padStart(2, '0')
-  const msDay = 86400000
-  const candMs = Date.parse(`${year}-${mm}-${dd}`)
-  const todayMs = Date.parse(todayStr)
-  let y = year
-  if (candMs > todayMs + FUTURE_DAYS_SAME_YEAR * msDay) y = year - 1
-  else if (todayMs - candMs > PAST_DAYS_SAME_YEAR * msDay) y = year + 1
-  return `${y}-${mm}-${dd}`
 }
 
 /** Poimii settilistatekstistä tapahtumat. Teksti on muotoa
