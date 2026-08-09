@@ -18,6 +18,7 @@ export interface GroupSession {
   area: string                     // v3: ensisijainen alue (back-compat)
   areas: string[]                  // v3.1: kaikki valitut alueet (tyhjä = koko kaupunki)
   budget: string                   // v3: 'any' | 'free' | 'e' | 'ee'
+  maxSteps: number                 // montako vaihetta kaareen (2–4, oletus 4 = koko ilta)
   candidates: Candidate[]
   deckSize: number                 // = candidates.length (selkeys koodissa)
   status: GroupStatus

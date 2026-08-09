@@ -37,6 +37,10 @@ export async function POST(req: NextRequest) {
   }
   const area: string = typeof body.area === 'string' ? body.area.slice(0, 40) : 'kaikki'
   const budget: BudgetId = VALID_BUDGETS.includes(body.budget) ? body.budget : 'any'
+  // Vaihemäärä kaareen (isännän valinta, oletus 4 = koko ilta; sallitut 2–4).
+  const maxSteps = typeof body.maxSteps === 'number' && Number.isInteger(body.maxSteps)
+    ? Math.max(2, Math.min(4, body.maxSteps))
+    : 4
   // v3.1: monivalitut alueet (validoidaan tunnetut id:t)
   const VALID_AREAS = new Set(NEIGHBORHOODS.map(n => n.id))
   const areas: string[] = Array.isArray(body.areas)
@@ -58,7 +62,7 @@ export async function POST(req: NextRequest) {
   }
   if (!code) return NextResponse.json({ error: 'Koodin luonti epäonnistui, yritä uudelleen' }, { status: 500 })
 
-  const { error } = await supabaseAdmin.from('group_sessions').insert({
+  const row: Record<string, unknown> = {
     id: code,
     when_filter: when,
     fiilis,
@@ -72,8 +76,16 @@ export async function POST(req: NextRequest) {
     status: 'open',
     host_id: hostId,
     host_secret: hostSecret,
-  })
+    max_steps: maxSteps,
+  }
+  let { error } = await supabaseAdmin.from('group_sessions').insert(row)
+  // Vara: jos max_steps-migraatio ei ole vielä ehtinyt, luodaan sessio ilman
+  // saraketta (oletus 4) — luonti ei saa koskaan kaatua tämän takia.
+  if (error && /max_steps/i.test(error.message)) {
+    delete row.max_steps
+    ;({ error } = await supabaseAdmin.from('group_sessions').insert(row))
+  }
   if (error) return NextResponse.json({ error: `Session luonti epäonnistui: ${error.message}` }, { status: 500 })
 
-  return NextResponse.json({ code, count: candidates.length, mode })
+  return NextResponse.json({ code, count: candidates.length, mode, maxSteps })
 }

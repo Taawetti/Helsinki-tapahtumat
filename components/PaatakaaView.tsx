@@ -53,6 +53,13 @@ const BUDGETS: { id: BudgetId; label: string }[] = [
   { id: 'ee', label: '€€' },
 ]
 
+// Vaihemäärävalinnat illan kaari -moodiin (n = vaiheiden lkm kaaressa)
+const STEPS_OPTIONS: { n: 2 | 3 | 4; label: string }[] = [
+  { n: 2, label: 'Kevyt ilta' },
+  { n: 3, label: 'Perus' },
+  { n: 4, label: 'Koko ilta' },
+]
+
 const ACTIVE = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 8px 20px -8px rgba(91,101,230,.6)' } as const
 const INACTIVE = { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' } as const
 
@@ -65,6 +72,7 @@ export default function PaatakaaView() {
   const [areas, setAreas] = useState<string[]>([])
   const [scenes, setScenes] = useState<string[]>([])
   const [budget, setBudget] = useState<BudgetId>('any')
+  const [maxSteps, setMaxSteps] = useState<2 | 3 | 4>(4) // montako vaihetta kaareen (vain arc-moodi)
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -110,6 +118,7 @@ export default function PaatakaaView() {
           customEnd: customEnd || null,
           areas,
           budget: b,
+          maxSteps,
         }),
       })
       const data = await res.json()
@@ -275,6 +284,27 @@ export default function PaatakaaView() {
           })}
         </div>
       </section>
+
+      {/* Vaihemäärä — vain illan kaari -moodissa: montako vaihetta kaareen */}
+      {mode === 'arc' && (
+        <section>
+          <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Montako vaihetta?</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {STEPS_OPTIONS.map(o => {
+              const active = maxSteps === o.n
+              return (
+                <button key={o.n} onClick={() => setMaxSteps(o.n)}
+                  className="flex flex-col items-center gap-0.5 rounded-2xl py-3 transition-all active:scale-[.97]"
+                  style={active ? ACTIVE : INACTIVE}>
+                  <span className="text-[15px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.7)' }}>{o.n}</span>
+                  <span className="text-[10.5px] font-bold" style={{ color: active ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.35)' }}>{o.label}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-white/25 text-[12px] font-semibold mt-2">Kaari valitsee tykätyistä eniten äänestetyt vaiheet.</p>
+        </section>
+      )}
 
       {error && <p className="text-red-400/80 text-sm font-bold">{error}</p>}
 

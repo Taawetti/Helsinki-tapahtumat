@@ -173,11 +173,13 @@ export function arcFromSelection(
 // Valitsee tykätyt kortit kaareksi TIUKOIN säännöin ja aikatauluttaa ne
 // luottamusmoottorilla. variant > 0 kiertää roolisisäisiä valintoja
 // ("kudo uudelleen" → eri yhdistelmä, edelleen 0 €).
+// opts.maxSteps: montako vaihetta kaareen (isännän valinta, oletus 4 = kaikki
+// roolit) — roolit valitaan äänimmäärän mukaan, tasatilanteessa illan kulkujärjestys.
 export function buildDeterministicArc(
   loved: Candidate[],
   votes: Record<string, { love: number; skip: number }>,
   superIds: Set<string>,
-  opts: { when: GroupWhen; variant?: number; date?: string; nowH?: number },
+  opts: { when: GroupWhen; variant?: number; date?: string; nowH?: number; maxSteps?: number },
 ): GroupArcPlan | null {
   if (loved.length === 0) return null
   const variant = opts.variant ?? 0
@@ -216,13 +218,22 @@ export function buildDeterministicArc(
   for (const q of byRole.values()) q.sort(byLove)
 
   // 2. TIIKKA valinta: max 1 per rooli + max 1 per alatyyppi (esim. 2 saunaa
-  //    on aina virhe). variant kiertää roolin sisäistä jonoa aloittaen
-  //    kierroksesta mutta palaa aina parhaaseen kun variant=0.
+  //    on aina virhe), ja korkeintaan maxSteps roolia — valittuna ne, joissa
+  //    on eniten ❤️ (tasatilanteessa illan luontainen kulku ratkaisee).
+  //    variant kiertää roolin sisäistä jonoa aloittaen kierroksesta mutta
+  //    palaa aina parhaaseen kun variant=0.
+  const maxSteps = Math.max(1, Math.min(6, opts.maxSteps ?? ROLE_ORDER.length))
+  const roleLoves = (role: CandidateRole) =>
+    (byRole.get(role) ?? []).reduce((sum, c) => sum + (votes[c.id]?.love ?? 0), 0)
+  const rolesPicked = ROLE_ORDER
+    .filter(r => (byRole.get(r)?.length ?? 0) > 0)
+    .sort((a, b) => roleLoves(b) - roleLoves(a) || ROLE_ORDER.indexOf(a) - ROLE_ORDER.indexOf(b))
+    .slice(0, maxSteps)
+
   const picked: Candidate[] = []
   const usedSub = new Set<string>()
-  for (const role of ROLE_ORDER) {
-    const q = byRole.get(role)
-    if (!q?.length) continue
+  for (const role of rolesPicked) {
+    const q = byRole.get(role)!
     for (let k = 0; k < q.length; k++) {
       const cand = q[(variant + k) % q.length]
       if (usedSub.has(subtypeOf(cand))) continue

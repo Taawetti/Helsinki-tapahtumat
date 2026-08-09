@@ -24,6 +24,16 @@ export const ROLE_ORDER: CandidateRole[] = ['activity', 'food', 'drinks', 'progr
 // vasta: edellinen alku + kesto + kulkuaika + puskuri.
 export const DUR_H: Record<CandidateRole, number> = { activity: 2, food: 1.5, drinks: 1, program: 2 }
 
+// Roolikohtaiset sallitut ALOITUSAJAT (sane windows): ravintolaa ei koskaan
+// klo 8 aamulla eikä drinkkejä klo 10 — myös kun aukiolodata puuttuu.
+// Pätee vaiheisiin, joilla EI ole openingHours-dataa; datalliset ohjaa clamp.
+export const ROLE_START_WINDOW: Record<CandidateRole, [number, number]> = {
+  activity: [9, 21.5],
+  food: [10.5, 21.5],
+  drinks: [14, 23.75],
+  program: [0, 24],
+}
+
 // Siirtymäpuskuri: ryhmä ei ole kone — pukeutuminen, odottelu, jonot.
 export const TRAVEL_BUFFER_H = 0.25
 
@@ -141,7 +151,8 @@ export function scheduleSteps(cards: Candidate[], opts: ScheduleOpts): TimedStep
       }
 
       // Aukiolot: sovita päivän aukioloaikoihin (minimi kesto roolin mukaan);
-      // kiinni koko päivän → pudota kortti.
+      // kiinni koko päivän → pudota kortti. Ilman tuntidata rooli-ikkuna
+      // varmistaa saneet ajat (ei ruokaa klo 8 eikä drinkkejä klo 11).
       if (t.c.openingHours) {
         const minDur = t.c.role === 'food' || t.c.role === 'activity' ? 1.25 : 1
         const clamped = clampToOpenHour(t.c.openingHours, arcDay, h, minDur)
@@ -151,6 +162,9 @@ export function scheduleSteps(cards: Candidate[], opts: ScheduleOpts): TimedStep
           break
         }
         h = clamped
+      } else {
+        const [w0, w1] = ROLE_START_WINDOW[t.c.role]
+        h = Math.min(Math.max(h, w0), w1)
       }
 
       // Yön raja: joustava ei saa työntyä yli 23.30 — yritä aikaisempi ikkuna,
@@ -164,10 +178,13 @@ export function scheduleSteps(cards: Candidate[], opts: ScheduleOpts): TimedStep
       if (Math.abs(h - t.startH) > 1e-9) { t.startH = h; changed = true }
     }
 
-    // Ankkurikonflikti: joustava ketju työntyi ankkurin yli → vedä joustavat
-    // AIKAISEMMIN niin että ankkuriin ehditään (kesto + kulku + puskuri).
-    // Tämä vaihe ajetaan AINA, myös kun kaskadi ei muuttanut mitään —
-    // muuten ankkurin yli menevä ketju jäisi korjaamatta.
+    // Ankkurikonflikti: joustava ketju työntyi ankkurin yli. Kolme vaihtoehtoa
+    // järjestyksessä:
+    //  1) vedä ketjua AIKAISEMMIN — vain jos ankkurin ETTEN mahtuu aidosti
+    //     (rooli-ikkuna + aukiolot samalla hetkellä + nyt-raja)
+    //  2) muuten siirrä joustava ankkurin JÄLKEEN (Grön-tapaus 8/2026: ravintola
+    //     on kiinni louna-aikaan mutta auki illalla → ruoka ohjelman jälkeen)
+    //  3) jos sekään ei onnistu → pudota (realistinen kaari > täysi kaari)
     timed.sort((a, b) => a.startH - b.startH)
     for (let i = 1; i < timed.length; i++) {
       const anchor = timed[i]
@@ -176,18 +193,45 @@ export function scheduleSteps(cards: Candidate[], opts: ScheduleOpts): TimedStep
       if (prev.fixed) continue
       const travelH = (walkMinutesBetween(prev.c, anchor.c) ?? 0) / 60
       const latestStart = anchor.startH - travelH - TRAVEL_BUFFER_H - prev.durH
-      if (prev.startH > latestStart + 1e-9) {
-        // Veda ketjua taaksepäin tämän ja sitä edeltävien joustavien osalta
+      if (prev.startH <= latestStart + 1e-9) continue
+
+      const prevMinDur = prev.c.role === 'food' || prev.c.role === 'activity' ? 1.25 : 1
+      const floor = opts.nowH != null ? opts.nowH + 0.25 : -Infinity
+      const clampedBack = prev.c.openingHours
+        ? clampToOpenHour(prev.c.openingHours, arcDay, latestStart, prevMinDur)
+        : latestStart
+      const feasibleBack =
+        latestStart >= floor &&
+        latestStart >= ROLE_START_WINDOW[prev.c.role][0] &&
+        clampedBack != null &&
+        Math.abs(clampedBack - latestStart) < 1e-9
+
+      if (feasibleBack) {
+        // 1) Vedä ketjua taaksepäin tämän ja sitä edeltävien joustavien osalta
         const delta = prev.startH - latestStart
         for (let j = i - 1; j >= 0; j--) {
           if (timed[j].fixed) break
           timed[j].startH -= delta
         }
-        // Jos ketju meni nyt-rajan tai järjen alle, pudota edellinen joustava
-        const floor = opts.nowH != null ? opts.nowH + 0.25 : -Infinity
-        if (prev.startH < floor || prev.startH < 8) {
-          timed.splice(i - 1, 1)
-        }
+        changed = true
+        continue
+      }
+
+      // 2) Siirrä ankkurin jälkeen — paikka ei ole auki / ei mahdu ennen
+      //    ohjelmaa, mutta voi olla täysin validi myöhemmin (esim. illallinen).
+      const afterH = anchor.startH + anchor.durH + travelH + TRAVEL_BUFFER_H
+      let placed: number | null = afterH
+      if (prev.c.openingHours) {
+        placed = clampToOpenHour(prev.c.openingHours, arcDay, afterH, prevMinDur)
+      } else if (afterH < ROLE_START_WINDOW[prev.c.role][0] || afterH > ROLE_START_WINDOW[prev.c.role][1]) {
+        placed = null
+      }
+      if (placed != null && placed <= ARC_END_CAP_H) {
+        prev.startH = placed
+        changed = true
+      } else {
+        // 3) Ei mahtunut ennen eikä jälkeen → pudota
+        timed.splice(i - 1, 1)
         changed = true
       }
     }

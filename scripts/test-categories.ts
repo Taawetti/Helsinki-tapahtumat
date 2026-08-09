@@ -777,13 +777,59 @@ const arcFixtures: { name: string; ok: boolean }[] = []
   arcFixtures.push({ name: 'toteutettavuus: ruoka aikaisemmin jotta keikalle ehditään', ok })
 }
 
-// 6. Mahdoton tilanne: ohjelma 18:00, aktiviteetti (2h) ja nyt klo 17 →
-//    aktiviteetti PUTOSI (ei mennyttä/kiireistä vaihetta kaaressa)
+// 6. Ei mahdu ennen ohjelmaa (nyt 17, ohjelma 18, aktiviteetti 2h) →
+//    aktiviteetti SIIRTYY ohjelman jälkeen (post-anchor placement) —
+//    parempi kuin pudottaa: museo voi olla validi 20:15 alkaen.
 {
   const aktiviteetti = mkCand({ role: 'activity', title: 'Aktiviteetti', tags: ['museo'], openingHours: 'Mo-Su 09:00-23:00', ...CENTER, _score: 3 })
-  const keikka18 = mkCand({ type: 'event', role: 'program', title: 'Keikka klo 18', tags: ['keikka'], time: 'to 18.00', ...CENTER, _score: 5 })
+  const keikka18 = mkCand({ type: 'event', role: 'program', title: 'Keikka klo 18', tags: ['keikka'], time: 'to 18.00', dateISO: ARC_DAY, ...CENTER, _score: 5 })
   const plan = buildDeterministicArc([aktiviteetti, keikka18], mkVotes({ [aktiviteetti.id]: 2, [keikka18.id]: 2 }), superEi, { when: 'tonight', date: ARC_DAY, nowH: 17 })
-  arcFixtures.push({ name: 'mahdoton joustava vaihe putoaa ankkurin tieltä', ok: plan != null && !plan.arc.some(s => s.title === 'Aktiviteetti') && plan.arc.some(s => s.role === 'program') })
+  const actStep = plan?.arc.find(s => s.title === 'Aktiviteetti')
+  const progIdx = plan?.arc.findIndex(s => s.role === 'program') ?? -1
+  const actIdx = plan?.arc.findIndex(s => s.title === 'Aktiviteetti') ?? -1
+  const actH = actStep?.time?.match(/(\d{1,2})(?:\.(\d{2}))?/)
+  arcFixtures.push({ name: 'ei mahdu ennen → siirtyy ohjelman jälkeen (klo 20.15)', ok: plan != null && actIdx > progIdx && actH != null && Number(actH[1]) + Number(actH[2] ?? 0) / 60 >= 20 })
+}
+
+// 6b. GRÖN-skenaario (käyttäjätapaus 8/2026): Michelin-ravintola auki vasta
+//     17:00 → EI saa tulla klo 11.15 (kiinni), vaan ohjelman jälkeen klo 17.
+{
+  const LA = '2026-08-08' // lauantai
+  const gron = mkCand({ type: 'restaurant', role: 'food', title: 'Grön', tags: ['ravintola'], openingHours: 'We 17:00-24:00, Th 17:00-24:00, Fr 17:00-24:00, Sa 13:00-15:30,17:00-24:00', ...CENTER, _score: 5 })
+  const teatteri13 = mkCand({ type: 'event', role: 'program', title: 'Teatteri klo 13', tags: ['teatteri'], time: 'la 13.00', dateISO: LA, ...CENTER, _score: 4 })
+  const plan = buildDeterministicArc([gron, teatteri13], mkVotes({ [gron.id]: 3, [teatteri13.id]: 2 }), superEi, { when: 'weekend', date: LA })
+  const food = plan?.arc.find(s => s.role === 'food')
+  const foodH = food?.time?.match(/(\d{1,2})(?:\.(\d{2}))?/)
+  const progIdx = plan?.arc.findIndex(s => s.role === 'program') ?? -1
+  const foodIdx = plan?.arc.findIndex(s => s.role === 'food') ?? -1
+  const h = foodH ? Number(foodH[1]) + Number(foodH[2] ?? 0) / 60 : 0
+  arcFixtures.push({ name: 'Grön: ei klo 11.15 (kiinni) vaan klo 17 ohjelman jälkeen', ok: plan != null && food != null && h >= 16.75 && h <= 17.25 && foodIdx > progIdx })
+}
+
+// 6c. Rooli-ikkuna ilman aukiolodataa: ruoka ei voi alkaa ennen klo 10.30
+//     (ohjelma 12:00 → ruoka ei mahdu eteen → ohjelman jälkeen 14.15)
+{
+  const ruokaNoH = mkCand({ type: 'restaurant', role: 'food', title: 'Ravintola ilman tunteja', tags: ['ravintola'], ...CENTER, _score: 3 })
+  const ohjelma12 = mkCand({ type: 'event', role: 'program', title: 'Ohjelma klo 12', tags: ['keikka'], time: 'la 12.00', dateISO: '2026-08-08', ...CENTER, _score: 5 })
+  const plan = buildDeterministicArc([ruokaNoH, ohjelma12], mkVotes({ [ruokaNoH.id]: 2, [ohjelma12.id]: 2 }), superEi, { when: 'weekend', date: '2026-08-08' })
+  const food = plan?.arc.find(s => s.role === 'food')
+  const foodH = food?.time?.match(/(\d{1,2})(?:\.(\d{2}))?/)
+  const h = foodH ? Number(foodH[1]) + Number(foodH[2] ?? 0) / 60 : 0
+  arcFixtures.push({ name: 'rooli-ikkuna: ruoka ei ennen 10.30 (→ ohjelman jälkeen)', ok: plan != null && food != null && h >= 10.5 && h >= 14 })
+}
+
+// 6d. maxSteps: isäntä valitsi 2 vaihetta → kaaressa TASAN 2 vaihetta,
+//     ja ne ovat eniten äänestetyt roolit (food+activity, ei drinks/program)
+{
+  const foodA = mkCand({ type: 'restaurant', role: 'food', title: 'Ruoka A', tags: ['ravintola'], openingHours: 'Mo-Su 10:00-23:00', _score: 3 })
+  const drinkA = mkCand({ type: 'restaurant', role: 'drinks', title: 'Baari A', tags: ['baari'], openingHours: 'Mo-Su 14:00-24:00', _score: 3 })
+  const actA = mkCand({ role: 'activity', title: 'Sauna A', tags: ['sauna'], openingHours: 'Mo-Su 10:00-21:00', _score: 3 })
+  const progA = mkCand({ type: 'event', role: 'program', title: 'Keikka A', tags: ['keikka'], time: 'la 20.00', dateISO: '2026-08-08', ...CENTER, _score: 3 })
+  const plan = buildDeterministicArc([foodA, drinkA, actA, progA],
+    mkVotes({ [foodA.id]: 3, [actA.id]: 2, [drinkA.id]: 2, [progA.id]: 1 }), superEi,
+    { when: 'tonight', date: '2026-08-08', maxSteps: 2 })
+  const roles = plan?.arc.map(s => s.role).sort() ?? []
+  arcFixtures.push({ name: 'maxSteps=2 → tasan 2 vaihetta, eniten äänestetyt roolit', ok: plan != null && plan.arc.length === 2 && JSON.stringify(roles) === JSON.stringify(['activity', 'food']) })
 }
 
 // 7. Nyt-tietoisuus: klo 22 tonight → eka vaihe ≥ 22.45 (ei mennyttä aikaa)

@@ -11,11 +11,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cod
   const { code } = await params
   if (!isSupabaseConfigured() || !supabase) return NextResponse.json({ error: 'Supabase ei ole konfiguroitu' }, { status: 500 })
 
-  const { data: session, error } = await supabase
+  const SESSION_COLS = 'id, when_filter, fiilis, mode, round, custom_start, custom_end, area, areas, budget, candidates, status, result_plan, host_id'
+  let { data: session, error } = await supabase
     .from('group_sessions')
-    .select('id, when_filter, fiilis, mode, round, custom_start, custom_end, area, areas, budget, candidates, status, result_plan, host_id')
+    .select(`${SESSION_COLS}, max_steps`)
     .eq('id', code.toUpperCase())
     .maybeSingle()
+
+  // Vara: jos max_steps-migraatio ei ole vielä ehtinyt kantaan, haetaan ilman
+  // saraketta (oletus 4) — sessioiden luku ei saa koskaan kaatua tähän.
+  if (error && /max_steps/i.test(error.message)) {
+    ;({ data: session, error } = await supabase
+      .from('group_sessions')
+      .select(SESSION_COLS)
+      .eq('id', code.toUpperCase())
+      .maybeSingle())
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
@@ -39,6 +50,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cod
     area: (session.area ?? 'kaikki') as string,
     areas: (session.areas ?? []) as string[],
     budget: (session.budget ?? 'any') as string,
+    maxSteps: typeof session.max_steps === 'number' ? session.max_steps : 4,
     candidates,
     deckSize: candidates.length,
     status: session.status as GroupStatus,

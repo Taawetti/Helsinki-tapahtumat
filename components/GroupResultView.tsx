@@ -72,9 +72,10 @@ export default function GroupResultView({
     return `~${lo}–${hi} €/hlö`
   }, [plan.arc])
 
-  // TÄYSOSUMA-juhla: kerran per tulos (sessionStorage-muisti), kun koko porukka
-  // on tykännyt vähintään yhdestä vaiheesta. Näytetään asynkronisesti
-  // (setState vain timeout-callbackissa → ei hydration-/set-state-virhettä).
+  // TÄYSOSUMA-juhla: kerran per tulos (sessionStorage-muisti). Piilotus on
+  // PUHDAS CSS-animaatio (visibility:hidden lopussa) — aiempi setTimeout-piilotus
+  // jäi joskus tulematta, kun efekti ehti ajautua uudelleen poltauksen yhteydessä
+  // ja overlay jäi näyttöön (käyttäjätapaus 8/2026).
   const [celebrate, setCelebrate] = useState(false)
   useEffect(() => {
     if (!plan.arc.some(s => s.superMatch)) return
@@ -83,8 +84,7 @@ export default function GroupResultView({
       sessionStorage.setItem(`paatakaa-celebrated-${code}`, '1')
     } catch { /* privaattitila — näytä silti */ }
     const t0 = setTimeout(() => setCelebrate(true), 60)
-    const t1 = setTimeout(() => setCelebrate(false), 2460)
-    return () => { clearTimeout(t0); clearTimeout(t1) }
+    return () => clearTimeout(t0)
   }, [code, plan.arc])
 
   const fmtDate = plan.date
@@ -94,9 +94,9 @@ export default function GroupResultView({
 
   return (
     <main className="max-w-lg mx-auto px-4 pt-6 pb-24 space-y-5">
-      {/* TÄYSOSUMA-overlay (kerran) */}
+      {/* TÄYSOSUMA-overlay (kerran; piiloutuu CSS-animaation loppuun) */}
       {celebrate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none paatakaa-celebrate"
           style={{ background: 'radial-gradient(ellipse at center, rgba(251,191,36,.18), transparent 65%)' }}>
           <div className="text-center" style={{ animation: 'paatakaa-pop .55s cubic-bezier(.2,1.6,.4,1) both' }}>
             <p className="text-7xl mb-2">🎉</p>
@@ -110,6 +110,13 @@ export default function GroupResultView({
           0% { transform: scale(.4); opacity: 0 }
           100% { transform: scale(1); opacity: 1 }
         }
+        @keyframes paatakaa-celebrate-hide {
+          0% { opacity: 0 }
+          10% { opacity: 1 }
+          78% { opacity: 1 }
+          100% { opacity: 0; visibility: hidden }
+        }
+        .paatakaa-celebrate { animation: paatakaa-celebrate-hide 2.4s ease-out both; }
       `}</style>
 
       {/* Hero */}

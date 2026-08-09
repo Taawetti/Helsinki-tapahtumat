@@ -51,6 +51,16 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: st
     return `${origin}/api/events?${evParams}`
   })
 
+  // KLUBILÄHTEET: quick=1 hakee vain LinkedEvents-rungon, joten klubikeikat
+  // (Resident Advisor, Ticketmaster, Fienta, Billetto, Lippu.fi) eivät koskaan
+  // päätyneet ryhmäpäätöspakkaan (käyttäjätapaus 8/2026: "valitsin keikat/
+  // klubit lauantaille, eikä pakassa ollut keikkoja"). Haetaan ne erikseen
+  // rinnakkain — jokainen reitti vastaa nopeasti omasta lähteestään, ja
+  // buildDeck deduppaa otsikoiden perusteella.
+  const CLUB_SOURCES = ['ra', 'ticketmaster', 'fienta', 'billetto', 'lippu']
+  const clubParams = new URLSearchParams({ start, end })
+  const clubFetches = CLUB_SOURCES.map(name => `${origin}/api/${name}?${clubParams}`)
+
   // Yksittäisen lähteen kaatuminen ei estä pakkaa.
   const j = async <T,>(url: string, fallback: T): Promise<T> => {
     try {
@@ -64,7 +74,7 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: st
     j<{ activities: Activity[] }>(`${origin}/api/activities`, { activities: [] }),
     j<{ ratings: Record<string, { rating: number; reviewCount: number }> }>(`${origin}/api/venue-ratings`, { ratings: {} }),
     fetchRainExpected(start).catch(() => null), // sade-ennuste pakan päivälle (ei avainta)
-    ...eventFetches.map(url => j<{ events: Event[] }>(url, { events: [] })),
+    ...[...eventFetches, ...clubFetches].map(url => j<{ events: Event[] }>(url, { events: [] })),
   ])
 
   const activityRatings = new Map<string, { rating: number; reviewCount: number }>()

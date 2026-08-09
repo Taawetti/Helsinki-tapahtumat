@@ -87,10 +87,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const regenerate = body.regenerate === true
 
   const sessionId = code.toUpperCase()
-  const { data: session } = await supabaseAdmin
+  const SYNTH_COLS = 'candidates, status, when_filter, fiilis, mode, custom_start, result_plan, host_id, host_secret'
+  let { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('candidates, status, when_filter, fiilis, mode, custom_start, result_plan, host_id, host_secret')
+    .select(`${SYNTH_COLS}, max_steps`)
     .eq('id', sessionId).maybeSingle()
+  // Vara: jos max_steps-migraatio ei ole vielä ehtinyt kantaan (oletus 4).
+  if (!session) {
+    const retry = await supabaseAdmin
+      .from('group_sessions')
+      .select(SYNTH_COLS)
+      .eq('id', sessionId).maybeSingle()
+    session = retry.data as typeof session
+  }
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
   if (session.mode === 'quick') {
     return NextResponse.json({ error: 'Pikapäätös-sessiossa voittaja ratkeaa äänillä automaattisesti' }, { status: 400 })
@@ -144,7 +153,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
     const nowH = arcDate === helsinkiToday()
       ? helsinkiNow().getHours() + helsinkiNow().getMinutes() / 60
       : undefined
-    const plan = buildDeterministicArc(loved, votes, superIds, { when, variant, date: arcDate, nowH })
+    const plan = buildDeterministicArc(loved, votes, superIds, {
+      when, variant, date: arcDate, nowH,
+      maxSteps: typeof session.max_steps === 'number' ? session.max_steps : undefined,
+    })
     if (!plan) return NextResponse.json({ error: 'Tykätyistä ei saada muodostettua kaarta — tykätkää lisää kohteita tai kudokaa uudelleen' }, { status: 400 })
 
     // Todelliset joukkoliikenneajat transit-väleille (Digitransit, jos avain on)
