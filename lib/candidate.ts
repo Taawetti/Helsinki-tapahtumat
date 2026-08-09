@@ -86,9 +86,37 @@ function restaurantEmoji(r: Restaurant): string {
   if (r.type === 'kahvila') return '☕'
   return '🍽'
 }
+// Venuet, joilla on OMA tapahtumaskraperi — niiden keikat tulevat pakkaan
+// oikeina tapahtumakortteina (nimetty keikka + oikea alkamisaika). Näiden
+// paikkojen geneerinen yokerho-kortti pääohjelmaroolissa on virhe: paikkaa ei
+// voi ehdottaa pääohjelmaksi ilman nimettyä keikkaa (käyttäjätapaus 8/2026:
+// "G Livelab klo 22.15" — ei keikan nimeä, ei oikeaa aikaa, keikkaa ei
+// löytynyt). Normalisoidut nimet (lowercase, trim).
+const SCRAPED_VENUE_PROGRAM_SUPPRESS = new Set([
+  'g livelab',
+  'juttutupa',
+  'lepakkomies',
+  'flying dutch',
+  'kulttuuritalo',
+  'post bar',
+  'korjaamo',
+  'malmitalo',
+  'vuotalo',
+  'savoy-teatteri',
+  'nauramaan',
+  'tavastia',
+  'tavastia-klubi',
+  'kuudes linja',
+  'bar loose',
+  'ääniwalli',
+])
+
 // isRatedAtLeast-logiikan mukaelma (RestaurantsView): Michelin/Bib korvaa
 // arvostelumäärän ja puuttuvan arvosanan, muttei kynnyksen alittavaa arvosanaa.
 function restaurantPasses(r: Restaurant, enforceOpen: boolean): boolean {
+  // Skrapatut venuet eivät saa tulla geneerisenä pääohjelmana — niiden
+  // ohjelma näkyy oikeina tapahtumakortteina tai ei lainkaan.
+  if (r.type === 'yokerho' && SCRAPED_VENUE_PROGRAM_SUPPRESS.has(r.name.toLowerCase().trim())) return false
   const award = !!(r.michelinStars || r.bibGourmand || r.michelinRecommended)
   // Auki-portti vain kun kyse on TÄSTÄ hetkestä (tonight). 'day'/'weekend' ovat
   // laajempia ikkunoita → nykyhetken kiinniolo ei saa karsia (avautuu myöhemmin).

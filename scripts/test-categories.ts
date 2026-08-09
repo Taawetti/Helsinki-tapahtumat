@@ -24,7 +24,7 @@ import { walkMinutesBetween } from '../lib/group'
 import { buildDeck } from '../lib/candidate'
 import { venueHoursOverride } from '../lib/venue-hours-overrides'
 import type { Candidate, CandidateRole } from '../lib/candidate'
-import type { Event } from '../lib/types'
+import type { Event, Restaurant } from '../lib/types'
 
 type Case = {
   name: string
@@ -898,6 +898,25 @@ const arcFixtures: { name: string; ok: boolean }[] = []
     { when: 'tonight', fiilis: [] },
   )
   arcFixtures.push({ name: 'pakka: mennyt tapahtuma karsitaan, tuleva säilyy', ok: deck.some(c => c.id === 'e-ev-tuleva') && !deck.some(c => c.id === 'e-ev-eilen') })
+}
+
+// 15. PAKKA: skrapattu venue (G Livelab) ei tule geneerisenä PÄÄOHJELMANA
+//     (sen keikat tulevat oikeina tapahtumakortteina), mutta tuntematon
+//     klubi saa tulla (siitä ei ole muuta signaalia). Tapa 8/2026.
+{
+  const mkResto = (id: string, name: string): Restaurant => ({
+    id, name, description: '', cuisines: [], cuisineCategories: [], address: 'Helsinki', city: 'Helsinki',
+    image: 'https://example.com/k.jpg', www: null, phone: null,
+    type: 'yokerho', googleRating: 4.5, reviewCount: 100,
+  })
+  const deck = buildDeck(
+    { events: [], restaurants: [mkResto('r-gl', 'G Livelab'), mkResto('r-rand', 'Random Klubi')], activities: [], activityRatings: new Map() },
+    { when: 'tonight', fiilis: [] },
+  )
+  arcFixtures.push({
+    name: 'pakka: G Livelab ei geneerisenä ohjelmana, tuntematon klubi saa',
+    ok: !deck.some(c => c.title === 'G Livelab') && deck.some(c => c.title === 'Random Klubi'),
+  })
 }
 
 const arcChecks = arcFixtures
