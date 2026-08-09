@@ -298,6 +298,26 @@ export interface DeckOptions {
   budget?: BudgetId      // v3: budjettisuodatin
   areas?: string[]       // v3.1: valitut alueet (bbox-unioni; tyhjä = ei rajaa)
   weather?: { rainExpected: boolean } | null  // sade: ulkokohteet alas, sisä ylös
+  seed?: string          // siemen vaihteluun: sama siemen → sama pakka (ryhmä),
+                         // eri siemen → eri pakka (uusi sessio / rematch)
+  excludeIds?: Set<string>  // kortit joita EI saa ottaa (edellisen kierroksen pakka)
+}
+
+// Pieni deterministinen PRNG siemenvaihteluun (mulberry32 + string-hash).
+// Sama siemen → sama lukuja → sama pakka; ryhmä näkee aina identtisen pakan.
+function seedRand(seed: string): () => number {
+  let h = 1779033703 ^ seed.length
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353)
+    h = (h << 13) | (h >>> 19)
+  }
+  let a = h >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
 }
 
 // Sateen vaikutukset pisteytykseen (open-meteo, ryhmäpäätöspakka)
@@ -310,6 +330,7 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
   const size = opts.size ?? 24
   const budget: BudgetId = opts.budget ?? 'any'
   const enforceOpen = opts.when === 'tonight'   // vain "tänä iltana" karsii kiinniolevat nyt
+  const rand = seedRand(opts.seed ?? 'paatakaa')
   const all: Candidate[] = []
 
   for (const r of input.restaurants) {
@@ -330,7 +351,10 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
   }
 
   // Fiilis/scene painottaa (soft), budjetti+alue suodattavat (hard), sää
-  // säätää ulkokohteita (sade), sitten dedup titlellä
+  // säätää ulkokohteita (sade), sitten dedup titlellä.
+  // SIEMEN-MAUSTE: ±8 % pisteytystä, deterministinen siemenestä — samoilla
+  // syötteillä ei enää tule JOKA kerta samoja kortteja. Laatulattiat ovat jo
+  // ajettu yllä; tämä vain vaihtelee mitkä kelpuutetuista pääsevät mukaan.
   const rain = opts.weather?.rainExpected === true
   const seen = new Set<string>()
   const scored = all
@@ -338,9 +362,10 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
       let s = c._score + fiilisBoost(c, opts.fiilis)
       if (rain && c.type === 'activity' && c.tags?.some(t => OUTDOOR_RAIN_CATS.includes(t as ActivityCategory))) s -= 3.5
       if (rain && c.tags?.some(t => INDOOR_RAIN_BOOST_CATS.includes(t as ActivityCategory))) s += 0.8
+      s *= 0.92 + rand() * 0.16
       return { ...c, _score: s }
     })
-    .filter(c => budgetOk(c, budget) && areaOk(c, opts.areas) && (!opts.fiilis.includes('ilmaista') || c.isFree === true))
+    .filter(c => budgetOk(c, budget) && areaOk(c, opts.areas) && (!opts.fiilis.includes('ilmaista') || c.isFree === true) && !opts.excludeIds?.has(c.id))
     .sort((x, y) => y._score - x._score)
     .filter(c => {
       const k = c.title.toLowerCase().trim()
@@ -389,6 +414,21 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
         picked.push(byRole[role][cursor[role]++])
         progress = true
       }
+    }
+  }
+
+  // 3. DISCOVERY-PAIKAT: korvaa muutama hännän kortti siemen-valituilla
+  //    "yllätyksillä" pistekaistan keskeltä (laatulattian läpäisseitä, ei
+  //    kärkipaikkoja) — joka pakassa on aina jotain uutta, ei aina samoja.
+  //    Merkitään 🎲-badgella (paitsi jos kortilla on jo arvokkaampi badge).
+  const discoverySlots = picked.length >= size ? Math.min(3, Math.max(1, Math.floor(size / 8))) : 0
+  if (discoverySlots > 0) {
+    const inPicked = new Set(picked.map(c => c.id))
+    const band = scored.slice(size, size * 4).filter(c => !inPicked.has(c.id))
+    for (let s = 0; s < discoverySlots && band.length > 0; s++) {
+      const idx = Math.floor(rand() * band.length)
+      const [c] = band.splice(idx, 1)
+      picked[picked.length - 1 - s] = { ...c, badge: c.badge ?? '🎲 Yllätys' }
     }
   }
 

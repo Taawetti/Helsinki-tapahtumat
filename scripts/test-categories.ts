@@ -919,6 +919,48 @@ const arcFixtures: { name: string; ok: boolean }[] = []
   })
 }
 
+// 16–19. PAKAN VAIHTELU (toistuvuuskorjaus 8/2026): sama siemen → sama pakka
+// ryhmälle, eri siemen → eri pakka; rematch-exkluusio; discovery-paikat.
+{
+  const mkR = (i: number): Restaurant => ({
+    id: `r-${i}`, name: `Ravintola ${i}`, description: '', cuisines: [], cuisineCategories: [], address: 'Helsinki', city: 'Helsinki',
+    image: 'https://example.com/k.jpg', www: null, phone: null,
+    type: 'ravintola', googleRating: 4.0 + (i % 10) * 0.1, reviewCount: 60 + i,
+  })
+  const pool = Array.from({ length: 40 }, (_, i) => mkR(i))
+  const input = { events: [], restaurants: pool, activities: [], activityRatings: new Map() }
+
+  const deckA1 = buildDeck(input, { when: 'tonight', fiilis: [], seed: 'SIEMEN-A' })
+  const deckA2 = buildDeck(input, { when: 'tonight', fiilis: [], seed: 'SIEMEN-A' })
+  arcFixtures.push({
+    name: 'vaihtelu: sama siemen → identtinen pakka (ryhmä näkee saman)',
+    ok: JSON.stringify(deckA1.map(c => c.id)) === JSON.stringify(deckA2.map(c => c.id)),
+  })
+
+  const deckB = buildDeck(input, { when: 'tonight', fiilis: [], seed: 'SIEMEN-B' })
+  const idsA = new Set(deckA1.map(c => c.id))
+  const idsB = new Set(deckB.map(c => c.id))
+  const overlap = [...idsA].filter(id => idsB.has(id)).length
+  arcFixtures.push({
+    name: 'vaihtelu: eri siemen → eri pakka (alle 90 % päällekkäisyyttä)',
+    ok: overlap < deckA1.length * 0.9,
+  })
+
+  const excl = new Set(deckA1.slice(0, 10).map(c => c.id))
+  const deckX = buildDeck(input, { when: 'tonight', fiilis: [], seed: 'SIEMEN-A', excludeIds: excl })
+  arcFixtures.push({
+    name: 'rematch-exkluusio: suljetut kortit eivät tule pakkaan',
+    ok: !deckX.some(c => excl.has(c.id)),
+  })
+
+  arcFixtures.push({
+    name: 'discovery: pakassa on 🎲 Yllätys -kortti, ja se on deterministinen',
+    ok: deckA1.some(c => c.badge === '🎲 Yllätys') && deckA2.some(c => c.badge === '🎲 Yllätys') &&
+        JSON.stringify(deckA1.filter(c => c.badge === '🎲 Yllätys').map(c => c.id)) ===
+        JSON.stringify(deckA2.filter(c => c.badge === '🎲 Yllätys').map(c => c.id)),
+  })
+}
+
 const arcChecks = arcFixtures
 for (const c of arcChecks) {
   if (c.ok) pass++

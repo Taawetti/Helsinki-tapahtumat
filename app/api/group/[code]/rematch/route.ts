@@ -21,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
   const sessionId = code.toUpperCase()
   const { data: session } = await supabaseAdmin
     .from('group_sessions')
-    .select('status, when_filter, fiilis, custom_start, custom_end, area, areas, budget, host_id, host_secret, round')
+    .select('status, when_filter, fiilis, custom_start, custom_end, area, areas, budget, host_id, host_secret, round, candidates')
     .eq('id', sessionId).maybeSingle()
   if (!session) return NextResponse.json({ error: 'Sessiota ei löydy' }, { status: 404 })
   if (!isHostSession(session, { hostId, hostSecret })) {
@@ -30,15 +30,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cod
 
   const when = session.when_filter as GroupWhen
   const fiilis = (session.fiilis ?? []) as string[]
+  // Rematch-exkluusio: edellisen kierroksen kortit jätetään pois uudesta
+  // pakasta kun vaihtoehtoja riittää — "jatka samalla porukalla" tarkoittaa
+  // myös UUSIA ehdotuksia, ei samaa pakkaa uudelleen (toistuvuuskorjaus 8/2026).
+  const prevIds = new Set<string>(
+    ((session.candidates ?? []) as { id?: string }[])
+      .map(c => c.id)
+      .filter((id): id is string => typeof id === 'string'),
+  )
   // v3: rematch säilyttää kaikki valinnat — myös oman päivän, alueet ja budjetin
-  const candidates = await buildGroupDeck(req.nextUrl.origin, when, fiilis, {
+  let candidates = await buildGroupDeck(req.nextUrl.origin, when, fiilis, {
     customStart: (session.custom_start ?? null) as string | null,
     customEnd: (session.custom_end ?? null) as string | null,
     budget: (session.budget ?? 'any') as BudgetId,
     areas: ((session.areas ?? []) as string[]).length > 0
       ? (session.areas ?? []) as string[]
       : ((session.area ?? 'kaikki') !== 'kaikki' ? [session.area as string] : []),
+    excludeIds: prevIds,
   })
+  if (candidates.length < 4 && prevIds.size > 0) {
+    // Vara: jos exkluusio tyhjensi poolin (pieni kunta/kapea ikkuna), rakenna
+    // ilman sitä — pakka saa mieluummin toistua kuin kaatua.
+    candidates = await buildGroupDeck(req.nextUrl.origin, when, fiilis, {
+      customStart: (session.custom_start ?? null) as string | null,
+      customEnd: (session.custom_end ?? null) as string | null,
+      budget: (session.budget ?? 'any') as BudgetId,
+      areas: ((session.areas ?? []) as string[]).length > 0
+        ? (session.areas ?? []) as string[]
+        : ((session.area ?? 'kaikki') !== 'kaikki' ? [session.area as string] : []),
+    })
+  }
   if (candidates.length < 4) {
     return NextResponse.json({ error: 'Ei tarpeeksi ehdokkaita juuri nyt — kokeile myöhemmin uudelleen' }, { status: 503 })
   }
