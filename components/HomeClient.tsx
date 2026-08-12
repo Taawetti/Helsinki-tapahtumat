@@ -23,8 +23,6 @@ import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
 import JarjestajaForm from '@/components/JarjestajaForm'
 import NewsletterBanner from '@/components/NewsletterBanner'
-import QuickDecideButton from '@/components/QuickDecideButton'
-import DemoArcCard from '@/components/DemoArcCard'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 
@@ -926,15 +924,6 @@ export default function HomeClient({
             })}
             <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
           </div>
-
-          {/* Päättäkää-pikapolku + demo-kaari — vain puhtaalla etusivulla
-              (ei kategorioiden/suodattimien kanssa samaan näkymään) */}
-          {!koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
-            <div className="space-y-2">
-              <QuickDecideButton variant="hero" />
-              <DemoArcCard />
-            </div>
-          )}
 
           {/* Aktiivinen filtteripalkki — ilmestyy kun kategoria valittu */}
           {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && (
