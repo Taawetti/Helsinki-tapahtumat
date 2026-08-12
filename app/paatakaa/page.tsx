@@ -3,10 +3,10 @@ import PaatakaaView from '@/components/PaatakaaView'
 
 export const metadata: Metadata = {
   title: 'Päättäkää yhdessä — mitä tänään tehdään? | Mitä tänään',
-  description: 'Jaa linkki kavereille, jokainen swaippaa ehdotuksia omalla puhelimellaan, ja AI kutoo äänistä valmiin illan kaaren. Helsingin paras tapa päättää yhdessä.',
+  description: 'Päättäkää yhdessä mitä tehdä Helsingissä: jaa linkki kavereille, swaippatkaa ehdotukset ja AI kutoo äänistä valmiin illan kaaren minuuteissa.',
   openGraph: {
     title: 'Päättäkää yhdessä — mitä tänään tehdään?',
-    description: 'Swaipatkaa yhdessä → AI kutoo teille täydellisen illan kaaren.',
+    description: 'Päättäkää yhdessä mitä tehdä Helsingissä: jaa linkki kavereille, swaippatkaa ehdotukset ja AI kutoo äänistä valmiin illan kaaren minuuteissa.',
     type: 'website',
     locale: 'fi_FI',
   },

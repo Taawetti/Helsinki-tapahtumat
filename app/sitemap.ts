@@ -48,6 +48,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/tapahtumat/tanaan`,     lastModified: now, changeFrequency: 'hourly' as const, priority: 0.95 },
     { url: `${BASE}/tapahtumat/viikonloppu`, lastModified: now, changeFrequency: 'daily' as const,  priority: 0.92 },
     { url: `${BASE}/tapahtumat/ilmaiset`,   lastModified: now, changeFrequency: 'daily' as const,  priority: 0.90 },
+    // Pakka-sivu — ryhmien yhteinen swaippaus, korkea sitoutumisprioriteetti
+    { url: `${BASE}/pakka`,    lastModified: now, changeFrequency: 'daily' as const,  priority: 0.9 },
+    // Julkinen lähdeterveyden sivu + tuleva raporttisivu (URL valmiiksi indeksiin)
+    { url: `${BASE}/lahteet`,  lastModified: now, changeFrequency: 'hourly' as const, priority: 0.5 },
+    { url: `${BASE}/raportti`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.6 },
     // Vertikaalin laskeutumissivut — yöelämä, visat, terassit
     { url: `${BASE}/yokerhot`,  lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },
     { url: `${BASE}/pubivisat`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },

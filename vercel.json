@@ -21,6 +21,10 @@
       "schedule": "0 15 * * 4,5,6"
     },
     {
+      "path": "/api/cron/thursday-digest",
+      "schedule": "0 13 * * 4"
+    },
+    {
       "path": "/api/cron/source-health",
       "schedule": "0 9 * * *"
     }

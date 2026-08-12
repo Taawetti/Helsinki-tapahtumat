@@ -6,13 +6,15 @@ export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
+const DESC = 'Ilmaiset tapahtumat Helsingissä: maksuttomat konsertit, näyttelyt, puisto- ja toritapahtumat ja perhemenot — koko ilmainen ohjelma yhdessä paikassa.'
+
 export const metadata: Metadata = {
   title: 'Ilmaiset tapahtumat Helsinki – maksuton ohjelma | Mitä tänään',
-  description: 'Kaikki ilmaiset tapahtumat Helsingissä seuraavan kuukauden aikana. Ilmaiset konsertit, näyttelyt, ulkoilmatapahtumat, pubitrivia ja paljon muuta — päivitetty automaattisesti.',
+  description: DESC,
   alternates: { canonical: `${BASE}/tapahtumat/ilmaiset` },
   openGraph: {
     title: 'Ilmaiset tapahtumat Helsinki',
-    description: 'Mitä Helsingissä voi tehdä ilmaiseksi? Konsertit, näyttelyt, tori- ja puistotapahtumat — kaikki ilmainen ohjelma yhdessä paikassa.',
+    description: DESC,
     locale: 'fi_FI',
     type: 'website',
     url: `${BASE}/tapahtumat/ilmaiset`,

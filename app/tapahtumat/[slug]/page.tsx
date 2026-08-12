@@ -165,12 +165,20 @@ export async function generateStaticParams() {
   ]
 }
 
+// Käsin kirjoitetut kuvaukset korkean hakuvolyymin vibe-sivuille — muille
+// vibeille käytetään alla olevaa mallia.
+const VIBE_DESC_OVERRIDES: Record<string, string> = {
+  keikka: 'Keikat Helsingissä: tulevat konsertit ja livemusiikki klubeilta areenoille — Tavastia, Kulttuuritalo, Olympiastadion ja pienet lavat yhdessä listassa.',
+  yoelama: 'Yöelämä Helsingissä: klubit, DJ-illat, tekno ja live-illat — Kaiku, Ääniwalli, Post Bar ja muut yökerhot koottuna yhdeksi ohjelmaksi joka viikonloppu.',
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
 
   const vibe = VIBES.find((v) => v.id === slug)
   if (vibe) {
-    const desc = `Kaikki ${vibe.label.toLowerCase()} tapahtumat Helsingissä. Löydä parhaat ${vibe.keywords.slice(0, 3).join(', ')} -tapahtumat aikatauluineen.`
+    const desc = VIBE_DESC_OVERRIDES[slug]
+      ?? `Kaikki ${vibe.label.toLowerCase()} tapahtumat Helsingissä. Löydä parhaat ${vibe.keywords.slice(0, 3).join(', ')} -tapahtumat aikatauluineen.`
     return {
       title: `${vibe.label} Helsinki – tapahtumat | Mitä tänään`,
       description: desc,

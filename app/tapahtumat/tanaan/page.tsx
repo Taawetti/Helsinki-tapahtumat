@@ -6,13 +6,15 @@ export const revalidate = 900 // 15 min — today's events update frequently
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
+const DESC = 'Mitä tänään tapahtuu Helsingissä? Kaikki päivän keikat, klubit, näyttelyt ja perhetapahtumat yhdessä paikassa — päivitetty joka tunti 41 lähteestä.'
+
 export const metadata: Metadata = {
   title: 'Tapahtumat Helsinki tänään – mitä tapahtuu nyt | Mitä tänään',
-  description: 'Kaikki tämän päivän tapahtumat Helsingissä yhdessä paikassa. Konsertit, näyttelyt, urheilu, stand-up, ilmaiset tapahtumat — automaattisesti päivitetty.',
+  description: DESC,
   alternates: { canonical: `${BASE}/tapahtumat/tanaan` },
   openGraph: {
     title: 'Tapahtumat Helsinki tänään',
-    description: 'Mitä tänään tapahtuu Helsingissä? Konsertit, näyttelyt, urheilu, stand-up ja paljon muuta.',
+    description: DESC,
     locale: 'fi_FI',
     type: 'website',
     url: `${BASE}/tapahtumat/tanaan`,

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -8,6 +9,10 @@ import { helsinkiDateRange, helsinkiOffset, formatEventDate } from '@/lib/helsin
 export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+
+// = app/api/events/route.ts EXTERNAL_SOURCES.length (40) + linked-events.
+// Pidä synkassa jos lähteitä lisätään — /lahteet näyttää reaaliaikaisen luvun.
+const SOURCES_TOTAL = 41
 
 interface PageEvent {
   id: string
@@ -104,6 +109,18 @@ async function fetchVenueEvents(venue: VenuePage): Promise<PageEvent[]> {
   return events.slice(0, 60)
 }
 
+// Nostokortin linkkilogiikka — sama kuin listariveillä. Moduulitasolla,
+// ei renderin sisällä (React Compiler: ei komponentteja renderissä).
+function EventLink({ e, className, children }: { e: PageEvent; className: string; children: ReactNode }) {
+  if (e.internal) {
+    return <Link href={`/e/${encodeURIComponent(e.id)}`} className={className}>{children}</Link>
+  }
+  if (e.ticketUrl) {
+    return <a href={e.ticketUrl} target="_blank" rel="noopener noreferrer" className={className}>{children}</a>
+  }
+  return <div className={className}>{children}</div>
+}
+
 type Props = { params: Promise<{ venue: string }> }
 
 export async function generateStaticParams() {
@@ -114,7 +131,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { venue: slug } = await params
   const venue = VENUE_PAGES.find((v) => v.slug === slug)
   if (!venue) return {}
-  const desc = `${venue.name} ohjelma: tulevat keikat ja tapahtumat. ${venue.description}`
+  // Käsin hiottu muoto, joka mahtuu 120–160 merkkiin jokaisella venuella —
+  // pitkänimisillä (Kulttuuritehdas Korjaamo) tiputetaan vain lyhyempään muotoon.
+  let desc = `${venue.name} ohjelma — tulevat keikat ja tapahtumat. ${venue.description}`
+  if (desc.length > 160) {
+    desc = `${venue.name} — tulevat keikat ja tapahtumat. ${venue.description}`
+  }
   return {
     title: `${venue.name} ohjelma & keikat | Mitä tänään Helsinki`,
     description: desc,
@@ -246,6 +268,34 @@ export default async function OhjelmaSivu({ params }: Props) {
             </div>
           </div>
 
+          {/* Seuraava tapahtuma — lähin tuleva rivi nostettuna esiin korttiin;
+              lista alla alkaa tämän jälkeisestä (slice(1)), joten ei duplikaattia */}
+          {events.length > 0 && (
+            <div className="mb-8">
+              <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Seuraava tapahtuma</p>
+              <EventLink e={events[0]}
+                className="flex items-start gap-4 bg-gray-900 hover:bg-gray-800 border border-gray-800 rounded-xl p-5 transition-colors group">
+                {events[0].image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={events[0].image} alt="" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
+                    {events[0].title}
+                  </h2>
+                  <p className="text-sm text-gray-400 mt-1">{formatEventDate(events[0].startTime)}</p>
+                </div>
+                <div className="flex-shrink-0 self-center">
+                  {events[0].isFree ? (
+                    <span className="text-green-400 text-sm font-medium">Ilmainen</span>
+                  ) : events[0].price ? (
+                    <span className="text-gray-400 text-sm">{events[0].price}</span>
+                  ) : null}
+                </div>
+              </EventLink>
+            </div>
+          )}
+
           {/* Event list */}
           {events.length === 0 ? (
             <div className="text-center py-16 text-gray-500">
@@ -258,9 +308,9 @@ export default async function OhjelmaSivu({ params }: Props) {
                 </a>
               )}
             </div>
-          ) : (
+          ) : events.length > 1 ? (
             <ul className="space-y-2">
-              {events.map((e) => (
+              {events.slice(1).map((e) => (
                 <li key={e.id}>
                   {e.internal ? (
                     <Link href={`/e/${encodeURIComponent(e.id)}`}
@@ -280,11 +330,14 @@ export default async function OhjelmaSivu({ params }: Props) {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
 
-          <div className="mt-10 pt-6 border-t border-gray-800">
+          <div className="mt-10 pt-6 border-t border-gray-800 flex items-center justify-between gap-4">
             <Link href="/" className="text-blue-400 hover:text-blue-300 transition-colors text-sm">
               ← Kaikki Helsinki tapahtumat
+            </Link>
+            <Link href="/lahteet" className="text-gray-500 hover:text-gray-300 transition-colors text-sm text-right">
+              Mitä tänään kerää ohjelman {SOURCES_TOTAL} lähteestä — katso lähteiden tila →
             </Link>
           </div>
         </div>

@@ -6,13 +6,15 @@ export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
+const DESC = 'Helsingin viikonlopun tapahtumat: perjantain, lauantain ja sunnuntain keikat, klubit, festivaalit ja menovinkit — koko viikonlopun ohjelma yhdessä paikassa.'
+
 export const metadata: Metadata = {
   title: 'Tapahtumat Helsinki viikonloppu – perjantai, lauantai, sunnuntai | Mitä tänään',
-  description: 'Viikonlopun parhaat tapahtumat Helsingissä. Konsertit, festivaalit, ravintolaillat, urheilu, näyttelyt — kaikki yhdessä paikassa automaattisesti päivitettynä.',
+  description: DESC,
   alternates: { canonical: `${BASE}/tapahtumat/viikonloppu` },
   openGraph: {
     title: 'Tapahtumat Helsinki viikonloppu',
-    description: 'Mitä tapahtuu Helsingissä tänä viikonloppuna? Perjantain, lauantain ja sunnuntain parhaat tapahtumat.',
+    description: DESC,
     locale: 'fi_FI',
     type: 'website',
     url: `${BASE}/tapahtumat/viikonloppu`,

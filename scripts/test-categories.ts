@@ -23,6 +23,7 @@ import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { buildDeck } from '../lib/candidate'
 import { venueHoursOverride } from '../lib/venue-hours-overrides'
+import { pickWeeklyDigest } from '../lib/weekly-digest'
 import type { Candidate, CandidateRole } from '../lib/candidate'
 import type { Event, Restaurant } from '../lib/types'
 
@@ -965,6 +966,120 @@ const arcChecks = arcFixtures
 for (const c of arcChecks) {
   if (c.ok) pass++
   else failures.push(`✗ kaarimoottori: ${c.name}`)
+}
+
+// ── Torstain pakka (viikkodigesti, lib/weekly-digest.ts) — puhdas kuratointi:
+// kattilat, pisteytys, duplikaattisuojat. Fixture-malli sama kuin kaaret yllä.
+const PE_ILTA = '2026-08-14T19:00:00+03:00' // perjantai-ilta (pe 14.8.2026)
+const LA_ILTA = '2026-08-15T20:00:00+03:00' // lauantai-ilta
+const SU_PV = '2026-08-16T12:00:00+03:00'   // sunnuntai keskipäivällä
+
+const digestFixtures: { name: string; ok: boolean }[] = []
+
+// 1. Yksi per kattila → 5 poimintaa, kaikki kattilat edustettuna
+{
+  const events = [
+    mkEvent({ id: 'dg1', title: 'Rock-keikka', startTime: PE_ILTA, isFree: false, vibes: ['keikka'] }),
+    mkEvent({ id: 'dg2', title: 'Näytelmä', startTime: LA_ILTA, isFree: false, vibes: ['teatteri'] }),
+    mkEvent({ id: 'dg3', title: 'Lasten satuhetki', startTime: SU_PV, isFree: false, vibes: ['lapset'] }),
+    mkEvent({ id: 'dg4', title: 'Klubi-ilta', startTime: LA_ILTA, isFree: false, vibes: ['yoelama'] }),
+    mkEvent({ id: 'dg5', title: 'Ilmainen puistotapahtuma', startTime: SU_PV, isFree: true, vibes: [] }),
+  ]
+  const picks = pickWeeklyDigest(events)
+  digestFixtures.push({
+    name: 'yksi per kattila → 5 poimintaa, 5 eri kattilaa',
+    ok: picks.length === 5 && new Set(picks.map((p) => p.bucket)).size === 5,
+  })
+}
+
+// 2. Paikka-duplikaattisuoja: sama location.name normalisoituna → vain toinen
+{
+  const a = mkEvent({ id: 'dg10', title: 'Keikka A', startTime: PE_ILTA, isFree: false, location: { name: 'Tavastia', streetAddress: '', city: 'Helsinki' } })
+  const b = mkEvent({ id: 'dg11', title: 'Keikka B', startTime: LA_ILTA, isFree: false, location: { name: '  TAVASTIA ', streetAddress: '', city: 'Helsinki' } })
+  const picks = pickWeeklyDigest([a, b])
+  digestFixtures.push({ name: 'paikka-duplikaattisuoja (kirjainkoko + välit normalisoidaan)', ok: picks.length === 1 })
+}
+
+// 3. Otsikko-duplikaattisuoja: sama otsikko eri paikoissa → vain toinen
+{
+  const a = mkEvent({ id: 'dg20', title: 'Flow Festival', startTime: PE_ILTA, isFree: false, vibes: ['keikka'] })
+  const b = mkEvent({ id: 'dg21', title: 'flow  festival', startTime: LA_ILTA, isFree: false, vibes: ['keikka'], location: { name: 'Muu paikka', streetAddress: '', city: 'Helsinki' } })
+  const picks = pickWeeklyDigest([a, b])
+  digestFixtures.push({ name: 'otsikko-duplikaattisuoja eri paikoissa', ok: picks.length === 1 })
+}
+
+// 4. Kattilansisäinen järjestys: kuvallinen (+2) voittaa kuvattoman
+{
+  const kuvaton = mkEvent({ id: 'dg30', title: 'Kuvaton keikka', startTime: PE_ILTA, isFree: false, image: null })
+  const kuvallinen = mkEvent({ id: 'dg31', title: 'Kuvallinen keikka', startTime: PE_ILTA, isFree: false })
+  const picks = pickWeeklyDigest([kuvaton, kuvallinen])
+  digestFixtures.push({ name: 'kuva-bonus +2: kuvallinen poimitaan', ok: picks.length === 1 && picks[0].event.id === 'dg31' })
+}
+
+// 5. Festivaali-bonus +2 voittaa pelkän kuvan
+{
+  const tavallinen = mkEvent({ id: 'dg40', title: 'Tavallinen keikka', startTime: PE_ILTA, isFree: false })
+  const festari = mkEvent({ id: 'dg41', title: 'Festivaalikeikka', startTime: PE_ILTA, isFree: false, vibes: ['keikka', 'festivaali'] })
+  const picks = pickWeeklyDigest([tavallinen, festari])
+  digestFixtures.push({ name: 'festivaali-vibe +2: festari poimitaan', ok: picks.length === 1 && picks[0].event.id === 'dg41' })
+}
+
+// 6. Pe/la-ilta-bonus +1: perjantai-ilta voittaa sunnuntai-päivän
+{
+  const sunnuntai = mkEvent({ id: 'dg50', title: 'Sunnuntaikeikka', startTime: SU_PV, isFree: false })
+  const perjantai = mkEvent({ id: 'dg51', title: 'Perjantaikeikka', startTime: PE_ILTA, isFree: false })
+  const picks = pickWeeklyDigest([sunnuntai, perjantai])
+  digestFixtures.push({ name: 'pe/la-ilta +1: perjantai-ilta poimitaan', ok: picks.length === 1 && picks[0].event.id === 'dg51' })
+}
+
+// 7. Kattiloita puuttuu → alle 5, EI täytetä väkisin
+{
+  const events = [
+    mkEvent({ id: 'dg60', title: 'Keikka 1', startTime: PE_ILTA, isFree: false, vibes: ['keikka'] }),
+    mkEvent({ id: 'dg61', title: 'Keikka 2', startTime: LA_ILTA, isFree: false, vibes: ['keikka'] }),
+  ]
+  const picks = pickWeeklyDigest(events)
+  digestFixtures.push({ name: 'vain yksi kattila → 1 poiminta (ei väkisin täyttöä)', ok: picks.length === 1 })
+}
+
+// 8. Max 5: kaksi ehdokasta per kattila (10 kpl) → tasan 5; size-optio kunnioitettu
+{
+  const mk2 = (base: string, over: Partial<Event>) => [
+    mkEvent({ id: `${base}-a`, title: `${base} A`, startTime: PE_ILTA, isFree: false, ...over }),
+    mkEvent({ id: `${base}-b`, title: `${base} B`, startTime: SU_PV, isFree: false, ...over }),
+  ]
+  const events = [
+    ...mk2('keikka', { vibes: ['keikka'] }),
+    ...mk2('kulttuuri', { vibes: ['teatteri'] }),
+    ...mk2('perhe', { vibes: ['lapset'] }),
+    ...mk2('yoelama', { vibes: ['yoelama'] }),
+    ...mk2('ilmainen', { vibes: [], isFree: true }),
+  ]
+  digestFixtures.push({
+    name: '10 ehdokasta / 5 kattilaa → tasan 5, size=3 → 3',
+    ok: pickWeeklyDigest(events).length === 5 && pickWeeklyDigest(events, { size: 3 }).length === 3,
+  })
+}
+
+// 9. Kattilaan kuulumaton (työpaja, maksullinen) karsitaan kokonaan
+{
+  const e = mkEvent({ id: 'dg80', title: 'Askartelutyöpaja', startTime: PE_ILTA, isFree: false, vibes: ['tyopaja'] })
+  digestFixtures.push({ name: 'kattilaton tapahtuma ei tule pakkaan', ok: pickWeeklyDigest([e]).length === 0 })
+}
+
+// 10. Kategoria-fallback: vibes tyhjä → categories ['klassinen'] → Kulttuuri
+{
+  const e = mkEvent({ id: 'dg90', title: 'Sinfoniakonsertti', startTime: PE_ILTA, isFree: false, vibes: [], categories: ['klassinen'] })
+  const picks = pickWeeklyDigest([e])
+  digestFixtures.push({
+    name: 'kategoria-fallback: klassinen → Kulttuuri-kattila',
+    ok: picks.length === 1 && picks[0].bucket === 'Kulttuuri' && picks[0].bucketEmoji === '🎭',
+  })
+}
+
+for (const c of digestFixtures) {
+  if (c.ok) pass++
+  else failures.push(`✗ weekly-digest: ${c.name}`)
 }
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.

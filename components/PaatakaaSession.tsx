@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import SwipeDeck from '@/components/SwipeDeck'
 import CandidateSheet from '@/components/CandidateSheet'
@@ -210,14 +211,18 @@ export default function PaatakaaSession({ code }: { code: string }) {
     }
   }, [code, pushOn, voter.id])
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://helsinki-tapahtumat.vercel.app/paatakaa/${code}`
-  const share = async () => {
+  // Jaettava URL ilman ?share=1-parametria — muuten jakodialogi poksahtaisi
+  // auki myös jokaiselle linkillä liittyvälle (auto-share, ks. ShareAutoOpener).
+  const shareUrl = typeof window !== 'undefined'
+    ? (() => { try { const u = new URL(window.location.href); u.searchParams.delete('share'); u.hash = ''; return u.toString() } catch { return window.location.href } })()
+    : `https://helsinki-tapahtumat.vercel.app/paatakaa/${code}`
+  const share = useCallback(async () => {
     const text = `Päätetään yhdessä mitä tehdään! Liity koodilla ${code}:`
     try {
       if (navigator.share) { await navigator.share({ title: 'Päättäkää yhdessä', text, url: shareUrl }); return }
     } catch { /* fall through */ }
     try { await navigator.clipboard.writeText(shareUrl); alert('Linkki kopioitu!') } catch { /* ignore */ }
-  }
+  }, [code, shareUrl])
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Päätetään yhdessä mitä tehdään! ${shareUrl}`)}`
 
   // Suodatus JÄÄDYTETYLLÄ initialVoted-joukolla (ei live votedRef) → deckCards.length
@@ -310,30 +315,38 @@ export default function PaatakaaSession({ code }: { code: string }) {
             </button>
           )}
         </div>
+
+        <MitaTanaanFootnote />
       </main>
     )
   }
 
   // ── TULOS: ILLAN KAARI (AI-synteesi) ──
   if (session.status === 'done' && session.resultPlan?.kind === 'arc') {
+    // Footnote lisätään wrapperinä TÄÄLLÄ → GroupResultView pysyy koskemattomana.
     return (
-      <GroupResultView
-        plan={session.resultPlan}
-        code={code}
-        isHost={isHost}
-        busy={actionBusy || synthesizing}
-        swappingIdx={swappingIdx}
-        onSwap={swap}
-        onRegenerate={() => { setActionBusy(true); synthesize(true).finally(() => setActionBusy(false)) }}
-        onRematch={rematch}
-        onShare={share}
-      />
+      <>
+        <GroupResultView
+          plan={session.resultPlan}
+          code={code}
+          isHost={isHost}
+          busy={actionBusy || synthesizing}
+          swappingIdx={swappingIdx}
+          onSwap={swap}
+          onRegenerate={() => { setActionBusy(true); synthesize(true).finally(() => setActionBusy(false)) }}
+          onRematch={rematch}
+          onShare={share}
+        />
+        <MitaTanaanFootnote />
+      </>
     )
   }
 
   // ── NIMIPORTTI ──
   if (!joined) return (
     <main className="max-w-lg mx-auto px-4 pt-10 pb-24 space-y-6">
+      {/* ?share=1 (vasta luotu sessio) → jakodialogi aukeaa automaattisesti kerran */}
+      <Suspense fallback={null}><ShareAutoOpener code={code} status={session.status} onShare={share} /></Suspense>
       <div>
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-1">LIITY · {code}</p>
         <h1 className="font-black text-white leading-tight" style={{ fontSize: 'clamp(1.7rem,6vw,2.4rem)', letterSpacing: '-0.03em' }}>Kuka olet?</h1>
@@ -353,6 +366,15 @@ export default function PaatakaaSession({ code }: { code: string }) {
       <button onClick={saveName} disabled={!nameDraft.trim()}
         className="w-full rounded-2xl py-4 text-white font-black text-[16px] disabled:opacity-50"
         style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>Mukaan 🙌</button>
+
+      {/* Huomaamaton mainoskortti — linkillä liittyneet ohjataan palvelun pariin */}
+      <Link href="/" className="block rounded-2xl p-4 text-center transition-colors hover:bg-white/[.06]"
+        style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
+        <p className="text-white/40 text-[12px] font-bold leading-snug">
+          Tämä tehtiin <span className="text-white/70">Mitä tänään</span> -palvelulla — Helsingin täydellisin tapahtumalähde.
+          <span className="block mt-1 font-black" style={{ color: '#a3abff' }}>Katso kaikki tapahtumat →</span>
+        </p>
+      </Link>
     </main>
   )
 
@@ -363,6 +385,8 @@ export default function PaatakaaSession({ code }: { code: string }) {
 
   return (
     <main className="max-w-lg mx-auto px-4 pt-5 pb-24">
+      {/* ?share=1 (vasta luotu sessio) → jakodialogi aukeaa automaattisesti kerran */}
+      <Suspense fallback={null}><ShareAutoOpener code={code} status={session.status} onShare={share} /></Suspense>
       {/* Header: moodi + koodi, osallistujat, jako */}
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -567,5 +591,46 @@ function ContextChips({ session }: { session: GroupSession }) {
         </span>
       ) : null)}
     </>
+  )
+}
+
+// ── ?share=1 / #share → jakodialogi aukeaa automaattisesti KERRAN ──
+// Käytössä kun QuickDecideButton ohjaa vasta luotuun sessioon. Guard:
+// sessionStorage `paatakaa-share-shown-{code}` (kestää remountit), ref-varalla
+// (privaattitila). useSearchParams vaatii Suspense-rajan (Next 16) → oma pieni
+// komponentti, renderöidään <Suspense fallback={null}>:in sisällä.
+function ShareAutoOpener({ code, status, onShare }: { code: string; status: string; onShare: () => void }) {
+  const params = useSearchParams()
+  const firedRef = useRef(false)
+  useEffect(() => {
+    const want = params.get('share') === '1' || window.location.hash === '#share'
+    if (!want || status !== 'open' || firedRef.current) return
+    const key = `paatakaa-share-shown-${code}`
+    try {
+      if (sessionStorage.getItem(key)) return    // näytetty jo tässä välilehdessä
+      sessionStorage.setItem(key, '1')
+    } catch { /* privaattitila — ref-guard riittää tämän mountin ajaksi */ }
+    firedRef.current = true
+    // Siivoa share-parametri osoiteriviltä, ettei refresh tai kopioitu URL
+    // pidä auto-avausta elossa (sessionStorage-guard hoitaa jo, tämä on varmuus).
+    try {
+      const u = new URL(window.location.href)
+      u.searchParams.delete('share'); u.hash = ''
+      window.history.replaceState(null, '', u.toString())
+    } catch { /* ignore */ }
+    onShare()
+  }, [params, code, status, onShare])
+  return null
+}
+
+// ── Pieni footnote-linkki tulosnäkymien alalaitaan ──
+// Jakeluvirtaus takaisin palveluun: jaettu tulos → uusi käyttäjä → etusivu.
+function MitaTanaanFootnote() {
+  return (
+    <p className="text-center pt-2 pb-8">
+      <Link href="/" className="text-white/30 text-[12px] font-bold hover:text-white/60 transition-colors">
+        Tehty Mitä tänään -palvelulla · Katso kaikki tapahtumat →
+      </Link>
+    </p>
   )
 }

@@ -8,7 +8,7 @@ export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
-const DESC = 'Helsingin terassit ja terassitapahtumat: kattoterassit, rooftop-baarit ja ulkoilmatapahtumat seuraavan kahden viikon ajalta yhdessä paikassa.'
+const DESC = 'Terassit Helsingissä: kattoterassit, rooftop-baarit ja terassitapahtumat kesäkaudella — ohjelma, osoitteet ja aurinkoisimmat paikat yhdessä näkymässä.'
 
 export const metadata: Metadata = {
   title: 'Terassit Helsinki — kattoterassit & terassitapahtumat | Mitä tänään',

@@ -6,7 +6,7 @@ export const revalidate = 86400 // schedule changes rarely
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
-const DESC = 'Kaikki Helsingin pubivisat viikonpäivittäin: missä baarissa on tietovisa maanantaina, tiistaina tai muina iltoina. Aikataulut ja osoitteet yhdessä paikassa.'
+const DESC = 'Pubivisat Helsingissä viikon jokaisena päivänä: tietovisojen aikataulut ja baarit maanantaista sunnuntaihin — löydä lähin visa ja kerää joukkue kasaan.'
 
 export const metadata: Metadata = {
   title: 'Pubivisat Helsinki — viikon tietovisat baareissa | Mitä tänään',

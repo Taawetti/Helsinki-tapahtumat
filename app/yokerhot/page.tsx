@@ -7,7 +7,7 @@ export const revalidate = 86400 // curated list changes rarely
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
-const DESC = 'Helsingin parhaat yökerhot, teknoklubit, karaokebaarit ja kattoterassit — kuratoidut suositukset osoitteineen ja Google-arvosanoineen.'
+const DESC = 'Yökerhot Helsingissä: parhaat klubit, teknoklubit, karaokebaarit ja kattoterassit kuratoituna — osoitteet, arvosanat ja vinkit yhden illan suunnitteluun.'
 
 export const metadata: Metadata = {
   title: 'Yökerhot Helsinki — parhaat klubit, tekno & karaoke | Mitä tänään',
