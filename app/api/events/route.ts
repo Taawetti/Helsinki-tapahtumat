@@ -12,7 +12,7 @@ const EXTERNAL_SOURCES = [
   'bars', 'ra', 'museums', 'liiga', 'kide', 'arenas', 'recurring', 'pubivisat',
   'stadissa', 'myhelsinki', 'openings', 'allas', 'lippu', 'scraped',
   'flyingdutchman', 'juttutupa', 'lepakkomies', 'glivelab', 'kulttuuritalo',
-  'postbar', 'korjaamo', 'malmitalo', 'vuotalo', 'savoy', 'nauramaan',
+  'postbar', 'korjaamo', 'malmitalo', 'vuotalo', 'savoy', 'nauramaan', 'siltanen',
 ] as const
 
 interface LinkedEventsImage {

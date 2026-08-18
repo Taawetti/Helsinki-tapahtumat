@@ -18,6 +18,7 @@ import {
 import { parseSuperterassi, parseSeason } from '../lib/superterassi'
 import { parseSetlistText, parseFinnishDate } from '../lib/flyingdutchman-parse'
 import { weekParamDates } from '../lib/stadissa-weeks'
+import { parseSiltanenGrid } from '../lib/siltanen-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
@@ -1080,6 +1081,39 @@ const digestFixtures: { name: string; ok: boolean }[] = []
 for (const c of digestFixtures) {
   if (c.ok) pass++
   else failures.push(`✗ weekly-digest: ${c.name}`)
+}
+
+// Siltanen-skraperin parseri (tuotantotapaus 8/2026: Stepa 20.8 ei näkynyt,
+// koska Siltanen ei ollut lainkaan lähde — Tiketti-myyntinen keikka).
+const SILTANEN_FIXTURE = `
+<span class="current-month">August</span>
+<td class="simcal-day-19 simcal-day-has-events" >
+ <div><span class="simcal-day-number">19</span>
+ <ul class="simcal-events"><li class="simcal-event">
+  <span class="simcal-event-title">Paha Vaanii</span>
+  <div class="simcal-event-details"><div class="simcal-event-description"><p>Music Bar!</p></div></div>
+ </li></ul></div>
+</td>
+<td class="simcal-day-20 simcal-day-has-events" >
+ <div><span class="simcal-day-number">20</span>
+ <ul class="simcal-events"><li class="simcal-event">
+  <span class="simcal-event-title">Stepa (live terassilla) + Pop 3</span>
+  <div class="simcal-event-details"><div class="simcal-event-description"><p>https://www.tiketti.fi/stepa-siltanen-helsinki-lippuja/117361</p>
+  <p>Terassi ja Siltanen:<br />Pop 3 — Kalifornia-Keke &amp; Cute Cumber</p></div></div>
+ </li></ul></div>
+</td>`
+const siltanenItems = parseSiltanenGrid(SILTANEN_FIXTURE, '2026-08')
+const siltanenStepa = siltanenItems.find(i => i.title.includes('Stepa'))
+const siltanenChecks: { name: string; ok: boolean }[] = [
+  { name: 'kaksi tapahtumaa parsittu', ok: siltanenItems.length === 2 },
+  { name: 'Stepa 20.8 löytyy oikealla päivällä', ok: siltanenStepa?.date === '2026-08-20' },
+  { name: 'Tiketti-lippulinkki poimittu', ok: siltanenStepa?.ticketUrl === 'https://www.tiketti.fi/stepa-siltanen-helsinki-lippuja/117361' },
+  { name: 'terassi-keikka saa 19:00-oletuksen', ok: siltanenStepa?.time === '19:00' },
+  { name: 'klubikeikka (ei terassi) saa 20:00-oletuksen', ok: siltanenItems.find(i => i.title === 'Paha Vaanii')?.time === '20:00' },
+]
+for (const c of siltanenChecks) {
+  if (c.ok) pass++
+  else failures.push(`✗ siltanen-parseri: ${c.name} → ${JSON.stringify(siltanenItems)}`)
 }
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.
