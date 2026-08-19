@@ -150,6 +150,9 @@ export const VENUE_SCRAPERS = [
   'vuotalo',
   'savoy',
   'siltanen',
+  'apollo',
+  'maxine',
+  'tanssintalo',
 ] as const
 
 export const VENUE_ZERO_STREAK_ALERT_DAYS = 5   // 0 parsittua ≥5 pv peräkkäin

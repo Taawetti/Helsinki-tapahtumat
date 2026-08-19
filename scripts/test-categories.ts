@@ -19,6 +19,11 @@ import { parseSuperterassi, parseSeason } from '../lib/superterassi'
 import { parseSetlistText, parseFinnishDate } from '../lib/flyingdutchman-parse'
 import { weekParamDates } from '../lib/stadissa-weeks'
 import { parseSiltanenGrid } from '../lib/siltanen-parse'
+import { parseApolloGrid } from '../lib/apollo-parse'
+import { parseMaxineTribe } from '../lib/maxine-parse'
+import { parseTanssintaloEntries } from '../lib/tanssintalo-parse'
+import { parsePostbarEvents } from '../lib/postbar-parse'
+import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
@@ -1114,6 +1119,130 @@ const siltanenChecks: { name: string; ok: boolean }[] = [
 for (const c of siltanenChecks) {
   if (c.ok) pass++
   else failures.push(`✗ siltanen-parseri: ${c.name} → ${JSON.stringify(siltanenItems)}`)
+}
+
+// Post Bar -skraperin parseri (tuotantotapaus 8/2026: postbar.fi uusiutui —
+// tapahtumat siirtyivät <li>-listasta <article class="event">-lohkoihin,
+// entiteettikoodattuina). Syntetinen pätkä todellisesta markupista.
+const POSTBAR_FIXTURE = `
+<article
+  class="event&#x20;panel"
+  data-event-active-from="2026-08-20T00&#x3A;00&#x3A;00&#x2B;03&#x3A;00">
+  <a class="event-link" href="https&#x3A;&#x2F;&#x2F;postbar.fi&#x2F;program&#x2F;2026-08-20-post-bar-is-a-guest-harbour-with-irma-jaakko-rintala-lauri-soini"></a>
+      <time datetime="2026-08-20" class="event-date">
+      Thursday • August 20th           </time>
+    <h3 class="event-title header font-pb">
+    <span class="event-title_act">POST BAR IS A GUEST HARBOUR WITH: IRMA, JAAKKO RINTALA &amp; LAURI SOINI</span>  </h3>
+  <div class="admission-info">
+    Doors: 20-02<br>Free entry  </div>
+  </article>
+<article class="event&#x20;panel_small event--has-ticket">
+  <a class="event-link" href="https&#x3A;&#x2F;&#x2F;postbar.fi&#x2F;program&#x2F;2026-09-02-live-at-the-bar-avanti-x-hanan-hadzajlic-x-helsinki-festival"></a>
+  <time datetime="2026-09-02" class="event-date">Wednesday • September 2nd</time>
+  <h3 class="event-title header font-pb">
+    <span class="event-title_act">LIVE AT THE BAR:</span><span class="event-title_act" data-schedule-start="2026-09-02T20:30:00+03:00">AVANTI! &amp; HANAN HADŽAJLIĆ</span>
+  </h3>
+  <div class="admission-info">Doors: 20:30-22:30<br>Tickets 15€ on the door</div>
+</article>`
+const postbarItems = parsePostbarEvents(POSTBAR_FIXTURE)
+const postbarFirst = postbarItems[0]
+const postbarSecond = postbarItems[1]
+const postbarChecks: { name: string; ok: boolean }[] = [
+  { name: 'kaksi tapahtumaa parsittu', ok: postbarItems.length === 2 },
+  { name: 'päivä <time datetime>:stä', ok: postbarFirst?.date === '2026-08-20' },
+  { name: '"Doors: 20-02" → 20:00', ok: postbarFirst?.time === '20:00' },
+  { name: 'entiteettikoodattu linkki dekoodattu', ok: postbarFirst?.url === 'https://postbar.fi/program/2026-08-20-post-bar-is-a-guest-harbour-with-irma-jaakko-rintala-lauri-soini' },
+  { name: 'moniosainen otsikko yhdistetty + &amp; dekoodattu', ok: postbarSecond?.title === 'LIVE AT THE BAR: AVANTI! & HANAN HADŽAJLIĆ' },
+  { name: '"Doors: 20:30-22:30" → 20:30', ok: postbarSecond?.time === '20:30' },
+]
+for (const c of postbarChecks) {
+  if (c.ok) pass++
+  else failures.push(`✗ postbar-parseri: ${c.name} → ${JSON.stringify(postbarItems)}`)
+}
+
+// Lepakkomies-skraperin parseri (tuotantotapaus 8/2026: lepis.fi teema
+// vaihtui — otsikko siirtyi <h2>:sta <h1 class="h2 mt-0">:aan kortti-
+// rakenteessa). Syntetinen pätkä todellisesta markupista.
+const LEPAKKOMIES_FIXTURE = `
+<article id="post-" class="group tapahtuma loop-item text-uppercase col-12 col-md-6 post-28126 type-tapahtuma status-publish hentry tapahtumaluokka-metal">
+  <div class="tapahtuma-inner">
+    <a class="img-link" href="https://www.lepis.fi/tapahtumat/latin-finnish-metal-alliance-ulthima-mx-fi-pronoias-cl-sargassus-fi/" title="x"><span class="img-blanket"><img src="x.png" /></span></a>
+    <div class="entry-content">
+      <span class="tapahtumatila weight-600">Klubi</span>
+      <h1 class="h2 mt-0">
+        <a href="https://www.lepis.fi/tapahtumat/latin-finnish-metal-alliance-ulthima-mx-fi-pronoias-cl-sargassus-fi/" title="LATIN-FINNISH METAL ALLIANCE">
+          LATIN-FINNISH METAL ALLIANCE: Ulthima (MX/FI) + Pronoias (CL) + Sargassus (FI)				</a>
+      </h1>
+      <span class="entry-details size-larger">
+        <span class="date-info">
+
+          ke 19.8.2026 / ovet klo 20:00
+        </span>
+      </span>
+    </div>
+  </div>
+</article>
+<article id="post-" class="group tapahtuma loop-item text-uppercase col-12 col-md-6 post-28130 type-tapahtuma status-publish hentry">
+  <div class="tapahtuma-inner">
+    <div class="entry-content">
+      <h1 class="h2 mt-0">
+        <a href="https://www.lepis.fi/tapahtumat/observatorio-reunion-nuoruus-nasu-penkojaiset/" title="x">
+          Observatorio Reunion: Nuoruus + Nasu &#038; Penkojaiset				</a>
+      </h1>
+      <span class="entry-details size-larger">
+        <span class="date-info">
+          pe 21.8.2026 / ovet klo 19:00
+        </span>
+      </span>
+    </div>
+  </div>
+</article>`
+const lepisItems = parseLepakkomiesEvents(LEPAKKOMIES_FIXTURE)
+const lepisFirst = lepisItems[0]
+const lepisSecond = lepisItems[1]
+const lepisChecks: { name: string; ok: boolean }[] = [
+  { name: 'kaksi tapahtumaa parsittu', ok: lepisItems.length === 2 },
+  { name: 'päivä date-info-spanista', ok: lepisFirst?.date === '2026-08-19' },
+  { name: '"ovet klo 20:00" → 20:00', ok: lepisFirst?.time === '20:00' },
+  { name: 'tapahtumalinkki poimittu h1:stä (ei img-linkistä)', ok: lepisFirst?.ticketUrl === 'https://www.lepis.fi/tapahtumat/latin-finnish-metal-alliance-ulthima-mx-fi-pronoias-cl-sargassus-fi/' },
+  { name: '&#038;-entiteetti dekoodattu otsikossa', ok: lepisSecond?.title === 'Observatorio Reunion: Nuoruus + Nasu & Penkojaiset' },
+  { name: '"ovet klo 19:00" → 19:00', ok: lepisSecond?.time === '19:00' },
+]
+for (const c of lepisChecks) {
+  if (c.ok) pass++
+  else failures.push(`✗ lepakkomies-parseri: ${c.name} → ${JSON.stringify(lepisItems)}`)
+}
+
+// Uudet venue-skraperit 8/2026 (Apollo, Maxine, Tanssin talo) — fixturet
+// typistettyjä pätkiä todellisesta markupista/datasta.
+const apolloItems = parseApolloGrid(`<div class="rt-holder tpg-post-holder ">
+  <div class="rt-detail rt-el-content-wrapper">
+    <div class="entry-title-wrapper"><h3 class="entry-title"><a data-id="3735" href="https://apolloliveclub.fi/fearfactory/" class="tpg-post-link" target="_self">FearFactory</a></h3></div>
+    <div class="tpg-excerpt tpg-el-excerpt">
+      <div class="tpg-excerpt-inner">
+        5.9.2026 - 18:00 - 43,90€ - K-18                        </div>
+    </div>
+  </div>
+</div>`)
+const apolloFear = apolloItems.find(i => i.title === 'FearFactory')
+
+const maxineItems = parseMaxineTribe(JSON.parse('{"events":[{"id":2095,"url":"https://maxine.fi/earchive/maxout-21-8-22-00-4-30maxine-afro-special/","title":"MaxOut 21.8 22.00-4.30@Maxine AFRO Special","start_date":"2026-08-21 22:00:00","end_date":"2026-08-22 04:30:00","timezone":"Europe/Helsinki","cost":"10€","image":{"url":"https://maxine.fi/wp-content/uploads/2026/08/x.jpg"}}]}'))
+const maxineMax = maxineItems[0]
+
+const tanssiItems = parseTanssintaloEntries(JSON.parse('{"data":{"entries":[{"title":"Cloud Gate Dance Theatre of Taiwan: 13 Tongues","url":"https://www.tanssintalo.fi/ohjelma/cloud-gate-dance-theatre-of-taiwan-13-tongues","ticketLink":"https://www.lippu.fi/artist/helsingin-juhlaviikot/cloud-gate","irregularShowTimes":[{"date":"2026-08-27T00:00:00+03:00","time":"2026-03-25T18:00:00+02:00"}]}]}}'))
+const tanssiCloud = tanssiItems[0]
+
+const venueNewChecks: { name: string; ok: boolean }[] = [
+  { name: 'apollo: otsikko+päivä+aika parsittu', ok: apolloItems.length === 1 && apolloFear != null && JSON.stringify(apolloFear).includes('2026-09-05') && JSON.stringify(apolloFear).includes('18:00') },
+  { name: 'apollo: hinta ja linkki mukana', ok: JSON.stringify(apolloFear).includes('43,90') && JSON.stringify(apolloFear).includes('apolloliveclub.fi/fearfactory') },
+  { name: 'maxine: tribe-päivä+aika parsittu', ok: maxineItems.length === 1 && JSON.stringify(maxineMax).includes('2026-08-21') && JSON.stringify(maxineMax).includes('22:00') },
+  { name: 'maxine: endTime ja hinta mukana', ok: JSON.stringify(maxineMax).includes('04:30') && JSON.stringify(maxineMax).includes('10€') },
+  { name: 'tanssintalo: irregularShowTimes-päivä+aika', ok: tanssiItems.length === 1 && JSON.stringify(tanssiCloud).includes('2026-08-27') && JSON.stringify(tanssiCloud).includes('18:00') },
+  { name: 'tanssintalo: lippulinkki mukana', ok: JSON.stringify(tanssiCloud).includes('lippu.fi') },
+]
+for (const c of venueNewChecks) {
+  if (c.ok) pass++
+  else failures.push(`✗ uusi venue-parseri: ${c.name}`)
 }
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.

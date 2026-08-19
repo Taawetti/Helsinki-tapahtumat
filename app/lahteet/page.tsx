@@ -81,6 +81,9 @@ const SOURCE_LABELS: Record<string, string> = {
   savoy: 'Savoy-teatteri',
   nauramaan: 'Nauramaan',
   siltanen: 'Siltanen',
+  apollo: 'Apollo Live Club',
+  maxine: 'Maxine',
+  tanssintalo: 'Tanssin talo',
 }
 
 interface SourceHealthResult {

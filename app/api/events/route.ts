@@ -13,6 +13,7 @@ const EXTERNAL_SOURCES = [
   'stadissa', 'myhelsinki', 'openings', 'allas', 'lippu', 'scraped',
   'flyingdutchman', 'juttutupa', 'lepakkomies', 'glivelab', 'kulttuuritalo',
   'postbar', 'korjaamo', 'malmitalo', 'vuotalo', 'savoy', 'nauramaan', 'siltanen',
+  'apollo', 'maxine', 'tanssintalo',
 ] as const
 
 interface LinkedEventsImage {
