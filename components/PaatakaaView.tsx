@@ -24,11 +24,9 @@ function genHostSecret(): string {
   return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-const MODES: { id: GroupMode; emoji: string; label: string; desc: string }[] = [
-  { id: 'quick', emoji: '⚡', label: 'Pikapäätös', desc: 'Yksi voittaja — ratkeaa heti kun enemmistö tykkää samasta' },
-  { id: 'arc', emoji: '🗺', label: 'Illan kaari', desc: 'Tykätyistä kudotaan koko illan suunnitelma vaiheineen' },
-]
-
+// Luontilomake "Illan kaari" — ainoa moodi (pikapäätös poistettu 8/2026:
+// käyttäjät eivät ymmärtäneet sitä; arc on tuotteen ydin). Server tukee
+// vanhoja quick-sessioita historiallisten linkkien vuoksi.
 const WHENS: { id: GroupWhen; emoji: string; label: string }[] = [
   { id: 'tonight', emoji: '🌙', label: 'Tänä iltana' },
   { id: 'day', emoji: '☀️', label: 'Tänään koko päivä' },
@@ -65,7 +63,7 @@ const INACTIVE = { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(
 
 export default function PaatakaaView() {
   const router = useRouter()
-  const [mode, setMode] = useState<GroupMode>('quick')
+  const [mode] = useState<GroupMode>('arc') // ainoa moodi (pikapäätös poistettu)
   const [when, setWhen] = useState<GroupWhen>('tonight')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
@@ -87,8 +85,8 @@ export default function PaatakaaView() {
   // päivävalintaan — sessiota EI luoda vielä (käyttäjä saattaa haluta toisen
   // päivän; aiemmin kaava hyppäsi suoraan tähän päivään, mikä oli virhe).
   function applyArc(arc: ThemeArc) {
-    const { mode: m, when: w, scenes: s, budget: b } = arc.preset
-    setMode(m); setWhen(w); setScenes(s); setBudget(b)
+    const { when: w, scenes: s, budget: b } = arc.preset
+    setWhen(w); setScenes(s); setBudget(b)
     setAppliedArc(arc.id)
     setMilloinFlash(true)
     setTimeout(() => setMilloinFlash(false), 2200)
@@ -150,25 +148,6 @@ export default function PaatakaaView() {
       <p className="text-white/25 text-[11px] font-black uppercase tracking-[.2em] text-center pt-1">
         — tai rakenna itse ↓ —
       </p>
-
-      {/* Moodi */}
-      <section>
-        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Miten päätetään?</h2>
-        <div className="grid grid-cols-2 gap-2">
-          {MODES.map(m => {
-            const active = mode === m.id
-            return (
-              <button key={m.id} onClick={() => { setMode(m.id); setAppliedArc(null) }}
-                className="flex flex-col items-start gap-1 rounded-2xl p-4 text-left transition-all active:scale-[.97]"
-                style={active ? ACTIVE : INACTIVE}>
-                <span className="text-2xl leading-none">{m.emoji}</span>
-                <span className="text-[13.5px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.7)' }}>{m.label}</span>
-                <span className="text-[11px] font-semibold leading-snug" style={{ color: active ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.35)' }}>{m.desc}</span>
-              </button>
-            )
-          })}
-        </div>
-      </section>
 
       {/* Milloin */}
       <section ref={milloinRef}
@@ -285,26 +264,24 @@ export default function PaatakaaView() {
         </div>
       </section>
 
-      {/* Vaihemäärä — vain illan kaari -moodissa: montako vaihetta kaareen */}
-      {mode === 'arc' && (
-        <section>
-          <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Montako vaihetta?</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {STEPS_OPTIONS.map(o => {
-              const active = maxSteps === o.n
-              return (
-                <button key={o.n} onClick={() => setMaxSteps(o.n)}
-                  className="flex flex-col items-center gap-0.5 rounded-2xl py-3 transition-all active:scale-[.97]"
-                  style={active ? ACTIVE : INACTIVE}>
-                  <span className="text-[15px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.7)' }}>{o.n}</span>
-                  <span className="text-[10.5px] font-bold" style={{ color: active ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.35)' }}>{o.label}</span>
-                </button>
-              )
-            })}
-          </div>
-          <p className="text-white/25 text-[12px] font-semibold mt-2">Kaari valitsee tykätyistä eniten äänestetyt vaiheet.</p>
-        </section>
-      )}
+      {/* Vaihemäärä — montako vaihetta kaareen */}
+      <section>
+        <h2 className="text-white/70 text-[13px] font-black uppercase tracking-wide mb-2">Montako vaihetta?</h2>
+        <div className="grid grid-cols-3 gap-2">
+          {STEPS_OPTIONS.map(o => {
+            const active = maxSteps === o.n
+            return (
+              <button key={o.n} onClick={() => setMaxSteps(o.n)}
+                className="flex flex-col items-center gap-0.5 rounded-2xl py-3 transition-all active:scale-[.97]"
+                style={active ? ACTIVE : INACTIVE}>
+                <span className="text-[15px] font-black" style={{ color: active ? '#fff' : 'rgba(255,255,255,.7)' }}>{o.n}</span>
+                <span className="text-[10.5px] font-bold" style={{ color: active ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.35)' }}>{o.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-white/25 text-[12px] font-semibold mt-2">Kaari valitsee tykätyistä eniten äänestetyt vaiheet.</p>
+      </section>
 
       {error && <p className="text-red-400/80 text-sm font-bold">{error}</p>}
 

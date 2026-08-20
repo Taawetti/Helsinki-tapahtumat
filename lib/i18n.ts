@@ -8,6 +8,7 @@ const t = {
     'nav.map':         'Kartta',
     'nav.restaurants': 'Ravintolat',
     'nav.activities':  'Tekemistä',
+    'nav.paatakaa':    'Päättäkää',
     'nav.favorites':   'Suosikit',
     'nav.festivals':   'Festivaalit',
 
@@ -459,6 +460,7 @@ const t = {
     'nav.map':         'Map',
     'nav.restaurants': 'Restaurants',
     'nav.activities':  'Things to do',
+    'nav.paatakaa':    'Decide',
     'nav.favorites':   'Favorites',
     'nav.festivals':   'Festivals',
 
