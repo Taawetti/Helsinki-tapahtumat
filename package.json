@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "test:categories": "tsx scripts/test-categories.ts",
-    "prebuild": "tsx scripts/test-categories.ts",
+    "test:categories": "TZ=UTC tsx scripts/test-categories.ts",
+    "audit:compounds": "TZ=UTC tsx scripts/audit-compounds.ts",
+    "build:vocab": "tsx scripts/build-vocab.ts",
+    "prebuild": "TZ=UTC tsx scripts/test-categories.ts && TZ=UTC tsx scripts/audit-compounds.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

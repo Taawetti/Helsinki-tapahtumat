@@ -28,6 +28,7 @@ import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
+import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
 import { buildDeck } from '../lib/candidate'
 import { venueHoursOverride } from '../lib/venue-hours-overrides'
 import { pickWeeklyDigest } from '../lib/weekly-digest'
@@ -454,6 +455,74 @@ const CASES: Case[] = [
     name: 'metallikeikka rock-klubilla ("Tavastia-klubi") EI ole yöelämää (bare klubi pois)',
     e: { title: 'Arch Enemy', shortDescription: 'Tavastia-klubi — melodic death metal', categories: [], ysoIds: [] },
     out: ['yoelama'],
+  },
+  // ── yö*-substring-miinat (löydetty tuotannosta 2026-08-21) ────────────────
+  // 'yökerho'/'yöelämä' substringinä osuivat sanoihin joissa "yö" on edeltävän
+  // osan loppu → neulontakerho ja työnhakuinfo luokittuivat yöelämäksi.
+  {
+    name: 'käsityökerho (käsityö+kerho) EI ole yökerho → ei yoelama',
+    e: { title: 'Käsityökerho', shortDescription: 'Tule mukaan neulomaan yhdessä ja viettämään aikaa kahvikupin äärelle.', categories: [], ysoIds: [] },
+    out: ['yoelama'],
+  },
+  {
+    name: 'työelämä (työ+elämä) EI ole yöelämä → ei yoelama',
+    e: { title: 'Tule palveluinfoon: Tuettu työnhaku vieraskielisille', shortDescription: 'Löydä polkusi työelämään. Info Helsingin työllisyyspalveluiden asiakkaille.', categories: [], ysoIds: [] },
+    out: ['yoelama'],
+  },
+  {
+    name: 'päiväsaikainen torikonsertti jonka kuvauksessa "bileet" EI ole yöelämää',
+    e: { title: 'ANI, kukkatalo – Malmin tapahtumakesä 2026', shortDescription: 'Tapahtumakesän viimeinen päivä tarjoaa kukkatalon bileet ja ANIn karismaattista poppia Ala-Malmin torilla!', categories: ['Musiikki'], ysoIds: [] },
+    out: ['yoelama'],
+  },
+  {
+    name: 'bilebändi on keikka, ei yöelämää',
+    e: { title: 'Bilebändi Löyly', shortDescription: 'Bilebändi soittaa terassilla.', categories: [], ysoIds: [] },
+    in: ['keikka'], out: ['yoelama'],
+  },
+  // Sananalkuosuma ei saa rikkoa aitoja osumia (taivutus + yhdyssanan alku)
+  {
+    name: 'aito yökerho-taivutus osuu yhä (yökerhossa)',
+    e: { title: 'Uudenvuoden juhlat', shortDescription: 'Ilta jatkuu yökerhossa aamuun asti.', categories: [], ysoIds: [] },
+    in: ['yoelama'],
+  },
+  {
+    name: 'yöelämäkulttuuri osuu yhä yoelamaan',
+    e: { title: 'Bilepassio', shortDescription: 'Sukellus nykyajan helsinkiläiseen yöelämäkulttuuriin.', categories: [], ysoIds: [] },
+    in: ['yoelama'],
+  },
+  // ── Lisää substring-miinoja (mitattu 3 838 tapahtuman korpuksesta) ─────────
+  // Venue-nimi jätetään TARKOITUKSELLA pois classifyEventin tekstistä, mutta
+  // LinkedEventsin KUVAUS toistaa sen ("Saunabaarissa maanantaisin…") → suoja
+  // ohitettiin kanavaa vaihtamalla. Siksi testi kattaa kuvauskanavan.
+  {
+    name: 'saunabaari kuvauksessa EI tee neulontakerhosta baaria',
+    e: { title: 'Käsityöryhmä', shortDescription: 'Saunabaarissa maanantaisin klo 10. Tuo omat työt.', categories: ['Työpajat', 'neulonta'], ysoIds: [] },
+    out: ['baari'],
+  },
+  {
+    name: 'barbaarirannikko EI ole baari (bar+baari straddle)',
+    e: { title: 'Ari Saastamoinen: Barbaarirannikon merirosvot', shortDescription: 'Kirjailijavieraana kirjastossa.', categories: ['kirjat', 'kirjallisuus'], ysoIds: [] },
+    out: ['baari'],
+  },
+  {
+    name: 'aito baari-taivutus osuu yhä (kellaribaarissa → sananalku "baari" puuttuu, mutta paljas baari osuu)',
+    e: { title: 'Karaokeilta', shortDescription: 'Baarissa joka perjantai.', categories: [], ysoIds: [] },
+    in: ['baari'],
+  },
+  {
+    name: 'esseekokoelma EI tee kirjailijavierailusta museota',
+    e: { title: 'Esko Valtaoja kirjailijavieraana', shortDescription: 'Uusi esseekokoelma esittelyssä.', categories: [], ysoIds: [] },
+    out: ['museo'],
+  },
+  {
+    name: 'aito kokoelma-taivutus osuu yhä museoon',
+    e: { title: 'Kurkistus Sammon kokoelmaan', shortDescription: 'Opastus varastojen aarteisiin.', categories: [], ysoIds: [] },
+    in: ['museo'],
+  },
+  {
+    name: 'lasitaidenäyttely kuvauksessa EI vetoa tanssiteosta pois Teatterista',
+    e: { title: 'Willman Dance Company: USKO-FAITH', shortDescription: 'Tanssiteos esitetään lasitaidenäyttelyn tiloissa.', categories: [], ysoIds: [] },
+    in: ['teatteri'],
   },
 ]
 
@@ -1306,6 +1375,86 @@ const ideaChecks: { name: string; ok: boolean }[] = [
 for (const c of ideaChecks) {
   if (c.ok) pass++
   else failures.push(`✗ idea-deck: ${c.name}`)
+}
+
+// ── AIKAVYÖHYKE: naiivit aikaleimat (tuotantobugi 2026-08-21) ───────────────
+// Skraperit tuottavat paikallista seinäkelloaikaa ilman offsetia. UTC-palvelimella
+// (Vercel) new Date() luki ne 3 h väärin → klo 21+ tapahtumat vaihtoivat päivää,
+// putosivat Illalla-näkymästä ja karkasivat dedupista. Bugi oli paikallisesti
+// näkymätön: TZ=Europe/Helsinki -koneella sama koodi toimi oikein. Siksi
+// prebuild ajaa nämä (ja kaikki muut) testit TZ=UTC:llä — ks. package.json.
+{
+  const tzChecks: { name: string; ok: boolean; got?: string }[] = []
+  const N = normalizeHelsinkiTimestamp
+
+  // Naiivi → Helsinki-offset (kesä +03, talvi +02). Tulos on TZ-riippumaton.
+  tzChecks.push({ name: 'naiivi kesäaika saa +03:00', ok: N('2026-08-22T23:30:00') === '2026-08-22T23:30:00+03:00', got: String(N('2026-08-22T23:30:00')) })
+  tzChecks.push({ name: 'naiivi talviaika saa +02:00', ok: N('2026-01-15T23:30:00') === '2026-01-15T23:30:00+02:00', got: String(N('2026-01-15T23:30:00')) })
+  tzChecks.push({ name: 'millisekunnit säilyvät', ok: N('2026-08-22T22:00:00.000') === '2026-08-22T22:00:00.000+03:00' })
+  // Olemassa olevaan ei kosketa
+  tzChecks.push({ name: 'Z-päätteinen säilyy koskemattomana', ok: N('2026-08-22T20:30:00Z') === '2026-08-22T20:30:00Z' })
+  tzChecks.push({ name: 'offset säilyy koskemattomana', ok: N('2026-08-22T23:30:00+03:00') === '2026-08-22T23:30:00+03:00' })
+  tzChecks.push({ name: 'pelkkä päivä säilyy (koko päivän tapahtuma)', ok: N('2026-08-22') === '2026-08-22' })
+  tzChecks.push({ name: 'roska säilyy muuttumattomana', ok: N('roska') === 'roska' })
+  tzChecks.push({ name: 'null → null', ok: N(null) === null })
+  tzChecks.push({ name: 'idempotentti', ok: N(N('2026-08-22T23:30:00')) === '2026-08-22T23:30:00+03:00' })
+
+  // YDINVÄITE: normalisoitu klo 23:30 kuuluu SAMALLE Helsinki-päivälle myös
+  // UTC-palvelimella. Ilman normalisointia tämä antoi 2026-08-23.
+  for (const naive of ['2026-08-22T21:00:00', '2026-08-22T22:00:00.000', '2026-08-22T23:30:00']) {
+    const d = helsinkiDateOf(N(naive) as string)
+    tzChecks.push({ name: `normalisoitu ${naive.slice(11)} pysyy päivässä 08-22`, ok: d === '2026-08-22', got: d })
+  }
+
+  // DST-VAIHTOPÄIVÄT 2026 (kesäaika alkaa su 29.3. klo 03:00, päättyy su 25.10.
+  // klo 04:00). Offset on luettava aikaleiman OMASTA hetkestä kaksivaiheisesti:
+  // kohdepäivän keskipäivä antoi aamuyölle väärän offsetin, jolloin aikaleima
+  // siirtyi EDELLISELLE kalenteripäivälle ja tapahtuma katosi haetulta päivältä.
+  const dstCases: [string, string][] = [
+    ['2026-03-29T00:00:00', '+02:00'], // vaihtopäivän alku — kriittisin
+    ['2026-03-29T00:30:00', '+02:00'],
+    ['2026-03-29T02:30:00', '+02:00'], // yhä ennen klo 03:00 siirtoa
+    ['2026-03-29T04:30:00', '+03:00'], // siirron jälkeen
+    ['2026-03-28T23:30:00', '+02:00'], // päivä ennen
+    ['2026-10-25T00:30:00', '+03:00'], // syksyn vaihtopäivä ennen klo 04:00
+    ['2026-10-25T05:30:00', '+02:00'], // jälkeen
+    ['2026-10-24T23:30:00', '+03:00'],
+  ]
+  for (const [naive, expOffset] of dstCases) {
+    const out = String(N(naive))
+    tzChecks.push({ name: `DST ${naive} → ${expOffset}`, ok: out === `${naive}${expOffset}`, got: out })
+    // Päivä ei saa liukua kalenterissa kummallakaan puolella siirtymää
+    tzChecks.push({ name: `DST ${naive} pysyy päivässä ${naive.slice(0, 10)}`, ok: helsinkiDateOf(out) === naive.slice(0, 10), got: helsinkiDateOf(out) })
+  }
+
+  // Poikkeavat mutta lailliset muodot — uusi lähde voi tuoda minkä tahansa näistä
+  tzChecks.push({ name: 'offset ilman kaksoispistettä tunnistetaan (+0300)', ok: N('2026-08-22T23:30:00+0300') === '2026-08-22T23:30:00+0300' })
+  tzChecks.push({ name: 'pieni z tunnistetaan aikavyöhykkeeksi', ok: N('2026-08-22T20:30:00z') === '2026-08-22T20:30:00z' })
+  // Erotin normalisoidaan 'T':ksi — muuten formatEventDate (!includes('T'))
+  // pitäisi välilyöntimuotoa koko päivän tapahtumana ja piilottaisi kellonajan.
+  tzChecks.push({ name: "pieni t-erotin → 'T' + offset", ok: N('2026-08-22t23:30:00') === '2026-08-22T23:30:00+03:00', got: String(N('2026-08-22t23:30:00')) })
+  tzChecks.push({ name: "välilyönti-erotin → 'T' + offset", ok: N('2026-08-22 23:30:00') === '2026-08-22T23:30:00+03:00', got: String(N('2026-08-22 23:30:00')) })
+  tzChecks.push({ name: 'välilyöntimuoto pysyy samassa Helsinki-päivässä', ok: helsinkiDateOf(N('2026-08-22 23:30:00') as string) === '2026-08-22', got: helsinkiDateOf(N('2026-08-22 23:30:00') as string) })
+  tzChecks.push({ name: 'kelloaika ilman sekunteja normalisoidaan', ok: N('2026-08-22T23:30') === '2026-08-22T23:30+03:00', got: String(N('2026-08-22T23:30')) })
+  tzChecks.push({ name: 'mikrosekunnit säilyvät', ok: N('2026-08-22T23:30:00.123456') === '2026-08-22T23:30:00.123456+03:00' })
+  tzChecks.push({ name: 'negatiiviseen offsetiin ei kosketa', ok: N('2026-08-22T23:30:00-05:00') === '2026-08-22T23:30:00-05:00' })
+  tzChecks.push({ name: 'tuntematon muoto palautetaan koskemattomana', ok: N('22.8.2026 23:30') === '22.8.2026 23:30' })
+
+  // ROBUSTIUS: helsinkiOffset ei saa heittää kelvottomasta Datesta. helsinkiISO:a
+  // kutsutaan skrapereista ilman per-rivin suojaa, joten RangeError kaataisi koko
+  // lähteen (venues = 15 keikkapaikkaa) yhden roskaisen päivän takia.
+  let offsetThrew = false
+  try { helsinkiOffset(new Date(NaN)) } catch { offsetThrew = true }
+  tzChecks.push({ name: 'helsinkiOffset(kelvoton Date) ei heitä', ok: !offsetThrew })
+  let isoThrew = false
+  try { helsinkiISO(NaN, NaN, NaN, 19, 0) } catch { isoThrew = true }
+  tzChecks.push({ name: 'helsinkiISO(NaN) ei heitä', ok: !isoThrew })
+  tzChecks.push({ name: 'helsinkiOffset kelvollisella päivällä yhä oikea', ok: helsinkiOffset(new Date('2026-01-15T12:00:00Z')) === '+02:00', got: helsinkiOffset(new Date('2026-01-15T12:00:00Z')) })
+
+  for (const c of tzChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ aikavyöhyke: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
 }
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.

@@ -24,6 +24,12 @@ export interface Event {
   // Kategorialuokitus (vibe-id:t) — lasketaan kerran /api/events-aggregaatissa
   // (lib/event-classify.ts). Puuttuessa klientti laskee getEventVibes-fallbackilla.
   vibes?: string[]
+  // TRUE kun lähde EI skrapannut kelloaikaa vaan käytti kiinteää oletusta
+  // (esim. venues/allas/juttutupa "T19:00"). Dedup käyttää tätä: kun sama
+  // tapahtuma tulee kahdesta lähteestä, TODELLINEN kelloaika voittaa keksityn
+  // — muuten "Loosen Jytädisko" jäisi placeholder-aikaan 19:00 vaikka toinen
+  // lähde tietää sen alkavan 23:30 (ja menettäisi yoelama-luokittelunsa).
+  startTimeApprox?: boolean
   // LinkedEventsin vakaat yso-ontologiakoodit (esim. 'yso:p11185' = konsertit).
   // Kielestä riippumaton, törmäyksetön PÄÄsignaali luokittelulle (L0).
   // Vain LinkedEvents-pohjaisilla lähteillä; muut → tyhjä → tekstikerrokset.
@@ -126,9 +132,21 @@ export const VIBES: Vibe[] = [
   // metallikeikat väärin. RA-klubilähteen tapahtumat kantavat aina 'Yöelämä'-
   // kategorian → 'yöelämä'-avainsana kattaa ne; venuet Kaiku/Ääniwalli/Post Bar
   // hoituvat L1:ssä. 'klubi-ilta'/'yöklubi' -yhdyssanat silti mukana.
-  { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['yökerho', 'yöelämä', 'yöklubi', 'klubi ilta', 'klubi illat', 'nightclub', 'night club', 'club night', 'dj ilta', 'dj set', 'cocktail', 'after party', 'afterparty', '^bile', '^disko', '^rave'], excludeKeywords: KIDS_EXCLUDE },
+  //
+  // yö*-sanat ovat SANANALKUOSUMIA (^) — substringinä ne osuivat sanoihin joissa
+  // "yö" on edeltävän osan loppu, ei yö-etuliite: käsit·yökerho (käsityö+kerho)
+  // ja t·yöelämä (työ+elämä) luokittelivat neulontakerhon ja työnhakuinfon
+  // yöelämäksi. Sananalkuosuma säilyttää oikeat (yökerhot, yöelämää,
+  // yöelämäkulttuuri, myös lähteen 'Yöelämä'-kategoriatoken).
+  //
+  // '^bile' POISTETTU: token-prefix ei osunut yleisimpiin muotoihin
+  // (kesä·bileet, opiskelija·bileet alkavat eri tavulla) mutta poimi
+  // päiväsaikaisia väärin — "kukkatalon bileet" teki klo 15 ilmaisesta
+  // torikonsertista yöelämää, ja "Bilebändi" on keikka. Aidot klubi-illat
+  // tunnistuvat vahvemmista signaaleista (yökerho/dj set/klubi-ilta/venue).
+  { id: 'yoelama',   label: 'Yöelämä',           tKey: 'vibe.yoelama',  emoji: '🌙', keywords: ['^yökerho', '^yöelämä', '^yöklubi', 'klubi ilta', 'klubi illat', 'nightclub', 'night club', 'club night', 'dj ilta', 'dj set', 'cocktail', 'after party', 'afterparty', '^disko', '^rave'], excludeKeywords: KIDS_EXCLUDE },
   // 'baari' substringinä (kellaribaari); 'pubi' (ei 'pub' → osuisi 'public')
-  { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['baari', 'pubi', 'olut', 'beer', 'drinkki', 'viini', 'wine', 'lounge', 'taproom', 'pintti', 'tuoppi', 'karaoke', 'tasting', 'panimo', 'trivia', 'tietovisa', 'pubivisa', 'visailu'], excludeKeywords: KIDS_EXCLUDE },
+  { id: 'baari',     label: 'Baari / Pub',       tKey: 'vibe.baari',    emoji: '🍺', keywords: ['^baari', 'kellaribaari', 'olutbaari', 'viinibaari', 'kahvilabaari', 'hotellibaari', 'himabaari', 'pubi', 'olut', 'beer', 'drinkki', 'viini', 'wine', 'lounge', 'taproom', 'pintti', 'tuoppi', 'karaoke', 'tasting', 'panimo', 'trivia', 'tietovisa', 'pubivisa', 'visailu'], excludeKeywords: KIDS_EXCLUDE },
   // '^maraton' (ei elokuvamaraton), '^match' (matcha poissuljettu erikseen);
   // EI 'liikunta' (kunnalliset jumpat)
   { id: 'urheilu',   label: 'Urheilu',           tKey: 'vibe.urheilu',  emoji: '⚽', keywords: ['urheilu', 'jääkiekko', 'jalkapallo', 'koripallo', 'salibandy', 'pesäpallo', 'tennis', 'ottelu', 'turnau', '^maraton', 'liiga', 'sports', '^match'], excludeKeywords: [...KIDS_EXCLUDE, 'pelailu', 'matcha'] },
@@ -138,7 +156,7 @@ export const VIBES: Vibe[] = [
   // rajaa Kiasma-teatterin esitykset pois. ('lates' poistettu → osui 'latest'.)
   // 'historia' poistettu — aihe, ei tyyppi (teki historialuennosta/-kierroksesta
   // museon); museonäyttelyt osuvat 'museo'/'näyttely'/venue-signaaleihin
-  { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museum', 'perinne', 'kokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'], excludeKeywords: ['klubi', 'yökerho', 'dj ilta', 'dj set', 'kiasma teatteri'] },
+  { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museum', 'perinne', '^kokoelma', 'taidekokoelma', 'museokokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'], excludeKeywords: ['^klubi', '^yökerho', 'dj ilta', 'dj set', 'kiasma teatteri'] },
   { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'satutuokio', 'leikkipuisto', 'loru', 'temppurata', 'leikkiminen', 'eskari', 'päiväkoti'] },
   // "Harrastukset & Kurssit". '^kurssi' ei osu konkurssi/diskurssi; 'opetus'
   // substringinä osuu 'paritanssiopetus'; osallistavat tanssit lisätty tänne
@@ -146,7 +164,7 @@ export const VIBES: Vibe[] = [
   { id: 'tyopaja',   label: 'Harrastukset & Kurssit', tKey: 'vibe.tyopaja', emoji: '🛠', keywords: ['työpaja', '^kurssi', 'workshop', 'opetus', 'oppiminen', 'koulutus', 'luento', 'harjoitus', 'harrasteryhm', 'yhteislaul', 'päivätanssi', 'kaupunkitanssi', 'lavatanssi', 'paritanssi', 'tanssikurssi', 'avoimet ovet', 'jumppa', 'liikuntaharrastus', 'kuntosali', 'kielikahvila', 'digituki', 'digineuvo', 'bingo', 'lautapeli', 'luontopiiri', 'kirjallisuuspiiri', 'ryhmä kokoontuu'] },
   // 'teatteri'/'tanssi' substringinä → nukketeatteri/nykytanssi. Sirkuskoulut/
   // -leirit ja osallistavat tanssit poissuljettu (kuuluvat Harrastuksiin).
-  { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'ballet', 'sirkus', 'impro', 'theatre', 'dance', 'performance'], excludeKeywords: ['päivätanssi', 'kaupunkitanssi', 'lavatanssi', 'tanssikurssi', 'musiikkituokio', 'taidenäyttely', 'työpaja', 'sirkuskoulu', 'sirkusleiri', 'sirkuskurssi', 'teatterikurssi', 'tanssileiri'] },
+  { id: 'teatteri',  label: 'Teatteri & Tanssi', tKey: 'vibe.teatteri', emoji: '🎭', keywords: ['teatteri', 'tanssi', 'esitys', 'näytelmä', 'ooppera', 'baletti', 'ballet', 'sirkus', 'impro', 'theatre', 'dance', 'performance'], excludeKeywords: ['päivätanssi', 'kaupunkitanssi', 'lavatanssi', 'tanssikurssi', 'musiikkituokio', '^taidenäyttely', 'työpaja', 'sirkuskoulu', 'sirkusleiri', 'sirkuskurssi', 'teatterikurssi', 'tanssileiri'] },
   // 'taide' (ei 'art' → osui vartalo/askartelu); leikkipuistoaskartelut
   // lähdetagattu 'kuvataide' → poissulut
   { id: 'taide',     label: 'Taide',             tKey: 'vibe.taide',    emoji: '🎨', keywords: ['taide', 'galleria', 'näyttely', 'kuvataide', 'valokuva', 'gallery', 'exhibition', 'design'], excludeKeywords: ['teatteritaide', 'leikkipuisto', 'askartelu', 'kädentaito'] },

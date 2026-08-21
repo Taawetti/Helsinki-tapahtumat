@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { helsinkiISO } from '@/lib/helsinki-time'
 
 // RSS-syötteet Helsinki-tapahtumapaikoilta
 // Mukana vain syötteet joissa on jäsennettävät tapahtumatiedot (DD.MM.YYYY -päivät sisällössä).
@@ -56,8 +57,7 @@ function extractEventDate(rawContent: string, pubDate: string, rawDescription?: 
 
   const hour = timeMatch ? parseInt(timeMatch[1], 10) : 19
   const minute = timeMatch ? parseInt(timeMatch[2], 10) : 0
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00+03:00`
+  return helsinkiISO(year, month, day, hour, minute)
 }
 
 function parseRssItems(xml: string, city: string, feedUrl: string, venueName?: string): Event[] {

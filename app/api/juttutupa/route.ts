@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
 import { parseFinnishDate } from '@/lib/finnish-date'
 import { scrapeMeta } from '@/lib/scrape-meta'
+import { helsinkiISO } from '@/lib/helsinki-time'
+
+// Kiinteä '+03:00' oli tunnin väärässä loka–maaliskuussa (EET = +02:00).
+// helsinkiISO lukee offsetin kohdepäivältä.
+function hkiISO(date: string, hour: number, minute: number): string {
+  return helsinkiISO(Number(date.slice(0, 4)), Number(date.slice(5, 7)), Number(date.slice(8, 10)), hour, minute)
+}
+
 
 const VENUE = {
   name: 'Juttutupa',
@@ -80,7 +88,8 @@ export async function GET(req: NextRequest) {
       title: e.title,
       shortDescription: `Juttutupa – ${VENUE.address}, Helsinki`,
       description: '',
-      startTime: `${e.date}T19:00:00+03:00`,
+      startTime: hkiISO(e.date, 19, 0),
+      startTimeApprox: true, // vain päivä skrapattu — klo 19 on oletus
       endTime: null,
       location: { name: VENUE.name, streetAddress: VENUE.address, city: VENUE.city, lat: VENUE.lat, lon: VENUE.lon },
       image: null,

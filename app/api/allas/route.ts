@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { helsinkiISO } from '@/lib/helsinki-time'
+
+// Kiinteä '+03:00' oli tunnin väärässä loka–maaliskuussa (EET = +02:00).
+// helsinkiISO lukee offsetin kohdepäivältä.
+function hkiISO(date: string, hour: number, minute: number): string {
+  return helsinkiISO(Number(date.slice(0, 4)), Number(date.slice(5, 7)), Number(date.slice(8, 10)), hour, minute)
+}
+
 
 interface AlEvent {
   id: number
@@ -127,7 +135,8 @@ export async function GET(req: NextRequest) {
           title,
           shortDescription: 'Allas Sea Pool — Helsinki',
           description: '',
-          startTime: `${date}T19:00:00+03:00`,
+          startTime: hkiISO(date, 19, 0),
+          startTimeApprox: true, // vain päivä skrapattu — klo 19 on oletus
           endTime: null,
           location: {
             name: 'Allas Sea Pool',
@@ -163,7 +172,8 @@ export async function GET(req: NextRequest) {
       title: s.title,
       shortDescription: 'Allas Sea Pool — Helsinki',
       description: '',
-      startTime: `${s.date}T19:00:00+03:00`,
+      startTime: hkiISO(s.date, 19, 0),
+      startTimeApprox: true, // vain päivä skrapattu — klo 19 on oletus
       endTime: null,
       location: {
         name: 'Allas Sea Pool',

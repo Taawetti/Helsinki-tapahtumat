@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
           shortDescription: r.summary?.[0]?.slice(0, 200) ?? '',
           description: r.summary?.[0] ?? '',
           startTime: `${start}T10:00:00`,
+          startTimeApprox: true, // vain päivä tiedossa — klo 10 on oletus
           endTime: `${start}T18:00:00`,
           location: {
             name: institutionName,

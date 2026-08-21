@@ -6,6 +6,7 @@ import { getDateRange } from '@/lib/utils'
 import { NEIGHBORHOODS } from '@/lib/types'
 import { buildDeck } from '@/lib/candidate'
 import { fetchRainExpected } from '@/lib/weather'
+import { normalizeHelsinkiTimestamp } from '@/lib/helsinki-time'
 import type { Candidate, GroupWhen, DeckInput, BudgetId } from '@/lib/candidate'
 import type { Event, Restaurant, Activity, DateFilter } from '@/lib/types'
 
@@ -82,7 +83,16 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: st
   for (const [k, v] of Object.entries(rat.ratings ?? {})) activityRatings.set(k, { rating: v.rating, reviewCount: v.reviewCount })
 
   const input: DeckInput = {
-    events: eventResponses.flatMap(e => e.events ?? []),
+    // AIKAVYÖHYKE: klubilähteet haetaan tässä SUORAAN (ohi /api/events-
+    // aggregaatin), joten niiden naiivit aikaleimat eivät ole käyneet
+    // normalisoinnin läpi. Ilman tätä esim. "2026-08-22T23:30:00" luetaan
+    // UTC-palvelimella 02:30 Helsinkiä seuraavana päivänä → klubi-ilta
+    // putoaa illan pakasta ja näkyy väärällä päivällä.
+    events: eventResponses.flatMap(e => (e.events ?? []).map(ev => ({
+      ...ev,
+      startTime: normalizeHelsinkiTimestamp(ev.startTime) ?? ev.startTime,
+      endTime: normalizeHelsinkiTimestamp(ev.endTime),
+    }))),
     restaurants: rest.restaurants ?? [],
     activities: act.activities ?? [],
     activityRatings,

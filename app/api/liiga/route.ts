@@ -32,10 +32,14 @@ function isHelsinkiTeam(team: string): boolean {
 }
 
 function buildStartTime(dateEvent: string, strTime: string): string {
-  // Strip timezone suffix (e.g. "+00:00") — treat as UTC approximation
-  const timePart = strTime ? strTime.replace(/[+-]\d{2}:\d{2}$/, '').trim() : ''
-  const time = timePart || '18:00:00'
-  return `${dateEvent}T${time}`
+  // TheSportsDB antaa ajan UTC:na (usein "+00:00"-päätteellä). AIKAVYÖHYKE ON
+  // SÄILYTETTÄVÄ: aiemmin pääte riisuttiin ja jäljelle jäi naiivi merkkijono,
+  // jonka events-reitin normalizeHelsinkiTimestamp tulkitsisi Helsingin
+  // seinäkelloksi ja siirtäisi ottelun 3 h aikaisemmaksi. Naiivi oletusaika
+  // tarkoitti aiemminkin UTC:tä (UTC-palvelin), joten 'Z' säilyttää käytöksen.
+  const raw = (strTime || '').trim()
+  if (raw && /(?:Z|[+-]\d{2}:?\d{2})$/.test(raw)) return `${dateEvent}T${raw}`
+  return `${dateEvent}T${raw || '18:00:00'}Z`
 }
 
 function toEvent(e: SportsDBEvent): Event {

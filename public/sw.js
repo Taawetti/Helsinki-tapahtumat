@@ -1,10 +1,12 @@
 // v4: navigations are network-first now — the old cache-first '/' kept
 // serving a stale HTML shell (and thus a stale JS bundle) after deploys.
 const CACHE = 'hki-v4'
-// v2: day-chunk fetch shipped — old cached responses miss most of the day's
-// events, so the API cache generation is bumped to drop them on activate.
-const API_CACHE = 'hki-api-v2'
-const QUICK_CACHE = 'hki-quick-v2'
+// v3: timestamps are now normalized (naive → Helsinki offset). Cached v2
+// responses hold un-normalized times that would show late-night events on the
+// wrong day (and drop them from the "tonight" view) for up to API_MAX_AGE, so
+// the generation is bumped to drop them on activate.
+const API_CACHE = 'hki-api-v3'
+const QUICK_CACHE = 'hki-quick-v3'
 const STATIC = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png']
 const API_TTL = 5 * 60 * 1000     // full fetch: 5 min fresh
 const API_MAX_AGE = 60 * 60 * 1000 // full fetch: 1 h max stale

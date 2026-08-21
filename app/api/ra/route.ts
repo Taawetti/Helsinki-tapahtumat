@@ -113,6 +113,8 @@ function normalize(raw: RAEventPayload): Event {
     shortDescription: `${raw.venue?.name || 'Helsinki'} — ${genreNames}`,
     description: '',
     startTime: raw.startTime ?? `${raw.date}T22:00:00`,
+    // Approx VAIN kun oikea kelloaika puuttui ja klo 22 -oletus otettiin käyttöön
+    startTimeApprox: !raw.startTime,
     endTime: raw.endTime ?? null,
     location: {
       name: raw.venue?.name ?? '',

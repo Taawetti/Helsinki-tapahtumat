@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
 import { PAST_DAYS_SAME_YEAR, FUTURE_DAYS_SAME_YEAR } from '@/lib/finnish-date'
 import { scrapeMeta } from '@/lib/scrape-meta'
+import { helsinkiISO } from '@/lib/helsinki-time'
 
 interface VenueEvent {
   url: string
@@ -223,7 +224,13 @@ function toEvent(v: VenueEvent): Event {
     title: v.title,
     shortDescription: `${v.venueName} — ${v.city}`,
     description: '',
-    startTime: `${v.date}T19:00:00+03:00`,
+    // Sivustolta skrapataan vain PÄIVÄ — klo 19 on ovien avautumisen konventio,
+    // ei todellinen alkuaika. startTimeApprox kertoo tämän dedupille: jos sama
+    // keikka tulee toisesta lähteestä oikealla kellonajalla, se voittaa.
+    // helsinkiISO hoitaa kesä/talviajan (kiinteä +03:00 oli tunnin väärässä
+    // loka–maaliskuussa).
+    startTime: helsinkiISO(Number(v.date.slice(0, 4)), Number(v.date.slice(5, 7)), Number(v.date.slice(8, 10)), 19, 0),
+    startTimeApprox: true,
     endTime: null,
     location: {
       name: v.venueName,

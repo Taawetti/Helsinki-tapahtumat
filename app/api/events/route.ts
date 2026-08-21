@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
-import { helsinkiDateOf } from '@/lib/helsinki-time'
+import { helsinkiDateOf, normalizeHelsinkiTimestamp } from '@/lib/helsinki-time'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
+
+// Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
+// Ilman tätä alusta voi katkaista pyynnön oletuksellaan kesken kaiken, jolloin
+// osittainen data näkyisi käyttäjälle täytenä listana.
+export const maxDuration = 60
 
 // External sources fetched via internal API routes (api/<name>).
 // Order defines merge priority: earlier sources win dedup upgrades first.
@@ -70,9 +75,14 @@ function normalize(raw: LinkedEventsEvent): Event {
   const ticketUrl = offer?.info_url?.fi || offer?.info_url?.en || null
   const infoUrl = raw.info_url?.fi || raw.info_url?.en || null
 
+  // LinkedEvents palauttaa saman avainsanan toisinaan kahdesti (esim.
+  // ["Musiikki","Musiikki"]) → dedup ENNEN 4:n katkaisua, jolloin neljä
+  // paikkaa täyttyy uniikeilla kategorioilla eikä toistolla.
+  const catSeen = new Set<string>()
   const categories = (raw.keywords || [])
     .map((k) => k.name?.fi || k.name?.en || '')
     .filter(Boolean)
+    .filter((c) => { const k = c.toLowerCase(); if (catSeen.has(k)) return false; catSeen.add(k); return true })
     .slice(0, 4)
 
   return {
@@ -139,12 +149,23 @@ export async function GET(req: NextRequest) {
 
     // Helper: fetch an internal API route — catches ALL errors (incl. AbortSignal.timeout)
     // so they never escape Promise.allSettled in Node 24+
-    const src = async (path: string): Promise<Response | null> => {
+    //
+    // RUNKO LUETAAN TÄSSÄ, ei kutsupaikalla. Aiemmin tämä palautti Response-olion
+    // heti kun OTSAKKEET saapuivat ja runko jäi lukemattomaksi streamiksi, johon
+    // AbortSignal jäi kiinni. Runko luettiin vasta kun LinkedEventsin päiväpalaset
+    // (10 päivää ≈ 10 MB) oli parsittu sarjassa — siihen mennessä deadline oli
+    // umpeutunut ja abort oli virheistänyt streamin, joten res.json() heitti ja
+    // lähde kirjattiin kuolleeksi. Mitattu: 900 ms:ssä vastannut lähde merkittiin
+    // pettäneeksi; 10 päivän haussa 44/45 lähdettä katosi näin (2 päivän haussa
+    // 45/45 selvisi, koska koko haku mahtui 8 sekuntiin). Kun runko luetaan
+    // saman deadlinen sisällä, lähteen kohtalo riippuu vain sen OMASTA nopeudesta.
+    const src = async (path: string): Promise<{ events?: Event[] } | null> => {
       try {
         const res = await fetch(`${origin}/${path}?${extraParams}`, {
           signal: AbortSignal.timeout(8000),
         })
-        return res
+        if (!res.ok) return null
+        return (await res.json()) as { events?: Event[] }
       } catch {
         return null
       }
@@ -177,7 +198,7 @@ export async function GET(req: NextRequest) {
       ...EXTERNAL_SOURCES.map((name) => attemptExternal ? src(`api/${name}`) : Promise.resolve(null)),
     ])
     const dayResults = settled.slice(0, dayDates.length) as PromiseSettledResult<Response>[]
-    const externalRes = settled.slice(dayDates.length) as PromiseSettledResult<Response | null>[]
+    const externalRes = settled.slice(dayDates.length) as PromiseSettledResult<{ events?: Event[] } | null>[]
 
     // Cutoff anchored to THIS PAGE's day-window (not the range start) so
     // deeper pages don't re-admit ongoing rows from the range's first days —
@@ -268,32 +289,111 @@ export async function GET(req: NextRequest) {
     const seenMap = new Map(events.map((e, i) => [dedupKey(e.title, helsinkiDateOf(e.startTime)), i]))
     const sources: SourceStatus[] = [{ name: 'linked-events', ok: leOk, count: events.length }]
 
+    // Luokittelu joka ei koskaan heitä — käytetään dedupin vibe-unionissa.
+    const safeClassify = (ev: Event | undefined): string[] => {
+      if (!ev) return []
+      try { return classifyEvent(ev) } catch { return [] }
+    }
+    let perEventFailures = 0
+
     for (let i = 0; i < externalRes.length && attemptExternal; i++) {
       const name = EXTERNAL_SOURCES[i]
       const res = externalRes[i]
       let ok = false
       let count = 0
-      // rejected / null (timeout, network) / non-OK HTTP / bad JSON → ok stays false
-      if (res.status === 'fulfilled' && res.value && (res.value as Response).ok) {
+      // rejected / null (timeout, network, non-OK HTTP, bad JSON — kaikki
+      // suodattuvat src():ssä) → ok jää falseksi
+      if (res.status === 'fulfilled' && res.value) {
         try {
-          const data: { events?: Event[] } = await (res.value as Response).json()
-          const incoming: Event[] = data.events ?? []
+          const incomingRaw: Event[] = res.value.events ?? []
+          // AIKAVYÖHYKE ENSIN: skraperit tuottavat naiivia seinäkelloaikaa
+          // ("2026-08-22T23:30:00"). Ilman offsetia UTC-palvelin lukee sen 3 h
+          // väärin → klo 21+ tapahtumat vaihtavat päivää, putoavat Illalla-
+          // näkymästä ja karkaavat dedupista. Normalisointi ENNEN dedup-avainta,
+          // koska avain sisältää Helsinki-päivän.
+          const incoming: Event[] = incomingRaw.map((e) => ({
+            ...e,
+            startTime: normalizeHelsinkiTimestamp(e.startTime) ?? e.startTime,
+            endTime: normalizeHelsinkiTimestamp(e.endTime),
+          }))
           for (const e of incoming) {
+            // PER-TAPAHTUMA-ERISTYS: yksi jäsentymätön aikaleima heittää
+            // helsinkiDateOf:ssa RangeErrorin. Ilman tätä koko lähteen loput
+            // tapahtumat menetettäisiin JA lähde merkittäisiin kuolleeksi,
+            // vaikka vain yksi rivi oli rikki.
+            try {
             const key = dedupKey(e.title, helsinkiDateOf(e.startTime))
             const existingIdx = seenMap.get(key)
             if (existingIdx !== undefined) {
               // Upgrade existing event with best available data from the incoming duplicate
               const existing = events[existingIdx]
               const upgrades: Partial<Event> = {}
+              // LUOKITTELE ENNEN YHDISTÄMISTÄ ja yhdistä vibe-joukot unionilla.
+              // Tekstin ja kategorioiden yhdistäminen EI ole monotonista
+              // luokittelulle: classifyEvent lukee samaa tekstiä myös
+              // excludeKeywords-VETOIHIN, joten lisätty sana voi POISTAA
+              // kategorian. Todistettu: kuvauksen sana "perheen" muutti
+              // ["keikka"] → ["lapset"], ja kategoria "Klubi" muutti
+              // ["museo","taide"] → ["taide","yoelama"]. Vain vibe-unioni takaa
+              // että tieto todella vain lisääntyy.
+              upgrades.vibes = [
+                ...new Set([...(existing?.vibes ?? safeClassify(existing)), ...safeClassify(e)]),
+              ]
               if (e.location?.lat && e.location?.lon && !existing?.location?.lat) upgrades.location = e.location
               if (e.image && !existing?.image) upgrades.image = e.image
               if (e.ticketUrl && !existing?.ticketUrl) upgrades.ticketUrl = e.ticketUrl
               if (e.price && !existing?.price) upgrades.price = e.price
+              // TODELLINEN kelloaika voittaa keksityn: säilyttäjä valittiin
+              // lähdejärjestyksessä, ja aiempi lähde saattoi käyttää kiinteää
+              // "T19:00"-oletusta. Ilman tätä "Loosen Jytädisko" jäisi klo 19
+              // placeholderiin vaikka toinen lähde tietää sen alkavan 23:30.
+              // Dedup-osuma takaa saman Helsinki-päivän, joten avain ei vanhene.
+              if (existing?.startTimeApprox && !e.startTimeApprox) {
+                upgrades.startTime = e.startTime
+                // endTime VAIN jos tulokkaalla on se — muuten säilyttäjän
+                // kelvollinen päättymisaika pyyhkiytyisi null:lla (tiedon
+                // katoaminen; useimmat skraperit jättävät endTimen tyhjäksi).
+                if (e.endTime) upgrades.endTime = e.endTime
+                upgrades.startTimeApprox = false
+              }
+              // TIETO EI SAA VÄHENTYÄ dedupissa. Luokittelu (classifyEvent,
+              // alempana) lukee otsikon, kuvauksen ja kategoriat — joten jos
+              // säilyttäjällä on niukempi teksti, luokka katoaa. Esimerkki
+              // tuotannosta: "Loosen Jytädisko" tuli venues-lähteestä tekstillä
+              // "Bar Loose — Helsinki" [Musiikki, Keikka] ja bars-lähteestä
+              // oikealla kuvauksella + [DJ, Klubi, Yöelämä]. Ilman tätä yhdistys
+              // pudotti koko yoelama-luokittelun.
+              // Teksti ja kategoriat yhdistetään NÄYTTÖÄ varten; luokittelu ei
+              // enää riipu niistä (vibes on jo asetettu unionina yllä).
+              if ((e.shortDescription?.length ?? 0) > (existing?.shortDescription?.length ?? 0)) {
+                upgrades.shortDescription = e.shortDescription
+              }
+              if ((e.description?.length ?? 0) > (existing?.description?.length ?? 0)) {
+                upgrades.description = e.description
+              }
+              // Kirjainkoko normalisoidaan vertailussa mutta säilyttäjän
+              // kirjoitusasu voittaa — muuten "juoksu" ja "Juoksu" näkyisivät
+              // kahtena erillisenä kategoriana (LinkedEvents pienellä,
+              // skraperit isolla alkukirjaimella).
+              const catSeen = new Set((existing?.categories ?? []).map((c) => c.toLowerCase()))
+              const mergedCats = [...(existing?.categories ?? [])]
+              for (const c of e.categories ?? []) {
+                const k = c.toLowerCase()
+                if (!catSeen.has(k)) { catSeen.add(k); mergedCats.push(c) }
+              }
+              if (mergedCats.length > (existing?.categories?.length ?? 0)) upgrades.categories = mergedCats
+              // ysoIds ovat luokittelun tarkin signaali (L0) — myös ne yhdistetään
+              const mergedYso = [...new Set([...(existing?.ysoIds ?? []), ...(e.ysoIds ?? [])])]
+              if (mergedYso.length > (existing?.ysoIds?.length ?? 0)) upgrades.ysoIds = mergedYso
               if (Object.keys(upgrades).length > 0) events[existingIdx] = { ...existing, ...upgrades }
             } else {
               seenMap.set(key, events.length)
               events.push(e)
               total++
+            }
+            } catch (err) {
+              perEventFailures++
+              console.warn(`[events] ${name}: tapahtuma ohitettu (${(err as Error).message})`, e?.id)
             }
           }
           // Status only after the whole batch merged — a mid-merge throw
@@ -385,6 +485,10 @@ export async function GET(req: NextRequest) {
     // kaataa koko syötettä (aiemmin poikkeus → 500 → sovellus tyhjä). Rikkinäinen
     // tapahtuma jää luokittelematta (näkyy Kaikki-syötteessä), muut säilyvät.
     for (const e of events) {
+      // Dedupissa yhdistetyillä vibes on jo asetettu UNIONINA säilyttäjän ja
+      // tulokkaan luokitteluista. Uudelleenlaskenta yhdistetystä tekstistä
+      // voisi pudottaa kategorian (veto), joten sitä ei tehdä.
+      if (e.vibes) continue
       try {
         e.vibes = classifyEvent(e)
       } catch (err) {
@@ -392,6 +496,7 @@ export async function GET(req: NextRequest) {
         console.error('classifyEvent failed for event', e.id, err)
       }
     }
+    if (perEventFailures > 0) console.warn(`[events] ${perEventFailures} tapahtumaa ohitettiin jäsennysvirheen takia`)
 
     return NextResponse.json({ events, hasMore, total, generatedAt: new Date().toISOString(), sources })
   } catch (err) {

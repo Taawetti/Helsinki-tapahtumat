@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
 import { parseSetlistText, stripHtml, type SetlistItem } from '@/lib/flyingdutchman-parse'
+import { helsinkiISO } from '@/lib/helsinki-time'
+
+// Kiinteä '+03:00' oli tunnin väärässä loka–maaliskuussa (EET = +02:00).
+// helsinkiISO lukee offsetin kohdepäivältä.
+function hkiISO(date: string, hour: number, minute: number): string {
+  return helsinkiISO(Number(date.slice(0, 4)), Number(date.slice(5, 7)), Number(date.slice(8, 10)), hour, minute)
+}
+
 
 const VENUE = {
   name: 'Flying Dutch',
@@ -77,7 +85,7 @@ export async function GET(req: NextRequest) {
       title: e.title,
       shortDescription: `Flying Dutch – ${VENUE.address}, Helsinki`,
       description: '',
-      startTime: `${e.date}T${e.time}:00+03:00`,
+      startTime: hkiISO(e.date, Number(e.time.slice(0, 2)), Number(e.time.slice(3, 5))),
       endTime: null,
       location: {
         name: VENUE.name,

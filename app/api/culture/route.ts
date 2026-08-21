@@ -40,6 +40,7 @@ async function scrapeMusiikkitalo(): Promise<Event[]> {
       shortDescription: desc ?? '',
       description: desc ?? '',
       startTime,
+      startTimeApprox: true, // päivä luetaan slugista, klo 19 on oletus
       endTime: null,
       location: { name: 'Musiikkitalo', streetAddress: 'Mannerheimintie 13 A', city: 'Helsinki' },
       image: imgMatch?.[1] ?? null,
@@ -116,6 +117,7 @@ async function scrapeOoppera(): Promise<Event[]> {
         shortDescription: 'Kansallisooppera ja -baletti',
         description: '',
         startTime: `${dates!.start}T18:00:00`,
+        startTimeApprox: true, // vain päivä tiedossa — klo 18 on oletus
         endTime: null,
         location: { name: 'Kansallisooppera', streetAddress: 'Helsinginkatu 58', city: 'Helsinki' },
         image: img,
@@ -160,6 +162,7 @@ async function scrapeHKT(): Promise<Event[]> {
       shortDescription: 'Helsingin Kaupunginteatteri',
       description: '',
       startTime: `${today}T19:00:00`,
+      startTimeApprox: true, // vain päivä tiedossa — klo 19 on oletus
       endTime: null,
       location: { name: 'Helsingin Kaupunginteatteri', streetAddress: 'Eläintarhantie 5', city: 'Helsinki' },
       image: imgMatch?.[1] ?? null,

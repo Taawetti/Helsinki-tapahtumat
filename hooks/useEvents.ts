@@ -7,8 +7,10 @@ import type { GeoCoords } from './useGeolocation'
 interface CacheEntry { events: Event[]; hasMore: boolean; total: number; ts: number; generatedAt?: string; sources?: SourceStatus[] }
 const eventsCache = new Map<string, CacheEntry>()
 const CACHE_TTL = 5 * 60 * 1000
-// v3: day-chunk fetch — v2 entries were missing most of the day's events
-const LS_PREFIX = 'events-v3-'
+// v4: aikaleimojen normalisointi (naiivi → Helsinki-offset). v3-entryissä on
+// normalisoimattomia aikoja, jotka näkyisivät paluukäyttäjälle vielä 30 min
+// julkaisun jälkeen väärällä päivällä ja puuttuisivat Illalla-näkymästä.
+const LS_PREFIX = 'events-v4-'
 const LS_TTL = 30 * 60 * 1000
 
 // One-time sweep of the previous cache generation's keys (they'd never be
@@ -17,7 +19,7 @@ if (typeof window !== 'undefined') {
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i)
-      if (k?.startsWith('events-v2-')) localStorage.removeItem(k)
+      if (k?.startsWith('events-v2-') || k?.startsWith('events-v3-')) localStorage.removeItem(k)
     }
   } catch {}
 }
