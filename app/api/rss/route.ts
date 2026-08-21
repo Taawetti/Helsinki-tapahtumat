@@ -93,22 +93,40 @@ function parseRssItems(xml: string, city: string, feedUrl: string, venueName?: s
   })
 }
 
+// WordPress-feed palauttaa vain 10 UUSINTA julkaisua (palvelinpuolen oletus,
+// julkaisupäivän mukaan — ei keikkapäivän). Kun venue julkaisee ison erän
+// tulevia keikkoja kerralla, aiemmin julkaistut (mutta aikaisemmin TAPAHTUVAT)
+// keikat putoavat ikkunasta. Siksi haetaan sivut 1–3 (?paged=N) ja yhdistetään.
+const FEED_PAGES = 3
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
 
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(({ url, city, venueName }) =>
-      fetch(url, { next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(5000) })
-        .then((r) => r.text())
-        .then((xml) => parseRssItems(xml, city, url, venueName))
+    RSS_FEEDS.flatMap(({ url, city, venueName }) =>
+      Array.from({ length: FEED_PAGES }, (_, i) => {
+        const pageUrl = i === 0 ? url : `${url}${url.includes('?') ? '&' : '?'}paged=${i + 1}`
+        // 8 s: kolme rinnakkaista sivuhakua samaan originiin — kylmällä
+        // WP-palvelimella 5 s pudotti ajoittain yhden sivun (ja sen keikat)
+        return fetch(pageUrl, { next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(8000) })
+          .then((r) => r.text())
+          .then((xml) => parseRssItems(xml, city, url, venueName))
+      })
     )
   )
 
   const startTs = new Date(start).getTime()
-  const events: Event[] = results
-    .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
-    .filter((e) => new Date(e.startTime).getTime() >= startTs - 86400000)
+  const merged = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+  // Dedup lippulinkillä (sama keikka voi periaatteessa esiintyä kahdella sivulla
+  // jos feed muuttuu hakujen välissä)
+  const seen = new Set<string>()
+  const events: Event[] = merged.filter((e) => {
+    const key = e.ticketUrl || e.id
+    if (seen.has(key)) return false
+    seen.add(key)
+    return new Date(e.startTime).getTime() >= startTs - 86400000
+  })
 
   return NextResponse.json({ events })
 }
