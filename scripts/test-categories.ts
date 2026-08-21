@@ -19,6 +19,7 @@ import { parseSuperterassi, parseSeason } from '../lib/superterassi'
 import { parseSetlistText, parseFinnishDate } from '../lib/flyingdutchman-parse'
 import { weekParamDates } from '../lib/stadissa-weeks'
 import { parseSiltanenGrid } from '../lib/siltanen-parse'
+import { buildIdeaDeck, audienceOk, seniorSkew } from '../lib/idea-deck'
 import { parseApolloGrid } from '../lib/apollo-parse'
 import { parseMaxineTribe } from '../lib/maxine-parse'
 import { parseTanssintaloEntries } from '../lib/tanssintalo-parse'
@@ -1243,6 +1244,68 @@ const venueNewChecks: { name: string; ok: boolean }[] = [
 for (const c of venueNewChecks) {
   if (c.ok) pass++
   else failures.push(`✗ uusi venue-parseri: ${c.name}`)
+}
+
+// Idea-pakkamoottori (8/2026 uudistus): kohderyhmäsuodatus (vauva/perhe pois
+// oletuksena), seniori-alaskuopaus, makumuisti, cold-start-scenet, siemen.
+const IDEA_NOW = new Date('2026-08-21T15:00:00+03:00').getTime()
+const IDEA_TODAY = '2026-08-21'
+const evKeikka = mkEvent({ id: 'i1', title: 'Keikka illalla', startTime: '2026-08-21T20:00:00+03:00', vibes: ['keikka'], categories: ['musiikki'] })
+const evVauva = mkEvent({ id: 'i2', title: 'Vauvajumppa torstaina', startTime: '2026-08-21T10:00:00+03:00', vibes: ['lapset'], categories: ['lapset'] })
+const evKlassinen = mkEvent({ id: 'i3', title: 'Sinfoniakonsertti', startTime: '2026-08-21T19:00:00+03:00', vibes: ['klassinen'], categories: ['klassinen musiikki'] })
+const evEilen = mkEvent({ id: 'i4', title: 'Eilinen keikka', startTime: '2026-08-20T20:00:00+03:00', vibes: ['keikka'], categories: ['musiikki'] })
+const evMennee = mkEvent({ id: 'i5', title: 'Meni jo (alkoi 11, ei endTimeä)', startTime: '2026-08-21T11:00:00+03:00', vibes: ['keikka'], categories: ['musiikki'] })
+const evKaynnissa = mkEvent({ id: 'i6', title: 'Käynnissä oleva festivaali', startTime: '2026-08-21T12:00:00+03:00', endTime: '2026-08-21T23:00:00+03:00', vibes: ['festivaali'], categories: ['festivaali'] })
+
+const ideaChecks: { name: string; ok: boolean }[] = [
+  { name: 'audienceOk: vauva/perhe pois oletuksena', ok: audienceOk(evVauva, 'default') === false },
+  { name: 'audienceOk: vauva/perhe sallittu perhe-tilassa', ok: audienceOk(evVauva, 'perhe') === true },
+  { name: 'audienceOk: keikka sallittu aina', ok: audienceOk(evKeikka, 'default') === true },
+  { name: 'seniorSkew: klassinen osuu, keikka ei', ok: seniorSkew(evKlassinen) === true && seniorSkew(evKeikka) === false },
+]
+
+{
+  const deck = buildIdeaDeck([evKeikka, evVauva, evMennee, evKaynnissa, evEilen], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY })
+  const ids = deck.map(d => d.event.id)
+  ideaChecks.push({ name: 'pakka: lapset+väärä päivä+päättynyt karsitaan, käynnissä säilyy', ok: ids.includes('i1') && ids.includes('i6') && !ids.includes('i2') && !ids.includes('i4') && !ids.includes('i5') })
+}
+
+{
+  const noScene = buildIdeaDeck([evKeikka, evKlassinen], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY })
+  const kulttuuri = buildIdeaDeck([evKeikka, evKlassinen], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY, scenes: ['kulttuuri'] })
+  const kNo = noScene.find(d => d.event.id === 'i3')!
+  const kKult = kulttuuri.find(d => d.event.id === 'i3')!
+  ideaChecks.push({ name: 'seniori-alaskuopaus ohitetaan kulttuuri-scenellä', ok: kKult.score > kNo.score + 4 })
+  ideaChecks.push({ name: 'oletuksena keikka ennen klassista', ok: noScene[0].event.id === 'i1' })
+}
+
+{
+  const noTaste = buildIdeaDeck([evKeikka], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY })[0]
+  const taste = buildIdeaDeck([evKeikka], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY, categoryScores: { musiikki: 2 } })[0]
+  ideaChecks.push({ name: 'makumuisti nostaa osuvan kategorian', ok: taste.score > noTaste.score })
+  ideaChecks.push({ name: 'makumuistin selite on rehellinen', ok: taste.reason === 'Sopii makuusi aiempien valintojesi perusteella' })
+}
+
+{
+  const scene = buildIdeaDeck([evKeikka], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY, scenes: ['keikka'] })[0]
+  ideaChecks.push({ name: 'scene-selite generoituu', ok: scene.reason === 'Valitsit keikat — tämä on sinua varten' })
+}
+
+{
+  const a1 = buildIdeaDeck([evKeikka, evKaynnissa], { seed: 'SAMA', nowMs: IDEA_NOW, today: IDEA_TODAY }).map(d => d.event.id)
+  const a2 = buildIdeaDeck([evKeikka, evKaynnissa], { seed: 'SAMA', nowMs: IDEA_NOW, today: IDEA_TODAY }).map(d => d.event.id)
+  ideaChecks.push({ name: 'sama siemen → sama pakka (determinismi)', ok: JSON.stringify(a1) === JSON.stringify(a2) })
+}
+
+{
+  const noDemote = buildIdeaDeck([evKeikka], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY })[0]
+  const demote = buildIdeaDeck([evKeikka], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY, demoted: ['keikka'] })[0]
+  ideaChecks.push({ name: '"ei tällaista" -demotio laskee pistettä', ok: demote.score < noDemote.score })
+}
+
+for (const c of ideaChecks) {
+  if (c.ok) pass++
+  else failures.push(`✗ idea-deck: ${c.name}`)
 }
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.

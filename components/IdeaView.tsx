@@ -5,27 +5,16 @@ import { Globe, MapPin, Map as MapIcon, Heart, X, Clock } from 'lucide-react'
 import type { Event, Activity, ActivityCategory } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
-import { ATTRACTION_HIGHLIGHTS, getHighlight } from '@/lib/activity-highlights'
 import { isOpenNow } from '@/lib/opening-hours'
-import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
+import { helsinkiToday } from '@/lib/helsinki-time'
+import { buildIdeaDeck, type IdeaSceneId } from '@/lib/idea-deck'
+import { recordClick, getCategoryScores } from '@/lib/preferences'
+import { getEventVibes } from '@/lib/event-classify'
 
-// ── Curated activity names ───────────────────────────────
-
-const CURATED_NAMES = [
-  { name: 'Löyly',                  emoji: '🔥', url: 'https://loylyhelsinki.fi' },
-  { name: 'Allas Sea Pool',         emoji: '🌊', url: 'https://allasseapool.fi' },
-  { name: 'Kotiharjun sauna',       emoji: '🪵', url: 'https://kotiharjunsauna.fi' },
-  { name: 'Suomenlinna',            emoji: '⛵', url: 'https://www.suomenlinna.fi' },
-  { name: 'Temppeliaukion kirkko',  emoji: '⛪', url: 'https://www.helsinginseurakunnat.fi/kirkot/temppeliaukionkirkko' },
-  { name: 'Kansallismuseo',         emoji: '🏛', url: 'https://www.kansallismuseo.fi' },
-  { name: 'HAM Helsinki',           emoji: '🎨', url: 'https://hamhelsinki.fi' },
-  { name: 'Ateneum',                emoji: '🖼', url: 'https://ateneum.fi' },
-  { name: 'Kiasma',                 emoji: '🌀', url: 'https://kiasma.fi' },
-  { name: 'Amos Rex',               emoji: '🎭', url: 'https://amosrex.fi' },
-  { name: 'Pihlajasaari',           emoji: '🏖', url: 'https://www.hel.fi/fi/kulttuuri-ja-vapaa-aika/ulkoilu-ja-luonto/uimarannat/pihlajasaari' },
-  { name: 'Seurasaari',             emoji: '🌲', url: 'https://www.kansallismuseo.fi/fi/seurasaarenulkomuseo' },
-  { name: 'Helsingin tuomiokirkko', emoji: '🕍', url: 'https://www.helsinginseurakunnat.fi/kirkot/tuomiokirkko' },
-]
+// Idea-sivu 8/2026: käsin kuratoitu 13 klassikkoa POISTETTU (asiakkaat huomasivat
+// toiston) — pakka on nyt tapahtumakeskeinen: tämän päivän tapahtumat
+// kohderyhmäsuodatuksella (vauva/perhe pois oletuksena, seniori alas),
+// makumuistilla ja cold-start-sceneilla painotettuna (lib/idea-deck.ts).
 
 // ── Types ────────────────────────────────────────────────
 
@@ -37,6 +26,7 @@ interface Suggestion {
   title: string
   why: string
   subWhy?: string
+  reason?: string          // "miksi tämä sinulle" -selite (lib/idea-deck)
   image: string | null
   address?: string
   lat?: number
@@ -53,10 +43,6 @@ interface Suggestion {
 }
 
 // ── Helpers ──────────────────────────────────────────────
-
-function minutesUntilStart(startTime: string): number {
-  return Math.round((new Date(startTime).getTime() - Date.now()) / 60000)
-}
 
 function eventEmoji(event: Event): string {
   const text = [event.title, ...event.categories].join(' ').toLowerCase()
@@ -83,19 +69,6 @@ const SUPPLEMENTAL_CATS: ActivityCategory[] = ['sauna', 'nakopaikka']
 const SUPPLEMENTAL_WHY: Partial<Record<ActivityCategory, { fi: string; en: string }>> = {
   sauna: { fi: 'Aito löyly ja rentoutuminen keskellä kaupunkia', en: 'Authentic Finnish sauna in the heart of the city' },
   nakopaikka: { fi: 'Näköala yli Helsingin', en: 'A view over Helsinki' },
-}
-
-function scoreEvent(e: Event): number {
-  let s = 0
-  if (e.image) s += 3
-  const desc = e.shortDescription || e.description || ''
-  if (desc.length > 80) s += 2
-  else if (desc.length > 15) s += 1
-  if (e.isFree) s += 1
-  const d = new Date(e.startTime)
-  const now = new Date()
-  if (d.toDateString() === now.toDateString() && d.getHours() >= 17) s += 1
-  return s
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -177,44 +150,52 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   // ── Build pools ──────────────────────────────────────
 
+  // ── Kohderyhmä- ja makutila (localStorage) ──
+  const [ideaScenes, setIdeaScenes] = useState<IdeaSceneId[]>([])
+  const [audience, setAudience] = useState<'default' | 'perhe'>('default')
+  const [demoted, setDemoted] = useState<string[]>([])
+  const [showColdStart, setShowColdStart] = useState(false)
+  const [deviceId, setDeviceId] = useState('anon')
+
+  useEffect(() => {
+    // localStorage-luetaan ja setState kutsutaan vasta timeout-callbackissa
+    // (React Compiler: ei synkronista setStateä efektissä).
+    const t0 = setTimeout(() => {
+      try {
+        const scenes = JSON.parse(localStorage.getItem('idea-scenes') || '[]') as IdeaSceneId[]
+        setIdeaScenes(Array.isArray(scenes) ? scenes : [])
+        setAudience(localStorage.getItem('idea-audience') === 'perhe' ? 'perhe' : 'default')
+        const dem = JSON.parse(localStorage.getItem('idea-demoted') || '[]')
+        setDemoted(Array.isArray(dem) ? dem : [])
+        let id = localStorage.getItem('idea-device-id')
+        if (!id) { id = Math.random().toString(36).slice(2); localStorage.setItem('idea-device-id', id) }
+        setDeviceId(id)
+        // Cold-start: ei scenejä EIKÄ makuhistoriaa → näytä valitsin kerran
+        const hasHistory = Object.keys(getCategoryScores()).length > 0
+        if ((!Array.isArray(scenes) || scenes.length === 0) && !hasHistory) setShowColdStart(true)
+      } catch { /* privaattitila */ }
+    }, 0)
+    return () => clearTimeout(t0)
+  }, [])
+
+  const saveScenes = (scenes: IdeaSceneId[], aud: 'default' | 'perhe') => {
+    setIdeaScenes(scenes); setAudience(aud); setShowColdStart(false)
+    try {
+      localStorage.setItem('idea-scenes', JSON.stringify(scenes))
+      localStorage.setItem('idea-audience', aud)
+    } catch { /* privaattitila */ }
+  }
+
   const activityPool = useMemo((): Suggestion[] => {
-    const byName = new Map(activities.map(a => [a.name.toLowerCase(), a]))
-
-    // Curated picks with hand-written highlights
-    const curated = CURATED_NAMES.map(({ name, emoji, url: fallbackUrl }) => {
-      const activity = byName.get(name.toLowerCase())
-      const highlight = getHighlight(name)
-      const h = ATTRACTION_HIGHLIGHTS.find(h => name.toLowerCase().includes(h.nameKey))
-      const fallback = lang === 'en' && h?.hookEn ? h.hookEn : h?.hook
-      const why = (lang === 'en' && highlight?.hookEn ? highlight.hookEn : highlight?.hook) || fallback || 'Yksi Helsingin parhaista kohteista'
-      return {
-        id: `activity-${name}`,
-        type: 'activity' as const,
-        title: name,
-        why,
-        subWhy: lang === 'en' && highlight?.tipEn ? highlight.tipEn : highlight?.tip,
-        image: activity?.image ?? null,
-        address: activity?.address,
-        lat: activity?.lat,
-        lon: activity?.lon,
-        url: activity?.www ?? fallbackUrl,
-        badge: lang === 'en' && highlight?.badgeEn ? highlight.badgeEn : highlight?.badge,
-        isFree: activity?.fee === false,
-        isOpen: activity ? isOpenNow(activity.openingHours) : undefined,
-        emoji,
-      }
-    })
-
-    // Supplemental: interesting DB activities not already in the curated list
-    const curatedNames = new Set(CURATED_NAMES.map(c => c.name.toLowerCase()))
-    const supplemental = shuffle(
+    // Ohut kerros illan paikkoja (sauna/näköala/uimaranta) — satunnaisia,
+    // EI staattista klassikko-listaa. Klassikot kuuluvat Tekemistä-välilehteen.
+    return shuffle(
       activities.filter(a =>
         a.image &&
-        SUPPLEMENTAL_CATS.includes(a.category) &&
-        !curatedNames.has(a.name.toLowerCase())
+        SUPPLEMENTAL_CATS.includes(a.category)
       )
     )
-      .slice(0, 12)
+      .slice(0, 8)
       .map(a => ({
         id: `activity-db-${a.id}`,
         type: 'activity' as const,
@@ -235,49 +216,36 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         isOpen: isOpenNow(a.openingHours),
         emoji: CATEGORY_EMOJI[a.category] ?? '✨',
       }))
-
-    return [...curated, ...supplemental]
   }, [activities, lang])
 
   const eventPool = useMemo((): Suggestion[] => {
-    const today = helsinkiToday()
-    // eslint-disable-next-line react-hooks/purity -- kellonaika ei johdu depsien datasta; yksi luku riittää (vertailu 3 h ikkunalla)
-    const now = Date.now()
-    return events
-      // Vain TÄNÄÄN (Helsingin kalenteripäivä; all-day 00:00 osuu tähän)
-      .filter(e => helsinkiDateOf(e.startTime) === today)
-      // Ei jo PÄÄTTYNEITÄ — endTime-tietoinen, kuten appin muu "on now" -logiikka.
-      // Pitää käynnissä olevat keikat + koko päivän tapahtumat; pudottaa loppuneet.
-      .filter(e => {
-        const startTs = new Date(e.startTime).getTime()
-        if (startTs > now) return true                             // ei vielä alkanut
-        if (e.endTime) return new Date(e.endTime).getTime() >= now // vielä käynnissä
-        return now - startTs < 3 * 60 * 60 * 1000                  // ei endTimeä → live 3h
-      })
-      .filter(e => (e.shortDescription?.length ?? 0) > 15 || (e.description?.length ?? 0) > 15)
-      .sort((a, b) => scoreEvent(b) - scoreEvent(a))
-      .slice(0, 50)
-      .map(e => {
-        const mins = minutesUntilStart(e.startTime)
-        return {
-          id: `event-${e.id}`,
-          type: 'event' as const,
-          title: e.title,
-          why: e.shortDescription || e.description || '',
-          image: e.image,
-          address: e.location?.name || e.location?.streetAddress,
-          lat: e.location?.lat,
-          lon: e.location?.lon,
-          url: e.ticketUrl ?? e.infoUrl ?? undefined,
-          isFree: e.isFree,
-          price: e.price ?? undefined,
-          time: new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' }),
-          minutesUntil: mins,
-          emoji: eventEmoji(e),
-          eventRef: e,
-        }
-      })
-  }, [events, lang])
+    // Pakkamoottori (lib/idea-deck): kohderyhmäsuodatus, makumuisti, scenet,
+    // seniori-alaskuopaus, siemen-jitteri (sama päivä+laite = sama pakka).
+    return buildIdeaDeck(events, {
+      seed: `${helsinkiToday()}-${deviceId}`,
+      scenes: ideaScenes,
+      audience,
+      demoted,
+      categoryScores: getCategoryScores(),
+    }).map(s => ({
+      id: `event-${s.event.id}`,
+      type: 'event' as const,
+      title: s.event.title,
+      why: s.event.shortDescription || s.event.description || '',
+      reason: s.reason ?? undefined,
+      image: s.event.image,
+      address: s.event.location?.name || s.event.location?.streetAddress,
+      lat: s.event.location?.lat,
+      lon: s.event.location?.lon,
+      url: s.event.ticketUrl ?? s.event.infoUrl ?? undefined,
+      isFree: s.event.isFree,
+      price: s.event.price ?? undefined,
+      time: new Date(s.event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' }),
+      minutesUntil: s.minutesUntil,
+      emoji: eventEmoji(s.event),
+      eventRef: s.event,
+    }))
+  }, [events, lang, ideaScenes, audience, demoted])
 
   const pool = useMemo(() => {
     const base = shuffle([...activityPool, ...eventPool])
@@ -331,6 +299,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     const snap = current
 
     if (dir === 'right') {
+      // Makumuisti: tykkääminen kirjataan kategorioittain (recordClick) —
+      // pakka painottuu vastaisuudessa tämän mukaisesti.
+      if (eventRef) recordClick(eventRef)
       // Reset drag + hide card immediately — no exitDir transform, no translateX(110%)
       // that would cause iOS Safari horizontal overflow and page zoom
       setDragX(0)
@@ -351,6 +322,18 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         setCardHidden(false)
       }, 380)
     } else {
+      // "Ei tällaista": demota PYSYVÄSTI kortin vibe/kategoria (-4 pisteytyksessä),
+      // ei vain ohita — käyttäjä kokee vaikutuksen heti seuraavilla korteilla.
+      if (eventRef) {
+        const vibes = getEventVibes(eventRef)
+        const cats = eventRef.categories.map(c => c.toLowerCase())
+        const keys = [...new Set([...vibes, ...cats])].slice(0, 3)
+        setDemoted(prev => {
+          const next = [...new Set([...prev, ...keys])].slice(0, 40)
+          try { localStorage.setItem('idea-demoted', JSON.stringify(next)) } catch { /* privaattitila */ }
+          return next
+        })
+      }
       setExitDir('left')
       setTimeout(() => {
         setSeenIds(s => new Set([...s, id]))
@@ -619,6 +602,11 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                   {current.badge}
                 </span>
               )}
+              {current.reason && (
+                <p className="text-[11px] font-black mb-1.5" style={{ color: meta.accent }}>
+                  ✦ {current.reason}
+                </p>
+              )}
               <h2 className="font-black text-white text-2xl leading-tight mb-1" style={{ letterSpacing: '-0.02em' }}>
                 {current.title}
               </h2>
@@ -872,6 +860,47 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         </div>
       )
     })()}
+
+    {/* Cold-start-valitsin: kerran, kun ei scenejä eikä makuhistoriaa.
+        Kaksi napia: scene (pakollinen) + perhe-toggle → pakka henkilökohtaistuu
+        heti ekaa kertaa käytettäessä. */}
+    {showColdStart && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(6,6,10,.92)', backdropFilter: 'blur(10px)' }}>
+        <div className="w-full max-w-sm rounded-3xl p-6 space-y-5" style={{ background: '#12121a', border: '1px solid rgba(255,255,255,.1)' }}>
+          <div>
+            <h2 className="font-black text-white text-xl leading-tight">Minkälainen ilta? 🎯</h2>
+            <p className="text-white/50 text-sm font-semibold mt-1.5">Valitse yksi — pakka painottuu heti sinulle sopivaksi. Voit muuttaa myöhemmin.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { id: 'keikka' as IdeaSceneId, emoji: '🎸', label: 'Keikka' },
+              { id: 'rento' as IdeaSceneId, emoji: '🍷', label: 'Rento' },
+              { id: 'liikunta' as IdeaSceneId, emoji: '🏃', label: 'Liikunta' },
+              { id: 'kulttuuri' as IdeaSceneId, emoji: '🎭', label: 'Kulttuuri' },
+            ]).map(s => (
+              <button key={s.id} onClick={() => saveScenes([s.id], audience)}
+                className="flex flex-col items-start gap-1 rounded-2xl p-4 text-left transition-all active:scale-[.97]"
+                style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.35)' }}>
+                <span className="text-2xl leading-none">{s.emoji}</span>
+                <span className="text-[14px] font-black text-white">{s.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-[13px] font-bold text-white/70 cursor-pointer select-none">
+              <input type="checkbox" checked={audience === 'perhe'}
+                onChange={e => setAudience(e.target.checked ? 'perhe' : 'default')}
+                className="w-4 h-4 accent-[#6b76ff]" />
+              Perhe mukana 👨‍👩‍👧
+            </label>
+            <button onClick={() => { setShowColdStart(false); try { localStorage.setItem('idea-scenes', '[]') } catch { /* privaattitila */ } }}
+              className="text-[12px] font-black text-white/35 hover:text-white/70 transition-colors">
+              Ohita →
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }

@@ -9,6 +9,7 @@ import { NEIGHBORHOODS } from '@/lib/types'
 import { isOpenNow } from '@/lib/opening-hours'
 import { helsinkiDateOf } from '@/lib/helsinki-time'
 import { venueHoursOverride } from '@/lib/venue-hours-overrides'
+import { seedRand } from '@/lib/seed-rand'
 
 export type CandidateType = 'event' | 'restaurant' | 'activity'
 export type CandidateRole = 'drinks' | 'food' | 'activity' | 'program'
@@ -303,22 +304,8 @@ export interface DeckOptions {
   excludeIds?: Set<string>  // kortit joita EI saa ottaa (edellisen kierroksen pakka)
 }
 
-// Pieni deterministinen PRNG siemenvaihteluun (mulberry32 + string-hash).
-// Sama siemen → sama lukuja → sama pakka; ryhmä näkee aina identtisen pakan.
-function seedRand(seed: string): () => number {
-  let h = 1779033703 ^ seed.length
-  for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353)
-    h = (h << 13) | (h >>> 19)
-  }
-  let a = h >>> 0
-  return () => {
-    a = (a + 0x6d2b79f5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+// Pieni deterministinen PRNG siemenvaihteluun — siirretty jaettuun
+// lib/seed-rand.ts:ään (myös idea-deck käyttää); säilyy taaksepäinyhteensopivuus.
 
 // Sateen vaikutukset pisteytykseen (open-meteo, ryhmäpäätöspakka)
 const OUTDOOR_RAIN_CATS: ActivityCategory[] = ['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys']
