@@ -3,27 +3,29 @@ import { Event } from '@/lib/types'
 
 const EVENTIM_BASE = 'https://public-api.eventim.com/websearch/search/api/exploration/v1/products'
 
-// Itsensä tunnistava User-Agent. TÄMÄ EI OLE TODISTETTU KORJAUS — se on
-// hyvää käytöstä, ja syy on kirjattava rehellisesti:
+// ITSENSÄ TUNNISTAVA User-Agent — TÄMÄ ON PAKOLLINEN TUOTANNOSSA.
 //
-// Kun top=100 → 400 oli korjattu, reitti toimi kehityskoneelta (49 tapahtumaa)
-// mutta tuotannossa se palauttaa yhä NOLLAN. Epäilin Eventimin bottisuojausta:
-// curlilla testattuna tyhjä ja selaimeksi tekeytyvä UA saivat vakaasti 403:n.
-// Se päätelmä oli VIRHEELLINEN: Node lähettää oletuksena "User-Agent: node",
-// ja Nodella ajettuna sama kysely saa 200:n sekä ilman UA:ta että sen kanssa.
-// Akamai tunnistaa koko asiakkaan (TLS-sormenjälki, otsakejärjestys), joten
-// curl+väärennetty-UA ei mittaa samaa asiaa kuin Node.
+// Vikoja oli kaksi peräkkäin, ja vain molemmat yhdessä korjaavat lähteen:
+//   1. top=100 → HTTP 400 (katto on 50)
+//   2. puuttuva User-Agent → HTTP 403 Vercelistä
 //
-// Mitä siis TIEDETÄÄN: kysely toimii tältä koneelta, ei Vercelistä. Todennäköisin
-// selitys on konesalin IP-avaruuden esto — mitä ei voi todentaa ilman pääsyä
-// tuotannon lokeihin. Yhdessä hostin robots.txt:n kanssa
-// (`User-agent: * Disallow: /`) se on selvä viesti: tätä liikennettä ei haluta.
-// Oikea ratkaisu on joko kumppanipääsy Eventimiltä tai lähteen poisto — ei
-// suojauksen kiertäminen.
+// Vaiheen 1 korjauksen jälkeen reitti antoi kehityskoneelta 49 tapahtumaa mutta
+// tuotannossa yhä NOLLAN. Node lähettää oletuksena "User-Agent: node", ja se
+// riitti läpipääsyyn kotiverkosta mutta EI Vercelistä. Kun tämä tunnistautuva
+// UA lisättiin, tuotanto alkoi palauttaa 49 tapahtumaa — todennettu ajossa
+// deployn jälkeen 22.8.2026.
 //
-// UA jätetään tähän siksi, että "node" ei kerro kenellekään kuka soittaa; tämä
-// kertoo, ja antaa Eventimille mahdollisuuden estää tai tavoittaa meidät
-// nimenomaisesti. Sama muoto kuin festival-watch-cronissa.
+// Akamai siis painottaa sekä UA:ta että verkon mainetta: "node" konesalin
+// IP:stä torjutaan, tunnistautuva UA samasta IP:stä päästetään läpi. Tästä
+// seuraa kaksi asiaa jotka on syytä tietää:
+//   • ÄLÄ tekeydy selaimeksi. Mitattu: "Mozilla/5.0 (compatible; …)" saa 403:n.
+//     Ainoa toimiva tapa on kertoa rehellisesti kuka soittaa.
+//   • Jos tämä rivi poistetaan, lähde palaa nollaan — hiljaa.
+//
+// Muistutus: hostin robots.txt on `User-agent: * Disallow: /`, ja siksi tämä
+// pysyy YHTENÄ kyselynä (ks. perustelu GET:ssä). Tunnistautuminen antaa
+// Eventimille mahdollisuuden estää tai tavoittaa meidät nimenomaisesti.
+// Sama muoto kuin festival-watch-cronissa.
 const UA = 'Mita-tanaan/1.0 (+https://helsinki-tapahtumat.vercel.app)'
 
 interface EventimProduct {
