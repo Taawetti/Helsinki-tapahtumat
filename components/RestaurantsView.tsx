@@ -461,7 +461,25 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
             😊 Bib Gourmand
           </span>
         )}
-        {r.description && <p className="text-white/40 text-xs">{r.description}</p>}
+        {/* ANNOS JA HINTA — kortin ainoa konkreettinen "miksi tänne" -tieto.
+            Korvaa r.descriptionin, joka on OSM:n raaka keittiömerkkijono
+            ("pizza;italian"): oikea annos oikealla hinnalla on samassa tilassa
+            olennaisesti parempi sisältö, eikä kortin korkeus muutu.
+            YKSI rivi, ei kolme — kolme annosta per kortti tuotti litanian.
+            Hinta on mediaani ja se sanotaan arviona, ks. lib/menu-summary.ts. */}
+        {r.menu?.samples[0] ? (
+          <div className="space-y-0.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-white/75 text-xs leading-snug truncate">{r.menu.samples[0].title}</span>
+              <span className="shrink-0 text-white/90 text-xs font-black">{r.menu.samples[0].price}</span>
+            </div>
+            <span className="text-white/30 text-[10.5px]">
+              {r.menu.dishCount} annosta · annokset n. {Math.round(r.menu.typicalPrice)} €
+            </span>
+          </div>
+        ) : (
+          r.description && <p className="text-white/40 text-xs">{r.description}</p>
+        )}
         {r.address && (
           <div className="flex items-center gap-1.5 text-white/30 text-xs">
             <MapPin size={10} className="shrink-0" />
@@ -658,110 +676,6 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
   )
 }
 
-
-// ── "Ruokalistat ja hinnat" — ravintolasivun kiinnostava kärki ───────────────
-//
-// Miksi tämä on olemassa: 3583 ravintolan ruudukko ei kerro käyttäjälle mitään
-// mitä Google ei kerro paremmin. Tämä osio kertoo: 180 paikalta on tallessa
-// OIKEA annoslista oikeine hintoineen (google_raw.services), eikä sitä esitä
-// Helsingissä kukaan selattavana pintana — ei Google, ei TableOnline, ei Time Out.
-//
-// Sääntö on mekaanisesti tosi: paikka on listalla koska sillä on ruokalista.
-// Ei keksittyä teemaa, ei karusellia, yksi pystylista.
-//
-// Hinta on MEDIAANI ja se sanotaan arviona ("annokset n. 16 €"). Perustelu ja
-// mitatut ansat: lib/menu-summary.ts.
-const PRICE_BANDS = [
-  { id: 'all', label: 'Kaikki', test: () => true },
-  { id: 'cheap', label: 'alle 15 €', test: (p: number) => p < 15 },
-  { id: 'mid', label: '15–25 €', test: (p: number) => p >= 15 && p <= 25 },
-  { id: 'high', label: 'yli 25 €', test: (p: number) => p > 25 },
-] as const
-
-function MenuPicks({ restaurants, onOpen }: {
-  restaurants: Restaurant[]
-  onOpen: (r: Restaurant) => void
-}) {
-  const [band, setBand] = useState<string>('all')
-  const [shown, setShown] = useState(12)
-
-  const picks = useMemo(() => {
-    const test = PRICE_BANDS.find(b => b.id === band)?.test ?? (() => true)
-    // Ketjun jokainen toimipiste jakaa saman ruokalistan → sama kortti toistuisi
-    // kymmeniä kertoja. Karsitaan nimen mukaan, eniten arvosteltu voittaa.
-    const seen = new Set<string>()
-    return restaurants
-      .filter(r => r.menu && r.menu.samples.length > 0 && test(r.menu.typicalPrice))
-      .sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0))
-      .filter(r => { const k = r.name.toLowerCase().trim(); if (seen.has(k)) return false; seen.add(k); return true })
-  }, [restaurants, band])
-
-  if (picks.length === 0) return null
-
-  return (
-    <section className="space-y-3">
-      <div>
-        <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
-          Ruokalistat ja hinnat <span className="text-white/40 font-bold text-[14px]">· {picks.length}</span>
-        </h2>
-        <p className="text-white/45 text-[12px] mt-0.5">
-          Näiltä paikoilta tiedämme oikeat annokset ja hinnat
-        </p>
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-        {PRICE_BANDS.map(b => (
-          <button key={b.id} onClick={() => { setBand(b.id); setShown(12) }}
-            className="shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all"
-            style={band === b.id
-              ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
-              : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }}>
-            {b.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {picks.slice(0, shown).map(r => (
-          <button key={r.id} onClick={() => onOpen(r)}
-            className="text-left rounded-[16px] p-3.5 transition-all active:scale-[.99]"
-            style={{ background: 'rgba(255,255,255,.045)', border: '1px solid rgba(255,255,255,.07)' }}>
-            <div className="flex items-baseline justify-between gap-2 mb-2">
-              <span className="font-black text-white text-[14px] leading-tight" style={{ letterSpacing: '-0.01em' }}>
-                {r.name}
-              </span>
-              {r.googleRating != null && (
-                <span className="shrink-0 text-white/55 text-[11px] font-bold whitespace-nowrap">
-                  ★ {r.googleRating.toFixed(1)}
-                  {r.reviewCount ? <span className="text-white/35"> · {r.reviewCount}</span> : null}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1">
-              {r.menu!.samples.map((d, i) => (
-                <div key={i} className="flex items-baseline justify-between gap-3">
-                  <span className="text-white/80 text-[12.5px] leading-snug">{d.title}</span>
-                  <span className="shrink-0 text-white/60 text-[12px] font-bold whitespace-nowrap">{d.price}</span>
-                </div>
-              ))}
-            </div>
-            <div className="text-white/35 text-[11px] mt-2">
-              {r.menu!.dishCount} annosta · annokset n. {Math.round(r.menu!.typicalPrice)} €
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {shown < picks.length && (
-        <button onClick={() => setShown(n => n + 12)}
-          className="w-full py-2.5 rounded-full text-[13px] font-bold text-white/70"
-          style={{ background: 'rgba(255,255,255,.06)' }}>
-          Näytä lisää ({picks.length - shown})
-        </button>
-      )}
-    </section>
-  )
-}
 
 // ── "Selaa kategorioittain" — 3-sarakkeinen fiilisruudukko (design 3-ravintolat.png) ──
 
@@ -1222,9 +1136,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {heroRest && (
                 <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
               )}
-
-              {/* Kiinnostava kärki ENNEN kategorioita: oikeat annokset ja hinnat */}
-              <MenuPicks restaurants={restaurants} onOpen={setSelectedRest} />
 
               <SubCatGrid restType={restType} onSelect={setSubCat} />
 
