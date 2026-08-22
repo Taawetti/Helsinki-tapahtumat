@@ -81,13 +81,38 @@ export async function GET(req: NextRequest) {
   const end = searchParams.get('end') || start
   const today = new Date().toISOString().slice(0, 10)
 
+  // Eventimin `top` on kovarajattu 50:een: 51 tai enemmän vastaa HTTP 400
+  // "Invalid parameter supplied". Reitti pyysi 100, joten JOKA kysely palautti
+  // 400 — ja koska virhe niellään alla (`if (!res.ok) return { events: [] }`),
+  // lippu.fi palautti nollan tapahtumaa aina, ilman että mikään kertoi siitä.
+  // Mitattu 22.8.2026: top=50 → HTTP 200, top=51 → HTTP 400.
+  const TOP = 50
+
+  // HAKUMÄÄRÄÄ EI KASVATETA — ja se on tietoinen valinta, ei tekninen rajoite.
+  //
+  // Endpointissa on toimiva sivutus, mutta VAIN jos `top` jätetään pois: `page`
+  // ohitetaan hiljaa aina kun `top` on mukana (mitattu: top=50 &&
+  // page=1|2|3 palauttaa samat 50 productId:tä; ilman top:ia sivut 1–3 ovat
+  // täysin erillisiä, 20 riviä kukin, totalPages=12, totalResults=933).
+  // Sivuttamalla saisi siis ~931 tapahtumaa 60 päivän ikkunaan.
+  //
+  // SITÄ EI TEHDÄ, koska public-api.eventim.com/robots.txt sanoo:
+  //     User-agent: Googlebot   Allow: /websearch/
+  //     User-agent: *           Disallow: /
+  // Eli kaikki muut kuin Googlebot on kielletty koko hostilta. Tämä reitti on
+  // hakenut tästä endpointista jo pitkään yhdellä kyselyllä, joten se osa on
+  // olemassa oleva integraatiovalinta — mutta yhden kyselyn kasvattaminen
+  // kahdeksitoista (tai 30 päiväpalaseksi) on eri asia, eikä sellaista laajen-
+  // nusta pidä tehdä suoran robots-kiellon yli ilman omistajan päätöstä.
+  // Jos laajempi kate halutaan, oikea järjestys on hankkia Eventimiltä
+  // kumppanipääsy ja sivuttaa sitten — ei ohittaa kieltoa hiljaa.
   const params = new URLSearchParams({
     webId: 'web__lippu-fi',
     language: 'fi',
     retail_partner: 'LPU',
     city_names: 'Helsinki',
     page: '1',
-    top: '100',
+    top: String(TOP),
     date_from: start,
     date_to: end,
   })
@@ -96,17 +121,29 @@ export async function GET(req: NextRequest) {
     const res = await fetch(`${EVENTIM_BASE}?${params}`, {
       next: { revalidate: 900 },
       signal: AbortSignal.timeout(8000),
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: 'application/json' },
     })
 
-    if (!res.ok) return NextResponse.json({ events: [] })
+    // Virhe EI jää enää näkymättömäksi. Juuri tämä rivi piti lähteen nollassa:
+    // `top=100` tuotti HTTP 400:n, joka muuttui hiljaa tyhjäksi listaksi, eikä
+    // mikään erottanut sitä aidosti tyhjästä tuloksesta. Nyt status menee
+    // lokiin, ja pitkittyneen nollan huomaa /api/cron/source-health.
+    if (!res.ok) {
+      console.error(`Lippu.fi: HTTP ${res.status} — 0 tapahtumaa (tarkista parametrit)`)
+      return NextResponse.json({ events: [] })
+    }
 
-    const data = await res.json()
-    const products: EventimProduct[] = data.products || []
+    const data = (await res.json()) as { products?: EventimProduct[] }
+    const products = data.products ?? []
 
-    const events: Event[] = products
-      .map(p => normalize(p, today))
-      .filter((e): e is Event => e !== null)
+    const seen = new Set<string>()
+    const events: Event[] = []
+    for (const p of products) {
+      if (!p?.productId || seen.has(p.productId)) continue
+      seen.add(p.productId)
+      const ev = normalize(p, today)
+      if (ev) events.push(ev)
+    }
 
     return NextResponse.json({ events })
   } catch (err) {

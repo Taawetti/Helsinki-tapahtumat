@@ -41,8 +41,33 @@ async function scrape(): Promise<{ title: string; date: string; ticketUrl: strin
   const html = await res.text()
   const results: { title: string; date: string; ticketUrl: string }[] = []
 
-  // Each event: <a href="https://kulttuuritalo.fi/tapahtuma/[slug]/">...<h3>Title</h3>...DD.MM.YYYY...</a>
-  const linkRe = /<a\s+href="(https?:\/\/kulttuuritalo\.fi\/tapahtuma\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/g
+  // Numeeriset (&#8211; &#x2013;) ja tavallisimmat nimetyt entiteetit.
+  const NAMED: Record<string, string> = {
+    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+    ndash: '–', mdash: '—', hellip: '…', rsquo: '’', lsquo: '‘',
+    ldquo: '“', rdquo: '”', auml: 'ä', ouml: 'ö', Auml: 'Ä', Ouml: 'Ö',
+  }
+  const decodeEntities = (s: string): string =>
+    s
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+      .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+      // &amp; puretaan VIIMEISENÄ, jottei "&amp;#8211;" muuttuisi ensin
+      // muotoon "&#8211;" ja siitä edelleen viivaksi — kaksinkertainen purku
+      // tekisi datasta eri kuin lähteessä.
+      .replace(/&([a-zA-Z]+);/g, (m0, name) => (name in NAMED && name !== 'amp' ? NAMED[name] : m0))
+      .replace(/&amp;/g, '&')
+
+  // Each event: <a ... href="https://kulttuuritalo.fi/tapahtuma/[slug]/">...<h3>Title</h3>...DD.MM.YYYY...</a>
+  //
+  // HREF EI OLE ENSIMMÄINEN ATTRIBUUTTI. Tämä regex oli aiemmin muodossa
+  // /<a\s+href="…/ eli se vaati hrefin heti <a:n perään. Sivun todellinen
+  // markup on:
+  //     <a class="poster-background background-coal " href="https://kulttuuritalo.fi/tapahtuma/…"
+  // eli class tulee ensin — joten regex ei osunut YHTEENKÄÄN tapahtumaan ja
+  // reitti palautti 0 (meta.live=0, ei virhettä, joten se näytti "sivu vastasi
+  // mutta ohjelmaa ei ole" -tilanteelta eikä rikkinäiseltä parserilta).
+  // Nyt attribuutit hrefin edellä sallitaan: [^>]*? ennen href-osumaa.
+  const linkRe = /<a\s[^>]*?href="(https?:\/\/kulttuuritalo\.fi\/tapahtuma\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/g
   let m: RegExpExecArray | null
   while ((m = linkRe.exec(html)) !== null) {
     const href = m[1]
@@ -50,7 +75,11 @@ async function scrape(): Promise<{ title: string; date: string; ticketUrl: strin
 
     const titleM = inner.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)
     if (!titleM) continue
-    const title = titleM[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim()
+    // Entiteetit puretaan KAIKKI, ei vain &amp;. WordPress tuottaa otsikoihin
+    // numeerisia entiteettejä (mitattu: "Ismo Leikola &#8211; Omasta mielestä"
+    // eli ajatusviiva), ja aiempi pelkkä &amp;-korvaus jätti ne raakana —
+    // React escapoi ne uudelleen, joten kortilla olisi näkynyt "&#8211;".
+    const title = decodeEntities(titleM[1].replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim()
     if (!title || title.length < 2) continue
 
     const dateM = inner.match(/(\d{1,2}\.\d{2}\.\d{4})/)
