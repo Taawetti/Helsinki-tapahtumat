@@ -22,6 +22,10 @@ import type { ReasonFile } from '@/lib/restaurant-reasons'
 // bundlessa. Uusi data tulee voimaan seuraavassa deployssa, mikä on tarkoitus:
 // muutos näkyy gitissä ennen kuin se näkyy käyttäjälle.
 import reasonData from '@/data/restaurant-reasons.json'
+// Juuri avatut paikat, joita ei vielä ole OpenStreetMapissa. Haetaan samassa
+// viikkoajossa (scripts/fetch-new-openings.ts) Googlesta, jotta niillä on kuva
+// ja koordinaatit — kuvaton kortti ei kuulu tälle sivulle.
+import openingData from '@/data/new-openings.json'
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -665,6 +669,64 @@ const fetchCuisineEnrichmentCached = unstable_cache(
   { revalidate: 3600 }
 )
 
+// ── JUURI AVATUT, JOITA OSM EI VIELÄ TUNNE ────────────────
+//
+// Anniskeluluparekisteri tuntee 86 uutta helsinkiläistä ravintolaa, mutta
+// OpenStreetMapissa niistä on 12 — kartoittajat ehtivät paikalle viikkoja
+// avaamisen jälkeen. Ilman tätä sivulta puuttuisivat juuri kiinnostavimmat
+// tulokkaat. Loput kentät haetaan Googlesta viikkoajossa; ks.
+// scripts/fetch-new-openings.ts ja sen neljä tarkistusta.
+
+interface RawOpening {
+  key: string; name: string; address: string; lat: number; lon: number
+  image: string | null; www: string | null; phone: string | null
+  category: string | null; cuisineCategories: string[]
+  openingHours: string | null; priceLevel: string | null
+  googleRating: number | null; reviewCount: number | null
+  openedAt: string; fetchedAt: string
+}
+
+/** Googlen kategoria → sovelluksen tyyppi. Järjestys ratkaisee: yökerho ennen
+ *  baaria, koska "Yökerho ja baari" on yökerho. */
+function openingType(category: string | null): Restaurant['type'] {
+  const c = (category ?? '').toLowerCase()
+  if (/yökerho|nightclub|disco/.test(c)) return 'yokerho'
+  if (/kahvila|kahvipaahtimo|konditoria|leipomo|caf[eé]|jäätelö/.test(c)) return 'kahvila'
+  if (/baari|pubi|\bbar\b|panimo|brewery/.test(c)) return 'baari'
+  return 'ravintola'
+}
+
+function newOpeningRestaurants(): Restaurant[] {
+  const rows = (openingData as { openings?: RawOpening[] })?.openings
+  if (!Array.isArray(rows)) return []
+  const out: Restaurant[] = []
+  for (const o of rows) {
+    if (!o?.name || typeof o.lat !== 'number' || typeof o.lon !== 'number') continue
+    out.push({
+      // Tunniste erottuu OSM:n omista (`osm-n…`), jotta lähde näkyy id:stä.
+      id: `uusi-${o.key.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}`,
+      name: o.name,
+      // Googlen kategoria on ihmisluettava ja tarkempi kuin OSM:n cuisine-tagi.
+      description: o.category ?? '',
+      cuisines: o.category ? [o.category] : [],
+      cuisineCategories: Array.isArray(o.cuisineCategories) ? o.cuisineCategories : [],
+      address: o.address,
+      city: 'Helsinki',
+      lat: o.lat,
+      lon: o.lon,
+      image: o.image,
+      www: o.www,
+      phone: o.phone,
+      type: openingType(o.category),
+      ...(o.priceLevel && GOOGLE_PRICE[o.priceLevel] ? { priceRange: GOOGLE_PRICE[o.priceLevel] } : {}),
+      ...(o.openingHours ? { openingHours: o.openingHours, hoursSource: 'google' as const } : {}),
+      ...(typeof o.googleRating === 'number' ? { googleRating: o.googleRating } : {}),
+      ...(typeof o.reviewCount === 'number' ? { reviewCount: o.reviewCount } : {}),
+    })
+  }
+  return out
+}
+
 // ── Route handler ─────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -679,10 +741,15 @@ export async function GET(req: NextRequest) {
     fetchCuisineEnrichmentCached(),
   ])
 
+  // Juuri avatut paikat, joita OSM ei vielä tunne, liitetään mukaan ENNEN
+  // duplikaattien poistoa. Näin kun kartoittajat lisäävät paikan myöhemmin,
+  // kortti ei kahdennu vaan tietorikkaampi voittaa.
+  const osmListRawWithNew = [...osmListRaw, ...newOpeningRestaurants()]
+
   // Sama paikka voi olla OSM:ssä kahtena kohteena. Se ei näkynyt 3583 kortin
   // luettelossa, mutta kuratoidussa kärjessä näkyy heti: "Shelter" ja "shelter"
   // olivat sijoilla 21 ja 30, 17 metrin päässä toisistaan. Ks. lib/osm-dedupe.ts.
-  const osmList = dedupeOsmVenues(osmListRaw)
+  const osmList = dedupeOsmVenues(osmListRawWithNew)
 
   // Count venues per name — chains share one venue_ratings row (keyed by name),
   // so a single Google-hours string must NOT override every outlet's own hours
@@ -775,6 +842,17 @@ export async function GET(req: NextRequest) {
     })
     return reasons.length ? { ...r, reasons } : r
   })
+
+  // SYNTEETTINEN KORTTI ON OLEMASSA VAIN SYYN TAKIA. Jos `matchReasons` ei anna
+  // sille uutuussyytä, se ei kuulu sivulle lainkaan — muuten sinne jäisi
+  // satunnainen paikka ilman perustetta. Näin uutuuden vartijat (osoiteosuma,
+  // arvostelukatto) pätevät automaattisesti myös näihin kortteihin.
+  //
+  // Mitattu: "Bar & Night Club Luck Lady" sai luvan 1.9.2026 mutta sillä on 358
+  // arvostelua — arvostelukatto pudottaa syyn, ja tämä pudottaa kortin.
+  restaurants = restaurants.filter(
+    (r) => !r.id.startsWith('uusi-') || r.reasons?.some((x) => x.kind === 'uusi'),
+  )
 
   restaurants.sort((a, b) => {
     // 1. SYY ENNEN KAIKKEA MUUTA. Ilman tätä järjestys oli Google-arvosana,

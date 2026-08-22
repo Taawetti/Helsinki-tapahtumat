@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-22T14:30:00.107Z",
+  "fetchedAt": "2026-08-22T22:42:48.370Z",
   "byName": {
     "305": [
       {
@@ -1738,7 +1738,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-15",
-        "street": "Runeberginkatu 33b LH 4"
+        "street": "Runeberginkatu 33b LH 4",
+        "venue": "Luu's Wine Shop"
       }
     ],
     "luuswineshop": [
@@ -1748,7 +1749,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-15",
-        "street": "Runeberginkatu 33b LH 4"
+        "street": "Runeberginkatu 33b LH 4",
+        "venue": "Luu's Wine Shop"
       }
     ],
     "hotel rantapuisto": [
@@ -1758,7 +1760,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-01",
-        "street": "Furuborginkatu 3"
+        "street": "Furuborginkatu 3",
+        "venue": "Hotel Rantapuisto"
       }
     ],
     "hotelrantapuisto": [
@@ -1768,7 +1771,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-01",
-        "street": "Furuborginkatu 3"
+        "street": "Furuborginkatu 3",
+        "venue": "Hotel Rantapuisto"
       }
     ],
     "blondie": [
@@ -1778,7 +1782,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-06",
-        "street": "Vaasankatu 14"
+        "street": "Vaasankatu 14",
+        "venue": "Bar Blondie"
       }
     ],
     "horisontin huippu": [
@@ -1788,7 +1793,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Hermannin rantatie 9 A kerros 25"
+        "street": "Hermannin rantatie 9 A kerros 25",
+        "venue": "Horisontin Huippu"
       }
     ],
     "horisontinhuippu": [
@@ -1798,7 +1804,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Hermannin rantatie 9 A kerros 25"
+        "street": "Hermannin rantatie 9 A kerros 25",
+        "venue": "Horisontin Huippu"
       }
     ],
     "miller s bbq to o lo": [
@@ -1808,7 +1815,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-09-01",
-        "street": "Sibeliuksenkatu 2"
+        "street": "Sibeliuksenkatu 2",
+        "venue": "Miller's BBQ Töölö"
       }
     ],
     "millersbbqtoolo": [
@@ -1818,7 +1826,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-09-01",
-        "street": "Sibeliuksenkatu 2"
+        "street": "Sibeliuksenkatu 2",
+        "venue": "Miller's BBQ Töölö"
       }
     ],
     "1664 market hall": [
@@ -1828,7 +1837,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-30",
-        "street": "Aleksis Kiven katu 17"
+        "street": "Aleksis Kiven katu 17",
+        "venue": "1664 / Market Hall"
       }
     ],
     "1664markethall": [
@@ -1838,7 +1848,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-30",
-        "street": "Aleksis Kiven katu 17"
+        "street": "Aleksis Kiven katu 17",
+        "venue": "1664 / Market Hall"
       }
     ],
     "market hall": [
@@ -1848,7 +1859,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-30",
-        "street": "Aleksis Kiven katu 17"
+        "street": "Aleksis Kiven katu 17",
+        "venue": "1664 / Market Hall"
       }
     ],
     "markethall": [
@@ -1858,7 +1870,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-30",
-        "street": "Aleksis Kiven katu 17"
+        "street": "Aleksis Kiven katu 17",
+        "venue": "1664 / Market Hall"
       }
     ],
     "lasoon": [
@@ -1868,7 +1881,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-27",
-        "street": "Kankiraudantie 1"
+        "street": "Kankiraudantie 1",
+        "venue": "Ravintola Lasoon"
       }
     ],
     "noodle master kamppi": [
@@ -1878,7 +1892,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-24",
-        "street": "Eerikinkatu  20"
+        "street": "Eerikinkatu  20",
+        "venue": "Noodle Master Kamppi"
       }
     ],
     "noodlemasterkamppi": [
@@ -1888,7 +1903,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-24",
-        "street": "Eerikinkatu  20"
+        "street": "Eerikinkatu  20",
+        "venue": "Noodle Master Kamppi"
       }
     ],
     "iki": [
@@ -1898,7 +1914,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-10-01",
-        "street": "Mannerheimintie 14, 2. krs"
+        "street": "Mannerheimintie 14, 2. krs",
+        "venue": "Ravintola Iki"
       }
     ],
     "bistro kajo": [
@@ -1908,7 +1925,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-19",
-        "street": "Neitojenranta 2"
+        "street": "Neitojenranta 2",
+        "venue": "Bistro Kajo"
       }
     ],
     "bistrokajo": [
@@ -1918,7 +1936,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-19",
-        "street": "Neitojenranta 2"
+        "street": "Neitojenranta 2",
+        "venue": "Bistro Kajo"
       }
     ],
     "tango argentino atelier": [
@@ -1928,7 +1947,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-03-30",
-        "street": "Tallberginkatu 1 C"
+        "street": "Tallberginkatu 1 C",
+        "venue": "Tango Argentino Atelier"
       }
     ],
     "tangoargentinoatelier": [
@@ -1938,7 +1958,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-03-30",
-        "street": "Tallberginkatu 1 C"
+        "street": "Tallberginkatu 1 C",
+        "venue": "Tango Argentino Atelier"
       }
     ],
     "seoul fried chicken": [
@@ -1948,7 +1969,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-30",
-        "street": "Bruno Granholmin kuja 4"
+        "street": "Bruno Granholmin kuja 4",
+        "venue": "Seoul Fried Chicken"
       }
     ],
     "seoulfriedchicken": [
@@ -1958,7 +1980,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-30",
-        "street": "Bruno Granholmin kuja 4"
+        "street": "Bruno Granholmin kuja 4",
+        "venue": "Seoul Fried Chicken"
       }
     ],
     "bui ramen": [
@@ -1968,7 +1991,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-15",
-        "street": "Aallonhalkoja 1 LT 2"
+        "street": "Aallonhalkoja 1 LT 2",
+        "venue": "BUI RAMEN"
       }
     ],
     "buiramen": [
@@ -1978,7 +2002,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-15",
-        "street": "Aallonhalkoja 1 LT 2"
+        "street": "Aallonhalkoja 1 LT 2",
+        "venue": "BUI RAMEN"
       }
     ],
     "tapulikahvila pietari": [
@@ -1988,7 +2013,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-27",
-        "street": "Unioninkatu 29"
+        "street": "Unioninkatu 29",
+        "venue": "Tapulikahvila Pietari"
       }
     ],
     "tapulikahvilapietari": [
@@ -1998,7 +2024,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-27",
-        "street": "Unioninkatu 29"
+        "street": "Unioninkatu 29",
+        "venue": "Tapulikahvila Pietari"
       }
     ],
     "grenier rouge": [
@@ -2008,7 +2035,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-06",
-        "street": "Tervasaarenkannas 3"
+        "street": "Tervasaarenkannas 3",
+        "venue": "Grenier Rouge"
       }
     ],
     "grenierrouge": [
@@ -2018,7 +2046,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-06",
-        "street": "Tervasaarenkannas 3"
+        "street": "Tervasaarenkannas 3",
+        "venue": "Grenier Rouge"
       }
     ],
     "bocado 28": [
@@ -2028,7 +2057,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-15",
-        "street": "Välimerenkatu 15"
+        "street": "Välimerenkatu 15",
+        "venue": "Bocado*28"
       }
     ],
     "bocado28": [
@@ -2038,7 +2068,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-15",
-        "street": "Välimerenkatu 15"
+        "street": "Välimerenkatu 15",
+        "venue": "Bocado*28"
       }
     ],
     "caverna kaivopiha": [
@@ -2048,7 +2079,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-15",
-        "street": "Mannerheimintie 3"
+        "street": "Mannerheimintie 3",
+        "venue": "Caverna Kaivopiha"
       }
     ],
     "cavernakaivopiha": [
@@ -2058,7 +2090,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-15",
-        "street": "Mannerheimintie 3"
+        "street": "Mannerheimintie 3",
+        "venue": "Caverna Kaivopiha"
       }
     ],
     "retroo italiano": [
@@ -2068,7 +2101,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-07",
-        "street": "Porthaninkatu 5A"
+        "street": "Porthaninkatu 5A",
+        "venue": "Retroo Italiano"
       }
     ],
     "retrooitaliano": [
@@ -2078,7 +2112,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-07",
-        "street": "Porthaninkatu 5A"
+        "street": "Porthaninkatu 5A",
+        "venue": "Retroo Italiano"
       }
     ],
     "vibae": [
@@ -2088,7 +2123,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-02",
-        "street": "Fredrikinkatu 30"
+        "street": "Fredrikinkatu 30",
+        "venue": "VIBAe"
       }
     ],
     "bruuveri": [
@@ -2098,7 +2134,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-15",
-        "street": "Fredrikinkatu 63 AB"
+        "street": "Fredrikinkatu 63 AB",
+        "venue": "Bruuveri"
       }
     ],
     "roberts coffee": [
@@ -2108,7 +2145,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-03-27",
-        "street": "Kaivokatu 1"
+        "street": "Kaivokatu 1",
+        "venue": "Roberts Coffee"
       }
     ],
     "robertscoffee": [
@@ -2118,7 +2156,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-03-27",
-        "street": "Kaivokatu 1"
+        "street": "Kaivokatu 1",
+        "venue": "Roberts Coffee"
       }
     ],
     "qvevri": [
@@ -2128,7 +2167,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-29",
-        "street": "Hämeentie 62"
+        "street": "Hämeentie 62",
+        "venue": "QVEVRI"
       }
     ],
     "nuri baba": [
@@ -2138,7 +2178,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-21",
-        "street": "Kallvikintie 76"
+        "street": "Kallvikintie 76",
+        "venue": "Nuri Baba"
       }
     ],
     "nuribaba": [
@@ -2148,7 +2189,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-21",
-        "street": "Kallvikintie 76"
+        "street": "Kallvikintie 76",
+        "venue": "Nuri Baba"
       }
     ],
     "pa a rata bar": [
@@ -2158,7 +2200,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Kaivokatu 1"
+        "street": "Kaivokatu 1",
+        "venue": "Päärata Bar"
       }
     ],
     "paaratabar": [
@@ -2168,7 +2211,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Kaivokatu 1"
+        "street": "Kaivokatu 1",
+        "venue": "Päärata Bar"
       }
     ],
     "gao kitchen and bar": [
@@ -2178,7 +2222,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-16",
-        "street": "Rahapajankatu 3"
+        "street": "Rahapajankatu 3",
+        "venue": "Gao Kitchen & Bar"
       }
     ],
     "gaokitchenandbar": [
@@ -2188,7 +2233,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-16",
-        "street": "Rahapajankatu 3"
+        "street": "Rahapajankatu 3",
+        "venue": "Gao Kitchen & Bar"
       }
     ],
     "harbo": [
@@ -2198,7 +2244,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-01",
-        "street": "Harbonkatu 13"
+        "street": "Harbonkatu 13",
+        "venue": "Cafe Harbo"
       }
     ],
     "satama bar and bistro jollas": [
@@ -2208,7 +2255,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-01",
-        "street": "Isonsarvastontie 4"
+        "street": "Isonsarvastontie 4",
+        "venue": "Satama Bar & Bistro, Jollas"
       }
     ],
     "satamabarandbistrojollas": [
@@ -2218,7 +2266,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-01",
-        "street": "Isonsarvastontie 4"
+        "street": "Isonsarvastontie 4",
+        "venue": "Satama Bar & Bistro, Jollas"
       }
     ],
     "kallio bar": [
@@ -2228,7 +2277,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Hämeentie 10"
+        "street": "Hämeentie 10",
+        "venue": "Kallio Bar"
       }
     ],
     "kalliobar": [
@@ -2238,7 +2288,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Hämeentie 10"
+        "street": "Hämeentie 10",
+        "venue": "Kallio Bar"
       }
     ],
     "snadi pub kallio": [
@@ -2248,7 +2299,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Kolman Linja 6"
+        "street": "Kolman Linja 6",
+        "venue": "Snadi Pub Kallio"
       }
     ],
     "snadipubkallio": [
@@ -2258,7 +2310,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Kolman Linja 6"
+        "street": "Kolman Linja 6",
+        "venue": "Snadi Pub Kallio"
       }
     ],
     "brutto cocktail bar": [
@@ -2268,7 +2321,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-01",
-        "street": "Pääskylänrinne 2 A 60"
+        "street": "Pääskylänrinne 2 A 60",
+        "venue": "Brutto Cocktail Bar"
       }
     ],
     "bruttococktailbar": [
@@ -2278,7 +2332,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-01",
-        "street": "Pääskylänrinne 2 A 60"
+        "street": "Pääskylänrinne 2 A 60",
+        "venue": "Brutto Cocktail Bar"
       }
     ],
     "juvenes oy puhuri by patisserie teemu aura": [
@@ -2288,7 +2343,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-15",
-        "street": "Kauppaneuvoksentie 18"
+        "street": "Kauppaneuvoksentie 18",
+        "venue": "Juvenes Oy Puhuri By Patisserie Teemu Aura"
       }
     ],
     "juvenesoypuhuribypatisserieteemuaura": [
@@ -2298,7 +2354,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-15",
-        "street": "Kauppaneuvoksentie 18"
+        "street": "Kauppaneuvoksentie 18",
+        "venue": "Juvenes Oy Puhuri By Patisserie Teemu Aura"
       }
     ],
     "bistro pasila": [
@@ -2308,7 +2365,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-09",
-        "street": "Asemapäällikönkatu 3"
+        "street": "Asemapäällikönkatu 3",
+        "venue": "Bistro Pasila"
       }
     ],
     "bistropasila": [
@@ -2318,7 +2376,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-09",
-        "street": "Asemapäällikönkatu 3"
+        "street": "Asemapäällikönkatu 3",
+        "venue": "Bistro Pasila"
       }
     ],
     "umami taste": [
@@ -2328,7 +2387,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-09",
-        "street": "Mäkelänkatu 16 L3"
+        "street": "Mäkelänkatu 16 L3",
+        "venue": "Umami Taste"
       }
     ],
     "umamitaste": [
@@ -2338,7 +2398,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-09",
-        "street": "Mäkelänkatu 16 L3"
+        "street": "Mäkelänkatu 16 L3",
+        "venue": "Umami Taste"
       }
     ],
     "juvenes oy patisserie teemu aura hakaniemi": [
@@ -2348,7 +2409,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-02",
-        "street": "Siltasaarenkatu 12"
+        "street": "Siltasaarenkatu 12",
+        "venue": "Juvenes Oy Patisserie Teemu Aura Hakaniemi"
       }
     ],
     "juvenesoypatisserieteemuaurahakaniemi": [
@@ -2358,7 +2420,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-02",
-        "street": "Siltasaarenkatu 12"
+        "street": "Siltasaarenkatu 12",
+        "venue": "Juvenes Oy Patisserie Teemu Aura Hakaniemi"
       }
     ],
     "sturen kulma": [
@@ -2368,7 +2431,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-02",
-        "street": "Mäkelänkatu 28"
+        "street": "Mäkelänkatu 28",
+        "venue": "Sturen Kulma"
       }
     ],
     "sturenkulma": [
@@ -2378,7 +2442,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-02",
-        "street": "Mäkelänkatu 28"
+        "street": "Mäkelänkatu 28",
+        "venue": "Sturen Kulma"
       }
     ],
     "aila chhen": [
@@ -2388,7 +2453,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-15",
-        "street": "Porthaninkatu 9, 00530 Helsinki"
+        "street": "Porthaninkatu 9, 00530 Helsinki",
+        "venue": "Aila Chhen"
       }
     ],
     "ailachhen": [
@@ -2398,7 +2464,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-15",
-        "street": "Porthaninkatu 9, 00530 Helsinki"
+        "street": "Porthaninkatu 9, 00530 Helsinki",
+        "venue": "Aila Chhen"
       }
     ],
     "nami teppanyaki": [
@@ -2408,7 +2475,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-21",
-        "street": "Malminkaari 13-17"
+        "street": "Malminkaari 13-17",
+        "venue": "Nami Teppanyaki"
       }
     ],
     "namiteppanyaki": [
@@ -2418,7 +2486,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-21",
-        "street": "Malminkaari 13-17"
+        "street": "Malminkaari 13-17",
+        "venue": "Nami Teppanyaki"
       }
     ],
     "toki toki": [
@@ -2428,7 +2497,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-24",
-        "street": "Opastinsilta 2"
+        "street": "Opastinsilta 2",
+        "venue": "Toki Toki"
       }
     ],
     "tokitoki": [
@@ -2438,7 +2508,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-24",
-        "street": "Opastinsilta 2"
+        "street": "Opastinsilta 2",
+        "venue": "Toki Toki"
       }
     ],
     "focaccina": [
@@ -2448,7 +2519,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-13",
-        "street": "Eerikinkatu 4"
+        "street": "Eerikinkatu 4",
+        "venue": "Focaccina"
       }
     ],
     "pilkku": [
@@ -2458,7 +2530,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-22",
-        "street": "Helsinginkatu 15"
+        "street": "Helsinginkatu 15",
+        "venue": "Pilkku"
       }
     ],
     "mr melody": [
@@ -2468,7 +2541,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-01",
-        "street": "Kontulankaari 1b liikehuoneisto 20"
+        "street": "Kontulankaari 1b liikehuoneisto 20",
+        "venue": "Mr Melody"
       }
     ],
     "mrmelody": [
@@ -2478,7 +2552,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-01",
-        "street": "Kontulankaari 1b liikehuoneisto 20"
+        "street": "Kontulankaari 1b liikehuoneisto 20",
+        "venue": "Mr Melody"
       }
     ],
     "figaro": [
@@ -2488,7 +2563,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-30",
-        "street": "Hämeentie 19"
+        "street": "Hämeentie 19",
+        "venue": "Figaro"
       }
     ],
     "borssi ja khachapuri": [
@@ -2498,7 +2574,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-18",
-        "street": "Lönnrotinkatu 34"
+        "street": "Lönnrotinkatu 34",
+        "venue": "Borssi ja Khachapuri"
       }
     ],
     "borssijakhachapuri": [
@@ -2508,7 +2585,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-18",
-        "street": "Lönnrotinkatu 34"
+        "street": "Lönnrotinkatu 34",
+        "venue": "Borssi ja Khachapuri"
       }
     ],
     "damak ravintola": [
@@ -2518,7 +2596,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-30",
-        "street": "Insinöörinkatu 14"
+        "street": "Insinöörinkatu 14",
+        "venue": "Damak Ravintola"
       }
     ],
     "damakravintola": [
@@ -2528,7 +2607,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-30",
-        "street": "Insinöörinkatu 14"
+        "street": "Insinöörinkatu 14",
+        "venue": "Damak Ravintola"
       }
     ],
     "katana": [
@@ -2538,7 +2618,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-12",
-        "street": "Telakkakatu 12"
+        "street": "Telakkakatu 12",
+        "venue": "KATANA"
       }
     ],
     "wisnia": [
@@ -2548,7 +2629,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-26",
-        "street": "Örskinkuja 2 lt 2"
+        "street": "Örskinkuja 2 lt 2",
+        "venue": "WISNIA"
       }
     ],
     "lotus cafe": [
@@ -2558,7 +2640,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Aino Acktén tie 8 Lh11"
+        "street": "Aino Acktén tie 8 Lh11",
+        "venue": "Lotus Café"
       }
     ],
     "lotuscafe": [
@@ -2568,7 +2651,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Aino Acktén tie 8 Lh11"
+        "street": "Aino Acktén tie 8 Lh11",
+        "venue": "Lotus Café"
       }
     ],
     "el patio": [
@@ -2578,7 +2662,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-28",
-        "street": "työpajankatu 2b r11"
+        "street": "työpajankatu 2b r11",
+        "venue": "El Patio"
       }
     ],
     "elpatio": [
@@ -2588,7 +2673,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-28",
-        "street": "työpajankatu 2b r11"
+        "street": "työpajankatu 2b r11",
+        "venue": "El Patio"
       }
     ],
     "levain galleria": [
@@ -2598,7 +2684,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-03",
-        "street": "Aleksanterinkatu 40-42"
+        "street": "Aleksanterinkatu 40-42",
+        "venue": "Levain Galleria"
       }
     ],
     "levaingalleria": [
@@ -2608,7 +2695,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-03",
-        "street": "Aleksanterinkatu 40-42"
+        "street": "Aleksanterinkatu 40-42",
+        "venue": "Levain Galleria"
       }
     ],
     "fazer cafe munkkiniemi": [
@@ -2618,7 +2706,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-09-15",
-        "street": "Solnantie 26"
+        "street": "Solnantie 26",
+        "venue": "Fazer Café Munkkiniemi"
       }
     ],
     "fazercafemunkkiniemi": [
@@ -2628,7 +2717,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-09-15",
-        "street": "Solnantie 26"
+        "street": "Solnantie 26",
+        "venue": "Fazer Café Munkkiniemi"
       }
     ],
     "vietologie": [
@@ -2638,7 +2728,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-01",
-        "street": "Runeberginkatu 59 LH3"
+        "street": "Runeberginkatu 59 LH3",
+        "venue": "Vietologie Oy"
       }
     ],
     "rio": [
@@ -2648,7 +2739,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-01",
-        "street": "Maaherrantie 34"
+        "street": "Maaherrantie 34",
+        "venue": "Rio"
       }
     ],
     "copitas": [
@@ -2658,7 +2750,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-17",
-        "street": "Malagankatu 3"
+        "street": "Malagankatu 3",
+        "venue": "Copitas"
       }
     ],
     "briossi": [
@@ -2668,7 +2761,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-04",
-        "street": "Kalevankatu 9"
+        "street": "Kalevankatu 9",
+        "venue": "Cafe Briossi"
       }
     ],
     "shangrila nepalese kitchen": [
@@ -2678,7 +2772,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-25",
-        "street": "Aleksis Kivenkatu 17 A"
+        "street": "Aleksis Kivenkatu 17 A",
+        "venue": "Shangrila Nepalese Kitchen"
       }
     ],
     "shangrilanepalesekitchen": [
@@ -2688,7 +2783,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-25",
-        "street": "Aleksis Kivenkatu 17 A"
+        "street": "Aleksis Kivenkatu 17 A",
+        "venue": "Shangrila Nepalese Kitchen"
       }
     ],
     "huudi": [
@@ -2698,7 +2794,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-08",
-        "street": "Huopalahdentie 24"
+        "street": "Huopalahdentie 24",
+        "venue": "Ravintola Huudi"
       }
     ],
     "itsuyaki redi": [
@@ -2708,7 +2805,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-13",
-        "street": "Hermannin rantatie 5"
+        "street": "Hermannin rantatie 5",
+        "venue": "Itsuyaki Redi"
       }
     ],
     "itsuyakiredi": [
@@ -2718,7 +2816,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-13",
-        "street": "Hermannin rantatie 5"
+        "street": "Hermannin rantatie 5",
+        "venue": "Itsuyaki Redi"
       }
     ],
     "juvenes oy patisserie teemu aura valla": [
@@ -2728,7 +2827,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-30",
-        "street": "Itämerenkatu 19"
+        "street": "Itämerenkatu 19",
+        "venue": "Juvenes Oy Patisserie Teemu Aura Valla"
       }
     ],
     "juvenesoypatisserieteemuauravalla": [
@@ -2738,7 +2838,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-30",
-        "street": "Itämerenkatu 19"
+        "street": "Itämerenkatu 19",
+        "venue": "Juvenes Oy Patisserie Teemu Aura Valla"
       }
     ],
     "pantry vallila": [
@@ -2748,7 +2849,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-01",
-        "street": "Teollisuuskatu 21"
+        "street": "Teollisuuskatu 21",
+        "venue": "The Pantry Vallila"
       }
     ],
     "pantryvallila": [
@@ -2758,7 +2860,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-01",
-        "street": "Teollisuuskatu 21"
+        "street": "Teollisuuskatu 21",
+        "venue": "The Pantry Vallila"
       }
     ],
     "kampai": [
@@ -2768,7 +2871,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-01",
-        "street": "Aleksis Kivenkatu 17 A"
+        "street": "Aleksis Kivenkatu 17 A",
+        "venue": "Kampai"
       }
     ],
     "atmos atelier": [
@@ -2778,7 +2882,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-01",
-        "street": "Pohjoinen Rautatiekatu 19"
+        "street": "Pohjoinen Rautatiekatu 19",
+        "venue": "Atmos Atelier"
       }
     ],
     "atmosatelier": [
@@ -2788,7 +2893,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-01",
-        "street": "Pohjoinen Rautatiekatu 19"
+        "street": "Pohjoinen Rautatiekatu 19",
+        "venue": "Atmos Atelier"
       }
     ],
     "bro ner kallio": [
@@ -2798,7 +2904,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-16",
-        "street": "Vaasankatu 13"
+        "street": "Vaasankatu 13",
+        "venue": "Bröner Kallio"
       }
     ],
     "bronerkallio": [
@@ -2808,7 +2915,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-16",
-        "street": "Vaasankatu 13"
+        "street": "Vaasankatu 13",
+        "venue": "Bröner Kallio"
       }
     ],
     "dudii": [
@@ -2818,7 +2926,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-01",
-        "street": "Viides Linja 7"
+        "street": "Viides Linja 7",
+        "venue": "DuDii"
       }
     ],
     "dip and sip": [
@@ -2828,7 +2937,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-01",
-        "street": "Helsinginkatu 13"
+        "street": "Helsinginkatu 13",
+        "venue": "Dip and Sip"
       }
     ],
     "dipandsip": [
@@ -2838,7 +2948,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-01",
-        "street": "Helsinginkatu 13"
+        "street": "Helsinginkatu 13",
+        "venue": "Dip and Sip"
       }
     ],
     "hoi an vietnamilainen kitcken yuzu japanese izakaya": [
@@ -2848,7 +2959,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-15",
-        "street": "kaisaniemenkatu 3"
+        "street": "kaisaniemenkatu 3",
+        "venue": "Hoi An vietnamilainen kitcken/YUZU Japanese Izakaya"
       }
     ],
     "hoianvietnamilainenkitckenyuzujapaneseizakaya": [
@@ -2858,7 +2970,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-15",
-        "street": "kaisaniemenkatu 3"
+        "street": "kaisaniemenkatu 3",
+        "venue": "Hoi An vietnamilainen kitcken/YUZU Japanese Izakaya"
       }
     ],
     "hoi an vietnamilainen kitcken": [
@@ -2868,7 +2981,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-15",
-        "street": "kaisaniemenkatu 3"
+        "street": "kaisaniemenkatu 3",
+        "venue": "Hoi An vietnamilainen kitcken/YUZU Japanese Izakaya"
       }
     ],
     "hoianvietnamilainenkitcken": [
@@ -2878,7 +2992,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-15",
-        "street": "kaisaniemenkatu 3"
+        "street": "kaisaniemenkatu 3",
+        "venue": "Hoi An vietnamilainen kitcken/YUZU Japanese Izakaya"
       }
     ],
     "yuzu japanese izakaya": [
@@ -2888,7 +3003,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-15",
-        "street": "kaisaniemenkatu 3"
+        "street": "kaisaniemenkatu 3",
+        "venue": "Hoi An vietnamilainen kitcken/YUZU Japanese Izakaya"
       }
     ],
     "yuzujapaneseizakaya": [
@@ -2898,7 +3014,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-15",
-        "street": "kaisaniemenkatu 3"
+        "street": "kaisaniemenkatu 3",
+        "venue": "Hoi An vietnamilainen kitcken/YUZU Japanese Izakaya"
       }
     ],
     "za r syrian eatery": [
@@ -2908,7 +3025,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-01",
-        "street": "Bruno Granholmin kuja 4"
+        "street": "Bruno Granholmin kuja 4",
+        "venue": "ZÄR Syrian Eatery"
       }
     ],
     "zarsyrianeatery": [
@@ -2918,7 +3036,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-01",
-        "street": "Bruno Granholmin kuja 4"
+        "street": "Bruno Granholmin kuja 4",
+        "venue": "ZÄR Syrian Eatery"
       }
     ],
     "dragon sticks": [
@@ -2928,7 +3047,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-19",
-        "street": "Aleksis Kiven katu 17"
+        "street": "Aleksis Kiven katu 17",
+        "venue": "Dragon Sticks"
       }
     ],
     "dragonsticks": [
@@ -2938,7 +3058,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-19",
-        "street": "Aleksis Kiven katu 17"
+        "street": "Aleksis Kiven katu 17",
+        "venue": "Dragon Sticks"
       }
     ],
     "weckstro m roastery": [
@@ -2948,7 +3069,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-22",
-        "street": "Mastokatu 4-6"
+        "street": "Mastokatu 4-6",
+        "venue": "Weckström Roastery"
       }
     ],
     "weckstromroastery": [
@@ -2958,7 +3080,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-22",
-        "street": "Mastokatu 4-6"
+        "street": "Mastokatu 4-6",
+        "venue": "Weckström Roastery"
       }
     ],
     "shanghai taste": [
@@ -2968,7 +3091,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-16",
-        "street": "Eerikinkatu 21"
+        "street": "Eerikinkatu 21",
+        "venue": "Shanghai Taste"
       }
     ],
     "shanghaitaste": [
@@ -2978,7 +3102,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-16",
-        "street": "Eerikinkatu 21"
+        "street": "Eerikinkatu 21",
+        "venue": "Shanghai Taste"
       }
     ],
     "ariel": [
@@ -2988,7 +3113,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-20",
-        "street": "Koksikatu 12"
+        "street": "Koksikatu 12",
+        "venue": "Ariel"
       }
     ],
     "barahi": [
@@ -2998,7 +3124,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-21",
-        "street": "Laippatie 1"
+        "street": "Laippatie 1",
+        "venue": "Ravintola Barahi"
       }
     ],
     "rubert 180": [
@@ -3008,7 +3135,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-21",
-        "street": "Yrjönkatu 4 A, 00120 Helsinki"
+        "street": "Yrjönkatu 4 A, 00120 Helsinki",
+        "venue": "Rubert 180"
       }
     ],
     "rubert180": [
@@ -3018,7 +3146,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-21",
-        "street": "Yrjönkatu 4 A, 00120 Helsinki"
+        "street": "Yrjönkatu 4 A, 00120 Helsinki",
+        "venue": "Rubert 180"
       }
     ],
     "pantry porkkalankatu": [
@@ -3028,7 +3157,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Porkkalankatu 21"
+        "street": "Porkkalankatu 21",
+        "venue": "The Pantry Porkkalankatu"
       }
     ],
     "pantryporkkalankatu": [
@@ -3038,7 +3168,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-01",
-        "street": "Porkkalankatu 21"
+        "street": "Porkkalankatu 21",
+        "venue": "The Pantry Porkkalankatu"
       }
     ],
     "omu raisu": [
@@ -3048,7 +3179,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-01",
-        "street": "Kulmavuorenkatu 4 A"
+        "street": "Kulmavuorenkatu 4 A",
+        "venue": "Omu Raisu"
       }
     ],
     "omuraisu": [
@@ -3058,7 +3190,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-01",
-        "street": "Kulmavuorenkatu 4 A"
+        "street": "Kulmavuorenkatu 4 A",
+        "venue": "Omu Raisu"
       }
     ],
     "salavi ravintola": [
@@ -3068,7 +3201,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-24",
-        "street": "Kap Hornin katu 3"
+        "street": "Kap Hornin katu 3",
+        "venue": "Salavi Ravintola"
       }
     ],
     "salaviravintola": [
@@ -3078,7 +3212,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-24",
-        "street": "Kap Hornin katu 3"
+        "street": "Kap Hornin katu 3",
+        "venue": "Salavi Ravintola"
       }
     ],
     "noodle story kamppi": [
@@ -3088,7 +3223,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-18",
-        "street": "Urho Kekkosen katu 1, E-taso"
+        "street": "Urho Kekkosen katu 1, E-taso",
+        "venue": "Noodle Story Kamppi"
       }
     ],
     "noodlestorykamppi": [
@@ -3098,7 +3234,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-18",
-        "street": "Urho Kekkosen katu 1, E-taso"
+        "street": "Urho Kekkosen katu 1, E-taso",
+        "venue": "Noodle Story Kamppi"
       }
     ],
     "pexit": [
@@ -3108,7 +3245,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-28",
-        "street": "Kanavaranta 4"
+        "street": "Kanavaranta 4",
+        "venue": "Pexit"
       }
     ],
     "and night club luck lady": [
@@ -3118,7 +3256,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-09-01",
-        "street": "Kirkonkyläntie 5"
+        "street": "Kirkonkyläntie 5",
+        "venue": "Bar & Night Club Luck Lady"
       }
     ],
     "andnightclublucklady": [
@@ -3128,7 +3267,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-09-01",
-        "street": "Kirkonkyläntie 5"
+        "street": "Kirkonkyläntie 5",
+        "venue": "Bar & Night Club Luck Lady"
       }
     ],
     "la sinfonia": [
@@ -3138,7 +3278,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-15",
-        "street": "Pohjoisesplanadi 37"
+        "street": "Pohjoisesplanadi 37",
+        "venue": "Ravintola La Sinfonia"
       }
     ],
     "lasinfonia": [
@@ -3148,7 +3289,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-15",
-        "street": "Pohjoisesplanadi 37"
+        "street": "Pohjoisesplanadi 37",
+        "venue": "Ravintola La Sinfonia"
       }
     ],
     "saari lotus bar restaurant": [
@@ -3158,7 +3300,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-01",
-        "street": "Yliskylän puistokatu 4,"
+        "street": "Yliskylän puistokatu 4,",
+        "venue": "Saari Lotus,bar restaurant"
       }
     ],
     "saarilotusbarrestaurant": [
@@ -3168,7 +3311,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-05-01",
-        "street": "Yliskylän puistokatu 4,"
+        "street": "Yliskylän puistokatu 4,",
+        "venue": "Saari Lotus,bar restaurant"
       }
     ],
     "ta proom tripla": [
@@ -3178,7 +3322,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-10",
-        "street": "Firdonkatu 2 B"
+        "street": "Firdonkatu 2 B",
+        "venue": "Täproom Tripla"
       }
     ],
     "taproomtripla": [
@@ -3188,7 +3333,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-06-10",
-        "street": "Firdonkatu 2 B"
+        "street": "Firdonkatu 2 B",
+        "venue": "Täproom Tripla"
       }
     ],
     "tian tian dumplings": [
@@ -3198,7 +3344,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-21",
-        "street": "Lönnrotinkatu 21 LT 2"
+        "street": "Lönnrotinkatu 21 LT 2",
+        "venue": "Tian Tian Dumplings"
       }
     ],
     "tiantiandumplings": [
@@ -3208,7 +3355,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-07-21",
-        "street": "Lönnrotinkatu 21 LT 2"
+        "street": "Lönnrotinkatu 21 LT 2",
+        "venue": "Tian Tian Dumplings"
       }
     ],
     "taphouse train factory": [
@@ -3218,7 +3366,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-27",
-        "street": "Aleksis Kiven Katu 17"
+        "street": "Aleksis Kiven Katu 17",
+        "venue": "Taphouse Train Factory"
       }
     ],
     "taphousetrainfactory": [
@@ -3228,7 +3377,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-27",
-        "street": "Aleksis Kiven Katu 17"
+        "street": "Aleksis Kiven Katu 17",
+        "venue": "Taphouse Train Factory"
       }
     ],
     "basbas sirkus eats and treats": [
@@ -3238,7 +3388,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-15",
-        "street": "Paasivuorenkatu 4-6"
+        "street": "Paasivuorenkatu 4-6",
+        "venue": "BasBas Sirkus Eats & Treats"
       }
     ],
     "basbassirkuseatsandtreats": [
@@ -3248,7 +3399,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-15",
-        "street": "Paasivuorenkatu 4-6"
+        "street": "Paasivuorenkatu 4-6",
+        "venue": "BasBas Sirkus Eats & Treats"
       }
     ],
     "hard days night": [
@@ -3258,7 +3410,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-09",
-        "street": "Firdonkatu 2 B"
+        "street": "Firdonkatu 2 B",
+        "venue": "Hard Days Night"
       }
     ],
     "harddaysnight": [
@@ -3268,7 +3421,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-09",
-        "street": "Firdonkatu 2 B"
+        "street": "Firdonkatu 2 B",
+        "venue": "Hard Days Night"
       }
     ],
     "flq": [
@@ -3278,7 +3432,8 @@
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-04-20",
-        "street": "Tallinnanaukio 4"
+        "street": "Tallinnanaukio 4",
+        "venue": "Ravintola FLQ"
       }
     ]
   },

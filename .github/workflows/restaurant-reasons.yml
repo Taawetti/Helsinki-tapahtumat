@@ -54,15 +54,26 @@ jobs:
       - name: Hae syyt
         run: npx tsx scripts/fetch-restaurant-reasons.ts
 
+      # Juuri avatut, joita OSM ei vielä tunne: haetaan niille kuva ja
+      # koordinaatit Googlesta. Maksaa vain uusista — jo haetut ovat tiedostossa
+      # eikä niitä kysytä uudelleen. Jos tämä kaatuu (esim. tunnus vanhentunut),
+      # syyt on jo haettu ja ne committoidaan silti: uutuuskortit ovat lisä,
+      # eivät edellytys.
+      - name: Hae uudet avaukset
+        continue-on-error: true
+        env:
+          DATAFORSEO_TOKEN: ${{ secrets.DATAFORSEO_TOKEN }}
+        run: npx tsx scripts/fetch-new-openings.ts
+
       - name: Onko muutoksia?
         id: diff
         run: |
-          if git diff --quiet -- data/restaurant-reasons.json; then
+          if git diff --quiet -- data/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Ei muutoksia."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- data/restaurant-reasons.json
+            git --no-pager diff --stat -- data/
           fi
 
       # PORTTI 2 — testit ja tyypit ajetaan UUTTA dataa vasten. Testit lukevat
@@ -80,10 +91,11 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/restaurant-reasons.json
+          git add data/restaurant-reasons.json data/new-openings.json
           git commit -m "Restaurant reasons: weekly refresh
 
           Automaattinen haku: Michelin-opas, Suomen 50 parasta, Vuoden
-          ravintola, Time Out Helsinki, anniskelulupa*rekisteri.
-          Ks. scripts/fetch-restaurant-reasons.ts"
+          ravintola, Time Out Helsinki, anniskelulupa*rekisteri, sekä
+          juuri avattujen kortit Googlesta.
+          Ks. scripts/fetch-restaurant-reasons.ts ja fetch-new-openings.ts"
           git push

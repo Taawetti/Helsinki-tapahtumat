@@ -47,6 +47,13 @@ export interface RestaurantReason {
    * 2 ja Kirstinkatu 13), ja lupa koski vain ensimmäistä.
    */
   street?: string
+  /**
+   * Paikan nimi sellaisena kuin lähde sen kirjoittaa. `byName`-avain on
+   * normalisoitu ("bar om´pu" → "om pu"), joten alkuperäinen nimi katoaisi
+   * ilman tätä — ja juuri sitä tarvitaan hakusanana kun uudelle avaukselle
+   * haetaan kortti (scripts/fetch-new-openings.ts).
+   */
+  venue?: string
 }
 
 /** Tiedostoon `data/restaurant-reasons.json` tallennettu muoto. */
@@ -162,13 +169,60 @@ export function streetKey(address: string): string | null {
 }
 
 /**
+ * Tasan yhden merkin ero kadun nimessä. Rekisterissä on lyöntivirheitä:
+ * "Kolman Linja 6" kun katu on "Kolmas linja 6" — tarkka vertailu hylkäsi
+ * oikean osuman. TALONUMERON on silti täsmättävä tarkalleen, joten väärän
+ * kadun riski on olematon: yhden merkin päässä olevalla kadulla pitäisi vielä
+ * olla sama talonumero.
+ *
+ * Raja on tarkoituksella tiukka eikä se korjaa kaikkea. Mitattu vastaesimerkki:
+ * OSM:ssä lukee "Häeemtie 10" kun katu on "Hämeentie 10" — kahden merkin ero,
+ * joten Kallio Bar jää ilman uutuusmerkkiä. Se on oikea kompromissi, sillä
+ * väljempi raja alkaisi yhdistää eri katuja.
+ */
+function within1Edit(a: string, b: string): boolean {
+  if (a === b) return true
+  if (Math.abs(a.length - b.length) > 1) return false
+  let i = 0
+  let j = 0
+  let diff = 0
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue }
+    if (++diff > 1) return false
+    if (a.length > b.length) i++
+    else if (a.length < b.length) j++
+    else { i++; j++ }
+  }
+  return diff + (a.length - i) + (b.length - j) <= 1
+}
+
+/**
  * Osuuko lähteen osoite ravintolan osoitteeseen? Tuntematon osoite EI kelpaa
  * osumaksi — uutuusmerkki annetaan vain kun molemmat päät tiedetään ja täsmäävät.
+ *
+ * Osoite voi olla monipalainen, eikä katu ole aina ensimmäisenä. Mitattu:
+ *     "K-Marketin yläpuolella, Asemapäällikönkatu 3A, 00520 Helsinki"
+ *     "Redi 1.krs Food Port, Hermannin rantatie 5, 00580 Helsinki"
+ *     "Entrance at, Örskinkuja 2 LT2, Kirkonkyläntie 6"
+ * Pelkkä ensimmäinen pala antaisi avaimeksi "k marketin yläpuolella". Siksi
+ * jokainen pilkulla erotettu pala kokeillaan, ja riittää että yksi täsmää.
  */
 export function sameStreet(a: string | undefined, b: string | undefined): boolean {
-  const ka = a ? streetKey(a) : null
-  const kb = b ? streetKey(b) : null
-  return ka !== null && ka === kb
+  if (!a || !b) return false
+  const keys = (s: string) =>
+    s.split(',').map((p) => streetKey(p.trim())).filter((k): k is string => k !== null)
+  const ka = keys(a)
+  const kb = keys(b)
+  if (!ka.length || !kb.length) return false
+  for (const x of ka) {
+    const [xs, xn] = x.split('|')
+    for (const y of kb) {
+      if (x === y) return true
+      const [ys, yn] = y.split('|')
+      if (xn === yn && within1Edit(xs, ys)) return true
+    }
+  }
+  return false
 }
 
 // EI PITUUSRAJAA. Aiemmassa uutisyhdistäjässä lyhyet nimet piti hylätä, koska

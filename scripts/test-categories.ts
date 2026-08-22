@@ -43,6 +43,7 @@ import {
 } from '../lib/restaurant-reasons'
 import reasonFile from '../data/restaurant-reasons.json'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
+import openingFile from '../data/new-openings.json'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
@@ -1697,6 +1698,20 @@ for (const c of ideaChecks) {
   rChecks.push({ name: 'streetKey pudottaa kerroksen', ok: streetKey('Mannerheimintie 14, 2. krs') === 'mannerheimintie|14', got: String(streetKey('Mannerheimintie 14, 2. krs')) })
   rChecks.push({ name: 'streetKey null ilman numeroa', ok: streetKey('Lonnan saari') === null, got: String(streetKey('Lonnan saari')) })
   rChecks.push({ name: 'sameStreet ei osu kun numero puuttuu', ok: !sameStreet('Lonnan saari', 'Lonnan saari') })
+  // Osoite ei ole aina ensimmäisenä palana — mitattu Googlen vastauksista.
+  rChecks.push({ name: 'katu löytyy toisesta palasta', ok: sameStreet('Asemapäällikönkatu 3', 'K-Marketin yläpuolella, Asemapäällikönkatu 3A, 00520 Helsinki') })
+  rChecks.push({ name: 'katu löytyy Redi-selitteen takaa', ok: sameStreet('Hermannin rantatie 5', 'Redi 1.krs Food Port, Hermannin rantatie 5, 00580 Helsinki') })
+  rChecks.push({ name: 'katu löytyy Entrance-selitteen takaa', ok: sameStreet('Örskinkuja 2 lt 2', 'Entrance at, Örskinkuja 2 LT2, Kirkonkyläntie 6') })
+  // Yhden merkin lyöntivirhe rekisterissä tai OSM:ssä ei saa hylätä osumaa…
+  rChecks.push({ name: 'yhden merkin lyöntivirhe sallitaan (Kolman/Kolmas)', ok: sameStreet('Kolman Linja 6', 'Kolmas linja 6, 00530 Helsinki') })
+  // Kahden merkin ero EI riitä, vaikka kyse olisi samasta kadusta: OSM:n
+  // "Häeemtie 10" on kaksi muokkausta "Hämeentie 10":stä. Kallio Bar jää siis
+  // ilman merkkiä — tietoinen valinta, väljempi raja yhdistäisi eri katuja.
+  rChecks.push({ name: 'kahden merkin lyöntivirhe EI riitä (Häeemtie)', ok: !sameStreet('Hämeentie 10', 'Häeemtie 10') })
+  // …mutta eri talonumero on aina eri paikka, vaikka katu olisi sama.
+  rChecks.push({ name: 'eri talonumero ei koskaan osu', ok: !sameStreet('Solnantie 26', 'Solnantie 18, 00330 Helsinki') })
+  rChecks.push({ name: 'eri katu ei osu', ok: !sameStreet('Maaherrantie 34', 'Roihuvuorentie 9, 00820 Helsinki') })
+  rChecks.push({ name: 'kahden merkin ero ei riitä', ok: !sameStreet('Mäkelänkatu 28', 'Mäkelänkatu 45') })
 
   // 4. UUTUUSMERKIN VARTIJAT — kaikki kolme mitattu tuotannosta
   const uusi: RestaurantReason = {
@@ -1812,6 +1827,26 @@ for (const c of ideaChecks) {
   rChecks.push({ name: 'eri nimet eivät yhdisty', ok: dedupeOsmVenues([{ name: 'Grön', lat: 60.16, lon: 24.94 }, { name: 'Palace', lat: 60.16, lon: 24.94 }]).length === 2 })
   rChecks.push({ name: 'koordinaatiton ei yhdisty', ok: dedupeOsmVenues([{ name: 'X' }, { name: 'X' }]).length === 2 })
   rChecks.push({ name: 'tyhjä lista ei kaadu', ok: dedupeOsmVenues([]).length === 0 })
+
+  // 9. UUDET AVAUKSET — oikea datatiedosto. Nämä kortit eivät tule OSM:stä
+  //    vaan Googlesta, joten niiden eheys on tarkistettava erikseen.
+  const of = openingFile as { openings?: Record<string, unknown>[] }
+  const ops = Array.isArray(of.openings) ? of.openings : []
+  rChecks.push({ name: 'avaustiedostossa on kortteja', ok: ops.length >= 20, got: String(ops.length) })
+  rChecks.push({ name: 'jokaisella avauksella on koordinaatit', ok: ops.every((o) => typeof o.lat === 'number' && typeof o.lon === 'number') })
+  rChecks.push({ name: 'jokaisella avauksella on nimi ja osoite', ok: ops.every((o) => !!o.name && !!o.address) })
+  rChecks.push({ name: 'jokaisella avauksella on avauspäivä', ok: ops.every((o) => typeof o.openedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.openedAt as string)) })
+  // Kuva on koko haun tarkoitus — kuvaton kortti on se litania joka hylättiin.
+  const imgShare = ops.length ? ops.filter((o) => o.image).length / ops.length : 0
+  rChecks.push({ name: 'yli 90 % avauksista on kuvallisia', ok: imgShare > 0.9, got: `${Math.round(imgShare * 100)} %` })
+  // Koordinaattien on oltava Helsingissä — väärä pinni kartalla on paha vika.
+  rChecks.push({
+    name: 'kaikki avaukset Helsingin alueella',
+    ok: ops.every((o) => {
+      const la = o.lat as number, lo = o.lon as number
+      return la > 59.9 && la < 60.35 && lo > 24.5 && lo < 25.35
+    }),
+  })
 
   for (const c of rChecks) {
     if (c.ok) pass++

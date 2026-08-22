@@ -470,6 +470,7 @@ async function fetchNewOpenings(): Promise<Raw[]> {
         url: 'https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri',
         date: iso,
         street: r.katuosoite,
+        venue: r.nimi,
       },
     })
   }
