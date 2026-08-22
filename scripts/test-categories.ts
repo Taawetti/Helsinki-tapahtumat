@@ -18,6 +18,7 @@ import {
   type StreakState,
   type VenueScrapeSample,
 } from '../lib/source-health'
+import { summariseMenu } from '../lib/menu-summary'
 import { parseSuperterassi, parseSeason } from '../lib/superterassi'
 import { parseSetlistText, parseFinnishDate } from '../lib/flyingdutchman-parse'
 import { weekParamDates } from '../lib/stadissa-weeks'
@@ -784,6 +785,80 @@ for (const c of floorChecks) {
   const issues = detectSourceAnomalies(c.payload)
   if ((issues.length > 0) === c.expectIssue) pass++
   else failures.push(`✗ lattia: ${c.name} → sai [${issues.join(' | ') || '(ei poikkeamia)'}], odotus ${c.expectIssue ? 'HÄLYTYS' : 'ei hälytystä'}`)
+}
+
+// ── RUOKALISTAN TIIVISTELMÄ (lib/menu-summary) ──────────────────────────────
+// Säännöt ovat hienovaraisia ja jokainen niistä on olemassa MITATUN virheen
+// takia. Ilman näitä testejä väärä hinta pääsee korttiin huomaamatta.
+const svc = (
+  title: string, price: number | null, category = 'Pääruoat', snippet = 'Pitkä kuvaus annoksesta',
+) => ({ title, snippet, category, price: price === null ? null : { current: price, currency: 'EUR', displayed_price: `${price.toFixed(2).replace('.', ',')} €` } })
+
+const menuChecks: { name: string; input: unknown; expect: null | { typical: number; firstSample?: string } }[] = [
+  {
+    name: 'ALKAEN-ANSA: halvin on lisuke → mediaani, ei minimi (Bistro Liekki 1,70 € vs 23 €)',
+    input: [svc('Extra Dippi', 1.7, 'Lisukkeet'), svc('CHILI SMASH', 23), svc('BACON SMASH', 23), svc('ONION SMASH', 24)],
+    expect: { typical: 23, firstSample: 'CHILI SMASH' },
+  },
+  {
+    name: 'JUOMA-ANSA: cocktailit pois kun ruokakategoria on olemassa (Elite/Negroni)',
+    input: [svc('Negroni', 13, 'APERITIIVEJA'), svc('Olgan Eliksiiri', 13, 'APERITIIVEJA'),
+            svc('Paistettua naudanmaksaa', 26, 'PÄÄRUOAT'), svc('Mie Maksan', 25, 'PÄÄRUOAT'), svc('Bataattia', 27, 'PÄÄRUOAT')],
+    expect: { typical: 26 },
+  },
+  {
+    name: 'KAHVILA: kun ruokakategorioita ei ole, juomat KELPAAVAT (kahvi on tuote)',
+    input: [svc('Espresso', 3.5, 'Hot Drinks'), svc('Cortado', 3.6, 'Hot Drinks'), svc('Latte', 4.5, 'Hot Drinks')],
+    expect: { typical: 3.6 },
+  },
+  {
+    name: 'RUOALTA PUUTTUU HINNAT → ei tiivistelmää (Stefan\'s: 16 pihviä ilman hintaa)',
+    input: [svc('Tomahawk', null, 'Steaks'), svc('Ribeye', null, 'Steaks'), svc('L.A Burger', null, 'Main Course'),
+            svc('Red wine sauce', 4, 'Sauces (L, G)'), svc('Creme Brulee', 12, 'Desserts'), svc('Cheesecake', 12, 'Desserts'), svc('Panna cotta', 12, 'Desserts')],
+    expect: null,
+  },
+  {
+    name: 'LEIPOMO: ei pääruokakategorioita lainkaan → jälkiruoat kelpaavat',
+    input: [svc('Korvapuusti', 4.5, 'Desserts'), svc('Mustikkapiirakka', 5, 'Desserts'), svc('Munkki', 4, 'Desserts')],
+    expect: { typical: 4.5 },
+  },
+  {
+    name: 'JÄRJETÖN HINTA pudotetaan (nuudelikeitto 1824 €)',
+    input: [svc('Peking Duck Noodle Soup', 1824), svc('Mapo Pork', 18), svc('Shredded Chicken', 18), svc('Cold Chili Noodle', 16)],
+    expect: { typical: 18 },
+  },
+  {
+    name: '0,00 € ei tarkoita ilmaista → pois; 0,60 € pizzatäyte kelpaa',
+    input: [svc('6 Side Dishes', 0, 'Pääruoat'), svc('Valkosipuli', 0.6, 'Pääruoat'), svc('Margherita', 14.8), svc('Marinara', 12.9)],
+    expect: { typical: 12.9 },
+  },
+  { name: 'alle kolme annosta → ei tiivistelmää', input: [svc('A', 10), svc('B', 12)], expect: null },
+  { name: 'ei taulukko → ei tiivistelmää', input: null, expect: null },
+  { name: 'roskaa sisällä ei kaada', input: [null, 'x', { title: 5 }, svc('A', 10), svc('B', 12), svc('C', 11)], expect: { typical: 11 } },
+  {
+    name: 'muu valuutta pudotetaan',
+    input: [{ title: 'Steak', snippet: 'kuvaus tässä', category: 'Pääruoat', price: { current: 30, currency: 'USD' } },
+            svc('A', 10), svc('B', 12), svc('C', 11)],
+    expect: { typical: 11 },
+  },
+]
+for (const c of menuChecks) {
+  const got = summariseMenu(c.input)
+  let ok: boolean
+  if (c.expect === null) ok = got === null
+  else ok = !!got && Math.abs(got.typicalPrice - c.expect.typical) < 0.005 &&
+            (!c.expect.firstSample || got.samples[0]?.title === c.expect.firstSample)
+  if (ok) pass++
+  else failures.push(`✗ menu: ${c.name} → sai ${got ? `n. ${got.typicalPrice} € (${got.samples.map((s) => s.title).join(', ')})` : 'null'}`)
+}
+
+// Sama syöte tuottaa aina saman tuloksen — kortti ei saa heitellä ajojen välillä.
+{
+  const input = [svc('A', 14), svc('B', 14), svc('C', 16), svc('D', 12)]
+  const a = JSON.stringify(summariseMenu(input))
+  const b = JSON.stringify(summariseMenu(input))
+  if (a === b) pass++
+  else failures.push('✗ menu: tulos ei ole vakaa samalla syötteellä')
 }
 
 // ── Kaikkien lähteiden kattava 0-valvonta ───────────────────────────────────

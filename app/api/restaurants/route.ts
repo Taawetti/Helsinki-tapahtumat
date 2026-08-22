@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deriveFlags } from '@/lib/google-attributes'
+import { summariseMenu, type MenuSummary } from '@/lib/menu-summary'
 import { unstable_cache } from 'next/cache'
 import type { Restaurant } from '@/lib/types'
 import {
@@ -576,6 +577,7 @@ interface RestaurantEnrichment {
   // Lyhyet suodatintunnisteet (terassi, vegaani, …) johdettuna google_raw:sta.
   // Ks. lib/google-attributes.ts FILTER_FLAGS.
   flags?: string[]
+  menu?: MenuSummary
 }
 
 // Google price_level → € scale. Real data beats the OSM-side heuristics
@@ -599,7 +601,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
   // VAIN FULL_COLSISSA tarkoituksella — jos operaattori jostain syystä pettää,
   // olemassa oleva varapolku pudottaa LEGACY_COLSiin ja rikastus säilyy
   // (ilman lippuja) sen sijaan että koko ravintolalista jäisi rikastamatta.
-  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours, price_level, description, google_raw->attributes'
+  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours, price_level, description, google_raw->attributes, google_raw->services'
   const LEGACY_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, price_level, description'
   let cols = FULL_COLS
   const PAGE = 1000
@@ -642,6 +644,8 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
     const attrs = (row.attributes as { available_attributes?: Record<string, string[]> } | null)?.available_attributes
     const flags = deriveFlags(attrs)
     if (flags.length > 0) entry.flags = flags
+    const menu = summariseMenu(row.services)
+    if (menu) entry.menu = menu
     if (Object.keys(entry).length > 0) map[row.venue_key as string] = entry
   }
   return map
@@ -649,7 +653,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
 
 const fetchCuisineEnrichmentCached = unstable_cache(
   _fetchRestaurantEnrichment,
-  ['restaurant-enrichment-v11'], // v11: + flags (suodatintunnisteet google_raw:sta)
+  ['restaurant-enrichment-v14'], // v14: ei tiivistelmää jos ruoalta puuttuvat hinnat
   { revalidate: 3600 }
 )
 
@@ -691,6 +695,10 @@ export async function GET(req: NextRequest) {
     // joten ketjun jokainen toimipiste saisi saman lipun. Sama rajaus kuin
     // aukioloissa ja kuvauksessa: vain uniikkinimiset.
     if (enriched.flags && nameCounts.get(r.name.toLowerCase().trim()) === 1) updates.flags = enriched.flags
+    // Ruokalista SALLITAAN myös ketjuille: Subwayn lista on aidosti sama joka
+    // toimipisteessä, toisin kuin aukioloajat. Saman nimen toistot karsitaan
+    // näkymässä, ei täällä.
+    if (enriched.menu) updates.menu = enriched.menu
     if (enriched.imageUrl && !r.image) updates.image = enriched.imageUrl
     // Real Google price level overrides the OSM heuristics (cafe→2, pizza→1),
     // but hand-curated fine-dining stays: heuristics never produce ≥3, so an
