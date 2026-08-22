@@ -3,9 +3,11 @@ import { Resend } from 'resend'
 import {
   checkSourceHealth,
   nextStreak,
+  aggregateStreakSamples,
   VENUE_SCRAPERS,
   VENUE_ZERO_STREAK_ALERT_DAYS,
   VENUE_ERROR_STREAK_ALERT_DAYS,
+  AGGREGATE_ZERO_STREAK_ALERT_DAYS,
   type StreakState,
 } from '@/lib/source-health'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -94,6 +96,7 @@ export async function GET(req: NextRequest) {
         const prev = new Map<string, StreakState>(
           (rows ?? []).map((r) => [r.source, { zeroStreak: r.zero_streak, errorStreak: r.error_streak }])
         )
+        const checkedAt = new Date().toISOString()
         const upserts = []
         for (const m of metas) {
           if (m.status !== 'fulfilled') continue
@@ -105,7 +108,25 @@ export async function GET(req: NextRequest) {
           } else if (alert && next.zeroStreak >= VENUE_ZERO_STREAK_ALERT_DAYS) {
             venueAlerts.push(`Skraperi '${name}' 0 parsittua ${next.zeroStreak} pv peräkkäin — parseri tai sivu todennäköisesti rikki (tai pitkä hiljainen jakso)`)
           }
-          upserts.push({ source: name, zero_streak: next.zeroStreak, error_streak: next.errorStreak, live, scrape_error: scrapeError, checked_at: new Date().toISOString() })
+          upserts.push({ source: name, zero_streak: next.zeroStreak, error_streak: next.errorStreak, live, scrape_error: scrapeError, checked_at: checkedAt })
+        }
+
+        // KAIKKI MUUT LÄHTEET. Tämä on se aukko jonka takia helmet oli nollassa
+        // ja espoo osoitti kuolleeseen domainiin kuukausia: per-lähde-valvonta
+        // kattoi vain käsin lisätyt. Nyt jokainen aggregaatin raportoima lähde
+        // saa putken, eikä yksikään voi olla hiljaa nollassa ikuisesti.
+        // Otos tulee aggregaatin luvusta (lähteen palauttamat ENNEN dedupia),
+        // joten dedupin syömät tapahtumat eivät näytä kuolemalta.
+        for (const { name, sample } of aggregateStreakSamples(payload)) {
+          const before = prev.get(name) ?? { zeroStreak: 0, errorStreak: 0 }
+          const { next, alert } = nextStreak(before, sample, { zero: AGGREGATE_ZERO_STREAK_ALERT_DAYS })
+          if (alert) {
+            venueAlerts.push(
+              `Lähde '${name}' palauttanut 0 tapahtumaa ${next.zeroStreak} pv peräkkäin — ` +
+              `joko rikki tai kauden ulkopuolella. Tarkista kumpi.`
+            )
+          }
+          upserts.push({ source: name, zero_streak: next.zeroStreak, error_streak: next.errorStreak, live: sample.live, scrape_error: null, checked_at: checkedAt })
         }
         if (upserts.length > 0) {
           const { error: upErr } = await supabaseAdmin.from('source_health_state').upsert(upserts)

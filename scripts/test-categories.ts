@@ -11,6 +11,9 @@ import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 import {
   detectSourceAnomalies,
   nextStreak,
+  aggregateStreakSamples,
+  AGGREGATE_ZERO_STREAK_ALERT_DAYS,
+  VENUE_SCRAPERS,
   type CanaryPayload,
   type StreakState,
   type VenueScrapeSample,
@@ -743,18 +746,131 @@ for (const c of streakChecks) {
   else failures.push(`✗ streak: ${c.name} → hälytykset indekseissä [${alerts}], tila ${state.zeroStreak}/${state.errorStreak}`)
 }
 
-for (const c of streakChecks) {
+// ── Kaupunginlaajuisten lähteiden lattiat (lisätty 8/2026) ──────────────────
+// helmet palautti 0/624 tapahtumaa ja espoo osoitti kuolleeseen domainiin
+// KUUKAUSIA, koska kumpikaan ei ollut valvonnassa. Nolla näissä on aina rikki.
+const cityFloor = (name: string, count: number): CanaryPayload => ({
+  total: 780,
+  sources: [
+    { name: 'linked-events', ok: true, count: 425 },
+    { name: 'ra', ok: true, count: 13 },
+    { name: 'pubivisat', ok: true, count: 94 },
+    { name, ok: true, count },
+  ],
+})
+const floorChecks: { name: string; payload: CanaryPayload; expectIssue: boolean }[] = [
+  { name: 'helmet=0 → hälytys (tuotantovika 8/2026)', payload: cityFloor('helmet', 0), expectIssue: true },
+  { name: 'helmet=109 (mitattu normi) → ei hälytystä', payload: cityFloor('helmet', 109), expectIssue: false },
+  { name: 'museums=0 → hälytys', payload: cityFloor('museums', 0), expectIssue: true },
+  { name: 'museums=117 (mitattu normi) → ei hälytystä', payload: cityFloor('museums', 117), expectIssue: false },
+  { name: 'espoo=0 → hälytys (kuollut domain 8/2026)', payload: cityFloor('espoo', 0), expectIssue: true },
+  { name: 'espoo=103 (mitattu normi) → ei hälytystä', payload: cityFloor('espoo', 103), expectIssue: false },
+  { name: 'stadissa=0 → hälytys', payload: cityFloor('stadissa', 0), expectIssue: true },
+  { name: 'stadissa=183 (mitattu normi) → ei hälytystä', payload: cityFloor('stadissa', 183), expectIssue: false },
+  // Hiljainen viikko EI saa hälyttää: lattia on ~10 % normista, ei 50 %.
+  { name: 'helmet=25 (hiljainen viikko) → ei hälytystä', payload: cityFloor('helmet', 25), expectIssue: false },
+  // Vastaamattomuus on hetkellinen häiriö, ei kuolema — sama periaate kuin ra/pubivisat.
+  { name: 'helmet vastaamaton (ok=false) → ei hälytystä', expectIssue: false, payload: {
+    total: 780,
+    sources: [
+      { name: 'linked-events', ok: true, count: 425 },
+      { name: 'ra', ok: true, count: 13 },
+      { name: 'pubivisat', ok: true, count: 94 },
+      { name: 'helmet', ok: false, count: 0 },
+    ],
+  } },
+]
+for (const c of floorChecks) {
+  const issues = detectSourceAnomalies(c.payload)
+  if ((issues.length > 0) === c.expectIssue) pass++
+  else failures.push(`✗ lattia: ${c.name} → sai [${issues.join(' | ') || '(ei poikkeamia)'}], odotus ${c.expectIssue ? 'HÄLYTYS' : 'ei hälytystä'}`)
+}
+
+// ── Kaikkien lähteiden kattava 0-valvonta ───────────────────────────────────
+// Tämä on se aukko jonka takia helmet ja espoo elivät rikkinäisinä: valvonta
+// kattoi vain käsin lisätyt lähteet. Otos tulee aggregaatin luvusta.
+const aggSampleChecks: { name: string; payload: CanaryPayload | null; expect: Record<string, number | null>; absent?: string[] }[] = [
+  {
+    name: 'ok=true → live on lähteen oma luku',
+    payload: { total: 780, sources: [{ name: 'kide', ok: true, count: 0 }, { name: 'fienta', ok: true, count: 26 }] },
+    expect: { kide: 0, fienta: 26 },
+  },
+  {
+    name: 'ok=false → live null (EI OTOSTA — kylmäkäynnistys ei saa liikuttaa putkia)',
+    payload: { total: 780, sources: [{ name: 'kide', ok: false, count: 0 }] },
+    expect: { kide: null },
+  },
+  {
+    name: 'venue-skraperit ohitetaan (niillä on oma rivi samassa taulussa)',
+    payload: { total: 780, sources: [{ name: 'lepakkomies', ok: true, count: 0 }, { name: 'savoy', ok: true, count: 0 }, { name: 'kide', ok: true, count: 0 }] },
+    expect: { kide: 0 },
+    absent: ['lepakkomies', 'savoy'],
+  },
+  { name: 'payload null → ei otoksia lainkaan', payload: null, expect: {}, absent: ['kide'] },
+]
+for (const c of aggSampleChecks) {
+  const got = new Map(aggregateStreakSamples(c.payload).map((s) => [s.name, s.sample.live]))
+  const okExpected = Object.entries(c.expect).every(([k, v]) => got.has(k) && got.get(k) === v)
+  const okAbsent = (c.absent ?? []).every((k) => !got.has(k))
+  if (okExpected && okAbsent) pass++
+  else failures.push(`✗ agg-otos: ${c.name} → sai ${JSON.stringify([...got])}`)
+}
+
+// Yksikään venue-skraperi ei saa vuotaa aggregaattivalvontaan — muuten kaksi
+// eri signaalia kirjoittaisi samaan perusavaimeen ja putket sekoittuisivat.
+{
+  const leak = aggregateStreakSamples({
+    total: 780,
+    sources: VENUE_SCRAPERS.map((n) => ({ name: n, ok: true, count: 0 })),
+  })
+  if (leak.length === 0) pass++
+  else failures.push(`✗ agg-otos: venue-skrapereita vuoti läpi: ${leak.map((l) => l.name).join(', ')}`)
+}
+
+// 21 pv:n kynnys: pitkä, koska mitatusti 16/45 lähdettä on laillisesti nollassa.
+// Hälytys VAIN ylityshetkellä → kausilähde tuottaa yhden viestin, ei tulvaa.
+{
   let state: StreakState = { zeroStreak: 0, errorStreak: 0 }
   const alerts: number[] = []
-  c.seq.forEach((sample, i) => {
-    const r = nextStreak(state, sample)
+  for (let day = 0; day < AGGREGATE_ZERO_STREAK_ALERT_DAYS + 3; day++) {
+    const r = nextStreak(state, { live: 0, scrapeError: null }, { zero: AGGREGATE_ZERO_STREAK_ALERT_DAYS })
+    if (r.alert) alerts.push(day)
+    state = r.next
+  }
+  if (JSON.stringify(alerts) === JSON.stringify([AGGREGATE_ZERO_STREAK_ALERT_DAYS - 1])) pass++
+  else failures.push(`✗ agg-kynnys: hälytys odotettiin vain päivänä ${AGGREGATE_ZERO_STREAK_ALERT_DAYS}, sai [${alerts}]`)
+}
+
+// Venue-kynnys ei muuttunut oletuksena (vanhat kutsupaikat toimivat ennallaan).
+{
+  let state: StreakState = { zeroStreak: 0, errorStreak: 0 }
+  const alerts: number[] = []
+  for (let day = 0; day < 7; day++) {
+    const r = nextStreak(state, { live: 0, scrapeError: null })
+    if (r.alert) alerts.push(day)
+    state = r.next
+  }
+  if (JSON.stringify(alerts) === JSON.stringify([4])) pass++
+  else failures.push(`✗ agg-kynnys: venue-oletus muuttui — odotus [4], sai [${alerts}]`)
+}
+
+// Nollaputki katkeaa heti kun lähde herää → kausilähde ei hälytä uudelleen
+// samasta kaudesta, ja herättyään se saa taas täyden 21 pv:n armonajan.
+{
+  let state: StreakState = { zeroStreak: 0, errorStreak: 0 }
+  const alerts: number[] = []
+  const seq = [
+    ...Array(AGGREGATE_ZERO_STREAK_ALERT_DAYS).fill(0),
+    5,
+    ...Array(3).fill(0),
+  ] as number[]
+  seq.forEach((live, i) => {
+    const r = nextStreak(state, { live, scrapeError: null }, { zero: AGGREGATE_ZERO_STREAK_ALERT_DAYS })
     if (r.alert) alerts.push(i)
     state = r.next
   })
-  const okAlerts = JSON.stringify(alerts) === JSON.stringify(c.expectAlerts)
-  const okState = state.zeroStreak === c.finalZero && state.errorStreak === c.finalError
-  if (okAlerts && okState) pass++
-  else failures.push(`✗ streak: ${c.name} → hälytykset indekseissä [${alerts}], tila ${state.zeroStreak}/${state.errorStreak}`)
+  if (JSON.stringify(alerts) === JSON.stringify([AGGREGATE_ZERO_STREAK_ALERT_DAYS - 1]) && state.zeroStreak === 3) pass++
+  else failures.push(`✗ agg-herätys: odotus yksi hälytys + putki 3, sai [${alerts}] / ${state.zeroStreak}`)
 }
 
 // ── Kaarimoottori (M1 luottamusmoottori) — tuotantoviat 8/2026: kaareen tuli

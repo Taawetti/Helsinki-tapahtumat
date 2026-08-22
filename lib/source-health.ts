@@ -22,9 +22,25 @@ export const CANARY_MAX_DEAD_SOURCES = 20    // laajahäiriö: ei-vastanneet
 
 // Lähteet jotka tuottavat käytännössä AINA ≥floor tapahtumaa 7 pv:n ikkunassa.
 // 0/alle = lähde rikki (juuri se hiljainen kuolema jota emme huomanneet).
+//
+// LATTIA ON TARKOITUKSELLA KAUKANA NORMAALISTA. Sen tehtävä on havaita romahdus,
+// ei notkahdus: mitattu normaalitaso on suluissa, ja lattia on noin kymmenesosa
+// siitä. Näin hiljainen viikko (esim. kirjastojen joulusulku) ei hälytä, mutta
+// nollaan tai lähelle nollaa putoaminen hälyttää heti seuraavassa ajossa.
 export const CANARY_SOURCE_FLOORS: Record<string, number> = {
   ra: 1,          // Resident Advisor — Helsingin viikonloppuklubit, aina jotain
   pubivisat: 10,  // viikoittaiset pubivisat — rakenteellisesti kymmeniä
+  // Lisätty 2026-08-22 sen jälkeen kun helmet ja espoo olivat rikki KUUKAUSIA
+  // ilman että mikään huomasi. helmet palautti 0/624 tapahtumaa (nouseva lajittelu
+  // täytti sivun 1 vanhoilla riveillä, ja reitin päiväsuodatin pudotti ne
+  // kaikki), ja espoo osoitti domainiin linkedevents.espoo.fi jota ei ole enää
+  // olemassa. Kumpikin vastasi HTTP 200 + tyhjä lista, joten aggregaatti piti
+  // niitä terveinä. Rakenteellisesti nämä ovat kaupunginlaajuisia lähteitä:
+  // nolla tarkoittaa aina rikkinäistä, ei hiljaista viikkoa.
+  helmet: 10,     // Helmet-kirjastot (mitattu 109/viikko)
+  museums: 10,    // 46 museota ja kulttuuritaloa (mitattu 117/viikko)
+  espoo: 10,      // Espoon kaupunki (mitattu 103/viikko)
+  stadissa: 10,   // Stadissa.fi-listaus (mitattu 183/viikko)
 }
 
 // Kausilähteet: tuottavat tapahtumia VAIN tiettyinä kuukausina. Lattia
@@ -171,16 +187,26 @@ function isHardError(scrapeError: string | null): boolean {
 }
 
 /** Puhdas streak-tilakone. Palauttaa uuden tilan ja lipun: hälytetäänkö NYT
- *  (true vain kynnyksen ylittyessä — ei jokaisena seuraavana päivänä uudelleen). */
-export function nextStreak(prev: StreakState, sample: VenueScrapeSample): { next: StreakState; alert: boolean } {
+ *  (true vain kynnyksen ylittyessä — ei jokaisena seuraavana päivänä uudelleen).
+ *
+ *  `thresholds` on valinnainen: oletukset ovat venue-skraperien kynnykset, joten
+ *  vanhat kutsupaikat toimivat muuttumattomina. Aggregaattivalvonta antaa oman
+ *  pidemmän 0-kynnyksen, koska sen otos kattaa myös kausilähteet. */
+export function nextStreak(
+  prev: StreakState,
+  sample: VenueScrapeSample,
+  thresholds: { zero?: number; error?: number } = {},
+): { next: StreakState; alert: boolean } {
+  const zeroLimit = thresholds.zero ?? VENUE_ZERO_STREAK_ALERT_DAYS
+  const errorLimit = thresholds.error ?? VENUE_ERROR_STREAK_ALERT_DAYS
   let next: StreakState
   if (isHardError(sample.scrapeError)) {
     next = { zeroStreak: 0, errorStreak: prev.errorStreak + 1 }
-    return { next, alert: prev.errorStreak < VENUE_ERROR_STREAK_ALERT_DAYS && next.errorStreak >= VENUE_ERROR_STREAK_ALERT_DAYS }
+    return { next, alert: prev.errorStreak < errorLimit && next.errorStreak >= errorLimit }
   }
   if (sample.live === 0 || (sample.scrapeError && !isHardError(sample.scrapeError))) {
     next = { zeroStreak: prev.zeroStreak + 1, errorStreak: 0 }
-    return { next, alert: prev.zeroStreak < VENUE_ZERO_STREAK_ALERT_DAYS && next.zeroStreak >= VENUE_ZERO_STREAK_ALERT_DAYS }
+    return { next, alert: prev.zeroStreak < zeroLimit && next.zeroStreak >= zeroLimit }
   }
   if (sample.live === null) {
     // Meta puuttui (esim. verkko- tai reittivirhe haettaessa) — älä muuta putkia.
@@ -188,4 +214,50 @@ export function nextStreak(prev: StreakState, sample: VenueScrapeSample): { next
   }
   // live > 0, ei virhettä → terve
   return { next: { zeroStreak: 0, errorStreak: 0 }, alert: false }
+}
+
+// ── Kaikkien lähteiden kattava 0-valvonta (aukon täyttö) ────────────────────
+//
+// MIKSI TÄMÄ ON OLEMASSA. Ennen tätä per-lähde-valvonta kattoi vain ne lähteet
+// jotka joku oli muistanut lisätä käsin: kaksi lattiaa (ra, pubivisat), yksi
+// kausilattia (recurring), runkolähteen oma kynnys (linked-events) ja 15
+// venue-skraperia joilla on oma meta-raportointi — yhteensä 19 lähdettä 45:stä.
+// Loput 26 saivat palauttaa HTTP 200 + tyhjä lista ikuisesti ilman että mikään
+// huomasi. Juuri niin helmet oli nollassa ja espoo osoitti kuolleeseen
+// domainiin KUUKAUSIA. Käsin ylläpidettävä lista ei ole ratkaisu:
+// se rapautuu, koska juuri ne lähteet joita kukaan ei muistanut lisätä ovat ne
+// joita kukaan ei myöskään huomaa kuolevan.
+//
+// Tämä kattaa KAIKKI aggregaatin raportoimat lähteet ilman ylläpitoa.
+//
+// VÄÄRÄT HÄLYTYKSET. Mitattu 22.8.2026: 16/45 lähteestä oli laillisesti nollassa
+// (kausi, venue-kohtainen hiljainen viikko). Siksi kynnys on pitkä ja hälytys
+// laukeaa VAIN putken ylittäessä sen — ei joka päivä uudelleen. Kausilähde
+// tuottaa siis yhden viestin kauden alkaessa hiljetä, ei viestitulvaa. Se on
+// tietoinen vaihtokauppa: yksi tarkistettava viesti per kausi on halvempi kuin
+// yksi kuollut lähde jota kukaan ei huomaa.
+export const AGGREGATE_ZERO_STREAK_ALERT_DAYS = 21
+
+/** Muuntaa aggregaatin lähdelistan streak-otoksiksi.
+ *
+ *  `ok:false` → `live: null` = EI OTOSTA, putket eivät liiku. Vastaamattomuus on
+ *  lähes aina hetkellinen verkkohäiriö (ks. detectSourceAnomalies) ja kanaria
+ *  itse voi kylmäkäynnistyksessä timeoutata kymmenillä lähteillä kerralla —
+ *  jos se laskettaisiin virheputkeksi, yksi huono ajo tuottaisi hälytystulvan.
+ *  Laajahäiriön kattaa jo CANARY_MAX_DEAD_SOURCES.
+ *
+ *  Venue-skraperit ohitetaan: niillä on OMA rivinsä samassa taulussa tarkemmalla
+ *  signaalilla (meta.live = parsitut ennen ikkunasuodatusta, sekä scrapeError).
+ *  Ilman ohitusta kaksi eri signaalia kirjoittaisi samaan perusavaimeen ja
+ *  molemmat putket menisivät sekaisin. */
+export function aggregateStreakSamples(
+  payload: CanaryPayload | null,
+): { name: string; sample: VenueScrapeSample }[] {
+  const skip = new Set<string>(VENUE_SCRAPERS)
+  return (payload?.sources ?? [])
+    .filter((s) => s.name && !skip.has(s.name))
+    .map((s) => ({
+      name: s.name,
+      sample: { live: s.ok ? s.count : null, scrapeError: null } as VenueScrapeSample,
+    }))
 }
