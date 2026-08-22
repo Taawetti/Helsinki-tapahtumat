@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE, type Vibe, type Neighborhood } from '@/lib/types'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
+import { helsinkiToday } from '@/lib/helsinki-time'
 
 export const revalidate = 3600
 
@@ -60,44 +62,76 @@ function normalizeLE(raw: LEEvent): PageEvent {
 }
 
 function dateRange() {
-  const now = new Date()
-  const start = now.toISOString().split('T')[0]
-  const end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  // HELSINGIN kalenteripäivä, ei UTC:n. `new Date().toISOString()` antaa
+  // UTC-päivän, joka on klo 00–03 Helsingin aikaa VIELÄ EDELLINEN päivä —
+  // mitattu 22.8.2026 klo 01.01 EEST → UTC-päivä 2026-08-21. Ikkuna alkoi
+  // silloin eilisestä, ja koska alla oleva päiväsuodatin nojaa tähän arvoon,
+  // eilen alkaneet tapahtumat olisivat päässeet läpi "tulevina".
+  const start = helsinkiToday()
+  // +30 pv lasketaan keskipäivän ankkurista, jotta kesäajan siirtymä ei
+  // heittäisi loppupäivää vuorokaudella väärin.
+  const end = new Date(new Date(`${start}T12:00:00Z`).getTime() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0]
   return { start, end }
+}
+
+// VIBES.keywords ovat LUOKITTELIJAN hahmoja, eivät hakusanoja: '^x' tarkoittaa
+// "tokenin alku" (lib/types.ts). LinkedEventsin `text=`-parametri ei tunne sitä
+// merkkiä, joten '^yökerho' osui NOLLAAN riviin ja koko sivu jäi tyhjäksi.
+// Mitattu: '^yökerho' 0 → 'yökerho' 11, '^baari' 0 → 'baari' 135,
+// '^fest' 0 → 'fest' 435, '^kurssi' 0 → 'kurssi' 48.
+const asSearchTerm = (kw: string) => kw.replace(/^\^/, '')
+
+// Vain ikkunassa ALKAVAT. Tämä suodatin on koko korjauksen tärkein osa: sivulla
+// ei ollut päivärajausta LAINKAAN, joten LinkedEventsin "yhä käynnissä" -rivit
+// (vuosien vanhat näyttelyt ja roskarivit kuten start_time 0026-09-23) eivät
+// vain vieneet tilaa vaan RENDERÖITYIVÄT tulevina tapahtumina — ja nouseva
+// lajittelu nosti ne kärkeen. Mitattu /tapahtumat/museo näytti 17 tapahtumaa
+// joista 17 oli menneitä, otsikon alla teksti "17 tapahtumaa seuraavan 30
+// päivän aikana", ja schema.org-lohko julisti ne EventScheduled-tilaisina.
+function startsWithin(e: PageEvent, start: string, end: string): boolean {
+  const day = e.startTime?.slice(0, 10)
+  return !!day && day >= start && day <= end
 }
 
 async function fetchByText(keywords: string[]): Promise<PageEvent[]> {
   const { start, end } = dateRange()
-  const [primary, secondary] = keywords
+  const terms = [...new Set(keywords.slice(0, 2).map(asSearchTerm).filter(Boolean))]
 
-  const buildParams = (text: string) =>
-    new URLSearchParams({ text, format: 'json', start, end, page_size: '30', include: 'location,keywords', sort: 'start_time', division: 'helsinki' })
+  // Laskeva järjestys + sivutus. Nouseva lajittelu 30 rivin sivulla antoi
+  // mitatusti 0/30 ikkunassa alkavaa sanoille museo, taide ja lapsi — koko
+  // sivun sisältö oli vanhentunutta. Sivutus tarvitaan koska sivu näyttää 40
+  // AIKAISIMMAN tapahtuman: pelkkä laskeva sivu 1 antaisi 30 päivän päässä
+  // olevat, ei ensi viikon.
+  const perTerm = await Promise.all(
+    terms.map((text) =>
+      fetchLinkedEventsAll<LEEvent>(
+        (page) =>
+          `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+            text,
+            format: 'json',
+            start,
+            end,
+            page: String(page),
+            page_size: String(LE_MAX_PAGE_SIZE),
+            include: 'location,keywords',
+            sort: '-start_time',
+            division: 'helsinki',
+          })}`,
+        () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) }),
+      ),
+    ),
+  )
 
-  const fetches = [
-    fetch(`https://api.hel.fi/linkedevents/v1/event/?${buildParams(primary)}`, {
-      next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(8000),
-    }),
-    ...(secondary && secondary !== primary
-      ? [fetch(`https://api.hel.fi/linkedevents/v1/event/?${buildParams(secondary)}`, {
-          next: { revalidate: 3600 },
-          signal: AbortSignal.timeout(8000),
-        })]
-      : []),
-  ]
-
-  const results = await Promise.allSettled(fetches)
   const events: PageEvent[] = []
   const seen = new Set<string>()
-
-  for (const r of results) {
-    if (r.status !== 'fulfilled' || !r.value.ok) continue
-    const data = await r.value.json()
-    for (const raw of data.data || []) {
-      if (!seen.has(raw.id)) {
-        seen.add(raw.id)
-        events.push(normalizeLE(raw))
-      }
+  for (const { rows } of perTerm) {
+    for (const raw of rows) {
+      if (seen.has(raw.id)) continue
+      seen.add(raw.id)
+      const ev = normalizeLE(raw)
+      if (startsWithin(ev, start, end)) events.push(ev)
     }
   }
 
@@ -108,29 +142,27 @@ async function fetchByText(keywords: string[]): Promise<PageEvent[]> {
 async function fetchByBbox(neighborhood: Neighborhood): Promise<PageEvent[]> {
   const { start, end } = dateRange()
 
-  const params = new URLSearchParams({
-    bbox: neighborhood.bbox,
-    format: 'json',
-    start,
-    end,
-    page_size: '50',
-    include: 'location,keywords',
-    sort: 'start_time',
-  })
+  // Sama korjaus kuin fetchByTextissä: laskeva järjestys, sivutus ja
+  // päivärajaus. Kaupunginosasivuilla oli täsmälleen sama muoto — nouseva
+  // lajittelu, 50 rivin sivu ja ei päiväsuodatinta.
+  const { rows } = await fetchLinkedEventsAll<LEEvent>(
+    (page) =>
+      `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+        bbox: neighborhood.bbox,
+        format: 'json',
+        start,
+        end,
+        page: String(page),
+        page_size: String(LE_MAX_PAGE_SIZE),
+        include: 'location,keywords',
+        sort: '-start_time',
+      })}`,
+    () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) }),
+  )
 
-  try {
-    const res = await fetch(`https://api.hel.fi/linkedevents/v1/event/?${params}`, {
-      next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(8000),
-    })
-    if (!res.ok) return []
-    const data = await res.json()
-    const events: PageEvent[] = (data.data || []).map(normalizeLE)
-    events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-    return events.slice(0, 40)
-  } catch {
-    return []
-  }
+  const events = rows.map(normalizeLE).filter((e) => startsWithin(e, start, end))
+  events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  return events.slice(0, 40)
 }
 
 function formatDate(iso: string): string {

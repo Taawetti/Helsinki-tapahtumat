@@ -3,23 +3,76 @@ import { VIBES, NEIGHBORHOODS } from '@/lib/types'
 import { supabase, DbFestival } from '@/lib/supabase'
 import { FESTIVALS_STATIC } from '@/lib/festivals-data'
 import { VENUE_PAGES } from '@/lib/venue-pages'
+import { LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
+import { helsinkiToday } from '@/lib/helsinki-time'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
 
+// Montako päivää eteenpäin sivukartalle kerätään tapahtumasivuja. Sivukartta
+// uudistuu tunnin välein, joten kahdeksannen päivän tapahtumat tulevat mukaan
+// itsestään huomenna — ikkunan pituus ei ratkaise kattavuutta, tuoreus ratkaisee.
+const SITEMAP_DAYS = 7
+
 async function fetchUpcomingLinkedEventIds(): Promise<string[]> {
-  try {
-    const today = new Date().toISOString().split('T')[0]
-    const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    const url = `${LE_BASE}/event/?start=${today}&end=${in30days}&language=fi&division=helsinki&page_size=200&format=json`
-    const res = await fetch(url, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return []
-    const data = await res.json()
-    const events = (data.data ?? []) as { id: string }[]
-    return events.map((e) => e.id).filter(Boolean)
-  } catch {
-    return []
-  }
+  // PÄIVÄPALASTELU. Aiemmin tämä pyysi yhtä sivua page_size=200 ilman
+  // lajittelua ja sai hiljaa 100 (LinkedEventsin kova katto). Koska `start=`
+  // osuu myös vuosia käynnissä olleisiin riveihin ja oletusjärjestys nostaa ne
+  // kärkeen, sivukartalle päätyi ~100 id:tä joista osa oli jo menneitä.
+  //
+  // Yhden aluekyselyn sivuttaminen EI sovi tähän, vaikka se tuottaisi enemmän
+  // URLeja. 30 päivän Helsinki-kysely löytää mitatusti 3990 osumaa eli 40
+  // sivua. Kun siitä haetaan laskevassa järjestyksessä 20 sivua, saadaan 2000
+  // URLia — mutta ne kattoivat mitatusti vain päivät 3.9.–21.9., eli ikkunan
+  // KAUKAISIMMAN pään. Seuraavat 12 päivää puuttuivat kokonaan, ja juuri niitä
+  // päiviä käyttäjät hakevat. Enemmän URLeja väärästä päästä on huonompi
+  // sivukartta kuin vähemmän URLeja oikeasta.
+  //
+  // Päiväkysely osuu oikeaan päähän ja on sama kuvio jota /api/events käyttää:
+  // laskeva järjestys nostaa sinä päivänä alkavat kärkeen ja käynnissä olevat
+  // vanhat rivit painuvat alle.
+  //
+  // TIETOINEN RAJAUS: yksi sivu per päivä = enintään 100 id:tä päivältä.
+  // Vilkkaimpina päivinä alkavia on mitattu ~170, joten osa jää pois. Se on
+  // sivukartalle hyväksyttävä — tässä ei ole kyse tapahtumien näyttämisestä
+  // käyttäjälle vaan indeksoitavien URLien tarjoamisesta Googlelle, ja tulos on
+  // silti moninkertainen entiseen nähden eikä sisällä vanhentuneita.
+  // Helsingin päivä, ei UTC:n — klo 00–03 UTC-päivä on vielä eilinen, jolloin
+  // sivukartta olisi listannut eilisen ja jättänyt viimeisen päivän pois.
+  const first = helsinkiToday()
+  const anchor = new Date(`${first}T12:00:00Z`).getTime()
+  const days = Array.from({ length: SITEMAP_DAYS }, (_, i) =>
+    new Date(anchor + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  )
+
+  const perDay = await Promise.all(
+    days.map(async (day) => {
+      try {
+        const url = `${LE_BASE}/event/?${new URLSearchParams({
+          start: day,
+          end: day,
+          language: 'fi',
+          division: 'helsinki',
+          page: '1',
+          page_size: String(LE_MAX_PAGE_SIZE),
+          sort: '-start_time',
+          format: 'json',
+        })}`
+        const res = await fetch(url, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) })
+        if (!res.ok) return []
+        const data = (await res.json()) as { data?: { id: string; start_time?: string }[] }
+        // Vain sinä päivänä ALKAVAT — käynnissä olevat vanhat rivit pois.
+        return (data.data ?? [])
+          .filter((e) => e.start_time?.slice(0, 10) === day)
+          .map((e) => e.id)
+          .filter(Boolean)
+      } catch {
+        return []
+      }
+    }),
+  )
+
+  return [...new Set(perDay.flat())]
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

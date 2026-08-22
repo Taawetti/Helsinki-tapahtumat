@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
 import { scrapeMeta } from '@/lib/scrape-meta'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 // LinkedEvents location id for Malmitalo (tprek:8740)
 const LOCATION_ID = 'tprek:8740'
@@ -50,20 +51,31 @@ export async function GET(req: NextRequest) {
   const start = searchParams.get('start') || new Date().toISOString().slice(0, 10)
   const end = searchParams.get('end') || start
 
-  const url = `https://api.hel.fi/linkedevents/v1/event/?location=${LOCATION_ID}&start=${start}&end=${end}&format=json&page_size=100&sort=start_time`
+  // Sivutettu ja laskeva — ks. lib/linked-events.ts. Yhden talon osumamäärä
+  // (mitattu 52 / 30 pv) mahtuu yhdelle sivulle tänään, mutta yksi sivu ilman
+  // sivutusta on sama viritetty ansa joka pudotti museums- ja helmet-reitit:
+  // kun raja ylittyy, API vastaa 200:lla eikä mikään kerro katkaisusta.
+  const buildUrl = (page: number) =>
+    `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+      location: LOCATION_ID,
+      start,
+      end,
+      format: 'json',
+      page: String(page),
+      page_size: String(LE_MAX_PAGE_SIZE),
+      sort: '-start_time',
+    })}`
 
-  const res = await fetch(url, {
-    next: { revalidate: 3600, tags: ['events'] },
-    signal: AbortSignal.timeout(8000),
-  }).catch(() => null)
+  const { rows, ok, truncated, total, reason, pagesFailed } = await fetchLinkedEventsAll<LEEvent>(
+    buildUrl,
+    () => ({ next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(8000) }),
+  )
 
   // HTTP 200 säilyy virheestäkin, jotta aggregaatti ei merkitse lähdettä kuolleeksi
-  if (!res) return NextResponse.json({ events: [], ...scrapeMeta(0, 'fetch epäonnistui') })
-  if (!res.ok) return NextResponse.json({ events: [], ...scrapeMeta(0, 'HTTP ' + res.status) })
+  if (!ok) return NextResponse.json({ events: [], ...scrapeMeta(0, reason ?? 'LinkedEvents-haku epäonnistui') })
+  if (truncated) console.warn(`Malmitalo: ${total} osumaa ylitti sivutuskaton — tulos vajaa`)
+  if (pagesFailed > 0) console.warn(`Malmitalo: ${pagesFailed} sivua petti — tulos vajaa`)
 
-  const data = await res.json().catch(() => null)
-  if (!data) return NextResponse.json({ events: [], ...scrapeMeta(0, 'JSON-parsevirhe') })
-  const live: number = data.data?.length ?? 0
-  const events: Event[] = (data.data || []).map(normalize).filter(Boolean)
-  return NextResponse.json({ events, ...scrapeMeta(live) })
+  const events: Event[] = rows.map(normalize).filter(Boolean)
+  return NextResponse.json({ events, ...scrapeMeta(rows.length) })
 }

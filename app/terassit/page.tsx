@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 import { TERRACE_REGEX } from '@/lib/nightlife'
 import { helsinkiDateRange, formatEventDate } from '@/lib/helsinki-time'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 export const revalidate = 3600
 
@@ -42,17 +43,26 @@ interface LEEvent {
 async function fetchTerraceEvents(): Promise<PageEvent[]> {
   const { start, end } = helsinkiDateRange(14)
 
-  const buildParams = (text: string) =>
-    new URLSearchParams({ text, format: 'json', start, end, page_size: '50', include: 'location,keywords', sort: 'start_time', division: 'helsinki' })
-
-  const fetches = ['terassi', 'ulkoilma'].map((text) =>
-    fetch(`https://api.hel.fi/linkedevents/v1/event/?${buildParams(text)}`, {
-      next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(8000),
-    })
+  // Sivutettu ja laskeva — ks. lib/linked-events.ts. Tässä oli nouseva
+  // lajittelu ja 50 rivin sivu: sama muoto joka palautti helmet-reitillä
+  // mitatusti NOLLA tapahtumaa, koska "yhä käynnissä" -rivit täyttävät sivun 1
+  // ja alla oleva cutoff-suodatin pudottaa ne kaikki. Terassikyselyn osumat
+  // ovat nyt 30 ja 16, eli katkaisu ei osu — mutta terassikausi on juuri se
+  // aika jolloin luku nousee, ja katkaisusta ei tulisi mitään ilmoitusta.
+  const perTerm = await Promise.all(
+    ['terassi', 'ulkoilma'].map((text) =>
+      fetchLinkedEventsAll<LEEvent>(
+        (page) =>
+          `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+            text, format: 'json', start, end,
+            page: String(page), page_size: String(LE_MAX_PAGE_SIZE),
+            include: 'location,keywords', sort: '-start_time', division: 'helsinki',
+          })}`,
+        () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) }),
+      ),
+    ),
   )
 
-  const results = await Promise.allSettled(fetches)
   const events: PageEvent[] = []
   const seen = new Set<string>()
   // LinkedEvents `start=` matches events still ONGOING at that date — a
@@ -60,10 +70,8 @@ async function fetchTerraceEvents(): Promise<PageEvent[]> {
   // Same past-start guard as /ohjelma/[venue], 24h grace for tonight.
   const cutoff = new Date(start).getTime() - 24 * 60 * 60 * 1000
 
-  for (const r of results) {
-    if (r.status !== 'fulfilled' || !r.value.ok) continue
-    const data = await r.value.json()
-    for (const raw of (data.data || []) as LEEvent[]) {
+  for (const { rows } of perTerm) {
+    for (const raw of rows) {
       if (seen.has(raw.id)) continue
       seen.add(raw.id)
       if (new Date(raw.start_time).getTime() < cutoff) continue

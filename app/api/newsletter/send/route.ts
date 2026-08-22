@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
-import { helsinkiToday } from '@/lib/helsinki-time'
+import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'Mitä tänään <onboarding@resend.dev>'
@@ -61,13 +62,50 @@ async function fetchWeekendEvents(): Promise<LinkedEvent[]> {
   const start = fri.toISOString().slice(0, 10)
   const end = sun.toISOString().slice(0, 10)
 
-  const res = await fetch(
-    `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${start}&end=${end}&division=helsinki&language=fi&page_size=30&sort=start_time`,
-    { signal: AbortSignal.timeout(10000) }
+  // SIVUTETTU, LASKEVA JA PÄIVÄRAJATTU. Aiempi versio haki 30 riviä
+  // nousevassa järjestyksessä ILMAN päiväsuodatinta — ja lähetti tuloksen
+  // tilaajille sähköpostina.
+  //
+  // Mitattu: kysely löysi 1392 osumaa, joista sivun 1 kolmekymmentä
+  // ensimmäistä olivat kaikki ikkunan ULKOPUOLELTA — start_time-arvoja kuten
+  // "0026-09-23", "2001-01-01", "2003-01-01". Nouseva lajittelu nostaa nämä
+  // roska- ja pitkäkestoiset rivit kärkeen, eikä mikään suodatin poistanut
+  // niitä, joten viikonloppukirjeen nostot poimittiin niistä: 0/30 riviä oli
+  // oikeasta viikonlopusta.
+  //
+  // Laskeva järjestys erottelee tarkasti: mitattuna pe–su-ikkunan 257 riviä
+  // olivat sijoilla 1–257 ja ensimmäinen ikkunan ulkopuolinen vasta sijalla
+  // 258. Päiväsuodatin alla on silti pakollinen — se on se osa joka ei voi
+  // pettää, jos API:n järjestys joskus muuttuu.
+  const buildUrl = (page: number) =>
+    `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+      format: 'json',
+      start,
+      end,
+      division: 'helsinki',
+      language: 'fi',
+      page: String(page),
+      page_size: String(LE_MAX_PAGE_SIZE),
+      sort: '-start_time',
+    })}`
+
+  const { rows, ok, pagesFailed } = await fetchLinkedEventsAll<LinkedEvent & { id: string }>(
+    buildUrl,
+    () => ({ signal: AbortSignal.timeout(10000) }),
   )
-  if (!res.ok) return []
-  const data = await res.json()
-  return (data.data ?? []) as LinkedEvent[]
+  if (!ok) return []
+  if (pagesFailed > 0) console.warn(`Newsletter: ${pagesFailed} sivua petti — viikonlopun nostot vajaasta joukosta`)
+
+  // Vain viikonlopun tapahtumat. Ilman tätä kirjeeseen pääsee vuosia sitten
+  // alkanut näyttely, jonka päivämäärä renderöityy nonsensena.
+  // Päivä luetaan HELSINGIN kalenterista, ei UTC:sta: perjantain 00.30
+  // sarjoittuu 21.30Z torstaina, joten raaka merkkijonoleikkaus pudottaisi
+  // aidon perjantaiyön tapahtuman ikkunan ulkopuolelle.
+  return rows.filter((ev) => {
+    if (!ev.start_time) return false
+    const day = helsinkiDateOf(ev.start_time)
+    return day >= start && day <= end
+  })
 }
 
 function heroBlock(ev: LinkedEvent): string {

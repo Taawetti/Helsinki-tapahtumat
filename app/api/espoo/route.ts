@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 interface LinkedEventsImage {
   url: string
@@ -85,29 +86,57 @@ export async function GET(req: NextRequest) {
   const startAfter = searchParams.get('startAfter') || ''
   const keyword = searchParams.get('keyword') || ''
 
-  const params = new URLSearchParams({
-    format: 'json',
-    start: startAfter || start,
-    end,
-    page: '1',
-    page_size: keyword ? '100' : '50',
-    include: 'location,keywords',
-    sort: 'start_time',
-  })
-
-  if (!keyword) params.set('language', 'fi')
-  if (keyword) params.set('text', keyword)
+  // SIVUTETTU. Tämä reitti oli rakenteellisesti IDENTTINEN helmet-reitin
+  // kanssa — nouseva sort=start_time, yksi sivu, ja suodatin ilman ylärajaa
+  // (`>= start - 24 h`) — eli sama muoto joka palautti helmetissä mitatusti
+  // nolla tapahtumaa: pitkäkestoiset rivit täyttivät sivun 1 ja suodatin
+  // pudotti ne kaikki.
+  //
+  // PALVELIN VAIHDETTU. Tämä reitti osoitti Espoon omaan instanssiin
+  // `linkedevents.espoo.fi`, joka on LOPETETTU: domainilla ei ole enää
+  // DNS-tietuetta lainkaan (`dig +short` palauttaa tyhjän, kun taas espoo.fi ja
+  // api.hel.fi vastaavat normaalisti), eikä `api.espoo.fi` vastaa muuta kuin
+  // HTTP 503:a millään polulla. Koska alla oleva virheenkäsittely palauttaa
+  // `{ events: [] }` HTTP 200:lla, aggregaatti piti lähdettä ELOSSA ja
+  // lähdeterveys näki vain nollan tapahtumaa — hiljainen kuolema, sama kuvio
+  // josta RA-lähde jäi aiemmin kiinni vasta kanarian kautta.
+  //
+  // Espoon tapahtumat saa Helsingin samasta rajapinnasta parametrilla
+  // `division=espoo`: mitattu 594 osumaa 30 päivälle, ja 100 rivin otoksesta
+  // 100/100 sijaitsi Espoossa (Ison Omenan, Lippulaivan ja Tapiolan kirjastot,
+  // EMMA, Laajalahden kirjasto). Muoto on identtinen, joten normalize toimii
+  // muuttumattomana.
+  //
+  // Nyt kun palvelin on api.hel.fi, myös laskeva lajittelu on turvallista
+  // (todistetusti tuettu) — aiemmin se jäi tekemättä vain siksi, ettei Espoon
+  // omaa instanssia voinut testata. Syy poistui: instanssia ei ole.
+  const buildUrl = (page: number) => {
+    const params = new URLSearchParams({
+      format: 'json',
+      division: 'espoo',
+      start: startAfter || start,
+      end,
+      page: String(page),
+      page_size: String(LE_MAX_PAGE_SIZE),
+      include: 'location,keywords',
+      sort: '-start_time',
+    })
+    if (!keyword) params.set('language', 'fi')
+    if (keyword) params.set('text', keyword)
+    return `https://api.hel.fi/linkedevents/v1/event/?${params}`
+  }
 
   try {
-    const res = await fetch(
-      `https://linkedevents.espoo.fi/v1/event/?${params}`,
-      { next: { revalidate: 300, tags: ['events'] } }
+    const { rows, ok, truncated, total, pagesFailed } = await fetchLinkedEventsAll<LinkedEventsEvent>(
+      buildUrl,
+      () => ({ next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(8000) }),
     )
-    if (!res.ok) return NextResponse.json({ events: [] })
+    if (!ok) return NextResponse.json({ events: [] })
+    if (truncated) console.warn(`Espoo: ${total} osumaa ylitti sivutuskaton — tulos vajaa`)
+    if (pagesFailed > 0) console.warn(`Espoo: ${pagesFailed} sivua petti — tulos vajaa`)
 
-    const data = await res.json()
     const startTs = new Date(start).getTime()
-    const events: Event[] = (data.data || [])
+    const events: Event[] = rows
       .map(normalize)
       .filter((e: Event) => new Date(e.startTime).getTime() >= startTs - 24 * 60 * 60 * 1000)
 

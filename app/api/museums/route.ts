@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 const LOCATION_IDS = [
   // Art museums
@@ -234,36 +235,49 @@ export async function GET(req: NextRequest) {
   const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
   const end = searchParams.get('end') || start
 
-  const params = new URLSearchParams({
-    location: LOCATION_IDS,
-    start,
-    end,
-    format: 'json',
-    page_size: '500',
-    include: 'location,keywords',
-    sort: 'start_time',
-  })
+  // SIVUTETTU. Aiemmin tämä pyysi yhden sivun page_size=500 ja lajitteli
+  // NOUSEVASTI — molemmat rikki:
+  //   • LinkedEvents leikkaa page_sizen 100:aan hiljaa (200-status, meta.next
+  //     asetettu, ei virhettä) → 400 riviä jäi hakematta joka kerta.
+  //   • nouseva sort=start_time nostaa kärkeen vuosia kestävät näyttelysarjat,
+  //     joiden start_time on kaukana menneisyydessä. Ne täyttivät sivun 1 ja
+  //     ikkunassa oikeasti alkavat tapahtumat jäivät sivulle 2+.
+  // Mitattu 46 paikalta: 27/117 tapahtumaa (7 pv) ja 27/504 (30 pv) — eli
+  // 95 % katosi. Mukana katosi mm. Designmuseon Ilmaisilta (listan sija 133).
+  // Nyt laskeva sort + kaikki sivut: laskeva järjestys varmistaa, että jos
+  // maxPages joskus katkaisee haun, katkaisu osuu vanhoihin näyttelyihin eikä
+  // ikkunan oikeisiin tapahtumiin.
+  const buildUrl = (page: number) =>
+    `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+      location: LOCATION_IDS,
+      start,
+      end,
+      format: 'json',
+      page: String(page),
+      page_size: String(LE_MAX_PAGE_SIZE),
+      include: 'location,keywords',
+      sort: '-start_time',
+    })}`
 
   try {
-    const res = await fetch(
-      `https://api.hel.fi/linkedevents/v1/event/?${params}`,
-      {
-        next: { revalidate: 3600, tags: ['events'] },
-        signal: AbortSignal.timeout(8000),
-      }
+    const { rows, ok, truncated, total, pagesFailed } = await fetchLinkedEventsAll<LinkedEventsEvent>(
+      buildUrl,
+      () => ({ next: { revalidate: 3600, tags: ['events'] }, signal: AbortSignal.timeout(8000) }),
     )
 
-    if (!res.ok) {
-      console.error('Museums API error:', res.status, res.statusText)
+    if (!ok) {
+      console.error('Museums API error: first page failed')
       return NextResponse.json({ events: [] })
     }
-
-    const data = await res.json()
+    // Katkaisu ei saa jäädä näkymättömäksi: ilman tätä lokia vajaa tulos
+    // näyttäisi täydeltä listalta — juuri se vika jota tämä korjaus poistaa.
+    if (truncated) console.warn(`Museums: ${total} osumaa ylitti sivutuskaton — tulos vajaa`)
+    if (pagesFailed > 0) console.warn(`Museums: ${pagesFailed} sivua petti — tulos vajaa`)
 
     const startTs = new Date(start).getTime()
     const endTs = new Date(end).getTime() + 24 * 60 * 60 * 1000
 
-    const events: Event[] = (data.data || [])
+    const events: Event[] = rows
       .map(normalize)
       .filter((e: Event) => {
         const ts = new Date(e.startTime).getTime()

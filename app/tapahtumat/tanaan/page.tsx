@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { helsinkiDateOf } from '@/lib/helsinki-time'
+import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 export const revalidate = 900 // 15 min — today's events update frequently
 
@@ -58,34 +59,43 @@ function formatTime(iso: string): string {
 }
 
 async function fetchToday(): Promise<PageEvent[]> {
-  // Helsinki is UTC+3 in summer — compute local date
-  const now = new Date()
-  const helsinkiOffset = 3 * 60
-  const localNow = new Date(now.getTime() + helsinkiOffset * 60 * 1000)
-  const today = localNow.toISOString().slice(0, 10)
+  // Helsingin päivä kirjaston kautta. Tässä oli kovakoodattu +3 h, joka on
+  // oikea vain kesäaikana (EEST): talvella (EET, +2) offset heitti päivän
+  // väärin klo 22–24 UTC, eli "Tänään"-sivu näytti huomista.
+  const today = helsinkiToday()
 
   try {
     // Descending sort + date filter: LinkedEvents `start=` also matches
     // months-old ongoing exhibitions, which ascending order would put first —
     // eating the whole page and hiding today's real (esp. evening) events.
-    // Two pages cover festival days with >100 starts.
-    const base = `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${today}&end=${today}&division=helsinki&language=fi&page_size=100&sort=-start_time&include=location`
-    const results = await Promise.allSettled([1, 2].map((p) =>
-      fetch(`${base}&page=${p}`, { next: { revalidate: 900 }, signal: AbortSignal.timeout(10000) })
-    ))
+    //
+    // SIVUMÄÄRÄ EI OLE ENÄÄ KOVAKOODATTU. Tässä haettiin kiinteästi sivut 1–2
+    // ("two pages cover festival days with >100 starts"). Mitattu vilkkain
+    // yksittäinen päivä 24.9.2026 = 170 alkavaa, eli 200 rivin katosta jäi 30
+    // rivin marginaali — festivaalipäivä ylittää sen ja katkeaisi hiljaa.
+    // Nyt sivumäärä luetaan API:n omasta osumaluvusta, ja apuri lukee myös
+    // vastausten rungot saman lupauksen sisällä (aiemmin ne luettiin vasta
+    // Promise.allSettledin jälkeen — sama ajoitusansa joka kaatoi 44/45
+    // lähdettä /api/events-reitillä).
+    const { rows } = await fetchLinkedEventsAll<LEEvent>(
+      (page) =>
+        `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+          format: 'json', start: today, end: today, division: 'helsinki', language: 'fi',
+          page: String(page), page_size: String(LE_MAX_PAGE_SIZE),
+          sort: '-start_time', include: 'location',
+        })}`,
+      () => ({ next: { revalidate: 900 }, signal: AbortSignal.timeout(10000) }),
+    )
+
     const events: PageEvent[] = []
     const seen = new Set<string>()
-    for (const r of results) {
-      if (r.status !== 'fulfilled' || !r.value.ok) continue
-      const data = await r.value.json()
-      for (const raw of data.data || []) {
-        if (seen.has(raw.id)) continue
-        seen.add(raw.id)
-        const e = normalize(raw)
-        // Helsinki calendar date — LE emits UTC, so a 00:30 event's ISO prefix
-        // would point at the previous day
-        if (helsinkiDateOf(e.startTime) === today) events.push(e)
-      }
+    for (const raw of rows) {
+      if (seen.has(raw.id)) continue
+      seen.add(raw.id)
+      const e = normalize(raw)
+      // Helsinki calendar date — LE emits UTC, so a 00:30 event's ISO prefix
+      // would point at the previous day
+      if (helsinkiDateOf(e.startTime) === today) events.push(e)
     }
     return events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   } catch {
@@ -95,10 +105,11 @@ async function fetchToday(): Promise<PageEvent[]> {
 
 export default async function TanaanPage() {
   const events = await fetchToday()
-  const now = new Date()
-  const helsinkiOffset = 3 * 60
-  const localNow = new Date(now.getTime() + helsinkiOffset * 60 * 1000)
-  const dateStr = localNow.toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long' })
+  // Sama korjaus kuin fetchTodayssa: kovakoodattu +3 h näytti talvella väärää
+  // päivää otsikossa ja FAQ-tekstissä. Keskipäiväankkuri pitää kalenteripäivän.
+  const dateStr = new Date(`${helsinkiToday()}T12:00:00Z`).toLocaleDateString('fi-FI', {
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
+  })
 
   const eventListLd = {
     '@context': 'https://schema.org',

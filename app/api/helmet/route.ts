@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 interface LinkedEventsImage {
   url: string
@@ -87,28 +88,47 @@ export async function GET(req: NextRequest) {
 
   // Query Helsinki Linked Events filtered to Helmet (Kirjastopalvelukokonaisuus)
   // publisher=ahjo:u48040050 — no language filter to catch events in all languages
-  const params = new URLSearchParams({
-    format: 'json',
-    publisher: 'ahjo:u48040050',
-    start: startAfter || start,
-    end,
-    page_size: '50',
-    include: 'location,keywords',
-    sort: 'start_time',
-  })
-
-  if (keyword) params.set('text', keyword)
+  // SIVUTETTU JA LASKEVA. Aiemmin tämä haki 50 riviä nousevassa
+  // järjestyksessä — yhdistelmä palautti tuotannossa TÄSMÄLLEEN NOLLA
+  // tapahtumaa, joka päivä, huomaamatta.
+  //
+  // Syy: kirjastojen syötteessä on satoja pitkäkestoisia rivejä (näyttelyt,
+  // lukupiirit, "koko vuoden" merkinnät), joiden start_time on menneisyydessä.
+  // `start=`-rajaus osuu niihin, nouseva lajittelu nostaa ne kärkeen, ja 50
+  // rivin sivu 1 täyttyi kokonaan niistä: mitattu sivun 1 viimeinen rivi oli
+  // 20.8. kun alaraja oli 21.8. → alla oleva suodatin pudotti KAIKKI 50.
+  // Mitattu: 0/108 tapahtumaa (7 pv) ja 0/624 (30 pv).
+  //
+  // Laskeva järjestys nostaa kärkeen ikkunassa oikeasti alkavat, ja sivutus
+  // hakee loput. HUOM: laskeva on tässä myös pakollinen, ei vain optimointi —
+  // ilman ylärajaa suodattimessa (`>= start - 24 h`) nouseva järjestys pitäisi
+  // jatkosivujen roskarivit mukana laskennassa mutta hylkäisi ne lopussa.
+  const buildUrl = (page: number) => {
+    const params = new URLSearchParams({
+      format: 'json',
+      publisher: 'ahjo:u48040050',
+      start: startAfter || start,
+      end,
+      page: String(page),
+      page_size: String(LE_MAX_PAGE_SIZE),
+      include: 'location,keywords',
+      sort: '-start_time',
+    })
+    if (keyword) params.set('text', keyword)
+    return `https://api.hel.fi/linkedevents/v1/event/?${params}`
+  }
 
   try {
-    const res = await fetch(
-      `https://api.hel.fi/linkedevents/v1/event/?${params}`,
-      { next: { revalidate: 300, tags: ['events'] } }
+    const { rows, ok, truncated, total, pagesFailed } = await fetchLinkedEventsAll<LinkedEventsEvent>(
+      buildUrl,
+      () => ({ next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(8000) }),
     )
-    if (!res.ok) return NextResponse.json({ events: [] })
+    if (!ok) return NextResponse.json({ events: [] })
+    if (truncated) console.warn(`Helmet: ${total} osumaa ylitti sivutuskaton — tulos vajaa`)
+    if (pagesFailed > 0) console.warn(`Helmet: ${pagesFailed} sivua petti — tulos vajaa`)
 
-    const data = await res.json()
     const startTs = new Date(start).getTime()
-    const events: Event[] = (data.data || [])
+    const events: Event[] = rows
       .map(normalize)
       .filter((e: Event) => new Date(e.startTime).getTime() >= startTs - 24 * 60 * 60 * 1000)
 

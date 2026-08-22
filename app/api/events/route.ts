@@ -211,12 +211,32 @@ export async function GET(req: NextRequest) {
     const leRaw: LinkedEventsEvent[] = []
     const seenLeIds = new Set<string>()
     let leChunksOk = 0
-    const saturatedDayUrls: string[] = []
     const collect = (rows: LinkedEventsEvent[]) => {
       for (const raw of rows) {
         if (!seenLeIds.has(raw.id)) { seenLeIds.add(raw.id); leRaw.push(raw) }
       }
     }
+    // Onko sivu täynnä ikkunaan kuuluvia alkuja → lisää on seuraavalla sivulla.
+    const isSaturated = (rows: LinkedEventsEvent[]) =>
+      rows.length > 0 && rows.every((raw) => new Date(raw.start_time).getTime() >= realCutoff)
+
+    // Jatkosivun haku. RUNKO LUETAAN TÄSSÄ, saman lupauksen sisällä. Aiemmin
+    // jatkosivut haettiin Promise.allSettledillä ja rungot luettiin vasta sen
+    // JÄLKEEN silmukassa — täsmälleen se ajoitusansa joka kaatoi 44/45 lähdettä
+    // tässä samassa tiedostossa: fetch ratkeaa jo otsakkeista, joten viimeisen
+    // vastauksen runko luettiin kun sen oma AbortSignal oli ehtinyt umpeutua.
+    const fetchLeDayPage = async (day: string, page: number) => {
+      try {
+        const res = await fetch(`${buildLeUrl(day)}&page=${page}`, leFetchOpts())
+        if (!res.ok) return null
+        const j = (await res.json()) as { data?: LinkedEventsEvent[]; meta?: { next?: string | null } }
+        return { rows: j.data ?? [], hasNext: !!j.meta?.next }
+      } catch {
+        return null
+      }
+    }
+
+    let saturatedDays: { day: string; page: number }[] = []
     for (let i = 0; i < dayResults.length; i++) {
       const r = dayResults[i]
       if (r.status !== 'fulfilled' || !r.value.ok) continue
@@ -225,14 +245,27 @@ export async function GET(req: NextRequest) {
       leChunksOk++
       const rows = pageData.data || []
       collect(rows)
-      const allReal = rows.length > 0 && rows.every((raw) => new Date(raw.start_time).getTime() >= realCutoff)
-      if (allReal && pageData.meta?.next) saturatedDayUrls.push(`${buildLeUrl(dayDates[i])}&page=2`)
+      if (isSaturated(rows) && pageData.meta?.next) saturatedDays.push({ day: dayDates[i], page: 2 })
     }
-    if (saturatedDayUrls.length > 0) {
-      const extra = await Promise.allSettled(saturatedDayUrls.map((u) => fetch(u, leFetchOpts())))
-      for (const r of extra) {
-        if (r.status !== 'fulfilled' || !r.value.ok) continue
-        try { collect(((await r.value.json()).data ?? []) as LinkedEventsEvent[]) } catch {}
+
+    // SILMUKKA, ei kiinteä sivu 2. Aiemmin haettiin vain sivu 2, mikä katkaisi
+    // päivän 200 tapahtumaan: sivu 1 (100) + sivu 2 (100), loput hiljaa pois.
+    // Mitattu suurin yksittäinen päivä 24.9.2026 = 170 alkavaa tapahtumaa, eli
+    // katto oli lähempänä kuin miltä näytti — festivaalipäivä ylittää sen.
+    // Kierros kerrallaan rinnakkain: kaikki vielä kylläiset päivät samassa
+    // aallossa, joten latenssi on sivumäärä × yksi kierros eikä päivät × sivut.
+    const LE_MAX_DAY_PAGES = 8
+    while (saturatedDays.length > 0) {
+      const wave = saturatedDays
+      saturatedDays = []
+      const waveRes = await Promise.all(wave.map(({ day, page }) => fetchLeDayPage(day, page)))
+      for (let i = 0; i < wave.length; i++) {
+        const got = waveRes[i]
+        if (!got) continue
+        collect(got.rows)
+        if (isSaturated(got.rows) && got.hasNext && wave[i].page < LE_MAX_DAY_PAGES) {
+          saturatedDays.push({ day: wave[i].day, page: wave[i].page + 1 })
+        }
       }
     }
 

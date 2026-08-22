@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { helsinkiDateOf } from '@/lib/helsinki-time'
+import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 export const revalidate = 3600
 
@@ -50,13 +51,16 @@ function normalize(raw: LEEvent): PageEvent {
 }
 
 function getWeekendRange(): { fri: string; sun: string; label: string } {
-  // Calculate Friday–Sunday in Helsinki time (UTC+3 in summer)
-  const now = new Date()
-  const helsinkiNow = new Date(now.getTime() + 3 * 60 * 60 * 1000)
-  const day = helsinkiNow.getUTCDay() // 0=Sun, 1=Mon ... 5=Fri, 6=Sat
+  // Perjantai–sunnuntai HELSINGIN kalenterissa. Tässä oli kovakoodattu +3 h,
+  // joka on oikea vain kesäaikana — talvella (EET, +2) viikonpäivä laskettiin
+  // klo 22–23 UTC väärästä päivästä, joten koko viikonloppuikkuna siirtyi
+  // vuorokaudella. Keskipäiväankkuri UTC:ssa vastaa Helsingin kalenteripäivää
+  // ympäri vuoden, ja ±vuorokausilaskenta keskipäivästä ei ylitä päivärajaa.
+  const anchor = new Date(`${helsinkiToday()}T12:00:00Z`)
+  const day = anchor.getUTCDay() // 0=Sun, 1=Mon ... 5=Fri, 6=Sat
   // Fri(5)→0, Sat(6)→-1 (fri was yesterday), Sun(0)→-2, Mon(1)→4, Tue(2)→3, Wed(3)→2, Thu(4)→1
   const daysToFri = day === 5 ? 0 : day === 6 ? -1 : day === 0 ? -2 : 5 - day
-  const fri = new Date(helsinkiNow.getTime() + daysToFri * 86400000)
+  const fri = new Date(anchor.getTime() + daysToFri * 86400000)
   const sun = new Date(fri.getTime() + 2 * 86400000)
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
   const friLabel = fri.toLocaleDateString('fi-FI', { day: 'numeric', month: 'long', timeZone: 'UTC' })
@@ -76,27 +80,39 @@ async function fetchWeekend(): Promise<PageEvent[]> {
   try {
     // Descending sort + date filter: LinkedEvents `start=` also matches
     // months-old ongoing exhibitions, which ascending order would put first —
-    // eating the whole page and hiding the weekend's real events. A weekend
-    // has 125-250 real starts, so fetch three pages to cover Friday's daytime
-    // events too (descending order fills from Sunday backwards).
-    const base = `https://api.hel.fi/linkedevents/v1/event/?format=json&start=${fri}&end=${sun}&division=helsinki&language=fi&page_size=100&sort=-start_time&include=location`
-    const results = await Promise.allSettled([1, 2, 3].map((p) =>
-      fetch(`${base}&page=${p}`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(10000) })
-    ))
+    // eating the whole page and hiding the weekend's real events.
+    //
+    // SIVUMÄÄRÄ EI OLE ENÄÄ KOVAKOODATTU. Tässä haettiin ennen kiinteästi
+    // sivut 1–3 kommentin perusteluna "viikonlopussa on 125–250 alkua". Arvaus
+    // osui juuri ja juuri: mitattu 29.8.2026 viikonloppu = 257 alkavaa, eli
+    // 300 rivin katosta jäi 43 rivin marginaali. Vilkkaampi viikonloppu olisi
+    // katkennut hiljaa, ja koska järjestys on laskeva, katkaisu olisi osunut
+    // PERJANTAIHIN — mitattu: pelkkä sivu 1 näyttää perjantailta 4 tapahtumaa
+    // 161:stä. Nyt sivumäärä luetaan API:n omasta osumaluvusta.
+    //
+    // Sivutusapuri lukee myös jokaisen vastauksen RUNGON saman lupauksen
+    // sisällä. Tässä rungot luettiin vasta Promise.allSettledin jälkeen —
+    // sama ajoitusansa joka kaatoi 44/45 lähdettä /api/events-reitillä.
+    const { rows } = await fetchLinkedEventsAll<LEEvent>(
+      (page) =>
+        `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+          format: 'json', start: fri, end: sun, division: 'helsinki', language: 'fi',
+          page: String(page), page_size: String(LE_MAX_PAGE_SIZE),
+          sort: '-start_time', include: 'location',
+        })}`,
+      () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(10000) }),
+    )
+
     const events: PageEvent[] = []
     const seen = new Set<string>()
-    for (const r of results) {
-      if (r.status !== 'fulfilled' || !r.value.ok) continue
-      const data = await r.value.json()
-      for (const raw of data.data || []) {
-        if (seen.has(raw.id)) continue
-        seen.add(raw.id)
-        const e = normalize(raw)
-        // Helsinki calendar date — LE emits UTC, so a Friday 00:30 event's ISO
-        // prefix would point at Thursday
-        const d = helsinkiDateOf(e.startTime)
-        if (d >= fri && d <= sun) events.push(e)
-      }
+    for (const raw of rows) {
+      if (seen.has(raw.id)) continue
+      seen.add(raw.id)
+      const e = normalize(raw)
+      // Helsinki calendar date — LE emits UTC, so a Friday 00:30 event's ISO
+      // prefix would point at Thursday
+      const d = helsinkiDateOf(e.startTime)
+      if (d >= fri && d <= sun) events.push(e)
     }
     return events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   } catch {

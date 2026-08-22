@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { VENUE_PAGES, type VenuePage } from '@/lib/venue-pages'
 import { helsinkiDateRange, helsinkiOffset, formatEventDate } from '@/lib/helsinki-time'
+import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 export const revalidate = 3600
 
@@ -37,22 +38,26 @@ interface LEEvent {
 
 async function fetchTprekEvents(tprekId: string): Promise<PageEvent[]> {
   const { start, end } = helsinkiDateRange(60)
-  const params = new URLSearchParams({
-    location: tprekId, format: 'json', start, end,
-    page_size: '100', sort: 'start_time', include: 'location',
-  })
+  // Sivutettu ja laskeva — ks. lib/linked-events.ts. Tässä oli nouseva
+  // lajittelu ja yksi 100 rivin sivu 60 PÄIVÄN ikkunalle: sama muoto joka
+  // palautti helmet-reitillä mitatusti nollan. Mitattu lähimpänä rajaa
+  // Malmitalo (tprek:8740) = 89 osumaa 100:sta, eli 11 rivin päässä
+  // hiljaisesta katkaisusta josta mikään ei olisi ilmoittanut.
   try {
-    const res = await fetch(`https://api.hel.fi/linkedevents/v1/event/?${params}`, {
-      next: { revalidate: 3600 },
-      signal: AbortSignal.timeout(8000),
-    })
-    if (!res.ok) return []
-    const data = await res.json()
+    const { rows } = await fetchLinkedEventsAll<LEEvent>(
+      (page) =>
+        `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
+          location: tprekId, format: 'json', start, end,
+          page: String(page), page_size: String(LE_MAX_PAGE_SIZE),
+          sort: '-start_time', include: 'location',
+        })}`,
+      () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) }),
+    )
     // LinkedEvents `start=` matches events still ONGOING at that date, so
     // long-running series (started weeks ago) surface first — drop past starts
     // like app/api/events does, with a 24h grace for tonight's events.
     const cutoff = new Date(start).getTime() - 24 * 60 * 60 * 1000
-    return ((data.data || []) as LEEvent[])
+    return rows
       .filter((raw) => new Date(raw.start_time).getTime() >= cutoff)
       .map((raw) => {
         const offer = raw.offers?.[0]
