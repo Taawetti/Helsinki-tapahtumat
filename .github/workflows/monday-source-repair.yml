@@ -1,0 +1,187 @@
+name: Maanantain korjausagentti
+
+# Etsii hiljaa rikkinäiset tapahtumalähteet, diagnosoi ne oikeilla
+# rajapintakutsuilla ja avaa VALMIIN korjausehdotuksen pull requestina.
+#
+# EI KOSKAAN MERGEÄ. Ihminen painaa nappia. Tämä ei ole varovaisuutta vaan
+# mitattu välttämättömyys: 22.8.2026 ajetussa selvityksessä agentti ehdotti
+# kymmenestä lähteestä kolmea korjausta jotka olisivat rikkoneet asioita —
+# yksi olisi turmellut olemassa olevan tapahtuman, toinen tuonut takaisin juuri
+# poistetun "alkaa tänään" -virheen, ja kolmas lupasi 15 tapahtumaa joita ei
+# ollut olemassa. Vain vastakkainen tarkistus esti ne.
+#
+# ENSIMMÄINEN AJO ON TEHTÄVÄ KÄSIN (Actions → Run workflow). Tätä ei voi
+# testata kehityskoneelta, ja ajastettu ajo epäonnistuisi hiljaa jos jokin
+# syöte on väärin.
+#
+# VAATII: repositorion salaisuus ANTHROPIC_API_KEY
+# (Settings → Secrets and variables → Actions → New repository secret)
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # maanantai 06:00 UTC = 09:00 Helsingissä
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Malli'
+        default: 'claude-opus-5'
+        required: false
+      dry_run:
+        description: 'Vain diagnoosi, ei koodimuutoksia eikä PR:ää'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: monday-source-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Asenna riippuvuudet
+        run: npm ci
+
+      # ── PORTTI 1: mitä tutkitaan (deterministinen, ei tekoälyä) ───────────
+      # Lähde on ehdokas vain jos se palauttaa 0 tapahtumaa SEKÄ 7 että 60
+      # päivän ikkunassa. Tämä erottaa kauden hiljaisuuden aidosta viasta.
+      # Aiemmin tutkitut ja hylätyt (lib/source-triage.ts) rajautuvat pois,
+      # jottei samaa keskustelua käydä joka viikko uudelleen.
+      - name: Etsi hiljaa rikkinäiset lähteet
+        id: find
+        run: |
+          npx tsx scripts/find-broken-sources.ts --json > "$RUNNER_TEMP/broken.json"
+          cat "$RUNNER_TEMP/broken.json"
+          COUNT=$(node -e "console.log((require('$RUNNER_TEMP/broken.json').candidates||[]).length)")
+          LIST=$(node -e "console.log((require('$RUNNER_TEMP/broken.json').candidates||[]).slice(0,3).join(' '))")
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "list=$LIST" >> "$GITHUB_OUTPUT"
+
+      - name: Ei mitään korjattavaa
+        if: steps.find.outputs.count == '0'
+        run: echo "✓ Yksikään lähde ei ole hiljaa rikki. Ei tehdä mitään."
+
+      # ── Diagnoosi ja korjausehdotus ───────────────────────────────────────
+      - name: Claude diagnosoi ja korjaa
+        if: steps.find.outputs.count != '0'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: >-
+            --max-turns 30
+            --model ${{ inputs.model || 'claude-opus-5' }}
+          prompt: |
+            Nämä tapahtumalähteet palauttavat 0 tapahtumaa sekä 7 että 60 päivän
+            ikkunassa, eli ne ovat hiljaa rikki: ${{ steps.find.outputs.list }}
+
+            Käsittele KORKEINTAAN nämä lähteet, yksi kerrallaan. Reitti on
+            app/api/<lähde>/route.ts.
+
+            TYÖJÄRJESTYS jokaiselle lähteelle:
+            1. Lue reitti kokonaan. Etsi ylävirran osoite, parametrit ja se
+               kohta joka nielaisee virheen.
+            2. KUTSU YLÄVIRTAA OIKEASTI curlilla tai node -e:llä reitin omilla
+               parametreilla. Tulosta oikea status ja rivimäärä. Pelkkä koodin
+               lukeminen ei riitä — päättely ilman mittausta on arvotonta.
+            3. Eristä syy kokeilemalla muunnelmia (eri parametriarvot, eri
+               lajittelu, sivutus).
+            4. Mittaa montako tapahtumaa ylävirrassa OIKEASTI on.
+
+            KORJAA VAIN JOS kaikki neljä ehtoa täyttyvät:
+              a) juurisyy on mekaaninen: väärä parametrin arvo, väärä
+                 kenttänimi, väärä osoite tai rikkoutunut regex
+              b) osaat mitata määrän ennen ja jälkeen
+              c) muutos mahtuu YHTEEN tiedostoon: app/api/<lähde>/route.ts
+              d) et lisää hakumäärää, ellei ylävirta sitä selvästi salli
+
+            ÄLÄ KORJAA, raportoi vain, jos:
+              - ylävirta vaatii avaimen jota ei ole
+              - rajapinta on poistettu ja tarvittaisiin kokonaan uusi lähde
+              - lähde on aidosti tyhjä tai kauden ulkopuolella
+              - korjaus koskisi muita tiedostoja kuin reittiä
+              - et saa mitattua ennen/jälkeen-lukuja
+              - hostin robots.txt kieltää haun (tarkista se)
+
+            TÄRKEÄ SUDENKUOPPA: jos reitti asettaa source: 'linked-events'
+            vaikka data ei tule LinkedEventsistä, korjaa se oikeaksi. Sovellus
+            päättää siitä saako kortti sisäisen linkin /e/<id>, ja väärä arvo
+            tuottaa 404-sivuja (components/PosterCard.tsx).
+
+            Kirjoita lopuksi raportti tiedostoon ${{ runner.temp }}/report.md.
+            Jokaisesta lähteestä: juurisyy, mitatut luvut ennen ja jälkeen,
+            mitä teit tai miksi et. Ei arvioita — vain mitattuja lukuja.
+            ÄLÄ kirjoita raporttia repositorioon.
+
+            ${{ inputs.dry_run && 'TÄMÄ ON KUIVA AJO: älä muokkaa yhtään tiedostoa, kirjoita vain raportti.' || '' }}
+
+      # ── PORTTI 2: agentti ei saanut koskea muualle ────────────────────────
+      # Tämä ei luota kehotteeseen vaan tarkistaa lopputuloksen. Jos agentti
+      # muutti jotain muuta kuin sallitun lähteen reittiä, ajo kaatuu eikä
+      # PR:ää synny.
+      - name: Tarkista ettei muutettu kiellettyjä tiedostoja
+        if: steps.find.outputs.count != '0' && !inputs.dry_run
+        run: |
+          CHANGED=$(git diff --name-only)
+          if [ -z "$CHANGED" ]; then echo "Ei muutoksia."; exit 0; fi
+          echo "Muutetut tiedostot:"; echo "$CHANGED"
+          ALLOWED=""
+          for s in ${{ steps.find.outputs.list }}; do ALLOWED="$ALLOWED app/api/$s/route.ts"; done
+          echo "Sallitut:$ALLOWED"
+          for f in $CHANGED; do
+            case " $ALLOWED " in
+              *" $f "*) ;;
+              *) echo "::error::Agentti muutti tiedostoa jota se ei saanut koskea: $f"; exit 1 ;;
+            esac
+          done
+
+      # ── PORTTI 3: sama laatuportti kuin ihmisen koodille ──────────────────
+      # HUOM: tämä ajetaan TÄSSÄ työssä eikä jätetä CI:n varaan. GITHUB_TOKENin
+      # luoma PR ei käynnistä pull_request-työnkulkuja, joten pelkkään CI:hin
+      # nojaava portti EI laukeaisi agentin PR:lle. Jos nämä eivät mene läpi,
+      # PR:ää ei synny lainkaan.
+      - name: Typecheck, lint ja testit
+        if: steps.find.outputs.count != '0' && !inputs.dry_run
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run test:categories
+          npm run audit:compounds
+
+      - name: Avaa pull request
+        if: steps.find.outputs.count != '0' && !inputs.dry_run
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: agentti/lahdekorjaus-${{ github.run_number }}
+          base: main
+          delete-branch: true
+          commit-message: 'Korjaa hiljaa rikkinäiset lähteet: ${{ steps.find.outputs.list }}'
+          title: 'Maanantain korjaus: ${{ steps.find.outputs.list }}'
+          body-path: ${{ runner.temp }}/report.md
+          labels: automaattinen, lähdekorjaus
+          draft: false
+
+      - name: Julkaise raportti myös ajon yhteenvedossa
+        if: always() && steps.find.outputs.count != '0'
+        run: |
+          {
+            echo "## Maanantain korjausagentti"
+            echo ""
+            echo "Ehdokkaat: ${{ steps.find.outputs.list }}"
+            echo ""
+            if [ -f "$RUNNER_TEMP/report.md" ]; then cat "$RUNNER_TEMP/report.md"; else echo "_Raporttia ei syntynyt._"; fi
+          } >> "$GITHUB_STEP_SUMMARY"

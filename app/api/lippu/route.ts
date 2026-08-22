@@ -3,6 +3,29 @@ import { Event } from '@/lib/types'
 
 const EVENTIM_BASE = 'https://public-api.eventim.com/websearch/search/api/exploration/v1/products'
 
+// Itsensä tunnistava User-Agent. TÄMÄ EI OLE TODISTETTU KORJAUS — se on
+// hyvää käytöstä, ja syy on kirjattava rehellisesti:
+//
+// Kun top=100 → 400 oli korjattu, reitti toimi kehityskoneelta (49 tapahtumaa)
+// mutta tuotannossa se palauttaa yhä NOLLAN. Epäilin Eventimin bottisuojausta:
+// curlilla testattuna tyhjä ja selaimeksi tekeytyvä UA saivat vakaasti 403:n.
+// Se päätelmä oli VIRHEELLINEN: Node lähettää oletuksena "User-Agent: node",
+// ja Nodella ajettuna sama kysely saa 200:n sekä ilman UA:ta että sen kanssa.
+// Akamai tunnistaa koko asiakkaan (TLS-sormenjälki, otsakejärjestys), joten
+// curl+väärennetty-UA ei mittaa samaa asiaa kuin Node.
+//
+// Mitä siis TIEDETÄÄN: kysely toimii tältä koneelta, ei Vercelistä. Todennäköisin
+// selitys on konesalin IP-avaruuden esto — mitä ei voi todentaa ilman pääsyä
+// tuotannon lokeihin. Yhdessä hostin robots.txt:n kanssa
+// (`User-agent: * Disallow: /`) se on selvä viesti: tätä liikennettä ei haluta.
+// Oikea ratkaisu on joko kumppanipääsy Eventimiltä tai lähteen poisto — ei
+// suojauksen kiertäminen.
+//
+// UA jätetään tähän siksi, että "node" ei kerro kenellekään kuka soittaa; tämä
+// kertoo, ja antaa Eventimille mahdollisuuden estää tai tavoittaa meidät
+// nimenomaisesti. Sama muoto kuin festival-watch-cronissa.
+const UA = 'Mita-tanaan/1.0 (+https://helsinki-tapahtumat.vercel.app)'
+
 interface EventimProduct {
   name: string
   description?: string
@@ -121,7 +144,7 @@ export async function GET(req: NextRequest) {
     const res = await fetch(`${EVENTIM_BASE}?${params}`, {
       next: { revalidate: 900 },
       signal: AbortSignal.timeout(8000),
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', 'User-Agent': UA },
     })
 
     // Virhe EI jää enää näkymättömäksi. Juuri tämä rivi piti lähteen nollassa:
