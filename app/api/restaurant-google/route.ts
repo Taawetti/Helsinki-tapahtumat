@@ -68,8 +68,64 @@ export async function GET(req: NextRequest) {
         .slice(0, 6)
     : null
 
+  // ── RUOKALISTA ────────────────────────────────────────────────────────────
+  // google_raw.services on annoslista: { title, snippet, category, price }.
+  // Mitattu 202 paikkaa, 5858 annosta, 5244 hinnalla. Tämä on koko datajoukon
+  // arvokkain osa — "mitä täällä voi syödä ja mitä se maksaa" on juuri se
+  // kysymys johon Google Maps vastaa mobiilissa huonoiten — eikä siihen ole
+  // viitattu koodissa kertaakaan.
+  //
+  // HINTA TARKISTETAAN, EI LUOTETA. Datassa on rikkinäisiä rivejä: yhdellä
+  // ravintolalla nuudelikeitto on "1 824,00 €" (18 riviä 5244:stä, 0,34 %).
+  // Väärä hinta on käyttäjälle pahempi kuin puuttuva, joten järjettömästä
+  // hinnasta pudotetaan HINTA mutta annos jää — ravintolan tarjonta on silti
+  // oikeaa tietoa. Alaraja 0,50 € päästää läpi aidot pizzatäytteet (0,60 €)
+  // mutta pudottaa "0,00 €" -rivit, jotka eivät tarkoita ilmaista.
+  const MENU_MAX_ITEMS = 8
+  const PRICE_MIN_EUR = 0.5
+  const PRICE_MAX_EUR = 200
+
+  interface RawService {
+    title?: unknown
+    snippet?: unknown
+    category?: unknown
+    price?: { current?: unknown; currency?: unknown; displayed_price?: unknown } | null
+  }
+  // `category` on datassa mutta sitä ei projisoida: sitä ei renderöidä, ja
+  // keräämättä jättäminen on koko tämän muutoksen periaate.
+  const rawServices = Array.isArray(g.services) ? (g.services as RawService[]) : []
+  const menu = rawServices
+    .map((s) => {
+      const title = typeof s?.title === 'string' ? s.title.trim() : ''
+      if (!title) return null
+      const p = s?.price
+      const cur = typeof p?.current === 'number' && Number.isFinite(p.current) ? p.current : null
+      const currency = typeof p?.currency === 'string' ? p.currency : 'EUR'
+      const sane = cur != null && currency === 'EUR' && cur >= PRICE_MIN_EUR && cur <= PRICE_MAX_EUR
+      const displayed = typeof p?.displayed_price === 'string' ? p.displayed_price.trim() : ''
+      return {
+        title: title.slice(0, 80),
+        // displayed_price säilyttää hintahaarukat ("12–15 €"), joten sitä
+        // suositaan — mutta vasta kun numeerinen arvo on läpäissyt tarkistuksen.
+        price: sane ? (displayed || `${cur.toFixed(2).replace('.', ',')} €`) : null,
+        description: typeof s?.snippet === 'string' && s.snippet.trim() ? s.snippet.trim().slice(0, 120) : null,
+      }
+    })
+    .filter((m): m is NonNullable<typeof m> => m !== null)
+    .slice(0, MENU_MAX_ITEMS)
+
+  // Ruokalistalinkki (mitattu 566 paikalla) — "koko lista" kun näytämme 8.
+  const links = Array.isArray(g.local_business_links)
+    ? (g.local_business_links as { url?: unknown; type?: unknown }[])
+    : []
+  const menuLink = links.find((l) => l?.type === 'menu' && typeof l?.url === 'string' && /^https?:\/\//i.test(l.url as string))
+  const menuUrl = (menuLink?.url as string | undefined) ?? null
+
   return NextResponse.json({
     google: {
+      menu: menu.length > 0 ? menu : null,
+      menuUrl,
+      menuTotal: rawServices.length,
       rating: (g.rating as { value?: number })?.value ?? data.google_rating ?? null,
       reviewCount: (g.rating as { votes_count?: number })?.votes_count ?? data.review_count ?? null,
       ratingDistribution: (g.rating_distribution ?? null) as Record<string, number> | null,

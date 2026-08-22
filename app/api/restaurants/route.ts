@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { deriveFlags } from '@/lib/google-attributes'
 import { unstable_cache } from 'next/cache'
 import type { Restaurant } from '@/lib/types'
 import {
@@ -572,6 +573,9 @@ interface RestaurantEnrichment {
   googleHours?: string  // OSM-format string derived from Google hours (fresher than OSM)
   priceLevel?: 1 | 2 | 3 | 4  // Google price_level mapped to € scale
   description?: string  // Googlen tiivistelmä paikasta (Maps-esittelyteksti)
+  // Lyhyet suodatintunnisteet (terassi, vegaani, …) johdettuna google_raw:sta.
+  // Ks. lib/google-attributes.ts FILTER_FLAGS.
+  flags?: string[]
 }
 
 // Google price_level → € scale. Real data beats the OSM-side heuristics
@@ -590,7 +594,12 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
   // `google_hours` is a newer column; if the migration hasn't run yet the
   // select would error and wipe ALL enrichment, so fall back to the legacy
   // column set on error (deploy order then doesn't matter).
-  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours, price_level, description'
+  // google_raw->attributes on JSON-valitsin: se siirtää vain attribuuttilohkon,
+  // ei koko 13,5 MB:n saraketta. Mitattu 500 rivillä: 96 kB vs 1838 kB (19×).
+  // VAIN FULL_COLSISSA tarkoituksella — jos operaattori jostain syystä pettää,
+  // olemassa oleva varapolku pudottaa LEGACY_COLSiin ja rikastus säilyy
+  // (ilman lippuja) sen sijaan että koko ravintolalista jäisi rikastamatta.
+  const FULL_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, google_hours, price_level, description, google_raw->attributes'
   const LEGACY_COLS = 'venue_key, cuisine_categories, google_rating, review_count, sub_categories, main_image, price_level, description'
   let cols = FULL_COLS
   const PAGE = 1000
@@ -630,6 +639,9 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
     if (typeof row.google_hours === 'string' && row.google_hours.trim()) entry.googleHours = row.google_hours as string
     if (typeof row.price_level === 'string' && GOOGLE_PRICE[row.price_level]) entry.priceLevel = GOOGLE_PRICE[row.price_level]
     if (typeof row.description === 'string' && row.description.trim()) entry.description = row.description.trim()
+    const attrs = (row.attributes as { available_attributes?: Record<string, string[]> } | null)?.available_attributes
+    const flags = deriveFlags(attrs)
+    if (flags.length > 0) entry.flags = flags
     if (Object.keys(entry).length > 0) map[row.venue_key as string] = entry
   }
   return map
@@ -637,7 +649,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
 
 const fetchCuisineEnrichmentCached = unstable_cache(
   _fetchRestaurantEnrichment,
-  ['restaurant-enrichment-v10'], // v10: + description (Googlen tiivistelmä)
+  ['restaurant-enrichment-v11'], // v11: + flags (suodatintunnisteet google_raw:sta)
   { revalidate: 3600 }
 )
 
@@ -675,6 +687,10 @@ export async function GET(req: NextRequest) {
     if (enriched.googleRating) updates.googleRating = enriched.googleRating
     if (enriched.reviewCount) updates.reviewCount = enriched.reviewCount
     if (enriched.subCategories) updates.subCategories = enriched.subCategories
+    // Liput koskevat PAIKKAA, eivät nimeä — mutta venue_ratings on nimipohjainen,
+    // joten ketjun jokainen toimipiste saisi saman lipun. Sama rajaus kuin
+    // aukioloissa ja kuvauksessa: vain uniikkinimiset.
+    if (enriched.flags && nameCounts.get(r.name.toLowerCase().trim()) === 1) updates.flags = enriched.flags
     if (enriched.imageUrl && !r.image) updates.image = enriched.imageUrl
     // Real Google price level overrides the OSM heuristics (cafe→2, pizza→1),
     // but hand-curated fine-dining stays: heuristics never produce ≥3, so an

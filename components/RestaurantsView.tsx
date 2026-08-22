@@ -6,7 +6,7 @@ import type { Restaurant } from '@/lib/types'
 import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
-import { pickAttributes } from '@/lib/google-attributes'
+import { pickAttributes, FILTER_FLAGS } from '@/lib/google-attributes'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -814,19 +814,28 @@ type RestGoogleData = {
   peopleAlsoSearch: { title: string; rating: number | null; reviewCount: number | null }[] | null
   totalPhotos: number | null
   isClaimed: boolean
+  // Ruokalista Googlen profiilista. `price` on jo tarkistettu palvelimella:
+  // järjetön hinta on pudotettu nulliksi mutta annos säilytetty (ks.
+  // app/api/restaurant-google/route.ts). menuTotal = koko listan pituus,
+  // menu = enintään 8 ensimmäistä.
+  menu: { title: string; price: string | null; description: string | null }[] | null
+  menuUrl: string | null
+  menuTotal: number
 }
 
 
 // Hoikka suodatinrivi — näkyy KAIKISSA näkymissä (kaikki + alakategoriat).
 // Korvaa entisen "Auta valitsemaan" -paneelin: samat suodattimet, mutta
 // suoraan ruudukkoon eikä erilliseen arvontapooliin.
-function QuickSortPills({ filterOpen, filterNearby, minStars, onToggleOpen, onToggleNearby, onStars }: {
+function QuickSortPills({ filterOpen, filterNearby, minStars, activeFlags, onToggleOpen, onToggleNearby, onStars, onToggleFlag }: {
   filterOpen: boolean
   filterNearby: boolean
   minStars: StarSeg
+  activeFlags: string[]
   onToggleOpen: () => void
   onToggleNearby: () => void
   onStars: (s: StarSeg) => void
+  onToggleFlag: (id: string) => void
 }) {
   const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
@@ -843,6 +852,15 @@ function QuickSortPills({ filterOpen, filterNearby, minStars, onToggleOpen, onTo
       {([4, 4.5] as const).map((s) => (
         <button key={s} onClick={() => onStars(minStars === s ? null : s)} className={pill} style={minStars === s ? on : off}>
           ★ {s}+
+        </button>
+      ))}
+      {/* Ominaisuussuodattimet Googlen profiilista. Nämä ovat kysymyksiä joihin
+          Maps vastaa huonosti — ja joihin meillä on kate (terassi 611,
+          varattavissa 626, kasvis 614, esteetön 619 paikkaa). */}
+      {FILTER_FLAGS.map((f) => (
+        <button key={f.id} onClick={() => onToggleFlag(f.id)} className={pill}
+                style={activeFlags.includes(f.id) ? on : off}>
+          {f.emoji} {f.label}
         </button>
       ))}
     </div>
@@ -871,6 +889,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [news, setNews] = useState<NewsItem[]>([])
   // Suodatin (QuickSortPills) — min-arvosana; näkyy vain selausnäkymässä
   const [minStars, setMinStars] = useState<StarSeg>(null)
+  // Ominaisuussuodattimet (terassi, vegaani…) — monivalinta, JA-logiikka:
+  // "terassi + vegaani" tarkoittaa molempia, koska sitä käyttäjä tarkoittaa.
+  const [activeFlags, setActiveFlags] = useState<string[]>([])
+  const toggleFlag = useCallback((id: string) => {
+    setActiveFlags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }, [])
 
   const [loadError, setLoadError] = useState(false)
 
@@ -920,7 +944,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null); setVisibleCount(48)
   }, [restType])
   // eslint-disable-next-line react-hooks/set-state-in-effect -- sivutuksen reset suodattimien muuttuessa
-  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby, minStars])
+  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby, minStars, activeFlags])
   // Alakategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
   // Auki/Lähellä-pillerit näkyvät nykyään myös alakategoriassa, joten
   // suodattimia ei enää nollata kategoriaan mentäessä (ei näkymätöntä vuotoa).
@@ -994,6 +1018,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     if (browsing && filterOpen) filtered = filtered.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
     // Min-arvosana (Michelin/Bib korvaa arvostelumäärävaatimuksen isRatedAtLeastissa)
     if (browsing && minStars !== null) filtered = filtered.filter(r => isRatedAtLeast(r, minStars))
+    // JA-logiikka: kaikkien valittujen lippujen on täytyttävä.
+    if (activeFlags.length > 0) {
+      filtered = filtered.filter(r => {
+        const f = r.flags
+        return !!f && activeFlags.every(a => f.includes(a))
+      })
+    }
     if (browsing && filterNearby && userPos) {
       // Käyttäjä pyysi eksplisiittisesti lähimpiä → etäisyys voittaa
       filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
@@ -1008,7 +1039,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       })
     }
     return filtered
-  }, [subPool, filterOpen, filterNearby, minStars, userPos, distMap, subCat])
+  }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
 
@@ -1141,7 +1172,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 </h2>
               </div>
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} minStars={minStars} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onStars={setMinStars} />
+              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} minStars={minStars} activeFlags={activeFlags} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onStars={setMinStars} onToggleFlag={toggleFlag} />
 
               {groupedSortedPool.length > 0 ? (
                 <>
@@ -1349,11 +1380,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
               {/* Ominaisuudet (terassi, varattavissa, olut/viini, esteettömyys…) */}
               {(() => {
-                const tags = pickAttributes(restGoogle?.attributes ?? null)
+                // 12 eikä 10: arvojärjestyksen jälkeen kahteen viimeiseen mahtuu varaus-
+                // ja yleisötietoa, joka jäi aiemmin kokonaan pois. Pillit rivittyvät.
+                const tags = pickAttributes(restGoogle?.attributes ?? null, 12)
                 if (!tags.length) return null
                 return (
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {tags.slice(0, 10).map((tg, i) => (
+                    {tags.map((tg, i) => (
                       <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/60" style={{ background: 'rgba(255,255,255,.06)' }}>
                         {tg.emoji} {tg.label}
                       </span>
@@ -1361,6 +1394,37 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </div>
                 )
               })()}
+
+              {/* Ruokalista — Googlen profiilista. Hinnat on tarkistettu
+                  palvelimella: järjetön hinta näkyy tyhjänä, ei väärin. */}
+              {restGoogle?.menu && restGoogle.menu.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">
+                    Ruokalista{restGoogle.menuTotal > restGoogle.menu.length ? ` · ${restGoogle.menu.length}/${restGoogle.menuTotal}` : ''}
+                  </span>
+                  <div className="space-y-1.5">
+                    {restGoogle.menu.map((m, i) => (
+                      <div key={i}>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-white/85 text-[12px] font-bold">{m.title}</span>
+                          {m.price && (
+                            <span className="text-white/60 text-[11px] font-bold whitespace-nowrap">{m.price}</span>
+                          )}
+                        </div>
+                        {m.description && (
+                          <p className="text-white/40 text-[11px] leading-snug">{m.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {restGoogle.menuUrl && (
+                    <a href={restGoogle.menuUrl} target="_blank" rel="noopener noreferrer"
+                       className="inline-block text-[11px] font-bold text-[#6b76ff]">
+                      Koko ruokalista →
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Vastaavat paikat (people_also_search) — nimi + arvosana */}
               {restGoogle?.peopleAlsoSearch && restGoogle.peopleAlsoSearch.length > 0 && (

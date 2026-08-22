@@ -876,11 +876,13 @@ export default function ActivitiesView({ onShowOnMap }: {
 
               {/* Ominaisuudet (esteettömyys, mukavuudet, lapset…) */}
               {(() => {
-                const tags = pickAttributes(activityGoogle?.attributes ?? null)
+                // 12 eikä 10: arvojärjestyksen jälkeen kahteen viimeiseen mahtuu varaus-
+                // ja yleisötietoa, joka jäi aiemmin kokonaan pois. Pillit rivittyvät.
+                const tags = pickAttributes(activityGoogle?.attributes ?? null, 12)
                 if (!tags.length) return null
                 return (
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {tags.slice(0, 10).map((tg, i) => (
+                    {tags.map((tg, i) => (
                       <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/60" style={{ background: 'rgba(255,255,255,.06)' }}>
                         {tg.emoji} {tg.label}
                       </span>

@@ -242,6 +242,7 @@ export interface Restaurant {
   priceRange?: 1 | 2 | 3 | 4   // 1=€ 2=€€ 3=€€€ 4=€€€€
   openingHours?: string         // opening_hours (OSM format; Google-sourced when hoursSource='google')
   hoursSource?: 'google' | 'osm' // provenance of openingHours — Google is fresher
+  flags?: string[]              // suodatintunnisteet (terassi, vegaani…) — lib/google-attributes FILTER_FLAGS
   michelinStars?: number        // 1, 2 or 3
   bibGourmand?: boolean
   greenMichelin?: boolean
