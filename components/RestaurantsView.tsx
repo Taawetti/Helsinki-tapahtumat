@@ -7,6 +7,8 @@ import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { pickAttributes, FILTER_FLAGS } from '@/lib/google-attributes'
+import { primaryReason, reasonsWeight } from '@/lib/restaurant-reasons'
+import type { ReasonKind, RestaurantReason } from '@/lib/restaurant-reasons'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -392,6 +394,32 @@ function HeroCard({ r, distance, onShowOnMap }: {
 
 // ── List card ─────────────────────────────────────────────
 
+// ── SYYMERKKI ───────────────────────────────────────────────────────────────
+// Kortin tärkein rivi: miksi tämä paikka on tässä. Teksti tulee aina
+// ulkopuolisesta nimetystä lähteestä, ei koskaan generoituna — ks.
+// lib/restaurant-reasons.ts. Värit erottavat lajit toisistaan mutta pysyvät
+// hillittyinä, jottei ruudukko muutu liikennevaloksi.
+const REASON_STYLE: Record<ReasonKind, { bg: string; fg: string; bd: string }> = {
+  michelin:            { bg: 'rgba(239,68,68,.14)',  fg: '#fca5a5', bd: 'rgba(239,68,68,.18)' },
+  'vuoden-ravintola':  { bg: 'rgba(251,191,36,.14)', fg: '#fcd34d', bd: 'rgba(251,191,36,.18)' },
+  top50:               { bg: 'rgba(251,191,36,.11)', fg: '#fbbf24', bd: 'rgba(251,191,36,.15)' },
+  uusi:                { bg: 'rgba(16,185,129,.14)', fg: '#6ee7b7', bd: 'rgba(16,185,129,.18)' },
+  timeout:             { bg: 'rgba(139,148,255,.13)', fg: '#a3abff', bd: 'rgba(139,148,255,.16)' },
+}
+
+function ReasonBadge({ reason }: { reason: RestaurantReason }) {
+  const s = REASON_STYLE[reason.kind] ?? REASON_STYLE.timeout
+  return (
+    <span
+      className="inline-flex items-center text-[10px] font-black px-2 py-0.5 rounded-full border"
+      style={{ background: s.bg, color: s.fg, borderColor: s.bd }}
+      title={reason.source}
+    >
+      {reason.label}
+    </span>
+  )
+}
+
 function RestListCard({ r, distance, onShowOnMap, onOpen }: {
   r: Restaurant
   distance?: number
@@ -401,6 +429,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
   const { t } = useLanguage()
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
   const cuisineStyle = getCuisineStyle(r)
+  const reason = useMemo(() => primaryReason(r.reasons, new Date()), [r.reasons])
   return (
     <div className={`rounded-2xl overflow-hidden ${onOpen ? 'cursor-pointer transition-transform active:scale-[.99]' : ''}`}
       role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
@@ -451,15 +480,25 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
             {r.reviewCount ? <span className="font-normal opacity-70">({r.reviewCount > 999 ? `${(r.reviewCount/1000).toFixed(1)}t` : r.reviewCount})</span> : null}
           </span>
         )}
-        {r.michelinStars && (
-          <span className="inline-flex text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/15">
-            {'⭐'.repeat(r.michelinStars)} Michelin
-          </span>
-        )}
-        {r.bibGourmand && !r.michelinStars && (
-          <span className="inline-flex text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/15">
-            😊 Bib Gourmand
-          </span>
+        {/* SYY. Kun ulkoinen lähde on nostanut paikan, se sanotaan tässä ja
+            korvaa vanhat kovakoodatut Michelin-merkit — muuten sama tieto
+            näkyisi kortissa kahdesti. Ilman syytä vanhat merkit jäävät
+            varalle, jottei mikään katoa jos syytiedosto ei osu. */}
+        {reason ? (
+          <ReasonBadge reason={reason} />
+        ) : (
+          <>
+            {r.michelinStars && (
+              <span className="inline-flex text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/15">
+                {'⭐'.repeat(r.michelinStars)} Michelin
+              </span>
+            )}
+            {r.bibGourmand && !r.michelinStars && (
+              <span className="inline-flex text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/15">
+                😊 Bib Gourmand
+              </span>
+            )}
+          </>
         )}
         {/* ANNOS JA HINTA — kortin ainoa konkreettinen "miksi tänne" -tieto.
             Korvaa r.descriptionin, joka on OSM:n raaka keittiömerkkijono
@@ -796,13 +835,22 @@ const TOP_PICKS = 60
 // ohita selvää arvosanaeroa (Bayes-pisteiden hajonta kärjessä on kapea ~4.2–4.9).
 const IMG_WEIGHT = 0.25
 
-function restaurantQualityScore(r: Restaurant): number {
+// SYY ON JÄRJESTYKSEN PÄÄSIGNAALI. Ilman tätä näkymä lajitteli uudelleen
+// pelkällä arvosanalla ja KUMOSI API:n järjestyksen — mitattu, että se hautaa
+// juuri oikeat paikat: Grön (2★) sijalle 269, Nolla sijalle 416, Gaijin 1323.
+//
+// Syyn paino on kymmeniä (50–150), laatupiste yksinumeroinen (4–5). Ne
+// LASKETAAN YHTEEN eikä verrata portaittain, jolloin syy ratkaisee aina, mutta
+// samanarvoisten syiden kesken (esim. kaikki Michelin-oppaassa = 112) arvosana
+// ja kuva päättävät järjestyksen. Juuri niin kuin pitääkin.
+function restaurantQualityScore(r: Restaurant, today: Date): number {
+  const reason = r.reasons ? reasonsWeight(r.reasons, today) : 0
   const award = r.michelinStars ? 0.6 : (r.bibGourmand || r.michelinRecommended) ? 0.35 : 0
   if (r.googleRating !== undefined && r.googleRating !== null) {
     const v = r.reviewCount ?? 0
-    return (v * r.googleRating + RATING_PRIOR_M * RATING_PRIOR_C) / (v + RATING_PRIOR_M) + award
+    return reason + (v * r.googleRating + RATING_PRIOR_M * RATING_PRIOR_C) / (v + RATING_PRIOR_M) + award
   }
-  return award > 0 ? RATING_PRIOR_C + award : 0
+  return reason + (award > 0 ? RATING_PRIOR_C + award : 0)
 }
 
 // ── "⭐ 4+ / 4.5+" — arvosana ≥ kynnys; Michelin/Bib-tunnustus korvaa
@@ -1026,6 +1074,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     return typePool.filter(r => matchesSubCat(r, restType, subCat))
   }, [typePool, subCat, restType])
 
+  // Yksi päivä koko renderin ajaksi: uutuussyyn paino riippuu päivästä, ja
+  // jos jokainen vertailu loisi oman Daten, lajittelu ei olisi vakaa.
+  const sortToday = useMemo(() => new Date(), [])
+
   const sortedPool = useMemo(() => {
     let filtered = [...subPool]
     // Suosituimmat-landing (subCat==='all') on kuratoitu laatulista jota EI
@@ -1051,14 +1103,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       // Oletus: laatu + kuva painottaen — kuvalliset vahvemmin kärkeen, mutta
       // arvosana pysyy pääasiallisena signaalina; tasapelissä arvostelumäärä
       filtered.sort((a, b) => {
-        const sa = restaurantQualityScore(a) + (a.image ? IMG_WEIGHT : 0)
-        const sb = restaurantQualityScore(b) + (b.image ? IMG_WEIGHT : 0)
+        const sa = restaurantQualityScore(a, sortToday) + (a.image ? IMG_WEIGHT : 0)
+        const sb = restaurantQualityScore(b, sortToday) + (b.image ? IMG_WEIGHT : 0)
         if (sb !== sa) return sb - sa
         return (b.reviewCount ?? 0) - (a.reviewCount ?? 0)
       })
     }
     return filtered
-  }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat])
+  }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat, sortToday])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
 
@@ -1070,7 +1122,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     // voittaa kärjen tasavertaisista, muttei koskaan tiputa laatua.
     const quality = typePool
       .filter(r => r.image && isRatedAtLeast(r, 4))
-      .sort((a, b) => restaurantQualityScore(b) - restaurantQualityScore(a))
+      .sort((a, b) => restaurantQualityScore(b, sortToday) - restaurantQualityScore(a, sortToday))
     const top = quality.slice(0, 12)
     return (
       top.find(r => r.openingHours && isOpenNow(r.openingHours) === true)
@@ -1128,21 +1180,24 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
       {!loading && !(loadError && restaurants.length === 0) && (
         <>
-          {/* ═══ ETUSIVU (subCat 'all') — Suosituimmat-landing: hero → kategoriat
-               (+ Kaikki) → uutiset → kuratoitu top-60. EI suodattimia — kuratoitua
-               suosituinta listaa ei suodateta (suodattimet ovat selausnäkymässä). ═══ */}
+          {/* ═══ ETUSIVU (subCat 'all') ═══
+               JÄRJESTYS: hero → kuratoitu kärki → uutiset → kategoriat.
+
+               Kärki oli ennen NELJÄNTENÄ, kategoriaruudukon ja uutisosion
+               takana — eli kolmen ruudun päässä. Sivun tarkoitus on palvella
+               kävijää joka EI TIEDÄ mitä haluaa, ja hänelle kategorialista on
+               kysymys, ei vastaus. Vastaus on paikka jolla on syy: Michelin,
+               Suomen 50 parasta, Vuoden ravintola, Time Out tai tuore avaus.
+               Se tulee nyt heti. Kategoriat jäävät alle sitä varten, kun
+               kävijä TIETÄÄ mitä hakee. EI suodattimia — kuratoitua listaa ei
+               suodateta (suodattimet ovat selausnäkymässä). ═══ */}
           {subCat === 'all' && (
             <>
               {heroRest && (
                 <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
               )}
 
-              <SubCatGrid restType={restType} onSelect={setSubCat} />
-
-              {/* Tuoreita artikkeleita valinnan tueksi — tärkeä lokaaleille */}
-              <NewsSection items={news} />
-
-              {/* Kärkipoiminnat: ~60 parasta (kuva + arvosana). Loput kategorioittain / Kaikki-napista yltä. */}
+              {/* Kärkipoiminnat: ~60 parasta. Syylliset ensin, ks. lib/restaurant-reasons.ts. */}
               {groupedSortedPool.length > 0 ? (
                 <section className="space-y-3">
                   <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
@@ -1159,7 +1214,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </div>
                   {groupedSortedPool.length > TOP_PICKS && (
                     <p className="text-center text-[13px] font-bold text-white/35 pt-1">
-                      Löydä lisää selaamalla kategorioita ↑
+                      Löydä lisää selaamalla kategorioita ↓
                     </p>
                   )}
                 </section>
@@ -1174,6 +1229,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </button>
                 </div>
               )}
+
+              {/* Tuoreita artikkeleita valinnan tueksi — tärkeä lokaaleille */}
+              <NewsSection items={news} />
+
+              {/* Kategoriat vasta tässä: ne palvelevat kävijää joka tietää mitä
+                  hakee, eivät sitä joka ei tiedä. */}
+              <SubCatGrid restType={restType} onSelect={setSubCat} />
             </>
           )}
 

@@ -1,0 +1,89 @@
+name: Ravintoloiden syyt
+
+# Hakee viikoittain syyt joiden takia ravintola nousee sivun kärkeen:
+# Michelin-opas, Suomen 50 parasta, Vuoden ravintola, Time Out Helsinki ja
+# tuoreet anniskeluluvat. Kirjoittaa data/restaurant-reasons.json ja committoi
+# sen suoraan mainiin, jolloin Vercel julkaisee muutoksen itsestään.
+#
+# MIKSI SUORA COMMIT EIKÄ PR. Omistaja pyysi automaatiota joka päivittää
+# etusivun itse. Pull request vaatisi ihmisen painamaan nappia joka viikko,
+# eli juuri sen käsityön joka haluttiin pois. Turvana on kolme porttia:
+#
+#   1. Skripti kieltäytyy kirjoittamasta jos yksikin lähde alittaa alarajansa
+#      (ks. FLOOR scripts/fetch-restaurant-reasons.ts:ssä). Hiljainen romahdus
+#      on pahin vika mitä tälle sovellukselle voi tapahtua.
+#   2. Testit ajetaan UUTTA tiedostoa vasten ennen committia — ne tarkistavat
+#      sekä rakenteen että lähdekohtaiset vähimmäismäärät.
+#   3. Muutos on gitissä ennen kuin se on tuotannossa, joten sen näkee diffistä
+#      ja voi perua yhdellä revertillä.
+#
+# Kaikki lähteet ovat avoimia ja tarkistettu robots.txt:stä; katso perustelut
+# scripts/fetch-restaurant-reasons.ts:n alusta. Ei vaadi salaisuuksia.
+
+on:
+  schedule:
+    # Maanantai 05:00 UTC = 08:00 Helsingissä. Ennen korjausagenttia (06:00),
+    # jotta kaksi jobia ei kirjoita samaan repoon yhtä aikaa.
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: restaurant-reasons
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Asenna riippuvuudet
+        run: npm ci
+
+      # PORTTI 1 — skripti pysähtyy itse jos jokin lähde on romahtanut.
+      - name: Hae syyt
+        run: npx tsx scripts/fetch-restaurant-reasons.ts
+
+      - name: Onko muutoksia?
+        id: diff
+        run: |
+          if git diff --quiet -- data/restaurant-reasons.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Ei muutoksia."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- data/restaurant-reasons.json
+          fi
+
+      # PORTTI 2 — testit ja tyypit ajetaan UUTTA dataa vasten. Testit lukevat
+      # data/restaurant-reasons.json:n ja tarkistavat lähdekohtaiset alarajat,
+      # joten rikkinäinen haku ei pääse committiin vaikka skripti olisi päästänyt.
+      - name: Tarkista tyypit ja testit
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          npx tsc --noEmit
+          npx tsx scripts/test-categories.ts
+
+      # PORTTI 3 — vain tämä yksi tiedosto committoidaan. Ei `git add .`.
+      - name: Committoi
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/restaurant-reasons.json
+          git commit -m "Restaurant reasons: weekly refresh
+
+          Automaattinen haku: Michelin-opas, Suomen 50 parasta, Vuoden
+          ravintola, Time Out Helsinki, anniskelulupa*rekisteri.
+          Ks. scripts/fetch-restaurant-reasons.ts"
+          git push

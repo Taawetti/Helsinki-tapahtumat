@@ -1,0 +1,3292 @@
+{
+  "fetchedAt": "2026-08-22T14:30:00.107Z",
+  "byName": {
+    "305": [
+      {
+        "kind": "michelin",
+        "label": "Michelin Bib Gourmand",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/305",
+        "tier": 2
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 31",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/31-ravintola-305-helsinki/",
+        "rank": 31,
+        "note": "Keittiömestari Janne Keskevaari – kuusi vuotta misukka-Grönin konehuoneessa – päätti kolme vuotta sitten, että nyt riittää muiden unelmien toteuttaminen. Syntyi"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "gro n": [
+      {
+        "kind": "michelin",
+        "label": "Michelin 2★",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/gron",
+        "tier": 4
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 3",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/3-gron-helsinki-2/",
+        "rank": 3,
+        "note": "Grön on Toni Kostianin johtama helsinkiläinen Michelin-tähtiravintola, joka on vakiinnuttanut paikkansa Suomen gastronomian huipulla. Vuonna 2015 perustettu Grö"
+      },
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2017",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2017-01-01"
+      }
+    ],
+    "palace": [
+      {
+        "kind": "michelin",
+        "label": "Michelin 2★",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/palace",
+        "tier": 4
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 1",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/1-palace-helsinki-4/",
+        "rank": 1,
+        "note": "Palace on suomalaisen gastronomian majakka, jossa historia, kunnianhimo ja tekninen tarkkuus sulautuvat saumattomaksi kokonaisuudeksi. Palace on ottanut Suomen "
+      }
+    ],
+    "boreal": [
+      {
+        "kind": "michelin",
+        "label": "Michelin 1★",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/boreal",
+        "tier": 3
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 37",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/37-boreal-helsinki/",
+        "rank": 37,
+        "note": "Helsingin Design Districtin sydämeen, Uudenmaankadulle syksyllä 2025 avautunut 50-paikkainen Boreal on ravintola, joka tekee suomalaisesta luonnosta gastronomis"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "demo": [
+      {
+        "kind": "michelin",
+        "label": "Michelin 1★",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/demo",
+        "tier": 3
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 12",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/12-demo-helsinki/",
+        "rank": 12,
+        "note": "Ravintola Demo on helsinkiläinen fine dining -legenda, joka avasi ovensa jo vuonna 2003 ja se kantoi Michelin-tähteä Uudenmaankadulla vuodet 2007-2024. Kun uusi"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "finnja vel salonki": [
+      {
+        "kind": "michelin",
+        "label": "Michelin 1★",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/finnjavel-salonki",
+        "tier": 3
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 14",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/14-finnjavel-salonki-helsinki/",
+        "rank": 14,
+        "note": "Finnjävel on oodi suomalaiselle ruoalle. Se etsii suomalaisia perinneruokia, purkaa reseptit ja rakentaa annokset kekseliäästi uudelleen. Tuloksena syntyy muist"
+      }
+    ],
+    "finnjavelsalonki": [
+      {
+        "kind": "michelin",
+        "label": "Michelin 1★",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/finnjavel-salonki",
+        "tier": 3
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 14",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/14-finnjavel-salonki-helsinki/",
+        "rank": 14,
+        "note": "Finnjävel on oodi suomalaiselle ruoalle. Se etsii suomalaisia perinneruokia, purkaa reseptit ja rakentaa annokset kekseliäästi uudelleen. Tuloksena syntyy muist"
+      }
+    ],
+    "olo": [
+      {
+        "kind": "michelin",
+        "label": "Michelin 1★",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/olo",
+        "tier": 3
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 13",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/13-olo-helsinki/",
+        "rank": 13,
+        "note": "Olo on ollut jo pari vuosikymmentä Helsingin ja Suomen gastronomian ykkösketjun voimapiste, jossa yhdistyvät pohjoinen minimalismi, tulkinta pohjoismaisesta, hi"
+      }
+    ],
+    "bona fide": [
+      {
+        "kind": "michelin",
+        "label": "Michelin Bib Gourmand",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/bona-fide",
+        "tier": 2
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 15",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/15-bona-fide-helsinki/",
+        "rank": 15,
+        "note": "Viimeiset viisi vuotta on tehnyt selväksi, että Bona Fide on progressiivisimpia, yllätyksellisimpiä ja ajattelultaan rohkeimpia ravintoloita Helsingissä. Hinta-"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      },
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2025",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2025-01-01"
+      }
+    ],
+    "bonafide": [
+      {
+        "kind": "michelin",
+        "label": "Michelin Bib Gourmand",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/bona-fide",
+        "tier": 2
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 15",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/15-bona-fide-helsinki/",
+        "rank": 15,
+        "note": "Viimeiset viisi vuotta on tehnyt selväksi, että Bona Fide on progressiivisimpia, yllätyksellisimpiä ja ajattelultaan rohkeimpia ravintoloita Helsingissä. Hinta-"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      },
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2025",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2025-01-01"
+      }
+    ],
+    "nolla": [
+      {
+        "kind": "michelin",
+        "label": "Michelin Bib Gourmand",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/nolla",
+        "tier": 2
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 21",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/21-nolla-helsinki/",
+        "rank": 21,
+        "note": "Hävikkivapaa, zero waste -ravintola Nolla on luonut oman genrensä alusta lähtien. Tuloksena on jotakin ainutlaatuista, missä pyritään hävikin ja keittiöjätteen "
+      },
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2022",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2022-01-01"
+      }
+    ],
+    "aoi": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/aoi",
+        "tier": 1
+      }
+    ],
+    "bistro bardot": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/bardot",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 24",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/24-bistro-bardot-helsinki/",
+        "rank": 24,
+        "note": "Kun Tampereen lahjat Suomen gastronomialle, keittiömestarit Hans Välimäki ja Arto Rastas avasivat Helsingin keskustaan, Hotel Kämpin viereen vuonna 2020 Bistro "
+      }
+    ],
+    "bistrobardot": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/bardot",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 24",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/24-bistro-bardot-helsinki/",
+        "rank": 24,
+        "note": "Kun Tampereen lahjat Suomen gastronomialle, keittiömestarit Hans Välimäki ja Arto Rastas avasivat Helsingin keskustaan, Hotel Kämpin viereen vuonna 2020 Bistro "
+      }
+    ],
+    "bistro ego": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/ego-1203744",
+        "tier": 1
+      }
+    ],
+    "bistroego": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/ego-1203744",
+        "tier": 1
+      }
+    ],
+    "boon nam": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/boon-nam",
+        "tier": 1
+      }
+    ],
+    "boonnam": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/boon-nam",
+        "tier": 1
+      }
+    ],
+    "boulevard": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/boulevard-1199201",
+        "tier": 1
+      }
+    ],
+    "savoy": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/cafe-savoy-1207193",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 8",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/8-savoy-helsinki/",
+        "rank": 8,
+        "note": "Suomalaisen ravintolahistorian ylpeys, Savoy, on ollut olemassa jo niin kauan (89 vuotta), että sen klassisuus on pyörähtänyt akselinsa ympäri täyden kierroksen"
+      }
+    ],
+    "flor": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/flor-1218403",
+        "tier": 1
+      }
+    ],
+    "gaijin": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/gaijin",
+        "tier": 1
+      }
+    ],
+    "kuurna": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/kuurna",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 18",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/18-kuurna-helsinki/",
+        "rank": 18,
+        "note": "Kuurna on niitä ravintoloita, jotka eivät metelöi ja huuda itseään esiin. Se vain on – kuin Kruununhaan oma pieni sydän, joka lyö tasaisesti ja vakaasti,.."
+      }
+    ],
+    "latitude 25": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/latitude-25",
+        "tier": 1
+      }
+    ],
+    "latitude25": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/latitude-25",
+        "tier": 1
+      }
+    ],
+    "le ankka": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/le-ankka",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 39",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/39-le-ankka-helsinki/",
+        "rank": 39,
+        "note": "Le Ankka sai nimensä ja intiimin tilan sisustuksen petrolisen värin ravintoloitsijan ja somevaikuttaja Huono Äiti Sari Helinin kotiin hankitusta Kaj Stenvallin "
+      }
+    ],
+    "leankka": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/le-ankka",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 39",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/39-le-ankka-helsinki/",
+        "rank": 39,
+        "note": "Le Ankka sai nimensä ja intiimin tilan sisustuksen petrolisen värin ravintoloitsijan ja somevaikuttaja Huono Äiti Sari Helinin kotiin hankitusta Kaj Stenvallin "
+      }
+    ],
+    "le coucou vert": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/le-coucou-vert",
+        "tier": 1
+      }
+    ],
+    "lecoucouvert": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/le-coucou-vert",
+        "tier": 1
+      }
+    ],
+    "muru": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/muru",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 32",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/32-muru-helsinki/",
+        "rank": 32,
+        "note": "Muru on helsinkiläisen bistroklassikon asemassa ja bistrotyylin edelläkävijän maineessa, jonka suosio lepää päivittäin vaihtuvassa tarjonnassa, laadukkaissa raa"
+      }
+    ],
+    "natura": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/natura",
+        "tier": 1
+      }
+    ],
+    "nokka": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/nokka",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 26",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/26-nokka-helsinki/",
+        "rank": 26,
+        "note": "Katajanokan vanhoissa tiilimakasiineissa sijaitseva tunnelmallinen Nokka on ravintola, jossa suomalainen luonto käy pöytään itsevarmasti. Nokka avattiin jo vuon"
+      }
+    ],
+    "shelter": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/shelter",
+        "tier": 1
+      }
+    ],
+    "spis": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/spis",
+        "tier": 1
+      },
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2015",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2015-01-01"
+      }
+    ],
+    "vinkkeli": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/vinkkeli",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 11",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/11-vinkkeli-helsinki/",
+        "rank": 11,
+        "note": "Konservatiivinen, klassinen ja perinnetietoinen ovat käsitteitä, jotka leijuvat Vinkkelin valkoisten pöytäliinojen kattamassa salissa. Vinkkeli on kuin peruskal"
+      }
+    ],
+    "young hearts": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/young-hearts",
+        "tier": 1
+      }
+    ],
+    "younghearts": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/young-hearts",
+        "tier": 1
+      }
+    ],
+    "plein": [
+      {
+        "kind": "michelin",
+        "label": "Michelin-oppaassa",
+        "source": "Michelin-opas",
+        "url": "https://guide.michelin.com/en/uusimaa/helsinki/restaurant/plein",
+        "tier": 1
+      },
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 40",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/40-plein-helsinki/",
+        "rank": 40,
+        "note": "Yllättävässä paikassa, Helsingin Puu-Vallilan reunassa sijaitseva rustiikkinen korttelibistro vetää maut suoriksi, mutta kiinnostavilla rinnastuksilla, joissa k"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "basbas": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 2",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/2-basbas-helsinki-3/",
+        "rank": 2,
+        "note": "Baskeri ja Basso Bistro eli tuttavallisemmin BasBas on kuin tulisi kotiin. BasBas on vuodesta toiseen hämmästyttävä, maagisen taikapiirin synnyttänyt ilmiö. Bas"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "jason": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 4",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/4-jason-helsinki-2/",
+        "rank": 4,
+        "note": "Helsingin sydämessä, Yrjönkadulla, sijaitsee ravintola Jason, joka on Michelin-palkitun Jari ”Jetson” Vesivalon ensimmäinen oma ravintola, ja viime vuoden 50 Pa"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "alexanderplats": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 7",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/7-alexanderplats-helsinki/",
+        "rank": 7,
+        "note": "Tyyliltään Alexanderplats Brasserie & Pub on tyylipuhdasta pohjoismaista modernismia, päivitettynä. Vauhtia on otettu ruotsalaisesta husmanskost-kotiruoasta, jo"
+      }
+    ],
+    "luovuus kukkii kaaoksesta": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 10",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/10-luovuus-kukkii-kaaoksesta-helsinki/",
+        "rank": 10,
+        "note": "Luovuus kukkii kaaoksesta on Helsingin jännittävimpiä ravintoloita epäsovinnaisuudessaan. Eikä vain kysyttäessä salissa patsastelevalta, täytetyltä maskottimäyr"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      },
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2026",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2026-01-01"
+      }
+    ],
+    "luovuuskukkiikaaoksesta": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 10",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/10-luovuus-kukkii-kaaoksesta-helsinki/",
+        "rank": 10,
+        "note": "Luovuus kukkii kaaoksesta on Helsingin jännittävimpiä ravintoloita epäsovinnaisuudessaan. Eikä vain kysyttäessä salissa patsastelevalta, täytetyltä maskottimäyr"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      },
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2026",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2026-01-01"
+      }
+    ],
+    "teller": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 16",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/16-teller-helsinki/",
+        "rank": 16,
+        "note": "Teller-ravintola Helsingin Etu-Töölössä on tarina, joka herää eloon lautasella. Lämminhenkinen ja kutsuva ravintola on perustettu intohimosta ruokaan ja tarinoi"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "le grec": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 19",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/19-le-grec-helsinki/",
+        "rank": 19,
+        "note": "Modernia kreikkalaista tarjoava Le Grec on enemmän kuin pelkkä ruokaravintola – se on kokonaisvaltainen makuelämys, jossa perinteiset Välimeren maut ja moderni "
+      }
+    ],
+    "legrec": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 19",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/19-le-grec-helsinki/",
+        "rank": 19,
+        "note": "Modernia kreikkalaista tarjoava Le Grec on enemmän kuin pelkkä ruokaravintola – se on kokonaisvaltainen makuelämys, jossa perinteiset Välimeren maut ja moderni "
+      }
+    ],
+    "shii": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 20",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/20-shii-helsinki/",
+        "rank": 20,
+        "note": "Helsingin keskustan sisäpihalle kätkeytyvä Shii on ravintola, joka kuiskaa olemassaolonsa. Japaniksi shii merkitsee hiljaisuuden tai salaisuuden elettä, samaa h"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "sky kitchen and view": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 23",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/23-sky-kitchen-view/",
+        "rank": 23,
+        "note": "Rovaniemen Ounasvaaran huipulla oleva panoraamaravintola Sky on keittiöpäällikkö Tero Mäntykankaan pitkällisen työn ja Lapin pohjoisten perinteiden onnellinen t"
+      }
+    ],
+    "skykitchenandview": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 23",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/23-sky-kitchen-view/",
+        "rank": 23,
+        "note": "Rovaniemen Ounasvaaran huipulla oleva panoraamaravintola Sky on keittiöpäällikkö Tero Mäntykankaan pitkällisen työn ja Lapin pohjoisten perinteiden onnellinen t"
+      }
+    ],
+    "grand bar and grill": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 27",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/27-the-grand-bar-grill/",
+        "rank": 27,
+        "note": "Helsingin korkeavuorenkadulla sijaitseva The Grand Bar & Grill on keittiömestari Sylvester Soisalon ja ravintoloitsija Matti Wikbergin luoma kunnianosoitus laad"
+      }
+    ],
+    "grandbarandgrill": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 27",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/27-the-grand-bar-grill/",
+        "rank": 27,
+        "note": "Helsingin korkeavuorenkadulla sijaitseva The Grand Bar & Grill on keittiömestari Sylvester Soisalon ja ravintoloitsija Matti Wikbergin luoma kunnianosoitus laad"
+      }
+    ],
+    "bisoubisou rooftop restaurant and bar": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 28",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/28-bisoubisou-rooftop-restaurant-bar-helsinki/",
+        "rank": 28,
+        "note": "Helsingin Kalasataman Horisontti‑tornitalon 24. kerroksessa sijaitsevasta Bisoubisou -ravintolasta avautuu näköala yli Helsingin, mutta maailmaa se katsoo ransk"
+      }
+    ],
+    "bisoubisourooftoprestaurantandbar": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 28",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/28-bisoubisou-rooftop-restaurant-bar-helsinki/",
+        "rank": 28,
+        "note": "Helsingin Kalasataman Horisontti‑tornitalon 24. kerroksessa sijaitsevasta Bisoubisou -ravintolasta avautuu näköala yli Helsingin, mutta maailmaa se katsoo ransk"
+      }
+    ],
+    "twenty four social club": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 33",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/33-twenty-four-social-club-helsinki/",
+        "rank": 33,
+        "note": "Helsingin Kallion Kolmannella linjalla sijaitseva Twenty Four Social Club on kortteliravintola ja cocktailbaari, joka tekee nimensä näkyväksi jokaisessa yksityi"
+      }
+    ],
+    "twentyfoursocialclub": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 33",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/33-twenty-four-social-club-helsinki/",
+        "rank": 33,
+        "note": "Helsingin Kallion Kolmannella linjalla sijaitseva Twenty Four Social Club on kortteliravintola ja cocktailbaari, joka tekee nimensä näkyväksi jokaisessa yksityi"
+      }
+    ],
+    "kosmos": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 34",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/34-kosmos-helsinki/",
+        "rank": 34,
+        "note": "Helsinkiläinen keittiö on olemassa, ja se on täällä: klassisen ranskalaisen keittiön pohja, ruotsalaisia heijaa-huutoja, kotimaisia raaka-aineita ja tsaarin aja"
+      }
+    ],
+    "wellamo": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 35",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/35-wellamo-helsinki/",
+        "rank": 35,
+        "note": "Helsingin Katajanokalla vuodesta 1975 toiminut piskuinen Wellamo törmäytti aikanaan ranskalaisen keittiön klassikoita slaavilaisella raskaudella ansiokkaasti lä"
+      },
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "boulevard bar and seafood": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 38",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/38-boulevard-bar-seafood-helsinki/",
+        "rank": 38,
+        "note": "Boulevard Bar & Seafood on Matti Wikbergin W-Restaurantsin paletin kala- ja äyriäisravintola. Osakkaana on keittiöstä vastaava Sylvester Soisalo, jolla on vankk"
+      }
+    ],
+    "boulevardbarandseafood": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 38",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/38-boulevard-bar-seafood-helsinki/",
+        "rank": 38,
+        "note": "Boulevard Bar & Seafood on Matti Wikbergin W-Restaurantsin paletin kala- ja äyriäisravintola. Osakkaana on keittiöstä vastaava Sylvester Soisalo, jolla on vankk"
+      }
+    ],
+    "laivakoira": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 41",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/41-laivakoira-helsinki/",
+        "rank": 41,
+        "note": "Helsingin eteläisessä kaupunginosassa, Eiran sydämessä sijaitseva Laivakoira on ravintola, jossa kekseliäisyys kohtaa eleganssin ilman oman hännän nostoa. Rico "
+      }
+    ],
+    "goose pastabar": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 48",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/48-goose-pastabar-helsinki/",
+        "rank": 48,
+        "note": "Goosen alkumuna sai aikanaan vauhtia ravintolapäivän kokeilusta ja italialaisesta pastakulttuurista. Sittemmin Italian päälle on luotu aivan omia koreografioita"
+      }
+    ],
+    "goosepastabar": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 48",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/48-goose-pastabar-helsinki/",
+        "rank": 48,
+        "note": "Goosen alkumuna sai aikanaan vauhtia ravintolapäivän kokeilusta ja italialaisesta pastakulttuurista. Sittemmin Italian päälle on luotu aivan omia koreografioita"
+      }
+    ],
+    "bull and the firm": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 49",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/49-the-bull-the-firm-helsinki/",
+        "rank": 49,
+        "note": "Innostavaa ruokaa, cocktaileja, mocktaileja sekä luomu- ja natuviinejä – siinä on hauskan, rennon ja tunnelmallisen baarin lupauksen ydin. Kaikkea saa. Kyseessä"
+      }
+    ],
+    "bullandthefirm": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 49",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/49-the-bull-the-firm-helsinki/",
+        "rank": 49,
+        "note": "Innostavaa ruokaa, cocktaileja, mocktaileja sekä luomu- ja natuviinejä – siinä on hauskan, rennon ja tunnelmallisen baarin lupauksen ydin. Kaikkea saa. Kyseessä"
+      }
+    ],
+    "esmes": [
+      {
+        "kind": "top50",
+        "label": "Suomen 50 parasta · sija 50",
+        "source": "Viisi Tähteä",
+        "url": "https://viisitahtea.com/50-parasta-ravintolaa-2026/50-esmes-helsinki/",
+        "rank": 50,
+        "note": "Esmes on Helsingin Punavuoren Iso Roban uusin näyttämö, jossa kokkien liike ja kädet, höyryt, tirisevät ja kolisevat äänet ja leiskuvat liekit sekä lennokkaat i"
+      }
+    ],
+    "alley": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "elm": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "thai noodle": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "thainoodle": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "sko rd": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "skord": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "kaisan pitseria": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "kaisanpitseria": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "baskeri and basso basbas": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "baskeriandbassobasbas": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "baskeri and basso": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "baskeriandbasso": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "tiny food": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "tinyfood": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "wino": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "tart": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "nolita": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "sushi wagocoro": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "sushiwagocoro": [
+      {
+        "kind": "timeout",
+        "label": "Time Out: Helsinki’s best restaurants",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-restaurants-helsinki",
+        "note": "Helsinki’s best restaurants, from budget bites to fine dining"
+      }
+    ],
+    "gastro cafe kallio": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "gastrocafekallio": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "tukkutorin kala": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "tukkutorinkala": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "murasaki": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "labra": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "tila": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "bistro le coin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "bistrolecoin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "herkun bistro": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "herkunbistro": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "pompier espa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "pompierespa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "palema": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-lunch-helsinki",
+        "note": "The best lunch spots in Helsinki that locals love"
+      }
+    ],
+    "engel": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "succe s": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "succes": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "ekberg 1852": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "ekberg1852": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "mama s empanadas": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "mamasempanadas": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "zoceria": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "cafetoria cafe and shop": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "cafetoriacafeandshop": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "18 grams": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "18grams": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "tin tin tango": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "tintintango": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "roihuvuoren rio": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "roihuvuorenrio": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "helsinki coffee roastery helsingin kahvipaahtimo": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "helsinkicoffeeroasteryhelsinginkahvipaahtimo": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "helsinki coffee roastery": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "helsinkicoffeeroastery": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "helsingin kahvipaahtimo": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "helsinginkahvipaahtimo": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/best-cafes-helsinki",
+        "note": "These are the must-visit cafés in Helsinki in 2026"
+      }
+    ],
+    "katana ramen": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "katanaramen": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "daruma kitchen": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "darumakitchen": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "kizuna": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "shin ramen and burgers": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "shinramenandburgers": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "ramen ichiraku": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "ramenichiraku": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/ramen-helsinki",
+        "note": "Helsinki’s best ramen spots for serious slurping"
+      }
+    ],
+    "kahvitupa laurentius": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "kahvitupalaurentius": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "hotel st george": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "hotelstgeorge": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "brasserie lionne": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "brasserielionne": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "fla t no 14": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "flatno14": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "pacifico": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "green hippo punavuori": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "greenhippopunavuori": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "fazer cafe kluuvikatu": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "fazercafekluuvikatu": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "marski by scandic": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "marskibyscandic": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "oiva": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "lazy fox": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "lazyfox": [
+      {
+        "kind": "timeout",
+        "label": "Time Out Helsinki",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/helsinki/restaurants/helsinki-breakfast",
+        "note": "The best breakfasts and brunches in Helsinki"
+      }
+    ],
+    "va r": [
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2024",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2024-01-01"
+      }
+    ],
+    "mikko utter": [
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2023",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2023-01-01"
+      }
+    ],
+    "mikkoutter": [
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2023",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2023-01-01"
+      }
+    ],
+    "aanaar": [
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2020",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2020-01-01"
+      }
+    ],
+    "chapter": [
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2019",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2019-01-01"
+      }
+    ],
+    "kaskis": [
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2018",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2018-01-01"
+      }
+    ],
+    "roux": [
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2016",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2016-01-01"
+      }
+    ],
+    "ask": [
+      {
+        "kind": "vuoden-ravintola",
+        "label": "Vuoden ravintola 2014",
+        "source": "Suomen Gastronomien Seura",
+        "url": "https://www.gastronomit.fi/vuoden-ravintola/",
+        "date": "2014-01-01"
+      }
+    ],
+    "luu s wine shop": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-15",
+        "street": "Runeberginkatu 33b LH 4"
+      }
+    ],
+    "luuswineshop": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-15",
+        "street": "Runeberginkatu 33b LH 4"
+      }
+    ],
+    "hotel rantapuisto": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-01",
+        "street": "Furuborginkatu 3"
+      }
+    ],
+    "hotelrantapuisto": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-01",
+        "street": "Furuborginkatu 3"
+      }
+    ],
+    "blondie": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-06",
+        "street": "Vaasankatu 14"
+      }
+    ],
+    "horisontin huippu": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Hermannin rantatie 9 A kerros 25"
+      }
+    ],
+    "horisontinhuippu": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Hermannin rantatie 9 A kerros 25"
+      }
+    ],
+    "miller s bbq to o lo": [
+      {
+        "kind": "uusi",
+        "label": "Avaa syyskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-09-01",
+        "street": "Sibeliuksenkatu 2"
+      }
+    ],
+    "millersbbqtoolo": [
+      {
+        "kind": "uusi",
+        "label": "Avaa syyskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-09-01",
+        "street": "Sibeliuksenkatu 2"
+      }
+    ],
+    "1664 market hall": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-30",
+        "street": "Aleksis Kiven katu 17"
+      }
+    ],
+    "1664markethall": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-30",
+        "street": "Aleksis Kiven katu 17"
+      }
+    ],
+    "market hall": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-30",
+        "street": "Aleksis Kiven katu 17"
+      }
+    ],
+    "markethall": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-30",
+        "street": "Aleksis Kiven katu 17"
+      }
+    ],
+    "lasoon": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-27",
+        "street": "Kankiraudantie 1"
+      }
+    ],
+    "noodle master kamppi": [
+      {
+        "kind": "uusi",
+        "label": "Avaa elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-24",
+        "street": "Eerikinkatu  20"
+      }
+    ],
+    "noodlemasterkamppi": [
+      {
+        "kind": "uusi",
+        "label": "Avaa elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-24",
+        "street": "Eerikinkatu  20"
+      }
+    ],
+    "iki": [
+      {
+        "kind": "uusi",
+        "label": "Avaa lokakuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-10-01",
+        "street": "Mannerheimintie 14, 2. krs"
+      }
+    ],
+    "bistro kajo": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-19",
+        "street": "Neitojenranta 2"
+      }
+    ],
+    "bistrokajo": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-19",
+        "street": "Neitojenranta 2"
+      }
+    ],
+    "tango argentino atelier": [
+      {
+        "kind": "uusi",
+        "label": "Avattu maaliskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-03-30",
+        "street": "Tallberginkatu 1 C"
+      }
+    ],
+    "tangoargentinoatelier": [
+      {
+        "kind": "uusi",
+        "label": "Avattu maaliskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-03-30",
+        "street": "Tallberginkatu 1 C"
+      }
+    ],
+    "seoul fried chicken": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-30",
+        "street": "Bruno Granholmin kuja 4"
+      }
+    ],
+    "seoulfriedchicken": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-30",
+        "street": "Bruno Granholmin kuja 4"
+      }
+    ],
+    "bui ramen": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-15",
+        "street": "Aallonhalkoja 1 LT 2"
+      }
+    ],
+    "buiramen": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-15",
+        "street": "Aallonhalkoja 1 LT 2"
+      }
+    ],
+    "tapulikahvila pietari": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-27",
+        "street": "Unioninkatu 29"
+      }
+    ],
+    "tapulikahvilapietari": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-27",
+        "street": "Unioninkatu 29"
+      }
+    ],
+    "grenier rouge": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-06",
+        "street": "Tervasaarenkannas 3"
+      }
+    ],
+    "grenierrouge": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-06",
+        "street": "Tervasaarenkannas 3"
+      }
+    ],
+    "bocado 28": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-15",
+        "street": "Välimerenkatu 15"
+      }
+    ],
+    "bocado28": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-15",
+        "street": "Välimerenkatu 15"
+      }
+    ],
+    "caverna kaivopiha": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-15",
+        "street": "Mannerheimintie 3"
+      }
+    ],
+    "cavernakaivopiha": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-15",
+        "street": "Mannerheimintie 3"
+      }
+    ],
+    "retroo italiano": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-07",
+        "street": "Porthaninkatu 5A"
+      }
+    ],
+    "retrooitaliano": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-07",
+        "street": "Porthaninkatu 5A"
+      }
+    ],
+    "vibae": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-02",
+        "street": "Fredrikinkatu 30"
+      }
+    ],
+    "bruuveri": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-15",
+        "street": "Fredrikinkatu 63 AB"
+      }
+    ],
+    "roberts coffee": [
+      {
+        "kind": "uusi",
+        "label": "Avattu maaliskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-03-27",
+        "street": "Kaivokatu 1"
+      }
+    ],
+    "robertscoffee": [
+      {
+        "kind": "uusi",
+        "label": "Avattu maaliskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-03-27",
+        "street": "Kaivokatu 1"
+      }
+    ],
+    "qvevri": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-29",
+        "street": "Hämeentie 62"
+      }
+    ],
+    "nuri baba": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-21",
+        "street": "Kallvikintie 76"
+      }
+    ],
+    "nuribaba": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-21",
+        "street": "Kallvikintie 76"
+      }
+    ],
+    "pa a rata bar": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Kaivokatu 1"
+      }
+    ],
+    "paaratabar": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Kaivokatu 1"
+      }
+    ],
+    "gao kitchen and bar": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-16",
+        "street": "Rahapajankatu 3"
+      }
+    ],
+    "gaokitchenandbar": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-16",
+        "street": "Rahapajankatu 3"
+      }
+    ],
+    "harbo": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-01",
+        "street": "Harbonkatu 13"
+      }
+    ],
+    "satama bar and bistro jollas": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-01",
+        "street": "Isonsarvastontie 4"
+      }
+    ],
+    "satamabarandbistrojollas": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-01",
+        "street": "Isonsarvastontie 4"
+      }
+    ],
+    "kallio bar": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Hämeentie 10"
+      }
+    ],
+    "kalliobar": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Hämeentie 10"
+      }
+    ],
+    "snadi pub kallio": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Kolman Linja 6"
+      }
+    ],
+    "snadipubkallio": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Kolman Linja 6"
+      }
+    ],
+    "brutto cocktail bar": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-01",
+        "street": "Pääskylänrinne 2 A 60"
+      }
+    ],
+    "bruttococktailbar": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-01",
+        "street": "Pääskylänrinne 2 A 60"
+      }
+    ],
+    "juvenes oy puhuri by patisserie teemu aura": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-15",
+        "street": "Kauppaneuvoksentie 18"
+      }
+    ],
+    "juvenesoypuhuribypatisserieteemuaura": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-15",
+        "street": "Kauppaneuvoksentie 18"
+      }
+    ],
+    "bistro pasila": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-09",
+        "street": "Asemapäällikönkatu 3"
+      }
+    ],
+    "bistropasila": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-09",
+        "street": "Asemapäällikönkatu 3"
+      }
+    ],
+    "umami taste": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-09",
+        "street": "Mäkelänkatu 16 L3"
+      }
+    ],
+    "umamitaste": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-09",
+        "street": "Mäkelänkatu 16 L3"
+      }
+    ],
+    "juvenes oy patisserie teemu aura hakaniemi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-02",
+        "street": "Siltasaarenkatu 12"
+      }
+    ],
+    "juvenesoypatisserieteemuaurahakaniemi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-02",
+        "street": "Siltasaarenkatu 12"
+      }
+    ],
+    "sturen kulma": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-02",
+        "street": "Mäkelänkatu 28"
+      }
+    ],
+    "sturenkulma": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-02",
+        "street": "Mäkelänkatu 28"
+      }
+    ],
+    "aila chhen": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-15",
+        "street": "Porthaninkatu 9, 00530 Helsinki"
+      }
+    ],
+    "ailachhen": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-15",
+        "street": "Porthaninkatu 9, 00530 Helsinki"
+      }
+    ],
+    "nami teppanyaki": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-21",
+        "street": "Malminkaari 13-17"
+      }
+    ],
+    "namiteppanyaki": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-21",
+        "street": "Malminkaari 13-17"
+      }
+    ],
+    "toki toki": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-24",
+        "street": "Opastinsilta 2"
+      }
+    ],
+    "tokitoki": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-24",
+        "street": "Opastinsilta 2"
+      }
+    ],
+    "focaccina": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-13",
+        "street": "Eerikinkatu 4"
+      }
+    ],
+    "pilkku": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-22",
+        "street": "Helsinginkatu 15"
+      }
+    ],
+    "mr melody": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-01",
+        "street": "Kontulankaari 1b liikehuoneisto 20"
+      }
+    ],
+    "mrmelody": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-01",
+        "street": "Kontulankaari 1b liikehuoneisto 20"
+      }
+    ],
+    "figaro": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-30",
+        "street": "Hämeentie 19"
+      }
+    ],
+    "borssi ja khachapuri": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-18",
+        "street": "Lönnrotinkatu 34"
+      }
+    ],
+    "borssijakhachapuri": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-18",
+        "street": "Lönnrotinkatu 34"
+      }
+    ],
+    "damak ravintola": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-30",
+        "street": "Insinöörinkatu 14"
+      }
+    ],
+    "damakravintola": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-30",
+        "street": "Insinöörinkatu 14"
+      }
+    ],
+    "katana": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-12",
+        "street": "Telakkakatu 12"
+      }
+    ],
+    "wisnia": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-26",
+        "street": "Örskinkuja 2 lt 2"
+      }
+    ],
+    "lotus cafe": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Aino Acktén tie 8 Lh11"
+      }
+    ],
+    "lotuscafe": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Aino Acktén tie 8 Lh11"
+      }
+    ],
+    "el patio": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-28",
+        "street": "työpajankatu 2b r11"
+      }
+    ],
+    "elpatio": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-28",
+        "street": "työpajankatu 2b r11"
+      }
+    ],
+    "levain galleria": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-03",
+        "street": "Aleksanterinkatu 40-42"
+      }
+    ],
+    "levaingalleria": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-03",
+        "street": "Aleksanterinkatu 40-42"
+      }
+    ],
+    "fazer cafe munkkiniemi": [
+      {
+        "kind": "uusi",
+        "label": "Avaa syyskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-09-15",
+        "street": "Solnantie 26"
+      }
+    ],
+    "fazercafemunkkiniemi": [
+      {
+        "kind": "uusi",
+        "label": "Avaa syyskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-09-15",
+        "street": "Solnantie 26"
+      }
+    ],
+    "vietologie": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-01",
+        "street": "Runeberginkatu 59 LH3"
+      }
+    ],
+    "rio": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-01",
+        "street": "Maaherrantie 34"
+      }
+    ],
+    "copitas": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-17",
+        "street": "Malagankatu 3"
+      }
+    ],
+    "briossi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-04",
+        "street": "Kalevankatu 9"
+      }
+    ],
+    "shangrila nepalese kitchen": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-25",
+        "street": "Aleksis Kivenkatu 17 A"
+      }
+    ],
+    "shangrilanepalesekitchen": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-25",
+        "street": "Aleksis Kivenkatu 17 A"
+      }
+    ],
+    "huudi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-08",
+        "street": "Huopalahdentie 24"
+      }
+    ],
+    "itsuyaki redi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-13",
+        "street": "Hermannin rantatie 5"
+      }
+    ],
+    "itsuyakiredi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-13",
+        "street": "Hermannin rantatie 5"
+      }
+    ],
+    "juvenes oy patisserie teemu aura valla": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-30",
+        "street": "Itämerenkatu 19"
+      }
+    ],
+    "juvenesoypatisserieteemuauravalla": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-30",
+        "street": "Itämerenkatu 19"
+      }
+    ],
+    "pantry vallila": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-01",
+        "street": "Teollisuuskatu 21"
+      }
+    ],
+    "pantryvallila": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-01",
+        "street": "Teollisuuskatu 21"
+      }
+    ],
+    "kampai": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-01",
+        "street": "Aleksis Kivenkatu 17 A"
+      }
+    ],
+    "atmos atelier": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-01",
+        "street": "Pohjoinen Rautatiekatu 19"
+      }
+    ],
+    "atmosatelier": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-01",
+        "street": "Pohjoinen Rautatiekatu 19"
+      }
+    ],
+    "bro ner kallio": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-16",
+        "street": "Vaasankatu 13"
+      }
+    ],
+    "bronerkallio": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-16",
+        "street": "Vaasankatu 13"
+      }
+    ],
+    "dudii": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-01",
+        "street": "Viides Linja 7"
+      }
+    ],
+    "dip and sip": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-01",
+        "street": "Helsinginkatu 13"
+      }
+    ],
+    "dipandsip": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-01",
+        "street": "Helsinginkatu 13"
+      }
+    ],
+    "hoi an vietnamilainen kitcken yuzu japanese izakaya": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-15",
+        "street": "kaisaniemenkatu 3"
+      }
+    ],
+    "hoianvietnamilainenkitckenyuzujapaneseizakaya": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-15",
+        "street": "kaisaniemenkatu 3"
+      }
+    ],
+    "hoi an vietnamilainen kitcken": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-15",
+        "street": "kaisaniemenkatu 3"
+      }
+    ],
+    "hoianvietnamilainenkitcken": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-15",
+        "street": "kaisaniemenkatu 3"
+      }
+    ],
+    "yuzu japanese izakaya": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-15",
+        "street": "kaisaniemenkatu 3"
+      }
+    ],
+    "yuzujapaneseizakaya": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-15",
+        "street": "kaisaniemenkatu 3"
+      }
+    ],
+    "za r syrian eatery": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-01",
+        "street": "Bruno Granholmin kuja 4"
+      }
+    ],
+    "zarsyrianeatery": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-01",
+        "street": "Bruno Granholmin kuja 4"
+      }
+    ],
+    "dragon sticks": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-19",
+        "street": "Aleksis Kiven katu 17"
+      }
+    ],
+    "dragonsticks": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-19",
+        "street": "Aleksis Kiven katu 17"
+      }
+    ],
+    "weckstro m roastery": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-22",
+        "street": "Mastokatu 4-6"
+      }
+    ],
+    "weckstromroastery": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-22",
+        "street": "Mastokatu 4-6"
+      }
+    ],
+    "shanghai taste": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-16",
+        "street": "Eerikinkatu 21"
+      }
+    ],
+    "shanghaitaste": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-16",
+        "street": "Eerikinkatu 21"
+      }
+    ],
+    "ariel": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-20",
+        "street": "Koksikatu 12"
+      }
+    ],
+    "barahi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-21",
+        "street": "Laippatie 1"
+      }
+    ],
+    "rubert 180": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-21",
+        "street": "Yrjönkatu 4 A, 00120 Helsinki"
+      }
+    ],
+    "rubert180": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-21",
+        "street": "Yrjönkatu 4 A, 00120 Helsinki"
+      }
+    ],
+    "pantry porkkalankatu": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Porkkalankatu 21"
+      }
+    ],
+    "pantryporkkalankatu": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-01",
+        "street": "Porkkalankatu 21"
+      }
+    ],
+    "omu raisu": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-01",
+        "street": "Kulmavuorenkatu 4 A"
+      }
+    ],
+    "omuraisu": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-01",
+        "street": "Kulmavuorenkatu 4 A"
+      }
+    ],
+    "salavi ravintola": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-24",
+        "street": "Kap Hornin katu 3"
+      }
+    ],
+    "salaviravintola": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-24",
+        "street": "Kap Hornin katu 3"
+      }
+    ],
+    "noodle story kamppi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-18",
+        "street": "Urho Kekkosen katu 1, E-taso"
+      }
+    ],
+    "noodlestorykamppi": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-18",
+        "street": "Urho Kekkosen katu 1, E-taso"
+      }
+    ],
+    "pexit": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-28",
+        "street": "Kanavaranta 4"
+      }
+    ],
+    "and night club luck lady": [
+      {
+        "kind": "uusi",
+        "label": "Avaa syyskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-09-01",
+        "street": "Kirkonkyläntie 5"
+      }
+    ],
+    "andnightclublucklady": [
+      {
+        "kind": "uusi",
+        "label": "Avaa syyskuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-09-01",
+        "street": "Kirkonkyläntie 5"
+      }
+    ],
+    "la sinfonia": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-15",
+        "street": "Pohjoisesplanadi 37"
+      }
+    ],
+    "lasinfonia": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-15",
+        "street": "Pohjoisesplanadi 37"
+      }
+    ],
+    "saari lotus bar restaurant": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-01",
+        "street": "Yliskylän puistokatu 4,"
+      }
+    ],
+    "saarilotusbarrestaurant": [
+      {
+        "kind": "uusi",
+        "label": "Avattu toukokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-05-01",
+        "street": "Yliskylän puistokatu 4,"
+      }
+    ],
+    "ta proom tripla": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-10",
+        "street": "Firdonkatu 2 B"
+      }
+    ],
+    "taproomtripla": [
+      {
+        "kind": "uusi",
+        "label": "Avattu kesäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-06-10",
+        "street": "Firdonkatu 2 B"
+      }
+    ],
+    "tian tian dumplings": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-21",
+        "street": "Lönnrotinkatu 21 LT 2"
+      }
+    ],
+    "tiantiandumplings": [
+      {
+        "kind": "uusi",
+        "label": "Avattu heinäkuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-07-21",
+        "street": "Lönnrotinkatu 21 LT 2"
+      }
+    ],
+    "taphouse train factory": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-27",
+        "street": "Aleksis Kiven Katu 17"
+      }
+    ],
+    "taphousetrainfactory": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-27",
+        "street": "Aleksis Kiven Katu 17"
+      }
+    ],
+    "basbas sirkus eats and treats": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-15",
+        "street": "Paasivuorenkatu 4-6"
+      }
+    ],
+    "basbassirkuseatsandtreats": [
+      {
+        "kind": "uusi",
+        "label": "Avattu elokuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-08-15",
+        "street": "Paasivuorenkatu 4-6"
+      }
+    ],
+    "hard days night": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-09",
+        "street": "Firdonkatu 2 B"
+      }
+    ],
+    "harddaysnight": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-09",
+        "street": "Firdonkatu 2 B"
+      }
+    ],
+    "flq": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-20",
+        "street": "Tallinnanaukio 4"
+      }
+    ]
+  },
+  "counts": {
+    "michelin": 30,
+    "top50": 36,
+    "timeout": 55,
+    "vuoden-ravintola": 12,
+    "uusi": 86
+  }
+}

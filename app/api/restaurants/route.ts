@@ -14,6 +14,14 @@ import {
 } from '@/lib/restaurant-awards'
 import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 import { supabase } from '@/lib/supabase'
+import { matchReasons, reasonsWeight } from '@/lib/restaurant-reasons'
+import { dedupeOsmVenues } from '@/lib/osm-dedupe'
+import type { ReasonFile } from '@/lib/restaurant-reasons'
+// Syyt haetaan viikoittain (scripts/fetch-restaurant-reasons.ts) ja committoidaan
+// tiedostoon, joten tässä ei ole verkkokutsua eikä välimuistia — se on mukana
+// bundlessa. Uusi data tulee voimaan seuraavassa deployssa, mikä on tarkoitus:
+// muutos näkyy gitissä ennen kuin se näkyy käyttäjälle.
+import reasonData from '@/data/restaurant-reasons.json'
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -666,10 +674,15 @@ export async function GET(req: NextRequest) {
   const priceMax = parseInt(req.nextUrl.searchParams.get('priceMax') ?? '0') || 0
   const featured = req.nextUrl.searchParams.get('featured') === '1'
 
-  const [osmList, enrichmentMap] = await Promise.all([
+  const [osmListRaw, enrichmentMap] = await Promise.all([
     fetchOSMCached(),
     fetchCuisineEnrichmentCached(),
   ])
+
+  // Sama paikka voi olla OSM:ssä kahtena kohteena. Se ei näkynyt 3583 kortin
+  // luettelossa, mutta kuratoidussa kärjessä näkyy heti: "Shelter" ja "shelter"
+  // olivat sijoilla 21 ja 30, 17 metrin päässä toisistaan. Ks. lib/osm-dedupe.ts.
+  const osmList = dedupeOsmVenues(osmListRaw)
 
   // Count venues per name — chains share one venue_ratings row (keyed by name),
   // so a single Google-hours string must NOT override every outlet's own hours
@@ -749,8 +762,28 @@ export async function GET(req: NextRequest) {
     )
   }
 
+  // ── SYYT ─────────────────────────────────────────────────────────────────
+  // Paikka nousee kärkeen vain jos jollakulla ulkopuolisella on syy nostaa se:
+  // Michelin-opas, Suomen 50 parasta, Vuoden ravintola, Time Out tai tuore
+  // anniskelulupa. Syytä ei koskaan keksitä täällä — se tulee nimetystä
+  // lähteestä linkkeineen. Ks. lib/restaurant-reasons.ts.
+  const reasonsToday = new Date()
+  const reasonFile = reasonData as unknown as ReasonFile
+  restaurants = restaurants.map((r) => {
+    const reasons = matchReasons(r, reasonFile.byName, {
+      uniqueName: nameCounts.get(r.name.toLowerCase().trim()) === 1,
+    })
+    return reasons.length ? { ...r, reasons } : r
+  })
+
   restaurants.sort((a, b) => {
-    // Michelin first, then featured, then by data completeness
+    // 1. SYY ENNEN KAIKKEA MUUTA. Ilman tätä järjestys oli Google-arvosana,
+    //    joka nostaa halvan hyvän ruoan ja hautaa fine diningin — mitattu:
+    //    Grön (2★) oli sijalla 269, Nolla sijalla 416, Gaijin sijalla 1323.
+    const wa = a.reasons ? reasonsWeight(a.reasons, reasonsToday) : 0
+    const wb = b.reasons ? reasonsWeight(b.reasons, reasonsToday) : 0
+    if (wa !== wb) return wb - wa
+    // 2. Sitten vanha järjestys: Michelin, kuratoitu nosto, datan täydellisyys.
     const starsA = a.michelinStars ?? 0, starsB = b.michelinStars ?? 0
     if (starsA !== starsB) return starsB - starsA
     const featA = a.featured ? 1 : 0, featB = b.featured ? 1 : 0

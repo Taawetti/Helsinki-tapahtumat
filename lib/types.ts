@@ -259,6 +259,12 @@ export interface Restaurant {
   // tiivistelmä. Ei koskaan generoitua tekstiä — puuttuva blurb jätetään pois.
   blurb?: string
   blurbEn?: string
+  /**
+   * Miksi tämä paikka on kärjessä. Aina ulkopuolisesta nimetystä lähteestä —
+   * Michelin-opas, Suomen 50 parasta, Vuoden ravintola, Time Out tai tuore
+   * anniskelulupa. Ks. lib/restaurant-reasons.ts.
+   */
+  reasons?: import('./restaurant-reasons').RestaurantReason[]
 }
 
 // ── ACTIVITIES ─────────────────────────────────────────

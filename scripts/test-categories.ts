@@ -28,6 +28,21 @@ import { parseApolloGrid } from '../lib/apollo-parse'
 import { parseMaxineTribe } from '../lib/maxine-parse'
 import { parseTanssintaloEntries } from '../lib/tanssintalo-parse'
 import { parsePostbarEvents } from '../lib/postbar-parse'
+import {
+  reasonKey,
+  reasonKeyVariants,
+  streetKey,
+  sameStreet,
+  matchReasons,
+  reasonWeight,
+  reasonsWeight,
+  primaryReason,
+  openingLabel,
+  type RestaurantReason,
+  type ReasonFile,
+} from '../lib/restaurant-reasons'
+import reasonFile from '../data/restaurant-reasons.json'
+import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
@@ -1645,6 +1660,162 @@ for (const c of ideaChecks) {
   for (const c of tzChecks) {
     if (c.ok) pass++
     else failures.push(`✗ aikavyöhyke: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── RAVINTOLOIDEN SYYT ──────────────────────────────────────────────────────
+// Jokainen tapaus alla on TUOTANNOSTA MITATTU väärä osuma tai väärä järjestys,
+// joka löytyi ennen julkaisua. Ne ovat täällä, jotta sama virhe ei voi palata.
+{
+  const rChecks: { name: string; ok: boolean; got?: string }[] = []
+  const today = new Date('2026-08-22T12:00:00Z')
+  const mich = (tier: number): RestaurantReason =>
+    ({ kind: 'michelin', label: `Michelin ${tier}`, source: 'Michelin-opas', tier })
+
+  // 1. NIMIEN YHDISTÄMINEN
+  rChecks.push({ name: 'reasonKey pudottaa etuliitteen', ok: reasonKey('Ravintola Olo') === 'olo', got: reasonKey('Ravintola Olo') })
+  rChecks.push({ name: 'reasonKey pudottaa ketjuliitteen', ok: reasonKey('Kuurna Oy') === 'kuurna', got: reasonKey('Kuurna Oy') })
+  rChecks.push({ name: 'reasonKey pudottaa kaupungin', ok: reasonKey('Chapter, Helsinki') === 'chapter', got: reasonKey('Chapter, Helsinki') })
+  rChecks.push({ name: 'reasonKey normalisoi &-merkin', ok: reasonKey('Chef & Sommelier') === 'chef and sommelier', got: reasonKey('Chef & Sommelier') })
+  rChecks.push({ name: 'reasonKey purkaa heittomerkin', ok: reasonKey("Bar Om´pu") === 'om pu', got: reasonKey("Bar Om´pu") })
+  // Kolmen merkin nimi EI saa kadota: nelimerkkinen alaraja olisi vienyt Olon
+  // Michelin-merkin. Täsmähaku ei tarvitse pituusrajaa.
+  rChecks.push({ name: 'lyhyt nimi Olo kelpaa avaimeksi', ok: reasonKeyVariants('Olo').includes('olo') })
+  rChecks.push({ name: 'yleissana ei kelpaa avaimeksi', ok: !reasonKeyVariants('Ravintola').length })
+
+  // 2. VARIANTIT — ja niiden vaarallisuus
+  rChecks.push({ name: 'sulkeista poimitaan lyhenne', ok: reasonKeyVariants('Baskeri & Basso (BasBas)').includes('basbas') })
+  rChecks.push({ name: 'välilyönnitön muoto mukaan', ok: reasonKeyVariants('18 grams').includes('18grams') })
+  rChecks.push({ name: 'kauttaviivan molemmat puolet', ok: reasonKeyVariants('Helsinki Coffee Roastery / Helsingin kahvipaahtimo').includes('helsingin kahvipaahtimo') })
+  // TUOTANTOVIRHE: "Arcada studerandekår (ASK)" tuotti avaimen "ask", joka osui
+  // Vuoden ravintola 2014 -voittajaan ("Ask, Helsinki").
+  rChecks.push({ name: 'liian lyhyt johdettu variantti hylätään (ASK)', ok: !reasonKeyVariants('Arcada studerandekår (ASK)').includes('ask'), got: reasonKeyVariants('Arcada studerandekår (ASK)').join(',') })
+
+  // 3. OSOITTEEN TARKISTUS
+  rChecks.push({ name: 'streetKey sietää ylimääräiset välit', ok: streetKey('Eerikinkatu  20  ') === 'eerikinkatu|20', got: String(streetKey('Eerikinkatu  20  ')) })
+  rChecks.push({ name: 'streetKey pudottaa postinumeron', ok: streetKey('Aleksis kiven katu 17,00510 Helsinki') === 'aleksis kiven katu|17', got: String(streetKey('Aleksis kiven katu 17,00510 Helsinki')) })
+  rChecks.push({ name: 'streetKey pudottaa kerroksen', ok: streetKey('Mannerheimintie 14, 2. krs') === 'mannerheimintie|14', got: String(streetKey('Mannerheimintie 14, 2. krs')) })
+  rChecks.push({ name: 'streetKey null ilman numeroa', ok: streetKey('Lonnan saari') === null, got: String(streetKey('Lonnan saari')) })
+  rChecks.push({ name: 'sameStreet ei osu kun numero puuttuu', ok: !sameStreet('Lonnan saari', 'Lonnan saari') })
+
+  // 4. UUTUUSMERKIN VARTIJAT — kaikki kolme mitattu tuotannosta
+  const uusi: RestaurantReason = {
+    kind: 'uusi', label: 'Avattu elokuussa', source: 'rekisteri',
+    date: '2026-08-17', street: 'Kastelholmantie 2',
+  }
+  const byName = { kummiseta: [uusi] }
+  rChecks.push({
+    name: 'uusi osuu oikeaan osoitteeseen',
+    ok: matchReasons({ name: 'Kummisetä', address: 'Kastelholmantie 2' }, byName).length === 1,
+  })
+  // TUOTANTOVIRHE: ketjun toinen toimipiste sai avausmerkin. Robert's Coffeella
+  // se olisi osunut yhteentoista toimipisteeseen.
+  rChecks.push({
+    name: 'uusi EI osu ketjun toiseen osoitteeseen',
+    ok: matchReasons({ name: 'Kummisetä', address: 'Kirstinkatu 13' }, byName).length === 0,
+  })
+  rChecks.push({
+    name: 'uusi osuu kun osoite puuttuu mutta nimi on uniikki',
+    ok: matchReasons({ name: 'Kummisetä' }, byName, { uniqueName: true }).length === 1,
+  })
+  rChecks.push({
+    name: 'uusi EI osu kun osoite puuttuu eikä nimi ole uniikki',
+    ok: matchReasons({ name: 'Kummisetä' }, byName, { uniqueName: false }).length === 0,
+  })
+  // TUOTANTOVIRHE: Ihana Kahvila (725 arvostelua) sai "Avattu kesäkuussa".
+  rChecks.push({
+    name: 'satojen arvostelujen paikka ei ole uusi',
+    ok: matchReasons({ name: 'Kummisetä', address: 'Kastelholmantie 2', reviewCount: 725 }, byName).length === 0,
+  })
+  rChecks.push({
+    name: 'harvojen arvostelujen paikka voi olla uusi',
+    ok: matchReasons({ name: 'Kummisetä', address: 'Kastelholmantie 2', reviewCount: 23 }, byName).length === 1,
+  })
+
+  // 5. JÄRJESTYS
+  // TUOTANTOVIRHE: kaikilla Michelin-luokilla oli sama paino, joten Bona Fide
+  // (Bib Gourmand) nousi sijalle 1 Grönin (2★) ja Palacen (2★) ohi.
+  rChecks.push({ name: '2★ painaa enemmän kuin Bib', ok: reasonWeight(mich(4), today) > reasonWeight(mich(2), today) })
+  rChecks.push({ name: 'Bib painaa enemmän kuin Selected', ok: reasonWeight(mich(2), today) > reasonWeight(mich(1), today) })
+  const bib3: RestaurantReason[] = [
+    mich(2),
+    { kind: 'top50', label: 's15', source: 'x', rank: 15 },
+    { kind: 'vuoden-ravintola', label: 'v2025', source: 'x', date: '2025-01-01' },
+    { kind: 'timeout', label: 't', source: 'x' },
+  ]
+  rChecks.push({
+    name: 'yksi 2★ voittaa Bibin + kolme sivusyytä',
+    ok: reasonsWeight([mich(4)], today) > reasonsWeight(bib3, today),
+    got: `${reasonsWeight([mich(4)], today).toFixed(1)} vs ${reasonsWeight(bib3, today).toFixed(1)}`,
+  })
+  // Vanha palkinto ei ole enää syy mennä tänään.
+  const v2026: RestaurantReason = { kind: 'vuoden-ravintola', label: 'v', source: 'x', date: '2026-01-01' }
+  const v2014: RestaurantReason = { kind: 'vuoden-ravintola', label: 'v', source: 'x', date: '2014-01-01' }
+  rChecks.push({ name: 'tuore Vuoden ravintola painaa vanhaa enemmän', ok: reasonWeight(v2026, today) > reasonWeight(v2014, today) * 2 })
+  // Sija 1 ennen sijaa 50.
+  rChecks.push({
+    name: 'top50 sija 1 painaa sijaa 50 enemmän',
+    ok: reasonWeight({ kind: 'top50', label: 'a', source: 'x', rank: 1 }, today)
+      > reasonWeight({ kind: 'top50', label: 'b', source: 'x', rank: 50 }, today),
+  })
+  // Tuleva avaus on kiinnostavampi kuin neljä kuukautta sitten avattu.
+  const tuleva: RestaurantReason = { kind: 'uusi', label: 'Avaa', source: 'x', date: '2026-10-01' }
+  const vanhaAvaus: RestaurantReason = { kind: 'uusi', label: 'Avattu', source: 'x', date: '2026-04-22' }
+  rChecks.push({ name: 'tuleva avaus painaa vanhaa avausta enemmän', ok: reasonWeight(tuleva, today) > reasonWeight(vanhaAvaus, today) })
+  rChecks.push({ name: 'syytön paikka painaa nolla', ok: reasonsWeight([], today) === 0 })
+  rChecks.push({ name: 'primaryReason valitsee painavimman', ok: primaryReason(bib3, today)?.kind === 'michelin' })
+  rChecks.push({ name: 'primaryReason kestää tyhjän', ok: primaryReason(undefined, today) === null })
+
+  // 6. AVAUSPÄIVÄN SANALLISTAMINEN
+  rChecks.push({ name: 'mennyt avaus imperfektissä', ok: openingLabel('2026-06-30', today) === 'Avattu kesäkuussa', got: String(openingLabel('2026-06-30', today)) })
+  rChecks.push({ name: 'tuleva avaus futuurissa', ok: openingLabel('2026-10-01', today) === 'Avaa lokakuussa', got: String(openingLabel('2026-10-01', today)) })
+  rChecks.push({ name: 'eri vuosi näyttää vuosiluvun', ok: openingLabel('2027-01-15', today) === 'Avaa tammikuussa 2027', got: String(openingLabel('2027-01-15', today)) })
+  rChecks.push({ name: 'kelvoton päivä → null', ok: openingLabel('ei-päivä', today) === null })
+
+  // 7. OIKEA DATATIEDOSTO — rakenne ja romahdusvahti
+  const rf = reasonFile as unknown as ReasonFile
+  rChecks.push({ name: 'syytiedostossa on avaimia', ok: Object.keys(rf.byName ?? {}).length > 100, got: String(Object.keys(rf.byName ?? {}).length) })
+  for (const [kind, floor] of [['michelin', 20], ['top50', 20], ['timeout', 25], ['uusi', 10]] as const) {
+    rChecks.push({ name: `syytiedosto: ${kind} ≥ ${floor}`, ok: (rf.counts?.[kind] ?? 0) >= floor, got: String(rf.counts?.[kind] ?? 0) })
+  }
+  // Jokaisella syyllä on laji ja teksti — tyhjä merkki näyttäisi kortissa rikkinäiseltä.
+  const allReasons = Object.values(rf.byName ?? {}).flat()
+  rChecks.push({ name: 'jokaisella syyllä on teksti', ok: allReasons.every((x) => typeof x.label === 'string' && x.label.length > 0) })
+  rChecks.push({ name: 'jokaisella syyllä on lähde', ok: allReasons.every((x) => typeof x.source === 'string' && x.source.length > 0) })
+  rChecks.push({ name: 'jokaisella uusi-syyllä on päivä ja katu', ok: allReasons.filter((x) => x.kind === 'uusi').every((x) => !!x.date && !!x.street) })
+  rChecks.push({ name: 'jokaisella michelin-syyllä on tier', ok: allReasons.filter((x) => x.kind === 'michelin').every((x) => typeof x.tier === 'number') })
+
+  // 8. OSM-DUPLIKAATIT — mitattu: "Shelter" ja "shelter" olivat kuratoidun
+  //    kärjen sijoilla 21 ja 30, molemmat Kanavaranta 7, 17 metrin päässä.
+  type DupFixture = { name: string; lat?: number; lon?: number; image?: string; googleRating?: number }
+  const shelterA: DupFixture = { name: 'Shelter', lat: 60.1689639, lon: 24.9593212, image: 'a.jpg', googleRating: 4.4 }
+  const shelterB: DupFixture = { name: 'shelter', lat: 60.168829, lon: 24.9591777 }
+  const dedup = dedupeOsmVenues([shelterA, shelterB])
+  rChecks.push({ name: 'duplikaatti poistuu', ok: dedup.length === 1, got: String(dedup.length) })
+  rChecks.push({ name: 'rikkaampi kortti säilyy', ok: dedup[0]?.image === 'a.jpg' })
+  // Järjestys ei saa vaikuttaa lopputulokseen.
+  const dedupRev = dedupeOsmVenues([shelterB, shelterA])
+  rChecks.push({ name: 'rikkaampi säilyy myös käänteisessä järjestyksessä', ok: dedupRev.length === 1 && dedupRev[0]?.image === 'a.jpg' })
+  // Ketjun kaksi TODELLISTA toimipistettä eivät saa yhdistyä. Mitattu:
+  // Unicafe-kampuksella lähimmät erilliset ovat 52 m päässä toisistaan.
+  const uniA = { name: 'Unicafe', lat: 60.2000, lon: 24.9600 }
+  const uniB = { name: 'Unicafe', lat: 60.2005, lon: 24.9600 }   // ~56 m
+  rChecks.push({ name: 'ketjun eri toimipisteet säilyvät', ok: dedupeOsmVenues([uniA, uniB]).length === 2 })
+  // Kummisetä on 8 km päässä toisistaan — ei koskaan sama paikka.
+  rChecks.push({
+    name: 'kaukaiset samannimiset säilyvät',
+    ok: dedupeOsmVenues([
+      { name: 'Kummisetä', lat: 60.21295, lon: 25.08013 },
+      { name: 'Kummisetä', lat: 60.18844, lon: 24.94681 },
+    ]).length === 2,
+  })
+  rChecks.push({ name: 'eri nimet eivät yhdisty', ok: dedupeOsmVenues([{ name: 'Grön', lat: 60.16, lon: 24.94 }, { name: 'Palace', lat: 60.16, lon: 24.94 }]).length === 2 })
+  rChecks.push({ name: 'koordinaatiton ei yhdisty', ok: dedupeOsmVenues([{ name: 'X' }, { name: 'X' }]).length === 2 })
+  rChecks.push({ name: 'tyhjä lista ei kaadu', ok: dedupeOsmVenues([]).length === 0 })
+
+  for (const c of rChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ ravintolasyyt: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 
