@@ -8,6 +8,12 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { pickAttributes } from '@/lib/google-attributes'
+// Sama syyjärjestelmä kuin ravintoloissa: kärjessä vain paikkoja joilla on
+// ulkoinen, nimetty syy (näyttely, uutinen, uusi paikka, toimituslista,
+// huippuarvio) — perheet lomittain, uutiselliset eteen.
+import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaurant-reasons'
+import { credibilityScore } from '@/lib/credibility'
+import { ReasonBadge, relativeDate } from '@/components/ReasonBadge'
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -200,6 +206,27 @@ function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
   const open = isOpenNow(a.openingHours)
   const highlight = getHighlight(a.name)
   const meta = CATEGORY_META[a.category]
+  // SYY — miksi tämä paikka on kärjessä. Sama kuri kuin ravintolakorteissa:
+  // merkki + korkeintaan yksi selittävä rivi lajia kohden, teksti aina
+  // ulkoisesta nimetystä lähteestä.
+  const reason = useMemo(() => primaryReason(a.reasons, new Date()), [a.reasons])
+  // Näyttelyn nimi ja ajankohta omana rivinään — se on juuri se tieto joka
+  // auttaa päätöstä ("mitä siellä on NYT esillä"). Vain kun näyttely on
+  // kortin ensisijainen syy, ettei selitteitä kasaudu.
+  const exhibitReason = useMemo(
+    () => (reason?.kind === 'nayttely' && reason.note ? reason : null),
+    [reason],
+  )
+  // Tuore lehtijuttu tästä paikasta: otsikko näkyy aina kun juttu on olemassa.
+  const newsReason = useMemo(
+    () => a.reasons?.find((x) => x.kind === 'uutinen' && x.note) ?? null,
+    [a.reasons],
+  )
+  // Toimituslistan nimi vain kun lista on ensisijainen syy (ks. RestListCard).
+  const listReason = useMemo(
+    () => (reason?.kind === 'timeout' && reason.note ? reason : null),
+    [reason],
+  )
 
   return (
     <div className={`rounded-2xl overflow-hidden ${onOpen ? 'cursor-pointer transition-transform active:scale-[.99]' : ''}`}
@@ -214,8 +241,13 @@ function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
         </div>
       )}
       <div className="p-4 space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+        {/* flex-wrap + EI min-w-0: kapealla kortilla (2 palstaa mobiilissa)
+            shrink-0-pillerit veivät koko rivin ja min-w-0 painoi otsikon
+            0-leveyteen → nimi maalautui pillereiden alle (mitattu DOM:sta:
+            otsikkosäiliö w=0, pillerit w=140, sisältötila 139). Nyt pillerit
+            rivittyvät nimen alle kun eivät mahdu viereen. */}
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             <span className="text-xl shrink-0">{meta.emoji}</span>
             <h3 className="font-black text-white text-sm leading-tight">{a.name}</h3>
           </div>
@@ -238,6 +270,54 @@ function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
 
         {rating && (
           <p className="text-[12px] font-bold" style={{ color: '#e8c06a' }}>★ {rating.rating.toFixed(1)} · {fmtReviews(rating.reviewCount)} arvostelua</p>
+        )}
+
+        {reason && (
+          <div className="flex flex-wrap items-center gap-1">
+            <ReasonBadge reason={reason} />
+          </div>
+        )}
+        {/* NÄYTTELY — nimi ja ajankohta museon omasta kalenterista (museot.fi).
+            Linkki kalenteriin; stopPropagation ettei kortin avaus laukea. */}
+        {exhibitReason && (
+          /* rel: vain noopener, EI noreferrer — sama Safari-varotoimi kuin
+             ravintolakorttien uutisrivillä. */
+          <a
+            href={exhibitReason.url}
+            target="_blank"
+            rel="noopener"
+            onClick={(e) => e.stopPropagation()}
+            className="block text-[11.5px] leading-snug text-white/70 hover:text-white transition-colors"
+          >
+            🖼 {exhibitReason.note}
+            <span className="text-white/35"> · {exhibitReason.source} ↗</span>
+          </a>
+        )}
+        {/* UUTINEN — toimittajan tuore juttu juuri tästä paikasta. */}
+        {newsReason && (
+          <a
+            href={newsReason.url}
+            target="_blank"
+            rel="noopener"
+            onClick={(e) => e.stopPropagation()}
+            className="block text-[11.5px] leading-snug text-white/70 hover:text-white transition-colors"
+          >
+            📰 {newsReason.note}
+            <span className="text-white/35"> · {newsReason.date ? relativeDate(newsReason.date) : ''} ↗</span>
+          </a>
+        )}
+        {/* TOIMITUSLISTA — millä listalla ja monentenako; linkki artikkeliin. */}
+        {listReason && (
+          <a
+            href={listReason.url}
+            target="_blank"
+            rel="noopener"
+            onClick={(e) => e.stopPropagation()}
+            className="block text-[11.5px] leading-snug text-white/70 hover:text-white transition-colors"
+          >
+            📋 {listReason.note}
+            <span className="text-white/35"> · {listReason.source.replace(/\s*Helsinki$/, '')} ↗</span>
+          </a>
         )}
 
         {highlight?.hook ? (
@@ -270,7 +350,10 @@ function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
           )
         })()}
 
-        {a.fee === true && a.charge && (
+        {/* OSM:n charge-tagissa on joskus pelkkä kyllä/ei-arvo ("no", "yes")
+            — se ei ole hinta, eikä "🎫 no" kerro mitään (mitattu:
+            Hakasalmen huvila). Näytetään vain oikea hintateksti. */}
+        {a.fee === true && a.charge && !/^(no|yes)$/i.test(a.charge.trim()) && (
           <div className="flex items-center gap-1 text-xs text-amber-400/70">
             <Ticket size={10} /> {a.charge}
           </div>
@@ -540,22 +623,51 @@ export default function ActivitiesView({ onShowOnMap }: {
     return filtered
   }, [catPool, filterOpen, filterNearby, freeOnly, userPos, distMap, ratingMap])
 
-  // Hero rotates by day of week across different categories
+  // Vakaa "tänään" syiden painotukseen — sama päivä koko renderöinnin ajan.
+  const sortToday = useMemo(() => new Date(), [])
+
+  // Arvosana + arvostelumäärä uskottavuuspisteeseen: klientin venue-ratings
+  // ensin (act:-yliajot), API:n mukana tullut arvosana varalle.
+  const rateOf = useCallback((a: Activity) => {
+    const rt = ratingMap.get(a.name.toLowerCase())
+    if (rt) return { rating: rt.rating, reviews: rt.reviewCount }
+    return { rating: a.rating ?? undefined, reviews: a.reviewCount ?? undefined }
+  }, [ratingMap])
+  const credOf = useCallback((a: Activity) => {
+    const { rating, reviews } = rateOf(a)
+    return credibilityScore(rating ?? null, reviews ?? null)
+  }, [rateOf])
+
+  // Hero on sivun käyntikortti → SYY ratkaisee (tuore uutinen, näyttely, uusi
+  // paikka), uskottavuus erottaa tasaveroiset. Sama periaate kuin
+  // ravintoloiden herossa: ilman syypainoa kärkeen nousisi vain suurin
+  // arvostelumassa. Ilman yhtään syyllistä kuvapaikkaa pudotaan vanhaan
+  // viikonpäiväkiertoon.
   const heroActivity = useMemo(() => {
     if (catFilter !== 'all') return null
+    const heroScore = (a: Activity) =>
+      (a.reasons?.length ? reasonsWeight(a.reasons, sortToday) : 0) + credOf(a) * 10
+    const reasoned = activities
+      .filter(a => a.image && a.reasons?.length)
+      .sort((a, b) => heroScore(b) - heroScore(a))
+    if (reasoned.length) {
+      // Auki nyt -paikka voittaa kärjen tasavertaisista, muttei pudota syytä.
+      return reasoned.slice(0, 8).find(a => isOpenNow(a.openingHours) === true) ?? reasoned[0]
+    }
     const preferredCat = HERO_ROTATION[new Date().getDay() % HERO_ROTATION.length]
     return activities.find(a => a.category === preferredCat && a.image && isOpenNow(a.openingHours))
       ?? activities.find(a => a.image && isOpenNow(a.openingHours))
       ?? activities.find(a => a.image)
       ?? activities[0]
       ?? null
-  }, [activities, catFilter])
+  }, [activities, catFilter, sortToday, credOf])
 
   // ── "✨ Helsinkiläisten suosikit" — ~60 lokaalisti kiinnostavinta ─────────
-  // Kuratoitu kärki oletusnäkymään: kategoriapaino (saunat/näköpaikat kärkeen)
-  // + Helsinki-kohteet edellä (muut kaupungit alas) + kuva & arvosana nostavat
-  // + turistiklusteri alas. Ei suora arvostelumäärä-boostia ("maineen katto"),
-  // vaan Bayes-kutistettu arvosana, ettei Suomenlinna jyrää.
+  // Kärki on syyvetoinen kuten ravintoloissa: ulkoisen syyn kantajat (näyttely,
+  // uutinen, uusi paikka, toimituslista, huippuarvio) lomittuvat ensin, ja
+  // loput kuratoidaan lokaalipisteillä: kategoriapaino (saunat/näköpaikat
+  // kärkeen) + Helsinki-kohteet edellä + kuva & arvosana nostavat +
+  // turistiklusteri alas.
   const localPicks = useMemo(() => {
     if (catFilter !== 'all') return []
     const localScore = (a: Activity): number => {
@@ -579,10 +691,12 @@ export default function ActivitiesView({ onShowOnMap }: {
     // Hero näytetään vain ilman kovaa suodatinta → sulje se pois ruudukosta vain
     // silloin (muuten hero voi olla kelvollinen suodatettu kohde, ei duplikaattia).
     const heroShown = !freeOnly
-    // Kuratoinnin arvoiset: kiinnostava kategoria TAI kuva/arvosana on.
+    // Kuratoinnin arvoiset: kiinnostava kategoria TAI kuva/arvosana TAI
+    // ulkoinen syy — uusi pakohuone ilman kuvaa ja arvosteluja on silti
+    // nostamisen arvoinen, koska syy on todiste kiinnostavuudesta.
     const candidates = activities.filter(a =>
       (!heroShown || a.id !== heroActivity?.id) &&
-      (ACT_CURATED_CATS.has(a.category) || !!a.image || ratingMap.has(a.name.toLowerCase()))
+      (ACT_CURATED_CATS.has(a.category) || !!a.image || ratingMap.has(a.name.toLowerCase()) || !!a.reasons?.length)
     )
     const open = (a: Activity) =>
       !a.openingHours && OUTDOOR_ALWAYS_OPEN.includes(a.category) ? true : isOpenNow(a.openingHours) === true
@@ -595,7 +709,12 @@ export default function ActivitiesView({ onShowOnMap }: {
         .sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
         .slice(0, ACT_TOP_PICKS)
     }
-    const byScore = [...pool].sort((a, b) => {
+    // SYYLLISET EROON MUISTA: ulkoisen syyn (näyttely, uutinen, uusi paikka,
+    // toimituslista, huippuarvio) kantajat lomitetaan kärkeen omalla
+    // järjestelmällään; loput kuratoidaan vanhalla kategoria-round-robinilla.
+    const reasoned = pool.filter(a => a.reasons?.length)
+    const rest = pool.filter(a => !a.reasons?.length)
+    const byScore = [...rest].sort((a, b) => {
       const d = localScore(b) - localScore(a)
       if (d !== 0) return d
       const ia = a.image ? 1 : 0, ib = b.image ? 1 : 0
@@ -635,8 +754,17 @@ export default function ActivitiesView({ onShowOnMap }: {
         if (!chosen.has(a.id)) picks.push(a)
       }
     }
-    return picks
-  }, [activities, catFilter, ratingMap, filterOpen, filterNearby, freeOnly, userPos, distMap, heroActivity])
+    // SYYLLISET KÄRKEEN, PERHEET LOMITTAIN — sama d'Hondt kuin ravintoloissa:
+    // uutiselliset aivan eteen, sitten näyttelyt/uudet/listat/huippuarviot
+    // vuorotellen, ja round-robin-kuratoitu loppuosa perään entisessä
+    // järjestyksessään. Syylliset annetaan LOPUSSA, jotta uutuuden laatuportin
+    // hylkäämä (heikoksi tiedetty uusi paikka) putoaa listan hännille eikä
+    // kuratoidun keskelle.
+    const merged = interleaveReasoned(
+      [...picks, ...reasoned], (a) => a.reasons, sortToday, credOf, rateOf,
+    )
+    return merged.slice(0, ACT_TOP_PICKS)
+  }, [activities, catFilter, ratingMap, filterOpen, filterNearby, freeOnly, userPos, distMap, heroActivity, sortToday, credOf, rateOf])
 
   const clearFilter = useCallback(() => { setCatFilter('all'); setFilterOpen(false); setFilterNearby(false); setFreeOnly(false) }, [])
 

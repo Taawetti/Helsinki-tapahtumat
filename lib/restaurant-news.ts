@@ -44,6 +44,20 @@ const QUERIES = [
   'Helsinki+ravintola+uusi+menu',
 ]
 
+// Tekemisen uutiset (saunat, museot, näyttelyt, elämykset) — sama putki
+// syöttää myös /api/activities-syyt. Näihin EI sovelleta POSITIVE-ruokasana-
+// suodatinta (se on ravintolakohtainen), mutta NEGATIVE ja OTHER_CITY pätevät.
+// Nimiyhdistäjä on varsinainen portti tässäkin.
+const ACTIVITY_QUERIES = [
+  'Helsinki+uusi+sauna',
+  'Helsinki+museo+uusi+näyttely',
+  'Helsinki+näyttely+avautuu',
+  'Helsinki+uusi+galleria',
+  'Helsinki+teatteri+ensi-ilta',
+  'Helsinki+uusi+pakohuone+OR+keilahalli+OR+kiipeilykeskus',
+  'Helsinki+maauimala+OR+uimahalli+avautuu',
+]
+
 // Sesonki tuo ne uutiset joita asiakas juuri nyt etsii: isänpäivälounaat
 // marraskuussa, rapukausi elokuussa. Kuukausi luetaan hakuhetkellä; välimuisti
 // vanhenee tunnissa, joten kuunvaihde vaihtaa kyselyt itsestään.
@@ -191,8 +205,9 @@ async function fetchTimeOutNews(): Promise<NewsItem[]> {
 export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
   const month = new Date().getUTCMonth() + 1
   const queries = [...QUERIES, ...(SEASONAL[month] ?? [])]
-  const [googleResults, cityFi, timeOutNews] = await Promise.all([
+  const [googleResults, activityResults, cityFi, timeOutNews] = await Promise.all([
     Promise.all(queries.map(fetchQuery)),
+    Promise.all(ACTIVITY_QUERIES.map(fetchQuery)),
     fetchCityFi(),
     fetchTimeOutNews(),
   ])
@@ -202,6 +217,15 @@ export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
   for (const item of googleResults.flat()) {
     if (seen.has(item.link)) continue
     if (!POSITIVE.test(item.title)) continue
+    if (NEGATIVE.test(item.title)) continue
+    if (OTHER_CITY.test(item.title)) continue
+    seen.add(item.link)
+    merged.push(item)
+  }
+  // Tekemisen kyselyt: ruokasanavaade ei päde ("Uusi yleinen sauna avautuu
+  // Merihakaan" ei sisällä ruokasanaa mutta on juuri oikea juttu).
+  for (const item of activityResults.flat()) {
+    if (seen.has(item.link)) continue
     if (NEGATIVE.test(item.title)) continue
     if (OTHER_CITY.test(item.title)) continue
     seen.add(item.link)
@@ -223,11 +247,12 @@ export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
   // hieman vanhemmat pidetään mukana diagnostiikkaa varten.
   const cutoff = Date.now() - 30 * 24 * 3_600_000
   merged.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-  return merged.filter(i => new Date(i.pubDate).getTime() > cutoff).slice(0, 80)
+  return merged.filter(i => new Date(i.pubDate).getTime() > cutoff).slice(0, 110)
 }
 
-/** Tunnin välimuisti — sama kuin muillakin rikastuksilla. v7: City.fi ja
- *  Time Outin FI-uutiset mukaan Google Newsin rinnalle. */
-export const fetchRestaurantNews = unstable_cache(_fetchNewsUncached, ['restaurant-news-v7'], {
+/** Tunnin välimuisti — sama kuin muillakin rikastuksilla. v8: tekemisen
+ *  kyselyt (saunat, näyttelyt, elämykset) mukaan; katto 80 → 110, jottei
+ *  laajempi haku syrjäytä ravintolajuttuja. */
+export const fetchRestaurantNews = unstable_cache(_fetchNewsUncached, ['restaurant-news-v8'], {
   revalidate: 3600,
 })

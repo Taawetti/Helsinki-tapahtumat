@@ -1,0 +1,5410 @@
+{
+  "fetchedAt": "2026-08-23T17:27:41.097Z",
+  "byName": {
+    "sinebrychoffin taidemuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=35022",
+        "date": "2026-03-03",
+        "note": "Anna Sinebrychoff – Edelläkävijä (3.3.2026 – 29.8.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=33283",
+        "date": "2026-09-24",
+        "note": "Riikinkukko puutarhassa – Mathias Withoosin Rooma (24.9.2026 – 10.1.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=29877",
+        "date": "2026-02-17",
+        "note": "Paul ja Fanny Sinebrychoffin kotimuseo (17.2.2026 – 31.12.2030)"
+      }
+    ],
+    "sinebrychoffintaidemuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=35022",
+        "date": "2026-03-03",
+        "note": "Anna Sinebrychoff – Edelläkävijä (3.3.2026 – 29.8.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=33283",
+        "date": "2026-09-24",
+        "note": "Riikinkukko puutarhassa – Mathias Withoosin Rooma (24.9.2026 – 10.1.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=29877",
+        "date": "2026-02-17",
+        "note": "Paul ja Fanny Sinebrychoffin kotimuseo (17.2.2026 – 31.12.2030)"
+      }
+    ],
+    "merkki": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44489",
+        "date": "2026-08-21",
+        "note": "Stadissa tehty 2026 (21.8.2026 – 1.11.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44200",
+        "date": "2026-07-13",
+        "note": "Ihminenkori ja kokis pls (13.7.2026 – 7.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43330",
+        "date": "2026-05-08",
+        "note": "Saapasjalkakissa – kaikkien aikojen satuseikkailu (8.5.2026 – 30.12.2026)"
+      }
+    ],
+    "helsingin taidehalli": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43076",
+        "date": "2026-08-20",
+        "note": "Alia Ali: In Light of... (20.8.2026 – 1.11.2026)"
+      }
+    ],
+    "helsingintaidehalli": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43076",
+        "date": "2026-08-20",
+        "note": "Alia Ali: In Light of... (20.8.2026 – 1.11.2026)"
+      }
+    ],
+    "sotamuseo maneesi": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39335",
+        "date": "2025-03-29",
+        "note": "Kahden kodin välillä (29.3.2025 – 31.10.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40407",
+        "date": "2025-06-01",
+        "note": "Voitto on meidän (1.6.2025 – 31.10.2026)"
+      }
+    ],
+    "sotamuseomaneesi": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39335",
+        "date": "2025-03-29",
+        "note": "Kahden kodin välillä (29.3.2025 – 31.10.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40407",
+        "date": "2025-06-01",
+        "note": "Voitto on meidän (1.6.2025 – 31.10.2026)"
+      }
+    ],
+    "nykytaiteen museo kiasma": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41730",
+        "date": "2026-10-09",
+        "note": "Emma Ainala: Like a Prayer (9.10.2026 – 14.2.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41725",
+        "date": "2026-03-27",
+        "note": "Entiset ainoat – Saamelaisen taiteen aika (27.3.2026 – 6.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41728",
+        "date": "2026-04-17",
+        "note": "Edith Karlson: Sarastus (17.4.2026 – 27.9.2026)"
+      }
+    ],
+    "nykytaiteenmuseokiasma": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41730",
+        "date": "2026-10-09",
+        "note": "Emma Ainala: Like a Prayer (9.10.2026 – 14.2.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41725",
+        "date": "2026-03-27",
+        "note": "Entiset ainoat – Saamelaisen taiteen aika (27.3.2026 – 6.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41728",
+        "date": "2026-04-17",
+        "note": "Edith Karlson: Sarastus (17.4.2026 – 27.9.2026)"
+      }
+    ],
+    "herttoniemen kartanon museo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44347",
+        "date": "2026-08-11",
+        "note": "Unohdus (11.8.2026 – 27.9.2026)"
+      }
+    ],
+    "herttoniemenkartanonmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44347",
+        "date": "2026-08-11",
+        "note": "Unohdus (11.8.2026 – 27.9.2026)"
+      }
+    ],
+    "luomus luonnontieteellinen museo": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44303",
+        "date": "2026-09-01",
+        "note": "Luova Tuho (1.9.2026 – 10.1.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44325",
+        "date": "2026-08-18",
+        "note": "Värit (18.8.2026 – 11.10.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43579",
+        "date": "2026-05-20",
+        "note": "Pölyttäjien kirjo (20.5.2026 – 6.6.2027)"
+      }
+    ],
+    "luomusluonnontieteellinenmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44303",
+        "date": "2026-09-01",
+        "note": "Luova Tuho (1.9.2026 – 10.1.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44325",
+        "date": "2026-08-18",
+        "note": "Värit (18.8.2026 – 11.10.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43579",
+        "date": "2026-05-20",
+        "note": "Pölyttäjien kirjo (20.5.2026 – 6.6.2027)"
+      }
+    ],
+    "tekniikan museo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44266",
+        "date": "2026-07-11",
+        "note": "Entä jos? (11.7.2026 – 31.12.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43113",
+        "date": "2026-03-30",
+        "note": "Tekoälyn tila (30.3.2026 – 31.12.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43109",
+        "date": "2026-03-27",
+        "note": "on/off/on-installaatio (27.3.2026 – 30.8.2026)"
+      }
+    ],
+    "tekniikanmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44266",
+        "date": "2026-07-11",
+        "note": "Entä jos? (11.7.2026 – 31.12.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43113",
+        "date": "2026-03-30",
+        "note": "Tekoälyn tila (30.3.2026 – 31.12.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43109",
+        "date": "2026-03-27",
+        "note": "on/off/on-installaatio (27.3.2026 – 30.8.2026)"
+      }
+    ],
+    "ham helsingin taidemuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44031",
+        "date": "2026-09-25",
+        "note": "Antti Tolvi: Sävellys uruille ja tauolle (25.9.2026 – 10.1.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44033",
+        "date": "2026-10-09",
+        "note": "Emma Talbot: Et ole keskipiste (9.10.2026 – 25.4.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44032",
+        "date": "2026-10-09",
+        "note": "Leena Luostarinen: Sopeutumaton (9.10.2026 – 4.4.2027)"
+      }
+    ],
+    "hamhelsingintaidemuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44031",
+        "date": "2026-09-25",
+        "note": "Antti Tolvi: Sävellys uruille ja tauolle (25.9.2026 – 10.1.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44033",
+        "date": "2026-10-09",
+        "note": "Emma Talbot: Et ole keskipiste (9.10.2026 – 25.4.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44032",
+        "date": "2026-10-09",
+        "note": "Leena Luostarinen: Sopeutumaton (9.10.2026 – 4.4.2027)"
+      }
+    ],
+    "ehrensvard museo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44170",
+        "date": "2026-07-02",
+        "note": "Ehrensvärd-museon digitaalinen opas (2.7.2026 – 31.8.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42567",
+        "date": "2026-04-02",
+        "note": "MERENKULKIJAN KARTASTOT - Karttojen matkassa Itämerellä (2.4.2026 – 30.9.2026)"
+      }
+    ],
+    "ehrensvardmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44170",
+        "date": "2026-07-02",
+        "note": "Ehrensvärd-museon digitaalinen opas (2.7.2026 – 31.8.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42567",
+        "date": "2026-04-02",
+        "note": "MERENKULKIJAN KARTASTOT - Karttojen matkassa Itämerellä (2.4.2026 – 30.9.2026)"
+      }
+    ],
+    "helsingin kaupunginmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42679",
+        "date": "2026-06-13",
+        "note": "Helsinki-näyttely (13.6.2026 – 31.12.2030)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42533",
+        "date": "2026-04-17",
+        "note": "Tuntematon lähiö (17.4.2026 – 13.9.2026)"
+      }
+    ],
+    "helsinginkaupunginmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42679",
+        "date": "2026-06-13",
+        "note": "Helsinki-näyttely (13.6.2026 – 31.12.2030)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42533",
+        "date": "2026-04-17",
+        "note": "Tuntematon lähiö (17.4.2026 – 13.9.2026)"
+      }
+    ],
+    "seurasaaren ulkomuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43892",
+        "date": "2026-06-13",
+        "note": "Seurasaaren kesämökki (13.6.2026 –)"
+      }
+    ],
+    "seurasaarenulkomuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43892",
+        "date": "2026-06-13",
+        "note": "Seurasaaren kesämökki (13.6.2026 –)"
+      }
+    ],
+    "didrichsenin taidemuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42133",
+        "date": "2026-05-29",
+        "note": "William Morris (29.5.2026 – 30.8.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42134",
+        "date": "2026-09-12",
+        "note": "Elin Danielson-Gambogi (12.9.2026 – 31.1.2027)"
+      }
+    ],
+    "didrichsenintaidemuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42133",
+        "date": "2026-05-29",
+        "note": "William Morris (29.5.2026 – 30.8.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42134",
+        "date": "2026-09-12",
+        "note": "Elin Danielson-Gambogi (12.9.2026 – 31.1.2027)"
+      }
+    ],
+    "suomen valokuvataiteen museo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43074",
+        "date": "2026-03-27",
+        "note": "Film still – Malla Hukkasen valokuvia elokuvista (27.3.2026 – 20.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43075",
+        "date": "2026-03-27",
+        "note": "Z Walsh: Feminine Man (27.3.2026 – 20.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43789",
+        "date": "2026-05-29",
+        "note": "Photofuss: Kontakti (29.5.2026 – 6.9.2026)"
+      }
+    ],
+    "suomenvalokuvataiteenmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43074",
+        "date": "2026-03-27",
+        "note": "Film still – Malla Hukkasen valokuvia elokuvista (27.3.2026 – 20.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43075",
+        "date": "2026-03-27",
+        "note": "Z Walsh: Feminine Man (27.3.2026 – 20.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43789",
+        "date": "2026-05-29",
+        "note": "Photofuss: Kontakti (29.5.2026 – 6.9.2026)"
+      }
+    ],
+    "finlandia talo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43438",
+        "date": "2026-05-11",
+        "note": "Visions of Alvar Aalto - suurnäyttely luovuuden juurista (11.5.2026 –)"
+      }
+    ],
+    "finlandiatalo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43438",
+        "date": "2026-05-11",
+        "note": "Visions of Alvar Aalto - suurnäyttely luovuuden juurista (11.5.2026 –)"
+      }
+    ],
+    "urheilun ja liikunnan kulttuurikeskus tahto": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41734",
+        "date": "2026-04-10",
+        "note": "JUMPPATYTÖT – rakkauskirje joukkuevoimistelulle (10.4.2026 – 13.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39205",
+        "date": "2024-11-29",
+        "note": "TAHDON Liikuntaseikkailu (29.11.2024 –)"
+      }
+    ],
+    "urheilunjaliikunnankulttuurikeskustahto": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41734",
+        "date": "2026-04-10",
+        "note": "JUMPPATYTÖT – rakkauskirje joukkuevoimistelulle (10.4.2026 – 13.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39205",
+        "date": "2024-11-29",
+        "note": "TAHDON Liikuntaseikkailu (29.11.2024 –)"
+      }
+    ],
+    "tamminiemi": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43244",
+        "date": "2026-04-17",
+        "note": "Paperitähdet – Rauni Palosen paperinukkeja 1968–1982 (17.4.2026 – 9.1.2028)"
+      }
+    ],
+    "lastentarhamuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42913",
+        "date": "2026-03-04",
+        "note": "Yhteiset ruokailuhetket – Lastentarha- ja päiväkotimuistojen keruu (4.3.2026 – 27.10.2026)"
+      }
+    ],
+    "amos rex": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43079",
+        "date": "2026-05-13",
+        "note": "Generation 2026 (13.5.2026 – 6.9.2026)"
+      }
+    ],
+    "amosrex": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43079",
+        "date": "2026-05-13",
+        "note": "Generation 2026 (13.5.2026 – 6.9.2026)"
+      }
+    ],
+    "villa gyllenberg": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43058",
+        "date": "2026-10-10",
+        "note": "Kurkistus Sammon kokoelmaan (10.10.2026 – 14.2.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41850",
+        "date": "2026-04-22",
+        "note": "Runollinen todellisuus – 1920–40-lukujen taidetta, muotia, muotoilua ja puutarhoja (22.4.2"
+      }
+    ],
+    "villagyllenberg": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43058",
+        "date": "2026-10-10",
+        "note": "Kurkistus Sammon kokoelmaan (10.10.2026 – 14.2.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41850",
+        "date": "2026-04-22",
+        "note": "Runollinen todellisuus – 1920–40-lukujen taidetta, muotia, muotoilua ja puutarhoja (22.4.2"
+      }
+    ],
+    "suomenlinna museo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42566",
+        "date": "2026-03-06",
+        "note": "Käsityönä tehdyn Lasin lumo (6.3.2026 – 10.1.2027)"
+      }
+    ],
+    "suomenlinnamuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42566",
+        "date": "2026-03-06",
+        "note": "Käsityönä tehdyn Lasin lumo (6.3.2026 – 10.1.2027)"
+      }
+    ],
+    "arkkitehtuuri ja designmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42587",
+        "date": "2026-06-05",
+        "note": "Aalto Design - Hyvinvoinnin muodot (5.6.2026 – 3.1.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42489",
+        "date": "2026-02-20",
+        "note": "Juha Vehmaanperä: Craft Punk (20.2.2026 – 6.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40931",
+        "date": "2025-10-10",
+        "note": "Pako Muumilaaksoon (10.10.2025 – 27.9.2026)"
+      }
+    ],
+    "arkkitehtuurijadesignmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42587",
+        "date": "2026-06-05",
+        "note": "Aalto Design - Hyvinvoinnin muodot (5.6.2026 – 3.1.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42489",
+        "date": "2026-02-20",
+        "note": "Juha Vehmaanperä: Craft Punk (20.2.2026 – 6.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40931",
+        "date": "2025-10-10",
+        "note": "Pako Muumilaaksoon (10.10.2025 – 27.9.2026)"
+      }
+    ],
+    "hotelli ja ravintolamuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41733",
+        "date": "2026-09-18",
+        "note": "Ohrapuuroa ja näkkäriä – suomalaisen kouluruokailun tarina (18.9.2026 – 29.8.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39409",
+        "date": "2025-09-19",
+        "note": "Kuohuvat kymmenet – ravintolavalokuvia 1960- ja 1970-luvuilta (19.9.2025 – 30.8.2026)"
+      }
+    ],
+    "hotellijaravintolamuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41733",
+        "date": "2026-09-18",
+        "note": "Ohrapuuroa ja näkkäriä – suomalaisen kouluruokailun tarina (18.9.2026 – 29.8.2027)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39409",
+        "date": "2025-09-19",
+        "note": "Kuohuvat kymmenet – ravintolavalokuvia 1960- ja 1970-luvuilta (19.9.2025 – 30.8.2026)"
+      }
+    ],
+    "ateneumin taidemuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41724",
+        "date": "2026-03-13",
+        "note": "Eero Nelimarkka (13.3.2026 – 13.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41726",
+        "date": "2026-08-18",
+        "note": "Modernit klassikot: Elga Sesemann (18.8.2026 – 8.8.2027)"
+      }
+    ],
+    "ateneumintaidemuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41724",
+        "date": "2026-03-13",
+        "note": "Eero Nelimarkka (13.3.2026 – 13.9.2026)"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41726",
+        "date": "2026-08-18",
+        "note": "Modernit klassikot: Elga Sesemann (18.8.2026 – 8.8.2027)"
+      }
+    ],
+    "tiedemuseo liekki": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41718",
+        "date": "2025-12-04",
+        "note": "Angeloskooppi (4.12.2025 – 29.8.2026)"
+      }
+    ],
+    "tiedemuseoliekki": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41718",
+        "date": "2025-12-04",
+        "note": "Angeloskooppi (4.12.2025 – 29.8.2026)"
+      }
+    ],
+    "hakasalmen huvila": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40319",
+        "date": "2025-10-24",
+        "note": "Stefan Bremer – Helsinki by Night (24.10.2025 – 30.8.2026)"
+      }
+    ],
+    "hakasalmenhuvila": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40319",
+        "date": "2025-10-24",
+        "note": "Stefan Bremer – Helsinki by Night (24.10.2025 – 30.8.2026)"
+      }
+    ],
+    "teatterimuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40930",
+        "date": "2025-10-10",
+        "note": "Huimaa! Sirkuksen taikaa ja tarinoita (10.10.2025 – 10.1.2027)"
+      }
+    ],
+    "kuurojen museo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=38592",
+        "date": "2024-10-22",
+        "note": "Kuurojen museo (22.10.2024 – 31.12.2030)"
+      }
+    ],
+    "kuurojenmuseo": [
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=38592",
+        "date": "2024-10-22",
+        "note": "Kuurojen museo (22.10.2024 – 31.12.2030)"
+      }
+    ],
+    "parhaat kirjastot perheille": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 1,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "parhaatkirjastotperheille": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 1,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "helsingin parhaat leikkipuistot": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 2,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "helsinginparhaatleikkipuistot": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 2,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "viidakkoseikkailu lasten kanssa talvipuutarhassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 3,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "viidakkoseikkailulastenkanssatalvipuutarhassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 3,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "uppoudu nukketeatterin satumaailmaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 4,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "uppoudunukketeatterinsatumaailmaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 4,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "lapset rakastavat ratikkamuseota": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 5,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "lapsetrakastavatratikkamuseota": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 5,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "koe heureka hetkia tiedekeskuksessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 6,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "koeheurekahetkiatiedekeskuksessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 6,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "leiki lue ja loikoile oodin kirjastossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 7,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "leikiluejaloikoileoodinkirjastossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 7,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "leiki": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 7,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "tervehdi lehmia haltialan kotielaintilalla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 8,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "tervehdilehmiahaltialankotielaintilalla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 8,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "uppoudu hiekkaleikkeihin sandiksessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 9,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "uppouduhiekkaleikkeihinsandiksessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 9,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "tutustu dinosauruksiin luonnontieteellisessa museossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 10,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "tutustudinosauruksiinluonnontieteellisessamuseossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/lapsille/lasten-kanssa-helsingissa",
+        "rank": 10,
+        "note": "Tekemistä lasten kanssa Helsingissä"
+      }
+    ],
+    "la horde ballet national de marseille age of content": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 1,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "lahordeballetnationaldemarseilleageofcontent": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 1,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "la horde": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 1,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "lahorde": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 1,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "ballet national de marseille age of content": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 1,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "balletnationaldemarseilleageofcontent": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 1,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "people watching play dead": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 2,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "peoplewatchingplaydead": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 2,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "susanna leinonen company mozart mozart": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 3,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "susannaleinonencompanymozartmozart": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 3,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "susanna leinonen company mozart": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 3,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "susannaleinonencompanymozart": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 3,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "carl knif company matching steps": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 4,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "carlknifcompanymatchingsteps": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 4,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "april jazz kimi ervi and aki rissanen trio traces sonores sound traces": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 5,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "apriljazzkimierviandakirissanentriotracessonoressoundtraces": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 5,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "april jazz kimi ervi and aki rissanen trio traces sonores": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 5,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "apriljazzkimierviandakirissanentriotracessonores": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 5,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "sound traces": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 5,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "soundtraces": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 5,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "atte kilpinen kreutzersonaatti": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 6,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "attekilpinenkreutzersonaatti": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 6,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "lasten lauantai": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 7,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "lastenlauantai": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tanssi/tanssin-talon-ohjelma-kevat-2026",
+        "rank": 7,
+        "note": "Maailmanluokan tanssia Helsingissä"
+      }
+    ],
+    "helsingin kaupunginteatteri andjulia": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 1,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "helsinginkaupunginteatteriandjulia": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 1,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "suomen kansallisteatteri viidakon villit naiset": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 2,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "suomenkansallisteatteriviidakonvillitnaiset": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 2,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "and espoon teatteri saara turusen huonetrilogia": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 3,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "andespoonteatterisaaraturusenhuonetrilogia": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 3,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "svenska teatern anglagard": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 4,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "svenskateaternanglagard": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 4,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "kom teatteri poiskatsojat": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 5,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "komteatteripoiskatsojat": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 5,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "teatteri takomo etelapohjalaisia": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 6,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "teatteritakomoetelapohjalaisia": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 6,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "lilla teatern de obehoriga": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 7,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "lillateaterndeobehoriga": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 7,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "q teatteri suliko": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 8,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "qteatterisuliko": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 8,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "teatteri jurkka keuhkot": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 9,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "teatterijurkkakeuhkot": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 9,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "viirus": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/teatterit/helsinki-parhaat-teatterit",
+        "rank": 10,
+        "note": "Helsingin teatterit"
+      }
+    ],
+    "vuorokausi hanaholmen hotellissa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista",
+        "note": "Tekemistä Helsingissä juuri nyt"
+      }
+    ],
+    "vuorokausihanaholmenhotellissa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista",
+        "note": "Tekemistä Helsingissä juuri nyt"
+      }
+    ],
+    "helsingin parhaat kaupat": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista",
+        "note": "Tekemistä Helsingissä juuri nyt"
+      }
+    ],
+    "helsinginparhaatkaupat": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista",
+        "note": "Tekemistä Helsingissä juuri nyt"
+      }
+    ],
+    "helsingin parhaat kirjakaupat": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista",
+        "note": "Tekemistä Helsingissä juuri nyt"
+      }
+    ],
+    "helsinginparhaatkirjakaupat": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista",
+        "note": "Tekemistä Helsingissä juuri nyt"
+      }
+    ],
+    "arvostelussa elokuva the odyssey": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista",
+        "note": "Tekemistä Helsingissä juuri nyt"
+      }
+    ],
+    "arvostelussaelokuvatheodyssey": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista",
+        "note": "Tekemistä Helsingissä juuri nyt"
+      }
+    ],
+    "luxe": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/finnkino-helsingin-parhaat-elokuvasalit",
+        "note": "Elämää suuremmat elokuvateatterit"
+      }
+    ],
+    "maxim": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/finnkino-helsingin-parhaat-elokuvasalit",
+        "note": "Elämää suuremmat elokuvateatterit"
+      }
+    ],
+    "haasta itsesi hyrox studiolla ole fit vallilassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 1,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "haastaitsesihyroxstudiollaolefitvallilassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 1,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "lahde lentoon lumottaren bungee fun tunneilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 2,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "lahdelentoonlumottarenbungeefuntunneilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 2,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "nosta rautaa rapin tahtiin ptvgym salilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 3,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "nostarautaarapintahtiinptvgymsalilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 3,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "kohoa korkeuksiin helsingin kiipeilykeskuksessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 4,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "kohoakorkeuksiinhelsinginkiipeilykeskuksessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 4,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "rauhoitu liikkeessa pilates and barre glowssa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 5,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "rauhoituliikkeessapilatesandbarreglowssa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 5,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "uppoudu tatamilajeihin crestissa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 6,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "uppoudutatamilajeihincrestissa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 6,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "hikoile klubitunnelmassa trib3n saleilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 7,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "hikoileklubitunnelmassatrib3nsaleilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 7,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "antaudu treeniin crossfit bulsassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 8,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "antaudutreeniincrossfitbulsassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 8,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "lahde puntille mimmien kesken boonassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 9,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "lahdepuntillemimmienkeskenboonassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 9,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "suuntaa salille edullisesti ja mene unisportiin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 10,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "suuntaasalilleedullisestijameneunisportiin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-kuntosalit",
+        "rank": 10,
+        "note": "Oletko valmis hikoilemaan? Tässä ovat Helsingin parhaat…"
+      }
+    ],
+    "tee vauhdikas aikamatka linnanmaen vuoristoradalla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 1,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "teevauhdikasaikamatkalinnanmaenvuoristoradalla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 1,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "nouse paarautatieaseman kellotorniin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 2,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "nousepaarautatieasemankellotorniin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 2,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "tutustu alvar aaltoon finlandia talossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 3,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "tutustualvaraaltoonfinlandiatalossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 3,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "pulahda yrjonkadun uimahalliin kuin wes andersonin elokuvaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 4,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "pulahdayrjonkadunuimahalliinkuinwesandersoninelokuvaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 4,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "kay katsomassa millainen kesamokki seurasaareen valittiin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 5,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "kaykatsomassamillainenkesamokkiseurasaareenvalittiin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 5,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "kay katsomassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 5,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "kaykatsomassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 5,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "vapauta sisainen tom cruisesi activatessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 6,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "vapautasisainentomcruisesiactivatessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 6,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "veri vetaa oopperaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 7,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "verivetaaoopperaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 7,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "ihastu senaatintoriin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 8,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "ihastusenaatintoriin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 8,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "suomenlinna": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 9,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "astu oodissa kirjastojen tulevaisuuteen": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 10,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "astuoodissakirjastojentulevaisuuteen": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 10,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "anna kallion baarikierroksen vieda mukanaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 11",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 11,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "annakallionbaarikierroksenviedamukanaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 11",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 11,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "sulata kehon ikirouta saunassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 12",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 12,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "sulatakehonikiroutasaunassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 12",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 12,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "rukoile kuin bond pahis temppeliaukion kirkossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 13",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 13,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "rukoilekuinbondpahistemppeliaukionkirkossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 13",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 13,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "laita vaatekaappisi uusiksi": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 14",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 14,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "laitavaatekaappisiuusiksi": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 14",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 14,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "soita sibelius monumenttia": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 15",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 15,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "soitasibeliusmonumenttia": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 15",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsingin-parhaat-nahtavyydet",
+        "rank": 15,
+        "note": "Pakko kokea! Helsingin parhaat nähtävyydet"
+      }
+    ],
+    "8 kallio block party": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 1,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8kallioblockparty": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 1,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 cafe regatan vilttikirppis": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 2,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8caferegatanvilttikirppis": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 2,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 delyxx decadence dansbana lasipalatsinaukio": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 3,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8delyxxdecadencedansbanalasipalatsinaukio": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 3,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 delyxx decadence": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 3,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8delyxxdecadence": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 3,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 kaisaniemen kasvitieteellisen puutarhan opastetut kierrokset": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 4,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8kaisaniemenkasvitieteellisenpuutarhanopastetutkierrokset": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 4,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 hugo esiintyy superterassilla kasarmitori": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 5,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8hugoesiintyysuperterassillakasarmitori": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 5,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 hugo esiintyy superterassilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 5,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8hugoesiintyysuperterassilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 5,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 vieraile olympiastadionin avoimella kenttavuorolla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 6,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8vieraileolympiastadioninavoimellakenttavuorolla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 6,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 hellsinki metal festival alkaa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 7,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8hellsinkimetalfestivalalkaa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 7,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 vintage market vierailee teurastamolla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 8,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8vintagemarketvieraileeteurastamolla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 8,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 tove janssonin syntymapaiva ham": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 9,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8tovejanssoninsyntymapaivaham": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 9,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 tove janssonin syntymapaiva": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 9,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8tovejanssoninsyntymapaiva": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 9,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 kokeile skeittausta skeittikontilla elaintarhan skeittiparkki": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 10,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8kokeileskeittaustaskeittikontillaelaintarhanskeittiparkki": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 10,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 kokeile skeittausta skeittikontilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 10,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8kokeileskeittaustaskeittikontilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 10,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 hopeinen moon karaokeklubi siltanen": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 11",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 11,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8hopeinenmoonkaraokeklubisiltanen": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 11",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 11,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 hopeinen moon karaokeklubi": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 11",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 11,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8hopeinenmoonkaraokeklubi": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 11",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 11,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 tanssin voima festivaalin esitys usko faith suomenlinna": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 12",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 12,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8tanssinvoimafestivaalinesitysuskofaithsuomenlinna": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 12",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 12,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 tanssin voima festivaalin esitys usko faith": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 12",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 12,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8tanssinvoimafestivaalinesitysuskofaith": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 12",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 12,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 soli summer torstait bryggerin terassi": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 13",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 13,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8solisummertorstaitbryggerinterassi": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 13",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 13,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 soli summer torstait": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 13",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 13,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8solisummertorstait": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 13",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 13,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 flow festival suvilahti": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 14",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 14,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8flowfestivalsuvilahti": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 14",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 14,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 flow festival": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 14",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 14,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8flowfestival": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 14",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 14,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 keraa auringonkukkia helsingin kaupungin pelloilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 15",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 15,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8keraaauringonkukkiahelsinginkaupunginpelloilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 15",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 15,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 sointien kalasatama": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 16",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 16,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8sointienkalasatama": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 16",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 16,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 lapinlahden elokuvafestivaali": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 17",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 17,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8lapinlahdenelokuvafestivaali": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 17",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 17,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 rufus wainwright kaynnistaa helsingin juhlaviikot": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 18",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 18,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8rufuswainwrightkaynnistaahelsinginjuhlaviikot": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 18",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 18,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 perinteiset lavatanssit merimelojien maja": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 19",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 19,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8perinteisetlavatanssitmerimelojienmaja": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 19",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 19,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 perinteiset lavatanssit": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 19",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 19,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8perinteisetlavatanssit": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 19",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 19,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 taiteiden yo": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 20",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 20,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8taiteidenyo": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 20",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 20,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 espoo cine elokuvafestivaali": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 21",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 21,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8espoocineelokuvafestivaali": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 21",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 21,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 kapylan elojuhlat akseli toivosen kentta": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 22",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 22,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8kapylanelojuhlatakselitoivosenkentta": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 22",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 22,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 kapylan elojuhlat": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 22",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 22,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8kapylanelojuhlat": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 22",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 22,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 kirjallisuusfestivaali runokuun viimeinen paiva": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 23",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 23,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8kirjallisuusfestivaalirunokuunviimeinenpaiva": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 23",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 23,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 helsingin juhlaviikot radion sinfoniaorkesteri": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 24",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 24,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8helsinginjuhlaviikotradionsinfoniaorkesteri": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 24",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 24,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 viapori jazz alkaa suomenlinnassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 25",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 25,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8viaporijazzalkaasuomenlinnassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 25",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 25,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 viela ehdit rapukattaukset helsingissa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 26",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 26,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8vielaehditrapukattauksethelsingissa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 26",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 26,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 itameripaiva": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 27",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 27,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8itameripaiva": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 27",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 27,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 helsinki design week alkaa ja malminkartanossa soi livemusiikki": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 28",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 28,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8helsinkidesignweekalkaajamalminkartanossasoilivemusiikki": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 28",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 28,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 venetsialaiset kiska kii ja latin fest": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 29",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 29,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8venetsialaisetkiskakiijalatinfest": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 29",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 29,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 venetsialaiset": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 29",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 29,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8venetsialaiset": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 29",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 29,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 gran fondo pyorailytapahtuma helsingin velodromi": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 30",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 30,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8granfondopyorailytapahtumahelsinginvelodromi": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 30",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 30,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8 gran fondo pyorailytapahtuma": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 30",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 30,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "8granfondopyorailytapahtuma": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 30",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-elokuu",
+        "rank": 30,
+        "note": "Elokuun tapahtumat Helsingissä"
+      }
+    ],
+    "bongaa muraaleja pasilan katutaidekaupunginosassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 1,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "bongaamuraalejapasilankatutaidekaupunginosassa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 1,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "ihastu taidekoti kirpilaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 2,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "ihastutaidekotikirpilaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 2,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "piknikille talvipuutarhaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 3,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "piknikilletalvipuutarhaan": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 3,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "tee aikamatka helsingin kaupunginmuseossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 4,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "teeaikamatkahelsinginkaupunginmuseossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 4",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 4,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "anna kesaillan venya espan lavan konserteissa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 5,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "annakesaillanvenyaespanlavankonserteissa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 5",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 5,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "patsastele patsaiden rinnalla hamin kartta kadessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 6,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "patsastelepatsaidenrinnallahaminkarttakadessa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 6",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 6,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "nauti festarifiiliksista superterassilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 7,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "nautifestarifiiliksistasuperterassilla": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 7",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 7,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "heittaydy kahteen ilmaiseen kaupunkifestariin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 8,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "heittaydykahteenilmaiseenkaupunkifestariin": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 8",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 8,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "astu sisaan eduskuntataloon": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 9,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "astusisaaneduskuntataloon": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 9",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 9,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "juokse tai maastopyoraile oikeassa metsassa keskuspuistossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 10,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "juoksetaimaastopyoraileoikeassametsassakeskuspuistossa": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 10",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/helsinki-ilmaista-tekemista",
+        "rank": 10,
+        "note": "Ilmaista tekemistä Helsingissä"
+      }
+    ],
+    "planetaario": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 1",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/heureka-2026-nayttelyt",
+        "rank": 1,
+        "note": "Uudistettu planetaario ja supersuositut näyttelyt"
+      }
+    ],
+    "uudistetut heureka klassikot ja uusimmat nayttelyt": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/heureka-2026-nayttelyt",
+        "rank": 2,
+        "note": "Uudistettu planetaario ja supersuositut näyttelyt"
+      }
+    ],
+    "uudistetutheurekaklassikotjauusimmatnayttelyt": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 2",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/heureka-2026-nayttelyt",
+        "rank": 2,
+        "note": "Uudistettu planetaario ja supersuositut näyttelyt"
+      }
+    ],
+    "jaakauden jattilaiset": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/heureka-2026-nayttelyt",
+        "rank": 3,
+        "note": "Uudistettu planetaario ja supersuositut näyttelyt"
+      }
+    ],
+    "jaakaudenjattilaiset": [
+      {
+        "kind": "timeout",
+        "label": "Time Out · sija 3",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/heureka-2026-nayttelyt",
+        "rank": 3,
+        "note": "Uudistettu planetaario ja supersuositut näyttelyt"
+      }
+    ],
+    "hanki oma viskitynnyri": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/the-helsinki-distilling-company",
+        "note": "The Helsinki Distilling Company"
+      }
+    ],
+    "hankiomaviskitynnyri": [
+      {
+        "kind": "timeout",
+        "label": "Time Out",
+        "source": "Time Out Helsinki",
+        "url": "https://www.timeout.com/fi/helsinki/tekemista/the-helsinki-distilling-company",
+        "note": "The Helsinki Distilling Company"
+      }
+    ],
+    "helsinki partners": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "helsinkipartners": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "graffiti and skateboarding": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "graffitiandskateboarding": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "hang out at teurastamo": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "hangoutatteurastamo": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "climb to dizzying heights": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "climbtodizzyingheights": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "secret island": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "secretisland": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "harbour views in vuosaari": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "harbourviewsinvuosaari": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "history of trams": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "historyoftrams": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "related posts": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "relatedposts": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "visitor": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "talent": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "business": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "follow": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/helsinki-for-kids/urban-adventures-in-helsinki-with-the-kids/",
+        "note": "Urban adventures in Helsinki with kids"
+      }
+    ],
+    "shop local shop sustainably": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "shoplocalshopsustainably": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "shop local": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "shoplocal": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "culture context and conversation": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "culturecontextandconversation": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "culture": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "museums and galleries": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "museumsandgalleries": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "make it a weekend": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "makeitaweekend": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/design-district/",
+        "note": "A guide to Finnish Design in the Helsinki Design District"
+      }
+    ],
+    "3 kansanelakelaitoksen paakonttori 1956": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "3kansanelakelaitoksenpaakonttori1956": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "3 kansanelakelaitoksen paakonttori": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "3kansanelakelaitoksenpaakonttori": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "4 kulttuuritalo 1958": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "4kulttuuritalo1958": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "4 kulttuuritalo": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "4kulttuuritalo": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "5 finlandia talo 1971": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "5finlandiatalo1971": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "5 finlandia talo": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "5finlandiatalo": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/aalto-works/",
+        "note": "Aalto Works -maailmanperintökohteet Helsingissä"
+      }
+    ],
+    "start with the ferries": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "startwiththeferries": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "rent something quiet": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "rentsomethingquiet": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "know your place": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "knowyourplace": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "no licence no cry": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "nolicencenocry": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "no licence": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "nolicence": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "before you cast off": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "beforeyoucastoff": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "float when most needed": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "floatwhenmostneeded": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "pack the boring kit": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "packtheboringkit": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "take alcohol seriously": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "takealcoholseriously": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "save the essential numbers": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "savetheessentialnumbers": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "register your intent": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "registeryourintent": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/getting-around-by-boat/",
+        "note": "Quick guide"
+      }
+    ],
+    "2 ilmaista": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "2ilmaista": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "3 siella missa sinakin": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "3siellamissasinakin": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "5 taattua treenirauhaa": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "5taattuatreenirauhaa": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "6 kaupungissa luonnon keskella": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "6kaupungissaluonnonkeskella": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "6 kaupungissa": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "6kaupungissa": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "7 asukkaiden aloitteesta": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "7asukkaidenaloitteesta": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/aktiviteetit/ulkokuntosalit/",
+        "note": "Helsingin ulkokuntosalit haltuun"
+      }
+    ],
+    "4 turvallisuusvinkkeja": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/helsinki-lapsille/pyoraily/",
+        "note": "7 vinkkiä pyöräilyyn Helsingissä lasten kanssa"
+      }
+    ],
+    "4turvallisuusvinkkeja": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/helsinki-lapsille/pyoraily/",
+        "note": "7 vinkkiä pyöräilyyn Helsingissä lasten kanssa"
+      }
+    ],
+    "5 syo juo": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/helsinki-lapsille/pyoraily/",
+        "note": "7 vinkkiä pyöräilyyn Helsingissä lasten kanssa"
+      }
+    ],
+    "5syojuo": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/helsinki-lapsille/pyoraily/",
+        "note": "7 vinkkiä pyöräilyyn Helsingissä lasten kanssa"
+      }
+    ],
+    "6 pysahdy leikkimaan": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/helsinki-lapsille/pyoraily/",
+        "note": "7 vinkkiä pyöräilyyn Helsingissä lasten kanssa"
+      }
+    ],
+    "6pysahdyleikkimaan": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/helsinki-lapsille/pyoraily/",
+        "note": "7 vinkkiä pyöräilyyn Helsingissä lasten kanssa"
+      }
+    ],
+    "hauskaa pyorailya": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/helsinki-lapsille/pyoraily/",
+        "note": "7 vinkkiä pyöräilyyn Helsingissä lasten kanssa"
+      }
+    ],
+    "hauskaapyorailya": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/helsinki-lapsille/pyoraily/",
+        "note": "7 vinkkiä pyöräilyyn Helsingissä lasten kanssa"
+      }
+    ],
+    "amos rex shop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "amosrexshop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "ateneum shop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "ateneumshop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "design museum shop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "designmuseumshop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "emma shop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "emmashop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "ham shop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "hamshop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "helsinki city museum shop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "helsinkicitymuseumshop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "sinebrychoff art museum shop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "sinebrychoffartmuseumshop": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "tehtaanmyymala at cable factory": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "tehtaanmyymalaatcablefactory": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/museum-shops-in-helsinki/",
+        "note": "Helsinki's wonderful museum shops"
+      }
+    ],
+    "1 kruunuvuorensilta": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "1kruunuvuorensilta": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "2 lauttasaari": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "2lauttasaari": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "3 seurasaarenselka": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "3seurasaarenselka": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "4 southern seaside": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "4southernseaside": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "5 central park": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "5centralpark": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "6 vuosaari": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "6vuosaari": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "7 vanhankaupunginselka": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "7vanhankaupunginselka": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/7-helsinki-cycling-routes/",
+        "note": "Things to do in Helsinki"
+      }
+    ],
+    "helsinki city theatre": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/7-unexpected-traces-of-alvar-aalto-design-in-helsinki/",
+        "note": "7 unexpected traces of Alvar Aalto design in Helsinki"
+      }
+    ],
+    "helsinkicitytheatre": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/7-unexpected-traces-of-alvar-aalto-design-in-helsinki/",
+        "note": "7 unexpected traces of Alvar Aalto design in Helsinki"
+      }
+    ],
+    "toolo library": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/7-unexpected-traces-of-alvar-aalto-design-in-helsinki/",
+        "note": "7 unexpected traces of Alvar Aalto design in Helsinki"
+      }
+    ],
+    "toololibrary": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/7-unexpected-traces-of-alvar-aalto-design-in-helsinki/",
+        "note": "7 unexpected traces of Alvar Aalto design in Helsinki"
+      }
+    ],
+    "pihlajamaki": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/7-unexpected-traces-of-alvar-aalto-design-in-helsinki/",
+        "note": "7 unexpected traces of Alvar Aalto design in Helsinki"
+      }
+    ],
+    "aalto university": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/7-unexpected-traces-of-alvar-aalto-design-in-helsinki/",
+        "note": "7 unexpected traces of Alvar Aalto design in Helsinki"
+      }
+    ],
+    "aaltouniversity": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/design-and-architecture/7-unexpected-traces-of-alvar-aalto-design-in-helsinki/",
+        "note": "7 unexpected traces of Alvar Aalto design in Helsinki"
+      }
+    ],
+    "meri on oikotie": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "merionoikotie": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "aloita lautoista": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "aloitalautoista": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "valitse vastuullinen vaihtoehto": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "valitsevastuullinenvaihtoehto": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "vuokraa rauhaa ja hiljaisuutta": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "vuokraarauhaajahiljaisuutta": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "tieda paikkasi": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "tiedapaikkasi": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "ei ajokorttia pienaluksille": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "eiajokorttiapienaluksille": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "ennen kuin irrotat koydet": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "ennenkuinirrotatkoydet": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "pakkaa mukaan tarkeat jutut": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "pakkaamukaantarkeatjutut": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "suhtaudu alkoholiin varauksella": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "suhtaudualkoholiinvarauksella": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "tunne meri ympari vuoden": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "tunnemeriymparivuoden": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "tunne meri": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "tunnemeri": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "ympari vuoden": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "ymparivuoden": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "tallenna tarkeat numerot": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "tallennatarkeatnumerot": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "pida tietosi ajan tasalla": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "pidatietosiajantasalla": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/merellinen-helsinki/nain-liikut-veneella/",
+        "note": "Pikaopas"
+      }
+    ],
+    "illuminating the past": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/sauna/history-of-sauna/",
+        "note": "The history of sauna in Helsinki"
+      }
+    ],
+    "illuminatingthepast": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/sauna/history-of-sauna/",
+        "note": "The history of sauna in Helsinki"
+      }
+    ],
+    "embrace the sauna tradition": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/midsummer-in-helsinki-tips/",
+        "note": "7 top tips for spending Midsummer in Helsinki"
+      }
+    ],
+    "embracethesaunatradition": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/visit/things-to-do/midsummer-in-helsinki-tips/",
+        "note": "7 top tips for spending Midsummer in Helsinki"
+      }
+    ],
+    "kodikasta tyylia hotel f6": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/helsingin-designhotellit/",
+        "note": "Helsingin designhotellit estetiikan ystäville"
+      }
+    ],
+    "kodikastatyyliahotelf6": [
+      {
+        "kind": "timeout",
+        "label": "MyHelsinki",
+        "source": "MyHelsinki",
+        "url": "https://www.myhelsinki.fi/fi/vieraile/design-ja-arkkitehtuuri/helsingin-designhotellit/",
+        "note": "Helsingin designhotellit estetiikan ystäville"
+      }
+    ],
+    "kokkauskurssi pidoissa": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "kokkauskurssipidoissa": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "surf house": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "surfhouse": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "fooni": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "paja design": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "pajadesign": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "sunlines bileristeily": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "sunlinesbileristeily": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "siirrettava pakohuonepeli outbreak": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "siirrettavapakohuonepelioutbreak": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "grape tasting room": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "grapetastingroom": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "cityspotting": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "ateneumin taidepajat ryhmille": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "ateneumintaidepajatryhmille": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "vallisaaren retki": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "vallisaarenretki": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "portal of joy": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "portalofjoy": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "seikkailupuisto korkee mustikkamaa": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "seikkailupuistokorkeemustikkamaa": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "coolhead brew": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "coolheadbrew": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "jaa artikkeli someen": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "jaaartikkelisomeen": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "vastaa andmiddot peruuta vastaus": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "vastaaandmiddotperuutavastaus": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "sosiaaliset mediamme": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "sosiaalisetmediamme": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "suosituimpia artikkeleita": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "suosituimpiaartikkeleita": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "haapaikat jyvaskyla": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "haapaikatjyvaskyla": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "apukka resort": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "apukkaresort": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "kategoriat": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "muut artikkelit": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "muutartikkelit": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "ostoskori": [
+      {
+        "kind": "timeout",
+        "label": "Kotimaassa.fi",
+        "source": "Kotimaassa.fi",
+        "url": "https://www.kotimaassa.fi/parhaat-aktiviteetit-helsingissa/",
+        "note": "Parhaat aktiviteetit Helsingissä"
+      }
+    ],
+    "laserareena": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Laserareena - Yritystapahtumat"
+      }
+    ],
+    "kuunari kathrina": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Kuunari Kathrina - Elämyspurjehdus"
+      }
+    ],
+    "kuunarikathrina": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Kuunari Kathrina - Elämyspurjehdus"
+      }
+    ],
+    "helsinkiboats": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "HelsinkiBoats - Risteily luksusjahdilla"
+      }
+    ],
+    "x perience": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "X-perience - Tankofutis"
+      }
+    ],
+    "xperience": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "X-perience - Tankofutis"
+      }
+    ],
+    "kuplafutis baltsit": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "kuplafutisbaltsit": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "helsinki distilling company": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "The Helsinki Distilling Company - Tislaamokierros & Tasting"
+      }
+    ],
+    "helsinkidistillingcompany": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "The Helsinki Distilling Company - Tislaamokierros & Tasting"
+      }
+    ],
+    "redrib experience": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "RedRib Experience - Elämys rib-veneellä"
+      }
+    ],
+    "redribexperience": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "RedRib Experience - Elämys rib-veneellä"
+      }
+    ],
+    "studio shangri la": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Studio Shangri-La - Burleskitunti"
+      }
+    ],
+    "studioshangrila": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Studio Shangri-La - Burleskitunti"
+      }
+    ],
+    "prison island": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "prisonisland": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "kiipeilyareena salmisaari": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "kiipeilyareenasalmisaari": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "uusia taitoja kehittamaan": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "uusiataitojakehittamaan": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "kayttajille": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "palveluntarjoajille": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "haluatko ideoita ja inspiraatiota": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "haluatkoideoitajainspiraatiota": [
+      {
+        "kind": "timeout",
+        "label": "Happens",
+        "source": "Happens.fi",
+        "url": "https://happens.fi/aktiviteetit-helsinki",
+        "note": "Aktiviteetit Helsingissä"
+      }
+    ],
+    "kellumo kamppi": [
+      {
+        "kind": "timeout",
+        "label": "Venuu",
+        "source": "Venuu.fi",
+        "url": "https://venuu.fi/elamykset-ja-aktiviteetit-helsinki",
+        "note": "Elämykset ja aktiviteetit Helsingissä"
+      }
+    ],
+    "kellumokamppi": [
+      {
+        "kind": "timeout",
+        "label": "Venuu",
+        "source": "Venuu.fi",
+        "url": "https://venuu.fi/elamykset-ja-aktiviteetit-helsinki",
+        "note": "Elämykset ja aktiviteetit Helsingissä"
+      }
+    ],
+    "ohjattu pomppiminen": [
+      {
+        "kind": "timeout",
+        "label": "Venuu",
+        "source": "Venuu.fi",
+        "url": "https://venuu.fi/elamykset-ja-aktiviteetit-helsinki",
+        "note": "Elämykset ja aktiviteetit Helsingissä"
+      }
+    ],
+    "ohjattupomppiminen": [
+      {
+        "kind": "timeout",
+        "label": "Venuu",
+        "source": "Venuu.fi",
+        "url": "https://venuu.fi/elamykset-ja-aktiviteetit-helsinki",
+        "note": "Elämykset ja aktiviteetit Helsingissä"
+      }
+    ],
+    "firm kallio": [
+      {
+        "kind": "timeout",
+        "label": "Venuu",
+        "source": "Venuu.fi",
+        "url": "https://venuu.fi/elamykset-ja-aktiviteetit-helsinki",
+        "note": "Elämykset ja aktiviteetit Helsingissä"
+      }
+    ],
+    "firmkallio": [
+      {
+        "kind": "timeout",
+        "label": "Venuu",
+        "source": "Venuu.fi",
+        "url": "https://venuu.fi/elamykset-ja-aktiviteetit-helsinki",
+        "note": "Elämykset ja aktiviteetit Helsingissä"
+      }
+    ],
+    "finnfoto galleria": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · maaliskuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13622036877",
+        "date": "2026-03-06",
+        "venue": "Finnfoto Galleria"
+      }
+    ],
+    "finnfotogalleria": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · maaliskuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13622036877",
+        "date": "2026-03-06",
+        "venue": "Finnfoto Galleria"
+      }
+    ],
+    "kampin keilahalli and biljardi bar": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · huhtikuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13711070864",
+        "date": "2026-04-06",
+        "venue": "Kampin Keilahalli & Biljardi Bar"
+      }
+    ],
+    "kampinkeilahalliandbiljardibar": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · huhtikuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13711070864",
+        "date": "2026-04-06",
+        "venue": "Kampin Keilahalli & Biljardi Bar"
+      }
+    ],
+    "mansikka": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · huhtikuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13750203904",
+        "date": "2026-04-21",
+        "venue": "Mansikka"
+      }
+    ],
+    "yhteiskerhotila talas sauna": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · kesäkuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13913910709",
+        "date": "2026-06-06",
+        "venue": "Yhteiskerhotila Talas, sauna"
+      }
+    ],
+    "yhteiskerhotilatalassauna": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · kesäkuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13913910709",
+        "date": "2026-06-06",
+        "venue": "Yhteiskerhotila Talas, sauna"
+      }
+    ],
+    "yhteiskerhotila talas": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · kesäkuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13913910709",
+        "date": "2026-06-06",
+        "venue": "Yhteiskerhotila Talas, sauna"
+      }
+    ],
+    "yhteiskerhotilatalas": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · kesäkuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/13913910709",
+        "date": "2026-06-06",
+        "venue": "Yhteiskerhotila Talas, sauna"
+      }
+    ],
+    "merihaka sauna": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · elokuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/14108207288",
+        "date": "2026-08-20",
+        "venue": "Merihaka Sauna"
+      }
+    ],
+    "merihakasauna": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · elokuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/node/14108207288",
+        "date": "2026-08-20",
+        "venue": "Merihaka Sauna"
+      }
+    ],
+    "solid sauna": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · elokuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/way/1549061841",
+        "date": "2026-08-12",
+        "venue": "Solid Sauna"
+      }
+    ],
+    "solidsauna": [
+      {
+        "kind": "uusi",
+        "label": "Uusi paikka · elokuussa",
+        "source": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/way/1549061841",
+        "date": "2026-08-12",
+        "venue": "Solid Sauna"
+      }
+    ]
+  },
+  "counts": {
+    "nayttely": 56,
+    "timeout": 213,
+    "uusi": 6
+  }
+}

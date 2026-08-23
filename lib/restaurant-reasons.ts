@@ -25,6 +25,7 @@ export type ReasonKind =
   | 'uusi'             // juuri avattu tai avaamassa (anniskelulupa)
   | 'huippuarvio'      // kaupungin arvostetuimpia — todisteena arvostelut itse
   | 'uutinen'          // tuore lehtijuttu paikasta: tarjous, tapahtuma, avaus
+  | 'nayttely'         // museon tai gallerian ajankohtainen näyttely (museot.fi)
 
 export interface RestaurantReason {
   kind: ReasonKind
@@ -90,9 +91,15 @@ const AFFIX =
 export function reasonKey(name: string): string {
   let k = String(name ?? '')
     .normalize('NFKD')
+    // NFKD hajottaa ääkköset perusmerkiksi + tarkkeeksi (ä → a + U+0308).
+    // Tarke on poistettava TYHJÄNÄ ennen merkkiluokkasuodatusta — muuten se
+    // muuttuu välilyönniksi ja "Linnanmäki" → "linnanma ki". Mitattu:
+    // isTouristBasic('Linnanmäki') palautti false juuri tämän takia, ja
+    // kaikki ääkkösnimet osuivat vain välilyönnittömän varianttinsa kautta.
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/&/g, 'and')
-    .replace(/[^a-z0-9åäöéèü ]+/g, ' ')
+    .replace(/[^a-z0-9 ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
   // Toistetaan kunnes ei muutu: "Ravintola Bar Om'pu" → "om pu".
@@ -167,11 +174,12 @@ export function reasonKeyVariants(name: string): string[] {
 export function streetKey(address: string): string | null {
   const s = String(address ?? '')
     .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')   // sama tarkekorjaus kuin reasonKeyssä
     .toLowerCase()
-    .replace(/[^a-z0-9åäöéèü ]+/g, ' ')
+    .replace(/[^a-z0-9 ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-  const m = /^([a-zåäöéèü][a-zåäöéèü ]*?)\s+(\d+)/.exec(s)
+  const m = /^([a-z][a-z ]*?)\s+(\d+)/.exec(s)
   if (!m) return null
   return `${m[1].trim()}|${m[2]}`
 }
@@ -264,6 +272,10 @@ const REASON_WEIGHT: Record<ReasonKind, number> = {
   'vuoden-ravintola': 95,
   top50: 80,
   huippuarvio: 70,
+  // Näyttely on aikasidonnainen laatusyy: museo jossa alkoi juuri uusi
+  // näyttely on helsinkiläiselle syy lähteä — sama museo ilman sitä on
+  // turistikohde. Paino huippuarvion ja top50:n välissä.
+  nayttely: 75,
   uusi: 60,
   // Uutisen paino on matala TARKOITUKSELLA: nosto kärkeen tapahtuu
   // rakenteellisesti (ks. interleaveReasoned — uutiselliset menevät sekoituksen
@@ -308,6 +320,14 @@ export function reasonWeight(r: RestaurantReason, today: Date): number {
   if (r.kind === 'top50' && typeof r.rank === 'number') {
     // Sija 1 on selvästi vahvempi kuin sija 50 — 20 pisteen liukuma.
     return base + Math.max(0, 20 - (r.rank - 1) * (20 / 49))
+  }
+  if (r.kind === 'nayttely' && r.date) {
+    const t = Date.parse(r.date)
+    if (Number.isNaN(t)) return base
+    const days = Math.abs((today.getTime() - t) / 86_400_000)
+    // Juuri alkanut tai kohta alkava näyttely on uutinen; puolen vuoden
+    // ikäinen on pysyväisluonteinen. Lineaarinen hiipuma 90 päivässä.
+    return base + Math.max(0, 15 * (1 - days / 90))
   }
   if (r.kind === 'uusi' && r.date) {
     const t = Date.parse(r.date)
@@ -425,7 +445,7 @@ export function matchReasons(
  *  sivulla lainkaan: kärkeen mahtuu 60 korttia ja pelkkiä vahvempia syitä on
  *  enemmän, joten koko perhe jäi taitteen alle. Lähteet haettiin nimenomaan
  *  asiakkaan valinnan tueksi, joten ne kuuluvat kiertoon. */
-const MIXED_KINDS: ReasonKind[] = ['michelin', 'top50', 'uusi', 'vuoden-ravintola', 'huippuarvio', 'timeout']
+const MIXED_KINDS: ReasonKind[] = ['michelin', 'top50', 'uusi', 'vuoden-ravintola', 'huippuarvio', 'timeout', 'nayttely']
 
 // ── UUTUUS EI OLE SUOSITUS ──────────────────────────────────────────────────
 // Michelin, Suomen 50 parasta ja Vuoden ravintola ovat kaikki LAATUVÄITTEITÄ:
@@ -607,6 +627,34 @@ export function interleaveReasoned<T>(
   }
 
   return [...front, ...mixed, ...tail.map((t) => t.item), ...none]
+}
+
+// ── TURISTIPERUSKOHTEET ─────────────────────────────────────────────────────
+// Omistaja tekemistä-sivusta: "siellä ei tarvita linnanmäkeä tai vastaavia" —
+// helsinkiläinen tietää nämä. Peruskohde EI saa huippuarvio-, toimituslista-
+// eikä uutuusnostoa (Time Outin nähtävyyslistat ovat täynnä juuri näitä).
+// UUTINEN ja NÄYTTELY sen sijaan nostavat: "uutinen saa nostaa Linnanmäen"
+// oli omistajan nimenomainen linjaus — uusi vuoristorata tai Suomenlinnan
+// näyttely on aidosti ajankohtaista myös paikalliselle.
+const TOURIST_BASICS = new Set([
+  'linnanmaki', 'suomenlinna', 'korkeasaari', 'sea life helsinki', 'sea life',
+  'temppeliaukion kirkko', 'helsingin tuomiokirkko', 'tuomiokirkko',
+  'uspenskin katedraali', 'kauppatori', 'senaatintori', 'sibelius monumentti',
+  'sibeliuksen puisto', 'esplanadin puisto', 'allas sea pool',
+])
+
+/** Onko paikka turistiperuskohde? Vertailu normalisoidulla nimellä. */
+export function isTouristBasic(name: string): boolean {
+  return TOURIST_BASICS.has(reasonKey(name))
+}
+
+/** Syyt jotka nostavat peruskohteenkin — ajankohtainen sisältö. */
+const BASIC_ALLOWED: ReasonKind[] = ['uutinen', 'nayttely']
+
+/** Suodattaa peruskohteelta pois ne syyt jotka eivät sitä koske. */
+export function filterReasonsForBasics(name: string, reasons: RestaurantReason[]): RestaurantReason[] {
+  if (!isTouristBasic(name)) return reasons
+  return reasons.filter((r) => BASIC_ALLOWED.includes(r.kind))
 }
 
 /** Kortissa näytetään yksi syy: painavin. */

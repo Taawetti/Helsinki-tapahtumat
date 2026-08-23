@@ -8,7 +8,7 @@ import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { pickAttributes } from '@/lib/google-attributes'
 import { credibilityScore } from '@/lib/credibility'
 import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaurant-reasons'
-import type { ReasonKind, RestaurantReason } from '@/lib/restaurant-reasons'
+import { ReasonBadge, relativeDate } from '@/components/ReasonBadge'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -179,18 +179,6 @@ function twemojiUrl(cp: string): string {
   return `https://cdn.jsdelivr.net/gh/twitter/twemoji@v14.0.2/assets/svg/${cp}.svg`
 }
 
-function relativeDate(pubDate: string): string {
-  try {
-    const diffH = Math.floor((Date.now() - new Date(pubDate).getTime()) / 3_600_000)
-    if (diffH < 1)  return 'juuri nyt'
-    if (diffH < 24) return `${diffH} t sitten`
-    const d = Math.floor(diffH / 24)
-    if (d === 1)  return 'eilen'
-    if (d < 7)   return `${d} pv sitten`
-    return `${Math.floor(d / 7)} vk sitten`
-  } catch { return '' }
-}
-
 function formatOpeningHoursHuman(raw: string): string {
   if (!raw) return ''
   if (raw === '24/7') return 'Auki 24/7'
@@ -351,37 +339,6 @@ function HeroCard({ r, distance, onShowOnMap }: {
 }
 
 // ── List card ─────────────────────────────────────────────
-
-// ── SYYMERKKI ───────────────────────────────────────────────────────────────
-// Kortin tärkein rivi: miksi tämä paikka on tässä. Teksti tulee aina
-// ulkopuolisesta nimetystä lähteestä, ei koskaan generoituna — ks.
-// lib/restaurant-reasons.ts. Värit erottavat lajit toisistaan mutta pysyvät
-// hillittyinä, jottei ruudukko muutu liikennevaloksi.
-const REASON_STYLE: Record<ReasonKind, { bg: string; fg: string; bd: string }> = {
-  michelin:            { bg: 'rgba(239,68,68,.14)',  fg: '#fca5a5', bd: 'rgba(239,68,68,.18)' },
-  'vuoden-ravintola':  { bg: 'rgba(251,191,36,.14)', fg: '#fcd34d', bd: 'rgba(251,191,36,.18)' },
-  top50:               { bg: 'rgba(251,191,36,.11)', fg: '#fbbf24', bd: 'rgba(251,191,36,.15)' },
-  uusi:                { bg: 'rgba(16,185,129,.14)', fg: '#6ee7b7', bd: 'rgba(16,185,129,.18)' },
-  timeout:             { bg: 'rgba(139,148,255,.13)', fg: '#a3abff', bd: 'rgba(139,148,255,.16)' },
-  // Huippuarvio käyttää tähtimerkin väriä, koska sen todiste ON arvostelut —
-  // kortin ⭐-merkki ja tämä puhuvat samasta asiasta.
-  huippuarvio:         { bg: 'rgba(251,191,36,.10)', fg: '#fcd34d', bd: 'rgba(251,191,36,.14)' },
-  // Uutinen on syaani: viestii "juuri nyt" erottuen uutuuden vihreästä.
-  uutinen:             { bg: 'rgba(56,189,248,.13)', fg: '#7dd3fc', bd: 'rgba(56,189,248,.18)' },
-}
-
-function ReasonBadge({ reason }: { reason: RestaurantReason }) {
-  const s = REASON_STYLE[reason.kind] ?? REASON_STYLE.timeout
-  return (
-    <span
-      className="inline-flex items-center text-[10px] font-black px-2 py-0.5 rounded-full border"
-      style={{ background: s.bg, color: s.fg, borderColor: s.bd }}
-      title={reason.source}
-    >
-      {reason.label}
-    </span>
-  )
-}
 
 function RestListCard({ r, distance, onShowOnMap, onOpen }: {
   r: Restaurant

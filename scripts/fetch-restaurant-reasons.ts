@@ -33,10 +33,10 @@ import { join } from 'node:path'
 import type { ReasonKind, RestaurantReason, ReasonFile } from '../lib/restaurant-reasons'
 import { reasonKeyVariants, openingLabel, streetKey } from '../lib/restaurant-reasons'
 import { readSheet } from '../lib/xlsx-read'
+import { get, stripTags, listTitleNote, listPill, extractListEntries, NOT_A_VENUE } from '../lib/editorial-scrape'
 
 const OUT = join(process.cwd(), 'data', 'restaurant-reasons.json')
 const DRY = process.argv.includes('--dry')
-const UA = 'MitaTanaanBot/1.0 (+https://mitatanaan.fi; Helsinki restaurant guide)'
 const TODAY = new Date()
 
 /** Yksi lähteen tuottama rivi ennen avaimeksi muuntamista. */
@@ -56,45 +56,6 @@ const FLOOR: Record<string, number> = {
   timeout: 80,           // mitattu 218 (Time Out EN+FI 118 + MyHelsinki 100)
   'vuoden-ravintola': 8, // mitattu 12 — kattaa vain VUODEN_YEARS vuotta
   uusi: 20,              // mitattu 118 / 150 pv
-}
-
-// UUDELLEENYRITYS. Mitattu 23.8.2026: avoindata.suomi.fi palautti 404 lupa­
-// rekisterin tiedostoon, ja minuuttia aiemmin sama osoite oli toiminut. CKAN
-// vahvisti ettei osoite ollut muuttunut — palvelin vain pettää satunnaisesti.
-// Koska yhdenkin lähteen kaatuminen estää KOKO tiedoston kirjoittamisen
-// (tarkoituksella), hetkellinen häiriö olisi keskeyttänyt viikkopäivityksen
-// aika ajoin ilman mitään syytä.
-const RETRIES = 3
-const RETRY_PAUSE_MS = 4000
-
-async function get(url: string): Promise<string>
-async function get(url: string, kind: 'json'): Promise<unknown>
-async function get(url: string, kind: 'buffer'): Promise<Buffer>
-async function get(url: string, kind: 'text' | 'json' | 'buffer' = 'text') {
-  let last = ''
-  for (let attempt = 1; attempt <= RETRIES; attempt++) {
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow' })
-      if (!res.ok) throw new Error(`${res.status}`)
-      if (kind === 'json') return await res.json()
-      if (kind === 'buffer') return Buffer.from(await res.arrayBuffer())
-      return await res.text()
-    } catch (e) {
-      last = (e as Error).message
-      if (attempt < RETRIES) await new Promise((s) => setTimeout(s, RETRY_PAUSE_MS * attempt))
-    }
-  }
-  throw new Error(`${last} (${RETRIES} yritystä) ${url}`)
-}
-
-function stripTags(s: string): string {
-  return s
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&').replace(/&#8217;|&#039;|&rsquo;/g, "'")
-    .replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 // ── 1. MICHELIN ─────────────────────────────────────────────────────────────
@@ -244,57 +205,6 @@ const TO_HUBS = [
  *  FI-juuren listat joiden slugissa on ruokasana (esim. helsinki-aamiainen). */
 const TO_LIST_HREF =
   /\/(?:fi\/)?helsinki\/(?:(?:ravintolat|baarit|restaurants|bars)\/[a-z0-9-]+|[a-z0-9-]*(?:ravintola|aamiainen|brunssi|kahvila|lounaa|pizza|terassi)[a-z0-9-]*)/g
-
-/** Yleisotsikot joita listasivun <h3> voi sisältää nimien lisäksi. Nämä eivät
- *  ole paikkoja. Mitattu MyHelsingistä: "Visit", "Live & Work", "Business &
- *  CVB"; Time Outista: uutiskirje- ja suositteluosiot. */
-const NOT_A_VENUE =
-  /helsinki|newsletter|uutiskirje|lue myös|read more|recommended|discover|share|cookie|visit|live & work|business|cvb|tickets|advertising|time out/i
-
-/**
- * Listan otsikko kortin LISTARIVILLE (📋 …). Sivun <h1> on kokonainen lause —
- * "Helsingin parhaat pizzat – tästä eivät lätyt lopu" — joten se katkaistaan
- * ensimmäisestä pilkusta tai ajatusviivasta. Sivustotason otsake ("Time Out
- * Worldwide") hylätään: silloin riviä ei näytetä lainkaan.
- *
- * AIEMPI VIRHE JOKA TEHTIIN TÄSSÄ: otsikko meni pilleriin ja 38 merkin katkaisu
- * pudotti esim. "Helsingin parhaat aamiaiset ja brunssit" (39) kokonaan, jolloin
- * merkiksi jäi tyhjänpäiväinen "Time Out Helsinki". Omistaja huomasi: merkki ei
- * kertonut MIKSI paikka on nostettu. Nyt pilleri on lyhyt ("Time Out · sija 1")
- * ja listan koko nimi elää tällä rivillä, jossa tila riittää.
- */
-const LIST_NOTE_MAX = 60
-function listTitleNote(h1: string): string | undefined {
-  const head = h1.split(/[,–—:|]/)[0].trim()
-  if (!head || head.length < 3 || /time\s*out|myhelsinki/i.test(head)) return undefined
-  if (head.length <= LIST_NOTE_MAX) return head
-  return head.slice(0, LIST_NOTE_MAX).replace(/\s+\S*$/, '') + '…'
-}
-
-/** Pilleri: lähde ja sijoitus, ei muuta. Listan nimi on listarivillä. */
-function listPill(prefix: string, rank?: number): string {
-  return typeof rank === 'number' ? `${prefix} · sija ${rank}` : prefix
-}
-
-/** Poimii listasivun <h3>-nimet. Numeroidut aina; numeroimattomat vain jos ne
- *  läpäisevät järkevyysseulan (pituus, ei yleisotsikko). Sijaintiselite
- *  pilkun/ajatusviivan perässä siivotaan: "Superterassi, Kasarmitori" ja
- *  "Cafe Regatta – charming cottage by the sea" ovat paikkoja, eivät nimiä. */
-function extractListEntries(html: string): { name: string; rank?: number }[] {
-  const out: { name: string; rank?: number }[] = []
-  for (const m of html.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)) {
-    let t = stripTags(m[1])
-    let rank: number | undefined
-    const numbered = /^(\d+)\.\s*(.+)$/.exec(t)
-    if (numbered) {
-      rank = Number(numbered[1])
-      t = numbered[2].trim()
-    } else if (t.length < 3 || t.length > 42 || NOT_A_VENUE.test(t)) continue
-    t = t.split(/\s+[–—]\s+/)[0].trim()
-    if (t.length >= 3) out.push({ name: t, rank })
-  }
-  return out
-}
 
 async function fetchTimeOut(): Promise<Raw[]> {
   const listUrls = new Set<string>()

@@ -39,11 +39,14 @@ import {
   primaryReason,
   openingLabel,
   interleaveReasoned,
+  isTouristBasic,
+  filterReasonsForBasics,
   type ReasonKind,
   type RestaurantReason,
   type ReasonFile,
 } from '../lib/restaurant-reasons'
 import reasonFile from '../data/restaurant-reasons.json'
+import activityReasonFile from '../data/activity-reasons.json'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
 import deadImages from '../data/dead-images.json'
@@ -2183,6 +2186,75 @@ for (const c of ideaChecks) {
     rChecks.push({ name: 'nettisivukuvat: aikaleima kelvollinen', ok: typeof wi.fetchedAt === 'string' && !Number.isNaN(Date.parse(wi.fetchedAt!)) })
     rChecks.push({ name: 'nettisivukuvat: vähintään 200 kuvaa', ok: Object.keys(wi.byWww ?? {}).length >= 200, got: String(Object.keys(wi.byWww ?? {}).length) })
     rChecks.push({ name: 'nettisivukuvat: osoitteet ovat http-kuvia', ok: Object.values(wi.byWww ?? {}).every((u) => typeof u === 'string' && /^https?:\/\//.test(u)) })
+  }
+
+  // 16. TEKEMISEN SYYT — sama järjestelmä tekemistä-sivulle: näyttelyt
+  //     (museot.fi), toimituslistat, OSM:n uudet paikat. Omistajan linjaus:
+  //     turistiperuskohteet nousevat VAIN uutisella tai näyttelyllä.
+  {
+    const mkA = (kind: ReasonKind, extra: Partial<RestaurantReason> = {}): RestaurantReason =>
+      ({ kind, label: 'x', source: 's', ...extra })
+
+    // TUOTANTOVIRHE: NFKD hajotti ä:n kirjaimeksi + tarkkeeksi ja tarke
+    // muuttui välilyönniksi — 'Linnanmäki' → 'linnanma ki', jolloin
+    // peruskohdetunnistus ei osunut. Tarkkeet riisutaan nyt.
+    rChecks.push({ name: 'reasonKey riisuu tarkkeet (Linnanmäki)', ok: reasonKey('Linnanmäki') === 'linnanmaki', got: reasonKey('Linnanmäki') })
+    rChecks.push({ name: 'reasonKey riisuu tarkkeet (Töölö)', ok: reasonKey('Töölön kisahalli') === 'toolon kisahalli', got: reasonKey('Töölön kisahalli') })
+
+    // Peruskohteet tunnistetaan — ja vain koko nimi osuu, ei niche-kohde.
+    rChecks.push({ name: 'Linnanmäki on peruskohde', ok: isTouristBasic('Linnanmäki') })
+    rChecks.push({ name: 'Suomenlinna on peruskohde', ok: isTouristBasic('Suomenlinna') })
+    rChecks.push({ name: 'Suomenlinnan merilinnoitus EI ole peruskohde', ok: !isTouristBasic('Suomenlinnan merilinnoitus') })
+    rChecks.push({ name: 'Sompasauna EI ole peruskohde', ok: !isTouristBasic('Sompasauna') })
+
+    // Peruskohteelta karsitaan kaikki paitsi uutinen ja näyttely.
+    const basicsIn = [mkA('huippuarvio'), mkA('timeout'), mkA('uutinen', { date: '2026-08-20' }), mkA('nayttely', { date: '2026-09-01' })]
+    const basicsOut = filterReasonsForBasics('Linnanmäki', basicsIn)
+    rChecks.push({
+      name: 'peruskohteelle jäävät vain uutinen ja näyttely',
+      ok: basicsOut.length === 2 && basicsOut.every((x) => x.kind === 'uutinen' || x.kind === 'nayttely'),
+      got: basicsOut.map((x) => x.kind).join(','),
+    })
+    rChecks.push({ name: 'tavallinen paikka pitää kaikki syynsä', ok: filterReasonsForBasics('Sompasauna', basicsIn).length === basicsIn.length })
+
+    // Näyttelyn paino: juuri alkava/alkanut painaa enemmän kuin kauan
+    // pyörinyt, ja näyttely istuu painojärjestykseen top50:n ja
+    // huippuarvion väliin.
+    const freshEx = mkA('nayttely', { date: '2026-08-25' })
+    const oldEx = mkA('nayttely', { date: '2025-11-01' })
+    rChecks.push({ name: 'tuore näyttely painaa vanhaa enemmän', ok: reasonWeight(freshEx, today) > reasonWeight(oldEx, today) })
+    rChecks.push({ name: 'top50 painaa näyttelyä enemmän', ok: reasonWeight(mkA('top50', { rank: 10 }), today) > reasonWeight(freshEx, today) })
+    rChecks.push({ name: 'näyttely painaa huippuarviota enemmän', ok: reasonWeight(oldEx, today) > reasonWeight(mkA('huippuarvio'), today) })
+
+    // Näyttelyperhe on mukana sekoituksessa eikä kasaudu lohkoksi.
+    type ARow = { n: string; reasons: RestaurantReason[] }
+    const aRows: ARow[] = [
+      ...Array.from({ length: 15 }, (_, i) => ({ n: `N${i}`, reasons: [mkA('nayttely', { date: '2026-09-01' })] })),
+      ...Array.from({ length: 5 }, (_, i) => ({ n: `U${i}`, reasons: [mkA('uusi', { date: '2026-08-12' })] })),
+      ...Array.from({ length: 8 }, (_, i) => ({ n: `H${i}`, reasons: [mkA('huippuarvio')] })),
+      ...Array.from({ length: 4 }, (_, i) => ({ n: `T${i}`, reasons: [mkA('timeout', { rank: i + 1 })] })),
+    ]
+    const aMixed = interleaveReasoned(aRows, (r) => r.reasons, today, () => 0.9)
+    const aKinds = aMixed.slice(0, 20).map((r) => r.reasons[0].kind)
+    rChecks.push({ name: 'näyttelyperhe mukana sekoituksessa', ok: aKinds.includes('nayttely') })
+    let runA = 1, worstA = 1
+    for (let i = 1; i < aKinds.length; i++) { runA = aKinds[i] === aKinds[i - 1] ? runA + 1 : 1; worstA = Math.max(worstA, runA) }
+    rChecks.push({ name: 'tekemisen perheet lomittuvat (enintään 2 peräkkäin)', ok: worstA <= 2, got: String(worstA) })
+    rChecks.push({ name: 'tekemisen sekoitus ei kadota mitään', ok: aMixed.length === aRows.length })
+
+    // OIKEA DATATIEDOSTO — rakenne ja romahdusvahdit, kuten ravintoloilla.
+    const af = activityReasonFile as unknown as ReasonFile
+    rChecks.push({ name: 'tekemisen syytiedostossa on avaimia', ok: Object.keys(af.byName ?? {}).length > 100, got: String(Object.keys(af.byName ?? {}).length) })
+    for (const [kind, floor] of [['nayttely', 40], ['timeout', 30], ['uusi', 2]] as const) {
+      rChecks.push({ name: `tekemisen syyt: ${kind} ≥ ${floor}`, ok: (af.counts?.[kind] ?? 0) >= floor, got: String(af.counts?.[kind] ?? 0) })
+    }
+    const aAll = Object.values(af.byName ?? {}).flat()
+    rChecks.push({ name: 'tekemisen syyt: jokaisella on teksti ja lähde', ok: aAll.every((x) => !!x.label && !!x.source) })
+    // Näyttelyrivi kortissa on note + linkki + alkupäivä — ilman niitä
+    // 🖼-rivi olisi tyhjä tai linkitön.
+    const exhibits = aAll.filter((x) => x.kind === 'nayttely')
+    rChecks.push({ name: 'jokaisella näyttelyllä on note, linkki ja päivä', ok: exhibits.every((x) => !!x.note && !!x.url && !!x.date) })
+    rChecks.push({ name: 'jokaisella tekemisen uusi-syyllä on päivä', ok: aAll.filter((x) => x.kind === 'uusi').every((x) => !!x.date) })
   }
 
   for (const c of rChecks) {

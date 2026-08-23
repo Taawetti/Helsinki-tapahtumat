@@ -1,9 +1,11 @@
-name: Ravintoloiden syyt
+name: Ravintoloiden ja tekemisen syyt
 
-# Hakee viikoittain syyt joiden takia ravintola nousee sivun kärkeen:
-# Michelin-opas, Suomen 50 parasta, Vuoden ravintola, Time Out Helsinki ja
-# tuoreet anniskeluluvat. Kirjoittaa data/restaurant-reasons.json ja committoi
-# sen suoraan mainiin, jolloin Vercel julkaisee muutoksen itsestään.
+# Hakee viikoittain syyt joiden takia ravintola tai tekemispaikka nousee sivun
+# kärkeen: Michelin-opas, Suomen 50 parasta, Vuoden ravintola, Time Out
+# Helsinki, tuoreet anniskeluluvat, museoiden näyttelykalenteri (museot.fi)
+# ja tekemisen toimituslistat. Kirjoittaa data/restaurant-reasons.json ja
+# data/activity-reasons.json ja committoi ne suoraan mainiin, jolloin Vercel
+# julkaisee muutoksen itsestään.
 #
 # MIKSI SUORA COMMIT EIKÄ PR. Omistaja pyysi automaatiota joka päivittää
 # etusivun itse. Pull request vaatisi ihmisen painamaan nappia joka viikko,
@@ -51,8 +53,14 @@ jobs:
         run: npm ci
 
       # PORTTI 1 — skripti pysähtyy itse jos jokin lähde on romahtanut.
-      - name: Hae syyt
+      - name: Hae ravintoloiden syyt
         run: npx tsx scripts/fetch-restaurant-reasons.ts
+
+      # Tekemisen syyt: näyttelyt, toimituslistat, OSM:n uudet vapaa-ajan
+      # paikat. Omat FLOOR-alarajat kuten ravintolahaussa — EI
+      # continue-on-error, koska tiedosto on tekemistä-kärjen selkäranka.
+      - name: Hae tekemisen syyt
+        run: npx tsx scripts/fetch-activity-reasons.ts
 
       # Juuri avatut, joita OSM ei vielä tunne: haetaan niille kuva ja
       # koordinaatit Googlesta. Maksaa vain uusista — jo haetut ovat tiedostossa
@@ -108,11 +116,13 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/restaurant-reasons.json data/new-openings.json data/dead-images.json data/website-images.json
-          git commit -m "Restaurant reasons: weekly refresh
+          git add data/restaurant-reasons.json data/activity-reasons.json data/new-openings.json data/dead-images.json data/website-images.json
+          git commit -m "Reasons: weekly refresh (restaurants + activities)
 
           Automaattinen haku: Michelin-opas, Suomen 50 parasta, Vuoden
-          ravintola, Time Out Helsinki, anniskelulupa*rekisteri, sekä
-          juuri avattujen kortit Googlesta.
-          Ks. scripts/fetch-restaurant-reasons.ts ja fetch-new-openings.ts"
+          ravintola, Time Out Helsinki, anniskelulupa*rekisteri, juuri
+          avattujen kortit Googlesta, museoiden näyttelykalenteri ja
+          tekemisen toimituslistat.
+          Ks. scripts/fetch-restaurant-reasons.ts, fetch-new-openings.ts
+          ja fetch-activity-reasons.ts"
           git push

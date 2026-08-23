@@ -299,7 +299,11 @@ export interface Activity {
   saunaFuel?: string         // 'wood' | 'electric' etc. (for saunas)
   outdoor?: boolean
   wikidata?: string
-  wikipedia?: string
+  wikipedia?: string  /** Google-arvosana venue_ratings-taulusta (act:-avain). */
+  rating?: number | null
+  reviewCount?: number | null
+  /** Miksi tämä paikka on kärjessä — sama järjestelmä kuin ravintoloilla. */
+  reasons?: import('./restaurant-reasons').RestaurantReason[]
 }
 
 export const SEARCH_SUGGESTIONS = [
