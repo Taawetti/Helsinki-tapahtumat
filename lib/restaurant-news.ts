@@ -58,6 +58,20 @@ const ACTIVITY_QUERIES = [
   'Helsinki+maauimala+OR+uimahalli+avautuu',
 ]
 
+// Uutta Helsingissä -sivun avautumiskyselyt: kaikki mikä AUKEAA kaupunkiin —
+// myös se mitä rekisterit eivät näe (hotellit, kaupat, kuntosalit) tai eivät
+// näe vielä (juttu ilmestyy ennen lupaa). Samat suodattimet kuin
+// tekemiskyselyillä: ei ruokasanavaadetta, NEGATIVE ja OTHER_CITY pätevät.
+const OPENING_QUERIES = [
+  'Helsinkiin+avautuu',
+  'Helsinki+avaa+ovensa',
+  'Helsinki+avajaiset',
+  'Helsinki+uusi+hotelli',
+  'Helsinki+uusi+kauppa+OR+myymälä+OR+putiikki',
+  'Helsinki+uusi+kuntosali+OR+liikuntakeskus+OR+padel',
+  'Suomen+ensimmäinen+avautuu+Helsinkiin',
+]
+
 // Sesonki tuo ne uutiset joita asiakas juuri nyt etsii: isänpäivälounaat
 // marraskuussa, rapukausi elokuussa. Kuukausi luetaan hakuhetkellä; välimuisti
 // vanhenee tunnissa, joten kuunvaihde vaihtaa kyselyt itsestään.
@@ -205,9 +219,10 @@ async function fetchTimeOutNews(): Promise<NewsItem[]> {
 export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
   const month = new Date().getUTCMonth() + 1
   const queries = [...QUERIES, ...(SEASONAL[month] ?? [])]
-  const [googleResults, activityResults, cityFi, timeOutNews] = await Promise.all([
+  const [googleResults, activityResults, openingResults, cityFi, timeOutNews] = await Promise.all([
     Promise.all(queries.map(fetchQuery)),
     Promise.all(ACTIVITY_QUERIES.map(fetchQuery)),
+    Promise.all(OPENING_QUERIES.map(fetchQuery)),
     fetchCityFi(),
     fetchTimeOutNews(),
   ])
@@ -222,9 +237,9 @@ export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
     seen.add(item.link)
     merged.push(item)
   }
-  // Tekemisen kyselyt: ruokasanavaade ei päde ("Uusi yleinen sauna avautuu
-  // Merihakaan" ei sisällä ruokasanaa mutta on juuri oikea juttu).
-  for (const item of activityResults.flat()) {
+  // Tekemisen ja avautumisten kyselyt: ruokasanavaade ei päde ("Uusi yleinen
+  // sauna avautuu Merihakaan" ei sisällä ruokasanaa mutta on juuri oikea juttu).
+  for (const item of [...activityResults.flat(), ...openingResults.flat()]) {
     if (seen.has(item.link)) continue
     if (NEGATIVE.test(item.title)) continue
     if (OTHER_CITY.test(item.title)) continue
@@ -247,12 +262,12 @@ export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
   // hieman vanhemmat pidetään mukana diagnostiikkaa varten.
   const cutoff = Date.now() - 30 * 24 * 3_600_000
   merged.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-  return merged.filter(i => new Date(i.pubDate).getTime() > cutoff).slice(0, 110)
+  return merged.filter(i => new Date(i.pubDate).getTime() > cutoff).slice(0, 130)
 }
 
-/** Tunnin välimuisti — sama kuin muillakin rikastuksilla. v8: tekemisen
- *  kyselyt (saunat, näyttelyt, elämykset) mukaan; katto 80 → 110, jottei
- *  laajempi haku syrjäytä ravintolajuttuja. */
-export const fetchRestaurantNews = unstable_cache(_fetchNewsUncached, ['restaurant-news-v8'], {
+/** Tunnin välimuisti — sama kuin muillakin rikastuksilla. v9: avautumis-
+ *  kyselyt (Uutta Helsingissä) mukaan; katto 110 → 130, jottei laajempi haku
+ *  syrjäytä ravintola- ja tekemisjuttuja. */
+export const fetchRestaurantNews = unstable_cache(_fetchNewsUncached, ['restaurant-news-v9'], {
   revalidate: 3600,
 })

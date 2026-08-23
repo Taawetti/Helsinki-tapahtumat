@@ -104,6 +104,9 @@ async function fetchExhibitions(): Promise<Raw[]> {
         // Kortin 🖼-rivi: näyttelyn nimi ja ajanjakso — museon oma sisältö on
         // tosiasia (nimi + päivät), ei kuvailutekstiä.
         note: `${title}${period ? ` (${period})` : ''}`.slice(0, 90),
+        // byName-avain on normalisoitu pienaakkosiin — museon oikea
+        // kirjoitusasu talteen Uutta Helsingissä -aikajanaa varten.
+        venue: museum,
       },
     })
   }
@@ -314,8 +317,10 @@ area["boundary"="administrative"]["admin_level"="8"]["name"="Helsinki"]->.hki;
   nwr["leisure"~"^(sauna|escape_game|trampoline_park|climbing|bowling_alley|amusement_arcade|miniature_golf)$"](area.hki)(newer:"${since}");
   nwr["tourism"~"^(museum|gallery|attraction)$"](area.hki)(newer:"${since}");
   nwr["amenity"~"^(public_bath|planetarium|cinema|arts_centre)$"](area.hki)(newer:"${since}");
+  nwr["amenity"~"^(cafe|restaurant|bar|pub|biergarten|ice_cream)$"](area.hki)(newer:"${since}");
+  nwr["shop"~"^(bakery|pastry|confectionery|chocolate|coffee|deli|cheese|wine|books|music|second_hand)$"](area.hki)(newer:"${since}");
 );
-out tags meta;`
+out tags center meta;`
   const res = await fetch(OVERPASS, {
     method: 'POST',
     body: 'data=' + encodeURIComponent(q),
@@ -327,28 +332,43 @@ out tags meta;`
     signal: AbortSignal.timeout(150_000),
   })
   if (!res.ok) throw new Error(`overpass: HTTP ${res.status}`)
-  const data = await res.json() as { elements?: { type: string; id: number; version?: number; timestamp?: string; tags?: Record<string, string> }[] }
+  const data = await res.json() as { elements?: { type: string; id: number; version?: number; timestamp?: string; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[] }
   const out: Raw[] = []
   const MONTHS = ['tammikuussa', 'helmikuussa', 'maaliskuussa', 'huhtikuussa', 'toukokuussa', 'kesäkuussa', 'heinäkuussa', 'elokuussa', 'syyskuussa', 'lokakuussa', 'marraskuussa', 'joulukuussa']
+  // Ruoka- ja kauppapaikat menevät VAIN newPlaces-osioon (Uutta Helsingissä
+  // -sivu). byName syöttää nimiosumia tekemistä-korteille, ja uusi kahvila
+  // samalla nimellä kuin vanha aktiviteetti antaisi väärän "Uusi paikka"
+  // -merkin.
+  const FOOD_OR_SHOP = /^(cafe|restaurant|bar|pub|biergarten|ice_cream|bakery|pastry|confectionery|chocolate|coffee|deli|cheese|wine|books|music|second_hand)$/
   for (const el of data.elements ?? []) {
     if (el.version !== 1 || !el.tags?.name || !el.timestamp) continue
     const d = new Date(el.timestamp)
-    out.push({
-      name: el.tags.name,
-      reason: {
-        kind: 'uusi',
-        label: `Uusi paikka · ${MONTHS[d.getUTCMonth()]}`,
-        source: 'OpenStreetMap',
-        url: `https://www.openstreetmap.org/${el.type}/${el.id}`,
-        date: el.timestamp.slice(0, 10),
-        venue: el.tags.name,
-        // Ei katuosoitetta → matchReasons hyväksyy vain uniikilla nimellä,
-        // mikä on juuri oikein: nimi tulee samasta OSM:stä kuin paikkakin.
-      },
-    })
+    const venueType = el.tags.leisure || el.tags.tourism || el.tags.amenity || el.tags.shop || ''
+    const reason: RestaurantReason = {
+      kind: 'uusi',
+      label: `Uusi paikka · ${MONTHS[d.getUTCMonth()]}`,
+      source: 'OpenStreetMap',
+      url: `https://www.openstreetmap.org/${el.type}/${el.id}`,
+      date: el.timestamp.slice(0, 10),
+      venue: el.tags.name,
+      // Solmulla koordinaatit ovat suoraan, way/relation saa niiden
+      // keskipisteen (out center) — Uutta Helsingissä -sivun karttalinkkiä
+      // ja kaupunginosaa varten.
+      lat: el.lat ?? el.center?.lat,
+      lon: el.lon ?? el.center?.lon,
+      venueType,
+      // Ei katuosoitetta → matchReasons hyväksyy vain uniikilla nimellä,
+      // mikä on juuri oikein: nimi tulee samasta OSM:stä kuin paikkakin.
+    }
+    NEW_PLACES.push(reason)
+    if (!FOOD_OR_SHOP.test(venueType)) out.push({ name: el.tags.name, reason })
   }
   return out
 }
+
+/** KAIKKI OSM:n uudet paikat — myös ne jotka eivät kuulu tekemistä-sivulle.
+ *  fetchNewLeisure täyttää; main() kirjoittaa tiedoston newPlaces-osioon. */
+const NEW_PLACES: RestaurantReason[] = []
 
 // ── AJO ─────────────────────────────────────────────────────────────────────
 
@@ -402,7 +422,13 @@ async function main() {
     process.exit(1)
   }
 
-  const file: ReasonFile = { fetchedAt: TODAY.toISOString(), byName, counts }
+  // Uutta Helsingissä -sivun lattia: jos Overpass onnistui mutta paikkoja on
+  // epäilyttävän vähän, kyse on kyselyviasta — vanha tiedosto on parempi.
+  if (!failures.some((f) => f.startsWith('OSM')) && NEW_PLACES.length < 2) {
+    console.error(`\nEI KIRJOITETA — newPlaces ${NEW_PLACES.length} < 2`)
+    process.exit(1)
+  }
+  const file: ReasonFile = { fetchedAt: TODAY.toISOString(), byName, counts, newPlaces: NEW_PLACES }
   const total = Object.values(byName).flat().length
   console.log(`\n  ${Object.keys(byName).length} avainta, ${total} syytä`)
   if (DRY) { console.log('  --dry: ei kirjoiteta'); return }

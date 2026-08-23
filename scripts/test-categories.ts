@@ -47,6 +47,14 @@ import {
 } from '../lib/restaurant-reasons'
 import reasonFile from '../data/restaurant-reasons.json'
 import activityReasonFile from '../data/activity-reasons.json'
+import {
+  buildNewInHelsinki,
+  kindFromVenueType,
+  kindFromGoogleCategory,
+  neighborhoodOf,
+  OPENING_HEADLINE,
+  type OpeningInput,
+} from '../lib/new-in-helsinki'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
 import deadImages from '../data/dead-images.json'
@@ -2255,6 +2263,103 @@ for (const c of ideaChecks) {
     const exhibits = aAll.filter((x) => x.kind === 'nayttely')
     rChecks.push({ name: 'jokaisella näyttelyllä on note, linkki ja päivä', ok: exhibits.every((x) => !!x.note && !!x.url && !!x.date) })
     rChecks.push({ name: 'jokaisella tekemisen uusi-syyllä on päivä', ok: aAll.filter((x) => x.kind === 'uusi').every((x) => !!x.date) })
+  }
+
+  // 17. UUTTA HELSINGISSÄ — aikajanan kokoaminen (lib/new-in-helsinki.ts).
+  //     Jokainen vartija alla vastaa mitattua riskiä: OSM:n version==1 EI ole
+  //     avaustodiste (Palace ja Ihana Kahvila olivat vasta kartoitettuja).
+  {
+    // Luokittelu
+    rChecks.push({ name: 'uutta: cafe → kahvila', ok: kindFromVenueType('cafe') === 'kahvila' })
+    rChecks.push({ name: 'uutta: bakery → kahvila', ok: kindFromVenueType('bakery') === 'kahvila' })
+    rChecks.push({ name: 'uutta: pub → baari', ok: kindFromVenueType('pub') === 'baari' })
+    rChecks.push({ name: 'uutta: second_hand → kauppa', ok: kindFromVenueType('second_hand') === 'kauppa' })
+    rChecks.push({ name: 'uutta: sauna → tekeminen', ok: kindFromVenueType('sauna') === 'tekeminen' })
+    rChecks.push({ name: 'uutta: Viinibaari → baari', ok: kindFromGoogleCategory('Viinibaari') === 'baari' })
+    rChecks.push({ name: 'uutta: Gruusialainen ravintola → ravintola', ok: kindFromGoogleCategory('Gruusialainen ravintola') === 'ravintola' })
+    rChecks.push({ name: 'uutta: Viinimyymälä → kauppa', ok: kindFromGoogleCategory('Viinimyymälä') === 'kauppa' })
+
+    // Kaupunginosa koordinaateista ja kaupunki osoitteesta
+    rChecks.push({ name: 'uutta: Kallion piste → Kallio', ok: neighborhoodOf(60.185, 24.95) === 'Kallio', got: String(neighborhoodOf(60.185, 24.95)) })
+    rChecks.push({ name: 'uutta: Espoo osoitteesta', ok: neighborhoodOf(undefined, undefined, 'Kauppakatu 1, 02100 Espoo') === 'Espoo' })
+    rChecks.push({ name: 'uutta: tuntematon piste → ei merkkiä', ok: neighborhoodOf(60.35, 25.3) === undefined })
+
+    // Avautumisotsikon tunnistus
+    rChecks.push({ name: 'uutta: "avautuu" tunnistuu', ok: OPENING_HEADLINE.test('Uusi hotelli avautuu Katajanokalle') })
+    rChecks.push({ name: 'uutta: "avajaisiaan" tunnistuu', ok: OPENING_HEADLINE.test('Kirjakauppa juhlii avajaisiaan') })
+    rChecks.push({ name: 'uutta: tavallinen otsikko ei tunnistu', ok: !OPENING_HEADLINE.test('Ravintola sai uuden menun syksyksi') })
+
+    // Kokoaminen kiintein syöttein
+    const uToday = new Date('2026-08-22T12:00:00Z')
+    const op = (name: string, openedAt: string, extra: Partial<OpeningInput> = {}): OpeningInput =>
+      ({ name, openedAt, category: 'Ravintola', ...extra })
+    const osm = (venue: string, date: string, venueType = 'cafe', extra: Partial<RestaurantReason> = {}): RestaurantReason =>
+      ({ kind: 'uusi', label: 'x', source: 'OpenStreetMap', venue, date, venueType, url: `https://osm.org/${venue}`, ...extra })
+    const built = buildNewInHelsinki({
+      openings: [
+        op('Ramen Ichi', '2026-10-01'),                       // tulossa
+        op('Pizzeria Testi', '2026-08-08'),                   // elokuu
+        op('Bistro Vanha', '2025-12-01'),                     // yli 180 pv → pois
+        op('Vanha Krouvi', '2026-08-01', { reviewCount: 261 }), // luvan uusinta → pois
+      ],
+      newPlaces: [
+        osm('Pizzeria Testi', '2026-08-10'),                  // sama paikka → lähdemerkiksi
+        osm('Cafe Tuore', '2026-08-12'),                      // oma rivi
+        osm('Ihana Kahvila', '2026-06-14'),                   // 725 arvostelua → pois
+      ],
+      exhibitions: [
+        { kind: 'nayttely', label: 'Uusi näyttely tulossa', source: 'museot.fi', url: 'https://museot.fi/1', date: '2026-09-24', note: 'Tuleva näyttely (24.9.2026 – 10.1.2027)', venue: 'Testimuseo' },
+        { kind: 'nayttely', label: 'Ajankohtainen näyttely', source: 'museot.fi', url: 'https://museot.fi/2', date: '2026-03-03', note: 'Kauan pyörinyt (3.3.2026 – 29.8.2027)', venue: 'Testimuseo' },
+      ],
+      news: [
+        { title: 'Pizzeria Testi avasi ovensa Kallioon', link: 'https://x/pizzeria', source: 'Testilehti', pubDate: new Date('2026-08-15T10:00:00Z').toUTCString() },
+        { title: 'Uusi hotelli avautuu Katajanokalle', link: 'https://x/hotelli', source: 'Testilehti', pubDate: new Date('2026-08-18T10:00:00Z').toUTCString() },
+        { title: 'Ravintolan menu uudistui', link: 'https://x/menu', source: 'Testilehti', pubDate: new Date('2026-08-18T10:00:00Z').toUTCString() },
+      ],
+      reviewCounts: new Map([['ihana kahvila', 725], ['cafe tuore', 12]]),
+      today: uToday,
+    })
+    const all = [...built.upcoming, ...built.months.flatMap((m) => m.items)]
+    const names = all.map((i) => i.name)
+    rChecks.push({ name: 'uutta: tuleva avaus tulossa-osioon', ok: built.upcoming.some((i) => i.name === 'Ramen Ichi') })
+    rChecks.push({ name: 'uutta: tuleva näyttely tulossa-osioon', ok: built.upcoming.some((i) => i.kind === 'nayttely') })
+    rChecks.push({ name: 'uutta: yli 180 pv vanha avaus pois', ok: !names.includes('Bistro Vanha') })
+    rChecks.push({ name: 'uutta: satojen arvostelujen rekisteririvi on lupauusinta → pois', ok: !names.includes('Vanha Krouvi') })
+    rChecks.push({ name: 'uutta: kauan pyörinyt näyttely pois', ok: !names.includes('Kauan pyörinyt') })
+    const pizzeria = all.find((i) => i.name === 'Pizzeria Testi')
+    rChecks.push({ name: 'uutta: sama paikka kahdesta lähteestä → yksi rivi, kaksi merkkiä', ok: !!pizzeria && pizzeria.sources.length === 2, got: String(pizzeria?.sources.length) })
+    rChecks.push({ name: 'uutta: arvostelukatto pudottaa vanhan paikan (Ihana Kahvila)', ok: !names.includes('Ihana Kahvila') })
+    rChecks.push({ name: 'uutta: vähän arvosteltu OSM-paikka pääsee mukaan', ok: names.includes('Cafe Tuore') })
+    rChecks.push({ name: 'uutta: uutinen kiinnittyy riviin', ok: pizzeria?.news?.url === 'https://x/pizzeria' })
+    rChecks.push({ name: 'uutta: kiinnittynyt juttu ei toistu kaistalla', ok: !built.newsRail.some((n) => n.url === 'https://x/pizzeria') })
+    rChecks.push({ name: 'uutta: rivittömän avautumisjuttu nousee kaistalle', ok: built.newsRail.some((n) => n.url === 'https://x/hotelli') })
+    rChecks.push({ name: 'uutta: ei-avautumisjuttu ei nouse kaistalle', ok: !built.newsRail.some((n) => n.url === 'https://x/menu') })
+    rChecks.push({ name: 'uutta: kuukausiryhmä nimetään suomeksi', ok: built.months[0]?.label === 'Elokuu', got: built.months[0]?.label })
+    rChecks.push({ name: 'uutta: näyttelyrivillä museo ja ajanjakso', ok: built.upcoming.find((i) => i.kind === 'nayttely')?.note === 'Testimuseo · 24.9.2026 – 10.1.2027', got: built.upcoming.find((i) => i.kind === 'nayttely')?.note })
+
+    // Ilman arvostelumääriä OSM-väitettä ei voida tarkistaa → rivit pois
+    const noCounts = buildNewInHelsinki({
+      openings: [], newPlaces: [osm('Cafe Tuore', '2026-08-12')], exhibitions: [], news: [], today: uToday,
+    })
+    rChecks.push({ name: 'uutta: ilman arvostelumääriä OSM-rivit jäävät pois', ok: noCounts.total === 0, got: String(noCounts.total) })
+
+    // OIKEA DATATIEDOSTO — newPlaces-osio (Uutta Helsingissä -sivun selkäranka)
+    const af17 = activityReasonFile as unknown as ReasonFile
+    const np = af17.newPlaces ?? []
+    rChecks.push({ name: 'uutta: newPlaces-osiossa on rivejä', ok: np.length >= 2, got: String(np.length) })
+    rChecks.push({ name: 'uutta: jokaisella paikalla nimi, päivä ja tyyppi', ok: np.every((x) => !!x.venue && !!x.date && !!x.venueType) })
+    // Kokoaminen oikealla datalla: sivun on oltava elävä, ei tyhjä.
+    const realToday = new Date((openingFile as { fetchedAt?: string }).fetchedAt ?? Date.now())
+    const real = buildNewInHelsinki({
+      openings: (openingFile as { openings?: OpeningInput[] }).openings ?? [],
+      newPlaces: np,
+      exhibitions: Object.values(af17.byName ?? {}).flat().filter((x) => x.kind === 'nayttely'),
+      news: [],
+      reviewCounts: new Map(),
+      today: realToday,
+    })
+    rChecks.push({ name: 'uutta: oikea data tuottaa ≥ 40 riviä', ok: real.total >= 40, got: String(real.total) })
+    rChecks.push({ name: 'uutta: oikeassa datassa on tulossa-rivejä', ok: real.upcoming.length >= 1, got: String(real.upcoming.length) })
   }
 
   for (const c of rChecks) {

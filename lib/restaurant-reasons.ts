@@ -54,9 +54,17 @@ export interface RestaurantReason {
    * Paikan nimi sellaisena kuin lähde sen kirjoittaa. `byName`-avain on
    * normalisoitu ("bar om´pu" → "om pu"), joten alkuperäinen nimi katoaisi
    * ilman tätä — ja juuri sitä tarvitaan hakusanana kun uudelle avaukselle
-   * haetaan kortti (scripts/fetch-new-openings.ts).
+   * haetaan kortti (scripts/fetch-new-openings.ts) ja näyttönimenä
+   * Uutta Helsingissä -aikajanalla (lib/new-in-helsinki.ts).
    */
   venue?: string
+  /** Koordinaatit lähteestä (OSM). Uutta Helsingissä -sivun kartta- ja
+   *  kaupunginosatietoa varten. */
+  lat?: number
+  lon?: number
+  /** OSM:n päätagin arvo (cafe, sauna, museum, bakery…). Uutta Helsingissä
+   *  -sivu luokittelee rivit tällä. */
+  venueType?: string
 }
 
 /** Tiedostoon `data/restaurant-reasons.json` tallennettu muoto. */
@@ -67,6 +75,14 @@ export interface ReasonFile {
   byName: Record<string, RestaurantReason[]>
   /** Lähdekohtaiset lukumäärät, jotta romahdus näkyy diffissä. */
   counts: Record<string, number>
+  /**
+   * KAIKKI OSM:n uudet paikat (myös kahvilat, leipomot ja putiikit, jotka
+   * eivät kuulu tekemistä-sivulle) Uutta Helsingissä -aikajanaa varten.
+   * Erillään byName-osiosta tarkoituksella: byName syöttää nimiosumia
+   * tekemistä-korteille, ja uusi kahvila samalla nimellä kuin vanha
+   * aktiviteetti antaisi väärän "Uusi paikka" -merkin.
+   */
+  newPlaces?: RestaurantReason[]
 }
 
 // ── NIMIEN YHDISTÄMINEN ─────────────────────────────────────────────────────
