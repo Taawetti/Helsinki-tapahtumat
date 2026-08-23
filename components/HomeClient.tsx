@@ -243,6 +243,9 @@ export default function HomeClient({
   // Kaupunginosavalikko etusivulla — footerin linkkilista siirrettiin tänne
   // näkyville (omistaja: "tuolta alhaalta pienellä kukaan ei käytä niitä")
   const [showHoodMenu, setShowHoodMenu] = useState(false)
+  // Kaupunginosasuodatin: valinta EI vie erilliselle sivulle vaan suodattaa
+  // tapahtumat tässä näkymässä ("Tapahtumat Kalliossa") — omistajan linjaus.
+  const [hoodFilter, setHoodFilter] = useState<string | null>(null)
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -282,6 +285,7 @@ export default function HomeClient({
   // pisin ikkuna jonka lähteet hakevat, ja muut suodattimet nollataan.
   const showVenueEvents = useCallback((name: string) => {
     setSelectedEvent(null)
+    setHoodFilter(null)
     setKeyword(name)
     setDateFilter('month')
     setActiveVibes([])
@@ -582,8 +586,24 @@ export default function HomeClient({
     if (priceFilter === 'free') result = result.filter((e) => e.isFree)
     if (priceFilter === 'paid') result = result.filter((e) => !e.isFree)
 
+    // Kaupunginosa: tapahtuman koordinaatit kaupunginosan rajauksessa — sama
+    // bbox jota SEO-sivut käyttävät. Koordinaatiton tapahtuma ei voi osua.
+    if (hoodFilter) {
+      const hood = NEIGHBORHOODS.find((n) => n.id === hoodFilter)
+      if (hood) {
+        const [minLon, minLat, maxLon, maxLat] = hood.bbox.split(',').map(Number)
+        result = result.filter((e) => {
+          const la = e.location?.lat, lo = e.location?.lon
+          return typeof la === 'number' && typeof lo === 'number' &&
+            la >= minLat && la <= maxLat && lo >= minLon && lo <= maxLon
+        })
+      }
+    }
+
     return result
-  }, [upcomingEvents, activeCategories, activeVibes, priceFilter])
+    // keyword puuttui riippuvuuksista (piilevä bugi: pelkkä hakusanan muutos
+    // ei laskenut suodatusta uudelleen ellei jokin muu tila muuttunut samalla)
+  }, [upcomingEvents, activeCategories, activeVibes, priceFilter, keyword, hoodFilter])
 
   const discoverEvents = useMemo(
     () => [...filteredEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
@@ -723,6 +743,29 @@ export default function HomeClient({
         break
     }
   }, [])
+
+  // Kaupunginosavalikon lista — sama sisältö pillerissä ja suodatusotsikossa.
+  const hoodMenuList = (
+    <>
+      {/* näkymätön tausta sulkee valikon ulkopuolelta klikattaessa */}
+      <button className="fixed inset-0 z-40 cursor-default" aria-label="Sulje"
+        onClick={() => setShowHoodMenu(false)} />
+      <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-60 max-h-80 overflow-y-auto rounded-2xl p-1.5"
+        style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
+        {NEIGHBORHOODS.map((n) => (
+          <button key={n.id} type="button"
+            onClick={() => { setHoodFilter(n.id); setShowHoodMenu(false); window.scrollTo(0, 0) }}
+            className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors">
+            <span className="text-base leading-none">{n.emoji}</span>
+            <span className="min-w-0">
+              Tapahtumat {NEIGHBORHOOD_INESSIVE[n.id] ?? n.name}
+              <span className="block text-[10.5px] font-medium text-white/35 truncate">{n.vibe}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </>
+  )
 
   return (
     <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#0a0a0c' }}>
@@ -1020,7 +1063,7 @@ export default function HomeClient({
           )}
 
           {/* ═══ KATEGORIAN PYSTYLISTA (koCat) — ← Takaisin + rikkaat kortit ═══ */}
-          {koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+          {koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <section className="space-y-4">
               <div className="flex items-center gap-3">
                 <button onClick={() => setKoCat(null)}
@@ -1074,7 +1117,7 @@ export default function HomeClient({
           )}
 
           {/* ═══ ETUSIVU (koFront) — hero → ruudukko → kompaktit rivit → aihepiirit ═══ */}
-          {!koCat && !keyword && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+          {!koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <>
               {/* Tilarivi: vihreä pulssipiste + päivän tapahtumamäärä */}
               {!loading && baseEvents.length > 0 && (
@@ -1137,6 +1180,31 @@ export default function HomeClient({
                 </section>
               )}
 
+              {/* 🎨 Kaikki aihepiirit + 📍 Kaupunginosat — HETI kategorioiden
+                  alla, jotta ne näkee ilman koko sivun vieritystä (omistajan
+                  pyyntö). Kaupunginosa suodattaa tapahtumat tässä näkymässä,
+                  ei vie erilliselle sivulle. */}
+              {!loading && baseEvents.length > 0 && (
+                <div className="flex justify-center gap-2 pt-1 flex-wrap">
+                  <button onClick={() => setShowVibePanel(true)}
+                    className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+                    style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+                    🎨 {t('discover.all_vibes')}
+                    <span className="text-white/40">▾</span>
+                  </button>
+                  <div className="relative">
+                    <button onClick={() => setShowHoodMenu((v) => !v)}
+                      className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+                      style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+                      📍 {t('discover.neighborhoods')}
+                      <span className="text-white/40">▾</span>
+                    </button>
+                    {showHoodMenu && hoodMenuList}
+                  </div>
+                </div>
+              )}
+
+
               {/* Parhaat poiminnat — iso ruudukko (korvaa vaakakarusellit). Otsikko
                   elää aikavälin mukaan; sisältö kuratoitu (kuvalliset/keikat/festarit). */}
               {!loading && bestPicks.length > 0 && (
@@ -1166,50 +1234,6 @@ export default function HomeClient({
                 </div>
               )}
 
-              {/* 🎨 Kaikki aihepiirit + 📍 Kaupunginosat — keskitetty pillerpari.
-                  Kaupunginosalinkit asuivat ennen footerissa, jossa niitä ei
-                  kukaan käyttänyt (omistajan huomio) — nyt ne ovat
-                  scrollattavassa pudotusvalikossa kategorioiden vieressä. */}
-              {!loading && baseEvents.length > 0 && (
-                <div className="flex justify-center gap-2 pt-1 flex-wrap">
-                  <button onClick={() => setShowVibePanel(true)}
-                    className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
-                    style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
-                    🎨 {t('discover.all_vibes')}
-                    <span className="text-white/40">▾</span>
-                  </button>
-                  <div className="relative">
-                    <button onClick={() => setShowHoodMenu((v) => !v)}
-                      className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
-                      style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
-                      📍 {t('discover.neighborhoods')}
-                      <span className="text-white/40">▾</span>
-                    </button>
-                    {showHoodMenu && (
-                      <>
-                        {/* näkymätön tausta sulkee valikon ulkopuolelta klikattaessa */}
-                        <button className="fixed inset-0 z-40 cursor-default" aria-label="Sulje"
-                          onClick={() => setShowHoodMenu(false)} />
-                        <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-60 max-h-80 overflow-y-auto rounded-2xl p-1.5"
-                          style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
-                          {NEIGHBORHOODS.map((n) => (
-                            <Link key={n.id} href={`/tapahtumat/${n.id}`}
-                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors"
-                              style={{ textDecoration: 'none' }}>
-                              <span className="text-base leading-none">{n.emoji}</span>
-                              <span className="min-w-0">
-                                Tapahtumat {NEIGHBORHOOD_INESSIVE[n.id] ?? n.name}
-                                <span className="block text-[10.5px] font-medium text-white/35 truncate">{n.vibe}</span>
-                              </span>
-                            </Link>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Päättäkää yhdessä -linkki mobiilissa */}
               <div className="md:hidden flex justify-center">
                 <Link href="/paatakaa" className="text-[12px] font-bold text-white/35 hover:text-white/60 transition-colors" style={{ textDecoration: 'none' }}>
@@ -1219,10 +1243,37 @@ export default function HomeClient({
             </>
           )}
 
+          {/* Kaupunginosaotsikko: "Tapahtumat Kalliossa" + vaihto ja poisto —
+              näkymä pysyy tapahtumasivuna, vain kaupunginosa vaihtuu. */}
+          {hoodFilter && (
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h2 className="font-black text-white text-[22px]" style={{ letterSpacing: '-0.02em' }}>
+                📍 Tapahtumat {NEIGHBORHOOD_INESSIVE[hoodFilter] ?? ''}
+              </h2>
+              {!loading && !fetchingFull && (
+                <span className="text-[13px] font-bold text-white/35">{discoverEvents.length}</span>
+              )}
+              <div className="relative">
+                <button onClick={() => setShowHoodMenu((v) => !v)}
+                  className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
+                  style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
+                  Vaihda ▾
+                </button>
+                {showHoodMenu && hoodMenuList}
+              </div>
+              <button onClick={() => { setHoodFilter(null); setShowHoodMenu(false) }}
+                aria-label="Poista kaupunginosasuodatin"
+                className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
+                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Suodatetun näkymän lataustila: vaihe 1 on ohi (skeleton poissa)
               mutta täysi haku kesken eikä osumia vielä ole — ilman tätä
               paikkahaku ("Paikan kaikki tapahtumat") näytti 2–3 s tyhjää. */}
-          {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length === 0 && (loading || fetchingFull) && (
+          {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length === 0 && (loading || fetchingFull) && (
             <div className="flex items-center justify-center gap-2 py-10">
               <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>Haetaan tapahtumia</span>
@@ -1230,7 +1281,7 @@ export default function HomeClient({
           )}
 
           {/* ── Flat grid — näkyy kun keyword, kategoria, vibe tai Nyt menossa valittu ── */}
-          {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
+          {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {discoverEvents.map(e => (
