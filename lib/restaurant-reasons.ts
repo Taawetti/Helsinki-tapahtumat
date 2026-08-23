@@ -65,6 +65,10 @@ export interface RestaurantReason {
   /** OSM:n päätagin arvo (cafe, sauna, museum, bakery…). Uutta Helsingissä
    *  -sivu luokittelee rivit tällä. */
   venueType?: string
+  /** Some-linkit OSM-tageista (normalisoituina, lib/socials.ts) — moni
+   *  pikkupaikka pitää Instagramia kotisivunaan. */
+  instagram?: string
+  facebook?: string
   /** Lähteen oma esittelykuva (museot.fi:n og:image näyttelylle). Tarkistettu
    *  hakuhetkellä; kuolleet karsii viikkoharava. */
   image?: string

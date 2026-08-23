@@ -57,6 +57,7 @@ import {
 } from '../lib/new-in-helsinki'
 import enrichedFile from '../data/new-places-enriched.json'
 import secondhandFile from '../data/secondhand.json'
+import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
 import { nameOverlap } from '../lib/dataforseo'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
@@ -2412,6 +2413,31 @@ for (const c of ideaChecks) {
     rChecks.push({ name: 'uutta: oikea data tuottaa ≥ 40 riviä', ok: real.total >= 40, got: String(real.total) })
     rChecks.push({ name: 'uutta: oikeassa datassa on tulossa-rivejä', ok: real.upcoming.length >= 1, got: String(real.upcoming.length) })
   }
+
+    // 17b. SOME-LINKIT — OSM-tagien villit muodot normalisoituina (mitatut).
+    rChecks.push({ name: 'some: pelkkä kahva → IG-osoite', ok: normalizeInstagram('borealhki') === 'https://www.instagram.com/borealhki/' })
+    rChecks.push({ name: 'some: @-kahva siivotaan', ok: normalizeFacebook('@antinkaffeliiteri') === 'https://www.facebook.com/antinkaffeliiteri' })
+    rChecks.push({ name: 'some: täysi IG-URL säilyy kahvana', ok: normalizeInstagram('https://www.instagram.com/laziz_ravintola/?hl=fi') === 'https://www.instagram.com/laziz_ravintola/' })
+    rChecks.push({ name: 'some: m.facebook → www', ok: normalizeFacebook('https://m.facebook.com/pages/Teeritupa/123')?.startsWith('https://www.facebook.com/') === true })
+    rChecks.push({ name: 'some: numero-id kelpaa FB-kahvaksi', ok: normalizeFacebook('61552427690662') === 'https://www.facebook.com/61552427690662' })
+    rChecks.push({ name: 'some: website-tagin IG luokitellaan someksi', ok: (() => { const r = splitWebsite('https://www.instagram.com/walkcycle.hels/'); return r.instagram === 'https://www.instagram.com/walkcycle.hels/' && !r.www })() })
+    rChecks.push({ name: 'some: oikea kotisivu pysyy kotisivuna', ok: (() => { const r = splitWebsite('https://barloose.com'); return r.www === 'https://barloose.com' && !r.instagram })() })
+    rChecks.push({ name: 'some: roskasyöte hylätään', ok: normalizeInstagram('ei kelpaa!') === undefined })
+    // Läpivienti: OSM-rivin IG kulkee aikajanan riville.
+    const withIg = buildNewInHelsinki({
+      openings: [], exhibitions: [], news: [], today,
+      newPlaces: [{ kind: 'uusi', label: 'x', source: 'OpenStreetMap', venue: 'Some Cafe', date: '2026-08-12', venueType: 'cafe', url: 'https://osm.org/ig1', instagram: 'https://www.instagram.com/somecafe/' }],
+      placeCards: new Map(),
+      reviewCounts: new Map(),
+    })
+    rChecks.push({ name: 'some: IG kulkee uutta-riville', ok: withIg.months[0]?.items[0]?.instagram === 'https://www.instagram.com/somecafe/' })
+    // Rekisteriavauksen www joka onkin IG → siirtyy instagram-kenttään.
+    const igAsWww = buildNewInHelsinki({
+      openings: [{ name: 'IG Baari', openedAt: '2026-08-10', category: 'Baari', www: 'https://instagram.com/igbaari' }],
+      newPlaces: [], exhibitions: [], news: [], today,
+    })
+    const igb = igAsWww.months[0]?.items.find((i) => i.name === 'IG Baari')
+    rChecks.push({ name: 'some: avauksen IG-kotisivu luokitellaan someksi', ok: !!igb && !igb.www && igb.instagram === 'https://www.instagram.com/igbaari/' })
 
     // 18. KIRPPUTORIT — /kirpputorit-sivun liiketiedosto (OSM, viikkohaku)
     const sh = secondhandFile as { fetchedAt?: string; shops?: { name?: string; lat?: number; lon?: number; openingHours?: string | null }[] }

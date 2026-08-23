@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-23T18:58:02.617Z",
+  "fetchedAt": "2026-08-23T22:27:22.191Z",
   "byName": {
     "sinebrychoffin taidemuseo": [
       {
@@ -5729,7 +5729,8 @@
       "venue": "Saiko",
       "lat": 60.1663196,
       "lon": 24.9344395,
-      "venueType": "restaurant"
+      "venueType": "restaurant",
+      "instagram": "https://www.instagram.com/saikohelsinki/"
     },
     {
       "kind": "uusi",
@@ -5762,7 +5763,8 @@
       "venue": "Layers Bakery",
       "lat": 60.1750618,
       "lon": 24.9285413,
-      "venueType": "bakery"
+      "venueType": "bakery",
+      "instagram": "https://www.instagram.com/layersbakery.hel/"
     },
     {
       "kind": "uusi",
@@ -5773,7 +5775,8 @@
       "venue": "Layers Bakery",
       "lat": 60.164117,
       "lon": 24.9359467,
-      "venueType": "bakery"
+      "venueType": "bakery",
+      "instagram": "https://www.instagram.com/layersbakery.hel/"
     },
     {
       "kind": "uusi",
@@ -5828,7 +5831,9 @@
       "venue": "Zestii",
       "lat": 60.1866792,
       "lon": 24.951744,
-      "venueType": "cafe"
+      "venueType": "cafe",
+      "instagram": "https://www.instagram.com/zestii.helsinki/",
+      "facebook": "https://www.facebook.com/61577510105218"
     },
     {
       "kind": "uusi",
@@ -5905,7 +5910,8 @@
       "venue": "Taphouse Train Factory",
       "lat": 60.1932165,
       "lon": 24.9451645,
-      "venueType": "bar"
+      "venueType": "bar",
+      "facebook": "https://www.facebook.com/TaphouseTrainFactory/"
     },
     {
       "kind": "uusi",
@@ -6015,7 +6021,9 @@
       "venue": "Ariel Ravintola",
       "lat": 60.1840815,
       "lon": 24.9752142,
-      "venueType": "restaurant"
+      "venueType": "restaurant",
+      "instagram": "https://www.instagram.com/ariel.ravintola/",
+      "facebook": "https://facebook.com/ariel.ravintola/"
     },
     {
       "kind": "uusi",
@@ -6191,7 +6199,9 @@
       "venue": "Ravintola Laziz",
       "lat": 60.2066233,
       "lon": 24.8996973,
-      "venueType": "restaurant"
+      "venueType": "restaurant",
+      "instagram": "https://www.instagram.com/laziz_ravintola/",
+      "facebook": "https://www.facebook.com/p/Laziz-restaurant-Helsinki-61559883153957/"
     },
     {
       "kind": "uusi",
@@ -6202,7 +6212,8 @@
       "venue": "Walk Cycle",
       "lat": 60.18616,
       "lon": 25.0388908,
-      "venueType": "cafe"
+      "venueType": "cafe",
+      "instagram": "https://www.instagram.com/walkcycle.helsinki/"
     },
     {
       "kind": "uusi",
@@ -6224,7 +6235,9 @@
       "venue": "Butik 33 Second Hand",
       "lat": 60.1976505,
       "lon": 24.8748286,
-      "venueType": "second_hand"
+      "venueType": "second_hand",
+      "instagram": "https://www.instagram.com/butik33secondhand/",
+      "facebook": "https://www.facebook.com/people/Butik-33-Second-Hand-Munkkiniemi/61552637952949/"
     },
     {
       "kind": "uusi",

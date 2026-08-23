@@ -374,6 +374,26 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
                   </a>
                 ) : null
               })()}
+              {/* SOME — moni pikkupaikka pitää Instagramia kotisivunaan
+                  (omistajan huomio). Linkit OSM-tageista, normalisoituina. */}
+              {(item.instagram || item.facebook) && (
+                <div className={`grid gap-2 ${item.instagram && item.facebook ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {item.instagram && (
+                    <a href={item.instagram} target="_blank" rel="noopener"
+                      className="flex items-center justify-center gap-1.5 text-sm font-medium py-3 rounded-xl border transition-colors"
+                      style={{ background: 'rgba(225,48,108,.1)', borderColor: 'rgba(225,48,108,.25)', color: '#f9a8d4' }}>
+                      📷 Instagram <ExternalLink size={11} className="opacity-60" />
+                    </a>
+                  )}
+                  {item.facebook && (
+                    <a href={item.facebook} target="_blank" rel="noopener"
+                      className="flex items-center justify-center gap-1.5 text-sm font-medium py-3 rounded-xl border transition-colors"
+                      style={{ background: 'rgba(24,119,242,.1)', borderColor: 'rgba(24,119,242,.25)', color: '#93c5fd' }}>
+                      ⓕ Facebook <ExternalLink size={11} className="opacity-60" />
+                    </a>
+                  )}
+                </div>
+              )}
               {(mapsUrl || transitUrl) && (
                 <div className="grid grid-cols-2 gap-2">
                   {mapsUrl && (

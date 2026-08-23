@@ -37,6 +37,7 @@ import { join } from 'node:path'
 import type { ReasonKind, RestaurantReason, ReasonFile } from '../lib/restaurant-reasons'
 import { reasonKeyVariants } from '../lib/restaurant-reasons'
 import { extractImageFromHtml } from '../lib/og-image'
+import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
 import { get, stripTags, listTitleNote, listPill, extractListEntries, NOT_A_VENUE, looksLikeSentence } from '../lib/editorial-scrape'
 
 const OUT = join(process.cwd(), 'data', 'activity-reasons.json')
@@ -382,6 +383,11 @@ out tags center meta;`
     if (el.version !== 1 || !el.tags?.name || !el.timestamp) continue
     const d = new Date(el.timestamp)
     const venueType = el.tags.leisure || el.tags.tourism || el.tags.amenity || el.tags.shop || ''
+    // Some-linkit: omat tagit ensin; website-tagissa oleva IG-/FB-osoite
+    // luokitellaan someksi (mitattu: Walk Cyclen "kotisivu" on Instagram).
+    const webSplit = splitWebsite(el.tags.website ?? el.tags['contact:website'])
+    const instagram = normalizeInstagram(el.tags['contact:instagram'] ?? el.tags.instagram) ?? webSplit.instagram
+    const facebook = normalizeFacebook(el.tags['contact:facebook'] ?? el.tags.facebook) ?? webSplit.facebook
     const reason: RestaurantReason = {
       kind: 'uusi',
       label: `Uusi paikka · ${MONTHS[d.getUTCMonth()]}`,
@@ -395,6 +401,8 @@ out tags center meta;`
       lat: el.lat ?? el.center?.lat,
       lon: el.lon ?? el.center?.lon,
       venueType,
+      ...(instagram ? { instagram } : {}),
+      ...(facebook ? { facebook } : {}),
       // Ei katuosoitetta → matchReasons hyväksyy vain uniikilla nimellä,
       // mikä on juuri oikein: nimi tulee samasta OSM:stä kuin paikkakin.
     }

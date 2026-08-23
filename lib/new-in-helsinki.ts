@@ -19,6 +19,7 @@ import type { RestaurantReason } from './restaurant-reasons'
 import { matchNewsToRestaurants } from './restaurant-news-match'
 import type { NewsLike } from './restaurant-news-match'
 import { NEIGHBORHOODS } from './types'
+import { splitWebsite } from './socials'
 
 /** Suodatinluokat sivulla. */
 export type NewKind = 'ravintola' | 'baari' | 'kahvila' | 'kauppa' | 'tekeminen' | 'nayttely'
@@ -50,6 +51,9 @@ export interface NewItem {
   lon?: number
   image?: string
   www?: string
+  /** Some-linkit — moni pikkupaikka pitää Instagramia kotisivunaan. */
+  instagram?: string
+  facebook?: string
   rating?: number
   reviews?: number
   /** Näyttelyllä museo + ajanjakso; muilla ei käytössä. */
@@ -219,6 +223,7 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
     if ((o.reviewCount ?? 0) > MAX_REVIEWS_FOR_NEW) continue
     const key = reasonKey(o.name)
     if (byKey.has(key)) continue
+    const oLinks = splitWebsite(o.www)
     push(key, {
       id: `avaus:${key}`,
       name: o.name,
@@ -230,7 +235,9 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
       lat: o.lat,
       lon: o.lon,
       image: o.image ?? undefined,
-      www: o.www ?? undefined,
+      www: oLinks.www,
+      instagram: oLinks.instagram,
+      facebook: oLinks.facebook,
       rating: o.googleRating ?? undefined,
       reviews: o.reviewCount ?? undefined,
       sources: [{ label: 'anniskeluluparekisteri' }],
@@ -279,7 +286,14 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
         lat: p.lat,
         lon: p.lon,
         image: card?.image ?? undefined,
-        www: card?.www ?? undefined,
+        ...(() => {
+          const cLinks = splitWebsite(card?.www)
+          return {
+            www: cLinks.www,
+            instagram: p.instagram ?? cLinks.instagram,
+            facebook: p.facebook ?? cLinks.facebook,
+          }
+        })(),
         rating: card?.rating ?? undefined,
         reviews: cardReviews ?? vrReviews,
         sources: [{ label: 'OpenStreetMap', url: p.url }],
