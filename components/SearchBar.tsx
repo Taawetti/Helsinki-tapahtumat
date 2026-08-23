@@ -14,16 +14,19 @@ export interface SearchHit {
 interface Props {
   value: string
   onChange: (v: string) => void
+  /** Tapahtumapaikat joilla on menoja — valinta avaa paikan koko listan. */
+  venueHits?: SearchHit[]
   activityHits?: SearchHit[]
   restaurantHits?: SearchHit[]
+  onSelectVenue?: (name: string) => void
   onSelectActivity?: (id: string) => void
   onSelectRestaurant?: (id: string) => void
 }
 
 export default function SearchBar({
   value, onChange,
-  activityHits = [], restaurantHits = [],
-  onSelectActivity, onSelectRestaurant,
+  venueHits = [], activityHits = [], restaurantHits = [],
+  onSelectVenue, onSelectActivity, onSelectRestaurant,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [focused, setFocused] = useState(false)
@@ -40,7 +43,7 @@ export default function SearchBar({
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  const hasLocalHits = activityHits.length > 0 || restaurantHits.length > 0
+  const hasLocalHits = venueHits.length > 0 || activityHits.length > 0 || restaurantHits.length > 0
 
   return (
     <div className="relative w-full max-w-md">
@@ -75,6 +78,28 @@ export default function SearchBar({
       {/* Local hits dropdown — activities & restaurants */}
       {focused && value && hasLocalHits && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-[#131820] border border-white/10 rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
+          {/* TAPAHTUMAPAIKAT ENSIN — paikan nimen kirjoittanut haluaa
+              todennäköisimmin paikan ohjelman, ei ravintolakorttia. */}
+          {venueHits.length > 0 && (
+            <>
+              <p className="text-white/30 text-[11px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1">
+                {t('search.venues')}
+              </p>
+              {venueHits.map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => onSelectVenue?.(h.name)}
+                  className="w-full text-left px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between gap-3"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <Search size={12} className="text-white/20 shrink-0" />
+                    <span className="truncate">{h.name}</span>
+                  </span>
+                  <span className="text-[10px] shrink-0" style={{ color: '#a3abff' }}>{h.sub}</span>
+                </button>
+              ))}
+            </>
+          )}
           {activityHits.length > 0 && (
             <>
               <p className="text-white/30 text-[11px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1">

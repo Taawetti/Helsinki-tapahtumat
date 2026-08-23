@@ -6,7 +6,8 @@
 // haalea emoji, merkit kuvan päällä, otsikkorivi alla, koko kortti on yksi
 // klikkipinta. Data kootaan palvelimella (lib/new-in-helsinki.ts).
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { X, MapPin, Navigation, Globe, Clock, ExternalLink, MessageCircle, Copy, Check } from 'lucide-react'
 import type { NewInHelsinki, NewItem, NewKind } from '@/lib/new-in-helsinki'
 
 const KIND_META: Record<NewKind, { emoji: string; label: string; gradient: string; accent: string }> = {
@@ -60,21 +61,12 @@ function subLine(item: NewItem): string {
     .join(' · ')
 }
 
-/** Kortin klikkikohde: tuorein uutinen voittaa, sitten oma sivu, sitten lähde
- *  (museot.fi / OSM). Koko kortti on yksi linkki kuten tapahtumakorteissa. */
-function primaryHref(item: NewItem): string | undefined {
-  if (item.news?.url) return item.news.url
-  if (item.www) return /^https?:\/\//i.test(item.www) ? item.www : `https://${item.www}`
-  return item.sources.find((s) => s.url)?.url
-}
-
 // ── JULISTEKORTTI — sama rakenne kuin tapahtumien PosterCard ────────────────
 
-function NewPosterCard({ item }: { item: NewItem }) {
+function NewPosterCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) => void }) {
   const [imgOk, setImgOk] = useState(true)
   const meta = KIND_META[item.kind]
   const date = dateLabel(item)
-  const href = primaryHref(item)
   const hasImage = !!item.image && imgOk
   const sub = subLine(item)
 
@@ -142,27 +134,27 @@ function NewPosterCard({ item }: { item: NewItem }) {
           </p>
         )}
         <p className="text-[10px] text-white/25 truncate">
-          {item.sources.map((s) => s.label).join(' · ')}{href ? ' ↗' : ''}
+          {item.sources.map((s) => s.label).join(' · ')}
         </p>
       </div>
     </>
   )
 
-  const cls = 'group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 block'
-  return href ? (
-    <a href={href} target="_blank" rel="noopener" className={cls}>{inner}</a>
-  ) : (
-    <div className={cls}>{inner}</div>
+  // Kortti avaa infopaneelin kuten tapahtumakortit — linkit ovat paneelissa.
+  return (
+    <button type="button" onClick={() => onOpen(item)}
+      className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]">
+      {inner}
+    </button>
   )
 }
 
 // ── HEROKORTTI — sivun käyntikortti: tuorein kuvallinen nosto ───────────────
 
-function HeroCard({ item }: { item: NewItem }) {
+function HeroCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) => void }) {
   const [imgOk, setImgOk] = useState(true)
   const meta = KIND_META[item.kind]
   const date = dateLabel(item)
-  const href = primaryHref(item)
   const inner = (
     <>
       {item.image && imgOk ? (
@@ -186,7 +178,7 @@ function HeroCard({ item }: { item: NewItem }) {
           {meta.emoji} {meta.label.toUpperCase()}{item.neighborhood ? ` · ${item.neighborhood.toUpperCase()}` : ''}
         </p>
         <h2 className="font-black text-white text-2xl leading-tight" style={{ letterSpacing: '-0.02em' }}>
-          {item.name}{href ? ' ↗' : ''}
+          {item.name}
         </h2>
         <p className="text-[13px] text-white/60 mt-1">
           {subLine(item)}
@@ -202,12 +194,198 @@ function HeroCard({ item }: { item: NewItem }) {
       </div>
     </>
   )
-  const cls = 'relative w-full rounded-[22px] overflow-hidden block'
-  const style = { aspectRatio: '16/9', boxShadow: '0 22px 50px -20px rgba(10,10,12,.8)' } as const
-  return href ? (
-    <a href={href} target="_blank" rel="noopener" className={cls} style={style}>{inner}</a>
-  ) : (
-    <div className={cls} style={style}>{inner}</div>
+  return (
+    <button type="button" onClick={() => onOpen(item)}
+      className="relative w-full rounded-[22px] overflow-hidden block text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]"
+      style={{ aspectRatio: '16/9', boxShadow: '0 22px 50px -20px rgba(10,10,12,.8)' }}>
+      {inner}
+    </button>
+  )
+}
+
+// ── INFOPANEELI — sama liukurakenne kuin tapahtumien EventDetailPanel ───────
+// (pohjalta nouseva kortti mobiilissa, oikean laidan paneeli työpöydällä).
+// Ulkoiset linkit (uutinen, nettisivu, lähde, kartta) asuvat täällä.
+
+function NewItemDetailPanel({ item, onClose }: { item: NewItem | null; onClose: () => void }) {
+  // key vaihtaa sisäkomponentin joka kortille — liukuanimaatio ja
+  // kopioitu-tila alkavat puhtaalta pöydältä ilman tilan nollausefektejä.
+  if (!item) return null
+  return <NewItemDetailPanelInner key={item.id} item={item} onClose={onClose} />
+}
+
+function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: () => void }) {
+  const [slideIn, setSlideIn] = useState(false)
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setSlideIn(true))
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', esc)
+    return () => { cancelAnimationFrame(raf); document.removeEventListener('keydown', esc) }
+  }, [onClose])
+
+  const meta = KIND_META[item.kind]
+  const date = dateLabel(item)
+  const www = item.www ? (/^https?:\/\//i.test(item.www) ? item.www : `https://${item.www}`) : undefined
+  const shareUrl = www ?? item.news?.url ?? item.sources.find((s) => s.url)?.url ?? 'https://helsinki-tapahtumat.vercel.app/uutta-helsingissa'
+  const shareText = `${item.name} — Uutta Helsingissä`
+  const mapsUrl = item.lat && item.lon
+    ? `https://maps.google.com/maps?q=${item.lat},${item.lon}`
+    : item.address ? `https://maps.google.com/maps?q=${encodeURIComponent(item.address + ', Helsinki')}` : undefined
+  const transitUrl = item.lat && item.lon
+    ? `https://maps.google.com/maps?daddr=${item.lat},${item.lon}&travelmode=transit`
+    : item.address ? `https://maps.google.com/maps?daddr=${encodeURIComponent(item.address + ', Helsinki')}&travelmode=transit` : undefined
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose} aria-hidden />
+      <div
+        role="dialog" aria-modal aria-label={item.name}
+        className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl overflow-hidden md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:rounded-none md:w-full md:max-w-lg"
+        style={{ transform: slideIn ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 340ms cubic-bezier(0.32,0.72,0,1)', willChange: 'transform' }}
+      >
+        <div className="h-[92dvh] overflow-y-auto bg-[#0e1117] shadow-2xl md:h-full">
+          <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+            <div className="w-10 h-1 rounded-full bg-white/20" />
+          </div>
+
+          {/* Kuva */}
+          <div className="relative h-60 w-full shrink-0" style={{ background: '#1a1f2e' }}>
+            {item.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.image} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-7xl" style={{ background: meta.gradient }}>{meta.emoji}</div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0e1117] via-black/20 to-transparent" />
+            <span className="absolute top-4 left-4 text-[11px] font-black px-3 py-1 rounded-full bg-black/55 backdrop-blur-sm" style={{ color: date.color }}>
+              {date.text}
+            </span>
+            <button onClick={onClose} aria-label="Sulje"
+              className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-5">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[.12em] mb-1" style={{ color: meta.accent }}>
+                {meta.emoji} {meta.label}
+              </p>
+              <h2 className="text-xl font-bold text-white leading-tight">{item.name}</h2>
+            </div>
+
+            {/* Meta */}
+            <div className="space-y-3 bg-white/4 rounded-xl p-4 border border-white/6">
+              <div className="flex items-start gap-3 text-sm">
+                <Clock size={15} className="mt-0.5 shrink-0" style={{ color: '#6b76ff' }} />
+                <span className="text-white/80">{date.text}{item.kind === 'nayttely' && item.note ? ` · ${item.note.split(' · ').pop()}` : ''}</span>
+              </div>
+              {(item.address || item.neighborhood || (item.kind === 'nayttely' && item.note)) && (
+                <div className="flex items-start gap-3 text-sm">
+                  <MapPin size={15} className="mt-0.5 shrink-0" style={{ color: '#6b76ff' }} />
+                  <div>
+                    <p className="text-white/80 font-medium">
+                      {item.kind === 'nayttely' ? (item.note?.split(' · ')[0] ?? item.neighborhood) : (item.address ?? item.neighborhood)}
+                    </p>
+                    {item.kind !== 'nayttely' && item.neighborhood && item.address && (
+                      <p className="text-white/40 text-xs mt-0.5">{item.neighborhood}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {typeof item.rating === 'number' && (item.reviews ?? 0) >= 5 && (
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-[15px] leading-none" style={{ color: '#e8c06a' }}>★</span>
+                  <span className="text-white/80">jo {item.rating.toFixed(1)} · {item.reviews} arvostelua</span>
+                </div>
+              )}
+            </div>
+
+            {/* Uutinen */}
+            {item.news && (
+              <a href={item.news.url} target="_blank" rel="noopener"
+                className="block rounded-xl px-4 py-3 text-[13px] leading-snug text-white/80 hover:text-white transition-colors"
+                style={{ background: 'rgba(56,189,248,.08)', border: '1px solid rgba(56,189,248,.15)' }}>
+                📰 {item.news.title}
+                <span className="text-white/40"> · {item.news.source} ↗</span>
+              </a>
+            )}
+
+            {/* Lähteet — mistä tieto on peräisin */}
+            <p className="text-[11px] text-white/30">
+              {item.sources.map((s, i) => (
+                <span key={i}>
+                  {i > 0 && ' · '}
+                  {s.url ? (
+                    <a href={s.url} target="_blank" rel="noopener" className="hover:text-white/60 transition-colors underline-offset-2">
+                      {s.label} ↗
+                    </a>
+                  ) : s.label}
+                </span>
+              ))}
+            </p>
+
+            {/* Jaa */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">Jaa kavereille</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, '_blank')}
+                  className="flex flex-col items-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/20 rounded-xl py-3 px-2 transition-colors">
+                  <MessageCircle size={18} className="text-[#25D366]" />
+                  <span className="text-[#25D366] text-[11px] font-semibold">WhatsApp</span>
+                </button>
+                <button onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank')}
+                  className="flex flex-col items-center gap-1.5 bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/20 rounded-xl py-3 px-2 transition-colors">
+                  <span className="text-[#0088cc] text-lg leading-none">✈️</span>
+                  <span className="text-[#0088cc] text-[11px] font-semibold">Telegram</span>
+                </button>
+                <button onClick={() => { navigator.clipboard.writeText(`${shareText}\n${shareUrl}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                  className={`flex flex-col items-center gap-1.5 border rounded-xl py-3 px-2 transition-all ${copied ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/10 hover:bg-white/8'}`}>
+                  {copied ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} className="text-white/50" />}
+                  <span className={`text-[11px] font-semibold ${copied ? 'text-emerald-400' : 'text-white/40'}`}>{copied ? 'Kopioitu' : 'Kopioi'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* CTA:t */}
+            <div className="flex flex-col gap-2.5 pt-1">
+              {www && (
+                <a href={www} target="_blank" rel="noopener"
+                  className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
+                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                  <Globe size={15} /> Nettisivu <ExternalLink size={13} className="opacity-70" />
+                </a>
+              )}
+              {!www && item.sources.find((s) => s.url) && (
+                <a href={item.sources.find((s) => s.url)!.url} target="_blank" rel="noopener"
+                  className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
+                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                  <Globe size={15} /> {item.sources.find((s) => s.url)!.label} <ExternalLink size={13} className="opacity-70" />
+                </a>
+              )}
+              {(mapsUrl || transitUrl) && (
+                <div className="grid grid-cols-2 gap-2">
+                  {mapsUrl && (
+                    <a href={mapsUrl} target="_blank" rel="noopener"
+                      className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/8 text-white/60 font-medium text-sm py-3 rounded-xl border border-white/8 transition-colors">
+                      <Navigation size={14} /> Kartta
+                    </a>
+                  )}
+                  {transitUrl && (
+                    <a href={transitUrl} target="_blank" rel="noopener"
+                      className="flex items-center justify-center gap-1.5 text-sm font-medium py-3 rounded-xl border transition-colors"
+                      style={{ background: 'rgba(107,118,255,.1)', borderColor: 'rgba(107,118,255,.2)', color: '#a3abff' }}>
+                      <Navigation size={14} /> Reittiohjeet
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -215,6 +393,8 @@ function HeroCard({ item }: { item: NewItem }) {
 
 export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
   const [kind, setKind] = useState<NewKind | 'all'>('all')
+  // Infopaneeli — kortit avaavat tämän kuten tapahtumakortit tapahtumapaneelin.
+  const [selected, setSelected] = useState<NewItem | null>(null)
 
   // Hero: tuorein kuvallinen AVATTU paikka; jos sellaista ei ole, tuorein
   // kuvallinen näyttely. Kuukausilistat ovat valmiiksi tuorein ensin.
@@ -259,7 +439,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       </div>
 
       {/* Hero — tuorein kuvallinen nosto */}
-      {hero && <HeroCard item={hero} />}
+      {hero && <HeroCard item={hero} onOpen={setSelected} />}
 
       {/* Uutiskaista: avautumisjutut joille ei (vielä) ole riviä rekistereissä */}
       {kind === 'all' && data.newsRail.length > 0 && (
@@ -290,7 +470,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
             <span className="text-[12px] font-bold text-white/30">{upcoming.length}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
-            {upcoming.map((i) => <NewPosterCard key={i.id} item={i} />)}
+            {upcoming.map((i) => <NewPosterCard key={i.id} item={i} onOpen={setSelected} />)}
           </div>
         </section>
       )}
@@ -303,7 +483,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
             <span className="text-[12px] font-bold text-white/30">{m.items.length} uutta</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
-            {m.items.map((i) => <NewPosterCard key={i.id} item={i} />)}
+            {m.items.map((i) => <NewPosterCard key={i.id} item={i} onOpen={setSelected} />)}
           </div>
         </section>
       ))}
@@ -311,6 +491,8 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       {months.length === 0 && upcoming.length === 0 && (
         <p className="text-white/40 text-sm py-8 text-center">Ei rivejä tällä suodattimella.</p>
       )}
+
+      <NewItemDetailPanel item={selected} onClose={() => setSelected(null)} />
     </div>
   )
 }

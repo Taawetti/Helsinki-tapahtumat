@@ -327,6 +327,7 @@ const t = {
     // ── Search ───────────────────────────────────────────────
     'search.placeholder': 'Etsi keikkoja, tapahtumia, artisteja…',
     'search.popular':     'Suosittuja hakuja',
+    'search.venues':      'Tapahtumapaikat',
 
     // ── Quick buttons ─────────────────────────────────────────
     'quick.dont_know':       'En tiedä mitä haluan',
@@ -733,6 +734,7 @@ const t = {
     // ── Search ───────────────────────────────────────────────
     'search.placeholder': 'Search gigs, events, artists…',
     'search.popular':     'Popular searches',
+    'search.venues':      'Venues',
 
     // ── Quick buttons ─────────────────────────────────────────
     'quick.dont_know':       "I don't know",

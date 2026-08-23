@@ -25,6 +25,8 @@ import JarjestajaForm from '@/components/JarjestajaForm'
 import NewsletterBanner from '@/components/NewsletterBanner'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
+import { VENUE_PAGES } from '@/lib/venue-pages'
+import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 // Tab views are code-split: each only mounts when its tab is opened, so the
@@ -273,32 +275,23 @@ export default function HomeClient({
     fetch('/api/restaurants').then(r => r.json()).then(d => setAllRestaurants(d?.restaurants ?? [])).catch(() => {})
   }, [keyword])
 
-  const localSearchHits = useMemo(() => {
-    if (!keyword || keyword.length < 2) return { activities: [], restaurants: [] }
-    const kw = keyword.toLowerCase()
-    const ACT_LABEL: Record<string, string> = {
-      sauna: '🧖 Sauna', museo: '🏛 Museo', nahtavyys: '🌄 Nähtävyys',
-      galleria: '🖼 Galleria', nakopaikka: '🔭 Näköpaikka', uimaranta: '🏖 Uimaranta',
-      puisto: '🌳 Puisto', markkina: '🛍 Markkina', urheilu: '⚽ Urheilu', muu: '✨ Muut',
-    }
-    const REST_EMOJI: Record<string, string> = {
-      ravintola: '🍽', kahvila: '☕', baari: '🍺', pikaruoka: '🍟', muu: '🍴',
-    }
-    return {
-      activities: allActivities
-        .filter(a => a.name.toLowerCase().includes(kw) || a.description?.toLowerCase().includes(kw))
-        .slice(0, 4)
-        .map(a => ({ id: a.id, name: a.name, sub: ACT_LABEL[a.category] ?? '✨' })),
-      restaurants: allRestaurants
-        .filter(r =>
-          r.name.toLowerCase().includes(kw) ||
-          r.description?.toLowerCase().includes(kw) ||
-          r.cuisines?.some(c => c.toLowerCase().includes(kw))
-        )
-        .slice(0, 4)
-        .map(r => ({ id: r.id, name: r.name, sub: `${REST_EMOJI[r.type] ?? '🍴'} ${r.description || r.type}` })),
-    }
-  }, [keyword, allActivities, allRestaurants])
+
+
+  // "Paikan kaikki tapahtumat" — käytetään sekä tapahtumakortista että haun
+  // keikkapaikkariviltä. KAIKKI TULEVAT, EI PÄIVÄSUODATINTA: kuukausi on
+  // pisin ikkuna jonka lähteet hakevat, ja muut suodattimet nollataan.
+  const showVenueEvents = useCallback((name: string) => {
+    setSelectedEvent(null)
+    setKeyword(name)
+    setDateFilter('month')
+    setActiveVibes([])
+    setActiveCategories([])
+    setPriceFilter('all')
+    setMode('discover')
+    setMobileTab('discover')
+    setKoCat(null)
+    window.scrollTo(0, 0)
+  }, [])
 
   const handleSelectActivity = useCallback(() => {
     setKeyword('')
@@ -327,6 +320,55 @@ export default function HomeClient({
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
     nearbyCoords: null,
   })
+
+  const localSearchHits = useMemo(() => {
+    if (!keyword || keyword.length < 2) return { venues: [], activities: [], restaurants: [] }
+    const kw = keyword.toLowerCase()
+    const ACT_LABEL: Record<string, string> = {
+      sauna: '🧖 Sauna', museo: '🏛 Museo', nahtavyys: '🌄 Nähtävyys',
+      galleria: '🖼 Galleria', nakopaikka: '🔭 Näköpaikka', uimaranta: '🏖 Uimaranta',
+      puisto: '🌳 Puisto', markkina: '🛍 Markkina', urheilu: '⚽ Urheilu', muu: '✨ Muut',
+    }
+    const REST_EMOJI: Record<string, string> = {
+      ravintola: '🍽', kahvila: '☕', baari: '🍺', pikaruoka: '🍟', muu: '🍴',
+    }
+    // TAPAHTUMAPAIKAT: paikan nimen kirjoittaminen tarjoaa suoraan "selaa
+    // paikan tapahtumia" (omistaja: ravintolaehdotus vei Bar Loosen kortille
+    // eikä keikkoja päässyt katsomaan). Osumat ladatuista tapahtumista +
+    // ohjelmasivullisista keikkapaikoista.
+    const venueCounts = new Map<string, number>()
+    for (const e of events) {
+      const n = e.location?.name?.trim()
+      if (n && n.toLowerCase().includes(kw)) venueCounts.set(n, (venueCounts.get(n) ?? 0) + 1)
+    }
+    // Tunnetut keikkapaikat myös ILMAN ladattuja tapahtumia: "tänään"-ikkuna
+    // ei sisällä Bar Loosen torstain keikkaa, mutta rivin valinta avaa
+    // kuukauden ikkunan jossa ne ovat (mitattu: ehdotus puuttui kokonaan).
+    for (const v of [...VENUE_PAGES, ...HELSINKI_NIGHTCLUBS]) {
+      if (v.name.toLowerCase().includes(kw) && ![...venueCounts.keys()].some((n) => n.toLowerCase() === v.name.toLowerCase())) {
+        venueCounts.set(v.name, 0)
+      }
+    }
+    const venues = [...venueCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, count]) => ({ id: name, name, sub: count > 0 ? `📅 ${count} tapahtumaa` : '📅 tapahtumat' }))
+    return {
+      venues,
+      activities: allActivities
+        .filter(a => a.name.toLowerCase().includes(kw) || a.description?.toLowerCase().includes(kw))
+        .slice(0, 4)
+        .map(a => ({ id: a.id, name: a.name, sub: ACT_LABEL[a.category] ?? '✨' })),
+      restaurants: allRestaurants
+        .filter(r =>
+          r.name.toLowerCase().includes(kw) ||
+          r.description?.toLowerCase().includes(kw) ||
+          r.cuisines?.some(c => c.toLowerCase().includes(kw))
+        )
+        .slice(0, 4)
+        .map(r => ({ id: r.id, name: r.name, sub: `${REST_EMOJI[r.type] ?? '🍴'} ${r.description || r.type}` })),
+    }
+  }, [keyword, allActivities, allRestaurants, events])
 
   const handleRangeChange = useCallback((start: string, end: string) => {
     setCustomDate(start)
@@ -732,8 +774,10 @@ export default function HomeClient({
           <SearchBar
             value={keyword}
             onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null) } }}
+            venueHits={localSearchHits.venues}
             activityHits={localSearchHits.activities}
             restaurantHits={localSearchHits.restaurants}
+            onSelectVenue={showVenueEvents}
             onSelectActivity={handleSelectActivity}
             onSelectRestaurant={handleSelectRestaurant}
           />
@@ -762,8 +806,10 @@ export default function HomeClient({
             <SearchBar
             value={keyword}
             onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null) } }}
+            venueHits={localSearchHits.venues}
             activityHits={localSearchHits.activities}
             restaurantHits={localSearchHits.restaurants}
+            onSelectVenue={showVenueEvents}
             onSelectActivity={handleSelectActivity}
             onSelectRestaurant={handleSelectRestaurant}
           />
@@ -1308,25 +1354,7 @@ export default function HomeClient({
       />
 
       <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}
-        onShowVenueEvents={(name) => {
-          // "Paikan kaikki tapahtumat": hakukenttä tekee saman minkä käyttäjä
-          // tekisi käsin — kaikki tämännimisen paikan menot listaan.
-          // KAIKKI TULEVAT, EI PÄIVÄSUODATINTA: jos "viikonloppu" oli
-          // valittuna, lista näyttäisi vain viikonlopun (omistajan
-          // korjauspyyntö). Kuukausi on pisin ikkuna jonka lähteet hakevat;
-          // isojen keikkapaikkojen oma ohjelmasivu kattaa loput. Myös muut
-          // suodattimet nollataan — paikkahaun kuuluu näyttää kaikki.
-          setSelectedEvent(null)
-          setKeyword(name)
-          setDateFilter('month')
-          setActiveVibes([])
-          setActiveCategories([])
-          setPriceFilter('all')
-          setMode('discover')
-          setMobileTab('discover')
-          setKoCat(null)
-          window.scrollTo(0, 0)
-        }}/>
+        onShowVenueEvents={showVenueEvents}/>
       <InstallBanner/>
 
       {showEiTieda && (
