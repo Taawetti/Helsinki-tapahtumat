@@ -64,6 +64,17 @@ async function collectUrls(): Promise<string[]> {
     } catch { /* vioittunut tiedosto ei estä haravointia */ }
   }
 
+  // 3) Nettisivuilta haetut esittelykuvat (data/website-images.json) — nekin
+  //    voivat kadota kun sivusto uudistuu; harava huomaa, API ohittaa, ja
+  //    seuraava nettisivuhaku tuo uuden osoitteen.
+  const wwwPath = join(process.cwd(), 'data', 'website-images.json')
+  if (existsSync(wwwPath)) {
+    try {
+      const f = JSON.parse(readFileSync(wwwPath, 'utf8')) as { byWww?: Record<string, string> }
+      for (const u of Object.values(f.byWww ?? {})) urls.add(u)
+    } catch { /* vioittunut tiedosto ei estä haravointia */ }
+  }
+
   return [...urls]
 }
 

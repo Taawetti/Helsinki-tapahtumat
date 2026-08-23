@@ -34,8 +34,15 @@ import openingData from '@/data/new-openings.json'
 // (scripts/sweep-dead-images.ts); kuollut osoite ohitetaan, jolloin kortti
 // putoaa emoji-laattaan eikä kuvabonus nosta korttia väärin perustein.
 import deadImageData from '@/data/dead-images.json'
+// Ravintoloiden omilta nettisivuilta haetut esittelykuvat (og:image) —
+// ravintolan itse jakoihin valitsema kuva. Ei lahoa kuten Googlen linkit, ja
+// viikkoajo päivittää jos sivusto vaihtaa kuvaansa. Ks.
+// scripts/fetch-website-images.ts.
+import websiteImageData from '@/data/website-images.json'
 
 const DEAD_IMAGES = new Set<string>((deadImageData as { dead?: string[] }).dead ?? [])
+const WEBSITE_IMAGES: Record<string, string> =
+  (websiteImageData as { byWww?: Record<string, string> }).byWww ?? {}
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -814,6 +821,16 @@ export async function GET(req: NextRequest) {
   })
 
   let restaurants = restaurants_enriched
+
+  // Kuvien varajärjestys: OSM-kuva → elävä Google-kuva (yllä) → oman
+  // NETTISIVUN esittelykuva. Google-kuvista 49 % oli lahonnut (mitattu
+  // 24.8.2026), joten tämä kerros pitää kortit kuvallisina ilmaiseksi ja
+  // laillisesti siististi — kuva on ravintolan itse jakoihin valitsema.
+  restaurants = restaurants.map((r) => {
+    if (r.image || !r.www) return r
+    const og = WEBSITE_IMAGES[r.www.trim()]
+    return og && !DEAD_IMAGES.has(og) ? { ...r, image: og } : r
+  })
 
   if (featured) {
     restaurants = restaurants.filter(r => r.featured)

@@ -47,6 +47,7 @@ import reasonFile from '../data/restaurant-reasons.json'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
 import deadImages from '../data/dead-images.json'
+import websiteImages from '../data/website-images.json'
 import { credibilityScore } from '../lib/credibility'
 import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/restaurant-news-match'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
@@ -2176,6 +2177,12 @@ for (const c of ideaChecks) {
     // kirjoituksen, ja tämä testi varmistaa ettei sellainen tiedosto ole
     // päässyt repoon muutakaan kautta.
     rChecks.push({ name: 'kuvaharava: kuolleiden osuus alle 90 %', ok: (di.dead?.length ?? 0) / Math.max(1, di.checked ?? 1) < 0.9, got: `${di.dead?.length}/${di.checked}` })
+    // Nettisivukuvat: ravintolan oman sivun esittelykuva korvaa lahonneen
+    // Google-kuvan ilmaiseksi. Jokainen tallennettu on tarkistettu hakuhetkellä.
+    const wi = websiteImages as { fetchedAt?: string; checkedSites?: number; byWww?: Record<string, string> }
+    rChecks.push({ name: 'nettisivukuvat: aikaleima kelvollinen', ok: typeof wi.fetchedAt === 'string' && !Number.isNaN(Date.parse(wi.fetchedAt!)) })
+    rChecks.push({ name: 'nettisivukuvat: vähintään 200 kuvaa', ok: Object.keys(wi.byWww ?? {}).length >= 200, got: String(Object.keys(wi.byWww ?? {}).length) })
+    rChecks.push({ name: 'nettisivukuvat: osoitteet ovat http-kuvia', ok: Object.values(wi.byWww ?? {}).every((u) => typeof u === 'string' && /^https?:\/\//.test(u)) })
   }
 
   for (const c of rChecks) {
