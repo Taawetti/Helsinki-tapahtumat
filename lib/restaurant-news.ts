@@ -115,16 +115,104 @@ async function fetchQuery(query: string): Promise<NewsItem[]> {
   }
 }
 
+// ── CITY.FI ─────────────────────────────────────────────────────────────────
+// Ruoka ja ravintolat -kategoria WordPress REST -rajapinnasta (ei avainta,
+// robots.txt puuttuu = ei rajoituksia). Mitattu 23.8.2026: 100 juttua / 90 pv,
+// joista 2 nimesi ravintolan otsikossa (Fat Tony's; Grönin ja Borealin
+// Michelin-tähdet) — vähän mutta laadukasta, ja hinta on yksi kutsu tunnissa.
+async function fetchCityFi(): Promise<NewsItem[]> {
+  try {
+    const after = new Date(Date.now() - 30 * 24 * 3_600_000).toISOString().slice(0, 19)
+    const res = await fetch(
+      `https://www.city.fi/wp-json/wp/v2/posts?categories=34&per_page=50&after=${after}&_fields=date,title,link`,
+      { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' }, signal: AbortSignal.timeout(8000) },
+    )
+    if (!res.ok) return []
+    const posts = await res.json() as { date?: string; title?: { rendered?: string }; link?: string }[]
+    if (!Array.isArray(posts)) return []
+    return posts.flatMap((p) => {
+      const title = (p.title?.rendered ?? '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+        .replace(/&amp;/g, '&').replace(/&quot;/g, '"').trim()
+      return title && p.link && p.date ? [{ title, link: p.link, source: 'City.fi', pubDate: p.date }] : []
+    })
+  } catch {
+    return []
+  }
+}
+
+// ── TIME OUT HELSINKI, UUTISET ──────────────────────────────────────────────
+// Suomenkielinen uutisosio kirjoittaa juuri siitä mitä tähän tarvitaan:
+// arvosteluja ja pop-upeja nimillä (mitattu 23.8.2026: Fat Tony's, Tyyni,
+// BUBS-pop-up, Birds of Paradise -arvostelu). Artikkelilinkit luetaan hubista
+// ja otsikko + julkaisuaika kunkin artikkelin metasta. ~12 hakua tunnissa.
+const TO_NEWS_HUB = 'https://www.timeout.com/fi/helsinki/uutiset'
+const TO_NEWS_MAX = 12
+
+async function fetchTimeOutNews(): Promise<NewsItem[]> {
+  try {
+    const hubRes = await fetch(TO_NEWS_HUB, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!hubRes.ok) return []
+    const hub = await hubRes.text()
+    const slugs = [...new Set(
+      [...hub.matchAll(/\/fi\/helsinki\/uutiset\/([a-z0-9-]+)/g)].map((m) => m[1]),
+    )].slice(0, TO_NEWS_MAX)
+    const items = await Promise.all(slugs.map(async (slug): Promise<NewsItem | null> => {
+      try {
+        const res = await fetch(`https://www.timeout.com/fi/helsinki/uutiset/${slug}`, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' },
+          signal: AbortSignal.timeout(8000),
+        })
+        if (!res.ok) return null
+        const html = await res.text()
+        const title = /<meta property="og:title" content="([^"]+)"/.exec(html)?.[1]
+          ?? /<title>([^<]+)<\/title>/.exec(html)?.[1] ?? ''
+        const pub = /"datePublished"\s*:\s*"([^"]+)"/.exec(html)?.[1]
+          ?? /<meta property="article:published_time" content="([^"]+)"/.exec(html)?.[1] ?? ''
+        if (!title || !pub) return null
+        return {
+          title: title.replace(/\s*[|–]\s*Time Out.*$/i, '').trim(),
+          link: `https://www.timeout.com/fi/helsinki/uutiset/${slug}`,
+          source: 'Time Out Helsinki',
+          pubDate: pub,
+        }
+      } catch { return null }
+    }))
+    return items.filter((x): x is NewsItem => x !== null)
+  } catch {
+    return []
+  }
+}
+
 export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
   const month = new Date().getUTCMonth() + 1
   const queries = [...QUERIES, ...(SEASONAL[month] ?? [])]
-  const results = await Promise.all(queries.map(fetchQuery))
+  const [googleResults, cityFi, timeOutNews] = await Promise.all([
+    Promise.all(queries.map(fetchQuery)),
+    fetchCityFi(),
+    fetchTimeOutNews(),
+  ])
 
   const seen = new Set<string>()
   const merged: NewsItem[] = []
-  for (const item of results.flat()) {
+  for (const item of googleResults.flat()) {
     if (seen.has(item.link)) continue
     if (!POSITIVE.test(item.title)) continue
+    if (NEGATIVE.test(item.title)) continue
+    if (OTHER_CITY.test(item.title)) continue
+    seen.add(item.link)
+    merged.push(item)
+  }
+  // City.fi ja Time Out ovat jo ruoka-/Helsinki-toimituksia, joten POSITIVE-
+  // sanavaadetta ei sovelleta ("BUBS-pop-up Helsingissä" ei sisällä ruokasanaa
+  // mutta on juuri oikea juttu). Nimiyhdistäjä on varsinainen portti — ilman
+  // nimiosumaa juttu ei näy missään. NEGATIVE ja OTHER_CITY pätevät silti.
+  for (const item of [...cityFi, ...timeOutNews]) {
+    if (seen.has(item.link)) continue
     if (NEGATIVE.test(item.title)) continue
     if (OTHER_CITY.test(item.title)) continue
     seen.add(item.link)
@@ -138,8 +226,8 @@ export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
   return merged.filter(i => new Date(i.pubDate).getTime() > cutoff).slice(0, 80)
 }
 
-/** Tunnin välimuisti — sama kuin muillakin rikastuksilla. v6: sesonki- ja
- *  tarjouskyselyt mukaan, karuselli poistettu. */
-export const fetchRestaurantNews = unstable_cache(_fetchNewsUncached, ['restaurant-news-v6'], {
+/** Tunnin välimuisti — sama kuin muillakin rikastuksilla. v7: City.fi ja
+ *  Time Outin FI-uutiset mukaan Google Newsin rinnalle. */
+export const fetchRestaurantNews = unstable_cache(_fetchNewsUncached, ['restaurant-news-v7'], {
   revalidate: 3600,
 })

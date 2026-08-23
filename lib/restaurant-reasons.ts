@@ -145,6 +145,12 @@ export function reasonKeyVariants(name: string): string[] {
   }
   const slashed = name.split(/\s*\/\s*/)
   if (slashed.length > 1) for (const part of slashed) add(part, true)
+  // Pilkun etuosa: listat kirjoittavat sijainnin nimen perään — mitattu
+  // Time Outin terassilistalta "Superterassi, Kasarmitori". Etuosa on
+  // johdettu variantti (5 merkin alaraja pätee), joten "Olo, Helsinki" ei
+  // tuota vaarallisen lyhyttä avainta.
+  const comma = name.split(',')
+  if (comma.length > 1) add(comma[0], true)
   return out
 }
 

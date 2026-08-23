@@ -1692,6 +1692,11 @@ for (const c of ideaChecks) {
   rChecks.push({ name: 'sulkeista poimitaan lyhenne', ok: reasonKeyVariants('Baskeri & Basso (BasBas)').includes('basbas') })
   rChecks.push({ name: 'välilyönnitön muoto mukaan', ok: reasonKeyVariants('18 grams').includes('18grams') })
   rChecks.push({ name: 'kauttaviivan molemmat puolet', ok: reasonKeyVariants('Helsinki Coffee Roastery / Helsingin kahvipaahtimo').includes('helsingin kahvipaahtimo') })
+  // Pilkun etuosa: Time Outin terassilista kirjoittaa "Superterassi, Kasarmitori".
+  rChecks.push({ name: 'pilkun etuosa variantiksi', ok: reasonKeyVariants('Superterassi, Kasarmitori').includes('superterassi') })
+  // Johdettu pilkkuvariantti noudattaa 5 merkin alarajaa: 'Rio, Kallio' ei saa
+  // tuottaa avainta 'rio', joka osuisi väärään paikkaan.
+  rChecks.push({ name: 'pilkun lyhyt etuosa hylätään', ok: !reasonKeyVariants('Rio, Kallio').includes('rio'), got: reasonKeyVariants('Rio, Kallio').join(',') })
   // TUOTANTOVIRHE: "Arcada studerandekår (ASK)" tuotti avaimen "ask", joka osui
   // Vuoden ravintola 2014 -voittajaan ("Ask, Helsinki").
   rChecks.push({ name: 'liian lyhyt johdettu variantti hylätään (ASK)', ok: !reasonKeyVariants('Arcada studerandekår (ASK)').includes('ask'), got: reasonKeyVariants('Arcada studerandekår (ASK)').join(',') })
@@ -1794,7 +1799,7 @@ for (const c of ideaChecks) {
   // 7. OIKEA DATATIEDOSTO — rakenne ja romahdusvahti
   const rf = reasonFile as unknown as ReasonFile
   rChecks.push({ name: 'syytiedostossa on avaimia', ok: Object.keys(rf.byName ?? {}).length > 100, got: String(Object.keys(rf.byName ?? {}).length) })
-  for (const [kind, floor] of [['michelin', 20], ['top50', 20], ['timeout', 25], ['uusi', 10]] as const) {
+  for (const [kind, floor] of [['michelin', 20], ['top50', 20], ['timeout', 80], ['uusi', 10]] as const) {
     rChecks.push({ name: `syytiedosto: ${kind} ≥ ${floor}`, ok: (rf.counts?.[kind] ?? 0) >= floor, got: String(rf.counts?.[kind] ?? 0) })
   }
   // Jokaisella syyllä on laji ja teksti — tyhjä merkki näyttäisi kortissa rikkinäiseltä.

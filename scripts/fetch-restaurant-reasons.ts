@@ -10,7 +10,8 @@
 //
 //   Michelin-opas       30 Helsinki (96 %)  CSV-peili, ~kk välein (ks. lisenssi alla)
 //   Suomen 50 parasta   36 Helsinki (88 %)  Viisi Tähteä, WP REST, vuosittain
-//   Time Out Helsinki   55 Helsinki (72 %)  toimituksen listat, päiv. kuukausittain
+//   Time Out FI+EN     118 nimeä (75 %)   toimituksen listat, päiv. kuukausittain
+//   MyHelsinki         100 nimeä          kaupungin matkailutoimen listat
 //   Vuoden ravintola    38 voittajaa        Suomen Gastronomien Seura, 1985→
 //   Uudet avaukset     102 / 90 pv         anniskelulupa­rekisteri, CC BY 4.0
 //
@@ -52,7 +53,7 @@ interface Raw {
 const FLOOR: Record<string, number> = {
   michelin: 20,          // mitattu 30
   top50: 20,             // mitattu 36
-  timeout: 25,           // mitattu 55
+  timeout: 80,           // mitattu 218 (Time Out EN+FI 118 + MyHelsinki 100)
   'vuoden-ravintola': 8, // mitattu 12 — kattaa vain VUODEN_YEARS vuotta
   uusi: 20,              // mitattu 118 / 150 pv
 }
@@ -223,47 +224,82 @@ async function fetchTop50(): Promise<Raw[]> {
   return out
 }
 
-// ── 3. TIME OUT HELSINKI ────────────────────────────────────────────────────
-// Listat LÖYDETÄÄN hub-sivulta linkkeinä eikä kovakoodata, jotta automaatio
-// kestää sen että Time Out nimeää listan uudelleen tai julkaisee uuden.
-// Listasivulla nimet ovat numeroituja <h3>-otsikoita ("1. Plein").
-// robots.txt (päiv. 4.3.2026) kieltää vain teknisiä polkuja — /helsinki/… on
-// sallittu, eikä ClaudeBotia mainita.
-const TO_HUB = 'https://www.timeout.com/helsinki/restaurants'
+// ── 3. TOIMITUKSELLISET LISTAT: TIME OUT + MYHELSINKI ──────────────────────
+// Listat LÖYDETÄÄN hub-sivuilta linkkeinä eikä kovakoodata, jotta automaatio
+// kestää sen että lista nimetään uudelleen tai uusi julkaistaan.
+//
+// LAAJENNETTU 23.8.2026 omistajan pyynnöstä ("syvätarkastus"): mukaan otettiin
+// Time Outin SUOMENKIELINEN osio, joka on englanninkielistä laajempi — parhaat
+// baarit, terassit, lounaat, edulliset, aamiaiset. Mitattu: EN-listat antoivat
+// 55 nimeä (72 % osuma), FI-listat 82 nimeä (75 %). Numeroimattomatkin
+// <h3>-otsikot luetaan, koska osa listoista (terassit, suomalaiset ravintolat)
+// ei numeroi — ne ohitettiin ennen kokonaan.
+// robots.txt (päiv. 4.3.2026) kieltää vain teknisiä polkuja; /helsinki/… ja
+// /fi/helsinki/… ovat sallittuja eikä ClaudeBotia mainita.
+const TO_HUBS = [
+  'https://www.timeout.com/helsinki/restaurants',
+  'https://www.timeout.com/fi/helsinki/ravintolat',
+]
+/** Listasivun polku hubissa: ravintola/baari-osiot molemmilla kielillä, sekä
+ *  FI-juuren listat joiden slugissa on ruokasana (esim. helsinki-aamiainen). */
+const TO_LIST_HREF =
+  /\/(?:fi\/)?helsinki\/(?:(?:ravintolat|baarit|restaurants|bars)\/[a-z0-9-]+|[a-z0-9-]*(?:ravintola|aamiainen|brunssi|kahvila|lounaa|pizza|terassi)[a-z0-9-]*)/g
 
-/** Listan otsikko kortin merkkiin. Sivun <h1> on kokonainen lause —
- *  "Helsinki's best restaurants, from budget bites to fine dining" ei mahdu
- *  pilleriin, joten se katkaistaan ensimmäisestä pilkusta tai ajatusviivasta.
- *  Jos otsikko ei ole listan otsikko (yksi sivu palautti "Time Out Worldwide",
- *  eli sivustotason otsakkeen), käytetään pelkkää lähteen nimeä. */
-const TO_LABEL_MAX = 38
-function timeOutLabel(h1: string): string {
+/** Yleisotsikot joita listasivun <h3> voi sisältää nimien lisäksi. Nämä eivät
+ *  ole paikkoja. Mitattu MyHelsingistä: "Visit", "Live & Work", "Business &
+ *  CVB"; Time Outista: uutiskirje- ja suositteluosiot. */
+const NOT_A_VENUE =
+  /helsinki|newsletter|uutiskirje|lue myös|read more|recommended|discover|share|cookie|visit|live & work|business|cvb|tickets|advertising|time out/i
+
+/** Listan otsikko kortin merkkiin. Sivun <h1> on kokonainen lause — se
+ *  katkaistaan ensimmäisestä pilkusta tai ajatusviivasta. Jos jäljelle jäävä ei
+ *  kelpaa (esim. sivustotason "Time Out Worldwide"), käytetään lähteen nimeä. */
+const LIST_LABEL_MAX = 38
+function listLabel(prefix: string, h1: string, fallback: string): string {
   const head = h1.split(/[,–—:|]/)[0].trim()
-  if (!head || head.length > TO_LABEL_MAX || /time\s*out/i.test(head)) {
-    return 'Time Out Helsinki'
+  if (!head || head.length > LIST_LABEL_MAX || /time\s*out|myhelsinki/i.test(head)) {
+    return fallback
   }
-  return `Time Out: ${head}`
+  return `${prefix}: ${head}`
+}
+
+/** Poimii listasivun <h3>-nimet. Numeroidut aina; numeroimattomat vain jos ne
+ *  läpäisevät järkevyysseulan (pituus, ei yleisotsikko). Sijaintiselite
+ *  pilkun/ajatusviivan perässä siivotaan: "Superterassi, Kasarmitori" ja
+ *  "Cafe Regatta – charming cottage by the sea" ovat paikkoja, eivät nimiä. */
+function extractListNames(html: string): string[] {
+  const out: string[] = []
+  for (const m of html.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)) {
+    let t = stripTags(m[1])
+    const numbered = /^\d+\.\s*(.+)$/.exec(t)
+    if (numbered) t = numbered[1].trim()
+    else if (t.length < 3 || t.length > 42 || NOT_A_VENUE.test(t)) continue
+    t = t.split(/\s+[–—]\s+/)[0].trim()
+    if (t.length >= 3) out.push(t)
+  }
+  return out
 }
 
 async function fetchTimeOut(): Promise<Raw[]> {
-  const hub: string = await get(TO_HUB)
-  const slugs = [...new Set(
-    [...hub.matchAll(/\/helsinki\/(?:restaurants|bars)\/([a-z0-9-]+)/g)].map((m) => m[1]),
-  )]
+  const listUrls = new Set<string>()
+  for (const hub of TO_HUBS) {
+    try {
+      const html: string = await get(hub)
+      for (const m of html.matchAll(TO_LIST_HREF)) {
+        listUrls.add(`https://www.timeout.com${m[0]}`)
+      }
+    } catch { continue }                    // toinen hub riittää
+  }
   const out: Raw[] = []
   const seen = new Set<string>()
-  for (const slug of slugs) {
+  for (const url of [...listUrls].sort()) {
     let html: string
     try {
-      html = await get(`https://www.timeout.com/helsinki/restaurants/${slug}`)
+      html = await get(url)
     } catch { continue }                    // yksittäinen 404 ei kaada muita
     const listTitle = stripTags(/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1] ?? '')
     let found = 0
-    for (const m of html.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)) {
-      const t = stripTags(m[1])
-      const n = /^\d+\.\s*(.+)$/.exec(t)
-      if (!n) continue
-      const name = n[1].trim()
+    for (const name of extractListNames(html)) {
       if (seen.has(name.toLowerCase())) continue
       seen.add(name.toLowerCase())
       found++
@@ -271,14 +307,73 @@ async function fetchTimeOut(): Promise<Raw[]> {
         name,
         reason: {
           kind: 'timeout',
-          label: timeOutLabel(listTitle),
+          label: listLabel('Time Out', listTitle, 'Time Out Helsinki'),
           source: 'Time Out Helsinki',
-          url: `https://www.timeout.com/helsinki/restaurants/${slug}`,
+          url,
           note: listTitle || undefined,
         },
       })
     }
-    if (found) console.log(`    time out /${slug}: ${found}`)
+    if (found) console.log(`    time out ${url.split('timeout.com')[1]}: ${found}`)
+  }
+  return out
+}
+
+// MyHelsinki on kaupungin matkailutoimen oma toimitus — sama perhe kuin Time
+// Out (kind 'timeout' = toimituksellinen listanosto). Artikkelit löytyvät
+// sitemapista; ruoka-artikkeleissa paikat ovat <h2>/<h3>-otsikoina.
+// robots.txt: "Allow: /" (tarkistettu; vain hakusivut ja tagit kielletty).
+const MH_SITEMAPS = [
+  'https://www.myhelsinki.fi/post-sitemap1.xml',
+  'https://www.myhelsinki.fi/post-sitemap2.xml',
+  'https://www.myhelsinki.fi/post-sitemap3.xml',
+]
+/** Kuinka vanha artikkeli vielä kelpaa listaksi. Toimituslistat elävät
+ *  hitaasti; vuosi kattaa kauden ilman että fossiilit nousevat. */
+const MH_MAX_AGE_DAYS = 365
+const MH_MAX_ARTICLES = 15
+
+async function fetchMyHelsinki(): Promise<Raw[]> {
+  const articles: { url: string; lastmod: string }[] = []
+  for (const sm of MH_SITEMAPS) {
+    let xml: string
+    try { xml = await get(sm) } catch { continue }   // sitemap2/3 voi puuttua
+    for (const m of xml.matchAll(/<loc>([^<]+)<\/loc>\s*(?:<lastmod>([^<]+)<\/lastmod>)?/g)) {
+      const [, url, lastmod = ''] = m
+      if (!/\/(eat-and-drink|syo-ja-juo)\//.test(url)) continue
+      const age = (TODAY.getTime() - Date.parse(lastmod)) / 86_400_000
+      if (!Number.isFinite(age) || age > MH_MAX_AGE_DAYS) continue
+      articles.push({ url, lastmod })
+    }
+  }
+  articles.sort((a, b) => b.lastmod.localeCompare(a.lastmod))
+
+  const out: Raw[] = []
+  const seen = new Set<string>()
+  for (const a of articles.slice(0, MH_MAX_ARTICLES)) {
+    let html: string
+    try { html = await get(a.url) } catch { continue }
+    const h1 = stripTags(/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1] ?? '')
+    let found = 0
+    for (const m of html.matchAll(/<h([23])[^>]*>([\s\S]*?)<\/h\1>/g)) {
+      let t = stripTags(m[2]).replace(/^\d+\.\s*/, '')
+      t = t.split(/\s+[–—]\s+/)[0].trim()
+      if (t.length < 3 || t.length > 42 || NOT_A_VENUE.test(t)) continue
+      if (seen.has(t.toLowerCase())) continue
+      seen.add(t.toLowerCase())
+      found++
+      out.push({
+        name: t,
+        reason: {
+          kind: 'timeout',
+          label: listLabel('MyHelsinki', h1, 'MyHelsingin vinkki'),
+          source: 'MyHelsinki',
+          url: a.url,
+          note: h1 || undefined,
+        },
+      })
+    }
+    if (found) console.log(`    myhelsinki ${a.url.split('/').filter(Boolean).pop()}: ${found}`)
   }
   return out
 }
@@ -512,6 +607,7 @@ const SOURCES: { kind: ReasonKind; name: string; run: () => Promise<Raw[]> }[] =
   { kind: 'michelin', name: 'Michelin-opas', run: fetchMichelin },
   { kind: 'top50', name: 'Suomen 50 parasta', run: fetchTop50 },
   { kind: 'timeout', name: 'Time Out Helsinki', run: fetchTimeOut },
+  { kind: 'timeout', name: 'MyHelsinki', run: fetchMyHelsinki },
   { kind: 'vuoden-ravintola', name: 'Vuoden ravintola', run: fetchVuodenRavintola },
   { kind: 'uusi', name: 'Uudet avaukset', run: fetchNewOpenings },
 ]
@@ -532,7 +628,10 @@ async function main() {
       continue
     }
     console.log(`${rows.length}`)
-    counts[s.kind] = rows.length
+    // KERTYMÄ eikä sijoitus: kaksi lähdettä voi tuottaa samaa lajia (Time Out
+    // ja MyHelsinki ovat molemmat 'timeout'). Sijoitus ylikirjoitti edellisen
+    // ja romahdusvahti vertasi alarajaan vain viimeisen lähteen määrää.
+    counts[s.kind] = (counts[s.kind] ?? 0) + rows.length
     for (const { name, reason } of rows) {
       for (const key of reasonKeyVariants(name)) {
         const list = (byName[key] ??= [])
