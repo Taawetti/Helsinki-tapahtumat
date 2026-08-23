@@ -1884,11 +1884,12 @@ for (const c of ideaChecks) {
 
     const first40 = new Set(head)
     rChecks.push({ name: 'kaikki kolme pääperhettä kärki-40:ssä', ok: first40.has('michelin') && first40.has('uusi') && first40.has('top50') })
-    // Time Out on omassa lohkossaan perässä, ei sekoituksessa.
-    rChecks.push({ name: 'Time Out ei sekoituksessa', ok: !head.includes('timeout') })
+    // Toimituslistat OVAT sekoituksessa — omistaja huomasi että tail-lohkossa
+    // ne jäivät kärki-60:n taitteen alle eikä yksikään uusi löytö näkynyt.
+    rChecks.push({ name: 'toimituslistat mukana sekoituksessa', ok: head.includes('timeout') })
     const idxTimeout = mixed.findIndex((r) => kindOf(r) === 'timeout')
     const idxNone = mixed.findIndex((r) => kindOf(r) === 'none')
-    rChecks.push({ name: 'Time Out ennen syyttömiä', ok: idxTimeout >= 0 && idxNone > idxTimeout })
+    rChecks.push({ name: 'toimituslistat ennen syyttömiä', ok: idxTimeout >= 0 && idxNone > idxTimeout })
     rChecks.push({ name: 'syyttömät viimeisenä', ok: mixed.slice(-2).every((r) => kindOf(r) === 'none') })
     // Perheen sisäinen järjestys säilyy: vahvin Michelin ennen heikointa.
     const ms = mixed.filter((r) => kindOf(r) === 'michelin').map((r) => r.n)

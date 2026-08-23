@@ -415,13 +415,17 @@ export function matchReasons(
 // yhä ennen muita Michelin-paikkoja ja sija 4 ennen sijaa 40 — mutta niiden
 // välissä on uusi avaus ja 50 parasta.
 //
-// Time Out on omassa lohkossaan perässä: se on toimituksen nosto ja selvästi
-// löyhin kriteeri (55 paikkaa), joten sen lomittaminen mukaan laimentaisi
-// kärjen. Perusteettomat paikat tulevat vasta näiden jälkeen, ks.
+// Perusteettomat paikat tulevat kaikkien perheiden jälkeen, ks.
 // `restaurantQualityScore` komponentissa.
 
-/** Perheet jotka lomitetaan kärkeen. Järjestys on vain tasapelin ratkaisija. */
-const MIXED_KINDS: ReasonKind[] = ['michelin', 'top50', 'uusi', 'vuoden-ravintola', 'huippuarvio']
+/** Perheet jotka lomitetaan kärkeen. Järjestys on vain tasapelin ratkaisija.
+ *
+ *  'timeout' (toimitukselliset listat: Time Out, MyHelsinki) oli aluksi
+ *  sekoituksen TAKANA — ja omistaja huomasi heti, ettei uusia löytöjä näy
+ *  sivulla lainkaan: kärkeen mahtuu 60 korttia ja pelkkiä vahvempia syitä on
+ *  enemmän, joten koko perhe jäi taitteen alle. Lähteet haettiin nimenomaan
+ *  asiakkaan valinnan tueksi, joten ne kuuluvat kiertoon. */
+const MIXED_KINDS: ReasonKind[] = ['michelin', 'top50', 'uusi', 'vuoden-ravintola', 'huippuarvio', 'timeout']
 
 // ── UUTUUS EI OLE SUOSITUS ──────────────────────────────────────────────────
 // Michelin, Suomen 50 parasta ja Vuoden ravintola ovat kaikki LAATUVÄITTEITÄ:
