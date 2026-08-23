@@ -316,7 +316,12 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (L.Icon.Default.prototype as any)._getIconUrl
     const map = L.map(containerRef.current, { center: HELSINKI_CENTER, zoom: 12, zoomControl: true })
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Voyager, EI dark_all: tumma pohja näytti tyylikkäältä mutta siitä ei
+    // saanut selvää — kadut, kaupunginosat ja vesialueet hukkuivat mustaan
+    // (omistaja: "kartan pitäisi olla niin kuin Google Mapsissa"). Voyager on
+    // CARTOn luettavin tyyli: värilliset tiet, selkeät nimet, sama luokka
+    // kuin Google Maps. Sama ilmainen palvelu ja attribuutio kuin ennenkin.
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd', maxZoom: 20,
     }).addTo(map)

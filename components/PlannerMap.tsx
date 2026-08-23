@@ -47,7 +47,8 @@ export default function PlannerMap({ items }: { items: MapItem[] }) {
       })
       instanceRef.current = map
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      // Voyager kuten pääkartassa — tumma pohja ei ollut luettava.
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CartoDB</a>',
         maxZoom: 19,
       }).addTo(map)
