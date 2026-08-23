@@ -403,6 +403,15 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
     () => r.reasons?.find((x) => x.kind === 'uutinen' && x.note) ?? null,
     [r.reasons],
   )
+  // Toimituslistan nimi omana rivinään, mutta VAIN kun lista on kortin
+  // ensisijainen syy — Michelin-kortilla "miksi" on jo Michelin, eikä korttiin
+  // kasata kolmatta selitettä. Omistajan huomio: pelkkä "Time Out Helsinki"
+  // -pilleri ei kerro miksi paikka on nostettu; tämä rivi kertoo ("Helsingin
+  // parhaat aamiaiset ja brunssit") ja linkkaa artikkeliin jossa perustelu on.
+  const listReason = useMemo(
+    () => (reason?.kind === 'timeout' && reason.note ? reason : null),
+    [reason],
+  )
   return (
     <div className={`rounded-2xl overflow-hidden ${onOpen ? 'cursor-pointer transition-transform active:scale-[.99]' : ''}`}
       role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
@@ -492,6 +501,20 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
           >
             📰 {newsReason.note}
             <span className="text-white/35"> · {newsReason.date ? relativeDate(newsReason.date) : ''} ↗</span>
+          </a>
+        )}
+        {/* TOIMITUSLISTA — millä listalla ja monentenako. Linkki artikkeliin,
+            jossa toimittajan perustelu; emme kopioi sitä tänne. */}
+        {listReason && (
+          <a
+            href={listReason.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="block text-[11.5px] leading-snug text-white/70 hover:text-white transition-colors"
+          >
+            📋 {listReason.note}
+            <span className="text-white/35"> · {listReason.source.replace(/\s*Helsinki$/, '')} ↗</span>
           </a>
         )}
         {/* ANNOS JA HINTA — kortin ainoa konkreettinen "miksi tänne" -tieto.

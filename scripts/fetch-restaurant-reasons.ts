@@ -251,31 +251,47 @@ const TO_LIST_HREF =
 const NOT_A_VENUE =
   /helsinki|newsletter|uutiskirje|lue myös|read more|recommended|discover|share|cookie|visit|live & work|business|cvb|tickets|advertising|time out/i
 
-/** Listan otsikko kortin merkkiin. Sivun <h1> on kokonainen lause — se
- *  katkaistaan ensimmäisestä pilkusta tai ajatusviivasta. Jos jäljelle jäävä ei
- *  kelpaa (esim. sivustotason "Time Out Worldwide"), käytetään lähteen nimeä. */
-const LIST_LABEL_MAX = 38
-function listLabel(prefix: string, h1: string, fallback: string): string {
+/**
+ * Listan otsikko kortin LISTARIVILLE (📋 …). Sivun <h1> on kokonainen lause —
+ * "Helsingin parhaat pizzat – tästä eivät lätyt lopu" — joten se katkaistaan
+ * ensimmäisestä pilkusta tai ajatusviivasta. Sivustotason otsake ("Time Out
+ * Worldwide") hylätään: silloin riviä ei näytetä lainkaan.
+ *
+ * AIEMPI VIRHE JOKA TEHTIIN TÄSSÄ: otsikko meni pilleriin ja 38 merkin katkaisu
+ * pudotti esim. "Helsingin parhaat aamiaiset ja brunssit" (39) kokonaan, jolloin
+ * merkiksi jäi tyhjänpäiväinen "Time Out Helsinki". Omistaja huomasi: merkki ei
+ * kertonut MIKSI paikka on nostettu. Nyt pilleri on lyhyt ("Time Out · sija 1")
+ * ja listan koko nimi elää tällä rivillä, jossa tila riittää.
+ */
+const LIST_NOTE_MAX = 60
+function listTitleNote(h1: string): string | undefined {
   const head = h1.split(/[,–—:|]/)[0].trim()
-  if (!head || head.length > LIST_LABEL_MAX || /time\s*out|myhelsinki/i.test(head)) {
-    return fallback
-  }
-  return `${prefix}: ${head}`
+  if (!head || head.length < 3 || /time\s*out|myhelsinki/i.test(head)) return undefined
+  if (head.length <= LIST_NOTE_MAX) return head
+  return head.slice(0, LIST_NOTE_MAX).replace(/\s+\S*$/, '') + '…'
+}
+
+/** Pilleri: lähde ja sijoitus, ei muuta. Listan nimi on listarivillä. */
+function listPill(prefix: string, rank?: number): string {
+  return typeof rank === 'number' ? `${prefix} · sija ${rank}` : prefix
 }
 
 /** Poimii listasivun <h3>-nimet. Numeroidut aina; numeroimattomat vain jos ne
  *  läpäisevät järkevyysseulan (pituus, ei yleisotsikko). Sijaintiselite
  *  pilkun/ajatusviivan perässä siivotaan: "Superterassi, Kasarmitori" ja
  *  "Cafe Regatta – charming cottage by the sea" ovat paikkoja, eivät nimiä. */
-function extractListNames(html: string): string[] {
-  const out: string[] = []
+function extractListEntries(html: string): { name: string; rank?: number }[] {
+  const out: { name: string; rank?: number }[] = []
   for (const m of html.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)) {
     let t = stripTags(m[1])
-    const numbered = /^\d+\.\s*(.+)$/.exec(t)
-    if (numbered) t = numbered[1].trim()
-    else if (t.length < 3 || t.length > 42 || NOT_A_VENUE.test(t)) continue
+    let rank: number | undefined
+    const numbered = /^(\d+)\.\s*(.+)$/.exec(t)
+    if (numbered) {
+      rank = Number(numbered[1])
+      t = numbered[2].trim()
+    } else if (t.length < 3 || t.length > 42 || NOT_A_VENUE.test(t)) continue
     t = t.split(/\s+[–—]\s+/)[0].trim()
-    if (t.length >= 3) out.push(t)
+    if (t.length >= 3) out.push({ name: t, rank })
   }
   return out
 }
@@ -290,33 +306,42 @@ async function fetchTimeOut(): Promise<Raw[]> {
       }
     } catch { continue }                    // toinen hub riittää
   }
-  const out: Raw[] = []
-  const seen = new Set<string>()
+  // PARAS ESIINTYMÄ VOITTAA, EI ENSIMMÄINEN. Sama paikka on usein monella
+  // sivulla, ja aakkosjärjestyksessä hub-sivu tulee ennen listoja — jolloin
+  // Sushi Wagocoron ensimmäinen esiintymä oli hubin nosto ilman otsikkoa ja
+  // sijaa, vaikka se on parhaat ravintolat -listan sija 20. Paremmuus:
+  // sijallinen voittaa sijattoman, pienempi sija suuremman, otsikollinen
+  // otsikottoman.
+  const best = new Map<string, { name: string; rank?: number; note?: string; url: string }>()
+  const goodness = (e: { rank?: number; note?: string }) =>
+    (typeof e.rank === 'number' ? 1000 - e.rank : 0) + (e.note ? 1 : 0)
   for (const url of [...listUrls].sort()) {
     let html: string
     try {
       html = await get(url)
     } catch { continue }                    // yksittäinen 404 ei kaada muita
-    const listTitle = stripTags(/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1] ?? '')
+    const note = listTitleNote(stripTags(/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1] ?? ''))
     let found = 0
-    for (const name of extractListNames(html)) {
-      if (seen.has(name.toLowerCase())) continue
-      seen.add(name.toLowerCase())
+    for (const { name, rank } of extractListEntries(html)) {
       found++
-      out.push({
-        name,
-        reason: {
-          kind: 'timeout',
-          label: listLabel('Time Out', listTitle, 'Time Out Helsinki'),
-          source: 'Time Out Helsinki',
-          url,
-          note: listTitle || undefined,
-        },
-      })
+      const key = name.toLowerCase()
+      const cand = { name, rank, note, url }
+      const prev = best.get(key)
+      if (!prev || goodness(cand) > goodness(prev)) best.set(key, cand)
     }
     if (found) console.log(`    time out ${url.split('timeout.com')[1]}: ${found}`)
   }
-  return out
+  return [...best.values()].map((e) => ({
+    name: e.name,
+    reason: {
+      kind: 'timeout',
+      label: listPill('Time Out', e.rank),
+      source: 'Time Out Helsinki',
+      url: e.url,
+      ...(typeof e.rank === 'number' ? { rank: e.rank } : {}),
+      note: e.note,
+    },
+  }))
 }
 
 // MyHelsinki on kaupungin matkailutoimen oma toimitus — sama perhe kuin Time
@@ -366,10 +391,10 @@ async function fetchMyHelsinki(): Promise<Raw[]> {
         name: t,
         reason: {
           kind: 'timeout',
-          label: listLabel('MyHelsinki', h1, 'MyHelsingin vinkki'),
+          label: 'MyHelsinki',
           source: 'MyHelsinki',
           url: a.url,
-          note: h1 || undefined,
+          note: listTitleNote(h1),
         },
       })
     }

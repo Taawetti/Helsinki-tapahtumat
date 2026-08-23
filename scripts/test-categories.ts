@@ -1808,6 +1808,23 @@ for (const c of ideaChecks) {
   rChecks.push({ name: 'jokaisella syyllä on lähde', ok: allReasons.every((x) => typeof x.source === 'string' && x.source.length > 0) })
   rChecks.push({ name: 'jokaisella uusi-syyllä on päivä ja katu', ok: allReasons.filter((x) => x.kind === 'uusi').every((x) => !!x.date && !!x.street) })
   rChecks.push({ name: 'jokaisella michelin-syyllä on tier', ok: allReasons.filter((x) => x.kind === 'michelin').every((x) => typeof x.tier === 'number') })
+  // Toimituslistan pilleri on aina lyhyt "lähde · sija N" -muoto — omistajan
+  // huomio: pelkkä "Time Out Helsinki" ei kertonut miksi paikka on nostettu.
+  const toReasons = allReasons.filter((x) => x.kind === 'timeout')
+  rChecks.push({
+    name: 'timeout-pilleri on aina lähde · sija -muotoa',
+    ok: toReasons.every((x) => /^(Time Out( · sija \d+)?|MyHelsinki)$/.test(x.label)),
+    got: toReasons.find((x) => !/^(Time Out( · sija \d+)?|MyHelsinki)$/.test(x.label))?.label,
+  })
+  rChecks.push({
+    name: 'vähintään 30 timeout-syyllä on sijaluku',
+    ok: toReasons.filter((x) => typeof x.rank === 'number').length >= 30,
+    got: String(toReasons.filter((x) => typeof x.rank === 'number').length),
+  })
+  rChecks.push({
+    name: 'jokaisella timeout-syyllä on listarivi (note) ja linkki',
+    ok: toReasons.every((x) => !!x.note && !!x.url),
+  })
 
   // 8. OSM-DUPLIKAATIT — mitattu: "Shelter" ja "shelter" olivat kuratoidun
   //    kärjen sijoilla 21 ja 30, molemmat Kanavaranta 7, 17 metrin päässä.
@@ -2041,6 +2058,16 @@ for (const c of ideaChecks) {
       return hs.indexOf('H0') < hs.indexOf('H27')
     })() })
     rChecks.push({ name: 'sekoitus ei kadota mitään viidelläkään perheellä', ok: mixed5.length === rows.length })
+    // Toimituslistat: sija 1 ennen sijaa 20, sijalliset ennen sijattomia —
+    // vaikka sijattomalla olisi parempi uskottavuus.
+    const toRows = [
+      { n: 'sijaton-huippu', reasons: [mk2('timeout')], c: 0.99 },
+      { n: 'sija20', reasons: [mk2('timeout', { rank: 20 })], c: 0.85 },
+      { n: 'sija1', reasons: [mk2('timeout', { rank: 1 })], c: 0.80 },
+    ]
+    const toMixed = interleaveReasoned(toRows, (r) => r.reasons, today, (r) => r.c)
+    rChecks.push({ name: 'timeout: sija 1 ensin', ok: toMixed[0]?.n === 'sija1', got: toMixed[0]?.n })
+    rChecks.push({ name: 'timeout: sija 20 ennen sijatonta', ok: toMixed[1]?.n === 'sija20', got: toMixed[1]?.n })
     // Michelin painaa yhä enemmän kuin huippuarvio: ulkopuolinen arvio voittaa
     // arvostelukeskiarvon, kun molemmat ovat samalla kortilla.
     rChecks.push({

@@ -566,6 +566,15 @@ export function interleaveReasoned<T>(
       }
       // Huippuarvio ON uskottavuusväite, joten se järjestyy suoraan sillä.
       if (kind === 'huippuarvio') return b.c - a.c
+      // Toimituslistat: sijoitettu ennen sijoittamatonta ja sija 1 ennen
+      // sijaa 20 — "kaupungin paras aamiainen" on vahvempi nosto kuin pelkkä
+      // maininta artikkelissa. Sijattomien kesken uskottavuus ratkaisee.
+      if (kind === 'timeout') {
+        const ra = typeof a.p.rank === 'number' ? a.p.rank : 999
+        const rb = typeof b.p.rank === 'number' ? b.p.rank : 999
+        if (ra !== rb) return ra - rb
+        return b.c - a.c
+      }
       if (b.w !== a.w) return b.w - a.w     // luokka, sijaluku tai vuosi
       return b.c - a.c
     }
