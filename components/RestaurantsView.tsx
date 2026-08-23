@@ -5,7 +5,7 @@ import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'luci
 import type { Restaurant } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
-import { pickAttributes, FILTER_FLAGS } from '@/lib/google-attributes'
+import { pickAttributes } from '@/lib/google-attributes'
 import { credibilityScore } from '@/lib/credibility'
 import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaurant-reasons'
 import type { ReasonKind, RestaurantReason } from '@/lib/restaurant-reasons'
@@ -498,7 +498,6 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
              useissa Safari-raporteissa noreferrer on ollut osatekijä.
              noopener riittää turvaksi (ja on _blankissa nykyselaimissa
              oletus muutenkin). */
-          // eslint-disable-next-line react/jsx-no-target-blank
           <a
             href={newsReason.url}
             target="_blank"
@@ -514,7 +513,6 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
             jossa toimittajan perustelu; emme kopioi sitä tänne. */}
         {listReason && (
           /* rel: vain noopener — sama Safari-varotoimi kuin uutisrivillä. */
-          // eslint-disable-next-line react/jsx-no-target-blank
           <a
             href={listReason.url}
             target="_blank"
@@ -893,8 +891,6 @@ function isRatedAtLeast(r: Restaurant, min: number): boolean {
   return (r.reviewCount ?? 0) >= 50 || award
 }
 
-type StarSeg = 4 | 4.5 | null     // ⭐ 4+ | ⭐ 4.5+
-
 // Rikas Google-profiili avattuun ravintolakorttiin (haetaan on-demand
 // /api/restaurant-google). Sama muoto kuin aktiviteeteilla + varauslinkki.
 type RestGoogleData = {
@@ -923,42 +919,71 @@ type RestGoogleData = {
 // Hoikka suodatinrivi — näkyy KAIKISSA näkymissä (kaikki + alakategoriat).
 // Korvaa entisen "Auta valitsemaan" -paneelin: samat suodattimet, mutta
 // suoraan ruudukkoon eikä erilliseen arvontapooliin.
-function QuickSortPills({ filterOpen, filterNearby, minStars, activeFlags, onToggleOpen, onToggleNearby, onStars, onToggleFlag }: {
-  filterOpen: boolean
-  filterNearby: boolean
-  minStars: StarSeg
-  activeFlags: string[]
-  onToggleOpen: () => void
-  onToggleNearby: () => void
-  onStars: (s: StarSeg) => void
-  onToggleFlag: (id: string) => void
+// ── Yhtenäinen suodatinrivi — SAMA Suosituimmat- ja selausnäkymässä ─────────
+// Omistajan pyyntö: "tehdään kaikki-välilehdelle samanlaiset suodattimet kuin
+// suosituimmat-välilehdellä" + "lähimmät ensin" myös Suosituimpiin. Vanhat
+// ★4+/★4.5+ -portaat korvasi liukusäädin, ja Googlen ominaisuusliput
+// (terassi, kasvis, vegaani, yöruoka, varattavissa…) POISTETTIIN omistajan
+// päätöksellä: "ne eivät pidä välttämättä paikkansa niin voivat olla
+// hämääviä" — kate on ~600/3600 paikkaa, joten suodatin hävitti enemmän
+// oikeita osumia kuin löysi.
+function SortFilterRow({ open, nearby, byReviews, minRating, count, onOpen, onNearby, onByReviews, onMinRating }: {
+  open: boolean
+  nearby: boolean
+  byReviews: boolean
+  minRating: number | null
+  /** Näytetään suodatuksen tuloksena jäävä määrä; null = ei näytetä. */
+  count: number | null
+  onOpen: () => void
+  onNearby: () => void
+  onByReviews: () => void
+  onMinRating: (v: number | null) => void
 }) {
   const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
   const off = { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
   const pill = 'shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all'
   return (
-    <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-      <button onClick={onToggleOpen} className={pill} style={filterOpen ? on : off}>
+    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
+      <button onClick={onOpen} className={pill} style={open ? on : off}>
         🟢 {t('idea.open_now')}
       </button>
-      <button onClick={onToggleNearby} className={pill} style={filterNearby ? on : off}>
+      <button onClick={onNearby} className={pill} style={nearby ? on : off}>
         📍 {t('restaurants.sort_nearby')}
       </button>
-      {([4, 4.5] as const).map((s) => (
-        <button key={s} onClick={() => onStars(minStars === s ? null : s)} className={pill} style={minStars === s ? on : off}>
-          ★ {s}+
-        </button>
-      ))}
-      {/* Ominaisuussuodattimet Googlen profiilista. Nämä ovat kysymyksiä joihin
-          Maps vastaa huonosti — ja joihin meillä on kate (terassi 611,
-          varattavissa 626, kasvis 614, esteetön 619 paikkaa). */}
-      {FILTER_FLAGS.map((f) => (
-        <button key={f.id} onClick={() => onToggleFlag(f.id)} className={pill}
-                style={activeFlags.includes(f.id) ? on : off}>
-          {f.emoji} {f.label}
-        </button>
-      ))}
+      <button onClick={onByReviews} className={pill} style={byReviews ? on : off}>
+        {t('restaurants.sort_reviews')}
+      </button>
+      {/* Tähtiraja liukusäätimellä: vasen laita (3,5) = ei rajaa. Raja on
+          kirjaimellinen näkyvään arvosanaan — arvostelematon putoaa, koska
+          sen tähtiä ei tiedetä. */}
+      <label
+        className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
+        style={{
+          background: minRating !== null ? 'rgba(251,191,36,.1)' : 'rgba(255,255,255,.06)',
+          border: `1px solid ${minRating !== null ? 'rgba(251,191,36,.35)' : 'transparent'}`,
+        }}
+      >
+        <span className={minRating !== null ? 'text-[#fbbf24]' : 'text-white/50'}>
+          ⭐ {minRating !== null ? `≥ ${minRating.toFixed(1).replace('.', ',')}` : t('restaurants.stars_all')}
+        </span>
+        <input
+          type="range"
+          min={3.5}
+          max={5}
+          step={0.1}
+          value={minRating ?? 3.5}
+          aria-label="Tähtien alaraja"
+          onChange={(e) => {
+            const v = Number(e.target.value)
+            onMinRating(v <= 3.5 ? null : Math.round(v * 10) / 10)
+          }}
+          className="w-24 accent-[#fbbf24]"
+        />
+      </label>
+      {count !== null && (
+        <span className="shrink-0 text-[13px] font-bold text-white/35">{count} {t('restaurants.places')}</span>
+      )}
     </div>
   )
 }
@@ -982,11 +1007,11 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [restGoogle, setRestGoogle] = useState<RestGoogleData | null>(null)
   const [selectedChain, setSelectedChain] = useState<ChainGroup | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
-  // Suodatin (QuickSortPills) — min-arvosana; näkyy vain selausnäkymässä
-  const [minStars, setMinStars] = useState<StarSeg>(null)
+  // Selausnäkymän tähtiraja — sama liukusäädin kuin Suosituimmissa.
+  const [browseMinRating, setBrowseMinRating] = useState<number | null>(null)
+  const [browseByReviews, setBrowseByReviews] = useState(false)
   // Ominaisuussuodattimet (terassi, vegaani…) — monivalinta, JA-logiikka:
   // "terassi + vegaani" tarkoittaa molempia, koska sitä käyttäjä tarkoittaa.
-  const [activeFlags, setActiveFlags] = useState<string[]>([])
   // ── Suosituimmat-listan omat suodattimet (omistajan pyyntö) ───────────────
   // Liukusäädin tähtirajalle ("asiakas voisi laittaa että esimerkiksi yli 4,7
   // tähteä vain näkyvät"), avoinna nyt, ja eniten arvosteluja -järjestys.
@@ -995,9 +1020,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [topByReviews, setTopByReviews] = useState(false)
   /** null = kaikki; muuten alaraja 3,6–5,0. Säätimen vasen laita = kaikki. */
   const [topMinRating, setTopMinRating] = useState<number | null>(null)
-  const toggleFlag = useCallback((id: string) => {
-    setActiveFlags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-  }, [])
+  const [topNearby, setTopNearby] = useState(false)
 
   const [loadError, setLoadError] = useState(false)
 
@@ -1038,10 +1061,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     // Uusi tyyppivälilehti nollaa suodattimet (näkymätön aktiivinen suodatin
     // muulla välilehdellä olisi selittämätön).
     // eslint-disable-next-line react-hooks/set-state-in-effect -- tarkoituksellinen suodatinreset välilehden vaihtuessa
-    setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null); setVisibleCount(48)
+    setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setBrowseMinRating(null); setBrowseByReviews(false); setVisibleCount(48)
   }, [restType])
   // eslint-disable-next-line react-hooks/set-state-in-effect -- sivutuksen reset suodattimien muuttuessa
-  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby, minStars, activeFlags])
+  useEffect(() => { setVisibleCount(48) }, [subCat, filterOpen, filterNearby, browseMinRating, browseByReviews])
   // Alakategorian avaus/vaihto vie listan alkuun — ei "puolesta välistä".
   // Auki/Lähellä-pillerit näkyvät nykyään myös alakategoriassa, joten
   // suodattimia ei enää nollata kategoriaan mentäessä (ei näkymätöntä vuotoa).
@@ -1051,7 +1074,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // TAKAA sortedPoolin `browsing`-gate (yllä), ei tämä paint-jälkeinen efekti.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- pillerisuodattimien reset "Suosituimmat"-landingiin palattaessa
-    if (subCat === 'all') { setFilterOpen(false); setFilterNearby(false); setMinStars(null) }
+    if (subCat === 'all') { setFilterOpen(false); setFilterNearby(false); setBrowseMinRating(null); setBrowseByReviews(false) }
     else window.scrollTo(0, 0)
   }, [subCat])
 
@@ -1068,6 +1091,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
   const handleToggleNearby = useCallback(() => {
     setFilterNearby(v => {
+      if (!v) locateMe()
+      return !v
+    })
+  }, [locateMe])
+  const handleTopNearby = useCallback(() => {
+    setTopNearby(v => {
       if (!v) locateMe()
       return !v
     })
@@ -1148,16 +1177,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       if (topMinRating !== null) filtered = filtered.filter(r => (r.googleRating ?? 0) >= topMinRating)
     }
     if (browsing && filterOpen) filtered = filtered.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
-    // Min-arvosana (Michelin/Bib korvaa arvostelumäärävaatimuksen isRatedAtLeastissa)
-    if (browsing && minStars !== null) filtered = filtered.filter(r => isRatedAtLeast(r, minStars))
-    // JA-logiikka: kaikkien valittujen lippujen on täytyttävä.
-    if (activeFlags.length > 0) {
-      filtered = filtered.filter(r => {
-        const f = r.flags
-        return !!f && activeFlags.every(a => f.includes(a))
-      })
-    }
-    if (browsing && filterNearby && userPos) {
+    // Sama kirjaimellinen tähtiraja kuin Suosituimmissa. Vanhat ★4+/★4.5+
+    // -portaat ja Googlen ominaisuusliput (terassi, kasvis…) poistuivat —
+    // omistaja: liput "eivät pidä välttämättä paikkansa niin voivat olla
+    // hämääviä" (kate ~600/3600 paikkaa).
+    if (browsing && browseMinRating !== null) filtered = filtered.filter(r => (r.googleRating ?? 0) >= browseMinRating)
+    if ((browsing ? filterNearby : topNearby) && userPos) {
       // Käyttäjä pyysi eksplisiittisesti lähimpiä → etäisyys voittaa
       filtered.sort((a, b) => (distMap.get(a.id) ?? Infinity) - (distMap.get(b.id) ?? Infinity))
     } else {
@@ -1180,13 +1205,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     // perheet, jottei sivu näytä lohkoilta (ensin kaikki Michelinit, sitten
     // kaikki 50 parasta…). Lähelläolo-suodatin on poikkeus: kun käyttäjä
     // pyytää nimenomaan lähimpiä, etäisyys saa voittaa syyn.
-    if (filterNearby && userPos) return filtered
-    // "Eniten arvosteluja": käyttäjä valitsi järjestyksen itse, joten sekoitus
-    // väistyy ja lista on puhtaasti arvostelumäärän mukainen. Merkit säilyvät
-    // korteissa silti.
-    if (!browsing && topByReviews) {
-      const byReviews = (heroRest ? filtered.filter(r => r.id !== heroRest.id) : filtered)
-      return [...byReviews].sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0))
+    // Kun käyttäjä valitsi järjestyksen itse (lähimmät tai eniten arvosteluja),
+    // sekoitus väistyy. Lähimmät voittaa jos molemmat ovat päällä. Merkit
+    // säilyvät korteissa silti. Suosituimmissa hero poistetaan tuplan estoksi.
+    const dropHero = (list: Restaurant[]) =>
+      !browsing && heroRest ? list.filter(r => r.id !== heroRest.id) : list
+    if ((browsing ? filterNearby : topNearby) && userPos) return dropHero(filtered)
+    if (browsing ? browseByReviews : topByReviews) {
+      return [...dropHero(filtered)].sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0))
     }
     // HERO POIS ENNEN SEKOITUSTA. Jos se poistetaan vasta ruudukkoa
     // piirrettäessä, lomitukseen jää aukko ja kaksi samaa perhettä päätyy
@@ -1199,12 +1225,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       withoutHero, (r) => r.reasons, sortToday, restaurantQualityScore,
       (r) => ({ rating: r.googleRating, reviews: r.reviewCount }),
     )
-  }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat, sortToday, heroRest, topOpenNow, topByReviews, topMinRating])
+  }, [subPool, filterOpen, filterNearby, browseMinRating, browseByReviews, userPos, distMap, subCat, sortToday, heroRest, topOpenNow, topByReviews, topMinRating, topNearby])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
 
 
-  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null); setTopOpenNow(false); setTopByReviews(false); setTopMinRating(null) }, [])
+  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setBrowseMinRating(null); setBrowseByReviews(false); setTopOpenNow(false); setTopByReviews(false); setTopMinRating(null); setTopNearby(false) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -1276,61 +1302,16 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                     ⭐ Suosituimmat {TYPE_TABS.find(tt => tt.id === restType)?.label.toLowerCase()}
                   </h2>
 
-                  {/* Suosituimmat-listan suodattimet. Liukusäätimen vasen
-                      laita (3,5) = ei rajaa — silloin tila on null eikä
-                      suodatusta tehdä lainkaan. */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={() => setTopOpenNow(v => !v)}
-                      className={`text-[12px] font-black px-3 py-1.5 rounded-full border transition-colors ${
-                        topOpenNow
-                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                          : 'text-white/50 border-white/10 hover:text-white/80'
-                      }`}
-                    >
-                      ● Avoinna nyt
-                    </button>
-                    <button
-                      onClick={() => setTopByReviews(v => !v)}
-                      className={`text-[12px] font-black px-3 py-1.5 rounded-full border transition-colors ${
-                        topByReviews
-                          ? 'text-[#a3abff] border-[#6b76ff]/40'
-                          : 'text-white/50 border-white/10 hover:text-white/80'
-                      }`}
-                      style={topByReviews ? { background: 'rgba(107,118,255,.12)' } : undefined}
-                    >
-                      Eniten arvosteluja
-                    </button>
-                    <label
-                      className="flex items-center gap-2 text-[12px] font-black px-3 py-1.5 rounded-full border"
-                      style={{
-                        borderColor: topMinRating !== null ? 'rgba(251,191,36,.35)' : 'rgba(255,255,255,.1)',
-                        background: topMinRating !== null ? 'rgba(251,191,36,.08)' : 'transparent',
-                      }}
-                    >
-                      <span className={topMinRating !== null ? 'text-[#fbbf24]' : 'text-white/50'}>
-                        ⭐ {topMinRating !== null ? `≥ ${topMinRating.toFixed(1).replace('.', ',')}` : 'kaikki'}
-                      </span>
-                      <input
-                        type="range"
-                        min={3.5}
-                        max={5}
-                        step={0.1}
-                        value={topMinRating ?? 3.5}
-                        aria-label="Tähtien alaraja"
-                        onChange={(e) => {
-                          const v = Number(e.target.value)
-                          setTopMinRating(v <= 3.5 ? null : Math.round(v * 10) / 10)
-                        }}
-                        className="w-28 accent-[#fbbf24]"
-                      />
-                    </label>
-                    {(topOpenNow || topByReviews || topMinRating !== null) && (
-                      <span className="text-[12px] font-bold text-white/35">
-                        {groupedSortedPool.length} {t('restaurants.places')}
-                      </span>
-                    )}
-                  </div>
+                  {/* Suosituimmat-listan suodattimet — sama rivi kuin
+                      selausnäkymässä (SortFilterRow), oma tila. */}
+                  <SortFilterRow
+                    open={topOpenNow} nearby={topNearby} byReviews={topByReviews} minRating={topMinRating}
+                    count={topOpenNow || topByReviews || topMinRating !== null || topNearby ? groupedSortedPool.length : null}
+                    onOpen={() => setTopOpenNow(v => !v)}
+                    onNearby={handleTopNearby}
+                    onByReviews={() => setTopByReviews(v => !v)}
+                    onMinRating={setTopMinRating}
+                  />
 
               {groupedSortedPool.length > 0 ? (
                 <>
@@ -1382,7 +1363,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 </h2>
               </div>
 
-              <QuickSortPills filterOpen={filterOpen} filterNearby={filterNearby} minStars={minStars} activeFlags={activeFlags} onToggleOpen={handleToggleOpen} onToggleNearby={handleToggleNearby} onStars={setMinStars} onToggleFlag={toggleFlag} />
+              <SortFilterRow
+                open={filterOpen} nearby={filterNearby} byReviews={browseByReviews} minRating={browseMinRating}
+                count={null}
+                onOpen={handleToggleOpen} onNearby={handleToggleNearby}
+                onByReviews={() => setBrowseByReviews(v => !v)} onMinRating={setBrowseMinRating}
+              />
 
               {groupedSortedPool.length > 0 ? (
                 <>
