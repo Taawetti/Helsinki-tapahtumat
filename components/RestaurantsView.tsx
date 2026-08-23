@@ -492,10 +492,17 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
         {/* UUTINEN — toimittajan tuore juttu juuri tästä paikasta. Linkki avaa
             artikkelin; stopPropagation ettei kortin oma avaus laukea samalla. */}
         {newsReason && (
+          /* rel: vain noopener, EI noreferrer. Käyttäjän Safari latasi
+             kohdesivun tiedostoksi navigoinnin sijaan; palvelin ja DOM
+             todettiin puhtaiksi ja WebKit-moottori navigoi oikein, mutta
+             useissa Safari-raporteissa noreferrer on ollut osatekijä.
+             noopener riittää turvaksi (ja on _blankissa nykyselaimissa
+             oletus muutenkin). */
+          // eslint-disable-next-line react/jsx-no-target-blank
           <a
             href={newsReason.url}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
             onClick={(e) => e.stopPropagation()}
             className="block text-[11.5px] leading-snug text-white/70 hover:text-white transition-colors"
           >
@@ -506,10 +513,12 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
         {/* TOIMITUSLISTA — millä listalla ja monentenako. Linkki artikkeliin,
             jossa toimittajan perustelu; emme kopioi sitä tänne. */}
         {listReason && (
+          /* rel: vain noopener — sama Safari-varotoimi kuin uutisrivillä. */
+          // eslint-disable-next-line react/jsx-no-target-blank
           <a
             href={listReason.url}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener"
             onClick={(e) => e.stopPropagation()}
             className="block text-[11.5px] leading-snug text-white/70 hover:text-white transition-colors"
           >
