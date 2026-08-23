@@ -987,6 +987,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // Ominaisuussuodattimet (terassi, vegaani…) — monivalinta, JA-logiikka:
   // "terassi + vegaani" tarkoittaa molempia, koska sitä käyttäjä tarkoittaa.
   const [activeFlags, setActiveFlags] = useState<string[]>([])
+  // ── Suosituimmat-listan omat suodattimet (omistajan pyyntö) ───────────────
+  // Liukusäädin tähtirajalle ("asiakas voisi laittaa että esimerkiksi yli 4,7
+  // tähteä vain näkyvät"), avoinna nyt, ja eniten arvosteluja -järjestys.
+  // Erillään selausnäkymän suodattimista, jottei tila vuoda näkymien välillä.
+  const [topOpenNow, setTopOpenNow] = useState(false)
+  const [topByReviews, setTopByReviews] = useState(false)
+  /** null = kaikki; muuten alaraja 3,6–5,0. Säätimen vasen laita = kaikki. */
+  const [topMinRating, setTopMinRating] = useState<number | null>(null)
   const toggleFlag = useCallback((id: string) => {
     setActiveFlags((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }, [])
@@ -1132,6 +1140,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     // selausnäkymästä palatessa vanha suodatintila (esim. ★4.5+) ei koskaan
     // ehdi välähtää yhtä frameä kuratoituun ruudukkoon.
     const browsing = subCat !== 'all'
+    // Suosituimmat-listan suodattimet. Tähtiraja on KIRJAIMELLINEN: käyttäjä
+    // sanoo "vain yli 4,7 näkyvät" ja juuri niin käy — arvostelematon paikka
+    // ei läpäise rajaa, koska sen tähtiä ei tiedetä.
+    if (!browsing) {
+      if (topOpenNow) filtered = filtered.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
+      if (topMinRating !== null) filtered = filtered.filter(r => (r.googleRating ?? 0) >= topMinRating)
+    }
     if (browsing && filterOpen) filtered = filtered.filter(r => r.openingHours && isOpenNow(r.openingHours) === true)
     // Min-arvosana (Michelin/Bib korvaa arvostelumäärävaatimuksen isRatedAtLeastissa)
     if (browsing && minStars !== null) filtered = filtered.filter(r => isRatedAtLeast(r, minStars))
@@ -1166,6 +1181,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     // kaikki 50 parasta…). Lähelläolo-suodatin on poikkeus: kun käyttäjä
     // pyytää nimenomaan lähimpiä, etäisyys saa voittaa syyn.
     if (filterNearby && userPos) return filtered
+    // "Eniten arvosteluja": käyttäjä valitsi järjestyksen itse, joten sekoitus
+    // väistyy ja lista on puhtaasti arvostelumäärän mukainen. Merkit säilyvät
+    // korteissa silti.
+    if (!browsing && topByReviews) {
+      const byReviews = (heroRest ? filtered.filter(r => r.id !== heroRest.id) : filtered)
+      return [...byReviews].sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0))
+    }
     // HERO POIS ENNEN SEKOITUSTA. Jos se poistetaan vasta ruudukkoa
     // piirrettäessä, lomitukseen jää aukko ja kaksi samaa perhettä päätyy
     // vierekkäin — mitattu: Grön (Michelin) putosi välistä, jolloin kaksi
@@ -1177,12 +1199,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       withoutHero, (r) => r.reasons, sortToday, restaurantQualityScore,
       (r) => ({ rating: r.googleRating, reviews: r.reviewCount }),
     )
-  }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat, sortToday, heroRest])
+  }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat, sortToday, heroRest, topOpenNow, topByReviews, topMinRating])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
 
 
-  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null) }, [])
+  const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null); setTopOpenNow(false); setTopByReviews(false); setTopMinRating(null) }, [])
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-4">
@@ -1238,8 +1260,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                kysymys, ei vastaus. Vastaus on paikka jolla on syy: Michelin,
                Suomen 50 parasta, Vuoden ravintola, Time Out tai tuore avaus.
                Se tulee nyt heti. Kategoriat jäävät alle sitä varten, kun
-               kävijä TIETÄÄ mitä hakee. EI suodattimia — kuratoitua listaa ei
-               suodateta (suodattimet ovat selausnäkymässä). ═══ */}
+               kävijä TIETÄÄ mitä hakee. Listalla on omat suodattimensa
+               (tähtiraja liukusäätimellä, avoinna nyt, eniten arvosteluja) —
+               omistajan pyyntö: "nämä ovat tärkeitä mitä ihmiset varmasti
+               käyttävät". ═══ */}
           {subCat === 'all' && (
             <>
               {heroRest && (
@@ -1247,11 +1271,69 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               )}
 
               {/* Kärkipoiminnat: ~60 parasta. Syylliset ensin, ks. lib/restaurant-reasons.ts. */}
-              {groupedSortedPool.length > 0 ? (
-                <section className="space-y-3">
+              <section className="space-y-3">
                   <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
                     ⭐ Suosituimmat {TYPE_TABS.find(tt => tt.id === restType)?.label.toLowerCase()}
                   </h2>
+
+                  {/* Suosituimmat-listan suodattimet. Liukusäätimen vasen
+                      laita (3,5) = ei rajaa — silloin tila on null eikä
+                      suodatusta tehdä lainkaan. */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setTopOpenNow(v => !v)}
+                      className={`text-[12px] font-black px-3 py-1.5 rounded-full border transition-colors ${
+                        topOpenNow
+                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                          : 'text-white/50 border-white/10 hover:text-white/80'
+                      }`}
+                    >
+                      ● Avoinna nyt
+                    </button>
+                    <button
+                      onClick={() => setTopByReviews(v => !v)}
+                      className={`text-[12px] font-black px-3 py-1.5 rounded-full border transition-colors ${
+                        topByReviews
+                          ? 'text-[#a3abff] border-[#6b76ff]/40'
+                          : 'text-white/50 border-white/10 hover:text-white/80'
+                      }`}
+                      style={topByReviews ? { background: 'rgba(107,118,255,.12)' } : undefined}
+                    >
+                      Eniten arvosteluja
+                    </button>
+                    <label
+                      className="flex items-center gap-2 text-[12px] font-black px-3 py-1.5 rounded-full border"
+                      style={{
+                        borderColor: topMinRating !== null ? 'rgba(251,191,36,.35)' : 'rgba(255,255,255,.1)',
+                        background: topMinRating !== null ? 'rgba(251,191,36,.08)' : 'transparent',
+                      }}
+                    >
+                      <span className={topMinRating !== null ? 'text-[#fbbf24]' : 'text-white/50'}>
+                        ⭐ {topMinRating !== null ? `≥ ${topMinRating.toFixed(1).replace('.', ',')}` : 'kaikki'}
+                      </span>
+                      <input
+                        type="range"
+                        min={3.5}
+                        max={5}
+                        step={0.1}
+                        value={topMinRating ?? 3.5}
+                        aria-label="Tähtien alaraja"
+                        onChange={(e) => {
+                          const v = Number(e.target.value)
+                          setTopMinRating(v <= 3.5 ? null : Math.round(v * 10) / 10)
+                        }}
+                        className="w-28 accent-[#fbbf24]"
+                      />
+                    </label>
+                    {(topOpenNow || topByReviews || topMinRating !== null) && (
+                      <span className="text-[12px] font-bold text-white/35">
+                        {groupedSortedPool.length} {t('restaurants.places')}
+                      </span>
+                    )}
+                  </div>
+
+              {groupedSortedPool.length > 0 ? (
+                <>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
                     {groupedSortedPool
                       .slice(0, TOP_PICKS).map(item =>
@@ -1265,7 +1347,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                       Löydä lisää selaamalla kategorioita ↓
                     </p>
                   )}
-                </section>
+                </>
               ) : (
                 <div className="flex flex-col items-center py-16 text-center gap-3">
                   <span className="text-5xl">🍽</span>
@@ -1277,6 +1359,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </button>
                 </div>
               )}
+              </section>
 
 
               {/* Kategoriat vasta tässä: ne palvelevat kävijää joka tietää mitä
