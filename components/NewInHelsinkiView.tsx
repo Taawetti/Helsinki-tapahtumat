@@ -19,7 +19,11 @@ const KIND_META: Record<NewKind, { emoji: string; label: string; gradient: strin
   nayttely:  { emoji: '🖼', label: 'Näyttelyt',           gradient: 'linear-gradient(135deg,#2e1065 0%,#4c1d95 55%,#6d28d9 100%)', accent: '#a78bfa' },
 }
 
-const FILTERS: (NewKind | 'all')[] = ['all', 'ravintola', 'baari', 'kahvila', 'nayttely', 'tekeminen', 'kauppa']
+/** 'uutiset' on pseudokategoria: avautumisjutut joille ei (vielä) ole omaa
+ *  riviä rekistereissä — oma välilehti Kaupat-napin vieressä (omistajan
+ *  pyyntö; lista keskellä sivua rikkoi korttien visuaalisen ilmeen). */
+type FilterKind = NewKind | 'all' | 'uutiset'
+const FILTERS: FilterKind[] = ['all', 'ravintola', 'baari', 'kahvila', 'nayttely', 'tekeminen', 'kauppa', 'uutiset']
 
 const MONTHS_INESSIVE = [
   'tammikuussa', 'helmikuussa', 'maaliskuussa', 'huhtikuussa', 'toukokuussa', 'kesäkuussa',
@@ -389,10 +393,51 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
   )
 }
 
+// ── UUTISKORTTI — avautumisjuttu julistekorttina (ei kuvaa → tekstijuliste) ──
+
+const NEWS_GRADIENT = 'linear-gradient(155deg,#082f49 0%,#0c4a6e 55%,#0369a1 100%)'
+
+function NewsPosterCard({ item }: { item: { title: string; url: string; source: string; date: string } }) {
+  return (
+    <a href={item.url} target="_blank" rel="noopener"
+      className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 block">
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '3/4' }}>
+        <div className="absolute inset-0" style={{ background: NEWS_GRADIENT }} />
+        <div className="absolute select-none pointer-events-none leading-none"
+          style={{ fontSize: '7rem', top: '-8px', right: '-8px', opacity: 0.12, filter: 'drop-shadow(0 0 30px #38bdf8)' }}>
+          📰
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 flex flex-col justify-center px-4 py-5">
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-60" style={{ color: '#7dd3fc' }}>
+            {item.source || 'Uutinen'}
+          </div>
+          <h3 className="font-black text-white leading-tight text-lg"
+            style={{
+              textShadow: '0 2px 20px rgba(0,0,0,0.6), 0 0 60px #38bdf822',
+              letterSpacing: '-0.02em', wordBreak: 'break-word', overflowWrap: 'break-word',
+              display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+            {item.title}
+          </h3>
+        </div>
+        <div className="absolute top-2.5 left-2.5">
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm" style={{ color: '#7dd3fc' }}>
+            {relativeNews(item.date)}
+          </span>
+        </div>
+      </div>
+      <div className="px-3 pt-2.5 pb-3 space-y-0.5">
+        <p className="text-white/40 text-[11px] truncate">{item.source || 'uutinen'} · lue juttu ↗</p>
+      </div>
+    </a>
+  )
+}
+
 // ── NÄKYMÄ ──────────────────────────────────────────────────────────────────
 
 export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
-  const [kind, setKind] = useState<NewKind | 'all'>('all')
+  const [kind, setKind] = useState<FilterKind>('all')
   // Infopaneeli — kortit avaavat tämän kuten tapahtumakortit tapahtumapaneelin.
   const [selected, setSelected] = useState<NewItem | null>(null)
 
@@ -407,7 +452,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
   const upcoming = useMemo(
     () => (kind === 'all' ? data.upcoming : data.upcoming.filter((i) => i.kind === kind)),
     [data.upcoming, kind],
-  )
+  )  // 'uutiset' ei osu yhteenkään i.kindiin → tyhjä, kuten kuuluu
   const months = useMemo(
     () =>
       data.months
@@ -425,7 +470,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => {
           const active = kind === f
-          const label = f === 'all' ? '✨ Kaikki' : `${KIND_META[f].emoji} ${KIND_META[f].label}`
+          const label = f === 'all' ? '✨ Kaikki' : f === 'uutiset' ? '📰 Uutisissa' : `${KIND_META[f].emoji} ${KIND_META[f].label}`
           return (
             <button key={f} onClick={() => setKind(f)}
               className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
@@ -441,24 +486,21 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       {/* Hero — tuorein kuvallinen nosto */}
       {hero && <HeroCard item={hero} onOpen={setSelected} />}
 
-      {/* Uutiskaista: avautumisjutut joille ei (vielä) ole riviä rekistereissä */}
-      {kind === 'all' && data.newsRail.length > 0 && (
+      {/* 📰 Uutisissa — oma kategoria: avautumisjutut julistekortteina.
+          Kortti avaa artikkelin (muuta sisältöä jutulla ei ole). */}
+      {kind === 'uutiset' && (
         <section>
           <div className="flex items-baseline gap-2 mb-3">
             <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>📰 Uutisissa nyt</h2>
+            <span className="text-[12px] font-bold text-white/30">{data.newsRail.length}</span>
           </div>
-          <ul className="space-y-1.5">
-            {data.newsRail.map((n) => (
-              <li key={n.url}>
-                <a href={n.url} target="_blank" rel="noopener"
-                  className="block rounded-lg px-3 py-2 text-[13px] leading-snug text-white/75 hover:text-white transition-colors"
-                  style={{ background: 'rgba(56,189,248,.07)', border: '1px solid rgba(56,189,248,.12)' }}>
-                  {n.title}
-                  <span className="text-white/35"> · {n.source || 'uutinen'} · {relativeNews(n.date)} ↗</span>
-                </a>
-              </li>
-            ))}
-          </ul>
+          {data.newsRail.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
+              {data.newsRail.map((n) => <NewsPosterCard key={n.url} item={n} />)}
+            </div>
+          ) : (
+            <p className="text-white/40 text-sm py-8 text-center">Ei tuoreita avautumisjuttuja juuri nyt.</p>
+          )}
         </section>
       )}
 
@@ -488,7 +530,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
         </section>
       ))}
 
-      {months.length === 0 && upcoming.length === 0 && (
+      {kind !== 'uutiset' && months.length === 0 && upcoming.length === 0 && (
         <p className="text-white/40 text-sm py-8 text-center">Ei rivejä tällä suodattimella.</p>
       )}
 

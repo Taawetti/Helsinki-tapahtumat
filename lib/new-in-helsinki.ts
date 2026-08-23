@@ -334,7 +334,7 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
     const ageDays = (today.getTime() - Date.parse(n.pubDate)) / 86_400_000
     if (Number.isNaN(ageDays) || ageDays > 30) continue
     newsRail.push({ title: n.title, url: n.link, source: n.source, date: n.pubDate })
-    if (newsRail.length >= 8) break               // syöte on jo tuorein ensin
+    if (newsRail.length >= 12) break              // syöte on jo tuorein ensin
   }
 
   // ── RYHMITTELY ────────────────────────────────────────────────────────────
