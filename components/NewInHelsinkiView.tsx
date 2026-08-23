@@ -361,13 +361,19 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
                   <Globe size={15} /> Nettisivu <ExternalLink size={13} className="opacity-70" />
                 </a>
               )}
-              {!www && item.sources.find((s) => s.url) && (
-                <a href={item.sources.find((s) => s.url)!.url} target="_blank" rel="noopener"
-                  className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
-                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                  <Globe size={15} /> {item.sources.find((s) => s.url)!.label} <ExternalLink size={13} className="opacity-70" />
-                </a>
-              )}
+              {/* Lähde-CTA vain kun se vie SISÄLTÖÖN (museot.fi:n näyttelysivu).
+                  OSM-linkki EI ole käyttäjän nappi (omistaja: "reittiohjeet on
+                  jo") — se jää pieneksi lähdemerkinnäksi ylle. */}
+              {!www && (() => {
+                const src = item.sources.find((k) => k.url && k.label !== 'OpenStreetMap')
+                return src ? (
+                  <a href={src.url} target="_blank" rel="noopener"
+                    className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
+                    style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                    <Globe size={15} /> {src.label} <ExternalLink size={13} className="opacity-70" />
+                  </a>
+                ) : null
+              })()}
               {(mapsUrl || transitUrl) && (
                 <div className="grid grid-cols-2 gap-2">
                   {mapsUrl && (
