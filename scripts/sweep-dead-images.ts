@@ -85,6 +85,13 @@ async function collectUrls(): Promise<string[]> {
       for (const c of Object.values(f.cards ?? {})) if (c.image) urls.add(c.image)
     } catch { /* vioittunut tiedosto ei estä haravointia */ }
   }
+  const saunaPath = join(process.cwd(), 'data', 'sauna-cards.json')
+  if (existsSync(saunaPath)) {
+    try {
+      const f = JSON.parse(readFileSync(saunaPath, 'utf8')) as { cards?: Record<string, { image?: string | null }> }
+      for (const c of Object.values(f.cards ?? {})) if (c.image) urls.add(c.image)
+    } catch { /* vioittunut tiedosto ei estä haravointia */ }
+  }
   const actReasonsPath = join(process.cwd(), 'data', 'activity-reasons.json')
   if (existsSync(actReasonsPath)) {
     try {

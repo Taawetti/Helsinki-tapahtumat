@@ -111,6 +111,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/pubivisat`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },
     { url: `${BASE}/terassit`,  lastModified: now, changeFrequency: 'daily' as const,  priority: 0.80 },
     { url: `${BASE}/uutta-helsingissa`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.85 },
+    { url: `${BASE}/saunat`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },
     // Keikkapaikkojen ohjelmasivut — "tavastia ohjelma" -tyyppiset haut
     ...VENUE_PAGES.map((v) => ({
       url: `${BASE}/ohjelma/${v.slug}`,

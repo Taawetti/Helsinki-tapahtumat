@@ -26,6 +26,7 @@ export default function Footer() {
               <li><Link className="hover:text-white transition-colors" href="/tapahtumat/viikonloppu">Tapahtumat viikonloppuna</Link></li>
               <li><Link className="hover:text-white transition-colors" href="/tapahtumat/ilmaiset">Ilmaiset tapahtumat</Link></li>
               <li><Link className="hover:text-white transition-colors" href="/uutta-helsingissa">Uutta Helsingissä</Link></li>
+              <li><Link className="hover:text-white transition-colors" href="/saunat">Saunat</Link></li>
               <li><Link className="hover:text-white transition-colors" href="/terassit">Terassit</Link></li>
               <li><Link className="hover:text-white transition-colors" href="/yokerhot">Yökerhot</Link></li>
               <li><Link className="hover:text-white transition-colors" href="/pubivisat">Pubivisat</Link></li>
