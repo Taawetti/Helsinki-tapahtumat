@@ -48,6 +48,25 @@ const MONTHS_INESSIVE = [
   'heinäkuussa', 'elokuussa', 'syyskuussa', 'lokakuussa', 'marraskuussa', 'joulukuussa',
 ]
 
+/** Tuore lehtijuttu saunasta → 📰-rivi kortille. Uutisputken kaatuminen ei
+ *  kaada sivua. Moduulitason funktio, ei komponentin rungossa (react-hooks/
+ *  purity: Date.now ei kuulu renderiin). */
+async function attachSaunaNews(saunas: SaunaRow[]): Promise<void> {
+  try {
+    const news = await fetchRestaurantNews()
+    const matches = matchNewsToRestaurants(news, saunas.map((s) => ({ id: s.id, name: s.name })))
+    const byId = new Map(matches.map((m) => [m.restaurantId, m]))
+    const now = Date.now()
+    for (const s of saunas) {
+      const m = byId.get(s.id)
+      if (!m) continue
+      const ageDays = (now - Date.parse(m.pubDate)) / 86_400_000
+      if (Number.isNaN(ageDays) || ageDays > 30) continue
+      s.news = { title: m.headline, url: m.link, source: m.source }
+    }
+  } catch { /* ei uutisia tällä kertaa */ }
+}
+
 export default async function SaunatSivu() {
   const activities = await fetchActivitiesCached()
   const cards = (saunaCardData as { cards?: Record<string, SaunaCardEntry> }).cards ?? {}
@@ -89,20 +108,7 @@ export default async function SaunatSivu() {
     // ilman arvosteluja nousevat omaan osioonsa näkymässä.
     .sort((a, b) => credibilityScore(b.rating, b.reviews) - credibilityScore(a.rating, a.reviews))
 
-  // Tuore lehtijuttu saunasta → 📰-rivi kortille. Uutisputken kaatuminen ei
-  // kaada sivua.
-  try {
-    const news = await fetchRestaurantNews()
-    const matches = matchNewsToRestaurants(news, saunas.map((s) => ({ id: s.id, name: s.name })))
-    const byId = new Map(matches.map((m) => [m.restaurantId, m]))
-    for (const s of saunas) {
-      const m = byId.get(s.id)
-      if (!m) continue
-      const ageDays = (Date.now() - Date.parse(m.pubDate)) / 86_400_000
-      if (Number.isNaN(ageDays) || ageDays > 30) continue
-      s.news = { title: m.headline, url: m.link, source: m.source }
-    }
-  } catch { /* ei uutisia tällä kertaa */ }
+  await attachSaunaNews(saunas)
 
   const itemListLd = {
     '@context': 'https://schema.org',
