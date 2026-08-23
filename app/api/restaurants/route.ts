@@ -16,6 +16,7 @@ import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 import { supabase } from '@/lib/supabase'
 import { matchReasons, reasonsWeight } from '@/lib/restaurant-reasons'
 import { dedupeOsmVenues } from '@/lib/osm-dedupe'
+import { credibilityScore } from '@/lib/credibility'
 import type { ReasonFile } from '@/lib/restaurant-reasons'
 // Syyt haetaan viikoittain (scripts/fetch-restaurant-reasons.ts) ja committoidaan
 // tiedostoon, joten tässä ei ole verkkokutsua eikä välimuistia — se on mukana
@@ -861,14 +862,22 @@ export async function GET(req: NextRequest) {
     const wa = a.reasons ? reasonsWeight(a.reasons, reasonsToday) : 0
     const wb = b.reasons ? reasonsWeight(b.reasons, reasonsToday) : 0
     if (wa !== wb) return wb - wa
-    // 2. Sitten vanha järjestys: Michelin, kuratoitu nosto, datan täydellisyys.
+    // 2. Michelin ja kuratoitu nosto.
     const starsA = a.michelinStars ?? 0, starsB = b.michelinStars ?? 0
     if (starsA !== starsB) return starsB - starsA
     const featA = a.featured ? 1 : 0, featB = b.featured ? 1 : 0
     if (featA !== featB) return featB - featA
-    const score = (r: Restaurant) =>
+    // 3. Sitten USKOTTAVUUS — sama mitta kuin näkymässä (lib/credibility.ts),
+    //    jottei palvelin ja selain järjestä samaa listaa eri tavalla. Ennen
+    //    tässä oli datan täydellisyys (onko osoite, www, puhelin), joka ei
+    //    kerro paikasta mitään.
+    const ca = credibilityScore(a.googleRating, a.reviewCount)
+    const cb = credibilityScore(b.googleRating, b.reviewCount)
+    if (cb !== ca) return cb - ca
+    // 4. Tasapelissä se josta tiedetään enemmän.
+    const complete = (r: Restaurant) =>
       (r.address ? 2 : 0) + (r.www ? 1 : 0) + (r.phone ? 1 : 0) + (r.description ? 1 : 0)
-    return score(b) - score(a)
+    return complete(b) - complete(a)
   })
 
   // Build cuisine category distribution for the frontend

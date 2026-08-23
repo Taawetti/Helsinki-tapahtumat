@@ -305,12 +305,25 @@ export function reasonWeight(r: RestaurantReason, today: Date): number {
   return base
 }
 
-/** Paikan kokonaispaino = vahvin syy + pieni lisä muista. Ei summa: kolme
- *  heikkoa syytä ei saa ohittaa yhtä Michelin-tähteä. */
+/**
+ * Paikan kokonaispaino = vahvin syy + pieni lisä muista. Ei summa: kolme
+ * heikkoa syytä ei saa ohittaa yhtä Michelin-tähteä.
+ *
+ * LISÄ ON KATOLLA. Ilman kattoa neljä sivusyytä tuottaa 0,08 × (100 + 95 + 87
+ * + 50) = 26,3 pistettä, mikä on YLI KAHDEN Michelin-tason (12/taso). Silloin
+ * yhden tähden paikka, joka on myös 50 parasta -listan ykkönen ja Vuoden
+ * ravintola, nousisi kahden tähden paikan ohi — juuri se ohitus jonka
+ * `MICHELIN_TIER_BONUS` lisättiin estämään. Yhdelläkään todellisella
+ * ravintolalla ei tänään ole niin monta syytä, joten vika oli piilevä, mutta
+ * katto maksaa yhden rivin.
+ */
+const MAX_SIDE_BONUS = MICHELIN_TIER_BONUS - 1
+
 export function reasonsWeight(reasons: RestaurantReason[], today: Date): number {
   if (!reasons.length) return 0
   const ws = reasons.map((r) => reasonWeight(r, today)).sort((a, b) => b - a)
-  return ws[0] + ws.slice(1).reduce((s, w) => s + w * 0.08, 0)
+  const side = ws.slice(1).reduce((s, w) => s + w * 0.08, 0)
+  return ws[0] + Math.min(side, MAX_SIDE_BONUS)
 }
 
 /**
@@ -395,6 +408,35 @@ export function matchReasons(
 /** Perheet jotka lomitetaan kärkeen. Järjestys on vain tasapelin ratkaisija. */
 const MIXED_KINDS: ReasonKind[] = ['michelin', 'top50', 'uusi', 'vuoden-ravintola']
 
+// ── UUTUUS EI OLE SUOSITUS ──────────────────────────────────────────────────
+// Michelin, Suomen 50 parasta ja Vuoden ravintola ovat kaikki LAATUVÄITTEITÄ:
+// joku alan ihminen on arvioinut paikan hyväksi. "Avattu heinäkuussa" ei ole —
+// se kertoo vain että paikka on uusi. Siksi uutuus yksin ei riitä kuratoituun
+// kärkeen, jos paikasta jo tiedetään ettei se ole hyvä.
+//
+// Mitattu 2492 helsinkiläisestä paikasta joilla on vähintään 15 arvostelua:
+// mediaaniarvosana on 4,2 ja 60. persentiili 4,3. Raja on siis "vähintään
+// kaupungin mediaanin yläpuolella". Se pudottaa 45 avauksesta neljä:
+//     Roberts Coffee        3,6 (113)   ketjukahvila
+//     Bistro Pasila         4,0 ( 28)
+//     1664 / Market Hall    4,1 ( 17)
+//     Tian Tian Dumplings   4,1 ( 19)   ← tämä oli sivulla kolmantena
+// Ne eivät katoa sivulta, vaan siirtyvät muiden joukkoon oman
+// uskottavuutensa mukaiselle paikalle — merkki "Avattu heinäkuussa" säilyy.
+const MIN_NEW_RATING = 4.3
+/** Alle tämän arvostelumäärän arvosanaa ei pidetä todisteena kumpaankaan
+ *  suuntaan: vasta avattu paikka ei ehdi kerätä arvosteluja, eikä sitä saa
+ *  hylätä siksi. */
+const MIN_REVIEWS_TO_JUDGE = 15
+
+/** Kelpaako uusi avaus kuratoituun kärkeen? */
+function newOpeningIsGoodEnough(rating: number | undefined, reviews: number | undefined): boolean {
+  const n = reviews ?? 0
+  const r = rating ?? 0
+  if (n < MIN_REVIEWS_TO_JUDGE || r <= 0) return true   // ei vielä näyttöä
+  return r >= MIN_NEW_RATING
+}
+
 /**
  * Lomittaa perustellut paikat niin, ettei mikään perhe kasaannu. Palauttaa
  * uuden taulukon; syötettä ei muuteta. Paikat joilla ei ole syytä palautuvat
@@ -405,24 +447,33 @@ export function interleaveReasoned<T>(
   reasonsOf: (t: T) => RestaurantReason[] | undefined,
   today: Date,
   /**
-   * Uskottavuuspiste (0–5). Ratkaisee järjestyksen PERHEEN SISÄLLÄ, jottei
-   * tuorein avaus ole automaattisesti ensimmäinen riippumatta siitä millainen
-   * paikka se on. Ilman tätä kärkeen nousi Ravintola Lasoon — aito uusi
-   * lounasravintola, mutta 37 arvostelua ja teollisuusalue, eli heikko
-   * ensimmäinen kortti. Paino on pieni suhteessa syyhyn (0–5 vs 50–150), joten
-   * se ei koskaan siirrä paikkaa perheestä toiseen.
+   * Uskottavuuspiste 0–1 (`lib/credibility.ts`). Ratkaisee järjestyksen
+   * PERHEEN SISÄLLÄ. Rooli vaihtelee perheittäin, ks. `cmp` alempana:
+   * `uusi`-perheessä tämä on PÄÄASIALLINEN järjestys, muissa vain erotin
+   * silloin kun luokka, sijaluku tai vuosi menevät tasan.
+   *
+   * Ei koskaan siirrä paikkaa perheestä toiseen — perhe määräytyy syystä.
    */
   credibility?: (t: T) => number,
+  /** Arvosana ja arvostelumäärä uutuuden laatuporttia varten. Ilman tätä
+   *  porttia ei sovelleta, ja kaikki uudet avaukset pääsevät kärkeen. */
+  ratingOf?: (t: T) => { rating?: number; reviews?: number },
 ): T[] {
-  const groups = new Map<ReasonKind, { item: T; w: number }[]>()
-  const tail: { item: T; w: number }[] = []      // Time Out
-  const none: T[] = []                            // ei syytä
+  const groups = new Map<ReasonKind, { item: T; w: number; c: number; p: RestaurantReason }[]>()
+  const tail: { item: T; w: number; c: number; p: RestaurantReason }[] = []   // Time Out
+  const none: T[] = []                                                        // ei syytä
 
   for (const item of items) {
     const rs = reasonsOf(item)
     const p = primaryReason(rs, today)
     if (!p) { none.push(item); continue }
-    const entry = { item, w: reasonsWeight(rs!, today) + (credibility?.(item) ?? 0) }
+    const entry = { item, w: reasonsWeight(rs!, today), c: credibility?.(item) ?? 0, p }
+    // Uutuus ei ole laatuväite: heikoksi tiedetty uusi paikka ei ansaitse
+    // kuratoitua paikkaa, vaan menee muiden joukkoon uskottavuutensa mukaan.
+    if (p.kind === 'uusi' && ratingOf) {
+      const { rating, reviews } = ratingOf(item)
+      if (!newOpeningIsGoodEnough(rating, reviews)) { none.push(item); continue }
+    }
     if (MIXED_KINDS.includes(p.kind)) {
       const g = groups.get(p.kind)
       if (g) g.push(entry)
@@ -432,8 +483,46 @@ export function interleaveReasoned<T>(
     }
   }
 
-  for (const g of groups.values()) g.sort((a, b) => b.w - a.w)
-  tail.sort((a, b) => b.w - a.w)
+  // ── PERHEEN SISÄINEN JÄRJESTYS ──────────────────────────────────────────
+  // Kullakin perheellä on oma luonnollinen paremmuutensa, eikä yksi yhteinen
+  // luku palvele niitä kaikkia:
+  //
+  //   michelin          tähtiluokka on koko pointti — 2★ ennen Selectediä
+  //   top50             sijaluku on koko pointti — sija 4 ennen sijaa 40
+  //   vuoden-ravintola  tuorein voitto ensin
+  //   uusi              USKOTTAVUUS ENSIN, tuoreus vasta tasapelin ratkaisijana
+  //
+  // Viimeinen on käyttäjän nimenomainen korjauspyyntö. Aiemmin uusien kesken
+  // järjesti pelkkä avauspäivä, jolloin kärkeen nousi Tian Tian Dumplings
+  // 4,1 (19 arvostelua) vain siksi että se oli avattu päivää myöhemmin kuin
+  // Gao Kitchen & Bar 5,0 (80). Uudet paikat ovat yhä omana perheenään — se
+  // että ne ovat uusia näkyy merkistä — mutta niiden keskinäinen järjestys
+  // seuraa nyt sitä, mitä niistä oikeasti tiedetään.
+  //
+  // Kaikissa perheissä uskottavuus on viimeinen erotin, jottei järjestys jää
+  // sattuman varaan tasatilanteessa.
+  // USKOTTAVUUS KAISTOITTAIN. Uskottavuus on liukuluku, joten `a.c !== b.c` on
+  // käytännössä AINA tosi — mitattu: 45 uudesta avauksesta 41:llä on eri arvo.
+  // Suoralla vertailulla tuoreus ei siis koskaan pääsisi ratkaisemaan mitään,
+  // ja koko "tasapelissä tuorein ensin" -sääntö olisi kuollutta koodia.
+  // Pyöristys 0,05:n kaistoihin tekee siitä aidon: saman kaistan sisällä
+  // (esim. 4,9/80 ja 5,0/60) tuorein voittaa, eri kaistojen välillä
+  // uskottavuus voittaa.
+  const band = (c: number) => Math.round(c * 20)
+
+  const cmp = (kind: ReasonKind) =>
+    (a: typeof tail[number], b: typeof tail[number]): number => {
+      if (kind === 'uusi') {
+        const ba = band(a.c), bb = band(b.c)
+        if (ba !== bb) return bb - ba
+        return b.w - a.w                    // saman kaistan sisällä tuorein
+      }
+      if (b.w !== a.w) return b.w - a.w     // luokka, sijaluku tai vuosi
+      return b.c - a.c
+    }
+
+  for (const [kind, g] of groups) g.sort(cmp(kind))
+  tail.sort(cmp('timeout'))
 
   // d'Hondt: suurin `jäljellä olevan perheen koko / (jo otetut + 1)` voittaa.
   // Tasapelissä ratkaisee MIXED_KINDS-järjestys, jotta tulos on aina sama.

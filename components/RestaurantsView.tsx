@@ -7,6 +7,7 @@ import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { pickAttributes, FILTER_FLAGS } from '@/lib/google-attributes'
+import { credibilityScore } from '@/lib/credibility'
 import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaurant-reasons'
 import type { ReasonKind, RestaurantReason } from '@/lib/restaurant-reasons'
 
@@ -836,56 +837,38 @@ function RestSubTabs({ restType, active, onSelect }: {
   )
 }
 
-// ── Painotettu laatupisteytys listojen OLETUSJÄRJESTYKSELLE ──────────────────
-// Bayes-kutistus (IMDB-tyyli): harvoilla arvosteluilla arvosana vedetään kohti
-// globaalia keskiarvoa, jottei "5,0 (7 arvostelua)" ohita "4,6 (2000)".
-// Michelin/Bib nostaa; arvostelematon painuu listan loppuun (kuva ratkaisee
-// tasapelin erikseen). Vain lajitteluun — ei piilota mitään.
-// ── USKOTTAVUUSKAAVA ────────────────────────────────────────────────────────
-// "Jos on 3000 arvostelua ja 4,7 arvosana, se on paljon parempi kuin 3
-// arvostelua ja 4,9. Tämä tuo uskottavuuden." — ja juuri niin kaava toimii:
-// arvosanaa vedetään kohti kaupungin keskiarvoa sitä voimakkaammin, mitä
-// vähemmän arvosteluja paikalla on.
+// ── USKOTTAVUUS: LISTOJEN OLETUSJÄRJESTYS ───────────────────────────────────
+// "Jos joku on saanut 2000 arvostelua ja 4,6 arvosanan, se on parempi kuin
+// paikka jolla on 14 arvostelua ja 4,7." Juuri niin `credibilityScore` toimii:
+// se on Wilsonin luottamusvälin alaraja, eli varovainen arvio siitä kuinka
+// hyvä paikka on VÄHINTÄÄN kun otoskoko otetaan huomioon.
 //
-//     pisteet = (arvostelut × arvosana + M × C) / (arvostelut + M)
+//     2000 × 4,6  →  0,889        14 × 4,7  →  0,695
+//     1978 × 4,9  →  0,967        19 × 4,1  →  0,589
 //
-// MOLEMMAT LUVUT ON MITATTU, ei arvattu. 2682 arvioidusta helsinkiläisestä
-// ravintolasta (yhteensä 1 150 448 arvostelua):
-//     keskiarvo               4,207   → C
-//     arvostelumäärän mediaani  212
-//     70. persentiili           409   → M pyöristettynä 400
+// Ks. lib/credibility.ts, jossa on perustelu sille miksi tämä korvasi
+// aiemman Bayes-kutistuksen.
 //
-// M = 400 tarkoittaa: paikan on kerättävä keskivertoa enemmän arvosteluja
-// ennen kuin sen arvosana otetaan lähes sellaisenaan. Mitattu vaikutus juuri
-// siihen rajatapaukseen, joka ratkaisee kaavan luonteen:
-//
-//     200 arvostelua × 4,9  vs  2000 arvostelua × 4,6
-//     M =  50   4,761  vs  4,590   → harva voittaa   (vanha kaava, väärin)
-//     M = 212   4,543  vs  4,562   → massa voittaa niukasti
-//     M = 400   4,438  vs  4,535   → massa voittaa selvästi
-//     M = 800   4,346  vs  4,488   → mutta tällöin 4,6 (4185) nousee kärkeen
-//                                     pelkällä volyymilla, mikä on jo liikaa
-//
-// Vanha M = 50 nosti kärkeen paikkoja kuten Color Stone 5,0 (209 arvostelua)
-// ohi paikan 99 TopMeal 4,9 (1978). Uudella kaavalla järjestys on päinvastoin.
-const RATING_PRIOR_M = 400  // "näennäisarvostelujen" paino — 70. persentiili
-const RATING_PRIOR_C = 4.207 // mitattu keskiarvo, johon harvat vedetään
+// Palkintopiste pidetään mukana pienenä lisänä niitä paikkoja varten, joilta
+// puuttuu Google-arvio kokonaan (esim. Savoy) — muuten ne putoaisivat nollaan.
+const AWARD_FALLBACK = 0.55
+
 // Kärkipoimintojen määrä oletusnäkymässä — loput löytyvät kategoria-selauksesta
 const TOP_PICKS = 60
-// Kuvan paino laatupisteessä — nostaa kuvalliset läheltä-tasapelissä, mutta ei
-// ohita selvää arvosanaeroa (Bayes-pisteiden hajonta kärjessä on kapea ~4.2–4.9).
-const IMG_WEIGHT = 0.25
+// Kuvan paino — nostaa kuvalliset tasapelissä, mutta ei ohita selvää
+// uskottavuuseroa. Wilson-asteikko on 0–1, joten paino on 0,05 eikä 0,25
+// kuten vanhalla 4–5 asteikolla.
+const IMG_WEIGHT = 0.05
 
 // Uskottavuuspiste yksin — EI sisällä syytä. Syylliset paikat järjestetään
 // erikseen `interleaveReasoned`illa, jotta perheet lomittuvat eivätkä kasaudu
-// lohkoiksi; tämä kaava ratkaisee kaikkien MUIDEN järjestyksen.
+// lohkoiksi; tämä kaava ratkaisee kaikkien MUIDEN järjestyksen ja toimii
+// erottimena perheiden sisällä.
 function restaurantQualityScore(r: Restaurant): number {
-  const award = r.michelinStars ? 0.6 : (r.bibGourmand || r.michelinRecommended) ? 0.35 : 0
-  if (r.googleRating !== undefined && r.googleRating !== null) {
-    const v = r.reviewCount ?? 0
-    return (v * r.googleRating + RATING_PRIOR_M * RATING_PRIOR_C) / (v + RATING_PRIOR_M) + award
-  }
-  return award > 0 ? RATING_PRIOR_C + award : 0
+  const c = credibilityScore(r.googleRating, r.reviewCount)
+  if (c > 0) return c
+  // Ei yhtään arvostelua: palkinto on ainoa tieto jonka varassa järjestää.
+  return r.michelinStars || r.bibGourmand || r.michelinRecommended ? AWARD_FALLBACK : 0
 }
 
 // ── "⭐ 4+ / 4.5+" — arvosana ≥ kynnys; Michelin/Bib-tunnustus korvaa
@@ -1165,6 +1148,11 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
         const sa = restaurantQualityScore(a) + (a.image ? IMG_WEIGHT : 0)
         const sb = restaurantQualityScore(b) + (b.image ? IMG_WEIGHT : 0)
         if (sb !== sa) return sb - sa
+        // Arvostelumäärä ratkaisee vain kun uskottavuus on sama JA nollaa
+        // suurempi. Nollakauhassa ovat sekä arvostelemattomat että tasan 1,0:n
+        // arvosanan saaneet, eikä huonoin paikka saa nousta arvostelumäärällä
+        // kaikkien tuntemattomien ohi.
+        if (sa === 0) return 0
         return (b.reviewCount ?? 0) - (a.reviewCount ?? 0)
       })
     }
@@ -1181,7 +1169,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     const withoutHero = subCat === 'all' && heroRest
       ? filtered.filter(r => r.id !== heroRest.id)
       : filtered
-    return interleaveReasoned(withoutHero, (r) => r.reasons, sortToday, restaurantQualityScore)
+    return interleaveReasoned(
+      withoutHero, (r) => r.reasons, sortToday, restaurantQualityScore,
+      (r) => ({ rating: r.googleRating, reviews: r.reviewCount }),
+    )
   }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat, sortToday, heroRest])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])

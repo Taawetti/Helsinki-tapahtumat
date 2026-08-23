@@ -46,6 +46,7 @@ import {
 import reasonFile from '../data/restaurant-reasons.json'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
+import { credibilityScore } from '../lib/credibility'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
@@ -1892,22 +1893,120 @@ for (const c of ideaChecks) {
     rChecks.push({ name: 'tyhjä syöte ei kaadu', ok: interleaveReasoned([], () => undefined, today).length === 0 })
   }
 
-  // 11. USKOTTAVUUSKAAVA — käyttäjän oma sääntö: massa voittaa harvat.
+  // 11. USKOTTAVUUS — Wilsonin alaraja. Käyttäjän sääntö: arvostelujen määrä
+  //     suhteessa arvosanaan ratkaisee, ei pelkkä arvosana.
   {
-    const M = 400, C = 4.207
-    const bayes = (v: number, r: number) => (v * r + M * C) / (v + M)
-    // "3000 arvostelua 4,7 on paljon parempi kuin 3 arvostelua 4,9"
-    rChecks.push({ name: '3000×4,7 voittaa 3×4,9', ok: bayes(3000, 4.7) > bayes(3, 4.9) })
-    // Vaikea välitapaus, jonka vanha kaava (M=50) ratkaisi väärin päin.
-    rChecks.push({ name: '2000×4,6 voittaa 200×4,9', ok: bayes(2000, 4.6) > bayes(200, 4.9), got: `${bayes(2000, 4.6).toFixed(3)} vs ${bayes(200, 4.9).toFixed(3)}` })
-    // Yhtä monella arvostelulla parempi arvosana voittaa aina.
-    rChecks.push({ name: 'samalla määrällä parempi arvosana voittaa', ok: bayes(500, 4.8) > bayes(500, 4.5) })
-    // Samalla arvosanalla enemmän arvosteluja voittaa aina.
-    rChecks.push({ name: 'samalla arvosanalla enemmän arvosteluja voittaa', ok: bayes(2000, 4.6) > bayes(100, 4.6) })
-    // Arvosteluton paikka painuu keskiarvoon, ei kärkeen.
-    rChecks.push({ name: 'arvosteluton painuu keskiarvoon', ok: Math.abs(bayes(0, 5.0) - C) < 1e-9 })
-    // Volyymi ei saa yksin riittää: 4,6 (4185) ei ohita 4,9 (1978).
-    rChecks.push({ name: 'pelkkä volyymi ei riitä', ok: bayes(1978, 4.9) > bayes(4185, 4.6), got: `${bayes(1978, 4.9).toFixed(3)} vs ${bayes(4185, 4.6).toFixed(3)}` })
+    const w = credibilityScore
+    const pair = (name: string, a: [number, number], b: [number, number]) =>
+      rChecks.push({
+        name,
+        ok: w(a[1], a[0]) > w(b[1], b[0]),
+        got: `${w(a[1], a[0]).toFixed(3)} vs ${w(b[1], b[0]).toFixed(3)}`,
+      })
+    // Käyttäjän omat esimerkit, sanatarkasti.
+    pair('2000×4,6 voittaa 14×4,7', [2000, 4.6], [14, 4.7])
+    pair('3000×4,7 voittaa 3×4,9', [3000, 4.7], [3, 4.9])
+    // Sivulta mitattu vika: 4,1 (19) oli kärjessä.
+    pair('2000×4,6 voittaa 19×4,1', [2000, 4.6], [19, 4.1])
+    pair('358×4,7 voittaa 19×4,1', [358, 4.7], [19, 4.1])
+    // Ohut 5,0 ei saa ohittaa paksusti arvosteltua. Wilsonin oma ansa on että
+    // p(1−p) → 0 kun p = 1; hajonta luetaan siksi mittaustaulukosta.
+    pair('1978×4,9 voittaa 80×5,0', [1978, 4.9], [80, 5.0])
+    pair('2000×4,6 voittaa 30×5,0', [2000, 4.6], [30, 5.0])
+    pair('135×5,0 voittaa 3×5,0', [135, 5.0], [3, 5.0])
+    // MUTTA vahvasti todistettu 5,0 SAA voittaa 4,9:n — se ei ole virhe vaan
+    // oikea vastaus, ja kaavan on kestettävä se ilman että sääntö rikkoutuu.
+    pair('610×5,0 voittaa 1978×4,9', [610, 5.0], [1978, 4.9])
+    // Volyymi ei silti saa yksin riittää.
+    pair('1978×4,9 voittaa 4185×4,6', [1978, 4.9], [4185, 4.6])
+    // Monotonisuus molempiin suuntiin.
+    pair('samalla määrällä parempi arvosana voittaa', [500, 4.8], [500, 4.5])
+    pair('samalla arvosanalla enemmän arvosteluja voittaa', [2000, 4.6], [100, 4.6])
+    // Reunatapaukset eivät saa kaataa eivätkä tuottaa roskaa.
+    const edge: [string, number, number][] = [
+      ['arvosteluton = 0', 0, 5.0], ['arvosanaton = 0', 500, 0],
+      ['negatiivinen määrä = 0', -5, 4.5], ['NaN-arvosana = 0', 100, NaN],
+    ]
+    for (const [name, n, r] of edge) {
+      rChecks.push({ name, ok: w(r, n) === 0, got: String(w(r, n)) })
+    }
+    rChecks.push({ name: 'null-syöte ei kaadu', ok: w(null, null) === 0 })
+    rChecks.push({ name: 'tulos aina 0–1', ok: [1, 5, 50, 5000].every((n) => [1, 3, 4.5, 5].every((r) => { const v = w(r, n); return v >= 0 && v <= 1 })) })
+    // Yli-arvosana (roskadata) ei saa tuottaa yli ykköstä.
+    rChecks.push({ name: 'roskadata 5,4 rajautuu', ok: w(5.4, 100) <= 1 })
+    // MONOTONISUUS. Mittaustaulukko interpoloidaan, joten kaavassa on
+    // taitekohtia — niistä ei saa syntyä laskevaa kohtaa kumpaankaan suuntaan.
+    let monoBad = 0
+    for (const n of [1, 3, 10, 37, 80, 135, 610, 1978, 5000, 14187]) {
+      let prev = -1
+      for (let r = 1; r <= 5.0001; r += 0.01) {
+        const v = w(Math.round(r * 100) / 100, n)
+        if (v < prev - 1e-12) monoBad++
+        prev = v
+      }
+    }
+    for (let r = 1; r <= 5.0001; r += 0.1) {
+      let prev = -1
+      for (const n of [1, 2, 5, 15, 40, 100, 300, 900, 2500, 9000]) {
+        const v = w(Math.round(r * 10) / 10, n)
+        if (v < prev - 1e-12) monoBad++
+        prev = v
+      }
+    }
+    rChecks.push({ name: 'kasvava arvosanan ja määrän suhteen (1230 paria)', ok: monoBad === 0, got: String(monoBad) })
+  }
+
+  // 12. KORJATUT VIAT — jokainen näistä oli vastakkaistarkistuksen löytämä.
+  {
+    const mk = (kind: ReasonKind, extra: Partial<RestaurantReason> = {}): RestaurantReason =>
+      ({ kind, label: 'x', source: 's', ...extra })
+    // Uusien kesken tuoreus oli KUOLLUTTA KOODIA: uskottavuus on liukuluku,
+    // joten `a.c !== b.c` oli aina tosi eikä tuoreusvertailu ajautunut koskaan.
+    // Kaistoitus 0,05:een tekee siitä aidon.
+    type Row = { n: string; reasons: RestaurantReason[]; c: number }
+    const rows: Row[] = [
+      { n: 'sama-kaista-vanha', reasons: [mk('uusi', { date: '2026-05-01' })], c: 0.902 },
+      { n: 'sama-kaista-uusi', reasons: [mk('uusi', { date: '2026-08-01' })], c: 0.898 },
+      { n: 'parempi-kaista', reasons: [mk('uusi', { date: '2026-01-01' })], c: 0.951 },
+    ]
+    const mixedRows = interleaveReasoned(rows, (r) => r.reasons, today, (r) => r.c)
+    rChecks.push({ name: 'parempi kaista voittaa tuoreuden', ok: mixedRows[0]?.n === 'parempi-kaista', got: String(mixedRows[0]?.n) })
+    rChecks.push({ name: 'saman kaistan sisällä tuorein voittaa', ok: mixedRows[1]?.n === 'sama-kaista-uusi', got: String(mixedRows[1]?.n) })
+
+    // Sivusyiden lisä ei saa ylittää yhtä Michelin-tasoa: 1★ + neljä sivusyytä
+    // ei saa nousta 2★:n ohi.
+    const oneStarLoaded = [
+      mk('michelin', { tier: 3 }), mk('top50', { rank: 1 }),
+      mk('vuoden-ravintola', { date: '2026-01-01' }), mk('uusi', { date: '2026-08-20' }), mk('timeout'),
+    ]
+    rChecks.push({
+      name: '1★ + neljä sivusyytä ei ohita 2★:ää',
+      ok: reasonsWeight([mk('michelin', { tier: 4 })], today) > reasonsWeight(oneStarLoaded, today),
+      got: `${reasonsWeight([mk('michelin', { tier: 4 })], today).toFixed(1)} vs ${reasonsWeight(oneStarLoaded, today).toFixed(1)}`,
+    })
+
+    // Uutuus ei ole laatuväite: heikoksi TIEDETTY uusi paikka ei saa
+    // kuratoitua paikkaa. Mitattu vika: Tian Tian 4,1 (19) oli sivulla 3.
+    type GRow = { n: string; reasons: RestaurantReason[]; rating?: number; reviews?: number }
+    const gated: GRow[] = [
+      { n: 'hyva', reasons: [mk('uusi', { date: '2026-07-01' })], rating: 4.9, reviews: 80 },
+      { n: 'huono', reasons: [mk('uusi', { date: '2026-08-01' })], rating: 4.1, reviews: 19 },
+      { n: 'liian-tuore-arvioitavaksi', reasons: [mk('uusi', { date: '2026-08-20' })], rating: 4.1, reviews: 3 },
+      { n: 'syyton', reasons: [], rating: 4.9, reviews: 900 },
+    ]
+    const g = interleaveReasoned(gated, (r) => (r.reasons.length ? r.reasons : undefined), today,
+      () => 0.9, (r) => ({ rating: r.rating, reviews: r.reviews }))
+    const pos = (n: string) => g.findIndex((x) => x.n === n)
+    // Molemmilla on sama uskottavuus (0,9) eli sama kaista, joten tuorein
+    // voittaa — 'liian-tuore' on 20.8. ja 'hyva' 1.7. Kumpikin läpäisee portin.
+    rChecks.push({ name: 'hyvä uusi pääsee kärkeen', ok: pos('hyva') <= 1, got: String(pos('hyva')) })
+    rChecks.push({ name: 'liian tuore arvioitavaksi säilyy kärjessä', ok: pos('liian-tuore-arvioitavaksi') <= 1, got: String(pos('liian-tuore-arvioitavaksi')) })
+    rChecks.push({ name: 'saman kaistan tuorein ensin', ok: pos('liian-tuore-arvioitavaksi') < pos('hyva') })
+    rChecks.push({ name: 'heikoksi tiedetty uusi putoaa kärjestä', ok: pos('huono') > pos('hyva') && pos('huono') > pos('liian-tuore-arvioitavaksi'), got: String(pos('huono')) })
+    rChecks.push({ name: 'portti ei kadota paikkaa', ok: g.length === gated.length })
+    // Ilman `ratingOf`-parametria porttia ei sovelleta lainkaan.
+    const noGate = interleaveReasoned(gated, (r) => (r.reasons.length ? r.reasons : undefined), today, () => 0.9)
+    rChecks.push({ name: 'ilman arvosanatietoa portti ei aktivoidu', ok: noGate.findIndex((x) => x.n === 'huono') < 3 })
   }
 
   for (const c of rChecks) {
