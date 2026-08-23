@@ -97,9 +97,17 @@ function openingKey(name: string, street: string): string {
 const FOOD_CATEGORY =
   /ravintola|kahvila|baari|\bbaari\b|pubi|kuppila|bistro|konditoria|leipomo|kahvipaahtimo|jäätelö|sushi|caf[eé]\b|\bbar\b|restaurant|panimo|brewery|yökerho|ruokala|noutoravintola|olutravintola|viinibaari|kokteilibaari|tapasbaari/i
 
-/** Pikaruoka jätetään pois myös kategorian perusteella, ei vain nimen.
- *  Omistaja: "en halua sinne pizzakebab paikkoja, ne ovat jopa turhia täällä". */
-const FAST_FOOD_CATEGORY = /pizzeri|pizza|hampurilais|burger|kebab|pikaruoka|grillikioski/i
+/**
+ * Pikaruoka jätetään pois myös kategorian perusteella, ei vain nimen.
+ *
+ * PIZZA EI OLE TÄSSÄ. Omistaja tarkensi: "artesaani/napolipizza paikat myös
+ * [saavat tulla]. tarkoitin kebabpizzerioita jotka eivät ole varsinaisia
+ * ravintoloita." Mitattu ero: klassisella kebabpizzerialla on OSM:ssä sekä
+ * pizza että kebab (88 paikkaa), artesaaneilla pelkkä pizza. Googlen
+ * kategoriassa sama näkyy sanana "kebab" tai "döner" — Bröner Kallio oli
+ * "Dönerkebabravintola" ja pudotettiin oikein.
+ */
+const FAST_FOOD_CATEGORY = /hampurilais|burger|kebab|döner|doner|shawarma|pikaruoka|grillikioski/i
 
 /** Epäonnistunut haku yritetään uudelleen kuukauden päästä — paikka voi
  *  ilmestyä Googleen vasta avaamisen jälkeen. */

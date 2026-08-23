@@ -2009,6 +2009,43 @@ for (const c of ideaChecks) {
     rChecks.push({ name: 'ilman arvosanatietoa portti ei aktivoidu', ok: noGate.findIndex((x) => x.n === 'huono') < 3 })
   }
 
+  // 13. VIIDES JUONNE — huippuarvioidut. Neljä ulkoista syytä ohittivat aina
+  //     pelkän arvostelun, joten Helsingin arvostetuimmat (99 TopMeal 4,9 /
+  //     1978) jäivät kärjen ulkopuolelle. Nyt ne ovat oma perheensä.
+  {
+    const mk2 = (kind: ReasonKind, extra: Partial<RestaurantReason> = {}): RestaurantReason =>
+      ({ kind, label: 'x', source: 's', ...extra })
+    type Row5 = { n: string; reasons: RestaurantReason[]; c: number }
+    const rows: Row5[] = [
+      ...Array.from({ length: 25 }, (_, i) => ({ n: `M${i}`, reasons: [mk2('michelin', { tier: 4 })], c: 0.9 - i * 0.001 })),
+      ...Array.from({ length: 30 }, (_, i) => ({ n: `U${i}`, reasons: [mk2('uusi', { date: '2026-07-01' })], c: 0.9 - i * 0.001 })),
+      ...Array.from({ length: 28 }, (_, i) => ({ n: `H${i}`, reasons: [mk2('huippuarvio')], c: 0.97 - i * 0.001 })),
+      ...Array.from({ length: 6 }, (_, i) => ({ n: `T${i}`, reasons: [mk2('top50', { rank: i + 1 })], c: 0.9 })),
+    ]
+    const mixed5 = interleaveReasoned(rows, (r) => r.reasons, today, (r) => r.c)
+    const kinds = mixed5.slice(0, 40).map((r) => r.reasons[0].kind)
+    rChecks.push({ name: 'huippuarvio on mukana sekoituksessa', ok: kinds.includes('huippuarvio') })
+    let run5 = 1, worst5 = 1
+    for (let i = 1; i < kinds.length; i++) { run5 = kinds[i] === kinds[i - 1] ? run5 + 1 : 1; worst5 = Math.max(worst5, run5) }
+    rChecks.push({ name: 'viidellä perheellä sama enintään 2 kertaa peräkkäin', ok: worst5 <= 2, got: String(worst5) })
+    rChecks.push({ name: 'kaikki viisi perhettä kärki-40:ssä', ok: new Set(kinds).size === 4 || new Set(kinds).size === 5, got: [...new Set(kinds)].join(',') })
+    rChecks.push({ name: 'huippuarvio järjestyy uskottavuudella', ok: (() => {
+      const hs = mixed5.filter((r) => r.reasons[0].kind === 'huippuarvio').map((r) => r.n)
+      return hs.indexOf('H0') < hs.indexOf('H27')
+    })() })
+    rChecks.push({ name: 'sekoitus ei kadota mitään viidelläkään perheellä', ok: mixed5.length === rows.length })
+    // Michelin painaa yhä enemmän kuin huippuarvio: ulkopuolinen arvio voittaa
+    // arvostelukeskiarvon, kun molemmat ovat samalla kortilla.
+    rChecks.push({
+      name: 'Michelin painaa huippuarviota enemmän',
+      ok: reasonWeight(mk2('michelin', { tier: 1 }), today) > reasonWeight(mk2('huippuarvio'), today),
+    })
+    rChecks.push({
+      name: 'huippuarvio painaa Time Outia enemmän',
+      ok: reasonWeight(mk2('huippuarvio'), today) > reasonWeight(mk2('timeout'), today),
+    })
+  }
+
   for (const c of rChecks) {
     if (c.ok) pass++
     else failures.push(`✗ ravintolasyyt: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)

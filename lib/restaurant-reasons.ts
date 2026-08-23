@@ -23,6 +23,7 @@ export type ReasonKind =
   | 'vuoden-ravintola' // Vuoden ravintola (Suomen Gastronomien Seura)
   | 'timeout'          // Time Out Helsinki -listanosto
   | 'uusi'             // juuri avattu tai avaamassa (anniskelulupa)
+  | 'huippuarvio'      // kaupungin arvostetuimpia — todisteena arvostelut itse
 
 export interface RestaurantReason {
   kind: ReasonKind
@@ -255,8 +256,9 @@ const REASON_WEIGHT: Record<ReasonKind, number> = {
   michelin: 100,
   'vuoden-ravintola': 95,
   top50: 80,
-  timeout: 50,
+  huippuarvio: 70,
   uusi: 60,
+  timeout: 50,
 }
 
 /**
@@ -406,7 +408,7 @@ export function matchReasons(
 // `restaurantQualityScore` komponentissa.
 
 /** Perheet jotka lomitetaan kärkeen. Järjestys on vain tasapelin ratkaisija. */
-const MIXED_KINDS: ReasonKind[] = ['michelin', 'top50', 'uusi', 'vuoden-ravintola']
+const MIXED_KINDS: ReasonKind[] = ['michelin', 'top50', 'uusi', 'vuoden-ravintola', 'huippuarvio']
 
 // ── UUTUUS EI OLE SUOSITUS ──────────────────────────────────────────────────
 // Michelin, Suomen 50 parasta ja Vuoden ravintola ovat kaikki LAATUVÄITTEITÄ:
@@ -517,6 +519,8 @@ export function interleaveReasoned<T>(
         if (ba !== bb) return bb - ba
         return b.w - a.w                    // saman kaistan sisällä tuorein
       }
+      // Huippuarvio ON uskottavuusväite, joten se järjestyy suoraan sillä.
+      if (kind === 'huippuarvio') return b.c - a.c
       if (b.w !== a.w) return b.w - a.w     // luokka, sijaluku tai vuosi
       return b.c - a.c
     }

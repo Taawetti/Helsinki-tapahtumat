@@ -57,15 +57,33 @@ const FLOOR: Record<string, number> = {
   uusi: 20,              // mitattu 118 / 150 pv
 }
 
+// UUDELLEENYRITYS. Mitattu 23.8.2026: avoindata.suomi.fi palautti 404 lupa­
+// rekisterin tiedostoon, ja minuuttia aiemmin sama osoite oli toiminut. CKAN
+// vahvisti ettei osoite ollut muuttunut — palvelin vain pettää satunnaisesti.
+// Koska yhdenkin lähteen kaatuminen estää KOKO tiedoston kirjoittamisen
+// (tarkoituksella), hetkellinen häiriö olisi keskeyttänyt viikkopäivityksen
+// aika ajoin ilman mitään syytä.
+const RETRIES = 3
+const RETRY_PAUSE_MS = 4000
+
 async function get(url: string): Promise<string>
 async function get(url: string, kind: 'json'): Promise<unknown>
 async function get(url: string, kind: 'buffer'): Promise<Buffer>
 async function get(url: string, kind: 'text' | 'json' | 'buffer' = 'text') {
-  const res = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow' })
-  if (!res.ok) throw new Error(`${res.status} ${url}`)
-  if (kind === 'json') return res.json()
-  if (kind === 'buffer') return Buffer.from(await res.arrayBuffer())
-  return res.text()
+  let last = ''
+  for (let attempt = 1; attempt <= RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow' })
+      if (!res.ok) throw new Error(`${res.status}`)
+      if (kind === 'json') return await res.json()
+      if (kind === 'buffer') return Buffer.from(await res.arrayBuffer())
+      return await res.text()
+    } catch (e) {
+      last = (e as Error).message
+      if (attempt < RETRIES) await new Promise((s) => setTimeout(s, RETRY_PAUSE_MS * attempt))
+    }
+  }
+  throw new Error(`${last} (${RETRIES} yritystä) ${url}`)
 }
 
 function stripTags(s: string): string {
@@ -356,9 +374,15 @@ const OPENING_WINDOW_DAYS = 150
 const NOT_A_RESTAURANT =
   /teatteri|liikuntakeskus|areena|urheilu|pallokent|velodromi|stadion|halli\b|kartano|huvila|risteily|terminaali|\bm\/s\b|laiva|festival|hair|make.?up|kampaam|marathon|messu|kirkko|museo|golf|keila|jäähalli|uimahalli/i
 
-/** Pikaruoka jota omistaja ei halua sivulle. */
+/**
+ * Pikaruoka jota omistaja ei halua sivulle. HUOM: pelkkä "pizza" EI ole tässä.
+ * Omistaja tarkensi: "artesaani/napolipizza paikat myös [saavat tulla].
+ * tarkoitin kebabpizzerioita jotka eivät ole varsinaisia ravintoloita."
+ * Kebabpizzeria tunnistuu siitä että nimessä on molemmat sanat tai kebab
+ * yksinään; Artesaanipizzaa, La Pinsa Romana ja Uuno Pinza läpäisevät.
+ */
 const FAST_FOOD =
-  /kebab|pizzeri|pizza\b|burger|hampurilai|grilli\b|buffet|hesburger|subway|kotipizza|mcdonald|taco bell/i
+  /kebab|döner|doner|shawarma|burger|hampurilai|grillikios|hesburger|subway|kotipizza|mcdonald|taco bell|\bgrilli\b/i
 
 interface AlluRow { nimi: string; katuosoite: string; alku: string; loppu: string | null }
 

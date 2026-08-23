@@ -406,6 +406,9 @@ const REASON_STYLE: Record<ReasonKind, { bg: string; fg: string; bd: string }> =
   top50:               { bg: 'rgba(251,191,36,.11)', fg: '#fbbf24', bd: 'rgba(251,191,36,.15)' },
   uusi:                { bg: 'rgba(16,185,129,.14)', fg: '#6ee7b7', bd: 'rgba(16,185,129,.18)' },
   timeout:             { bg: 'rgba(139,148,255,.13)', fg: '#a3abff', bd: 'rgba(139,148,255,.16)' },
+  // Huippuarvio käyttää tähtimerkin väriä, koska sen todiste ON arvostelut —
+  // kortin ⭐-merkki ja tämä puhuvat samasta asiasta.
+  huippuarvio:         { bg: 'rgba(251,191,36,.10)', fg: '#fcd34d', bd: 'rgba(251,191,36,.14)' },
 }
 
 function ReasonBadge({ reason }: { reason: RestaurantReason }) {

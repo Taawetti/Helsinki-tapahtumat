@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-23T00:48:17.488Z",
+  "fetchedAt": "2026-08-23T10:27:56.337Z",
   "byName": {
     "305": [
       {
@@ -3117,6 +3117,28 @@
         "venue": "Ariel"
       }
     ],
+    "letona cafe and pizzeria": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-17",
+        "street": "Metsäpurontie 20",
+        "venue": "Letona Cafe & Pizzeria"
+      }
+    ],
+    "letonacafeandpizzeria": [
+      {
+        "kind": "uusi",
+        "label": "Avattu huhtikuussa",
+        "source": "Anniskelulupa­rekisteri",
+        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
+        "date": "2026-04-17",
+        "street": "Metsäpurontie 20",
+        "venue": "Letona Cafe & Pizzeria"
+      }
+    ],
     "barahi": [
       {
         "kind": "uusi",
@@ -3442,6 +3464,6 @@
     "top50": 36,
     "timeout": 55,
     "vuoden-ravintola": 12,
-    "uusi": 86
+    "uusi": 87
   }
 }

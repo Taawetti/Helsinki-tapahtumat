@@ -844,6 +844,64 @@ export async function GET(req: NextRequest) {
     return reasons.length ? { ...r, reasons } : r
   })
 
+  // ── HUIPPUARVIOIDUT ───────────────────────────────────────────────────────
+  // Neljä muuta syytä tulevat ulkopuolisilta: Michelin, Suomen 50 parasta,
+  // Vuoden ravintola, anniskelulupa. Ne kaikki ohittavat pelkän arvostelun,
+  // joten kaupungin arvostetuimmat paikat jäivät kokonaan kärjen ulkopuolelle —
+  // 99 TopMeal 4,9 (1978 arvostelua) ei mahtunut kuuteenkymmeneen.
+  //
+  // Se on oma syynsä: tuhat ihmistä on käynyt ja antanut lähes täydet pisteet.
+  // Todiste on arvostelut itse, ei ulkopuolinen taho.
+  //
+  // KEBABPIZZERIAT EIVÄT KELPAA. Omistaja: "en halua sinne pizzakebab
+  // paikkoja… tarkoitin kebabpizzerioita jotka eivät ole varsinaisia
+  // ravintoloita" — artesaani- ja napolipizza sen sijaan kelpaavat. Ero on
+  // datassa selvä ja mitattu: klassisella kebabpizzerialla on OSM:ssä SEKÄ
+  // pizza ETTÄ kebab (88 paikkaa: Nemrut pizza kebab, King Kebab, Espital
+  // Pizza Kebab, Ravello), kun taas Artesaanipizzaa, La Pinsa Romana, Uuno
+  // Pinza ja Alby's Pizzeria ovat pelkkää pizzaa.
+  const TOP_RATED_PER_TYPE = 30
+  /** Alaraja, jottei harvalukuinen tyyppi saa merkkiä heikoilla paikoilla. */
+  const TOP_RATED_MIN = 0.85
+
+  const isKebabPizzeria = (r: Restaurant) => {
+    const c = r.cuisineCategories ?? []
+    return c.includes('kebab')
+  }
+
+  {
+    const byType = new Map<string, { r: Restaurant; c: number }[]>()
+    for (const r of restaurants) {
+      if (r.reasons?.length) continue          // ulkopuolinen syy voittaa aina
+      if (r.type === 'pikaruoka' || r.type === 'muu') continue
+      if (isKebabPizzeria(r)) continue
+      const c = credibilityScore(r.googleRating, r.reviewCount)
+      if (c < TOP_RATED_MIN) continue
+      const list = byType.get(r.type)
+      if (list) list.push({ r, c })
+      else byType.set(r.type, [{ r, c }])
+    }
+    const chosen = new Set<string>()
+    for (const list of byType.values()) {
+      list.sort((a, b) => b.c - a.c)
+      for (const x of list.slice(0, TOP_RATED_PER_TYPE)) chosen.add(x.r.id)
+    }
+    if (chosen.size) {
+      restaurants = restaurants.map((r) =>
+        chosen.has(r.id)
+          ? {
+              ...r,
+              reasons: [{
+                kind: 'huippuarvio' as const,
+                label: 'Helsingin arvostetuimpia',
+                source: 'Google-arvostelut',
+              }],
+            }
+          : r,
+      )
+    }
+  }
+
   // SYNTEETTINEN KORTTI ON OLEMASSA VAIN SYYN TAKIA. Jos `matchReasons` ei anna
   // sille uutuussyytä, se ei kuulu sivulle lainkaan — muuten sinne jäisi
   // satunnainen paikka ilman perustetta. Näin uutuuden vartijat (osoiteosuma,

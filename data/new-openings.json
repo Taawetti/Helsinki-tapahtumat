@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-23T00:48:34.214Z",
+  "fetchedAt": "2026-08-23T10:28:31.642Z",
   "openings": [
     {
       "key": "bar & night club luck lady|kirkonkyla ntie|5",
@@ -732,6 +732,26 @@
       "reviewCount": 396,
       "openedAt": "2026-04-20",
       "fetchedAt": "2026-08-22T22:46:40.960Z"
+    },
+    {
+      "key": "letona cafe & pizzeria|metsa purontie|20",
+      "name": "Letona Cafe & Pizzeria",
+      "address": "Metsäpurontie 20, 00630 Helsinki",
+      "lat": 60.228539,
+      "lon": 24.926631099999998,
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlVDN_UzS69pwb08a23anW_b6jLHXJ5JuXZsvGg2NcJnyb3rcD6DNM54sQQI-g-jUu6Q90jWcOBMPzEvMtUy6NGqbaMazs0Mor1InZKxvYqQBZ1HsTq2R_JskAK1t5BYgiFsgFjMw=w408-h306-k-no",
+      "www": "http://www.letona.fi/",
+      "phone": "+358400550904",
+      "category": "Ravintola",
+      "cuisineCategories": [
+        "pizza"
+      ],
+      "openingHours": "Mo 11:00-20:00, Tu 11:00-20:00, We 11:00-20:00, Th 11:00-20:00, Fr 11:00-20:00, Sa 12:00-20:00",
+      "priceLevel": "inexpensive",
+      "googleRating": 4.8,
+      "reviewCount": 216,
+      "openedAt": "2026-04-17",
+      "fetchedAt": "2026-08-23T10:28:31.642Z"
     },
     {
       "key": "bui ramen|aallonhalkoja|1",
