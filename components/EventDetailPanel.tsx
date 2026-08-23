@@ -7,13 +7,17 @@ import { Event } from '@/lib/types'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { VENUE_PAGES } from '@/lib/venue-pages'
 
 interface Props {
   event: Event | null
   onClose: () => void
+  /** "Paikan kaikki tapahtumat" paikoille joilla EI ole omaa ohjelmasivua:
+   *  kutsuja suodattaa listan paikan nimellä. */
+  onShowVenueEvents?: (venueName: string) => void
 }
 
-export default function EventDetailPanel({ event, onClose }: Props) {
+export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -297,11 +301,36 @@ export default function EventDetailPanel({ event, onClose }: Props) {
             {event.location && (
               <div className="flex items-start gap-3 text-sm">
                 <MapPin size={15} className="text-[#0072C6] mt-0.5 shrink-0" />
-                <div>
+                <div className="min-w-0">
                   {event.location.name && <p className="text-white/80 font-medium">{event.location.name}</p>}
                   {event.location.streetAddress && (
                     <p className="text-white/40 text-xs mt-0.5">{event.location.streetAddress}, {event.location.city}</p>
                   )}
+                  {/* PAIKAN KAIKKI TAPAHTUMAT — footerin keikkapaikkalinkit
+                      siirrettiin tänne, kontekstiin jossa niitä tarvitaan
+                      (omistaja: "tuolta alhaalta niitä kukaan ei klikkaile").
+                      Oma ohjelmasivu voittaa; muille paikoille haku. */}
+                  {(() => {
+                    const ln = event.location.name?.trim()
+                    if (!ln) return null
+                    const lnLower = ln.toLowerCase()
+                    const venuePage = VENUE_PAGES.find((v) => {
+                      const vn = v.name.toLowerCase()
+                      return vn === lnLower || (lnLower.length >= 4 && vn.includes(lnLower)) || (vn.length >= 4 && lnLower.includes(vn))
+                    })
+                    return venuePage ? (
+                      <Link href={`/ohjelma/${venuePage.slug}`}
+                        onClick={() => { isManualClose.current = true; onClose() }}
+                        className="inline-flex items-center gap-1 text-[#4da6e8] hover:text-[#7dc0f2] text-xs font-semibold mt-1.5 transition-colors">
+                        📅 {t('detail.venue_events')} →
+                      </Link>
+                    ) : onShowVenueEvents ? (
+                      <button onClick={() => onShowVenueEvents(ln)}
+                        className="inline-flex items-center gap-1 text-[#4da6e8] hover:text-[#7dc0f2] text-xs font-semibold mt-1.5 transition-colors">
+                        📅 {t('detail.venue_events')} →
+                      </button>
+                    ) : null
+                  })()}
                 </div>
               </div>
             )}

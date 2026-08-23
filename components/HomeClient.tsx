@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Loader2, Heart, Bell, Plus, ChevronLeft } from 'lucide-react'
-import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES } from '@/lib/types'
+import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, TERRACE_REGEX } from '@/lib/nightlife'
@@ -35,6 +35,9 @@ const ActivitiesView = dynamic(() => import('@/components/ActivitiesView'), { ss
 const IdeaView = dynamic(() => import('@/components/IdeaView'), { ssr: false })
 // Päättäkää yhdessä -luontinäkymä välilehtenä (koodijaettu kuten muut näkymät)
 const PaatakaaView = dynamic(() => import('@/components/PaatakaaView'), { ssr: false })
+// Uutta Helsingissä välilehtenä — sama sisältö kuin /uutta-helsingissa-sivulla,
+// mutta navigointi pysyy näkyvissä (omistajan linjaus)
+const UuttaView = dynamic(() => import('@/components/UuttaView'), { ssr: false })
 
 interface EmptyStateProps {
   keyword: string
@@ -141,7 +144,7 @@ function isAlkaaPian(e: Event): boolean {
   return ms > 0 && ms < 3 * 60 * 60 * 1000
 }
 
-type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities' | 'paatakaa'
+type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities' | 'uutta' | 'paatakaa'
 type ListStyle = 'feed' | 'grid'
 
 interface PreloadedDateRange {
@@ -228,13 +231,16 @@ export default function HomeClient({
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities' | 'paatakaa'>('discover')
+  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'activities' | 'uutta' | 'paatakaa'>('discover')
   const [customDate, setCustomDate] = useState('')
   const [customDateEnd, setCustomDateEnd] = useState('')
   const [showEiTieda, setShowEiTieda] = useState(false)
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [showVibePanel, setShowVibePanel] = useState(false)
+  // Kaupunginosavalikko etusivulla — footerin linkkilista siirrettiin tänne
+  // näkyville (omistaja: "tuolta alhaalta pienellä kukaan ei käytä niitä")
+  const [showHoodMenu, setShowHoodMenu] = useState(false)
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -444,6 +450,7 @@ export default function HomeClient({
     else if (tab === 'favorites') setMode('favorites')
     else if (tab === 'restaurants') setMode('restaurants')
     else if (tab === 'activities') setMode('activities')
+    else if (tab === 'uutta') setMode('uutta')
     else if (tab === 'paatakaa') setMode('paatakaa')
   }, [])
 
@@ -742,11 +749,11 @@ export default function HomeClient({
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'idea', 'restaurants', 'activities', 'paatakaa'] as AppMode[]).map((m) => (
+            {(['discover', 'idea', 'restaurants', 'activities', 'uutta', 'paatakaa'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab); if (m === 'discover') setKoCat(null) }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
                 style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
-                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : m === 'paatakaa' ? `🗳 ${t('nav.paatakaa')}` : `🧖 ${t('nav.activities')}`}
+                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : m === 'uutta' ? `🆕 ${t('nav.uutta')}` : m === 'paatakaa' ? `🗳 ${t('nav.paatakaa')}` : `🧖 ${t('nav.activities')}`}
               </button>
             ))}
           </div>
@@ -1113,15 +1120,47 @@ export default function HomeClient({
                 </div>
               )}
 
-              {/* 🎨 Kaikki aihepiirit — keskitetty pilleri */}
+              {/* 🎨 Kaikki aihepiirit + 📍 Kaupunginosat — keskitetty pillerpari.
+                  Kaupunginosalinkit asuivat ennen footerissa, jossa niitä ei
+                  kukaan käyttänyt (omistajan huomio) — nyt ne ovat
+                  scrollattavassa pudotusvalikossa kategorioiden vieressä. */}
               {!loading && baseEvents.length > 0 && (
-                <div className="flex justify-center pt-1">
+                <div className="flex justify-center gap-2 pt-1 flex-wrap">
                   <button onClick={() => setShowVibePanel(true)}
                     className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
                     style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
                     🎨 {t('discover.all_vibes')}
                     <span className="text-white/40">▾</span>
                   </button>
+                  <div className="relative">
+                    <button onClick={() => setShowHoodMenu((v) => !v)}
+                      className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+                      style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+                      📍 {t('discover.neighborhoods')}
+                      <span className="text-white/40">▾</span>
+                    </button>
+                    {showHoodMenu && (
+                      <>
+                        {/* näkymätön tausta sulkee valikon ulkopuolelta klikattaessa */}
+                        <button className="fixed inset-0 z-40 cursor-default" aria-label="Sulje"
+                          onClick={() => setShowHoodMenu(false)} />
+                        <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-60 max-h-80 overflow-y-auto rounded-2xl p-1.5"
+                          style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
+                          {NEIGHBORHOODS.map((n) => (
+                            <Link key={n.id} href={`/tapahtumat/${n.id}`}
+                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors"
+                              style={{ textDecoration: 'none' }}>
+                              <span className="text-base leading-none">{n.emoji}</span>
+                              <span className="min-w-0">
+                                Tapahtumat {NEIGHBORHOOD_INESSIVE[n.id] ?? n.name}
+                                <span className="block text-[10.5px] font-medium text-white/35 truncate">{n.vibe}</span>
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1215,18 +1254,22 @@ export default function HomeClient({
       {/* ══ ACTIVITIES ══ */}
       {mode === 'activities' && <ActivitiesView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'activity')} />}
 
+      {/* ══ UUTTA HELSINGISSÄ ══ */}
+      {mode === 'uutta' && <UuttaView />}
+
       {/* ══ PÄÄTTÄKÄÄ YHDESSÄ ══ */}
       {mode === 'paatakaa' && <PaatakaaView />}
 
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
         style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-5 h-full">
+        <div className="grid grid-cols-6 h-full">
           {([
             { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
             { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
             { tab: 'restaurants' as const,   emoji: '🍽', labelKey: 'nav.restaurants' },
             { tab: 'activities' as const,    emoji: '🧖', labelKey: 'nav.activities'  },
+            { tab: 'uutta' as const,         emoji: '🆕', labelKey: 'nav.uutta'       },
             { tab: 'paatakaa' as const,      emoji: '🗳', labelKey: 'nav.paatakaa'    },
           ] as const).map(({ tab, emoji, labelKey }) => {
             const isActive = mobileTab === tab
@@ -1254,7 +1297,17 @@ export default function HomeClient({
         onClose={() => setShowVibePanel(false)}
       />
 
-      <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}/>
+      <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}
+        onShowVenueEvents={(name) => {
+          // "Paikan kaikki tapahtumat": hakukenttä tekee saman minkä käyttäjä
+          // tekisi käsin — kaikki tämännimisen paikan menot listaan.
+          setSelectedEvent(null)
+          setKeyword(name)
+          setMode('discover')
+          setMobileTab('discover')
+          setKoCat(null)
+          window.scrollTo(0, 0)
+        }}/>
       <InstallBanner/>
 
       {showEiTieda && (

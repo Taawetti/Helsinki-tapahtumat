@@ -9,6 +9,7 @@ const t = {
     'nav.restaurants': 'Ravintolat',
     'nav.activities':  'Tekemistä',
     'nav.paatakaa':    'Päättäkää',
+    'nav.uutta':       'Uutta',
     'nav.favorites':   'Suosikit',
     'nav.festivals':   'Festivaalit',
 
@@ -284,6 +285,7 @@ const t = {
     'discover.free_events':        'Ilmaiseksi',
     'discover.grid_sub':           'Selaa kategorioittain',
     'discover.all_vibes':          'Kaikki aihepiirit',
+    'discover.neighborhoods': 'Kaupunginosat',
     'discover.events_today':       'tapahtumaa tänään',
     'discover.details':            'Tiedot',
 
@@ -310,6 +312,7 @@ const t = {
     'detail.free':       'Maksuton',
     'detail.location':   'Sijainti',
     'detail.share_with': 'Jaa kavereille',
+    'detail.venue_events': 'Paikan kaikki tapahtumat',
     'detail.group_decide': 'Tai päättäkää yhdessä 👥',
     'detail.copied':     'Kopioitu!',
     'detail.copy':       'Kopioi',
@@ -463,6 +466,7 @@ const t = {
     'nav.restaurants': 'Restaurants',
     'nav.activities':  'Things to do',
     'nav.paatakaa':    'Decide',
+    'nav.uutta':       'New',
     'nav.favorites':   'Favorites',
     'nav.festivals':   'Festivals',
 
@@ -714,6 +718,7 @@ const t = {
     'detail.free':       'Free entry',
     'detail.location':   'Location',
     'detail.share_with': 'Share with friends',
+    'detail.venue_events': 'All events at this venue',
     'detail.group_decide': 'Or decide together 👥',
     'detail.copied':     'Copied!',
     'detail.copy':       'Copy',
@@ -905,6 +910,7 @@ const t = {
     'discover.free_events':        'Free',
     'discover.grid_sub':           'Browse by category',
     'discover.all_vibes':          'All topics',
+    'discover.neighborhoods': 'Neighborhoods',
     'discover.events_today':       'events today',
     'discover.details':            'Details',
     'discover.exit_search':        'Clear search ×',

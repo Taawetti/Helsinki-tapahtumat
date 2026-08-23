@@ -1,15 +1,17 @@
 import Link from 'next/link'
-import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
-import { VENUE_PAGES } from '@/lib/venue-pages'
+import { VIBES } from '@/lib/types'
 
-// Sivuston footer — ainoa paikka joka linkittää SPA:sta SEO-laskeutumissivuille
-// (/tapahtumat/*, /ohjelma/*, vertikaalit). Sisäinen linkitys sekä käyttäjille
-// että hakukoneille. Server-komponentti, renderöityy joka sivulle layout.tsx:stä.
+// Sivuston footer — linkittää SPA:sta SEO-laskeutumissivuille (/tapahtumat/*,
+// vertikaalit). Kaupunginosa- ja keikkapaikkalinkit POISTETTIIN täältä
+// omistajan päätöksellä ("tuolta alhaalta pienellä kukaan ei käytä niitä") —
+// kaupunginosat ovat nyt etusivun pudotusvalikossa ja keikkapaikan ohjelma
+// avautuu tapahtumakortista. Sivut pysyvät hakukoneille sivukartassa
+// (app/sitemap.ts), joka listaa ne kaikki.
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 mt-16 pb-24 md:pb-8">
       <div className="max-w-5xl mx-auto px-4 pt-10">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 text-sm">
           <div>
             <p className="font-bold text-white mb-1">Mitä tänään</p>
             <p className="text-white/50 leading-relaxed">
@@ -43,31 +45,6 @@ export default function Footer() {
             </ul>
           </nav>
 
-          <nav aria-label="Kaupunginosat">
-            <p className="font-semibold text-white/80 mb-2">Kaupunginosat</p>
-            <ul className="space-y-1.5 text-white/50">
-              {NEIGHBORHOODS.map((n) => (
-                <li key={n.id}>
-                  <Link className="hover:text-white transition-colors" href={`/tapahtumat/${n.id}`}>
-                    Tapahtumat {NEIGHBORHOOD_INESSIVE[n.id] ?? n.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          <nav aria-label="Keikkapaikat">
-            <p className="font-semibold text-white/80 mb-2">Keikkapaikat</p>
-            <ul className="space-y-1.5 text-white/50">
-              {VENUE_PAGES.map((v) => (
-                <li key={v.slug}>
-                  <Link className="hover:text-white transition-colors" href={`/ohjelma/${v.slug}`}>
-                    {v.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
         </div>
 
         <p className="text-white/30 text-xs mt-10">
