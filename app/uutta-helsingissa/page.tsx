@@ -64,7 +64,7 @@ export default async function UuttaHelsingissaSivu() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <main className="min-h-screen text-white" style={{ background: '#0a0a0c' }}>
-        <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Breadcrumb */}
           <nav className="text-sm text-white/35 mb-6 flex items-center gap-2">
             <Link href="/" className="hover:text-white/70 transition-colors">Mitä tänään</Link>

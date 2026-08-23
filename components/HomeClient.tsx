@@ -1173,6 +1173,16 @@ export default function HomeClient({
             </>
           )}
 
+          {/* Suodatetun näkymän lataustila: vaihe 1 on ohi (skeleton poissa)
+              mutta täysi haku kesken eikä osumia vielä ole — ilman tätä
+              paikkahaku ("Paikan kaikki tapahtumat") näytti 2–3 s tyhjää. */}
+          {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length === 0 && (loading || fetchingFull) && (
+            <div className="flex items-center justify-center gap-2 py-10">
+              <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>Haetaan tapahtumia</span>
+            </div>
+          )}
+
           {/* ── Flat grid — näkyy kun keyword, kategoria, vibe tai Nyt menossa valittu ── */}
           {(keyword || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
@@ -1301,8 +1311,17 @@ export default function HomeClient({
         onShowVenueEvents={(name) => {
           // "Paikan kaikki tapahtumat": hakukenttä tekee saman minkä käyttäjä
           // tekisi käsin — kaikki tämännimisen paikan menot listaan.
+          // KAIKKI TULEVAT, EI PÄIVÄSUODATINTA: jos "viikonloppu" oli
+          // valittuna, lista näyttäisi vain viikonlopun (omistajan
+          // korjauspyyntö). Kuukausi on pisin ikkuna jonka lähteet hakevat;
+          // isojen keikkapaikkojen oma ohjelmasivu kattaa loput. Myös muut
+          // suodattimet nollataan — paikkahaun kuuluu näyttää kaikki.
           setSelectedEvent(null)
           setKeyword(name)
+          setDateFilter('month')
+          setActiveVibes([])
+          setActiveCategories([])
+          setPriceFilter('all')
           setMode('discover')
           setMobileTab('discover')
           setKoCat(null)
