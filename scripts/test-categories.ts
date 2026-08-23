@@ -47,6 +47,7 @@ import reasonFile from '../data/restaurant-reasons.json'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
 import { credibilityScore } from '../lib/credibility'
+import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/restaurant-news-match'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
@@ -2044,6 +2045,90 @@ for (const c of ideaChecks) {
       name: 'huippuarvio painaa Time Outia enemmän',
       ok: reasonWeight(mk2('huippuarvio'), today) > reasonWeight(mk2('timeout'), today),
     })
+  }
+
+  // 14. UUTISET KORTTEIHIN — yleinen artikkelikaruselli poistettiin ja uutinen
+  //     kiinnittyy nyt suoraan ravintolaan. Nimiosuman vartijat ovat samat
+  //     jotka mitattiin jo aiemmin; jokainen tapaus tässä on todellinen.
+  {
+    const item = (title: string, daysAgo: number, link = 'https://x/1'): NewsLike => ({
+      title, link, source: 'Testilehti',
+      pubDate: new Date(today.getTime() - daysAgo * 86_400_000).toUTCString(),
+    })
+    const rest = (id: string, name: string): { id: string; name: string } => ({ id, name })
+
+    // Sanaraja: "Teller" EI saa osua sanaan "bestseller".
+    const m1 = matchNewsToRestaurants(
+      [item('Kirja nousi bestseller-listalle ravintolakirjana', 2)],
+      [rest('a', 'Teller')],
+    )
+    rChecks.push({ name: 'uutinen: Teller ei osu bestselleriin', ok: m1.length === 0, got: String(m1.length) })
+    // Oikea osuma sanarajoilla, välimerkit siedetään.
+    const m2 = matchNewsToRestaurants(
+      [item('Tellerin yrittäjät avaavat uuden viinibaarin Helsinkiin', 3)],
+      [rest('a', 'Teller')],
+    )
+    rChecks.push({ name: 'uutinen: taivutettu nimi EI osu (tarkka sanaosuma)', ok: m2.length === 0 })
+    const m2b = matchNewsToRestaurants(
+      [item('Ravintola Teller uudisti menunsa syksyksi', 3)],
+      [rest('a', 'Teller')],
+    )
+    rChecks.push({ name: 'uutinen: tarkka nimi osuu', ok: m2b.length === 1 && m2b[0].restaurantId === 'a' })
+    // Ketju: kaksi samannimistä toimipistettä → ei osumaa (otsikko ei kerro kumpi).
+    const m3 = matchNewsToRestaurants(
+      [item('Bastard Burgers avasi jättiravintolan', 1)],
+      [rest('a', 'Bastard Burgers'), rest('b', 'Bastard Burgers')],
+    )
+    rChecks.push({ name: 'uutinen: ketju ei saa osumaa', ok: m3.length === 0 })
+    // Yleissana ja lyhyt nimi eivät kelpaa avaimiksi.
+    const m4 = matchNewsToRestaurants(
+      [item('Uusi ravintola avattiin Kallioon', 1)],
+      [rest('a', 'Ravintola'), rest('b', 'Olo')],
+    )
+    rChecks.push({ name: 'uutinen: yleissana ja lyhyt nimi eivät osu', ok: m4.length === 0 })
+    // Tuorein juttu voittaa ja articleCount lasketaan.
+    const m5 = matchNewsToRestaurants(
+      [item('Ravintola Figaro sai uuden viinilistan', 8, 'https://x/a'),
+       item('Figaro juhlii avajaisiaan tarjouksella', 2, 'https://x/b')],
+      [rest('a', 'Figaro')],
+    )
+    rChecks.push({ name: 'uutinen: tuorein otsikko valitaan', ok: m5.length === 1 && m5[0].link === 'https://x/b' && m5[0].articleCount === 2, got: m5[0]?.link })
+
+    // Osuma → syy: 14 pv ikkuna.
+    const fresh = toNewsReason(m5[0], today)
+    rChecks.push({ name: 'uutinen: tuore juttu antaa syyn', ok: fresh?.kind === 'uutinen' && !!fresh.note })
+    const old20 = matchNewsToRestaurants([item('Ravintola Figaro sai uuden viinilistan', 20)], [rest('a', 'Figaro')])
+    rChecks.push({ name: 'uutinen: 20 pv vanha ei enää nosta', ok: toNewsReason(old20[0], today) === null })
+    const badDate = toNewsReason({ ...m5[0], pubDate: 'ei-päivä' }, today)
+    rChecks.push({ name: 'uutinen: kelvoton päivä → null', ok: badDate === null })
+
+    // Nosto kärkeen: uutisellinen menee sekoituksen ETEEN, tuorein ensin, katto 6.
+    const mkR = (kind: ReasonKind, extra: Partial<RestaurantReason> = {}): RestaurantReason =>
+      ({ kind, label: 'x', source: 's', ...extra })
+    type NRow = { n: string; reasons: RestaurantReason[] }
+    const newsRows: NRow[] = [
+      ...Array.from({ length: 10 }, (_, i) => ({ n: `M${i}`, reasons: [mkR('michelin', { tier: 4 })] })),
+      { n: 'news-vanha', reasons: [mkR('uutinen', { date: '2026-08-15' })] },
+      { n: 'news-tuore', reasons: [mkR('michelin', { tier: 3 }), mkR('uutinen', { date: '2026-08-22' })] },
+      ...Array.from({ length: 8 }, (_, i) => ({ n: `NF${i}`, reasons: [mkR('uutinen', { date: `2026-08-0${i + 1}` })] })),
+    ]
+    const nm = interleaveReasoned(newsRows, (r) => r.reasons, today)
+    rChecks.push({ name: 'uutinen: tuorein juttu ensimmäisenä', ok: nm[0]?.n === 'news-tuore', got: nm[0]?.n })
+    rChecks.push({ name: 'uutinen: toiseksi tuorein toisena', ok: nm[1]?.n === 'news-vanha', got: nm[1]?.n })
+    // Katto 6: paikat 0–5 kantavat uutista, paikka 6 on jo tavallinen kortti
+    // (Michelin ilman uutista) — kymmenestä uutisellisesta neljä vanhinta
+    // putoaa etujoukosta ja järjestyy normaalisti.
+    const first6AllNews = nm.slice(0, 6).every((r) => r.reasons.some((x) => x.kind === 'uutinen'))
+    rChecks.push({ name: 'uutinen: kuusi ensimmäistä kantavat uutista', ok: first6AllNews })
+    rChecks.push({
+      name: 'uutinen: seitsemäs kortti ei ole etujoukkoa',
+      ok: !nm[6]?.reasons.some((x) => x.kind === 'uutinen'),
+      got: nm[6]?.n,
+    })
+    rChecks.push({ name: 'uutinen: mikään ei katoa', ok: nm.length === newsRows.length, got: `${nm.length}/${newsRows.length}` })
+    // Michelin-kortin ensisijainen merkki EI vaihdu uutiseksi.
+    const withBoth = [mkR('michelin', { tier: 4 }), mkR('uutinen', { date: '2026-08-22' })]
+    rChecks.push({ name: 'uutinen ei syrjäytä Michelin-merkkiä', ok: primaryReason(withBoth, today)?.kind === 'michelin' })
   }
 
   for (const c of rChecks) {

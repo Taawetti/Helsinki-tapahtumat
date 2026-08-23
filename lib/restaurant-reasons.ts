@@ -24,6 +24,7 @@ export type ReasonKind =
   | 'timeout'          // Time Out Helsinki -listanosto
   | 'uusi'             // juuri avattu tai avaamassa (anniskelulupa)
   | 'huippuarvio'      // kaupungin arvostetuimpia — todisteena arvostelut itse
+  | 'uutinen'          // tuore lehtijuttu paikasta: tarjous, tapahtuma, avaus
 
 export interface RestaurantReason {
   kind: ReasonKind
@@ -258,6 +259,12 @@ const REASON_WEIGHT: Record<ReasonKind, number> = {
   top50: 80,
   huippuarvio: 70,
   uusi: 60,
+  // Uutisen paino on matala TARKOITUKSELLA: nosto kärkeen tapahtuu
+  // rakenteellisesti (ks. interleaveReasoned — uutiselliset menevät sekoituksen
+  // ETEEN), ei painolla. Matala paino pitää huolen siitä, ettei "Uutisissa"
+  // syrjäytä Michelin-merkkiä kortin ensisijaisena syynä — otsikko näytetään
+  // kortissa joka tapauksessa omana rivinään.
+  uutinen: 55,
   timeout: 50,
 }
 
@@ -465,7 +472,35 @@ export function interleaveReasoned<T>(
   const tail: { item: T; w: number; c: number; p: RestaurantReason }[] = []   // Time Out
   const none: T[] = []                                                        // ei syytä
 
+  // ── UUTISELLISET ENSIN ────────────────────────────────────────────────────
+  // Tuore lehtijuttu on ainoa syy joka VANHENEE PÄIVISSÄ — tarjous tai
+  // isänpäivälounas ei hyödytä ensi kuussa. Siksi uutista kantavat paikat
+  // menevät koko sekoituksen eteen, tuorein juttu ensin. d'Hondt ei sovi
+  // tähän: uutisia on kerrallaan 0–5, ja niin pieni perhe saisi ensimmäisen
+  // paikkansa vasta kymmenien korttien jälkeen — uutinen olisi jo vanha kun
+  // se ehtisi näkyviin.
+  //
+  // Katto pitää tulvan kurissa: jos sesonki tuottaa kymmenen osumaa, vain
+  // tuoreimmat kuusi nousevat eteen ja loput järjestyvät normaalisti (merkki
+  // ja otsikko säilyvät kortissa silti).
+  const FRONT_NEWS_MAX = 6
+  const newsCarriers: { item: T; ts: number; c: number }[] = []
+  const normal: T[] = []
   for (const item of items) {
+    const nr = reasonsOf(item)?.find((x) => x.kind === 'uutinen' && x.date)
+    if (nr) {
+      const ts = Date.parse(nr.date!)
+      newsCarriers.push({ item, ts: Number.isNaN(ts) ? 0 : ts, c: credibility?.(item) ?? 0 })
+    } else {
+      normal.push(item)
+    }
+  }
+  newsCarriers.sort((a, b) => b.ts - a.ts || b.c - a.c)
+  const front = newsCarriers.slice(0, FRONT_NEWS_MAX).map((x) => x.item)
+  // Ylivuoto käsitellään kuten muutkin — syy ratkaiskoon.
+  const classify = [...normal, ...newsCarriers.slice(FRONT_NEWS_MAX).map((x) => x.item)]
+
+  for (const item of classify) {
     const rs = reasonsOf(item)
     const p = primaryReason(rs, today)
     if (!p) { none.push(item); continue }
@@ -552,7 +587,7 @@ export function interleaveReasoned<T>(
     taken.set(best, taken.get(best)! + 1)
   }
 
-  return [...mixed, ...tail.map((t) => t.item), ...none]
+  return [...front, ...mixed, ...tail.map((t) => t.item), ...none]
 }
 
 /** Kortissa näytetään yksi syy: painavin. */

@@ -17,6 +17,8 @@ import { supabase } from '@/lib/supabase'
 import { matchReasons, reasonsWeight } from '@/lib/restaurant-reasons'
 import { dedupeOsmVenues } from '@/lib/osm-dedupe'
 import { credibilityScore } from '@/lib/credibility'
+import { fetchRestaurantNews } from '@/lib/restaurant-news'
+import { matchNewsToRestaurants, toNewsReason } from '@/lib/restaurant-news-match'
 import type { ReasonFile } from '@/lib/restaurant-reasons'
 // Syyt haetaan viikoittain (scripts/fetch-restaurant-reasons.ts) ja committoidaan
 // tiedostoon, joten tässä ei ole verkkokutsua eikä välimuistia — se on mukana
@@ -900,6 +902,31 @@ export async function GET(req: NextRequest) {
           : r,
       )
     }
+  }
+
+  // ── UUTISET KORTTEIHIN ────────────────────────────────────────────────────
+  // Tuore lehtijuttu paikasta — tarjous, erikoisillallinen, avajaiset — liitetään
+  // suoraan sen ravintolan syihin. Yleinen artikkelikaruselli on poistettu:
+  // uutinen näkyy vain siinä kortissa jota se koskee, ja nostaa kortin kärkeen
+  // (ks. interleaveReasoned) niin kauan kuin juttu on alle 14 pv vanha.
+  //
+  // try/catch koko lohkon ympärillä: uutisten puuttuminen tai Google Newsin
+  // häiriö EI KOSKAAN saa kaataa ravintolalistaa.
+  try {
+    const news = await fetchRestaurantNews()
+    const matches = matchNewsToRestaurants(news, restaurants)
+    if (matches.length) {
+      const byId = new Map(matches.map((m) => [m.restaurantId, m]))
+      restaurants = restaurants.map((r) => {
+        const m = byId.get(r.id)
+        if (!m) return r
+        const reason = toNewsReason(m, reasonsToday)
+        if (!reason) return r
+        return { ...r, reasons: [...(r.reasons ?? []), reason] }
+      })
+    }
+  } catch {
+    // ei uutisia tällä kertaa — lista toimii normaalisti
   }
 
   // SYNTEETTINEN KORTTI ON OLEMASSA VAIN SYYN TAKIA. Jos `matchReasons` ei anna

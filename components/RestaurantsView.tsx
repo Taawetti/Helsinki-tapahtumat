@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
-import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { pickAttributes, FILTER_FLAGS } from '@/lib/google-attributes'
@@ -192,51 +191,6 @@ function relativeDate(pubDate: string): string {
   } catch { return '' }
 }
 
-function NewsSection({ items }: { items: NewsItem[] }) {
-  if (!items.length) return null
-  return (
-    <div className="space-y-3">
-      {/* Header — same style as the section headings */}
-      <div className="flex items-baseline gap-2">
-        <h2 className="font-black text-white text-[17px] leading-none" style={{ letterSpacing: '-0.02em' }}>
-          📰 Tuoreita artikkeleita valinnan tueksi
-        </h2>
-        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,.3)' }}>· {items.length}</span>
-      </div>
-
-      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-        {items.map((item, i) => (
-          <a
-            key={i}
-            href={item.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 w-[230px] rounded-2xl p-4 flex flex-col gap-2.5 transition-all active:scale-[.97]"
-            style={{
-              background: 'rgba(255,255,255,.05)',
-              border: '1px solid rgba(255,255,255,.1)',
-              borderTop: '2px solid rgba(107,118,255,.5)',
-            }}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wide truncate" style={{ color: 'rgba(163,171,255,.8)' }}>
-                {item.source || 'Uutinen'}
-              </span>
-              <span className="text-[10px] shrink-0" style={{ color: 'rgba(255,255,255,.25)' }}>
-                {relativeDate(item.pubDate)}
-              </span>
-            </div>
-            <p className="text-[13px] font-semibold leading-snug line-clamp-4" style={{ color: 'rgba(255,255,255,.9)' }}>
-              {item.title}
-            </p>
-            <span className="text-[11px] font-black mt-auto" style={{ color: 'rgba(163,171,255,.9)' }}>Lue lisää ↗</span>
-          </a>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function formatOpeningHoursHuman(raw: string): string {
   if (!raw) return ''
   if (raw === '24/7') return 'Auki 24/7'
@@ -409,6 +363,8 @@ const REASON_STYLE: Record<ReasonKind, { bg: string; fg: string; bd: string }> =
   // Huippuarvio käyttää tähtimerkin väriä, koska sen todiste ON arvostelut —
   // kortin ⭐-merkki ja tämä puhuvat samasta asiasta.
   huippuarvio:         { bg: 'rgba(251,191,36,.10)', fg: '#fcd34d', bd: 'rgba(251,191,36,.14)' },
+  // Uutinen on syaani: viestii "juuri nyt" erottuen uutuuden vihreästä.
+  uutinen:             { bg: 'rgba(56,189,248,.13)', fg: '#7dd3fc', bd: 'rgba(56,189,248,.18)' },
 }
 
 function ReasonBadge({ reason }: { reason: RestaurantReason }) {
@@ -441,6 +397,12 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
     const t = r.reasons?.find((x) => x.kind === 'top50' && typeof x.rank === 'number')
     return t ? { ...t, label: `50 parasta · ${t.rank}` } : null
   }, [r.reasons, reason])
+  // Tuore lehtijuttu tästä paikasta: otsikko näytetään omana rivinään, koska
+  // se on juuri se tieto joka auttaa päätöstä ("isänpäivälounas", "tarjous").
+  const newsReason = useMemo(
+    () => r.reasons?.find((x) => x.kind === 'uutinen' && x.note) ?? null,
+    [r.reasons],
+  )
   return (
     <div className={`rounded-2xl overflow-hidden ${onOpen ? 'cursor-pointer transition-transform active:scale-[.99]' : ''}`}
       role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
@@ -517,6 +479,20 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
               </span>
             )}
           </>
+        )}
+        {/* UUTINEN — toimittajan tuore juttu juuri tästä paikasta. Linkki avaa
+            artikkelin; stopPropagation ettei kortin oma avaus laukea samalla. */}
+        {newsReason && (
+          <a
+            href={newsReason.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="block text-[11.5px] leading-snug text-white/70 hover:text-white transition-colors"
+          >
+            📰 {newsReason.note}
+            <span className="text-white/35"> · {newsReason.date ? relativeDate(newsReason.date) : ''} ↗</span>
+          </a>
         )}
         {/* ANNOS JA HINTA — kortin ainoa konkreettinen "miksi tänne" -tieto.
             Korvaa r.descriptionin, joka on OSM:n raaka keittiömerkkijono
@@ -974,7 +950,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [restGoogle, setRestGoogle] = useState<RestGoogleData | null>(null)
   const [selectedChain, setSelectedChain] = useState<ChainGroup | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
-  const [news, setNews] = useState<NewsItem[]>([])
   // Suodatin (QuickSortPills) — min-arvosana; näkyy vain selausnäkymässä
   const [minStars, setMinStars] = useState<StarSeg>(null)
   // Ominaisuussuodattimet (terassi, vegaani…) — monivalinta, JA-logiikka:
@@ -1018,12 +993,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     return () => { cancelled = true }
   }, [selectedRest])
 
-  useEffect(() => {
-    fetch('/api/restaurant-news')
-      .then(r => r.json())
-      .then(data => setNews(data.items ?? []))
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     // Uusi tyyppivälilehti nollaa suodattimet (näkymätön aktiivinen suodatin
@@ -1277,8 +1246,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 </div>
               )}
 
-              {/* Tuoreita artikkeleita valinnan tueksi — tärkeä lokaaleille */}
-              <NewsSection items={news} />
 
               {/* Kategoriat vasta tässä: ne palvelevat kävijää joka tietää mitä
                   hakee, eivät sitä joka ei tiedä. */}
