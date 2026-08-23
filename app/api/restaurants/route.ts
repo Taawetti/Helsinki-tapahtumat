@@ -29,6 +29,13 @@ import reasonData from '@/data/restaurant-reasons.json'
 // viikkoajossa (scripts/fetch-new-openings.ts) Googlesta, jotta niillä on kuva
 // ja koordinaatit — kuvaton kortti ei kuulu tälle sivulle.
 import openingData from '@/data/new-openings.json'
+// Kuolleiksi todetut kuvaosoitteet (Googlen lh3-linkit lahoavat — mitattu
+// 24.8.2026: 1309/2664 eli 49 % palautti 403). Haravoidaan viikoittain
+// (scripts/sweep-dead-images.ts); kuollut osoite ohitetaan, jolloin kortti
+// putoaa emoji-laattaan eikä kuvabonus nosta korttia väärin perustein.
+import deadImageData from '@/data/dead-images.json'
+
+const DEAD_IMAGES = new Set<string>((deadImageData as { dead?: string[] }).dead ?? [])
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -717,7 +724,7 @@ function newOpeningRestaurants(): Restaurant[] {
       city: 'Helsinki',
       lat: o.lat,
       lon: o.lon,
-      image: o.image,
+      image: o.image && !DEAD_IMAGES.has(o.image) ? o.image : null,
       www: o.www,
       phone: o.phone,
       type: openingType(o.category),
@@ -782,7 +789,7 @@ export async function GET(req: NextRequest) {
     // toimipisteessä, toisin kuin aukioloajat. Saman nimen toistot karsitaan
     // näkymässä, ei täällä.
     if (enriched.menu) updates.menu = enriched.menu
-    if (enriched.imageUrl && !r.image) updates.image = enriched.imageUrl
+    if (enriched.imageUrl && !r.image && !DEAD_IMAGES.has(enriched.imageUrl)) updates.image = enriched.imageUrl
     // Real Google price level overrides the OSM heuristics (cafe→2, pizza→1),
     // but hand-curated fine-dining stays: heuristics never produce ≥3, so an
     // existing 3–4 is always Michelin/award-supplement data — Google's coarse

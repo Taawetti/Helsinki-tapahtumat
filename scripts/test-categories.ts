@@ -46,6 +46,7 @@ import {
 import reasonFile from '../data/restaurant-reasons.json'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
+import deadImages from '../data/dead-images.json'
 import { credibilityScore } from '../lib/credibility'
 import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/restaurant-news-match'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
@@ -2162,6 +2163,19 @@ for (const c of ideaChecks) {
     // Michelin-kortin ensisijainen merkki EI vaihdu uutiseksi.
     const withBoth = [mkR('michelin', { tier: 4 }), mkR('uutinen', { date: '2026-08-22' })]
     rChecks.push({ name: 'uutinen ei syrjäytä Michelin-merkkiä', ok: primaryReason(withBoth, today)?.kind === 'michelin' })
+  }
+
+  // 15. KUOLLEET KUVAT — haravatiedoston eheys. Googlen kuvaosoitteet lahoavat
+  //     (mitattu 49 %); tiedosto kertoo API:lle mitkä ohitetaan.
+  {
+    const di = deadImages as { sweptAt?: string; checked?: number; dead?: string[] }
+    rChecks.push({ name: 'kuvaharava: tiedostossa on aikaleima', ok: typeof di.sweptAt === 'string' && !Number.isNaN(Date.parse(di.sweptAt!)) })
+    rChecks.push({ name: 'kuvaharava: tarkistettuja riittävästi', ok: (di.checked ?? 0) >= 1000, got: String(di.checked) })
+    rChecks.push({ name: 'kuvaharava: dead on lista osoitteita', ok: Array.isArray(di.dead) && di.dead!.every((u) => typeof u === 'string' && u.startsWith('http')) })
+    // Yli 90 % kuolleita = verkkovika, ei todellisuus — skriptin vahti estää
+    // kirjoituksen, ja tämä testi varmistaa ettei sellainen tiedosto ole
+    // päässyt repoon muutakaan kautta.
+    rChecks.push({ name: 'kuvaharava: kuolleiden osuus alle 90 %', ok: (di.dead?.length ?? 0) / Math.max(1, di.checked ?? 1) < 0.9, got: `${di.dead?.length}/${di.checked}` })
   }
 
   for (const c of rChecks) {

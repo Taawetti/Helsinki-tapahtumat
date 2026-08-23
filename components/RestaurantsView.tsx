@@ -279,6 +279,9 @@ function HeroCard({ r, distance, onShowOnMap }: {
   distance?: number
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  // Googlen kuvaosoitteet lahoavat (mitattu 24.8.2026: 32/60 otoksesta 403)
+  // — rikkinäisen kuvakkeen sijaan pudotaan emoji-laattaan.
+  const [imgOk, setImgOk] = useState(true)
   const { t } = useLanguage()
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
   const ctaLabel = r.type === 'ravintola' ? `${t('common.website')} →` : r.type === 'kahvila' ? `${t('common.more_info')} →` : `${t('common.more_info')} →`
@@ -286,10 +289,10 @@ function HeroCard({ r, distance, onShowOnMap }: {
 
   return (
     <div className="relative w-full rounded-[22px] overflow-hidden" style={{ aspectRatio: '16/9', boxShadow: '0 22px 50px -20px rgba(10,10,12,.8)' }}>
-      {r.image ? (
+      {r.image && imgOk ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img loading="lazy" src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+          <img loading="lazy" src={r.image} onError={() => setImgOk(false)} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.97) 0%,rgba(10,10,12,.4) 50%,rgba(0,0,0,.15) 100%)' }} />
         </>
       ) : (
@@ -386,6 +389,9 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
   onOpen?: (r: Restaurant) => void
 }) {
+  // Googlen kuvaosoitteet lahoavat (mitattu 24.8.2026: 32/60 otoksesta 403)
+  // — rikkinäisen kuvakkeen sijaan pudotaan emoji-laattaan.
+  const [imgOk, setImgOk] = useState(true)
   const { t } = useLanguage()
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
   const cuisineStyle = getCuisineStyle(r)
@@ -420,10 +426,10 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
       {/* Mini-header: real photo if available, else B2 emoji */}
       <div className="relative flex items-center justify-center overflow-hidden" style={{ aspectRatio: '16/10', background: '#141418' }}>
-        {r.image ? (
+        {r.image && imgOk ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img loading="lazy" src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+            <img loading="lazy" src={r.image} onError={() => setImgOk(false)} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.4) 0%,transparent 60%)' }} />
           </>
         ) : (
@@ -603,16 +609,19 @@ function ChainListCard({ chain, onClick }: {
   chain: ChainGroup
   onClick: (chain: ChainGroup) => void
 }) {
+  // Googlen kuvaosoitteet lahoavat (mitattu 24.8.2026: 32/60 otoksesta 403)
+  // — rikkinäisen kuvakkeen sijaan pudotaan emoji-laattaan.
+  const [imgOk, setImgOk] = useState(true)
   const r = chain.representative
   const cuisineStyle = getCuisineStyle(r)
   return (
     <button onClick={() => onClick(chain)} className="rounded-2xl overflow-hidden text-left w-full transition-all active:scale-[.98]"
       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
       <div className="relative flex items-center justify-center overflow-hidden" style={{ aspectRatio: '16/10', background: '#141418' }}>
-        {r.image ? (
+        {r.image && imgOk ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img loading="lazy" src={r.image} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+            <img loading="lazy" src={r.image} onError={() => setImgOk(false)} alt={r.name} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(0,0,0,.4) 0%,transparent 60%)' }} />
           </>
         ) : (

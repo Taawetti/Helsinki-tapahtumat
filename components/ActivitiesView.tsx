@@ -118,14 +118,17 @@ function ActivityHero({ a, distance, rating, onShowOnMap }: {
   rating?: { rating: number; reviewCount: number }
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
+  // Googlen kuvaosoitteet lahoavat (mitattu 24.8.2026: 32/60 otoksesta 403)
+  // — rikkinäisen kuvakkeen sijaan pudotaan emoji-laattaan.
+  const [imgOk, setImgOk] = useState(true)
   const { t } = useLanguage()
   const open = isOpenNow(a.openingHours)
   const meta = CATEGORY_META[a.category]
 
   return (
     <div className="relative w-full rounded-[22px] overflow-hidden" style={{ aspectRatio: '16/9', boxShadow: '0 22px 50px -20px rgba(10,10,12,.8)' }}>
-      {a.image ? (
-        <img src={a.image} alt={a.name} className="absolute inset-0 w-full h-full object-cover" />
+      {a.image && imgOk ? (
+        <img src={a.image} onError={() => setImgOk(false)} alt={a.name} className="absolute inset-0 w-full h-full object-cover" />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-6xl" style={{ background: meta.gradient }}>
           {meta.emoji}
@@ -190,6 +193,9 @@ function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
   onOpen?: (a: Activity) => void
 }) {
+  // Googlen kuvaosoitteet lahoavat (mitattu 24.8.2026: 32/60 otoksesta 403)
+  // — rikkinäisen kuvakkeen sijaan pudotaan emoji-laattaan.
+  const [imgOk, setImgOk] = useState(true)
   const { t } = useLanguage()
   const open = isOpenNow(a.openingHours)
   const highlight = getHighlight(a.name)
@@ -201,9 +207,9 @@ function ActivityListCard({ a, distance, rating, onShowOnMap, onOpen }: {
       onClick={onOpen ? () => onOpen(a) : undefined}
       onKeyDown={onOpen ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(a) } }) : undefined}
       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
-      {a.image && (
+      {a.image && imgOk && (
         <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/10' }}>
-          <img src={a.image} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
+          <img src={a.image} onError={() => setImgOk(false)} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,.5) 0%,transparent 60%)' }} />
         </div>
       )}

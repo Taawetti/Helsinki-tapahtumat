@@ -65,6 +65,16 @@ jobs:
           DATAFORSEO_TOKEN: ${{ secrets.DATAFORSEO_TOKEN }}
         run: npx tsx scripts/fetch-new-openings.ts
 
+      # Kuolleiden kuvien haravointi: Googlen kuvaosoitteet lahoavat (mitattu
+      # 49 % kuolleita kuuden viikon jälkeen). Ilmainen — pelkkiä HTTP-
+      # tarkistuksia. Epäonnistuminen ei estä syiden päivitystä.
+      - name: Haravoi kuolleet kuvat
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx scripts/sweep-dead-images.ts
+
       - name: Onko muutoksia?
         id: diff
         run: |
@@ -91,7 +101,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/restaurant-reasons.json data/new-openings.json
+          git add data/restaurant-reasons.json data/new-openings.json data/dead-images.json
           git commit -m "Restaurant reasons: weekly refresh
 
           Automaattinen haku: Michelin-opas, Suomen 50 parasta, Vuoden

@@ -266,9 +266,14 @@ async function main() {
   const missed = new Map(prev.misses.map((m) => [m.key, m]))
   console.log(`  tallessa jo: ${have.size} korttia, ${missed.size} osumatonta`)
 
-  // Mitä pitää hakea: ei vielä tallessa, eikä äskettäin epäonnistunut.
+  // Mitä pitää hakea: ei vielä tallessa, eikä äskettäin epäonnistunut —
+  // SEKÄ vanhentuneet kortit: Googlen kuvaosoite lahoaa viikoissa (mitattu
+  // 49 % kuolleita), joten yli 60 pv vanha kortti haetaan uudelleen ja saa
+  // tuoreen kuvan. Hinta on muutama sentti viikossa.
+  const IMAGE_REFRESH_DAYS = 60
   const todo = [...wanted.entries()].filter(([k]) => {
-    if (have.has(k)) return false
+    const h = have.get(k)
+    if (h) return dayDiff(today, h.fetchedAt) > IMAGE_REFRESH_DAYS
     const m = missed.get(k)
     return !m || dayDiff(today, m.triedAt) > MISS_RETRY_DAYS
   })

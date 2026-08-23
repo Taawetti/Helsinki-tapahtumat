@@ -3,6 +3,13 @@ import { unstable_cache } from 'next/cache'
 import type { Activity, ActivityCategory } from '@/lib/types'
 import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
 import { supabase } from '@/lib/supabase'
+// Kuolleet kuvaosoitteet — sama harava kuin ravintolapuolella, ks.
+// scripts/sweep-dead-images.ts. Aktiviteettien kuvat tulevat samasta
+// venue_ratings-taulusta ja lahoavat samaa tahtia (Sompasauna oli 403).
+import deadImageData from '@/data/dead-images.json'
+
+const DEAD_IMAGES = new Set<string>((deadImageData as { dead?: string[] }).dead ?? [])
+
 
 interface OSMElement {
   type: 'node' | 'way' | 'relation'
@@ -206,7 +213,7 @@ async function _fetchActivities(): Promise<Activity[]> {
           if (error || !rows || rows.length === 0) break
           for (const row of rows as { venue_key: string; main_image: string | null; google_hours: string | null; description: string | null }[]) {
             const key = row.venue_key.replace('act:', '')
-            if (row.main_image) actImageMap[key] = row.main_image
+            if (row.main_image && !DEAD_IMAGES.has(row.main_image)) actImageMap[key] = row.main_image
             if (row.google_hours) actHoursMap[key] = row.google_hours
             if (row.description) actDescMap[key] = row.description
           }
