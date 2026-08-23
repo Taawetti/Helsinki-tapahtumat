@@ -286,6 +286,7 @@ const t = {
     'discover.grid_sub':           'Selaa kategorioittain',
     'discover.all_vibes':          'Kaikki aihepiirit',
     'discover.neighborhoods': 'Kaupunginosat',
+    'discover.guides':    'Oppaat',
     'discover.events_today':       'tapahtumaa tänään',
     'discover.details':            'Tiedot',
 
@@ -913,6 +914,7 @@ const t = {
     'discover.grid_sub':           'Browse by category',
     'discover.all_vibes':          'All topics',
     'discover.neighborhoods': 'Neighborhoods',
+    'discover.guides':    'Guides',
     'discover.events_today':       'events today',
     'discover.details':            'Details',
     'discover.exit_search':        'Clear search ×',

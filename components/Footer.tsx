@@ -1,13 +1,31 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { VIBES } from '@/lib/types'
 
-// Sivuston footer — linkittää SPA:sta SEO-laskeutumissivuille (/tapahtumat/*,
-// vertikaalit). Kaupunginosa- ja keikkapaikkalinkit POISTETTIIN täältä
-// omistajan päätöksellä ("tuolta alhaalta pienellä kukaan ei käytä niitä") —
-// kaupunginosat ovat nyt etusivun pudotusvalikossa ja keikkapaikan ohjelma
-// avautuu tapahtumakortista. Sivut pysyvät hakukoneille sivukartassa
-// (app/sitemap.ts), joka listaa ne kaikki.
+// Sivuston footer — KAKSI ROOLIA (omistajan linjaus: "alhaalla ei saisi olla
+// valikoita mitä käyttäjä käyttää", mutta SEO pitää olla kunnossa):
+//
+//   Sovelluksessa (/): pelkkä brändirivi. Käyttäjän valikot ovat ylhäällä —
+//   kategoriat ruudukossa, kaupunginosat ja oppaat pillereissä.
+//
+//   Laskeutumissivuilla (/saunat, /terassit, /tapahtumat/*…): täysi
+//   linkkifooter. Sinne Google ja hakijat tulevat, siellä sisäinen linkitys
+//   tekee työnsä ja "katso myös" on aidosti hyödyllinen.
 export default function Footer() {
+  const pathname = usePathname()
+  if (pathname === '/') {
+    return (
+      <footer className="border-t border-white/10 mt-16 pb-24 md:pb-8">
+        <div className="max-w-5xl mx-auto px-4 pt-8">
+          <p className="font-bold text-white">Mitä tänään</p>
+          <p className="text-white/40 text-sm mt-1">Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa.</p>
+          <p className="text-white/30 text-xs mt-6">© {new Date().getFullYear()} Mitä tänään</p>
+        </div>
+      </footer>
+    )
+  }
   return (
     <footer className="border-t border-white/10 mt-16 pb-24 md:pb-8">
       <div className="max-w-5xl mx-auto px-4 pt-10">

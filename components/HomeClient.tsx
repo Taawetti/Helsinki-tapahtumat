@@ -246,6 +246,10 @@ export default function HomeClient({
   // Kaupunginosasuodatin: valinta EI vie erilliselle sivulle vaan suodattaa
   // tapahtumat tässä näkymässä ("Tapahtumat Kalliossa") — omistajan linjaus.
   const [hoodFilter, setHoodFilter] = useState<string | null>(null)
+  // Oppaat-valikko: vertikaalisivut (Saunat, Terassit…) eivät ansaitse omia
+  // välilehtiä mutta footerissa niitä ei kukaan nähnyt — pilleri kategorioiden
+  // alla on niiden koti.
+  const [showGuideMenu, setShowGuideMenu] = useState(false)
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -1193,13 +1197,46 @@ export default function HomeClient({
                     <span className="text-white/40">▾</span>
                   </button>
                   <div className="relative">
-                    <button onClick={() => setShowHoodMenu((v) => !v)}
+                    <button onClick={() => { setShowGuideMenu(false); setShowHoodMenu((v) => !v) }}
                       className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
                       style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
                       📍 {t('discover.neighborhoods')}
                       <span className="text-white/40">▾</span>
                     </button>
                     {showHoodMenu && hoodMenuList}
+                  </div>
+                  <div className="relative">
+                    <button onClick={() => { setShowHoodMenu(false); setShowGuideMenu((v) => !v) }}
+                      className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+                      style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+                      🧭 {t('discover.guides')}
+                      <span className="text-white/40">▾</span>
+                    </button>
+                    {showGuideMenu && (
+                      <>
+                        <button className="fixed inset-0 z-40 cursor-default" aria-label="Sulje"
+                          onClick={() => setShowGuideMenu(false)} />
+                        <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-56 rounded-2xl p-1.5"
+                          style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
+                          {([
+                            { href: '/saunat',    emoji: '🧖', label: 'Saunat',    sub: 'yleiset saunat & aukiolot' },
+                            { href: '/terassit',  emoji: '☀️', label: 'Terassit',  sub: 'kattoterassit & kesä' },
+                            { href: '/yokerhot',  emoji: '🪩', label: 'Yökerhot',  sub: 'klubit & tanssilattiat' },
+                            { href: '/pubivisat', emoji: '🧠', label: 'Pubivisat', sub: 'visailut viikon varrella' },
+                          ] as const).map((g) => (
+                            <Link key={g.href} href={g.href}
+                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors"
+                              style={{ textDecoration: 'none' }}>
+                              <span className="text-base leading-none">{g.emoji}</span>
+                              <span className="min-w-0">
+                                {g.label}
+                                <span className="block text-[10.5px] font-medium text-white/35 truncate">{g.sub}</span>
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
