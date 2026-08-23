@@ -38,6 +38,8 @@ import {
   reasonsWeight,
   primaryReason,
   openingLabel,
+  interleaveReasoned,
+  type ReasonKind,
   type RestaurantReason,
   type ReasonFile,
 } from '../lib/restaurant-reasons'
@@ -1847,6 +1849,66 @@ for (const c of ideaChecks) {
       return la > 59.9 && la < 60.35 && lo > 24.5 && lo < 25.35
     }),
   })
+
+  // 10. SEKOITUS — perheet eivät saa kasaantua lohkoiksi.
+  {
+    type Row = { n: string; reasons: RestaurantReason[] }
+    const mk = (n: string, kind: ReasonKind, extra: Partial<RestaurantReason> = {}): Row =>
+      ({ n, reasons: [{ kind, label: n, source: 's', ...extra }] })
+    // Realistiset suhteet: michelin 30, uusi 43, top50 5 (loput kantavat
+    // Michelin-merkkiä), timeout 12.
+    const rows: Row[] = [
+      ...Array.from({ length: 30 }, (_, i) => mk(`M${i}`, 'michelin', { tier: 5 - Math.floor(i / 8) })),
+      ...Array.from({ length: 43 }, (_, i) => mk(`U${i}`, 'uusi', { date: `2026-0${1 + (i % 8)}-01` })),
+      ...Array.from({ length: 5 }, (_, i) => mk(`T${i}`, 'top50', { rank: i + 1 })),
+      ...Array.from({ length: 12 }, (_, i) => mk(`O${i}`, 'timeout')),
+      { n: 'X0', reasons: [] }, { n: 'X1', reasons: [] },
+    ]
+    const mixed = interleaveReasoned(rows, (r) => (r.reasons.length ? r.reasons : undefined), today)
+    rChecks.push({ name: 'sekoitus ei kadota eikä monista', ok: mixed.length === rows.length, got: `${mixed.length}/${rows.length}` })
+    rChecks.push({ name: 'sekoitus säilyttää kaikki paikat', ok: new Set(mixed.map((r) => r.n)).size === rows.length })
+
+    const kindOf = (r: Row): ReasonKind | 'none' => r.reasons[0]?.kind ?? 'none'
+    const head = mixed.slice(0, 40).map(kindOf)
+    let run = 1, worst = 1
+    for (let i = 1; i < head.length; i++) { run = head[i] === head[i - 1] ? run + 1 : 1; worst = Math.max(worst, run) }
+    // ILMAN LOMITUSTA tämä olisi 30: ensin kaikki Michelinit peräkkäin.
+    rChecks.push({ name: 'sama perhe enintään 2 kertaa peräkkäin', ok: worst <= 2, got: String(worst) })
+
+    const first40 = new Set(head)
+    rChecks.push({ name: 'kaikki kolme pääperhettä kärki-40:ssä', ok: first40.has('michelin') && first40.has('uusi') && first40.has('top50') })
+    // Time Out on omassa lohkossaan perässä, ei sekoituksessa.
+    rChecks.push({ name: 'Time Out ei sekoituksessa', ok: !head.includes('timeout') })
+    const idxTimeout = mixed.findIndex((r) => kindOf(r) === 'timeout')
+    const idxNone = mixed.findIndex((r) => kindOf(r) === 'none')
+    rChecks.push({ name: 'Time Out ennen syyttömiä', ok: idxTimeout >= 0 && idxNone > idxTimeout })
+    rChecks.push({ name: 'syyttömät viimeisenä', ok: mixed.slice(-2).every((r) => kindOf(r) === 'none') })
+    // Perheen sisäinen järjestys säilyy: vahvin Michelin ennen heikointa.
+    const ms = mixed.filter((r) => kindOf(r) === 'michelin').map((r) => r.n)
+    rChecks.push({ name: 'perheen sisäinen paremmuus säilyy', ok: ms.indexOf('M0') < ms.indexOf('M29') })
+    // Vakaus: sama syöte → sama tulos.
+    const again = interleaveReasoned(rows, (r) => (r.reasons.length ? r.reasons : undefined), today)
+    rChecks.push({ name: 'sekoitus on vakaa', ok: mixed.map((r) => r.n).join() === again.map((r) => r.n).join() })
+    rChecks.push({ name: 'tyhjä syöte ei kaadu', ok: interleaveReasoned([], () => undefined, today).length === 0 })
+  }
+
+  // 11. USKOTTAVUUSKAAVA — käyttäjän oma sääntö: massa voittaa harvat.
+  {
+    const M = 400, C = 4.207
+    const bayes = (v: number, r: number) => (v * r + M * C) / (v + M)
+    // "3000 arvostelua 4,7 on paljon parempi kuin 3 arvostelua 4,9"
+    rChecks.push({ name: '3000×4,7 voittaa 3×4,9', ok: bayes(3000, 4.7) > bayes(3, 4.9) })
+    // Vaikea välitapaus, jonka vanha kaava (M=50) ratkaisi väärin päin.
+    rChecks.push({ name: '2000×4,6 voittaa 200×4,9', ok: bayes(2000, 4.6) > bayes(200, 4.9), got: `${bayes(2000, 4.6).toFixed(3)} vs ${bayes(200, 4.9).toFixed(3)}` })
+    // Yhtä monella arvostelulla parempi arvosana voittaa aina.
+    rChecks.push({ name: 'samalla määrällä parempi arvosana voittaa', ok: bayes(500, 4.8) > bayes(500, 4.5) })
+    // Samalla arvosanalla enemmän arvosteluja voittaa aina.
+    rChecks.push({ name: 'samalla arvosanalla enemmän arvosteluja voittaa', ok: bayes(2000, 4.6) > bayes(100, 4.6) })
+    // Arvosteluton paikka painuu keskiarvoon, ei kärkeen.
+    rChecks.push({ name: 'arvosteluton painuu keskiarvoon', ok: Math.abs(bayes(0, 5.0) - C) < 1e-9 })
+    // Volyymi ei saa yksin riittää: 4,6 (4185) ei ohita 4,9 (1978).
+    rChecks.push({ name: 'pelkkä volyymi ei riitä', ok: bayes(1978, 4.9) > bayes(4185, 4.6), got: `${bayes(1978, 4.9).toFixed(3)} vs ${bayes(4185, 4.6).toFixed(3)}` })
+  }
 
   for (const c of rChecks) {
     if (c.ok) pass++

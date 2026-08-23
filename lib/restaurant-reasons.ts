@@ -376,6 +376,92 @@ export function matchReasons(
   return out
 }
 
+// ── SEKOITUS ────────────────────────────────────────────────────────────────
+// Pelkkä painojärjestys tuottaa lohkoja: ensin kaikki Michelin-tähdet, sitten
+// kaikki Bibit, sitten koko Suomen 50 parasta, sitten kaikki uudet avaukset.
+// Selatessa se tuntuu vuorottelevalta luettelolta, ei valikoimalta.
+//
+// Siksi neljä vahvaa perhettä LOMITETAAN suhteessa kokoonsa. Menetelmä on
+// d'Hondt: joka paikalle valitaan perhe, jolla on suurin `koko / (otetut + 1)`.
+// Perheen sisällä järjestys säilyy vahvimmasta heikoimpaan, joten Grön tulee
+// yhä ennen muita Michelin-paikkoja ja sija 4 ennen sijaa 40 — mutta niiden
+// välissä on uusi avaus ja 50 parasta.
+//
+// Time Out on omassa lohkossaan perässä: se on toimituksen nosto ja selvästi
+// löyhin kriteeri (55 paikkaa), joten sen lomittaminen mukaan laimentaisi
+// kärjen. Perusteettomat paikat tulevat vasta näiden jälkeen, ks.
+// `restaurantQualityScore` komponentissa.
+
+/** Perheet jotka lomitetaan kärkeen. Järjestys on vain tasapelin ratkaisija. */
+const MIXED_KINDS: ReasonKind[] = ['michelin', 'top50', 'uusi', 'vuoden-ravintola']
+
+/**
+ * Lomittaa perustellut paikat niin, ettei mikään perhe kasaannu. Palauttaa
+ * uuden taulukon; syötettä ei muuteta. Paikat joilla ei ole syytä palautuvat
+ * lopussa siinä järjestyksessä kuin ne tulivat.
+ */
+export function interleaveReasoned<T>(
+  items: readonly T[],
+  reasonsOf: (t: T) => RestaurantReason[] | undefined,
+  today: Date,
+  /**
+   * Uskottavuuspiste (0–5). Ratkaisee järjestyksen PERHEEN SISÄLLÄ, jottei
+   * tuorein avaus ole automaattisesti ensimmäinen riippumatta siitä millainen
+   * paikka se on. Ilman tätä kärkeen nousi Ravintola Lasoon — aito uusi
+   * lounasravintola, mutta 37 arvostelua ja teollisuusalue, eli heikko
+   * ensimmäinen kortti. Paino on pieni suhteessa syyhyn (0–5 vs 50–150), joten
+   * se ei koskaan siirrä paikkaa perheestä toiseen.
+   */
+  credibility?: (t: T) => number,
+): T[] {
+  const groups = new Map<ReasonKind, { item: T; w: number }[]>()
+  const tail: { item: T; w: number }[] = []      // Time Out
+  const none: T[] = []                            // ei syytä
+
+  for (const item of items) {
+    const rs = reasonsOf(item)
+    const p = primaryReason(rs, today)
+    if (!p) { none.push(item); continue }
+    const entry = { item, w: reasonsWeight(rs!, today) + (credibility?.(item) ?? 0) }
+    if (MIXED_KINDS.includes(p.kind)) {
+      const g = groups.get(p.kind)
+      if (g) g.push(entry)
+      else groups.set(p.kind, [entry])
+    } else {
+      tail.push(entry)
+    }
+  }
+
+  for (const g of groups.values()) g.sort((a, b) => b.w - a.w)
+  tail.sort((a, b) => b.w - a.w)
+
+  // d'Hondt: suurin `jäljellä olevan perheen koko / (jo otetut + 1)` voittaa.
+  // Tasapelissä ratkaisee MIXED_KINDS-järjestys, jotta tulos on aina sama.
+  const sizes = new Map<ReasonKind, number>()
+  const taken = new Map<ReasonKind, number>()
+  for (const [k, g] of groups) { sizes.set(k, g.length); taken.set(k, 0) }
+
+  const mixed: T[] = []
+  const total = [...sizes.values()].reduce((a, b) => a + b, 0)
+  for (let n = 0; n < total; n++) {
+    let best: ReasonKind | null = null
+    let bestScore = -1
+    for (const k of MIXED_KINDS) {
+      const size = sizes.get(k)
+      if (size === undefined) continue
+      const t = taken.get(k)!
+      if (t >= size) continue
+      const score = size / (t + 1)
+      if (score > bestScore) { bestScore = score; best = k }
+    }
+    if (!best) break
+    mixed.push(groups.get(best)![taken.get(best)!].item)
+    taken.set(best, taken.get(best)! + 1)
+  }
+
+  return [...mixed, ...tail.map((t) => t.item), ...none]
+}
+
 /** Kortissa näytetään yksi syy: painavin. */
 export function primaryReason(
   reasons: RestaurantReason[] | undefined,

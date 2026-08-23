@@ -7,7 +7,7 @@ import type { NewsItem } from '@/app/api/restaurant-news/route'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { pickAttributes, FILTER_FLAGS } from '@/lib/google-attributes'
-import { primaryReason, reasonsWeight } from '@/lib/restaurant-reasons'
+import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaurant-reasons'
 import type { ReasonKind, RestaurantReason } from '@/lib/restaurant-reasons'
 
 // ── Chain grouping types ──────────────────────────────────
@@ -430,6 +430,13 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
   const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
   const cuisineStyle = getCuisineStyle(r)
   const reason = useMemo(() => primaryReason(r.reasons, new Date()), [r.reasons])
+  // Sijaluku 50 parasta -listalta näytetään myös silloin kun päämerkki on jokin
+  // muu — se on eri tieto kuin Michelin-luokka, ja lyhyt.
+  const secondaryReason = useMemo(() => {
+    if (!reason || reason.kind === 'top50') return null
+    const t = r.reasons?.find((x) => x.kind === 'top50' && typeof x.rank === 'number')
+    return t ? { ...t, label: `50 parasta · ${t.rank}` } : null
+  }, [r.reasons, reason])
   return (
     <div className={`rounded-2xl overflow-hidden ${onOpen ? 'cursor-pointer transition-transform active:scale-[.99]' : ''}`}
       role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}
@@ -485,7 +492,14 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
             näkyisi kortissa kahdesti. Ilman syytä vanhat merkit jäävät
             varalle, jottei mikään katoa jos syytiedosto ei osu. */}
         {reason ? (
-          <ReasonBadge reason={reason} />
+          /* Kaksi merkkiä, ei enempää. Moni Suomen 50 parasta -paikka on myös
+             Michelin-oppaassa, ja pelkkä vahvempi merkki hukkaisi sijaluvun:
+             Palace on 50 parasta -listan ykkönen, mutta näyttäisi vain
+             "Michelin 2★". Sijaluku on eri tieto ja mahtuu viereen. */
+          <div className="flex flex-wrap items-center gap-1">
+            <ReasonBadge reason={reason} />
+            {secondaryReason && <ReasonBadge reason={secondaryReason} />}
+          </div>
         ) : (
           <>
             {r.michelinStars && (
@@ -827,30 +841,51 @@ function RestSubTabs({ restType, active, onSelect }: {
 // globaalia keskiarvoa, jottei "5,0 (7 arvostelua)" ohita "4,6 (2000)".
 // Michelin/Bib nostaa; arvostelematon painuu listan loppuun (kuva ratkaisee
 // tasapelin erikseen). Vain lajitteluun — ei piilota mitään.
-const RATING_PRIOR_M = 50   // "näennäisarvostelujen" paino
-const RATING_PRIOR_C = 4.2  // globaali keskiarvo, johon harvat vedetään
+// ── USKOTTAVUUSKAAVA ────────────────────────────────────────────────────────
+// "Jos on 3000 arvostelua ja 4,7 arvosana, se on paljon parempi kuin 3
+// arvostelua ja 4,9. Tämä tuo uskottavuuden." — ja juuri niin kaava toimii:
+// arvosanaa vedetään kohti kaupungin keskiarvoa sitä voimakkaammin, mitä
+// vähemmän arvosteluja paikalla on.
+//
+//     pisteet = (arvostelut × arvosana + M × C) / (arvostelut + M)
+//
+// MOLEMMAT LUVUT ON MITATTU, ei arvattu. 2682 arvioidusta helsinkiläisestä
+// ravintolasta (yhteensä 1 150 448 arvostelua):
+//     keskiarvo               4,207   → C
+//     arvostelumäärän mediaani  212
+//     70. persentiili           409   → M pyöristettynä 400
+//
+// M = 400 tarkoittaa: paikan on kerättävä keskivertoa enemmän arvosteluja
+// ennen kuin sen arvosana otetaan lähes sellaisenaan. Mitattu vaikutus juuri
+// siihen rajatapaukseen, joka ratkaisee kaavan luonteen:
+//
+//     200 arvostelua × 4,9  vs  2000 arvostelua × 4,6
+//     M =  50   4,761  vs  4,590   → harva voittaa   (vanha kaava, väärin)
+//     M = 212   4,543  vs  4,562   → massa voittaa niukasti
+//     M = 400   4,438  vs  4,535   → massa voittaa selvästi
+//     M = 800   4,346  vs  4,488   → mutta tällöin 4,6 (4185) nousee kärkeen
+//                                     pelkällä volyymilla, mikä on jo liikaa
+//
+// Vanha M = 50 nosti kärkeen paikkoja kuten Color Stone 5,0 (209 arvostelua)
+// ohi paikan 99 TopMeal 4,9 (1978). Uudella kaavalla järjestys on päinvastoin.
+const RATING_PRIOR_M = 400  // "näennäisarvostelujen" paino — 70. persentiili
+const RATING_PRIOR_C = 4.207 // mitattu keskiarvo, johon harvat vedetään
 // Kärkipoimintojen määrä oletusnäkymässä — loput löytyvät kategoria-selauksesta
 const TOP_PICKS = 60
 // Kuvan paino laatupisteessä — nostaa kuvalliset läheltä-tasapelissä, mutta ei
 // ohita selvää arvosanaeroa (Bayes-pisteiden hajonta kärjessä on kapea ~4.2–4.9).
 const IMG_WEIGHT = 0.25
 
-// SYY ON JÄRJESTYKSEN PÄÄSIGNAALI. Ilman tätä näkymä lajitteli uudelleen
-// pelkällä arvosanalla ja KUMOSI API:n järjestyksen — mitattu, että se hautaa
-// juuri oikeat paikat: Grön (2★) sijalle 269, Nolla sijalle 416, Gaijin 1323.
-//
-// Syyn paino on kymmeniä (50–150), laatupiste yksinumeroinen (4–5). Ne
-// LASKETAAN YHTEEN eikä verrata portaittain, jolloin syy ratkaisee aina, mutta
-// samanarvoisten syiden kesken (esim. kaikki Michelin-oppaassa = 112) arvosana
-// ja kuva päättävät järjestyksen. Juuri niin kuin pitääkin.
-function restaurantQualityScore(r: Restaurant, today: Date): number {
-  const reason = r.reasons ? reasonsWeight(r.reasons, today) : 0
+// Uskottavuuspiste yksin — EI sisällä syytä. Syylliset paikat järjestetään
+// erikseen `interleaveReasoned`illa, jotta perheet lomittuvat eivätkä kasaudu
+// lohkoiksi; tämä kaava ratkaisee kaikkien MUIDEN järjestyksen.
+function restaurantQualityScore(r: Restaurant): number {
   const award = r.michelinStars ? 0.6 : (r.bibGourmand || r.michelinRecommended) ? 0.35 : 0
   if (r.googleRating !== undefined && r.googleRating !== null) {
     const v = r.reviewCount ?? 0
-    return reason + (v * r.googleRating + RATING_PRIOR_M * RATING_PRIOR_C) / (v + RATING_PRIOR_M) + award
+    return (v * r.googleRating + RATING_PRIOR_M * RATING_PRIOR_C) / (v + RATING_PRIOR_M) + award
   }
-  return reason + (award > 0 ? RATING_PRIOR_C + award : 0)
+  return award > 0 ? RATING_PRIOR_C + award : 0
 }
 
 // ── "⭐ 4+ / 4.5+" — arvosana ≥ kynnys; Michelin/Bib-tunnustus korvaa
@@ -1078,6 +1113,30 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // jos jokainen vertailu loisi oman Daten, lajittelu ei olisi vakaa.
   const sortToday = useMemo(() => new Date(), [])
 
+  const heroRest = useMemo(() => {
+    // Hero on sivun käyntikortti → AINA laadukas paikka + hyvä kuva. Vaaditaan
+    // kuva ja todistettu laatu (isRatedAtLeast 4 = ≥4★ & ≥50 arvostelua tai
+    // Michelin/Bib) — ei nosteta huonoa kuvaa eikä matalan arvosanan pikaruokaa.
+    // Lajitellaan samalla laatupisteellä kuin kärkipoiminnat; auki nyt -paikka
+    // voittaa kärjen tasavertaisista, muttei koskaan tiputa laatua.
+    // Hero on sivun käyntikortti, joten SYY ratkaisee tässä — ei pelkkä
+    // arvosana. Ilman sitä kärkeen nousisi 99 TopMeal (4,9 / 1978) Grönin
+    // (2★) sijaan: uskottava paikka, mutta ei se jolla sivun aloittaa.
+    const heroScore = (r: Restaurant) =>
+      (r.reasons ? reasonsWeight(r.reasons, sortToday) : 0) + restaurantQualityScore(r)
+    const quality = typePool
+      .filter(r => r.image && isRatedAtLeast(r, 4))
+      .sort((a, b) => heroScore(b) - heroScore(a))
+    const top = quality.slice(0, 12)
+    return (
+      top.find(r => r.openingHours && isOpenNow(r.openingHours) === true)
+      ?? quality[0]
+      ?? typePool.find(r => r.image)   // varapaikka: laatugate tyhjä (esim. harva tyyppi)
+      ?? typePool[0]
+      ?? null
+    )
+  }, [typePool, sortToday])
+
   const sortedPool = useMemo(() => {
     let filtered = [...subPool]
     // Suosituimmat-landing (subCat==='all') on kuratoitu laatulista jota EI
@@ -1103,35 +1162,30 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       // Oletus: laatu + kuva painottaen — kuvalliset vahvemmin kärkeen, mutta
       // arvosana pysyy pääasiallisena signaalina; tasapelissä arvostelumäärä
       filtered.sort((a, b) => {
-        const sa = restaurantQualityScore(a, sortToday) + (a.image ? IMG_WEIGHT : 0)
-        const sb = restaurantQualityScore(b, sortToday) + (b.image ? IMG_WEIGHT : 0)
+        const sa = restaurantQualityScore(a) + (a.image ? IMG_WEIGHT : 0)
+        const sb = restaurantQualityScore(b) + (b.image ? IMG_WEIGHT : 0)
         if (sb !== sa) return sb - sa
         return (b.reviewCount ?? 0) - (a.reviewCount ?? 0)
       })
     }
-    return filtered
-  }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat, sortToday])
+    // PERUSTELLUT PAIKAT KÄRKEEN, MUTTA SEKAISIN. Yllä oleva lajittelu antaa
+    // uskottavuusjärjestyksen; tämä nostaa syylliset sen eteen ja lomittaa
+    // perheet, jottei sivu näytä lohkoilta (ensin kaikki Michelinit, sitten
+    // kaikki 50 parasta…). Lähelläolo-suodatin on poikkeus: kun käyttäjä
+    // pyytää nimenomaan lähimpiä, etäisyys saa voittaa syyn.
+    if (filterNearby && userPos) return filtered
+    // HERO POIS ENNEN SEKOITUSTA. Jos se poistetaan vasta ruudukkoa
+    // piirrettäessä, lomitukseen jää aukko ja kaksi samaa perhettä päätyy
+    // vierekkäin — mitattu: Grön (Michelin) putosi välistä, jolloin kaksi
+    // uutta avausta jäi ensimmäiseksi pariksi.
+    const withoutHero = subCat === 'all' && heroRest
+      ? filtered.filter(r => r.id !== heroRest.id)
+      : filtered
+    return interleaveReasoned(withoutHero, (r) => r.reasons, sortToday, restaurantQualityScore)
+  }, [subPool, filterOpen, filterNearby, minStars, activeFlags, userPos, distMap, subCat, sortToday, heroRest])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
 
-  const heroRest = useMemo(() => {
-    // Hero on sivun käyntikortti → AINA laadukas paikka + hyvä kuva. Vaaditaan
-    // kuva ja todistettu laatu (isRatedAtLeast 4 = ≥4★ & ≥50 arvostelua tai
-    // Michelin/Bib) — ei nosteta huonoa kuvaa eikä matalan arvosanan pikaruokaa.
-    // Lajitellaan samalla laatupisteellä kuin kärkipoiminnat; auki nyt -paikka
-    // voittaa kärjen tasavertaisista, muttei koskaan tiputa laatua.
-    const quality = typePool
-      .filter(r => r.image && isRatedAtLeast(r, 4))
-      .sort((a, b) => restaurantQualityScore(b, sortToday) - restaurantQualityScore(a, sortToday))
-    const top = quality.slice(0, 12)
-    return (
-      top.find(r => r.openingHours && isOpenNow(r.openingHours) === true)
-      ?? quality[0]
-      ?? typePool.find(r => r.image)   // varapaikka: laatugate tyhjä (esim. harva tyyppi)
-      ?? typePool[0]
-      ?? null
-    )
-  }, [typePool])
 
   const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setMinStars(null) }, [])
 
@@ -1205,7 +1259,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </h2>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
                     {groupedSortedPool
-                      .filter(item => '_isChain' in item || item.id !== heroRest?.id)
                       .slice(0, TOP_PICKS).map(item =>
                       '_isChain' in item
                         ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
