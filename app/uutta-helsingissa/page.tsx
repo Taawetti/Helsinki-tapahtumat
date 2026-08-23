@@ -7,13 +7,14 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { unstable_cache } from 'next/cache'
 import { buildNewInHelsinki } from '@/lib/new-in-helsinki'
-import type { OpeningInput } from '@/lib/new-in-helsinki'
+import type { OpeningInput, PlaceCardInput } from '@/lib/new-in-helsinki'
 import type { RestaurantReason, ReasonFile } from '@/lib/restaurant-reasons'
 import { fetchRestaurantNews } from '@/lib/restaurant-news'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import NewInHelsinkiView from '@/components/NewInHelsinkiView'
 import openingData from '@/data/new-openings.json'
 import activityReasonData from '@/data/activity-reasons.json'
+import enrichedData from '@/data/new-places-enriched.json'
 
 export const revalidate = 3600
 
@@ -73,12 +74,19 @@ export default async function UuttaHelsingissaSivu() {
     fetchReviewCounts().catch(() => null),
   ])
 
+  // OSM-paikkojen Google-kortit: kuva, osoite, arvosana + tuorein
+  // uutuusvartija (kortin arvostelumäärä).
+  const placeCards = new Map<string, PlaceCardInput>(
+    Object.entries((enrichedData as { cards?: Record<string, PlaceCardInput> }).cards ?? {}),
+  )
+
   const data = buildNewInHelsinki({
     openings: (openingData.openings ?? []) as OpeningInput[],
     newPlaces: reasonFile.newPlaces ?? [],
     exhibitions,
     news,
     reviewCounts: countRows ? new Map(countRows) : undefined,
+    placeCards,
     today: new Date(),
   })
 

@@ -36,6 +36,7 @@ import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { ReasonKind, RestaurantReason, ReasonFile } from '../lib/restaurant-reasons'
 import { reasonKeyVariants } from '../lib/restaurant-reasons'
+import { extractImageFromHtml } from '../lib/og-image'
 import { get, stripTags, listTitleNote, listPill, extractListEntries, NOT_A_VENUE, looksLikeSentence } from '../lib/editorial-scrape'
 
 const OUT = join(process.cwd(), 'data', 'activity-reasons.json')
@@ -110,7 +111,44 @@ async function fetchExhibitions(): Promise<Raw[]> {
       },
     })
   }
+
+  // NÄYTTELYKUVAT: museot.fi:n näyttelysivun og:image on museon itse antama
+  // esittelykuva (uploadkuvat/…) — sama menetelmä kuin festivaali- ja
+  // ravintolakuvissa. Osoite tarkistetaan oikeasti ennen tallennusta, jottei
+  // aikajanalle päädy 404-kuvaa. Kuvaton näyttely on yhä täysi rivi.
+  {
+    const queue = [...out]
+    async function imageWorker() {
+      for (;;) {
+        const row = queue.shift()
+        if (!row || !row.reason.url) return
+        try {
+          const html: string = await get(row.reason.url)
+          const img = extractImageFromHtml(html, row.reason.url)
+          if (img && (await imageAlive(img))) row.reason.image = img
+        } catch { /* kuvaton näyttely kelpaa — sivun kaatuminen ei kaada hakua */ }
+      }
+    }
+    await Promise.all(Array.from({ length: 4 }, imageWorker))
+    console.log(`    näyttelykuvia: ${out.filter((r) => r.reason.image).length}/${out.length}`)
+  }
   return out
+}
+
+/** Toimiiko kuvaosoite oikeasti? Vain status ja sisältötyyppi — runko pois heti. */
+async function imageAlive(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MitaTanaanBot/1.0; +https://mitatanaan.fi)' },
+      signal: AbortSignal.timeout(10_000),
+    })
+    try { await res.body?.cancel() } catch { /* jo suljettu */ }
+    if (!res.ok) return false
+    const type = res.headers.get('content-type') ?? ''
+    return type.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(url)
+  } catch {
+    return false
+  }
 }
 
 // ── 2. TOIMITUKSELLISET LISTAT ──────────────────────────────────────────────

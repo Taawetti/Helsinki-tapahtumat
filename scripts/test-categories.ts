@@ -55,6 +55,8 @@ import {
   OPENING_HEADLINE,
   type OpeningInput,
 } from '../lib/new-in-helsinki'
+import enrichedFile from '../data/new-places-enriched.json'
+import { nameOverlap } from '../lib/dataforseo'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
 import deadImages from '../data/dead-images.json'
@@ -2342,6 +2344,54 @@ for (const c of ideaChecks) {
       openings: [], newPlaces: [osm('Cafe Tuore', '2026-08-12')], exhibitions: [], news: [], today: uToday,
     })
     rChecks.push({ name: 'uutta: ilman arvostelumääriä OSM-rivit jäävät pois', ok: noCounts.total === 0, got: String(noCounts.total) })
+
+    // Google-kortti OSM-riville: kuva/osoite/arvosana mukaan, ja kortin
+    // arvostelumäärä toimii vartijana venue_ratingsin sijasta.
+    const withCards = buildNewInHelsinki({
+      openings: [], exhibitions: [], news: [], today: uToday,
+      newPlaces: [
+        osm('Cafe Kortti', '2026-08-12'),
+        osm('Vanha Klassikko', '2026-08-01'),
+      ],
+      // EI reviewCounts-karttaa — kortti riittää vartijaksi
+      placeCards: new Map([
+        ['https://osm.org/Cafe Kortti', { image: 'https://img/x.jpg', address: 'Testikatu 1, Helsinki', rating: 4.8, reviewCount: 23 }],
+        ['https://osm.org/Vanha Klassikko', { rating: 4.5, reviewCount: 900 }],
+      ]),
+    })
+    const kortti = [...withCards.months.flatMap((m) => m.items)].find((i) => i.name === 'Cafe Kortti')
+    rChecks.push({ name: 'uutta: kortti tuo kuvan ja osoitteen OSM-riville', ok: kortti?.image === 'https://img/x.jpg' && kortti?.address === 'Testikatu 1, Helsinki' })
+    rChecks.push({ name: 'uutta: kortin arvostelumäärä kelpaa vartijaksi ilman venue_ratingsia', ok: !!kortti })
+    rChecks.push({ name: 'uutta: kortin 900 arvostelua paljastaa vanhan paikan → pois', ok: !withCards.months.flatMap((m) => m.items).some((i) => i.name === 'Vanha Klassikko') })
+    rChecks.push({ name: 'uutta: OSM-rivin päivä on likimääräinen (dateApprox)', ok: kortti?.dateApprox === true })
+
+    // Näyttelykuva kulkee aikajanalle
+    const withExImg = buildNewInHelsinki({
+      openings: [], newPlaces: [], news: [], today: uToday,
+      exhibitions: [{ kind: 'nayttely', label: 'Ajankohtainen näyttely', source: 'museot.fi', url: 'https://museot.fi/9', date: '2026-08-18', note: 'Kuvallinen (18.8.2026 – 1.1.2027)', venue: 'Museo X', image: 'https://museot.fi/uploadkuvat/x.jpg' }],
+    })
+    rChecks.push({ name: 'uutta: näyttelykuva kulkee riville', ok: withExImg.months[0]?.items[0]?.image === 'https://museot.fi/uploadkuvat/x.jpg' })
+
+    // Rikastuksen nimivartija
+    rChecks.push({ name: 'rikastus: "Talas" ↔ "Yhteiskerhotila Talas, sauna" osuu', ok: nameOverlap('Yhteiskerhotila Talas, sauna', 'Talas') >= 0.5 })
+    rChecks.push({ name: 'rikastus: eri yritys ei osu', ok: nameOverlap('Mansikka', 'Kukkakauppa Ruusunen') < 0.5 })
+    rChecks.push({ name: 'rikastus: tarkkeet eivät estä osumaa', ok: nameOverlap('Äfra café', 'Afra Cafe') >= 0.5 })
+    // Mitattu: OSM "Walhala" ↔ Google "Ravintola Walhalla" on sama paikka.
+    rChecks.push({ name: 'rikastus: yhden kirjaimen ero ei estä osumaa (Walhala)', ok: nameOverlap('Walhala', 'Ravintola Walhalla') >= 0.5, got: nameOverlap('Walhala', 'Ravintola Walhalla').toFixed(2) })
+    rChecks.push({ name: 'rikastus: kahden kirjaimen ero estää', ok: nameOverlap('Kirnu', 'Kirppu') < 0.5 })
+
+    // OIKEA DATATIEDOSTO — rikastuskortit
+    const ef = enrichedFile as { fetchedAt?: string; cards?: Record<string, { name?: string; image?: string | null; fetchedAt?: string }>; misses?: unknown[] }
+    const cardList = Object.values(ef.cards ?? {})
+    rChecks.push({ name: 'rikastus: kortteja on vähintään 5', ok: cardList.length >= 5, got: String(cardList.length) })
+    rChecks.push({ name: 'rikastus: jokaisella kortilla nimi ja hakuaika', ok: cardList.every((c) => !!c.name && !!c.fetchedAt) })
+    rChecks.push({ name: 'rikastus: yli puolella korteista on kuva', ok: cardList.filter((c) => c.image).length >= cardList.length / 2, got: `${cardList.filter((c) => c.image).length}/${cardList.length}` })
+
+    // Näyttelykuvien kattavuus oikeassa datassa
+    const exhibits17 = Object.values((activityReasonFile as unknown as ReasonFile).byName ?? {}).flat().filter((x) => x.kind === 'nayttely')
+    const uniqEx = new Map(exhibits17.map((x) => [x.url, x]))
+    const exImgs = [...uniqEx.values()].filter((x) => x.image).length
+    rChecks.push({ name: 'näyttelykuvat: yli puolella näyttelyistä on kuva', ok: exImgs >= uniqEx.size / 2, got: `${exImgs}/${uniqEx.size}` })
 
     // OIKEA DATATIEDOSTO — newPlaces-osio (Uutta Helsingissä -sivun selkäranka)
     const af17 = activityReasonFile as unknown as ReasonFile

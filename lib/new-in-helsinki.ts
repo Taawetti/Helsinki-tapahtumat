@@ -36,6 +36,12 @@ export interface NewItem {
   kind: NewKind
   /** ISO-päivä: avauspäivä tai näyttelyn alku. */
   date: string
+  /**
+   * true = päivä on OSM-merkinnän luontipäivä, EI todennettu avauspäivä —
+   * ovi on voinut aueta aiemmin. Näkymä sanoo silloin "Uusi elokuussa"
+   * eikä "Avattu 19.8." (rehellisyys ennen täsmällisyyttä).
+   */
+  dateApprox?: boolean
   /** true = ei vielä auennut/alkanut. */
   upcoming: boolean
   address?: string
@@ -141,6 +147,15 @@ export function neighborhoodOf(lat?: number, lon?: number, address?: string): st
 
 // ── SYÖTTEET ────────────────────────────────────────────────────────────────
 
+/** Google-kortti OSM-paikalle (scripts/enrich-new-places.ts). */
+export interface PlaceCardInput {
+  image?: string | null
+  address?: string | null
+  www?: string | null
+  rating?: number | null
+  reviewCount?: number | null
+}
+
 export interface OpeningInput {
   name: string
   address?: string
@@ -170,6 +185,13 @@ export interface BuildInput {
    * suppeampi sivu kuin väärä "uusi paikka").
    */
   reviewCounts?: Map<string, number>
+  /**
+   * OSM-osoite → Google-kortti (data/new-places-enriched.json). Antaa
+   * OSM-riville kuvan, osoitteen ja arvosanan — ja kortin oma
+   * arvostelumäärä on TUOREEMPI uutuusvartija kuin venue_ratings, joten
+   * kortillinen rivi kelpaa vaikka venue_ratings ei vastaisi.
+   */
+  placeCards?: Map<string, PlaceCardInput>
   today: Date
 }
 
@@ -218,14 +240,26 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
   // 2) OSM:N UUDET PAIKAT — kattaa sen minkä luparekisteri ohittaa (kahvilat,
   //    leipomot, saunat, putiikit). Sama paikka molemmissa → rekisterikortti
   //    voittaa ja OSM lisätään lähdemerkiksi.
-  if (input.reviewCounts) {
+  //
+  //    UUTUUSVARTIJA kahdesta lähteestä: Google-kortin arvostelumäärä
+  //    (tuorein tieto) tai venue_ratings. Ilman kumpaakaan riviä ei näytetä —
+  //    väitettä "uusi" ei silloin voida tarkistaa.
+  {
     const seenUrl = new Set<string>()
     for (const p of input.newPlaces) {
       if (!p.venue || !p.date || p.date < oldestIso) continue
       if (p.url && seenUrl.has(p.url)) continue   // sama paikka solmuna ja alueena
       if (p.url) seenUrl.add(p.url)
-      const reviews = input.reviewCounts.get(p.venue.toLowerCase().trim())
-      if (reviews !== undefined && reviews > MAX_REVIEWS_FOR_NEW) continue
+      const card = p.url ? input.placeCards?.get(p.url) : undefined
+      const cardReviews = card?.reviewCount ?? undefined
+      const vrReviews = input.reviewCounts?.get(p.venue.toLowerCase().trim())
+      if (cardReviews !== undefined) {
+        if (cardReviews > MAX_REVIEWS_FOR_NEW) continue        // vanha paikka, vasta kartoitettu
+      } else if (input.reviewCounts) {
+        if (vrReviews !== undefined && vrReviews > MAX_REVIEWS_FOR_NEW) continue
+      } else {
+        continue                                               // ei vartijaa → ei väitettä
+      }
       const key = reasonKey(p.venue)
       const existing = byKey.get(key)
       if (existing) {
@@ -237,12 +271,17 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
         name: p.venue,
         kind: kindFromVenueType(p.venueType ?? ''),
         date: p.date,
+        // OSM-päivä on karttamerkinnän luontipäivä, ei todennettu avauspäivä.
+        dateApprox: true,
         upcoming: false,                          // OSM-merkintä syntyy vasta kun paikka on olemassa
-        neighborhood: neighborhoodOf(p.lat, p.lon),
+        address: card?.address ?? undefined,
+        neighborhood: neighborhoodOf(p.lat, p.lon, card?.address ?? undefined),
         lat: p.lat,
         lon: p.lon,
-        rating: undefined,
-        reviews,
+        image: card?.image ?? undefined,
+        www: card?.www ?? undefined,
+        rating: card?.rating ?? undefined,
+        reviews: cardReviews ?? vrReviews,
         sources: [{ label: 'OpenStreetMap', url: p.url }],
       })
     }
@@ -265,6 +304,7 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
       date: e.date,
       upcoming: e.date > todayIso,
       note: [e.venue, period].filter(Boolean).join(' · '),
+      image: e.image,
       sources: [{ label: 'museot.fi', url: e.url }],
     })
   }

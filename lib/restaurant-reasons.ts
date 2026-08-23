@@ -65,6 +65,9 @@ export interface RestaurantReason {
   /** OSM:n päätagin arvo (cafe, sauna, museum, bakery…). Uutta Helsingissä
    *  -sivu luokittelee rivit tällä. */
   venueType?: string
+  /** Lähteen oma esittelykuva (museot.fi:n og:image näyttelylle). Tarkistettu
+   *  hakuhetkellä; kuolleet karsii viikkoharava. */
+  image?: string
 }
 
 /** Tiedostoon `data/restaurant-reasons.json` tallennettu muoto. */

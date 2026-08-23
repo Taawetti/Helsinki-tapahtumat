@@ -73,6 +73,15 @@ jobs:
           DATAFORSEO_TOKEN: ${{ secrets.DATAFORSEO_TOKEN }}
         run: npx tsx scripts/fetch-new-openings.ts
 
+      # OSM:n uusien paikkojen Google-kortit (kuva, osoite, arvosana) Uutta
+      # Helsingissä -sivulle. Maksaa vain uusista — jo haetut ovat tiedostossa.
+      # Kaatuminen ei estä muuta: rivit näkyvät silloin ilman korttia.
+      - name: Rikasta uudet paikat
+        continue-on-error: true
+        env:
+          DATAFORSEO_TOKEN: ${{ secrets.DATAFORSEO_TOKEN }}
+        run: npx tsx scripts/enrich-new-places.ts
+
       # Nettisivujen esittelykuvat: ravintolan itse valitsema jakokuva omalta
       # sivultaan — ei lahoa kuten Googlen linkit, ilmainen. Lukee tuotannon
       # ravintolalistan, joten ei tarvitse salaisuuksia.
@@ -116,7 +125,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/restaurant-reasons.json data/activity-reasons.json data/new-openings.json data/dead-images.json data/website-images.json
+          git add data/restaurant-reasons.json data/activity-reasons.json data/new-openings.json data/new-places-enriched.json data/dead-images.json data/website-images.json
           git commit -m "Reasons: weekly refresh (restaurants + activities)
 
           Automaattinen haku: Michelin-opas, Suomen 50 parasta, Vuoden

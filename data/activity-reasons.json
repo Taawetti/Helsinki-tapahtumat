@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-23T18:27:29.817Z",
+  "fetchedAt": "2026-08-23T18:58:02.617Z",
   "byName": {
     "sinebrychoffin taidemuseo": [
       {
@@ -9,7 +9,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=35022",
         "date": "2026-03-03",
         "note": "Anna Sinebrychoff – Edelläkävijä (3.3.2026 – 29.8.2027)",
-        "venue": "Sinebrychoffin taidemuseo"
+        "venue": "Sinebrychoffin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21124/rajattu-pieni.jpg"
       },
       {
         "kind": "nayttely",
@@ -18,7 +19,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=33283",
         "date": "2026-09-24",
         "note": "Riikinkukko puutarhassa – Mathias Withoosin Rooma (24.9.2026 – 10.1.2027)",
-        "venue": "Sinebrychoffin taidemuseo"
+        "venue": "Sinebrychoffin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21124/pienempi_stilleven_2_pauwen_woudenberg_DSC2000_klaar.jpg"
       },
       {
         "kind": "nayttely",
@@ -27,7 +29,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=29877",
         "date": "2026-02-17",
         "note": "Paul ja Fanny Sinebrychoffin kotimuseo (17.2.2026 – 31.12.2030)",
-        "venue": "Sinebrychoffin taidemuseo"
+        "venue": "Sinebrychoffin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21124/SIFF_Empiresali_web_Kuvaaja_Kansallisgalleria_Pirje_Mykkanen--kopio.jpg"
       }
     ],
     "sinebrychoffintaidemuseo": [
@@ -38,7 +41,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=35022",
         "date": "2026-03-03",
         "note": "Anna Sinebrychoff – Edelläkävijä (3.3.2026 – 29.8.2027)",
-        "venue": "Sinebrychoffin taidemuseo"
+        "venue": "Sinebrychoffin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21124/rajattu-pieni.jpg"
       },
       {
         "kind": "nayttely",
@@ -47,7 +51,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=33283",
         "date": "2026-09-24",
         "note": "Riikinkukko puutarhassa – Mathias Withoosin Rooma (24.9.2026 – 10.1.2027)",
-        "venue": "Sinebrychoffin taidemuseo"
+        "venue": "Sinebrychoffin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21124/pienempi_stilleven_2_pauwen_woudenberg_DSC2000_klaar.jpg"
       },
       {
         "kind": "nayttely",
@@ -56,7 +61,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=29877",
         "date": "2026-02-17",
         "note": "Paul ja Fanny Sinebrychoffin kotimuseo (17.2.2026 – 31.12.2030)",
-        "venue": "Sinebrychoffin taidemuseo"
+        "venue": "Sinebrychoffin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21124/SIFF_Empiresali_web_Kuvaaja_Kansallisgalleria_Pirje_Mykkanen--kopio.jpg"
       }
     ],
     "merkki": [
@@ -67,7 +73,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44489",
         "date": "2026-08-21",
         "note": "Stadissa tehty 2026 (21.8.2026 – 1.11.2026)",
-        "venue": "Merkki"
+        "venue": "Merkki",
+        "image": "https://museot.fi/uploadkuvat/museot/22033/thomas-banneri-pienempi.jpg"
       },
       {
         "kind": "nayttely",
@@ -76,7 +83,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44200",
         "date": "2026-07-13",
         "note": "Ihminenkori ja kokis pls (13.7.2026 – 7.9.2026)",
-        "venue": "Merkki"
+        "venue": "Merkki",
+        "image": "https://museot.fi/uploadkuvat/museot/22033/Ihminenkori-lintumeemit.png"
       },
       {
         "kind": "nayttely",
@@ -85,7 +93,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43330",
         "date": "2026-05-08",
         "note": "Saapasjalkakissa – kaikkien aikojen satuseikkailu (8.5.2026 – 30.12.2026)",
-        "venue": "Merkki"
+        "venue": "Merkki",
+        "image": "https://museot.fi/uploadkuvat/museot/22033/PL_saapasjalka_tekstilla_FIN.png"
       }
     ],
     "helsingin taidehalli": [
@@ -96,7 +105,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43076",
         "date": "2026-08-20",
         "note": "Alia Ali: In Light of... (20.8.2026 – 1.11.2026)",
-        "venue": "Helsingin Taidehalli"
+        "venue": "Helsingin Taidehalli",
+        "image": "https://museot.fi/uploadkuvat/museot/9002/Alia-Ali-Homage_horizontal.jpg"
       }
     ],
     "helsingintaidehalli": [
@@ -107,7 +117,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43076",
         "date": "2026-08-20",
         "note": "Alia Ali: In Light of... (20.8.2026 – 1.11.2026)",
-        "venue": "Helsingin Taidehalli"
+        "venue": "Helsingin Taidehalli",
+        "image": "https://museot.fi/uploadkuvat/museot/9002/Alia-Ali-Homage_horizontal.jpg"
       }
     ],
     "sotamuseo maneesi": [
@@ -118,7 +129,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39335",
         "date": "2025-03-29",
         "note": "Kahden kodin välillä (29.3.2025 – 31.10.2026)",
-        "venue": "Sotamuseo Maneesi"
+        "venue": "Sotamuseo Maneesi",
+        "image": "https://museot.fi/uploadkuvat/museot/21160/sotalapset.jpg"
       },
       {
         "kind": "nayttely",
@@ -127,7 +139,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40407",
         "date": "2025-06-01",
         "note": "Voitto on meidän (1.6.2025 – 31.10.2026)",
-        "venue": "Sotamuseo Maneesi"
+        "venue": "Sotamuseo Maneesi",
+        "image": "https://museot.fi/uploadkuvat/museot/21160/propaganda_nayttely.jpg"
       }
     ],
     "sotamuseomaneesi": [
@@ -138,7 +151,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39335",
         "date": "2025-03-29",
         "note": "Kahden kodin välillä (29.3.2025 – 31.10.2026)",
-        "venue": "Sotamuseo Maneesi"
+        "venue": "Sotamuseo Maneesi",
+        "image": "https://museot.fi/uploadkuvat/museot/21160/sotalapset.jpg"
       },
       {
         "kind": "nayttely",
@@ -147,7 +161,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40407",
         "date": "2025-06-01",
         "note": "Voitto on meidän (1.6.2025 – 31.10.2026)",
-        "venue": "Sotamuseo Maneesi"
+        "venue": "Sotamuseo Maneesi",
+        "image": "https://museot.fi/uploadkuvat/museot/21160/propaganda_nayttely.jpg"
       }
     ],
     "nykytaiteen museo kiasma": [
@@ -158,7 +173,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41730",
         "date": "2026-10-09",
         "note": "Emma Ainala: Like a Prayer (9.10.2026 – 14.2.2027)",
-        "venue": "Nykytaiteen museo Kiasma"
+        "venue": "Nykytaiteen museo Kiasma",
+        "image": "https://museot.fi/uploadkuvat/museot/21118/EmmaAinala_HighMaintenance_2026_Photo_JohannesEkholm.jpg"
       },
       {
         "kind": "nayttely",
@@ -167,7 +183,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41725",
         "date": "2026-03-27",
         "note": "Entiset ainoat – Saamelaisen taiteen aika (27.3.2026 – 6.9.2026)",
-        "venue": "Nykytaiteen museo Kiasma"
+        "venue": "Nykytaiteen museo Kiasma",
+        "image": "https://museot.fi/uploadkuvat/museot/21118/siriBaggerman_Drone2021_KuvaSiriBaggerman.jpg"
       },
       {
         "kind": "nayttely",
@@ -176,7 +193,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41728",
         "date": "2026-04-17",
         "note": "Edith Karlson: Sarastus (17.4.2026 – 27.9.2026)",
-        "venue": "Nykytaiteen museo Kiasma"
+        "venue": "Nykytaiteen museo Kiasma",
+        "image": "https://museot.fi/uploadkuvat/museot/21118/EdithKarlson_SapiehaPalace_photo-by-AndrejVasilenko.jpg"
       }
     ],
     "nykytaiteenmuseokiasma": [
@@ -187,7 +205,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41730",
         "date": "2026-10-09",
         "note": "Emma Ainala: Like a Prayer (9.10.2026 – 14.2.2027)",
-        "venue": "Nykytaiteen museo Kiasma"
+        "venue": "Nykytaiteen museo Kiasma",
+        "image": "https://museot.fi/uploadkuvat/museot/21118/EmmaAinala_HighMaintenance_2026_Photo_JohannesEkholm.jpg"
       },
       {
         "kind": "nayttely",
@@ -196,7 +215,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41725",
         "date": "2026-03-27",
         "note": "Entiset ainoat – Saamelaisen taiteen aika (27.3.2026 – 6.9.2026)",
-        "venue": "Nykytaiteen museo Kiasma"
+        "venue": "Nykytaiteen museo Kiasma",
+        "image": "https://museot.fi/uploadkuvat/museot/21118/siriBaggerman_Drone2021_KuvaSiriBaggerman.jpg"
       },
       {
         "kind": "nayttely",
@@ -205,7 +225,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41728",
         "date": "2026-04-17",
         "note": "Edith Karlson: Sarastus (17.4.2026 – 27.9.2026)",
-        "venue": "Nykytaiteen museo Kiasma"
+        "venue": "Nykytaiteen museo Kiasma",
+        "image": "https://museot.fi/uploadkuvat/museot/21118/EdithKarlson_SapiehaPalace_photo-by-AndrejVasilenko.jpg"
       }
     ],
     "herttoniemen kartanon museo": [
@@ -216,7 +237,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44347",
         "date": "2026-08-11",
         "note": "Unohdus (11.8.2026 – 27.9.2026)",
-        "venue": "Herttoniemen kartanon museo"
+        "venue": "Herttoniemen kartanon museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21111/Pienempi-tiedosto.jpg"
       }
     ],
     "herttoniemenkartanonmuseo": [
@@ -227,7 +249,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44347",
         "date": "2026-08-11",
         "note": "Unohdus (11.8.2026 – 27.9.2026)",
-        "venue": "Herttoniemen kartanon museo"
+        "venue": "Herttoniemen kartanon museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21111/Pienempi-tiedosto.jpg"
       }
     ],
     "luomus luonnontieteellinen museo": [
@@ -238,7 +261,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44303",
         "date": "2026-09-01",
         "note": "Luova Tuho (1.9.2026 – 10.1.2027)",
-        "venue": "LUOMUS Luonnontieteellinen museo"
+        "venue": "LUOMUS Luonnontieteellinen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21106/luomus_metstie_johan_eichhorn.jpg"
       },
       {
         "kind": "nayttely",
@@ -247,7 +271,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44325",
         "date": "2026-08-18",
         "note": "Värit (18.8.2026 – 11.10.2026)",
-        "venue": "LUOMUS Luonnontieteellinen museo"
+        "venue": "LUOMUS Luonnontieteellinen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21106/luomus_kahvila_tero_pajukallio.jpg"
       },
       {
         "kind": "nayttely",
@@ -256,7 +281,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43579",
         "date": "2026-05-20",
         "note": "Pölyttäjien kirjo (20.5.2026 – 6.6.2027)",
-        "venue": "LUOMUS Luonnontieteellinen museo"
+        "venue": "LUOMUS Luonnontieteellinen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21106/luomus_uutiskuva_plyttjien_kirjo_janne_toriseva.jpg"
       }
     ],
     "luomusluonnontieteellinenmuseo": [
@@ -267,7 +293,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44303",
         "date": "2026-09-01",
         "note": "Luova Tuho (1.9.2026 – 10.1.2027)",
-        "venue": "LUOMUS Luonnontieteellinen museo"
+        "venue": "LUOMUS Luonnontieteellinen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21106/luomus_metstie_johan_eichhorn.jpg"
       },
       {
         "kind": "nayttely",
@@ -276,7 +303,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44325",
         "date": "2026-08-18",
         "note": "Värit (18.8.2026 – 11.10.2026)",
-        "venue": "LUOMUS Luonnontieteellinen museo"
+        "venue": "LUOMUS Luonnontieteellinen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21106/luomus_kahvila_tero_pajukallio.jpg"
       },
       {
         "kind": "nayttely",
@@ -285,7 +313,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43579",
         "date": "2026-05-20",
         "note": "Pölyttäjien kirjo (20.5.2026 – 6.6.2027)",
-        "venue": "LUOMUS Luonnontieteellinen museo"
+        "venue": "LUOMUS Luonnontieteellinen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21106/luomus_uutiskuva_plyttjien_kirjo_janne_toriseva.jpg"
       }
     ],
     "tekniikan museo": [
@@ -296,7 +325,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44266",
         "date": "2026-07-11",
         "note": "Entä jos? (11.7.2026 – 31.12.2027)",
-        "venue": "Tekniikan museo"
+        "venue": "Tekniikan museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21136/Enta_jos_1600x900.jpg"
       },
       {
         "kind": "nayttely",
@@ -305,7 +335,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43113",
         "date": "2026-03-30",
         "note": "Tekoälyn tila (30.3.2026 – 31.12.2027)",
-        "venue": "Tekniikan museo"
+        "venue": "Tekniikan museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21136/Ai-visu-nettisivuille4-1920x1080.png"
       },
       {
         "kind": "nayttely",
@@ -314,7 +345,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43109",
         "date": "2026-03-27",
         "note": "on/off/on-installaatio (27.3.2026 – 30.8.2026)",
-        "venue": "Tekniikan museo"
+        "venue": "Tekniikan museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21136/OnOffOn-nayttelysivun-ylakuva-1.jpg"
       }
     ],
     "tekniikanmuseo": [
@@ -325,7 +357,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44266",
         "date": "2026-07-11",
         "note": "Entä jos? (11.7.2026 – 31.12.2027)",
-        "venue": "Tekniikan museo"
+        "venue": "Tekniikan museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21136/Enta_jos_1600x900.jpg"
       },
       {
         "kind": "nayttely",
@@ -334,7 +367,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43113",
         "date": "2026-03-30",
         "note": "Tekoälyn tila (30.3.2026 – 31.12.2027)",
-        "venue": "Tekniikan museo"
+        "venue": "Tekniikan museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21136/Ai-visu-nettisivuille4-1920x1080.png"
       },
       {
         "kind": "nayttely",
@@ -343,7 +377,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43109",
         "date": "2026-03-27",
         "note": "on/off/on-installaatio (27.3.2026 – 30.8.2026)",
-        "venue": "Tekniikan museo"
+        "venue": "Tekniikan museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21136/OnOffOn-nayttelysivun-ylakuva-1.jpg"
       }
     ],
     "ham helsingin taidemuseo": [
@@ -354,7 +389,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44031",
         "date": "2026-09-25",
         "note": "Antti Tolvi: Sävellys uruille ja tauolle (25.9.2026 – 10.1.2027)",
-        "venue": "HAM Helsingin taidemuseo"
+        "venue": "HAM Helsingin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21989/Tolvi-paakuva.jpg"
       },
       {
         "kind": "nayttely",
@@ -363,7 +399,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44033",
         "date": "2026-10-09",
         "note": "Emma Talbot: Et ole keskipiste (9.10.2026 – 25.4.2027)",
-        "venue": "HAM Helsingin taidemuseo"
+        "venue": "HAM Helsingin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21989/Talbot-paakuva.jpg"
       },
       {
         "kind": "nayttely",
@@ -372,7 +409,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44032",
         "date": "2026-10-09",
         "note": "Leena Luostarinen: Sopeutumaton (9.10.2026 – 4.4.2027)",
-        "venue": "HAM Helsingin taidemuseo"
+        "venue": "HAM Helsingin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21989/Luostarinen-paakuva.jpg"
       }
     ],
     "hamhelsingintaidemuseo": [
@@ -383,7 +421,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44031",
         "date": "2026-09-25",
         "note": "Antti Tolvi: Sävellys uruille ja tauolle (25.9.2026 – 10.1.2027)",
-        "venue": "HAM Helsingin taidemuseo"
+        "venue": "HAM Helsingin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21989/Tolvi-paakuva.jpg"
       },
       {
         "kind": "nayttely",
@@ -392,7 +431,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44033",
         "date": "2026-10-09",
         "note": "Emma Talbot: Et ole keskipiste (9.10.2026 – 25.4.2027)",
-        "venue": "HAM Helsingin taidemuseo"
+        "venue": "HAM Helsingin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21989/Talbot-paakuva.jpg"
       },
       {
         "kind": "nayttely",
@@ -401,7 +441,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44032",
         "date": "2026-10-09",
         "note": "Leena Luostarinen: Sopeutumaton (9.10.2026 – 4.4.2027)",
-        "venue": "HAM Helsingin taidemuseo"
+        "venue": "HAM Helsingin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21989/Luostarinen-paakuva.jpg"
       }
     ],
     "ehrensvard museo": [
@@ -412,7 +453,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44170",
         "date": "2026-07-02",
         "note": "Ehrensvärd-museon digitaalinen opas (2.7.2026 – 31.8.2026)",
-        "venue": "Ehrensvärd-museo"
+        "venue": "Ehrensvärd-museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21096/Digiopas.jpg"
       },
       {
         "kind": "nayttely",
@@ -421,7 +463,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42567",
         "date": "2026-04-02",
         "note": "MERENKULKIJAN KARTASTOT - Karttojen matkassa Itämerellä (2.4.2026 – 30.9.2026)",
-        "venue": "Ehrensvärd-museo"
+        "venue": "Ehrensvärd-museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21096/tunnuskuva_Suomenlahti_1788_JNS-merikartta-pieni.jpg"
       }
     ],
     "ehrensvardmuseo": [
@@ -432,7 +475,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=44170",
         "date": "2026-07-02",
         "note": "Ehrensvärd-museon digitaalinen opas (2.7.2026 – 31.8.2026)",
-        "venue": "Ehrensvärd-museo"
+        "venue": "Ehrensvärd-museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21096/Digiopas.jpg"
       },
       {
         "kind": "nayttely",
@@ -441,7 +485,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42567",
         "date": "2026-04-02",
         "note": "MERENKULKIJAN KARTASTOT - Karttojen matkassa Itämerellä (2.4.2026 – 30.9.2026)",
-        "venue": "Ehrensvärd-museo"
+        "venue": "Ehrensvärd-museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21096/tunnuskuva_Suomenlahti_1788_JNS-merikartta-pieni.jpg"
       }
     ],
     "helsingin kaupunginmuseo": [
@@ -452,7 +497,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42679",
         "date": "2026-06-13",
         "note": "Helsinki-näyttely (13.6.2026 – 31.12.2030)",
-        "venue": "Helsingin kaupunginmuseo"
+        "venue": "Helsingin kaupunginmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21099/artikkelikuva_825x513px_paanayttely_1_HKM_kevat26.jpg"
       },
       {
         "kind": "nayttely",
@@ -461,7 +507,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42533",
         "date": "2026-04-17",
         "note": "Tuntematon lähiö (17.4.2026 – 13.9.2026)",
-        "venue": "Helsingin kaupunginmuseo"
+        "venue": "Helsingin kaupunginmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21099/hkm-lahio-website-article-825x513px-daytime.jpg"
       }
     ],
     "helsinginkaupunginmuseo": [
@@ -472,7 +519,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42679",
         "date": "2026-06-13",
         "note": "Helsinki-näyttely (13.6.2026 – 31.12.2030)",
-        "venue": "Helsingin kaupunginmuseo"
+        "venue": "Helsingin kaupunginmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21099/artikkelikuva_825x513px_paanayttely_1_HKM_kevat26.jpg"
       },
       {
         "kind": "nayttely",
@@ -481,7 +529,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42533",
         "date": "2026-04-17",
         "note": "Tuntematon lähiö (17.4.2026 – 13.9.2026)",
-        "venue": "Helsingin kaupunginmuseo"
+        "venue": "Helsingin kaupunginmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21099/hkm-lahio-website-article-825x513px-daytime.jpg"
       }
     ],
     "seurasaaren ulkomuseo": [
@@ -492,7 +541,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43892",
         "date": "2026-06-13",
         "note": "Seurasaaren kesämökki (13.6.2026 –)",
-        "venue": "Seurasaaren ulkomuseo"
+        "venue": "Seurasaaren ulkomuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21123/SKM_Kesmkki_web_2000x1000.jpg"
       }
     ],
     "seurasaarenulkomuseo": [
@@ -503,7 +553,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43892",
         "date": "2026-06-13",
         "note": "Seurasaaren kesämökki (13.6.2026 –)",
-        "venue": "Seurasaaren ulkomuseo"
+        "venue": "Seurasaaren ulkomuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21123/SKM_Kesmkki_web_2000x1000.jpg"
       }
     ],
     "didrichsenin taidemuseo": [
@@ -514,7 +565,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42133",
         "date": "2026-05-29",
         "note": "William Morris (29.5.2026 – 30.8.2026)",
-        "venue": "Didrichsenin taidemuseo"
+        "venue": "Didrichsenin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21095/William-Morris-Trellis_the-Met2.jpg"
       },
       {
         "kind": "nayttely",
@@ -523,7 +575,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42134",
         "date": "2026-09-12",
         "note": "Elin Danielson-Gambogi (12.9.2026 – 31.1.2027)",
-        "venue": "Didrichsenin taidemuseo"
+        "venue": "Didrichsenin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21095/MKElin_Danielson-Gambogi_Omenapuun-alla_-Under-ppeltrdet_Under-the-apple-tree--n.jpg"
       }
     ],
     "didrichsenintaidemuseo": [
@@ -534,7 +587,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42133",
         "date": "2026-05-29",
         "note": "William Morris (29.5.2026 – 30.8.2026)",
-        "venue": "Didrichsenin taidemuseo"
+        "venue": "Didrichsenin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21095/William-Morris-Trellis_the-Met2.jpg"
       },
       {
         "kind": "nayttely",
@@ -543,7 +597,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42134",
         "date": "2026-09-12",
         "note": "Elin Danielson-Gambogi (12.9.2026 – 31.1.2027)",
-        "venue": "Didrichsenin taidemuseo"
+        "venue": "Didrichsenin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21095/MKElin_Danielson-Gambogi_Omenapuun-alla_-Under-ppeltrdet_Under-the-apple-tree--n.jpg"
       }
     ],
     "suomen valokuvataiteen museo": [
@@ -554,7 +609,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43074",
         "date": "2026-03-27",
         "note": "Film still – Malla Hukkasen valokuvia elokuvista (27.3.2026 – 20.9.2026)",
-        "venue": "Suomen valokuvataiteen museo"
+        "venue": "Suomen valokuvataiteen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21132/kauas_pilvet_karkaavat_d2026_12_4-extra_small.jpg"
       },
       {
         "kind": "nayttely",
@@ -563,7 +619,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43075",
         "date": "2026-03-27",
         "note": "Z Walsh: Feminine Man (27.3.2026 – 20.9.2026)",
-        "venue": "Suomen valokuvataiteen museo"
+        "venue": "Suomen valokuvataiteen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21132/000060500003-2_small.jpg"
       },
       {
         "kind": "nayttely",
@@ -572,7 +629,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43789",
         "date": "2026-05-29",
         "note": "Photofuss: Kontakti (29.5.2026 – 6.9.2026)",
-        "venue": "Suomen valokuvataiteen museo"
+        "venue": "Suomen valokuvataiteen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21132/Jasmin-Rossi---Fragments-of-Paths-Crossed--2025.jpg"
       }
     ],
     "suomenvalokuvataiteenmuseo": [
@@ -583,7 +641,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43074",
         "date": "2026-03-27",
         "note": "Film still – Malla Hukkasen valokuvia elokuvista (27.3.2026 – 20.9.2026)",
-        "venue": "Suomen valokuvataiteen museo"
+        "venue": "Suomen valokuvataiteen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21132/kauas_pilvet_karkaavat_d2026_12_4-extra_small.jpg"
       },
       {
         "kind": "nayttely",
@@ -592,7 +651,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43075",
         "date": "2026-03-27",
         "note": "Z Walsh: Feminine Man (27.3.2026 – 20.9.2026)",
-        "venue": "Suomen valokuvataiteen museo"
+        "venue": "Suomen valokuvataiteen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21132/000060500003-2_small.jpg"
       },
       {
         "kind": "nayttely",
@@ -601,7 +661,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43789",
         "date": "2026-05-29",
         "note": "Photofuss: Kontakti (29.5.2026 – 6.9.2026)",
-        "venue": "Suomen valokuvataiteen museo"
+        "venue": "Suomen valokuvataiteen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/21132/Jasmin-Rossi---Fragments-of-Paths-Crossed--2025.jpg"
       }
     ],
     "finlandia talo": [
@@ -612,7 +673,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43438",
         "date": "2026-05-11",
         "note": "Visions of Alvar Aalto - suurnäyttely luovuuden juurista (11.5.2026 –)",
-        "venue": "Finlandia-talo"
+        "venue": "Finlandia-talo",
+        "image": "https://museot.fi/uploadkuvat/museot/230426/Visions_of_Alvar_Aalto.png"
       }
     ],
     "finlandiatalo": [
@@ -623,7 +685,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43438",
         "date": "2026-05-11",
         "note": "Visions of Alvar Aalto - suurnäyttely luovuuden juurista (11.5.2026 –)",
-        "venue": "Finlandia-talo"
+        "venue": "Finlandia-talo",
+        "image": "https://museot.fi/uploadkuvat/museot/230426/Visions_of_Alvar_Aalto.png"
       }
     ],
     "urheilun ja liikunnan kulttuurikeskus tahto": [
@@ -634,7 +697,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41734",
         "date": "2026-04-10",
         "note": "JUMPPATYTÖT – rakkauskirje joukkuevoimistelulle (10.4.2026 – 13.9.2026)",
-        "venue": "Urheilun ja liikunnan kulttuurikeskus TAHTO"
+        "venue": "Urheilun ja liikunnan kulttuurikeskus TAHTO",
+        "image": "https://museot.fi/uploadkuvat/museot/21131/jumppatytt-MUSEOT-FI_uusi.jpg"
       },
       {
         "kind": "nayttely",
@@ -643,7 +707,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39205",
         "date": "2024-11-29",
         "note": "TAHDON Liikuntaseikkailu (29.11.2024 –)",
-        "venue": "Urheilun ja liikunnan kulttuurikeskus TAHTO"
+        "venue": "Urheilun ja liikunnan kulttuurikeskus TAHTO",
+        "image": "https://museot.fi/uploadkuvat/museot/21131/image2011.jpg"
       }
     ],
     "urheilunjaliikunnankulttuurikeskustahto": [
@@ -654,7 +719,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41734",
         "date": "2026-04-10",
         "note": "JUMPPATYTÖT – rakkauskirje joukkuevoimistelulle (10.4.2026 – 13.9.2026)",
-        "venue": "Urheilun ja liikunnan kulttuurikeskus TAHTO"
+        "venue": "Urheilun ja liikunnan kulttuurikeskus TAHTO",
+        "image": "https://museot.fi/uploadkuvat/museot/21131/jumppatytt-MUSEOT-FI_uusi.jpg"
       },
       {
         "kind": "nayttely",
@@ -663,7 +729,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39205",
         "date": "2024-11-29",
         "note": "TAHDON Liikuntaseikkailu (29.11.2024 –)",
-        "venue": "Urheilun ja liikunnan kulttuurikeskus TAHTO"
+        "venue": "Urheilun ja liikunnan kulttuurikeskus TAHTO",
+        "image": "https://museot.fi/uploadkuvat/museot/21131/image2011.jpg"
       }
     ],
     "tamminiemi": [
@@ -674,7 +741,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43244",
         "date": "2026-04-17",
         "note": "Paperitähdet – Rauni Palosen paperinukkeja 1968–1982 (17.4.2026 – 9.1.2028)",
-        "venue": "Tamminiemi"
+        "venue": "Tamminiemi",
+        "image": "https://museot.fi/uploadkuvat/museot/21139/PAPERITAHDET_VERKKOSIVU.jpg"
       }
     ],
     "lastentarhamuseo": [
@@ -685,7 +753,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42913",
         "date": "2026-03-04",
         "note": "Yhteiset ruokailuhetket – Lastentarha- ja päiväkotimuistojen keruu (4.3.2026 – 27.10.2026)",
-        "venue": "Lastentarhamuseo"
+        "venue": "Lastentarhamuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/22023/Yhteiset-ruokailuhetket.jpg"
       }
     ],
     "amos rex": [
@@ -696,7 +765,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43079",
         "date": "2026-05-13",
         "note": "Generation 2026 (13.5.2026 – 6.9.2026)",
-        "venue": "Amos Rex"
+        "venue": "Amos Rex",
+        "image": "https://museot.fi/uploadkuvat/museot/60818/Generation-2026-artists-Amos-Rex.jpg"
       }
     ],
     "amosrex": [
@@ -707,7 +777,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43079",
         "date": "2026-05-13",
         "note": "Generation 2026 (13.5.2026 – 6.9.2026)",
-        "venue": "Amos Rex"
+        "venue": "Amos Rex",
+        "image": "https://museot.fi/uploadkuvat/museot/60818/Generation-2026-artists-Amos-Rex.jpg"
       }
     ],
     "villa gyllenberg": [
@@ -718,7 +789,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43058",
         "date": "2026-10-10",
         "note": "Kurkistus Sammon kokoelmaan (10.10.2026 – 14.2.2027)",
-        "venue": "Villa Gyllenberg"
+        "venue": "Villa Gyllenberg",
+        "image": "https://museot.fi/uploadkuvat/museot/21141/HS-Virkkaava-tytt-Sampo-kuva_-Rauno-Traskelin_nyttelykalenteri.jpg"
       },
       {
         "kind": "nayttely",
@@ -727,7 +799,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41850",
         "date": "2026-04-22",
         "note": "Runollinen todellisuus – 1920–40-lukujen taidetta, muotia, muotoilua ja puutarhoja (22.4.2",
-        "venue": "Villa Gyllenberg"
+        "venue": "Villa Gyllenberg",
+        "image": "https://museot.fi/uploadkuvat/museot/21141/Marie-Laurencin_Nuoren-naisen-muotokuva_Sara-Hildnin-taidemuseo_nettiin.jpg"
       }
     ],
     "villagyllenberg": [
@@ -738,7 +811,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43058",
         "date": "2026-10-10",
         "note": "Kurkistus Sammon kokoelmaan (10.10.2026 – 14.2.2027)",
-        "venue": "Villa Gyllenberg"
+        "venue": "Villa Gyllenberg",
+        "image": "https://museot.fi/uploadkuvat/museot/21141/HS-Virkkaava-tytt-Sampo-kuva_-Rauno-Traskelin_nyttelykalenteri.jpg"
       },
       {
         "kind": "nayttely",
@@ -747,7 +821,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41850",
         "date": "2026-04-22",
         "note": "Runollinen todellisuus – 1920–40-lukujen taidetta, muotia, muotoilua ja puutarhoja (22.4.2",
-        "venue": "Villa Gyllenberg"
+        "venue": "Villa Gyllenberg",
+        "image": "https://museot.fi/uploadkuvat/museot/21141/Marie-Laurencin_Nuoren-naisen-muotokuva_Sara-Hildnin-taidemuseo_nettiin.jpg"
       }
     ],
     "suomenlinna museo": [
@@ -758,7 +833,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42566",
         "date": "2026-03-06",
         "note": "Käsityönä tehdyn Lasin lumo (6.3.2026 – 10.1.2027)",
-        "venue": "Suomenlinna-museo"
+        "venue": "Suomenlinna-museo",
+        "image": "https://museot.fi/uploadkuvat/museot/22158/Laura-Aalto-Setl-2-pieni-web.jpg"
       }
     ],
     "suomenlinnamuseo": [
@@ -769,7 +845,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42566",
         "date": "2026-03-06",
         "note": "Käsityönä tehdyn Lasin lumo (6.3.2026 – 10.1.2027)",
-        "venue": "Suomenlinna-museo"
+        "venue": "Suomenlinna-museo",
+        "image": "https://museot.fi/uploadkuvat/museot/22158/Laura-Aalto-Setl-2-pieni-web.jpg"
       }
     ],
     "arkkitehtuuri ja designmuseo": [
@@ -780,7 +857,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42587",
         "date": "2026-06-05",
         "note": "Aalto Design - Hyvinvoinnin muodot (5.6.2026 – 3.1.2027)",
-        "venue": "Arkkitehtuuri- ja designmuseo"
+        "venue": "Arkkitehtuuri- ja designmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/281123/WEB_Other-Actors_Ilona-Sagar_2025.jpg"
       },
       {
         "kind": "nayttely",
@@ -789,7 +867,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42489",
         "date": "2026-02-20",
         "note": "Juha Vehmaanperä: Craft Punk (20.2.2026 – 6.9.2026)",
-        "venue": "Arkkitehtuuri- ja designmuseo"
+        "venue": "Arkkitehtuuri- ja designmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/281123/Juha_Main_LR_Final_Final-museokortti.jpg"
       },
       {
         "kind": "nayttely",
@@ -798,7 +877,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40931",
         "date": "2025-10-10",
         "note": "Pako Muumilaaksoon (10.10.2025 – 27.9.2026)",
-        "venue": "Arkkitehtuuri- ja designmuseo"
+        "venue": "Arkkitehtuuri- ja designmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/281123/ADM_Pako-Muumilaaksoon_pien.jpg"
       }
     ],
     "arkkitehtuurijadesignmuseo": [
@@ -809,7 +889,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42587",
         "date": "2026-06-05",
         "note": "Aalto Design - Hyvinvoinnin muodot (5.6.2026 – 3.1.2027)",
-        "venue": "Arkkitehtuuri- ja designmuseo"
+        "venue": "Arkkitehtuuri- ja designmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/281123/WEB_Other-Actors_Ilona-Sagar_2025.jpg"
       },
       {
         "kind": "nayttely",
@@ -818,7 +899,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=42489",
         "date": "2026-02-20",
         "note": "Juha Vehmaanperä: Craft Punk (20.2.2026 – 6.9.2026)",
-        "venue": "Arkkitehtuuri- ja designmuseo"
+        "venue": "Arkkitehtuuri- ja designmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/281123/Juha_Main_LR_Final_Final-museokortti.jpg"
       },
       {
         "kind": "nayttely",
@@ -827,7 +909,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40931",
         "date": "2025-10-10",
         "note": "Pako Muumilaaksoon (10.10.2025 – 27.9.2026)",
-        "venue": "Arkkitehtuuri- ja designmuseo"
+        "venue": "Arkkitehtuuri- ja designmuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/281123/ADM_Pako-Muumilaaksoon_pien.jpg"
       }
     ],
     "hotelli ja ravintolamuseo": [
@@ -838,7 +921,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41733",
         "date": "2026-09-18",
         "note": "Ohrapuuroa ja näkkäriä – suomalaisen kouluruokailun tarina (18.9.2026 – 29.8.2027)",
-        "venue": "Hotelli- ja ravintolamuseo"
+        "venue": "Hotelli- ja ravintolamuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21113/Ohrapuuroa-ja-nkkri_pieni.jpg"
       },
       {
         "kind": "nayttely",
@@ -847,7 +931,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39409",
         "date": "2025-09-19",
         "note": "Kuohuvat kymmenet – ravintolavalokuvia 1960- ja 1970-luvuilta (19.9.2025 – 30.8.2026)",
-        "venue": "Hotelli- ja ravintolamuseo"
+        "venue": "Hotelli- ja ravintolamuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21113/hrm4320-908-kantakrouvi-kurikka-1-scaled.jpg"
       }
     ],
     "hotellijaravintolamuseo": [
@@ -858,7 +943,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41733",
         "date": "2026-09-18",
         "note": "Ohrapuuroa ja näkkäriä – suomalaisen kouluruokailun tarina (18.9.2026 – 29.8.2027)",
-        "venue": "Hotelli- ja ravintolamuseo"
+        "venue": "Hotelli- ja ravintolamuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21113/Ohrapuuroa-ja-nkkri_pieni.jpg"
       },
       {
         "kind": "nayttely",
@@ -867,7 +953,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=39409",
         "date": "2025-09-19",
         "note": "Kuohuvat kymmenet – ravintolavalokuvia 1960- ja 1970-luvuilta (19.9.2025 – 30.8.2026)",
-        "venue": "Hotelli- ja ravintolamuseo"
+        "venue": "Hotelli- ja ravintolamuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21113/hrm4320-908-kantakrouvi-kurikka-1-scaled.jpg"
       }
     ],
     "ateneumin taidemuseo": [
@@ -878,7 +965,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41724",
         "date": "2026-03-13",
         "note": "Eero Nelimarkka (13.3.2026 – 13.9.2026)",
-        "venue": "Ateneumin taidemuseo"
+        "venue": "Ateneumin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21094/Nimetn-malli-30.png"
       },
       {
         "kind": "nayttely",
@@ -887,7 +975,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41726",
         "date": "2026-08-18",
         "note": "Modernit klassikot: Elga Sesemann (18.8.2026 – 8.8.2027)",
-        "venue": "Ateneumin taidemuseo"
+        "venue": "Ateneumin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21094/Sesemann_museokorttiin.jpg"
       }
     ],
     "ateneumintaidemuseo": [
@@ -898,7 +987,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41724",
         "date": "2026-03-13",
         "note": "Eero Nelimarkka (13.3.2026 – 13.9.2026)",
-        "venue": "Ateneumin taidemuseo"
+        "venue": "Ateneumin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21094/Nimetn-malli-30.png"
       },
       {
         "kind": "nayttely",
@@ -907,7 +997,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41726",
         "date": "2026-08-18",
         "note": "Modernit klassikot: Elga Sesemann (18.8.2026 – 8.8.2027)",
-        "venue": "Ateneumin taidemuseo"
+        "venue": "Ateneumin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21094/Sesemann_museokorttiin.jpg"
       }
     ],
     "tiedemuseo liekki": [
@@ -918,7 +1009,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41718",
         "date": "2025-12-04",
         "note": "Angeloskooppi (4.12.2025 – 29.8.2026)",
-        "venue": "Tiedemuseo Liekki"
+        "venue": "Tiedemuseo Liekki",
+        "image": "https://museot.fi/uploadkuvat/museot/21110/Angeloskooppi_banner1_1920-x-960-px.jpg"
       }
     ],
     "tiedemuseoliekki": [
@@ -929,7 +1021,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41718",
         "date": "2025-12-04",
         "note": "Angeloskooppi (4.12.2025 – 29.8.2026)",
-        "venue": "Tiedemuseo Liekki"
+        "venue": "Tiedemuseo Liekki",
+        "image": "https://museot.fi/uploadkuvat/museot/21110/Angeloskooppi_banner1_1920-x-960-px.jpg"
       }
     ],
     "hakasalmen huvila": [
@@ -940,7 +1033,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40319",
         "date": "2025-10-24",
         "note": "Stefan Bremer – Helsinki by Night (24.10.2025 – 30.8.2026)",
-        "venue": "Hakasalmen huvila"
+        "venue": "Hakasalmen huvila",
+        "image": "https://museot.fi/uploadkuvat/museot/21100/artikkelikuva_825x513px_Stefan_Bremer_Helsinki_by_Night_diinarit_HH_syksy25.jpg"
       }
     ],
     "hakasalmenhuvila": [
@@ -951,7 +1045,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40319",
         "date": "2025-10-24",
         "note": "Stefan Bremer – Helsinki by Night (24.10.2025 – 30.8.2026)",
-        "venue": "Hakasalmen huvila"
+        "venue": "Hakasalmen huvila",
+        "image": "https://museot.fi/uploadkuvat/museot/21100/artikkelikuva_825x513px_Stefan_Bremer_Helsinki_by_Night_diinarit_HH_syksy25.jpg"
       }
     ],
     "teatterimuseo": [
@@ -962,7 +1057,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40930",
         "date": "2025-10-10",
         "note": "Huimaa! Sirkuksen taikaa ja tarinoita (10.10.2025 – 10.1.2027)",
-        "venue": "Teatterimuseo"
+        "venue": "Teatterimuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21135/Tuplakehto-1-Wusoplphotography-1600.jpg"
       }
     ],
     "kuurojen museo": [
@@ -973,7 +1069,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=38592",
         "date": "2024-10-22",
         "note": "Kuurojen museo (22.10.2024 – 31.12.2030)",
-        "venue": "Kuurojen museo"
+        "venue": "Kuurojen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/291124/Kuurojen_museo_tunnuskuva.jpg"
       }
     ],
     "kuurojenmuseo": [
@@ -984,7 +1081,8 @@
         "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=38592",
         "date": "2024-10-22",
         "note": "Kuurojen museo (22.10.2024 – 31.12.2030)",
-        "venue": "Kuurojen museo"
+        "venue": "Kuurojen museo",
+        "image": "https://museot.fi/uploadkuvat/museot/291124/Kuurojen_museo_tunnuskuva.jpg"
       }
     ],
     "parhaat kirjastot perheille": [

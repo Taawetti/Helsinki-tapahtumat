@@ -75,6 +75,24 @@ async function collectUrls(): Promise<string[]> {
     } catch { /* vioittunut tiedosto ei estä haravointia */ }
   }
 
+  // 4) OSM-paikkojen Google-kortit (data/new-places-enriched.json) ja
+  //    näyttelykuvat (data/activity-reasons.json) — Uutta Helsingissä -sivun
+  //    kuvat lahoavat siinä missä muutkin.
+  const enrichedPath = join(process.cwd(), 'data', 'new-places-enriched.json')
+  if (existsSync(enrichedPath)) {
+    try {
+      const f = JSON.parse(readFileSync(enrichedPath, 'utf8')) as { cards?: Record<string, { image?: string | null }> }
+      for (const c of Object.values(f.cards ?? {})) if (c.image) urls.add(c.image)
+    } catch { /* vioittunut tiedosto ei estä haravointia */ }
+  }
+  const actReasonsPath = join(process.cwd(), 'data', 'activity-reasons.json')
+  if (existsSync(actReasonsPath)) {
+    try {
+      const f = JSON.parse(readFileSync(actReasonsPath, 'utf8')) as { byName?: Record<string, { image?: string }[]> }
+      for (const rs of Object.values(f.byName ?? {})) for (const r of rs) if (r.image) urls.add(r.image)
+    } catch { /* vioittunut tiedosto ei estä haravointia */ }
+  }
+
   return [...urls]
 }
 
