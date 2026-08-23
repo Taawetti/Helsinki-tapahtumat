@@ -7,7 +7,7 @@ import { Loader2, Heart, Bell, Plus, ChevronLeft } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
-import { nightlifeScore, TERRACE_REGEX } from '@/lib/nightlife'
+import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -624,8 +624,15 @@ export default function HomeClient({
   // "🎸 ILLAN KEIKAT" — pyyhkäisyheron 5 nostoa: parhaat pisteet ensin,
   // näytöllä aikajärjestyksessä
   const heroGigs = useMemo(() => {
+    // "ILLAN keikat": aamukymmenen työpaja ei kuulu tähän vaikka pisteet
+    // riittäisivät — ilta alkaa aikaisintaan klo 15 (festivaalit saavat
+    // olla päivälläkin, ne ovat kokopäiväisiä).
     const picks = baseEvents
-      .filter((e) => nightlifeScore(e) >= 3 && !!e.image)
+      .filter((e) => {
+        const sc = nightlifeScore(e)
+        if (sc < 3 || !e.image) return false
+        return sc >= 8 || new Date(e.startTime).getHours() >= 15
+      })
       .sort((a, b) => nightlifeScore(b) - nightlifeScore(a))
       .slice(0, 5)
     return picks.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
@@ -651,6 +658,12 @@ export default function HomeClient({
       if (e.isFree) s += 1
       if ((e.shortDescription || e.description || '').length > 60) s += 1
       if (isQuiz(e)) s -= 8                                                   // pubivisat alas
+      // Yhteisötalojen/leikkipuistojen päiväohjelma: kuvapankkikuva antoi
+      // +6 ja ne valtasivat "parhaat poiminnat" (mitattu 24.8.) — sakko
+      // syö kuvaedun. Iltatapahtuma saa pienen edun: otsikko lupaa "Illan
+      // parhaat".
+      if (COMMUNITY_DAYTIME_REGEX.test(`${e.title} ${e.shortDescription ?? ''} ${e.categories.join(' ')}`)) s -= 6
+      if (new Date(e.startTime).getHours() >= 17) s += 2
       return s
     }
     const ranked = baseEvents

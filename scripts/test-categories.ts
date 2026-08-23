@@ -58,6 +58,7 @@ import {
 import enrichedFile from '../data/new-places-enriched.json'
 import secondhandFile from '../data/secondhand.json'
 import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
+import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from '../lib/nightlife'
 import { nameOverlap } from '../lib/dataforseo'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
@@ -2438,6 +2439,32 @@ for (const c of ideaChecks) {
     })
     const igb = igAsWww.months[0]?.items.find((i) => i.name === 'IG Baari')
     rChecks.push({ name: 'some: avauksen IG-kotisivu luokitellaan someksi', ok: !!igb && !igb.www && igb.instagram === 'https://www.instagram.com/igbaari/' })
+
+    // 17c. YÖELÄMÄPISTEET — mitattu 24.8.2026: maanantain yhteisöohjelma
+    //      kuvapankkikuvineen valtasi kärjen. Jokainen tapaus on tuotannosta.
+    const ev = (title: string, desc = '', cats: string[] = [], image: string | null = 'x.jpg', startTime = '2026-08-24T10:00:00+03:00') =>
+      ({ id: 't', title, shortDescription: desc, description: '', startTime, endTime: null, location: null, image, isFree: true, price: null, ticketUrl: null, infoUrl: null, categories: cats, source: 't' })
+    // "Stadin yhteisötalo SaunaBAARI" antoi askarteluryhmälle baaripisteet →
+    // Käsityöryhmä klo 10 nousi "Illan keikat" -heroon.
+    rChecks.push({
+      name: 'yöelämä: Saunabaarin käsityöryhmä ei ole baari',
+      ok: nightlifeScore(ev('Käsityöryhmä', 'Kokoonnumme Stadin yhteisötalo Saunabaarissa')) < 0,
+      got: String(nightlifeScore(ev('Käsityöryhmä', 'Kokoonnumme Stadin yhteisötalo Saunabaarissa'))),
+    })
+    // Poissulku voittaa nyt heikot positiiviset — työpaja jossa baarisana.
+    rChecks.push({
+      name: 'yöelämä: työpaja + baarimaininta on silti työpaja',
+      ok: nightlifeScore(ev('Kirjoitustyöpaja', 'Työpaja baarin takahuoneessa')) < 0,
+    })
+    // Aidot yhdyssanabaarit säilyvät yöelämänä.
+    rChecks.push({ name: 'yöelämä: viinibaari on baari', ok: nightlifeScore(ev('Viinibaarin avajaisillat', '', [], 'x.jpg')) === 3 })
+    rChecks.push({ name: 'yöelämä: keikka pisteyttyy yhä', ok: nightlifeScore(ev('Perjantain keikka: Bändi', '')) === 7 })
+    // Yhteisöohjelman tunnistin — poiminnoista mitatut otsikot.
+    for (const t of ['Avoin perheaamu', 'Pihapuuhat', 'Tyttönuta', 'Maanantaimaalarit omatoiminen', 'Eläkeläisten taidepiiri']) {
+      rChecks.push({ name: `yhteisöohjelma tunnistuu: ${t}`, ok: COMMUNITY_DAYTIME_REGEX.test(t) })
+    }
+    rChecks.push({ name: 'yhteisöohjelma EI osu keikkaan', ok: !COMMUNITY_DAYTIME_REGEX.test('Katie Melua, Ullalintulampi — Huvila-teltta') })
+    rChecks.push({ name: 'yhteisöohjelma EI osu teatteriin', ok: !COMMUNITY_DAYTIME_REGEX.test('Toinen tasavalta — Esa Leskisen suurteos Suomen Kansallisteatterissa') })
 
     // 18. KIRPPUTORIT — /kirpputorit-sivun liiketiedosto (OSM, viikkohaku)
     const sh = secondhandFile as { fetchedAt?: string; shops?: { name?: string; lat?: number; lon?: number; openingHours?: string | null }[] }

@@ -10,6 +10,7 @@
 import type { Event } from './types'
 import { getEventVibes } from './event-classify'
 import { helsinkiDateOf } from './helsinki-time'
+import { COMMUNITY_DAYTIME_REGEX } from './nightlife'
 import { seedRand } from './seed-rand'
 
 export type IdeaAudience = 'default' | 'perhe'
@@ -140,6 +141,11 @@ export function buildIdeaDeck(events: Event[], opts: IdeaDeckOpts): IdeaScored[]
       // Seniori-painotus: alaskuopaus PAITSI jos käyttäjä valitsi kulttuuri-scenen
       const senior = seniorSkew(e) && !scenes.includes('kulttuuri')
       if (senior) s -= 3
+
+      // Yhteisötalojen/leikkipuistojen päiväohjelma: alaskuopaus oletuksena
+      // (mitattu 24.8.: maanantain kaupunkiohjelma valtasi pakan kärjen).
+      // Perhe-yleisölle nämä ovat juuri oikeaa sisältöä → ei sakkoa.
+      if (audience !== 'perhe' && COMMUNITY_DAYTIME_REGEX.test(`${e.title} ${e.shortDescription ?? ''}`)) s -= 3
 
       // "Ei tällaista" -demotiot (vibe tai kategoria osuu demotoituun)
       const isDemoted = vibes.some(v => demoted.has(v)) || cats.some(c => demoted.has(c))
