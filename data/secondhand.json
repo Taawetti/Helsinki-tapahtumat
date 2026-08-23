@@ -1,0 +1,909 @@
+{
+  "fetchedAt": "2026-08-23T22:14:31.927Z",
+  "shops": [
+    {
+      "name": "88.fi kirpputori",
+      "lat": 60.176396,
+      "lon": 24.8022127,
+      "address": "Kauppamiehentie 1",
+      "openingHours": "Mo-Fr 10:00-18:00; Sa 10:00-17:00; Su off",
+      "www": "https://88.fi/"
+    },
+    {
+      "name": "Aarrekartano Secondhand",
+      "lat": 60.2467511,
+      "lon": 24.8609773,
+      "address": "Puustellinpolku 5",
+      "openingHours": "Tu-Th 11:00-18:00; Fr 11:00-15:00",
+      "www": null
+    },
+    {
+      "name": "Aarteet Kiertoon & Löydöt kotiin",
+      "lat": 60.1825211,
+      "lon": 24.9517212,
+      "address": "Porthaninkatu 6",
+      "openingHours": "Mo-Fr 11:00-18:00; Sa 11:00-16:00; Su off",
+      "www": "https://www.aarteetkiertoon.fi/"
+    },
+    {
+      "name": "Aino Kirpputori",
+      "lat": 60.2398397,
+      "lon": 24.8744959,
+      "address": "Sitratori 3",
+      "openingHours": "Mo-Fr 10:00-18:00; Sa-Su 10:00-15:00",
+      "www": "https://ainokirpputori.fi/"
+    },
+    {
+      "name": "Amado",
+      "lat": 60.162254,
+      "lon": 24.9401451,
+      "address": "Fredrikinkatu 25",
+      "openingHours": "Tu-Fr 11:00-18:00, Sa 11:00-15:00",
+      "www": null
+    },
+    {
+      "name": "Antiikkiliike Galerie 1900",
+      "lat": 60.1641182,
+      "lon": 24.9409792,
+      "address": "Annankatu 11",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Antiikkiliike J. Lammi",
+      "lat": 60.1638502,
+      "lon": 24.9463065,
+      "address": "Korkeavuorenkatu 27",
+      "openingHours": null,
+      "www": "http://antiikkilammi.fi"
+    },
+    {
+      "name": "Antiikkiliike R. Muuri",
+      "lat": 60.1672433,
+      "lon": 24.9406903,
+      "address": "Lönnrotinkatu 3",
+      "openingHours": "Mo-Fr 11:00-18:00; Sa-Su 11:00-15:00",
+      "www": null
+    },
+    {
+      "name": "Antikvariaatti Nup Oy",
+      "lat": 60.1956335,
+      "lon": 24.9596824,
+      "address": "Sturenkatu 41",
+      "openingHours": "Mo-Su 08:00-19:00",
+      "www": null
+    },
+    {
+      "name": "Antikvariaatti Teema",
+      "lat": 60.2132404,
+      "lon": 24.8220533,
+      "address": "Everstinkuja 4",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Antique Lindberg",
+      "lat": 60.1581465,
+      "lon": 24.9461317,
+      "address": "Tehtaankatu 22",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Antiques Helsinki",
+      "lat": 60.1637097,
+      "lon": 24.9450402,
+      "address": "Yrjönkatu 1",
+      "openingHours": null,
+      "www": "https://antiques-helsinki.com/"
+    },
+    {
+      "name": "Astiaparatiisi",
+      "lat": 60.1882297,
+      "lon": 24.9532822,
+      "address": null,
+      "openingHours": "Tu-Fr 11:00-18:00; Sa 11:00-16:00",
+      "www": "https://www.astiaparatiisi.fi/"
+    },
+    {
+      "name": "Bank Antiques",
+      "lat": 60.1810346,
+      "lon": 24.9251315,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Bella Itsepalvelukirpputori",
+      "lat": 60.1960743,
+      "lon": 24.9459255,
+      "address": "Kuortaneenkatu 4",
+      "openingHours": "Mo-Fr 11:00-19:00; Sa 10:00-16:00; Su 12:00-16:00",
+      "www": "https://www.bellakirppis.fi/"
+    },
+    {
+      "name": "Bisarri",
+      "lat": 60.1610567,
+      "lon": 24.9460192,
+      "address": "Tarkk'ampujankatu 5",
+      "openingHours": "Mo-Th 12:00-17:30; Fr off; Sa 12:00-15:00; PH off",
+      "www": "https://bisarri.fi/"
+    },
+    {
+      "name": "Bukowskis Market",
+      "lat": 60.163911,
+      "lon": 24.943711,
+      "address": "Iso Roobertinkatu 4-6",
+      "openingHours": "Mo-Fr 13:00-17:00",
+      "www": null
+    },
+    {
+      "name": "Butik 33 Second Hand",
+      "lat": 60.1976505,
+      "lon": 24.8748286,
+      "address": "Laajalahdentie 14",
+      "openingHours": "Mo-Fr 11:00-18:00; Sa-Su 11:00-16:00",
+      "www": "https://butik33.fi/"
+    },
+    {
+      "name": "Cama",
+      "lat": 60.251417,
+      "lon": 25.1759072,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Charwinette",
+      "lat": 60.164971,
+      "lon": 24.942827,
+      "address": "Yrjönkatu 14",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Eemelin Kirppis",
+      "lat": 60.2486379,
+      "lon": 24.8073892,
+      "address": "Viisaritie 2",
+      "openingHours": null,
+      "www": "https://www.facebook.com/eemelinkirppis"
+    },
+    {
+      "name": "Emmaus Helsinki",
+      "lat": 60.1542586,
+      "lon": 24.8793421,
+      "address": "Heikkiläntie 2",
+      "openingHours": "Tu-Fr 11:00-17:00; Sa 11:00-15:00",
+      "www": "https://www.emmaushelsinki.fi/"
+    },
+    {
+      "name": "Emmaus Helsinki hyväntekeväisyyskirppuroti",
+      "lat": 60.1967014,
+      "lon": 24.9510489,
+      "address": "Mäkelänkatu 54",
+      "openingHours": "Tu 11:00-17:00; We-Fr 11:00-15:00",
+      "www": "https://www.emmaus.fi/"
+    },
+    {
+      "name": "Fasaani",
+      "lat": 60.1601608,
+      "lon": 24.9467401,
+      "address": "Korkeavuorenkatu 5",
+      "openingHours": "Mo-Fr 11:00-18:00; Sa 11:00-17:00; Su 12:00-17:00",
+      "www": null
+    },
+    {
+      "name": "Fida Columbus",
+      "lat": 60.206939,
+      "lon": 25.1455441,
+      "address": "Vuotie 45",
+      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-18:00; Su 12:00-18:00",
+      "www": "https://www.fida.fi/myymalat/helsinki-columbus/"
+    },
+    {
+      "name": "Fida Hakaniemi",
+      "lat": 60.1810059,
+      "lon": 24.9536431,
+      "address": "Hämeentie 5a",
+      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-18:00; Su off",
+      "www": "https://fida.fi/myymalat/helsinki-hakaniemi/"
+    },
+    {
+      "name": "Fida Iso Omena",
+      "lat": 60.1607033,
+      "lon": 24.7379777,
+      "address": "Piispansilta 11",
+      "openingHours": null,
+      "www": "https://fida.fi/myymalat/espoo-iso-omena/"
+    },
+    {
+      "name": "Fida Puotinharju",
+      "lat": 60.214021,
+      "lon": 25.0834309,
+      "address": "Kastelholmantie 2",
+      "openingHours": "Mo-Fr 09:00-20:00; Sa 10:00-18:00; Su 12:00-18:00",
+      "www": "https://fida.fi/myymalat/helsinki-puotinharju/"
+    },
+    {
+      "name": "Fida Tapiola",
+      "lat": 60.1755052,
+      "lon": 24.8031839,
+      "address": "Länsituuli 3",
+      "openingHours": "Mo-Fr 10:00-19:00; Sa 10:00-18:00; Su off",
+      "www": "https://fida.fi/myymalat/espoo-heikintori/"
+    },
+    {
+      "name": "Fresh Kirppis",
+      "lat": 60.2029595,
+      "lon": 25.059017,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Frida marina",
+      "lat": 60.1750573,
+      "lon": 24.9192453,
+      "address": "Museokatu 46",
+      "openingHours": "Mo,Su off; Tu-Fr 12:00-18:00; Sa 12:00-16:00",
+      "www": null
+    },
+    {
+      "name": "Hagelstam & Co",
+      "lat": 60.1576727,
+      "lon": 24.9351481,
+      "address": "Tehtaankatu 36",
+      "openingHours": null,
+      "www": "https://hagelstam.fi/"
+    },
+    {
+      "name": "HakunilaKirppis",
+      "lat": 60.2787722,
+      "lon": 25.1040675,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Happy Hand",
+      "lat": 60.1873311,
+      "lon": 24.9537047,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Helsinki Flea Market",
+      "lat": 60.1768505,
+      "lon": 24.9142074,
+      "address": "Merikannontie 3",
+      "openingHours": "Mo-Fr 12:00-18:00; Sa-Su 11:00-16:00",
+      "www": "https://helsinkifleamarket.fi/"
+    },
+    {
+      "name": "Hepsankeikka",
+      "lat": 60.1618521,
+      "lon": 24.9465449,
+      "address": "Korkeavuorenkatu",
+      "openingHours": "Tu-Fr 11:00-17:30; Sa 11:00-14:30; PH off",
+      "www": "https://www.facebook.com/Hepsankeikka-593817494080512/"
+    },
+    {
+      "name": "Huutokauppa Helander",
+      "lat": 60.2229658,
+      "lon": 24.9931701,
+      "address": "Hernepellonkuja 8-10",
+      "openingHours": "Mo-Fr 12:00-18:00; Sa 10:00-14:00",
+      "www": null
+    },
+    {
+      "name": "Icare",
+      "lat": 60.2240078,
+      "lon": 25.0726127,
+      "address": "Kivensilmänkuja 1",
+      "openingHours": "Mo-Fr 09:00-19:00; Sa 10:00-16:00",
+      "www": null
+    },
+    {
+      "name": "iCare secondhand",
+      "lat": 60.2129838,
+      "lon": 25.084219,
+      "address": "Itäkatu 1-7",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "iCare secondhand",
+      "lat": 60.1605064,
+      "lon": 24.7378004,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Itsepalvelukirppis Myyntimylly",
+      "lat": 60.2238384,
+      "lon": 25.0740202,
+      "address": "Kivensilmänkuja 1",
+      "openingHours": "Mo-Fr 10:00-18:00; Sa 10:00-15:00",
+      "www": "https://www.kirppikset.info/kirppikset/myyntimylly"
+    },
+    {
+      "name": "Itsepalvelukirpputori Toinen Kierros",
+      "lat": 60.1750677,
+      "lon": 24.8012934,
+      "address": "Länsituuli 1",
+      "openingHours": "Mo-Fr 11:00-19:00; Sa 11:00-16:00",
+      "www": "https://toinenkierros.fi/"
+    },
+    {
+      "name": "Jouko Rekola",
+      "lat": 60.1617096,
+      "lon": 24.9367259,
+      "address": "Albertinkatu 18",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Kaartinen & Kuusela",
+      "lat": 60.1713488,
+      "lon": 24.9265576,
+      "address": "Arkadiankatu 19",
+      "openingHours": "Tu-Fr 12:00-18:00; Sa 11:00-16:00",
+      "www": "https://kaartinenkuusela.com/"
+    },
+    {
+      "name": "Kaivarin Kanuuna",
+      "lat": 60.1594127,
+      "lon": 24.9462199,
+      "address": "Vuorimiehenkatu 27",
+      "openingHours": "Mo off; Tu-Fr 10:00-18:00; Sa 10:00-16:30; Su 11:00-16:30; PH off",
+      "www": "https://kaivarinkanuuna.fi/"
+    },
+    {
+      "name": "Kaivopuiston Antiikki",
+      "lat": 60.157736,
+      "lon": 24.9458752,
+      "address": "Kapteeninkatu 9",
+      "openingHours": "Tu-Fr 12:00-17:00; Sa 12:00-14:00; PH off",
+      "www": "https://www.kaivopuistonantiikki.fi/"
+    },
+    {
+      "name": "Kallio Second Hand",
+      "lat": 60.1837293,
+      "lon": 24.9586224,
+      "address": "Hämeentie 32",
+      "openingHours": null,
+      "www": "http://www.kalliosecondhand.fi"
+    },
+    {
+      "name": "Kaunis Arki",
+      "lat": 60.1726218,
+      "lon": 24.9562035,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Kaunis Veera",
+      "lat": 60.1603647,
+      "lon": 24.9386228,
+      "address": "Merimiehenkatu 20",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Kidia Second Hand",
+      "lat": 60.1946274,
+      "lon": 25.0332124,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Kierrätyskeskus",
+      "lat": 60.2628505,
+      "lon": 24.8540052,
+      "address": "Liesitori 1",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
+      "www": "https://www.kierratyskeskus.fi/myymalat_ja_palvelut/myyrmaen_kauppa"
+    },
+    {
+      "name": "Kierrätyskeskus Finnoo",
+      "lat": 60.15808,
+      "lon": 24.7075154,
+      "address": "Luoteisrinne 1",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
+      "www": "https://kierratyskeskus.fi/myymala/finnoo/"
+    },
+    {
+      "name": "Kierrätyskeskus Iso Omena",
+      "lat": 60.1607277,
+      "lon": 24.7376166,
+      "address": "Piispansilta 11",
+      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-19:00; Su 12:00-18:00",
+      "www": "https://kierratyskeskus.fi/myymala/iso-omena/"
+    },
+    {
+      "name": "Kierrätyskeskus Itäkeskus",
+      "lat": 60.2086448,
+      "lon": 25.0858934,
+      "address": "Kauppakartanonkatu 12",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
+      "www": "https://www.kierratyskeskus.fi/myymalat_ja_palvelut/itakeskuksen_kauppa"
+    },
+    {
+      "name": "Kierrätyskeskus Kaisaniemi",
+      "lat": 60.1717162,
+      "lon": 24.9478573,
+      "address": "Kaisaniemenkatu 7",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa-Su 10:00-18:00",
+      "www": "https://www.kierratyskeskus.fi/"
+    },
+    {
+      "name": "Kierrätyskeskus kauppa Kontula",
+      "lat": 60.2366091,
+      "lon": 25.0850534,
+      "address": "Keinulaudankuja 4",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
+      "www": "https://www.kierratyskeskus.fi/"
+    },
+    {
+      "name": "Kierrätyskeskus kauppa Porttipuisto",
+      "lat": 60.2791213,
+      "lon": 25.0852272,
+      "address": "Porttisuontie 7",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
+      "www": "https://www.kierratyskeskus.fi/porttipuisto"
+    },
+    {
+      "name": "Kierrätyskeskus Kyläsaari",
+      "lat": 60.1981406,
+      "lon": 24.9729701,
+      "address": "Kyläsaarenkatu 8a",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
+      "www": "https://www.kierratyskeskus.fi"
+    },
+    {
+      "name": "Kierrätyskeskus Malmi",
+      "lat": 60.2520191,
+      "lon": 25.0105077,
+      "address": "Malmin kauppatie 18",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa-Su 10:00-18:00",
+      "www": "https://kierratyskeskus.fi/myymala/malmi/"
+    },
+    {
+      "name": "Kierrätyskeskus Nihtisilta",
+      "lat": 60.2100316,
+      "lon": 24.7534068,
+      "address": "Kutojantie 3",
+      "openingHours": "Mo-Fr 9:00-21:00; Sa 10:00-18:00; Su 10:00-18:00; Mo-Fr 09:00-21:00",
+      "www": "https://www.kierratyskeskus.fi"
+    },
+    {
+      "name": "Kierrätyskeskus Oulunkylän kauppa",
+      "lat": 60.228609,
+      "lon": 24.9636447,
+      "address": "Kylänvanhimmantie 29",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
+      "www": "https://www.kierratyskeskus.fi/myymalat_ja_palvelut/oulunkylan_kauppa"
+    },
+    {
+      "name": "Kierrätyskeskus Pasila",
+      "lat": 60.1975307,
+      "lon": 24.9279883,
+      "address": "Esterinportti 1",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa-Su 10:00-18:00",
+      "www": "https://www.kierratyskeskus.fi/"
+    },
+    {
+      "name": "Kirpputori Lähteen Patina",
+      "lat": 60.1669334,
+      "lon": 24.9136675,
+      "address": "Lapinlahdenpolku 8",
+      "openingHours": "We,Sa-Su 12:00-16:00",
+      "www": null
+    },
+    {
+      "name": "Kirpputori Metka",
+      "lat": 60.1922127,
+      "lon": 24.9642807,
+      "address": "Hämeentie 76",
+      "openingHours": "Tu-Fr 10:00-18:00; Sa-Su 10:00-15:00",
+      "www": null
+    },
+    {
+      "name": "Kirpputori Patina",
+      "lat": 60.2920647,
+      "lon": 25.0381718,
+      "address": "Unikkotie 10",
+      "openingHours": "Mo-Fr 10:00-17:30; Sa 10:00-15:00",
+      "www": null
+    },
+    {
+      "name": "Koopernu",
+      "lat": 60.1614406,
+      "lon": 24.9465993,
+      "address": "Korkeavuorenkatu",
+      "openingHours": "Mo-Fr 11:00-18:00; Sa 11:00-16:00; PH off; Su 12:00-16:00",
+      "www": "https://www.facebook.com/kooPernu"
+    },
+    {
+      "name": "Korkeavuoren Antiikki",
+      "lat": 60.160593,
+      "lon": 24.9463597,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Kruunukirppu",
+      "lat": 60.1710366,
+      "lon": 24.9564246,
+      "address": "Mariankatu 12",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Kruunun Antiikki",
+      "lat": 60.1710905,
+      "lon": 24.9587357,
+      "address": "Kirkkokatu 1b",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Loved Bags",
+      "lat": 60.1670579,
+      "lon": 24.9521526,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Mankkaan Akseli",
+      "lat": 60.2069246,
+      "lon": 24.7753632,
+      "address": "Nuijalantie 13",
+      "openingHours": null,
+      "www": "https://www.akseli.info/"
+    },
+    {
+      "name": "Marskin Muksut",
+      "lat": 60.1840936,
+      "lon": 24.9181276,
+      "address": "Topeliuksenkatu 19",
+      "openingHours": "Mo-Fr 10:00-18:00; Sa 10:00-15:00",
+      "www": "https://uudenmaanpiiri.mll.fi/marskin-muksut/"
+    },
+    {
+      "name": "Martinlaakson kirppari",
+      "lat": 60.278178,
+      "lon": 24.8539556,
+      "address": "Kivivuorentie 4",
+      "openingHours": "Mo-Fr 12:00-19:00; Sa,Su 12:00-16:00",
+      "www": "https://www.martinlaaksonkirppis.com/"
+    },
+    {
+      "name": "Muija",
+      "lat": 60.239818,
+      "lon": 24.8734745,
+      "address": "Soittajantie 1",
+      "openingHours": "Mo-Fr 10:00-17:00, Sa 11:00-15:00",
+      "www": "https://muija.fi/"
+    },
+    {
+      "name": "Nassikka lastentarvikekirppis",
+      "lat": 60.2747211,
+      "lon": 25.0459578,
+      "address": "Puistolantori 4",
+      "openingHours": "Tu-Fr 11:00-18:00; Sa-Su 11:00-16:00",
+      "www": "https://www.nassikka.fi/"
+    },
+    {
+      "name": "Nella & Nuttu",
+      "lat": 60.1654389,
+      "lon": 24.7296777,
+      "address": "Pihatörmä 1",
+      "openingHours": "Mo 10:00-19:00; Tu-Fr 10:00-18:00; Sa 10:00-14:00",
+      "www": "https://www.lastenkirpputori.fi/"
+    },
+    {
+      "name": "Numpty",
+      "lat": 60.1602726,
+      "lon": 24.9377156,
+      "address": "Merimiehenkatu 29",
+      "openingHours": "Sa 10:00-18:00",
+      "www": "https://www.numpty.fi"
+    },
+    {
+      "name": "Old Times",
+      "lat": 60.1646766,
+      "lon": 24.9397336,
+      "address": "Annankatu 14",
+      "openingHours": "Mo-Fr 11:00-17:00; Sa 11:00-14:00; PH off",
+      "www": null
+    },
+    {
+      "name": "Pelastusarmeijan kirpputori",
+      "lat": 60.2631477,
+      "lon": 24.8534757,
+      "address": "Liesitori 1",
+      "openingHours": "Mo-Fr 09:00-18:00; Sa 10:00-15:00",
+      "www": "https://www.pelastusarmeija.fi/"
+    },
+    {
+      "name": "Pieni Sydän",
+      "lat": 60.185886,
+      "lon": 24.9512301,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Puhoskirppis",
+      "lat": 60.2141487,
+      "lon": 25.0829591,
+      "address": "Kastelholmantie 2",
+      "openingHours": "Tu-Fr 11:00-18:00; Sa-Su 10:00-15:00",
+      "www": null
+    },
+    {
+      "name": "Punaisen Ristin tuotteiden myynti",
+      "lat": 60.159707,
+      "lon": 24.9549162,
+      "address": "Tehtaankatu 1",
+      "openingHours": "Mo-Fr 08:30-16:00",
+      "www": "https://www.punaisenristinkauppa.fi/"
+    },
+    {
+      "name": "Punavuoren patina",
+      "lat": 60.1589265,
+      "lon": 24.9388044,
+      "address": "Sepänkatu 11",
+      "openingHours": "Mo off; Tu-Fr 10:00-19:00; Sa-Su 10:00-16:00",
+      "www": "https://www.punavuorenpatina.fi/"
+    },
+    {
+      "name": "Rajiksen Kirppiskahvila",
+      "lat": 60.2590417,
+      "lon": 24.829424,
+      "address": "Nuijatie 14",
+      "openingHours": "Mo 12:00-18:00; Tu-Fr 10:00-18:00; Sa-Su 11:00-17:00",
+      "www": "https://rajiksenkirppis.fi/"
+    },
+    {
+      "name": "Rekolan tavaratalo",
+      "lat": 60.3305821,
+      "lon": 25.0727704,
+      "address": "Rekolantie 58",
+      "openingHours": "Mo-Fr 10:00-17:30; Sa-Su 10:00-15:30",
+      "www": "http://www.kiinatori.fi/"
+    },
+    {
+      "name": "Relove shop Töölö",
+      "lat": 60.17872,
+      "lon": 24.9230942,
+      "address": "Sandelsinkatu 6",
+      "openingHours": "Mo-Fr 10:00-19:00; Sa 10:00-18:00; Su 12:00-17:00",
+      "www": "https://www.relove.fi/"
+    },
+    {
+      "name": "Remix Shop",
+      "lat": 60.1804009,
+      "lon": 24.9499431,
+      "address": null,
+      "openingHours": "Mo-Sa 12:00-17:00",
+      "www": null
+    },
+    {
+      "name": "Ritva's",
+      "lat": 60.1642911,
+      "lon": 24.9462805,
+      "address": "Pieni Roobertinkatu 5",
+      "openingHours": "Tu-Fr 12:00-18:00; Sa 12:00-16:00",
+      "www": null
+    },
+    {
+      "name": "Second hand shop Annina",
+      "lat": 60.3047152,
+      "lon": 25.0423924,
+      "address": "Talkootie 15",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Second Round Vintage",
+      "lat": 60.1862744,
+      "lon": 24.946237,
+      "address": "Helsinginkatu 32",
+      "openingHours": "Mo-Tu off; We-Sa 12:00-18:00; Su 12:00-17:00",
+      "www": null
+    },
+    {
+      "name": "Siilitien Kirppis",
+      "lat": 60.2068899,
+      "lon": 25.0413665,
+      "address": "Siilitie 6",
+      "openingHours": null,
+      "www": "https://siilitiekirppis.fi/"
+    },
+    {
+      "name": "Soma oma",
+      "lat": 60.1614502,
+      "lon": 24.9408342,
+      "address": "Fredrikinkatu 16",
+      "openingHours": "Tu-Fr 11:00-18:00; Sa 11:00-15:00",
+      "www": "https://www.somaoma.fi/"
+    },
+    {
+      "name": "SPR Espoon Kontti",
+      "lat": 60.2164622,
+      "lon": 24.6540828,
+      "address": "Nimismiehenpelto 6",
+      "openingHours": "Mo-Fr 09:00-20:00; Sa 10:00-17:00; Su 11:00-17:00",
+      "www": "https://kontti.punainenristi.fi/espoo"
+    },
+    {
+      "name": "SPR Kontti",
+      "lat": 60.2756009,
+      "lon": 24.969839,
+      "address": "Tammiston kauppatie 8",
+      "openingHours": "Mo-Fr 09:00-20:00; Sa 10:00-17:00; Su 11:00-17:00",
+      "www": "https://sprkontti.fi/vantaan-kontti"
+    },
+    {
+      "name": "SPR Kontti Helsinki",
+      "lat": 60.2090304,
+      "lon": 25.0837097,
+      "address": "Visbynkuja 2",
+      "openingHours": "Mo-Fr 09:00-20:00; Sa 10:00-17:00; Su 12:00-17:00",
+      "www": "https://kontti.punainenristi.fi/helsinki"
+    },
+    {
+      "name": "SPR Kontti Outlet myymälä",
+      "lat": 60.2438225,
+      "lon": 24.8648927,
+      "address": "Pakarituvantie 9",
+      "openingHours": "Mo-Fr 10:00-18:00; Sa 10:00-16:00",
+      "www": "https://sprkontti.fi/outlet"
+    },
+    {
+      "name": "Star kirpputori",
+      "lat": 60.2390511,
+      "lon": 24.8739593,
+      "address": "Klaneettitie 12",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Star Sofa & Textile",
+      "lat": 60.2671957,
+      "lon": 24.8492893,
+      "address": "Virtakuja 2",
+      "openingHours": "Mo-Sa 11:00-19:00",
+      "www": "https://starsofa.fi/"
+    },
+    {
+      "name": "Suomen Antiikki ja Keräily Oy",
+      "lat": 60.2252505,
+      "lon": 24.7719247,
+      "address": "Herttuantie 25",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Tammiston Kierrätyskeskus",
+      "lat": 60.2748339,
+      "lon": 24.9747713,
+      "address": "Tammiston kauppatie 11",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa-Su 10:00-18:00",
+      "www": "https://kierratyskeskus.fi/myymala/kierratyskeskus-tammisto/"
+    },
+    {
+      "name": "Tattarisuon Antiikki",
+      "lat": 60.2531524,
+      "lon": 25.0592058,
+      "address": "Kaasutintie 1",
+      "openingHours": "Mo-Fr 10:00-18:00; Sa-Su 10:00-15:00",
+      "www": "https://www.tattarisuonantiikki.fi/"
+    },
+    {
+      "name": "Theodora second hand shop",
+      "lat": 60.1599261,
+      "lon": 24.9373259,
+      "address": "Merimiehenkatu 26",
+      "openingHours": null,
+      "www": "https://www.theodora.fi/"
+    },
+    {
+      "name": "Työ ja Toiminta kierrätystavaratalo",
+      "lat": 60.2252012,
+      "lon": 25.0774622,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "UFF",
+      "lat": 60.1974903,
+      "lon": 24.9358092,
+      "address": "Ratavartijankatu 3",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "UFF",
+      "lat": 60.1661456,
+      "lon": 24.9342526,
+      "address": "Fredrikinkatu 36",
+      "openingHours": "Mo-Fr 10:00-21:00; Sa 10:00-18:00; Su 12:00-18:00",
+      "www": "https://www.uff.fi/"
+    },
+    {
+      "name": "UFF",
+      "lat": 60.1806578,
+      "lon": 24.9515986,
+      "address": "Hämeentie 4",
+      "openingHours": "Mo-Fr 10:00-21:00; Sa 10:00-18:00; Su 12:00-18:00",
+      "www": "https://uff.fi/"
+    },
+    {
+      "name": "UFF",
+      "lat": 60.1948804,
+      "lon": 25.0296229,
+      "address": "Hiihtomäentie 14",
+      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-18:00; Su 12:00-18:00",
+      "www": null
+    },
+    {
+      "name": "UFF",
+      "lat": 60.1603718,
+      "lon": 24.7379298,
+      "address": null,
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "UFF Punavuori",
+      "lat": 60.1634258,
+      "lon": 24.9348031,
+      "address": "Bulevardi 30",
+      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-18:00; Su 12:00-18:00",
+      "www": "https://uff.fi/"
+    },
+    {
+      "name": "UFF Sello",
+      "lat": 60.2185102,
+      "lon": 24.8112345,
+      "address": "Leppävaarankäytävä 3-9",
+      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-18:00; Su 12:00-18:00",
+      "www": "https://uff.fi/"
+    },
+    {
+      "name": "UFF Tikkuri",
+      "lat": 60.2921753,
+      "lon": 25.0422872,
+      "address": "Asematie 4-10",
+      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-17:00; 12:00-16:00",
+      "www": "https://uff.fi/"
+    },
+    {
+      "name": "Variety",
+      "lat": 60.1655902,
+      "lon": 24.9326867,
+      "address": "Kalevankatu 33",
+      "openingHours": "Tu-Fr 11:00-18:00; Sa 11:00-15:00",
+      "www": "http://varietysecondhand.com"
+    },
+    {
+      "name": "Vermo Areena Konttitori",
+      "lat": 60.2144595,
+      "lon": 24.8389272,
+      "address": "Valjakkotie 1",
+      "openingHours": null,
+      "www": "https://vermo.fi/konttitori"
+    }
+  ]
+}

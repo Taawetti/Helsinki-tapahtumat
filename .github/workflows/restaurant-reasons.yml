@@ -82,6 +82,12 @@ jobs:
           DATAFORSEO_TOKEN: ${{ secrets.DATAFORSEO_TOKEN }}
         run: npx tsx scripts/enrich-new-places.ts
 
+      # Kirpputorit ja second hand -liikkeet OSM:stä /kirpputorit-sivulle.
+      # Ilmainen; oma romahdusvahti skriptissä.
+      - name: Hae second hand -liikkeet
+        continue-on-error: true
+        run: npx tsx scripts/fetch-secondhand.ts
+
       # Saunojen Google-kortit /saunat-sivulle. Maksaa vain uusista ja
       # 60 pv välein virkistettävistä.
       - name: Hae saunakortit
@@ -133,7 +139,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/restaurant-reasons.json data/activity-reasons.json data/new-openings.json data/new-places-enriched.json data/sauna-cards.json data/dead-images.json data/website-images.json
+          git add data/restaurant-reasons.json data/activity-reasons.json data/new-openings.json data/new-places-enriched.json data/sauna-cards.json data/secondhand.json data/dead-images.json data/website-images.json
           git commit -m "Reasons: weekly refresh (restaurants + activities)
 
           Automaattinen haku: Michelin-opas, Suomen 50 parasta, Vuoden

@@ -1218,11 +1218,16 @@ export default function HomeClient({
                           onClick={() => setShowGuideMenu(false)} />
                         <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-56 rounded-2xl p-1.5"
                           style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
+                          {/* Yökerhot EI kuulu tähän — se on jo etusivun
+                              Yöelämä-kategoria ja Ravintolat-välilehden tyyppi
+                              (omistajan huomio: tuplakama). */}
                           {([
-                            { href: '/saunat',    emoji: '🧖', label: 'Saunat',    sub: 'yleiset saunat & aukiolot' },
-                            { href: '/terassit',  emoji: '☀️', label: 'Terassit',  sub: 'kattoterassit & kesä' },
-                            { href: '/yokerhot',  emoji: '🪩', label: 'Yökerhot',  sub: 'klubit & tanssilattiat' },
-                            { href: '/pubivisat', emoji: '🧠', label: 'Pubivisat', sub: 'visailut viikon varrella' },
+                            { href: '/saunat',          emoji: '🧖', label: 'Saunat',          sub: 'yleiset saunat & aukiolot' },
+                            { href: '/terassit',        emoji: '☀️', label: 'Terassit',        sub: 'kattoterassit & kesä' },
+                            { href: '/pubivisat',       emoji: '🧠', label: 'Pubivisat',       sub: 'visailut viikon varrella' },
+                            { href: '/kirpputorit',     emoji: '🛍', label: 'Kirpputorit',     sub: 'second hand & kirppikset' },
+                            { href: '/jamit',           emoji: '🎤', label: 'Jamit & open mic', sub: 'avoimet lavat' },
+                            { href: '/ilmaiset-museot', emoji: '🏛', label: 'Ilmaiset museot', sub: 'aina vapaa pääsy' },
                           ] as const).map((g) => (
                             <Link key={g.href} href={g.href}
                               className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors"

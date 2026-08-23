@@ -56,6 +56,7 @@ import {
   type OpeningInput,
 } from '../lib/new-in-helsinki'
 import enrichedFile from '../data/new-places-enriched.json'
+import secondhandFile from '../data/secondhand.json'
 import { nameOverlap } from '../lib/dataforseo'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
@@ -2411,6 +2412,13 @@ for (const c of ideaChecks) {
     rChecks.push({ name: 'uutta: oikea data tuottaa ≥ 40 riviä', ok: real.total >= 40, got: String(real.total) })
     rChecks.push({ name: 'uutta: oikeassa datassa on tulossa-rivejä', ok: real.upcoming.length >= 1, got: String(real.upcoming.length) })
   }
+
+    // 18. KIRPPUTORIT — /kirpputorit-sivun liiketiedosto (OSM, viikkohaku)
+    const sh = secondhandFile as { fetchedAt?: string; shops?: { name?: string; lat?: number; lon?: number; openingHours?: string | null }[] }
+    const shops = sh.shops ?? []
+    rChecks.push({ name: 'kirpputorit: liikkeitä vähintään 15', ok: shops.length >= 15, got: String(shops.length) })
+    rChecks.push({ name: 'kirpputorit: jokaisella nimi ja koordinaatit', ok: shops.every((x) => !!x.name && typeof x.lat === 'number' && typeof x.lon === 'number') })
+    rChecks.push({ name: 'kirpputorit: yli puolella aukiolot', ok: shops.filter((x) => x.openingHours).length >= shops.length / 2, got: `${shops.filter((x) => x.openingHours).length}/${shops.length}` })
 
   for (const c of rChecks) {
     if (c.ok) pass++
