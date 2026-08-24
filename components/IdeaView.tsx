@@ -11,7 +11,7 @@ import { addDays } from '@/lib/arvo-ilta'
 import { buildIdeaDeck, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
 import { getEventVibes } from '@/lib/event-classify'
-import { isOutsideTargetAudience } from '@/lib/audience'
+import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import DatePicker from '@/components/DatePicker'
 
 // Idea-sivu 8/2026: käsin kuratoitu 13 klassikkoa POISTETTU (asiakkaat huomasivat
@@ -310,16 +310,18 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     // tulevasta lauantaista, eikä paikkoja pidä esittää päiväkohtaisina.
     const base = shuffle([...(ideaDate === todayIso ? activityPool : []), ...eventPool])
       .filter(s => !seenIds.has(s.id))
-    // "Tänään" (yksi tila): käynnissä/pian alkavat tapahtumat kärkeen, sitten
-    // muut tämän päivän tapahtumat, sitten avoinna olevat paikat, sitten paikat
-    // joiden aukiolo ei tiedossa (kuratoidut helmet), ja suljetut pohjalle.
-    // Kuvallinen nousee saman kaistan sisällä → ensimmäiset kortit näyttävät hyvältä.
+    // Kaistat (omistaja 25.8.: kulttuurikategoriat + festivaalit ENSIN, ei
+    // turistikierroksia kärkeen — "Suomenlinna-kierros kuulostaa turisti-
+    // hommalta"): 0-1 ykköskorin tapahtumat (pian alkavat ensin), 2 muut
+    // tapahtumat, 3-5 paikat (avoinna → tuntematon → kiinni). Kuvallinen
+    // nousee kaistan sisällä → ensimmäiset kortit näyttävät hyvältä.
     const score = (s: Suggestion) => {
       let band: number
       if (s.type === 'event') {
-        band = (s.minutesUntil !== undefined && s.minutesUntil <= 180) ? 0 : 1
+        const primary = s.eventRef ? isPrimaryPick(s.eventRef) : false
+        band = primary ? ((s.minutesUntil !== undefined && s.minutesUntil <= 180) ? 0 : 1) : 2
       } else {
-        band = s.isOpen === false ? 4 : s.isOpen === undefined ? 3 : 2
+        band = s.isOpen === false ? 5 : s.isOpen === undefined ? 4 : 3
       }
       return band - (s.image ? 0.5 : 0)
     }

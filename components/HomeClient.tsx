@@ -8,7 +8,7 @@ import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
-import { isOutsideTargetAudience } from '@/lib/audience'
+import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -680,8 +680,11 @@ export default function HomeClient({
       // maanantain poiminnat olivat leikkipuistojumppaa ja neulekerhoja).
       // Kategoriat, haku ja koCat-listat näyttävät ne edelleen.
       .filter((e) => !heroIds.has(e.id) && !isOutsideTargetAudience(e))
-      .map((e) => ({ e, s: score(e) }))
-      .sort((a, b) => b.s - a.s)
+      // KAKSI KORIA (omistaja 25.8.): ykköskori = kulttuurikategoriat +
+      // festivaalit (lib/audience isPrimaryPick) aina ensin; kakkoskori
+      // (kierrokset, kirjastoillat ym.) täyttää vasta kun ykkönen ei riitä.
+      .map((e) => ({ e, s: score(e), tier: isPrimaryPick(e) ? 1 : 2 }))
+      .sort((a, b) => a.tier - b.tier || b.s - a.s)
     const out: Event[] = []
     const overflowQuiz: Event[] = []
     let quizzes = 0

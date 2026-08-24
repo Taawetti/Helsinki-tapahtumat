@@ -69,7 +69,7 @@ import { credibilityScore } from '../lib/credibility'
 import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/restaurant-news-match'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
-import { isOutsideTargetAudience } from '../lib/audience'
+import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
@@ -1292,6 +1292,8 @@ for (const c of arcChecks) {
     { name: 'seniorit: palvelukeskus', ok: aud('Senioritanssit', 'Tanssit palvelukeskuksessa joka viikko') === true },
     { name: 'seniorit/palvelu: digituki', ok: aud('Digituen viikko-ohjelma 24.8.–28.8.2026', 'Kaupungin digineuvoja paikalla') === true },
     { name: 'lapset: satutuokio', ok: aud('Satutuokio kirjastossa') === true },
+    { name: 'lapset: "7–8-vuotiaat" nominatiivissa (mitattu vuoto 25.8.)', ok: aud('Sydkustens ordskola: Skriftstojarna – 7–8-vuotiaat, 2018-2019 syntyneet') === true },
+    { name: 'lapset: syntymävuosikohdennus yksin', ok: aud('Kuvataidekurssi', '2015-2016 syntyneille') === true },
     // Säilyvät (tarkkuusansat)
     { name: 'ansa: K18-klubi ("yli 18-vuotiaille") säilyy', ok: aud('Klubi-ilta', 'Vain yli 18-vuotiaille.') === false },
     { name: 'ansa: nuorten aikuisten ilta ON kohderyhmää', ok: aud('Nuorten aikuisten suunnitteluilta', 'Kutsumme nuoria aikuisia mukaan') === false },
@@ -1299,10 +1301,32 @@ for (const c of arcChecks) {
     { name: 'ansa: sinfoniakonsertti säilyy', ok: aud('Helsingin juhlaviikot: Radion sinfoniaorkesteri – Le Grand Macabre', 'György Ligetin ooppera', 'Musiikkitalo') === false },
     { name: 'ansa: "Muistopäivä"-näytelmä ei ole muistisairaustapahtuma', ok: aud('Muistopäivä', 'Järisyttävä näytelmä Stalinin vainoihin kadonneista', 'Suomen Kansallisteatteri') === false },
     { name: 'ansa: stand up -klubi säilyy', ok: aud('Stand up -klubi', 'Illan koomikot Apollossa', 'Apollo Live Club') === false },
+    { name: 'ansa: "18-vuotias juhlavuosi" säilyy', ok: aud('Klubin 18-vuotias juhlavuosi', 'Synttärikeikat koko viikon') === false },
+    { name: 'ansa: "1800-luvulla syntyneet aatteet" säilyy', ok: aud('Luento', 'Miten 1800-luvulla syntyneet aatteet muokkasivat Helsinkiä') === false },
   ]
   for (const c of audCases) {
     if (c.ok) pass++
     else failures.push(`✗ kohderyhmä: ${c.name}`)
+  }
+
+  // Poimintojen ykköskori (isPrimaryPick): kulttuurikategoriat + festivaalit
+  // ensin, turistikierrokset ja kirjastoillat kakkoskoriin (omistaja 25.8.:
+  // "en halua suomenlinna kierrostakaan suosituksi poiminnaksi").
+  const pick = (over: Partial<Event> & { id: string; title: string }) =>
+    isPrimaryPick(mkEvent({ startTime: '2026-08-26T18:00:00+03:00', ...over }))
+  const pickCases: { name: string; ok: boolean }[] = [
+    { name: 'ykköskori: keikka', ok: pick({ id: 'p1', title: 'Iltakeikka', vibes: ['keikka'] }) === true },
+    { name: 'ykköskori: teatteri', ok: pick({ id: 'p2', title: 'Esitys', vibes: ['teatteri'] }) === true },
+    { name: 'ykköskori: taide/näyttely', ok: pick({ id: 'p3', title: 'Näyttely', vibes: ['taide'] }) === true },
+    { name: 'ykköskori: klassinen', ok: pick({ id: 'p4', title: 'Sinfonia', vibes: ['klassinen'] }) === true },
+    { name: 'ykköskori: urheilu', ok: pick({ id: 'p5', title: 'Ottelu', vibes: ['urheilu'] }) === true },
+    { name: 'ykköskori: festivaalilähde ilman vibejä', ok: pick({ id: 'p6', title: 'Festari', vibes: [], source: 'festivals' }) === true },
+    { name: 'kakkoskori: opastettu kierros EI ole ykköskoria', ok: pick({ id: 'p7', title: 'Opastettu yleisökierros Suomenlinnassa', vibes: [], categories: ['matkailu'] }) === false },
+    { name: 'kakkoskori: kirjaston pelailuilta', ok: pick({ id: 'p8', title: 'Pelailua kirjastossa', vibes: [], categories: ['kirjastot'] }) === false },
+  ]
+  for (const c of pickCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ ykköskori: ${c.name}`)
   }
 }
 

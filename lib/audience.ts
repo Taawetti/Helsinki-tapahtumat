@@ -20,6 +20,9 @@
 //  - "alle 2v"…"alle 12v" = lapset; "alle 18-vuotiailta kielletty" ei osu
 //  - bänditrap: "Nuorgam" ei sisällä sanaa \bnuorten\b → ei osu
 
+import { getEventVibes } from './event-classify'
+import type { Event } from './types'
+
 interface AudienceCheckable {
   title: string
   shortDescription?: string | null
@@ -35,13 +38,18 @@ const KIDS_TEENS =
   'vanhemman kanssa|huoltajan kanssa|aikuisen kanssa'
 
 // Ikähaitarit: alkupää 0–17 ("13-17-vuotiaille", "0-6 vuotiaille",
-// "8-vuotiaille"). Kaksinumeroinen vaihtoehto (1[0-7]) ENNEN yksinumeroista,
-// muuten "13" osuisi pelkkänä "1":nä ja jatko pettäisi. "18-vuotiaille" /
-// "yli 18-vuotiailta" EIVÄT osu (18 ei läpäise numero-osaa, eikä 1|8 välissä
-// ole sanarajaa).
+// "7–8-vuotiaat", "8-vuotiaille"). Vartalo 'vuotia' kattaa taivutukset
+// (vuotiaat/vuotiaille/vuotiaita — mitattu vuoto 25.8.: "7–8-vuotiaat"
+// ei osunut 'vuotiail'-muotoon). Kaksinumeroinen vaihtoehto (1[0-7]) ENNEN
+// yksinumeroista, muuten "13" osuisi pelkkänä "1":nä ja jatko pettäisi.
+// "18-vuotiaille" / "yli 18-vuotiailta" EIVÄT osu (18 ei läpäise numero-
+// osaa, eikä 1|8 välissä ole sanarajaa). Syntymävuosikohdennus
+// ("2018-2019 syntyneet") on aina ikäryhmärajaus → pois; "1800-luvulla
+// syntyneet aatteet" ei osu (syntyne ei seuraa vuosilukua suoraan).
 const AGE_RANGE =
-  '\\b(?:1[0-7]|[0-9])(?:\\s*[–—-]\\s*(?:1[0-7]|[0-9]))?\\s*[–—-]?\\s*vuotiail|' +
-  '\\balle\\s*(?:1[0-2]|[2-9])\\s*[- ]?v\\b|alle kouluikäis'
+  '\\b(?:1[0-7]|[0-9])(?:\\s*[–—-]\\s*(?:1[0-7]|[0-9]))?\\s*[–—-]?\\s*vuotia|' +
+  '\\balle\\s*(?:1[0-2]|[2-9])\\s*[- ]?v\\b|alle kouluikäis|' +
+  '\\b(?:19|20)\\d{2}\\s*(?:[–—-]\\s*(?:19|20)\\d{2}\\s*)?syntyne'
 
 const SENIORS =
   '\\bseniori|eläkeläis|ikäihmis|ikäänty|seniorikeskus|palvelukeskus|palvelutalo|muistisair|digituki|digituen|digineuvo'
@@ -62,4 +70,27 @@ export const OUT_OF_TARGET_REGEX = new RegExp(
 export function isOutsideTargetAudience(e: AudienceCheckable): boolean {
   const hay = [e.title, e.shortDescription ?? '', e.location?.name ?? '', ...e.categories].join(' ')
   return OUT_OF_TARGET_REGEX.test(hay)
+}
+
+// ── Poimintojen ykköskori (omistaja 25.8.2026): suosituksiin ENSIN
+// kulttuuritapahtumat — etusivun kategoriaruudukon aihepiirit + festivaalit
+// ("haluan kulttuuritapahtumia, näitä kategorioita mitä kuvassa näkyy +
+// festivaaleja"). Vasta kun nämä eivät riitä, muut tapahtumat täyttävät
+// loput ("jos nämä eivät riitä niin sitten voi tulla myös muuta").
+// Opastetut kierrokset ym. turistisisältö putoaa kakkoskoriin itsestään.
+// 'klassinen' mukana: sinfonia/ooppera on kulttuuria (omistaja hyväksyi
+// juhlaviikkojen sinfonianoston 24.8.).
+
+
+export const PRIMARY_PICK_VIBES = [
+  'keikka', 'yoelama', 'standup', 'urheilu', 'baari',
+  'underground', 'teatteri', 'taide', 'klassinen', 'festivaali',
+] as const
+
+/** Kuuluuko tapahtuma poimintojen ykköskoriin (kulttuurikategoriat +
+ *  festivaalit)? Kakkoskori täyttää vasta kun ykköskori ei riitä. */
+export function isPrimaryPick(e: Event): boolean {
+  if (e.source === 'festivals') return true
+  const vibes = getEventVibes(e)
+  return PRIMARY_PICK_VIBES.some((v) => vibes.includes(v))
 }
