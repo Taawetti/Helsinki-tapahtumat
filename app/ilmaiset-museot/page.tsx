@@ -7,7 +7,7 @@
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { fetchActivitiesCached } from '@/app/api/activities/route'
+import { buildFreeMuseums } from '@/lib/guide-data'
 import GuidePlaceList, { type GuidePlace } from '@/components/GuidePlaceList'
 
 export const revalidate = 3600
@@ -25,37 +25,8 @@ export const metadata: Metadata = {
 }
 
 export default async function IlmaisetMuseotSivu() {
-  const activities = await fetchActivitiesCached()
-
-  // fee === false on OSM:n oma "maksuton"-merkintä — todennettua tietoa,
-  // ei päättelyä. Sama paikka voi olla datassa kahdesti (solmu + alue).
-  const seen = new Set<string>()
-  const toPlace = (category: 'museo' | 'galleria'): GuidePlace[] =>
-    activities
-      .filter((a) => a.category === category && a.fee === false)
-      .filter((a) => {
-        const key = a.name.toLowerCase().trim()
-        if (seen.has(key)) return false
-        seen.add(key)
-        return true
-      })
-      .map((a) => ({
-        id: a.id,
-        name: a.name,
-        address: a.address ?? null,
-        lat: a.lat ?? null,
-        lon: a.lon ?? null,
-        openingHours: a.openingHours ?? null,
-        www: a.www ?? null,
-        image: a.image ?? null,
-        rating: a.rating ?? null,
-        reviews: a.reviewCount ?? null,
-        sub: a.city && a.city !== 'Helsinki' ? a.city : null,
-      }))
-      .sort((a, b) => (b.reviews ?? 0) - (a.reviews ?? 0))
-
-  const museums = toPlace('museo')
-  const galleries = toPlace('galleria')
+  // Datakompositio jaettu lib/guide-data.ts:ään (sama data in-app-oppaassa).
+  const { museums, galleries } = await buildFreeMuseums()
 
   const itemListLd = {
     '@context': 'https://schema.org',

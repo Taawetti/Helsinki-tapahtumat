@@ -11,9 +11,13 @@ interface Props {
   onToggle: (id: string) => void
   onClear: () => void
   onClose: () => void
+  /** "Näytä kaikki tapahtumat" -CTA kun mitään ei ole valittu — avaa koko
+   *  listan (aiemmin nappi vain sulki paneelin eikä tehnyt mitään, mitattu
+   *  vika 25.8.2026). */
+  onShowAll: () => void
 }
 
-export default function VibePanel({ open, active, onToggle, onClear, onClose }: Props) {
+export default function VibePanel({ open, active, onToggle, onClear, onClose, onShowAll }: Props) {
   const { t } = useLanguage()
 
   useEffect(() => {
@@ -90,33 +94,35 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose }: 
           className="grid gap-2.5 p-5 overflow-y-auto flex-1"
           style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
         >
-          {/* Kaikki — shows all events as flat list, active only when explicitly selected */}
+          {/* "Kaikki"-tiili POISTETTU (omistaja 25.8.): alaosan iso
+              "Näytä kaikki tapahtumat" hoitaa saman. Tilalla Ilmaiseksi —
+              siirretty tänne etusivun leveästä napista. */}
           {(() => {
-            const isKaikki = active.includes('kaikki')
+            const isFree = active.includes('ilmainen')
             return (
               <button
-                onClick={() => onToggle('kaikki')}
+                onClick={() => onToggle('ilmainen')}
                 className="flex flex-col items-center gap-2 py-4 rounded-[18px] transition-all active:scale-[.96]"
-                style={isKaikki
-                  ? { background: 'rgba(107,118,255,.13)', border: '1.5px solid rgba(107,118,255,.45)' }
+                style={isFree
+                  ? { background: 'rgba(95,217,166,.14)', border: '1.5px solid rgba(95,217,166,.5)' }
                   : { background: 'rgba(255,255,255,.05)', border: '1.5px solid rgba(255,255,255,.08)' }
                 }
               >
                 <span
                   className="text-[28px] leading-none"
                   style={{
-                    transform: isKaikki ? 'scale(1.18)' : 'scale(1)',
+                    transform: isFree ? 'scale(1.18)' : 'scale(1)',
                     transition: 'transform .15s',
                     display: 'block',
                   }}
                 >
-                  ✨
+                  🎁
                 </span>
                 <span
                   className="text-[11px] font-black text-center leading-tight px-1"
-                  style={{ color: isKaikki ? '#a3abff' : 'rgba(255,255,255,.45)' }}
+                  style={{ color: isFree ? '#7fe8bc' : 'rgba(255,255,255,.45)' }}
                 >
-                  Kaikki
+                  Ilmaiseksi
                 </span>
               </button>
             )
@@ -171,7 +177,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose }: 
         {/* CTA */}
         <div className="px-5 pt-2 pb-6 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
           <button
-            onClick={onClose}
+            onClick={n === 0 ? onShowAll : onClose}
             className="w-full py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[.98] hover:opacity-90"
             style={{
               background: 'linear-gradient(150deg,#6b76ff,#5059e6)',

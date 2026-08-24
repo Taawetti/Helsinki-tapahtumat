@@ -23,6 +23,7 @@ import InstallBanner from '@/components/InstallBanner'
 import VibePanel from '@/components/VibePanel'
 import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
+import GuideInlineView, { GUIDE_META, type GuideSlug } from '@/components/GuideInlineView'
 import JarjestajaForm from '@/components/JarjestajaForm'
 import NewsletterBanner from '@/components/NewsletterBanner'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -249,14 +250,17 @@ export default function HomeClient({
   // välilehtiä mutta footerissa niitä ei kukaan nähnyt — pilleri kategorioiden
   // alla on niiden koti.
   const [showGuideMenu, setShowGuideMenu] = useState(false)
+  // Avoinna oleva opas ETUSIVUN SISÄLLÄ (omistaja 25.8.: oppaat eivät saa
+  // viedä pois etusivunäkymästä — sama linjaus kuin kaupunginosilla).
+  const [guideView, setGuideView] = useState<GuideSlug | null>(null)
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   // Kategorian avaus/vaihto vie aina listan alkuun — muuten näkymä jää
   // etusivun scrollikohtaan ja lista aukeaa "puolesta välistä"
   useEffect(() => {
-    if (koCat) window.scrollTo(0, 0)
-  }, [koCat])
+    if (koCat || guideView) window.scrollTo(0, 0)
+  }, [koCat, guideView])
 
   // Ilta-painotus: illalla NOSTETAAN yökeikat kärkeen mutta EI rajata päivää —
   // oletus pysyy 'today' (koko päivä näkyvissä). Aiempi 'tonight'-automaatti
@@ -1103,7 +1107,12 @@ export default function HomeClient({
           )}
 
           {/* ═══ KATEGORIAN PYSTYLISTA (koCat) — ← Takaisin + rikkaat kortit ═══ */}
-          {koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+          {/* ═══ OPAS ETUSIVUN SISÄLLÄ (guideView) ═══ */}
+          {guideView && !koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+            <GuideInlineView slug={guideView} onBack={() => setGuideView(null)} />
+          )}
+
+          {koCat && !guideView && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <section className="space-y-4">
               <div className="flex items-center gap-3">
                 <button onClick={() => setKoCat(null)}
@@ -1157,7 +1166,7 @@ export default function HomeClient({
           )}
 
           {/* ═══ ETUSIVU (koFront) — hero → ruudukko → kompaktit rivit → aihepiirit ═══ */}
-          {!koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+          {!koCat && !guideView && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <>
               {/* Tilarivi: vihreä pulssipiste + päivän tapahtumamäärä */}
               {!loading && baseEvents.length > 0 && (
@@ -1204,19 +1213,9 @@ export default function HomeClient({
                       )
                     })}
                   </div>
-                  {/* Suodatinnapit: Kaikki + Ilmaiseksi (korvaavat vapaakarusellin) */}
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <button onClick={() => setKoCat('kaikki')}
-                      className="flex items-center justify-center gap-2 rounded-[16px] py-3.5 px-2 font-black text-[13px] text-white transition-transform active:scale-95"
-                      style={{ background: 'linear-gradient(150deg,rgba(107,118,255,.22),rgba(107,118,255,.07))', border: '1px solid rgba(107,118,255,.3)' }}>
-                      📋 {t('discover.all_events')}
-                    </button>
-                    <button onClick={() => setKoCat('ilmainen')}
-                      className="flex items-center justify-center gap-2 rounded-[16px] py-3.5 px-2 font-black text-[13px] text-white transition-transform active:scale-95"
-                      style={{ background: 'linear-gradient(150deg,rgba(95,217,166,.2),rgba(95,217,166,.06))', border: '1px solid rgba(95,217,166,.3)' }}>
-                      🎁 {t('discover.free_events')}
-                    </button>
-                  </div>
+                  {/* "Kaikki tapahtumat"- ja "Ilmaiseksi"-leveät napit POISTETTU
+                      (omistaja 25.8.): Ilmaiseksi on aihepiiripaneelin tiili,
+                      koko listan avaa paneelin "Näytä kaikki tapahtumat". */}
                 </section>
               )}
 
@@ -1257,24 +1256,22 @@ export default function HomeClient({
                           {/* Yökerhot EI kuulu tähän — se on jo etusivun
                               Yöelämä-kategoria ja Ravintolat-välilehden tyyppi
                               (omistajan huomio: tuplakama). */}
-                          {([
-                            { href: '/saunat',          emoji: '🧖', label: 'Saunat',          sub: 'yleiset saunat & aukiolot' },
-                            { href: '/terassit',        emoji: '☀️', label: 'Terassit',        sub: 'kattoterassit & kesä' },
-                            { href: '/pubivisat',       emoji: '🧠', label: 'Pubivisat',       sub: 'visailut viikon varrella' },
-                            { href: '/kirpputorit',     emoji: '🛍', label: 'Kirpputorit',     sub: 'second hand & kirppikset' },
-                            { href: '/jamit',           emoji: '🎤', label: 'Jamit & open mic', sub: 'avoimet lavat' },
-                            { href: '/ilmaiset-museot', emoji: '🏛', label: 'Ilmaiset museot', sub: 'aina vapaa pääsy' },
-                          ] as const).map((g) => (
-                            <Link key={g.href} href={g.href}
-                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors"
-                              style={{ textDecoration: 'none' }}>
-                              <span className="text-base leading-none">{g.emoji}</span>
-                              <span className="min-w-0">
-                                {g.label}
-                                <span className="block text-[10.5px] font-medium text-white/35 truncate">{g.sub}</span>
-                              </span>
-                            </Link>
-                          ))}
+                          {/* Oppaat avautuvat ETUSIVUN SISÄLLÄ (ei /saunat-navigointia) —
+                              SEO-sivut säilyvät Googlelle, valikko pitää käyttäjän tässä. */}
+                          {(Object.keys(GUIDE_META) as GuideSlug[]).map((slug) => {
+                            const g = GUIDE_META[slug]
+                            return (
+                              <button key={slug}
+                                onClick={() => { setGuideView(slug); setShowGuideMenu(false) }}
+                                className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors">
+                                <span className="text-base leading-none">{g.emoji}</span>
+                                <span className="min-w-0">
+                                  {g.title}
+                                  <span className="block text-[10.5px] font-medium text-white/35 truncate">{g.sub}</span>
+                                </span>
+                              </button>
+                            )
+                          })}
                         </div>
                       </>
                     )}
@@ -1467,6 +1464,7 @@ export default function HomeClient({
         }}
         onClear={() => setKoCat(null)}
         onClose={() => setShowVibePanel(false)}
+        onShowAll={() => { setKoCat('kaikki'); setShowVibePanel(false) }}
       />
 
       <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}

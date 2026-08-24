@@ -11,15 +11,8 @@
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { fetchActivitiesCached } from '@/app/api/activities/route'
-import { fetchRestaurantNews } from '@/lib/restaurant-news'
-import { matchNewsToRestaurants } from '@/lib/restaurant-news-match'
-import { credibilityScore } from '@/lib/credibility'
-import { reasonKey } from '@/lib/restaurant-reasons'
-import type { ReasonFile } from '@/lib/restaurant-reasons'
-import SaunatView, { type SaunaRow } from '@/components/SaunatView'
-import saunaCardData from '@/data/sauna-cards.json'
-import activityReasonData from '@/data/activity-reasons.json'
+import SaunatView from '@/components/SaunatView'
+import { buildSaunaRows } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -35,80 +28,10 @@ export const metadata: Metadata = {
   openGraph: { title: '🧖 Saunat Helsingissä', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/saunat` },
 }
 
-interface SaunaCardEntry {
-  image: string | null
-  address: string | null
-  www: string | null
-  phone: string | null
-  priceLevel: string | null
-}
-
-const MONTHS_INESSIVE = [
-  'tammikuussa', 'helmikuussa', 'maaliskuussa', 'huhtikuussa', 'toukokuussa', 'kesäkuussa',
-  'heinäkuussa', 'elokuussa', 'syyskuussa', 'lokakuussa', 'marraskuussa', 'joulukuussa',
-]
-
-/** Tuore lehtijuttu saunasta → 📰-rivi kortille. Uutisputken kaatuminen ei
- *  kaada sivua. Moduulitason funktio, ei komponentin rungossa (react-hooks/
- *  purity: Date.now ei kuulu renderiin). */
-async function attachSaunaNews(saunas: SaunaRow[]): Promise<void> {
-  try {
-    const news = await fetchRestaurantNews()
-    const matches = matchNewsToRestaurants(news, saunas.map((s) => ({ id: s.id, name: s.name })))
-    const byId = new Map(matches.map((m) => [m.restaurantId, m]))
-    const now = Date.now()
-    for (const s of saunas) {
-      const m = byId.get(s.id)
-      if (!m) continue
-      const ageDays = (now - Date.parse(m.pubDate)) / 86_400_000
-      if (Number.isNaN(ageDays) || ageDays > 30) continue
-      s.news = { title: m.headline, url: m.link, source: m.source }
-    }
-  } catch { /* ei uutisia tällä kertaa */ }
-}
-
 export default async function SaunatSivu() {
-  const activities = await fetchActivitiesCached()
-  const cards = (saunaCardData as { cards?: Record<string, SaunaCardEntry> }).cards ?? {}
-
-  // OSM:n uudet saunat (karttamerkintä ≤ 180 pv) → "Uusi elokuussa" -merkki.
-  // Päivä on merkinnän luontipäivä, ei todennettu avauspäivä → vain kuukausi.
-  const reasonFile = activityReasonData as unknown as ReasonFile
-  const newSaunaByKey = new Map<string, string>()
-  for (const p of reasonFile.newPlaces ?? []) {
-    if (p.venueType === 'sauna' && p.venue && p.date) {
-      const m = new Date(p.date + 'T12:00:00Z').getUTCMonth()
-      newSaunaByKey.set(reasonKey(p.venue), `Uusi ${MONTHS_INESSIVE[m] ?? ''}`)
-    }
-  }
-
-  const saunas: SaunaRow[] = activities
-    .filter((a) => a.category === 'sauna')
-    .map((a) => {
-      const card = cards[a.name.toLowerCase().trim()]
-      return {
-        id: a.id,
-        name: a.name,
-        address: a.address ?? card?.address?.split(',')[0] ?? null,
-        lat: a.lat ?? null,
-        lon: a.lon ?? null,
-        image: a.image ?? card?.image ?? null,
-        www: a.www ?? card?.www ?? null,
-        phone: a.phone ?? card?.phone ?? null,
-        openingHours: a.openingHours ?? null,
-        charge: a.charge ?? null,
-        priceLevel: card?.priceLevel ?? null,
-        rating: a.rating ?? null,
-        reviews: a.reviewCount ?? null,
-        newLabel: newSaunaByKey.get(reasonKey(a.name)) ?? null,
-        news: null,
-      }
-    })
-    // Uskottavimmat ensin (sama Wilson-kaava kuin muuallakin); uudet saunat
-    // ilman arvosteluja nousevat omaan osioonsa näkymässä.
-    .sort((a, b) => credibilityScore(b.rating, b.reviews) - credibilityScore(a.rating, a.reviews))
-
-  await attachSaunaNews(saunas)
+  // Datakompositio jaettu lib/guide-data.ts:ään — sama data etusivun
+  // in-app-oppaassa (/api/guides/saunat) ja tässä SEO-sivussa.
+  const saunas = await buildSaunaRows()
 
   const itemListLd = {
     '@context': 'https://schema.org',

@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
-import { TERRACE_REGEX } from '@/lib/nightlife'
-import { helsinkiDateRange, formatEventDate } from '@/lib/helsinki-time'
-import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
+import { formatEventDate } from '@/lib/helsinki-time'
+import { fetchTerraceEvents, type GuideEvent } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -18,86 +17,8 @@ export const metadata: Metadata = {
   openGraph: { title: '☀️ Terassit Helsinki', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/terassit` },
 }
 
-interface PageEvent {
-  id: string
-  title: string
-  startTime: string
-  venue: string
-  isFree: boolean
-  price: string | null
-  image: string | null
-}
-
-interface LEEvent {
-  id: string
-  name: { fi?: string; en?: string; sv?: string }
-  short_description?: { fi?: string; en?: string }
-  start_time: string
-  images?: { url: string }[]
-  location?: { name?: { fi?: string; en?: string } }
-  offers?: { is_free: boolean; price?: { fi?: string } }[]
-  keywords?: { name: { fi?: string; en?: string } }[]
-}
-
-// Two text queries, merged + deduped — mirrors the /tapahtumat/[slug] fetchByText pattern
-async function fetchTerraceEvents(): Promise<PageEvent[]> {
-  const { start, end } = helsinkiDateRange(14)
-
-  // Sivutettu ja laskeva — ks. lib/linked-events.ts. Tässä oli nouseva
-  // lajittelu ja 50 rivin sivu: sama muoto joka palautti helmet-reitillä
-  // mitatusti NOLLA tapahtumaa, koska "yhä käynnissä" -rivit täyttävät sivun 1
-  // ja alla oleva cutoff-suodatin pudottaa ne kaikki. Terassikyselyn osumat
-  // ovat nyt 30 ja 16, eli katkaisu ei osu — mutta terassikausi on juuri se
-  // aika jolloin luku nousee, ja katkaisusta ei tulisi mitään ilmoitusta.
-  const perTerm = await Promise.all(
-    ['terassi', 'ulkoilma'].map((text) =>
-      fetchLinkedEventsAll<LEEvent>(
-        (page) =>
-          `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
-            text, format: 'json', start, end,
-            page: String(page), page_size: String(LE_MAX_PAGE_SIZE),
-            include: 'location,keywords', sort: '-start_time', division: 'helsinki',
-          })}`,
-        () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) }),
-      ),
-    ),
-  )
-
-  const events: PageEvent[] = []
-  const seen = new Set<string>()
-  // LinkedEvents `start=` matches events still ONGOING at that date — a
-  // May-started all-summer program would top the list with a past startDate.
-  // Same past-start guard as /ohjelma/[venue], 24h grace for tonight.
-  const cutoff = new Date(start).getTime() - 24 * 60 * 60 * 1000
-
-  for (const { rows } of perTerm) {
-    for (const raw of rows) {
-      if (seen.has(raw.id)) continue
-      seen.add(raw.id)
-      if (new Date(raw.start_time).getTime() < cutoff) continue
-      // Text search is permissive — require an actual terrace/outdoor keyword match
-      const haystack = [
-        raw.name?.fi || '', raw.short_description?.fi || '',
-        ...(raw.keywords || []).map((k) => k.name?.fi || ''),
-      ].join(' ').toLowerCase()
-      if (!TERRACE_REGEX.test(haystack)) continue
-      const offer = raw.offers?.[0]
-      const isFree = offer?.is_free ?? false
-      events.push({
-        id: raw.id,
-        title: raw.name?.fi || raw.name?.en || 'Tapahtuma',
-        startTime: raw.start_time,
-        venue: raw.location?.name?.fi || raw.location?.name?.en || '',
-        isFree,
-        price: isFree ? null : (offer?.price?.fi || null),
-        image: raw.images?.[0]?.url || null,
-      })
-    }
-  }
-
-  events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-  return events.slice(0, 40)
-}
+// Datahaku jaettu lib/guide-data.ts:ään (sama data in-app-oppaassa).
+type PageEvent = GuideEvent
 
 export default async function TerassitSivu() {
   const events = await fetchTerraceEvents()

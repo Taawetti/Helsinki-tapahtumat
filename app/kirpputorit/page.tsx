@@ -4,10 +4,9 @@
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
-import { helsinkiDateRange, formatEventDate } from '@/lib/helsinki-time'
+import { formatEventDate } from '@/lib/helsinki-time'
+import { fetchKirppisEvents, mapSecondhandShops, type GuideEvent } from '@/lib/guide-data'
 import GuidePlaceList, { type GuidePlace } from '@/components/GuidePlaceList'
-import secondhandData from '@/data/secondhand.json'
 
 export const revalidate = 3600
 
@@ -24,81 +23,12 @@ export const metadata: Metadata = {
 }
 
 // Tekstihaku on löyhä — vaadi aito kirppissana otsikosta/kuvauksesta.
-const KIRPPIS_REGEX = /kirppis|kirpputori|second\s?hand|vintage|vaatteidenvaihto|myyjäis/i
-
-interface PageEvent {
-  id: string
-  title: string
-  startTime: string
-  venue: string
-  isFree: boolean
-}
-
-interface LEEvent {
-  id: string
-  name: { fi?: string; en?: string }
-  short_description?: { fi?: string }
-  start_time: string
-  location?: { name?: { fi?: string; en?: string } }
-  offers?: { is_free: boolean }[]
-  keywords?: { name: { fi?: string; en?: string } }[]
-}
-
-async function fetchKirppisEvents(): Promise<PageEvent[]> {
-  const { start, end } = helsinkiDateRange(30)
-  const perTerm = await Promise.all(
-    ['kirpputori', 'kirppis', 'vintage'].map((text) =>
-      fetchLinkedEventsAll<LEEvent>(
-        (page) =>
-          `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
-            text, format: 'json', start, end,
-            page: String(page), page_size: String(LE_MAX_PAGE_SIZE),
-            include: 'location,keywords', sort: '-start_time', division: 'helsinki',
-          })}`,
-        () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) }),
-      ),
-    ),
-  )
-  const events: PageEvent[] = []
-  const seen = new Set<string>()
-  // `start=` osuu myös käynnissä oleviin — mennyt alkupäivä pois (24 h armo).
-  const cutoff = new Date(start).getTime() - 24 * 60 * 60 * 1000
-  for (const { rows } of perTerm) {
-    for (const raw of rows) {
-      if (seen.has(raw.id)) continue
-      seen.add(raw.id)
-      if (new Date(raw.start_time).getTime() < cutoff) continue
-      const haystack = [
-        raw.name?.fi || '', raw.short_description?.fi || '',
-        ...(raw.keywords || []).map((k) => k.name?.fi || ''),
-      ].join(' ')
-      if (!KIRPPIS_REGEX.test(haystack)) continue
-      events.push({
-        id: raw.id,
-        title: raw.name?.fi || raw.name?.en || 'Tapahtuma',
-        startTime: raw.start_time,
-        venue: raw.location?.name?.fi || raw.location?.name?.en || '',
-        isFree: raw.offers?.[0]?.is_free ?? false,
-      })
-    }
-  }
-  events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-  return events.slice(0, 20)
-}
+// Datahaku + KIRPPIS_REGEX jaettu lib/guide-data.ts:ään.
+type PageEvent = GuideEvent
 
 export default async function KirpputoritSivu() {
   const events = await fetchKirppisEvents()
-  const shops: GuidePlace[] = (secondhandData as {
-    shops: { name: string; lat: number; lon: number; address: string | null; openingHours: string | null; www: string | null }[]
-  }).shops.map((s, i) => ({
-    id: `shop-${i}`,
-    name: s.name,
-    address: s.address,
-    lat: s.lat,
-    lon: s.lon,
-    openingHours: s.openingHours,
-    www: s.www,
-  }))
+  const shops: GuidePlace[] = mapSecondhandShops()
 
   const itemListLd = {
     '@context': 'https://schema.org',
