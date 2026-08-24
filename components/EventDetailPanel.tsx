@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
+import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VENUE_PAGES } from '@/lib/venue-pages'
@@ -412,7 +413,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                 className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
               >
                 <Ticket size={15} />
-                {event.ticketUrl ? t('detail.buy_tickets') : t('detail.read_more')}
+                {canBuyTickets(event) ? t('detail.buy_tickets') : t('detail.read_more')}
                 <ExternalLink size={13} className="opacity-70" />
               </a>
             )}

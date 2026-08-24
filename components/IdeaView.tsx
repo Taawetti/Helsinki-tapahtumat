@@ -12,6 +12,7 @@ import { buildIdeaDeck, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
 import { getEventVibes } from '@/lib/event-classify'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
+import { canBuyTickets } from '@/lib/tickets'
 import DatePicker from '@/components/DatePicker'
 
 // Idea-sivu 8/2026: käsin kuratoitu 13 klassikkoa POISTETTU (asiakkaat huomasivat
@@ -41,6 +42,7 @@ interface Suggestion {
   isFree?: boolean
   price?: string
   isOpen?: boolean
+  buyable?: boolean   // "Osta liput" vain oikeaan lippukauppaan (lib/tickets)
   emoji: string
   eventRef?: Event
 }
@@ -297,6 +299,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       lon: s.event.location?.lon,
       url: s.event.ticketUrl ?? s.event.infoUrl ?? undefined,
       isFree: s.event.isFree,
+      buyable: canBuyTickets(s.event),
       price: s.event.price ?? undefined,
       time: new Date(s.event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' }),
       minutesUntil: s.minutesUntil,
@@ -724,7 +727,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                   className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity"
                   style={{ color: '#a3abff' }}>
                   <Globe size={12} />
-                  {current.type === 'event' ? `${t('detail.buy_tickets')} →` : `${t('common.website')} →`}
+                  {current.buyable ? `${t('detail.buy_tickets')} →` : `${t('common.website')} →`}
                 </a>
               )}
               {onShowOnMap && current.lat && current.lon && (
@@ -925,7 +928,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                       className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white"
                       style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                       <Globe size={15} />
-                      {d.type === 'event' ? t('detail.buy_tickets') : t('common.website')}
+                      {d.buyable ? t('detail.buy_tickets') : t('common.website')}
                     </a>
                   )}
                   {onShowOnMap && d.lat && d.lon && (

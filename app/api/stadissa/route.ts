@@ -100,7 +100,9 @@ function toEvent(e: StadissaRaw): Event {
     image: null,
     isFree: false,
     price: null,
-    ticketUrl: e.url,
+    // Stadissan sivu on LISTAUS, ei lippukauppa — kuuluu infoUrl-kenttään
+    // (ticketUrl-arvona se näytti "Osta liput" 188 tapahtumalle, mitattu 25.8.).
+    ticketUrl: null,
     infoUrl: e.url,
     categories: [],
     source: 'linked-events',

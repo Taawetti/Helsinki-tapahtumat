@@ -70,6 +70,7 @@ import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/rest
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
+import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
@@ -1327,6 +1328,31 @@ for (const c of arcChecks) {
   for (const c of pickCases) {
     if (c.ok) pass++
     else failures.push(`✗ ykköskori: ${c.name}`)
+  }
+}
+
+// ── Lippulupaus (lib/tickets) — "Osta liput" vain oikeaan kauppaan
+// (omistaja 25.8.2026; mitattu: 188 stadissa.fi-listaussivua lippulupauksella).
+{
+  const ticketCases: { name: string; ok: boolean }[] = [
+    { name: 'kauppa: lippu.fi', ok: isTicketShopUrl('https://www.lippu.fi/artist/xyz/') === true },
+    { name: 'kauppa: tiketti.fi', ok: isTicketShopUrl('https://www.tiketti.fi/liput/123') === true },
+    { name: 'kauppa: kide.app', ok: isTicketShopUrl('https://kide.app/events/abc') === true },
+    { name: 'kauppa: alidomain (suomenlinna.johku.com)', ok: isTicketShopUrl('https://suomenlinna.johku.com/fi_FI/tuote') === true },
+    { name: 'kauppa: ra.co', ok: isTicketShopUrl('https://ra.co/events/12345') === true },
+    { name: 'kauppa: allaspool.fi (omistajan nimeämä)', ok: isTicketShopUrl('https://allaspool.fi/liput') === true },
+    { name: 'EI kauppa: stadissa.fi-listaus', ok: isTicketShopUrl('https://www.stadissa.fi/tapahtumat/xyz') === false },
+    { name: 'EI kauppa: venue-sivu (tavastiaklubi.fi)', ok: isTicketShopUrl('https://tavastiaklubi.fi/keikka') === false },
+    { name: 'EI kauppa: hel.fi-info', ok: isTicketShopUrl('https://www.hel.fi/uutiset/x') === false },
+    { name: 'EI kauppa: domain-huijaus (lippu.fi.evil.com)', ok: isTicketShopUrl('https://lippu.fi.evil.com/x') === false },
+    { name: 'EI kauppa: puuttuva/rikkinäinen url', ok: isTicketShopUrl(null) === false && isTicketShopUrl('ei-urli') === false },
+    { name: 'canBuy: maksullinen + lippu.fi → Osta liput', ok: canBuyTickets({ ticketUrl: 'https://lippu.fi/x', isFree: false }) === true },
+    { name: 'canBuy: ILMAINEN + lippu.fi → ei lippulupausta', ok: canBuyTickets({ ticketUrl: 'https://lippu.fi/x', isFree: true }) === false },
+    { name: 'canBuy: maksullinen + stadissa → ei lippulupausta', ok: canBuyTickets({ ticketUrl: 'https://stadissa.fi/x', isFree: false }) === false },
+  ]
+  for (const c of ticketCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ lippulupaus: ${c.name}`)
   }
 }
 

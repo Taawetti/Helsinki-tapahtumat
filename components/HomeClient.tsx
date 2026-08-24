@@ -9,6 +9,7 @@ import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
+import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -999,7 +1000,7 @@ export default function HomeClient({
                             onClick={ev => ev.stopPropagation()}
                             className="inline-block text-[11px] font-black px-3 py-1 rounded-full text-white"
                             style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                            {e.ticketUrl ? `${t('detail.buy_tickets')} →` : `${t('common.more_info')} →`}
+                            {canBuyTickets(e) ? `${t('detail.buy_tickets')} →` : `${t('common.more_info')} →`}
                           </a>
                         )}
                       </div>
