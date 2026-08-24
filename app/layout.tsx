@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { Analytics } from '@vercel/analytics/next'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import Footer from '@/components/Footer'
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
     default: 'Mitä tänään — Kaikki Helsinki tapahtumat',
     template: '%s | Mitä tänään Helsinki',
   },
-  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikkat, teatterit, festivaalit, näyttelyt, urheilu, ilmaiset tapahtumat ja paljon muuta.',
+  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikat, teatterit, festivaalit, näyttelyt, urheilu, ilmaiset tapahtumat ja paljon muuta.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Mitä tänään — Kaikki Helsinki tapahtumat',
-    description: 'Löydä parhaat tapahtumat Helsingissä tänään ja tulevinä päivinä. Keikkat, teatterit, festivaalit, näyttelyt, urheilu.',
+    description: 'Löydä parhaat tapahtumat Helsingissä tänään ja tulevinä päivinä. Keikat, teatterit, festivaalit, näyttelyt, urheilu.',
     type: 'website',
     locale: 'fi_FI',
     siteName: 'Mitä tänään',
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
   },
   keywords: [
     'mitä tänään', 'Helsinki tapahtumat', 'tapahtumat Helsinki', 'mitä tehdä Helsinki',
-    'keikkat Helsinki', 'ilmaiset tapahtumat Helsinki', 'teatterit Helsinki',
+    'keikat Helsinki', 'ilmaiset tapahtumat Helsinki', 'teatterit Helsinki',
     'festivaalit Helsinki', 'näyttelyt Helsinki', 'urheilu Helsinki',
     'konsertti Helsinki', 'yöelämä Helsinki', 'tapahtumakalenteri Helsinki',
     'Helsinki tänään', 'mitä tapahtuu Helsingissä',
@@ -77,7 +78,7 @@ const organizationJsonLd = {
   name: 'Mitä tänään',
   url: BASE,
   logo: { '@type': 'ImageObject', url: `${BASE}/icon-512.png` },
-  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikkat, festivaalit, teatterit, näyttelyt ja paljon muuta.',
+  description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikat, festivaalit, teatterit, näyttelyt ja paljon muuta.',
   areaServed: { '@type': 'City', name: 'Helsinki', sameAs: 'https://www.wikidata.org/wiki/Q1757' },
   inLanguage: 'fi-FI',
 }
@@ -86,7 +87,7 @@ const webSiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Mitä tänään',
-  alternateName: ['Mitä tänään Helsinki', 'helsinki-tapahtumat.vercel.app'],
+  alternateName: ['Mitä tänään Helsinki', 'mitatanaan.fi', 'mitätänään.fi'],
   url: BASE,
   inLanguage: 'fi-FI',
   description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa.',
@@ -114,6 +115,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
           </FavoritesProvider>
         </LanguageProvider>
+        {/* Vercel Web Analytics — kävijämittaus ilman evästeitä (GDPR-kevyt).
+            Vaatii Web Analyticsin kytkemisen päälle Vercelin projektiasetuksista;
+            siihen asti skripti on inertti. */}
+        <Analytics />
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

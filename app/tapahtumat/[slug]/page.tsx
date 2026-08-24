@@ -176,7 +176,7 @@ function formatDate(iso: string): string {
 }
 
 const VIBE_DESCRIPTIONS: Record<string, string> = {
-  keikka:   'Helsingin parhaat live-keikkat ja konsertit yhdessä paikassa. Tavastia, Circus Helsinki, On the Rocks, G Livelab ja kaikki muut keikkapaikat — ohjelma päivitetään automaattisesti päivittäin.',
+  keikka:   'Helsingin parhaat live-keikat ja konsertit yhdessä paikassa. Tavastia, Circus Helsinki, On the Rocks, G Livelab ja kaikki muut keikkapaikat — ohjelma päivitetään automaattisesti päivittäin.',
   yoelama:  'Helsinki yöelämä — yökerhot, klubit, disko ja afterpartyt. Löydä parhaat bileet tänä iltana ja tulevina viikonloppuina Helsingissä.',
   baari:    'Pubikeikat, pubivisat, karaoke-illat ja baaritapahtumat Helsingissä. Löydä tänään paras baari- tai pub-ilta pääkaupunkiseudulla.',
   urheilu:  'Urheilutapahtumat Helsingissä: jalkapallopelit, jääkiekko-ottelut (HIFK, Jokerit), juoksukilpailut ja muut urheilutapahtumat. Ottelukalenteri aina ajan tasalla.',

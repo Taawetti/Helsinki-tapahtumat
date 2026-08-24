@@ -77,7 +77,7 @@ export interface Neighborhood {
 
 export const NEIGHBORHOODS: Neighborhood[] = [
   // Helsinki
-  { id: 'kallio',      name: 'Kallio',       vibe: 'baarit · keikkat · indie',       emoji: '🍺', color: 'from-green-900/80 to-emerald-800/60',    bbox: '24.935,60.175,24.968,60.198', municipality: 'helsinki' },
+  { id: 'kallio',      name: 'Kallio',       vibe: 'baarit · keikat · indie',       emoji: '🍺', color: 'from-green-900/80 to-emerald-800/60',    bbox: '24.935,60.175,24.968,60.198', municipality: 'helsinki' },
   { id: 'punavuori',   name: 'Punavuori',    vibe: 'cocktailit · design · yöelämä',  emoji: '🍸', color: 'from-fuchsia-900/80 to-pink-800/60',      bbox: '24.930,60.153,24.962,60.172', municipality: 'helsinki' },
   { id: 'keskusta',    name: 'Keskusta',     vibe: 'kaikki · bileet · ravintolat',   emoji: '🌃', color: 'from-blue-900/80 to-indigo-800/60',       bbox: '24.925,60.160,24.960,60.180', municipality: 'helsinki' },
   { id: 'kamppi',      name: 'Kamppi',       vibe: 'yökerhot · mainstage',           emoji: '🎉', color: 'from-violet-900/80 to-purple-800/60',     bbox: '24.920,60.163,24.944,60.178', municipality: 'helsinki' },
