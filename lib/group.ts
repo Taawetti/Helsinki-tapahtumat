@@ -1,34 +1,10 @@
 // Ryhmäpäätöskoneen jaetut tyypit + apurit (client + server).
 import type { Candidate, GroupWhen, CandidateRole } from '@/lib/candidate'
 
-export type GroupStatus = 'open' | 'synthesizing' | 'done'
 // 'arc' = AI kutoo illan kaaren tykätyistä · 'quick' = ensimmäinen
 // enemmistön ❤️ saanut kortti voittaa heti.
 export type GroupMode = 'arc' | 'quick'
 
-// Palvelimen palauttama sessiotila klientille (/api/group/[code] GET).
-export interface GroupSession {
-  code: string
-  when: GroupWhen
-  fiilis: string[]               // legacy-fiilis ja/tai scene-id:t
-  mode: GroupMode
-  round: number                    // kasvaa rematchissa → klientit nollaavat paikallisen äänestysmuistin
-  customStart: string | null       // v3: oma päivävalinta (ISO), ohittaa when-esivalinnan näytössä
-  customEnd: string | null
-  area: string                     // v3: ensisijainen alue (back-compat)
-  areas: string[]                  // v3.1: kaikki valitut alueet (tyhjä = koko kaupunki)
-  budget: string                   // v3: 'any' | 'free' | 'e' | 'ee'
-  maxSteps: number                 // montako vaihetta kaareen (2–4, oletus 4 = koko ilta)
-  candidates: Candidate[]
-  deckSize: number                 // = candidates.length (selkeys koodissa)
-  status: GroupStatus
-  resultPlan: GroupResult | null
-  hostId: string | null
-  participants: { id: string; name: string; swiped: number; done: boolean }[]
-  // Per-kortti ❤️/✕-laskurit (card_id → { love, skip })
-  votes: Record<string, { love: number; skip: number }>
-  voteCount: number
-}
 
 // ── Tulokset ──────────────────────────────────────────────────────────────
 
@@ -98,153 +74,16 @@ export type GroupResult = GroupArcPlan | GroupQuickPlan
 // Vanha tyyppialias (AI-synteesin välimuoto parse-vaiheessa).
 export type GroupPlan = GroupArcPlan
 
-// PIKAPÄÄTÖKSEN tulos groundattuna voittajakortista (faktat kannasta, ei arvailua).
-export function quickPlanFromCandidate(c: Candidate, votesFor: number, voterCount: number): GroupQuickPlan {
-  return {
-    kind: 'quick',
-    cardId: c.id,
-    title: c.title,
-    intro: 'Enemmistö valitsi — päätös tehty! 🎉',
-    emoji: c.emoji,
-    role: c.role,
-    image: c.image,
-    address: c.address,
-    url: c.url,
-    time: c.time,
-    rating: c.rating,
-    badge: c.badge,
-    isFree: c.isFree,
-    lat: c.lat,
-    lon: c.lon,
-    openingHours: c.openingHours,
-    votesFor,
-    voterCount,
-  }
-}
 
 // ── Näyttölabelit (client) ────────────────────────────────────────────────
 
-export const GROUP_WHEN_LABELS: Record<GroupWhen, { emoji: string; label: string }> = {
-  tonight: { emoji: '🌙', label: 'Tänä iltana' },
-  day:     { emoji: '☀️', label: 'Koko päivä' },
-  weekend: { emoji: '🗓', label: 'Viikonloppu' },
-}
-export const FIILIS_LABELS: Record<string, { emoji: string; label: string }> = {
-  // Legacy-fiilis (vanhat sessiot)
-  menoa:     { emoji: '🔥', label: 'Menoa' },
-  rento:     { emoji: '😌', label: 'Rento' },
-  kulttuuri: { emoji: '🎭', label: 'Kulttuuri' },
-  ulkoilu:   { emoji: '🌲', label: 'Ulkoilu' },
-  ruoka:     { emoji: '🍽', label: 'Ruoka' },
-  // Scene-id:t (v3) — konkreettiset valinnat
-  keikka:    { emoji: '🎸', label: 'Keikka/klubi' },
-  ulkona:    { emoji: '🌳', label: 'Ulkona' },
-  baarit:    { emoji: '🍸', label: 'Baarit' },
-  sauna:     { emoji: '🧖', label: 'Sauna' },
-  perhe:     { emoji: '👨‍👩‍👧', label: 'Perhe' },
-  ilmaista:  { emoji: '💸', label: 'Ilmaista' },
-}
 
-export const BUDGET_LABELS: Record<string, { emoji: string; label: string }> = {
-  any:  { emoji: '✨', label: 'Kaikki' },
-  free: { emoji: '💸', label: 'Vain ilmaiset' },
-  e:    { emoji: '€', label: '€' },
-  ee:   { emoji: '€€', label: '€€' },
-}
 
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // ei sekoittavia (0/O, 1/I/L)
-export function genCode(len = 4): string {
-  let s = ''
-  for (let i = 0; i < len; i++) s += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]
-  return s
-}
 
-// Aggregoi raa'at äänet per-kortti-laskureiksi + osallistujalistaksi edistymineen.
-export function aggregateVotes(
-  rows: { voter_id: string; voter_name: string | null; card_id: string; vote: string }[],
-  deckSize = 0,
-): {
-  votes: Record<string, { love: number; skip: number }>
-  participants: { id: string; name: string; swiped: number; done: boolean }[]
-  voteCount: number
-} {
-  const votes: Record<string, { love: number; skip: number }> = {}
-  const seenVoter = new Map<string, { name: string; swiped: number }>()
-  for (const r of rows) {
-    const v = (votes[r.card_id] ??= { love: 0, skip: 0 })
-    if (r.vote === 'love') v.love++
-    else v.skip++
-    const cur = seenVoter.get(r.voter_id) ?? { name: r.voter_name || 'Nimetön', swiped: 0 }
-    cur.swiped++
-    if (r.voter_name) cur.name = r.voter_name
-    seenVoter.set(r.voter_id, cur)
-  }
-  return {
-    votes,
-    participants: [...seenVoter.entries()].map(([id, p]) => ({
-      id,
-      name: p.name,
-      swiped: p.swiped,
-      done: deckSize > 0 && p.swiped >= deckSize,
-    })),
-    voteCount: rows.length,
-  }
-}
 
-// ❤️-kortit synteesiä varten: kortit joilla vähintään yksi 'love' eikä enemmistö 'skip'.
-export function lovedCards(candidates: Candidate[], votes: Record<string, { love: number; skip: number }>): Candidate[] {
-  return candidates.filter(c => {
-    const v = votes[c.id]
-    return v && v.love > 0 && v.love >= v.skip
-  })
-}
 
-// TÄYSOSUMA: kortit joita KAIKKI osallistujat (≥2) ovat äänestäneet eikä
-// kukaan skipannut. Näistä tulee kaaren ankkureita + 🎉-merkki UI:ssa.
-export function superMatchIds(
-  votes: Record<string, { love: number; skip: number }>,
-  participantCount: number,
-): Set<string> {
-  const out = new Set<string>()
-  if (participantCount < 2) return out
-  for (const [cardId, v] of Object.entries(votes)) {
-    if (v.love === participantCount && v.skip === 0) out.add(cardId)
-  }
-  return out
-}
 
-// PIKAPÄÄTÖS: ensimmäinen kortti (pakka-järjestyksessä) jolla on tiukka
-// enemmistö nykyäänestäjistä. TURVALLISUUSVARMISTUS: yhden äänestäjän sessiossa
-// voitto ratkeaa vasta kun koko pakka on swaippattu (allDone) — muuten ryhmän
-// ensimmäinen ❤️ päättäisi session ennen kuin muut ehtivät mukaan.
-export function majorityWinner(
-  candidates: Candidate[],
-  votes: Record<string, { love: number; skip: number }>,
-  participantCount: number,
-  allDone = false,
-): Candidate | null {
-  const needed = participantCount <= 1
-    ? (allDone ? 1 : Number.POSITIVE_INFINITY)
-    : Math.floor(participantCount / 2) + 1
-  for (const c of candidates) {
-    const v = votes[c.id]
-    if (v && v.love >= needed) return c
-  }
-  return null
-}
 
-// ALL-DONE FALLBACK: kaikki swaippanneet mutta ei enemmistöä → voittaa eniten
-// ❤️ saanut kortti (tasatilanteessa laatupisteet). Palauttaa null jos kukaan
-// ei tykännyt mistään — silloin ei ole voittajaa ollenkaan.
-export function fallbackWinner(
-  candidates: Candidate[],
-  votes: Record<string, { love: number; skip: number }>,
-): Candidate | null {
-  const loved = candidates
-    .filter(c => (votes[c.id]?.love ?? 0) > 0)
-    .sort((a, b) => (votes[b.id].love - votes[a.id].love) || (b._score - a._score))
-  return loved[0] ?? null
-}
 
 // ── Etäisyys ──────────────────────────────────────────────────────────────
 
@@ -274,6 +113,3 @@ export function walkMinutesBetween(
 
 // ROLE_META-label tyyppiturvallisena kaaren vaiheille (tuntematon rooli → fallback).
 import { ROLE_META } from '@/lib/candidate'
-export function roleLabel(role: string): { emoji: string; label: string } {
-  return ROLE_META[role as CandidateRole] ?? { emoji: '✨', label: 'Vaihe' }
-}

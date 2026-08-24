@@ -108,8 +108,8 @@ function whyFor(c: Candidate, superMatch: boolean): string {
   if (c.rating != null && c.rating >= 4.5 && c.reviewCount) return `⭐ ${c.rating.toFixed(1)} ja ${c.reviewCount} arvostelua puhuu puolestaan.`
   if (c.rating != null && c.rating >= 4.5) return `⭐ ${c.rating.toFixed(1)} — varma valinta.`
   switch (c.role) {
-    case 'activity': return 'Mukava avaus, joka virittää porukan tunnelmaan.'
-    case 'food': return 'Illan ankkuri — hyvä ruoka pitää porukan kasassa.'
+    case 'activity': return 'Mukava avaus, joka virittää illan tunnelmaan.'
+    case 'food': return 'Illan ankkuri — hyvä ruoka kantaa pitkälle.'
     case 'drinks': return 'Lasilliset ennen pääohjelmaa.'
     case 'program': return 'Illan huipennus — tätä odotettiin.'
     default: return ''

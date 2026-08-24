@@ -159,11 +159,11 @@ export default async function PakkaPage() {
             Katso kaikki viikonlopun tapahtumat →
           </Link>
           <Link
-            href="/paatakaa"
+            href="/"
             className="block text-center font-bold rounded-2xl py-3.5 transition-colors"
             style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
           >
-            Päätä porukalla 30 sek →
+            🎰 Arvo valmis ilta Idea-välilehdellä →
           </Link>
         </div>
 

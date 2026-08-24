@@ -18,6 +18,9 @@ export interface DeckBuildOptions {
   budget?: BudgetId
   areas?: string[]              // v3.1: valitut alueet (tyhjä = koko kaupunki)
   excludeIds?: Set<string>      // rematch: edellisen kierroksen kortit pois pakasta
+  /** Arvo valmis ilta: sama siemen → sama pakka, jolloin yhden pysäkin
+   *  uudelleenarvonta (excludeIds) vaihtaa VAIN sen pysäkin eikä koko iltaa. */
+  seed?: string
 }
 
 export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: string[], opts: DeckBuildOptions = {}): Promise<Candidate[]> {
@@ -100,6 +103,6 @@ export async function buildGroupDeck(origin: string, when: GroupWhen, fiilis: st
   // Siemen: jokainen pakanrakennus on oma satunnaisuutensa → eri sessioilla ja
   // eri kierroksilla eri pakka (samaa siementä ei tallenneta; pakka itsessään
   // on session snapshot, joten ryhmä näkee aina identtisen pakankaistansa).
-  const seed = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const seed = opts.seed ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
   return buildDeck(input, { when, fiilis, size: 24, budget: opts.budget, areas, weather, seed, excludeIds: opts.excludeIds })
 }

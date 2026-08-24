@@ -59,6 +59,7 @@ import enrichedFile from '../data/new-places-enriched.json'
 import secondhandFile from '../data/secondhand.json'
 import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from '../lib/nightlife'
+import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/arvo-ilta'
 import { nameOverlap } from '../lib/dataforseo'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
@@ -2465,6 +2466,39 @@ for (const c of ideaChecks) {
     }
     rChecks.push({ name: 'yhteisöohjelma EI osu keikkaan', ok: !COMMUNITY_DAYTIME_REGEX.test('Katie Melua, Ullalintulampi — Huvila-teltta') })
     rChecks.push({ name: 'yhteisöohjelma EI osu teatteriin', ok: !COMMUNITY_DAYTIME_REGEX.test('Toinen tasavalta — Esa Leskisen suurteos Suomen Kansallisteatterissa') })
+
+    // 17d. ARVO VALMIS ILTA — päivän ja kellon ratkaisu (lib/arvo-ilta).
+    //      Kello luetaan Helsingin seinäkellosta; nowH annetaan VAIN kun
+    //      kaaripäivä on tänään (tuleva päivä ei saa rajautua tämän hetken
+    //      kellolla) — omistajan vaatimus: ei vääriä aikatauluja.
+    {
+      // 2026-08-24 on maanantai. 18:30 UTC = 21:30 Helsinki (kesäaika).
+      const monEvening = new Date('2026-08-24T18:30:00Z')
+      const c = helsinkiClock(monEvening)
+      rChecks.push({ name: 'arvo: Helsinki-kello (UTC+3 kesällä)', ok: c.date === '2026-08-24' && Math.abs(c.hour - 21.5) < 0.02 && c.weekday === 1, got: JSON.stringify(c) })
+      // UTC-keskiyön ylitys: 22:30 UTC ma = 01:30 Helsinki TI.
+      const c2 = helsinkiClock(new Date('2026-08-24T22:30:00Z'))
+      rChecks.push({ name: 'arvo: UTC-keskiyön ylitys → Helsinki-tiistai', ok: c2.date === '2026-08-25' && c2.weekday === 2, got: JSON.stringify(c2) })
+
+      const tonight = resolveArcTarget('tonight', monEvening)
+      rChecks.push({ name: 'arvo: tonight = tänään + nowH', ok: tonight.date === '2026-08-24' && Math.abs((tonight.nowH ?? 0) - 21.5) < 0.02 })
+      const wkFromMon = resolveArcTarget('weekend', monEvening)
+      rChecks.push({ name: 'arvo: viikonloppu maanantaista → tuleva lauantai ILMAN nowH:ta', ok: wkFromMon.date === '2026-08-29' && wkFromMon.nowH === undefined, got: JSON.stringify(wkFromMon) })
+      // Lauantaina viikonloppu = tänään nowH:lla + su-fallback.
+      const satNoon = new Date('2026-08-29T09:00:00Z')   // la 12:00 Helsinki
+      const wkFromSat = resolveArcTarget('weekend', satNoon)
+      rChecks.push({ name: 'arvo: lauantaina viikonloppu = tänään + su-fallback', ok: wkFromSat.date === '2026-08-29' && (wkFromSat.nowH ?? 0) > 11 && wkFromSat.fallbackDate === '2026-08-30' })
+      // Sunnuntaina viikonloppu = sunnuntai, ei fallbackia.
+      const sun = resolveArcTarget('weekend', new Date('2026-08-30T09:00:00Z'))
+      rChecks.push({ name: 'arvo: sunnuntaina viikonloppu = tänään', ok: sun.date === '2026-08-30' && sun.fallbackDate === undefined })
+      rChecks.push({ name: 'arvo: addDays kuunvaihteen yli', ok: addDays('2026-08-31', 1) === '2026-09-01' })
+      // Jakoteksti: ajat ja osoitteet mukana, kävelyaika omalla rivillään.
+      const txt = planShareText({ intro: 'Ilta Kalliossa', arc: [
+        { time: 'klo 17', emoji: '🧖', title: 'Kotiharjun sauna', address: 'Harjutorinkatu 1' },
+        { time: 'klo 19', emoji: '🍽', title: 'Ravintola X', travelFromPrevMin: 8, travelFromPrevMode: 'walk' },
+      ] }, 'ma 24.8.')
+      rChecks.push({ name: 'arvo: jakoteksti sisältää ajat, osoitteen ja kävelyn', ok: txt.includes('klo 17 🧖 Kotiharjun sauna — Harjutorinkatu 1') && txt.includes('🚶 ~8 min') && txt.includes('(ma 24.8.)') })
+    }
 
     // 18. KIRPPUTORIT — /kirpputorit-sivun liiketiedosto (OSM, viikkohaku)
     const sh = secondhandFile as { fetchedAt?: string; shops?: { name?: string; lat?: number; lon?: number; openingHours?: string | null }[] }

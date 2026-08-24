@@ -10,6 +10,7 @@ import { helsinkiToday } from '@/lib/helsinki-time'
 import { buildIdeaDeck, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
 import { getEventVibes } from '@/lib/event-classify'
+import ArvoIlta from '@/components/ArvoIlta'
 
 // Idea-sivu 8/2026: käsin kuratoitu 13 klassikkoa POISTETTU (asiakkaat huomasivat
 // toiston) — pakka on nyt tapahtumakeskeinen: tämän päivän tapahtumat
@@ -469,17 +470,17 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const swipeRight = dragX > 20
   const swipeLeft = dragX < -20
 
-  if (!current) return (
-    <main className="flex flex-col items-center justify-center min-h-[60vh] text-white/25 text-sm">
-      {activities.length === 0 ? t('idea.loading_suggestions') : t('idea.all_seen')}
-    </main>
-  )
-
   const savedCount = savedIds.size
 
   return (
     <>
     <main className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4" style={{ overscrollBehavior: 'none' }}>
+    {!current ? (
+      <p className="flex items-center justify-center min-h-[30vh] text-white/25 text-sm">
+        {activities.length === 0 ? t('idea.loading_suggestions') : t('idea.all_seen')}
+      </p>
+    ) : (
+    <>
 
       {/* ── Header — yksi "tänään"-tila, ei valitsinta. Sydän-laskuri oikealla. ── */}
       <div className="flex items-start justify-between gap-3">
@@ -702,6 +703,13 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       <p className="text-center text-white/20 text-[11px] font-bold">
         {t('idea.swipe_hint')}
       </p>
+
+    </>
+    )}
+
+      {/* 🎰 Arvo valmis ilta — kaavakone. YKSI instanssi vakaassa kohdassa
+          puuta: pakan tila (latautuu/loppui) ei kosketa avointa paneelia. */}
+      <ArvoIlta />
 
     </main>
 

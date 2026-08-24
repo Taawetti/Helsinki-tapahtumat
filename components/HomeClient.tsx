@@ -34,8 +34,6 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 // themselves stay out of the initial bundle.
 const RestaurantsView = dynamic(() => import('@/components/RestaurantsView'), { ssr: false })
 const IdeaView = dynamic(() => import('@/components/IdeaView'), { ssr: false })
-// Päättäkää yhdessä -luontinäkymä välilehtenä (koodijaettu kuten muut näkymät)
-const PaatakaaView = dynamic(() => import('@/components/PaatakaaView'), { ssr: false })
 // Uutta Helsingissä välilehtenä — sama sisältö kuin /uutta-helsingissa-sivulla,
 // mutta navigointi pysyy näkyvissä (omistajan linjaus)
 const UuttaView = dynamic(() => import('@/components/UuttaView'), { ssr: false })
@@ -145,7 +143,7 @@ function isAlkaaPian(e: Event): boolean {
   return ms > 0 && ms < 3 * 60 * 60 * 1000
 }
 
-type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta' | 'paatakaa'
+type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta'
 type ListStyle = 'feed' | 'grid'
 
 interface PreloadedDateRange {
@@ -232,7 +230,7 @@ export default function HomeClient({
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta' | 'paatakaa'>('discover')
+  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta'>('discover')
   const [customDate, setCustomDate] = useState('')
   const [customDateEnd, setCustomDateEnd] = useState('')
   const [showEiTieda, setShowEiTieda] = useState(false)
@@ -508,7 +506,6 @@ export default function HomeClient({
     else if (tab === 'favorites') setMode('favorites')
     else if (tab === 'restaurants') setMode('restaurants')
     else if (tab === 'uutta') setMode('uutta')
-    else if (tab === 'paatakaa') setMode('paatakaa')
   }, [])
 
   // Kartta/Suosikit avataan yläpalkin pyöreistä napeista; muistetaan mistä
@@ -860,11 +857,11 @@ export default function HomeClient({
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'idea', 'restaurants', 'uutta', 'paatakaa'] as AppMode[]).map((m) => (
+            {(['discover', 'idea', 'restaurants', 'uutta'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab); if (m === 'discover') setKoCat(null) }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
                 style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
-                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : m === 'uutta' ? `🆕 ${t('nav.uutta')}` : `🗳 ${t('nav.paatakaa')}`}
+                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🆕 ${t('nav.uutta')}`}
               </button>
             ))}
           </div>
@@ -1296,12 +1293,6 @@ export default function HomeClient({
                 </div>
               )}
 
-              {/* Päättäkää yhdessä -linkki mobiilissa */}
-              <div className="md:hidden flex justify-center">
-                <Link href="/paatakaa" className="text-[12px] font-bold text-white/35 hover:text-white/60 transition-colors" style={{ textDecoration: 'none' }}>
-                  🗳 Päättäkää yhdessä mitä tehdään →
-                </Link>
-              </div>
             </>
           )}
 
@@ -1424,19 +1415,15 @@ export default function HomeClient({
       {/* ══ UUTTA HELSINGISSÄ ══ */}
       {mode === 'uutta' && <UuttaView />}
 
-      {/* ══ PÄÄTTÄKÄÄ YHDESSÄ ══ */}
-      {mode === 'paatakaa' && <PaatakaaView />}
-
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
         style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-5 h-full">
+        <div className="grid grid-cols-4 h-full">
           {([
             { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
             { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
             { tab: 'restaurants' as const,   emoji: '🍽', labelKey: 'nav.restaurants' },
             { tab: 'uutta' as const,         emoji: '🆕', labelKey: 'nav.uutta'       },
-            { tab: 'paatakaa' as const,      emoji: '🗳', labelKey: 'nav.paatakaa'    },
           ] as const).map(({ tab, emoji, labelKey }) => {
             const isActive = mobileTab === tab
             return (

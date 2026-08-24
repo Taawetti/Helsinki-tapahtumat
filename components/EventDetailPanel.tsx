@@ -400,18 +400,6 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                 </span>
               </button>
             </div>
-            {/* Kontekstuaalinen sisääntulo ryhmäpäätöskoneeseen */}
-            <Link
-              href="/paatakaa"
-              onClick={() => {
-                // Estä history.cleanuppia palaamasta takaisin — navigaatio on tarkoituksellinen
-                isManualClose.current = true
-                onClose()
-              }}
-              className="flex items-center justify-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25 rounded-xl py-2.5 transition-colors"
-            >
-              <span className="text-indigo-300 text-[12px] font-semibold">{t('detail.group_decide')}</span>
-            </Link>
           </div>
 
           {/* CTA buttons */}

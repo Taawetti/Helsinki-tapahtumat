@@ -344,12 +344,18 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
   // ajettu yllä; tämä vain vaihtelee mitkä kelpuutetuista pääsevät mukaan.
   const rain = opts.weather?.rainExpected === true
   const seen = new Set<string>()
+  // Jitter KORTTIKOHTAISELLA siemenellä, EI jaetulla rand()-jonolla: jonossa
+  // yhden kortin putoaminen (excludeIds, kellon liukuma) siirtäisi kaikkien
+  // myöhempien kerrointa ja sekoittaisi koko pakan — jolloin "arvo tämä
+  // pysäkki uudelleen" vaihtaisi muutkin pysäkit (mitattu vastakkais-
+  // tarkastuksessa 8/2026). Hash(seed+id) on riippumaton muista korteista.
+  const cardJitter = (id: string) => 0.92 + seedRand(`${opts.seed ?? 'paatakaa'}:${id}`)() * 0.16
   const scored = all
     .map(c => {
       let s = c._score + fiilisBoost(c, opts.fiilis)
       if (rain && c.type === 'activity' && c.tags?.some(t => OUTDOOR_RAIN_CATS.includes(t as ActivityCategory))) s -= 3.5
       if (rain && c.tags?.some(t => INDOOR_RAIN_BOOST_CATS.includes(t as ActivityCategory))) s += 0.8
-      s *= 0.92 + rand() * 0.16
+      s *= cardJitter(c.id)
       return { ...c, _score: s }
     })
     .filter(c => budgetOk(c, budget) && areaOk(c, opts.areas) && (!opts.fiilis.includes('ilmaista') || c.isFree === true) && !opts.excludeIds?.has(c.id))
@@ -411,10 +417,14 @@ export function buildDeck(input: DeckInput, opts: DeckOptions): Candidate[] {
   const discoverySlots = picked.length >= size ? Math.min(3, Math.max(1, Math.floor(size / 8))) : 0
   if (discoverySlots > 0) {
     const inPicked = new Set(picked.map(c => c.id))
-    const band = scored.slice(size, size * 4).filter(c => !inPicked.has(c.id))
-    for (let s = 0; s < discoverySlots && band.length > 0; s++) {
-      const idx = Math.floor(rand() * band.length)
-      const [c] = band.splice(idx, 1)
+    // Yllätysvalinta korttikohtaisella hash-järjestyksellä samasta syystä
+    // kuin jitter yllä: indeksipoiminta band-listasta vaihtuisi aina kun
+    // listan jäsenyys elää, vaikka siemen on sama.
+    const band = scored.slice(size, size * 4)
+      .filter(c => !inPicked.has(c.id))
+      .sort((a, b) => seedRand(`${opts.seed ?? 'paatakaa'}:disc:${a.id}`)() - seedRand(`${opts.seed ?? 'paatakaa'}:disc:${b.id}`)())
+    for (let s = 0; s < discoverySlots && s < band.length; s++) {
+      const c = band[s]
       picked[picked.length - 1 - s] = { ...c, badge: c.badge ?? '🎲 Yllätys' }
     }
   }
