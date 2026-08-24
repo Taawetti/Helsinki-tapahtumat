@@ -685,11 +685,18 @@ export default function HomeClient({
       // (kierrokset, kirjastoillat ym.) täyttää vasta kun ykkönen ei riitä.
       .map((e) => ({ e, s: score(e), tier: isPrimaryPick(e) ? 1 : 2 }))
       .sort((a, b) => a.tier - b.tier || b.s - a.s)
+    // Kaksi kattoa (omistaja 25.8.: "30 korttia voisi olla hyvä ... älä
+    // väkisin tuo 30"): ykköskori (kulttuuri + festarit) saa kasvattaa
+    // ruudukon 30:een asti, mutta kakkoskori ja ylijäämävisat täyttävät
+    // enintään 18:aan — ruudukkoa ei koskaan pumpata täyteen täytteellä.
+    const TIER1_CAP = 30
+    const FILL_CAP = 18
     const out: Event[] = []
     const overflowQuiz: Event[] = []
     let quizzes = 0
-    for (const { e } of ranked) {
-      if (out.length >= 18) break
+    for (const { e, tier } of ranked) {
+      if (out.length >= TIER1_CAP) break
+      if (tier === 2 && out.length >= FILL_CAP) break // kakkoskori ei täytä yli 18:n
       if (isQuiz(e)) {
         if (quizzes >= 2) { overflowQuiz.push(e); continue } // yli 2 visaa → loppuun
         quizzes++
@@ -698,7 +705,7 @@ export default function HomeClient({
     }
     // Täytä ruudukko ylijäämävisoilla jos kärki jäisi ohueksi (visapainotteinen
     // päivä) — visat pysyvät pohjalla, mutta ruudukko ei jää 2 kortin levyiseksi.
-    for (const e of overflowQuiz) { if (out.length >= 18) break; out.push(e) }
+    for (const e of overflowQuiz) { if (out.length >= FILL_CAP) break; out.push(e) }
     return out
   }, [baseEvents, heroGigs])
 
