@@ -22,10 +22,14 @@ type WhenChoice = 'tonight' | 'weekend'
 interface ApiResponse {
   plan: GroupArcPlan | null
   date: string
-  reason: 'too-late' | 'no-arc' | 'empty-deck' | null
+  reason: 'too-late' | 'no-arc' | 'empty-deck' | 'missing-scenes' | null
+  missing?: SceneId[]
 }
 
-// ── Illan palikat — moottorin scenet valintaruudukkona ──────────────────────
+// ── Illan palikat — TIUKKA lupaus: palikka = pysäkki ────────────────────────
+// (Omistaja 24.8.2026: "keikan pitää olla keikka, baarin baari, ravintolan
+// ravintola". 'Perheelle' poistettu — ei oleteta mitä perhe haluaa. 'Ilmaista'
+// ei ole pysäkki vaan budjettikytkin alla.)
 
 const SCENES: { id: SceneId; emoji: string; label: string; tint: string }[] = [
   { id: 'ruoka',     emoji: '🍽',  label: 'Ruoka',             tint: '232,120,60' },
@@ -34,9 +38,10 @@ const SCENES: { id: SceneId; emoji: string; label: string; tint: string }[] = [
   { id: 'sauna',     emoji: '🧖', label: 'Sauna',             tint: '240,110,110' },
   { id: 'baarit',    emoji: '🍸', label: 'Baarit',            tint: '95,180,255' },
   { id: 'ulkona',    emoji: '🌳', label: 'Ulkona',            tint: '95,217,140' },
-  { id: 'perhe',     emoji: '👨‍👩‍👧', label: 'Perheelle',      tint: '255,180,90' },
-  { id: 'ilmaista',  emoji: '💸', label: 'Ilmaista',          tint: '80,220,180' },
 ]
+
+// Ruokaa tai baaria ei voi luvata ilmaiseksi — kytkin harmaannuttaa ne.
+const NEVER_FREE: SceneId[] = ['ruoka', 'baarit']
 
 const WHEN_LABEL: Record<WhenChoice, string> = { tonight: '🌙 Tänä iltana', weekend: '🗓 Viikonloppuna' }
 
@@ -132,6 +137,7 @@ function StepCard({ step, onReroll, rerolling }: {
 
 export default function ArvoIlta() {
   const [selected, setSelected] = useState<SceneId[]>([])
+  const [freeOnly, setFreeOnly] = useState(false)
   const [open, setOpen] = useState(false)
   const [when, setWhen] = useState<WhenChoice>('tonight')
   const [variant, setVariant] = useState(0)
@@ -145,9 +151,17 @@ export default function ArvoIlta() {
   const reqSeq = useRef(0)
 
   const toggleScene = useCallback((id: SceneId) => {
+    if (freeOnly && NEVER_FREE.includes(id)) return
     setSelected((prev) => prev.includes(id)
       ? prev.filter((x) => x !== id)
       : prev.length >= 4 ? prev : [...prev, id])
+  }, [freeOnly])
+
+  const toggleFree = useCallback(() => {
+    setFreeOnly((prev) => {
+      if (!prev) setSelected((sel) => sel.filter((s) => !NEVER_FREE.includes(s)))
+      return !prev
+    })
   }, [])
 
   const roll = useCallback(async (scenes: SceneId[], w: WhenChoice, v: number, ex: string[], keepDate?: string) => {
@@ -161,11 +175,9 @@ export default function ArvoIlta() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          formulaId: [...scenes].sort().join('-'),
-          scenes,
-          budget: 'any',                       // 'ilmaista'-scene pakottaa jo maksuttomat
+          scenes,                              // palikka = pysäkki (palvelin valvoo tiukasti)
+          budget: freeOnly ? 'free' : 'any',
           when: w,
-          maxSteps: Math.min(4, Math.max(2, scenes.length)),
           variant: v,
           excludeIds: ex,
           date: keepDate,                      // pysäkkiarvonta pysyy näkyvän suunnitelman päivässä
@@ -194,19 +206,16 @@ export default function ArvoIlta() {
         setRerollingId(null)
       }
     }
-  }, [])
+  }, [freeOnly])
 
   const start = useCallback(() => {
     if (selected.length === 0) return
-    // Ulkoilu + perhe ovat päiväjuttuja → viikonloppu oletukseksi.
-    const w: WhenChoice = (selected.includes('ulkona') || selected.includes('perhe')) && selected.length <= 2 ? 'weekend' : 'tonight'
     setOpen(true)
-    setWhen(w)
     setVariant(0)
     setExcluded([])
     setResult(null)
-    roll(selected, w, 0, [])
-  }, [selected, roll])
+    roll(selected, when, 0, [])
+  }, [selected, when, roll])
 
   const changeWhen = useCallback((w: WhenChoice) => {
     setWhen(w); setVariant(0); setExcluded([]); setResult(null)
@@ -256,13 +265,15 @@ export default function ArvoIlta() {
           <h2 className="font-black text-white text-[16px]" style={{ letterSpacing: '-0.01em' }}>🎰 Arvo valmis ilta</h2>
           <span className="text-[11px] text-white/35 font-medium">valitse palikat → kone aikatauluttaa</span>
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {SCENES.map((s) => {
             const on = selected.includes(s.id)
+            const disabled = freeOnly && NEVER_FREE.includes(s.id)
             return (
               <button key={s.id} onClick={() => toggleScene(s.id)}
-                aria-pressed={on}
-                className="relative flex flex-col items-center justify-center gap-1 rounded-[16px] py-3 px-1 transition-all active:scale-95"
+                aria-pressed={on} disabled={disabled}
+                className="relative flex flex-col items-center justify-center gap-1 rounded-[16px] py-3 px-1 transition-all active:scale-95 disabled:opacity-30 disabled:active:scale-100"
+                title={disabled ? 'Ei luvata ilmaiseksi — ota Vain ilmaista pois' : undefined}
                 style={{
                   background: on
                     ? `radial-gradient(120% 100% at 50% 0%, rgba(${s.tint},.38), rgba(${s.tint},.10) 75%)`
@@ -282,6 +293,18 @@ export default function ArvoIlta() {
             )
           })}
         </div>
+        {/* Budjettikytkin — ei palikka: ilmaisuus ei ole pysäkki vaan rajaus */}
+        <button onClick={toggleFree} aria-pressed={freeOnly}
+          className="mt-2 flex items-center gap-2 text-[12px] font-bold px-3 py-2 rounded-full transition-colors"
+          style={freeOnly
+            ? { background: 'rgba(80,220,180,.18)', color: '#6ee7c7', border: '1px solid rgba(80,220,180,.45)' }
+            : { background: 'rgba(255,255,255,.04)', color: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.08)' }}>
+          <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center ${freeOnly ? '' : 'border border-white/25'}`}
+            style={freeOnly ? { background: '#50dcb4' } : undefined}>
+            {freeOnly && <Check size={10} strokeWidth={4} className="text-black/80" />}
+          </span>
+          💸 Vain ilmaista
+        </button>
         <button onClick={start} disabled={selected.length === 0}
           className="mt-2.5 w-full flex items-center justify-center gap-2 rounded-[16px] py-3.5 font-black text-[14px] text-white transition-all active:scale-[0.98] disabled:opacity-40"
           style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: selected.length > 0 ? '0 10px 28px -10px rgba(91,101,230,.8)' : 'none' }}>
@@ -347,7 +370,11 @@ export default function ArvoIlta() {
                   <div className="text-center py-6 space-y-3">
                     <p className="text-4xl">🌙</p>
                     <p className="text-white/60 text-sm leading-relaxed px-4">
-                      {result.reason === 'too-late'
+                      {result.reason === 'missing-scenes' && result.missing?.length
+                        ? `${result.missing
+                            .map((m) => { const s = SCENES.find((x) => x.id === m); return s ? `${s.emoji} ${s.label}` : m })
+                            .join(', ')} ei löytynyt tälle päivälle — emme ehdota mitään sinne päin.`
+                        : result.reason === 'too-late'
                         ? 'Ilta on jo niin pitkällä, ettei ehjää suunnitelmaa synny — paikat ehtivät kiinni.'
                         : 'Näillä palikoilla ei löytynyt toteutettavaa yhdistelmää tälle päivälle.'}
                     </p>
