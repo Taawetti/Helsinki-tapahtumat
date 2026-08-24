@@ -7,10 +7,10 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { isOpenNow } from '@/lib/opening-hours'
 import { helsinkiToday } from '@/lib/helsinki-time'
+import { addDays } from '@/lib/arvo-ilta'
 import { buildIdeaDeck, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
 import { getEventVibes } from '@/lib/event-classify'
-import ArvoIlta from '@/components/ArvoIlta'
 
 // Idea-sivu 8/2026: käsin kuratoitu 13 klassikkoa POISTETTU (asiakkaat huomasivat
 // toiston) — pakka on nyt tapahtumakeskeinen: tämän päivän tapahtumat
@@ -81,6 +81,20 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
+// ── Päivävalinta: arpomiskone toimii muillekin päiville (omistaja 24.8.2026:
+// "voi valita päivämäärän ... jos ei tiedä mitä haluaa tehdä") ──────────────
+
+const IDEA_DAY_COUNT = 14
+const WD_FI = ['su', 'ma', 'ti', 'ke', 'to', 'pe', 'la']
+const WD_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function dayLabel(iso: string, todayIso: string, lang: string): string {
+  if (iso === todayIso) return lang === 'en' ? 'Today' : 'Tänään'
+  if (iso === addDays(todayIso, 1)) return lang === 'en' ? 'Tomorrow' : 'Huomenna'
+  const d = new Date(`${iso}T12:00:00Z`)
+  return `${(lang === 'en' ? WD_EN : WD_FI)[d.getUTCDay()]} ${d.getUTCDate()}.${d.getUTCMonth() + 1}.`
+}
+
 // ── Type visual meta ─────────────────────────────────────
 
 const TYPE_META: Record<SuggestionType, { label: string; gradient: string; accent: string }> = {
@@ -128,6 +142,33 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   useEffect(() => {
     fetch('/api/activities').then(r => r.json()).then(d => setActivities(d.activities ?? [])).catch(() => {})
   }, [])
+
+  // ── Päivävalinta: tänään = propsien events; muut päivät haetaan itse ──
+  const todayIso = helsinkiToday()
+  const [ideaDate, setIdeaDate] = useState(todayIso)
+  const [dateEvents, setDateEvents] = useState<Event[]>([])
+  const [dateLoading, setDateLoading] = useState(false)
+  const dateCache = useRef(new Map<string, Event[]>())
+
+  useEffect(() => {
+    if (ideaDate === todayIso) return
+    const cached = dateCache.current.get(ideaDate)
+    if (cached) { setDateEvents(cached); return }
+    let alive = true
+    setDateLoading(true)
+    setDateEvents([])
+    fetch(`/api/events?start=${ideaDate}&end=${ideaDate}&municipality=helsinki&page=1`)
+      .then(r => r.json())
+      .then(d => {
+        if (!alive) return
+        const evs: Event[] = d.events ?? []
+        dateCache.current.set(ideaDate, evs)
+        setDateEvents(evs)
+      })
+      .catch(() => { if (alive) setDateEvents([]) })
+      .finally(() => { if (alive) setDateLoading(false) })
+    return () => { alive = false }
+  }, [ideaDate, todayIso])
 
   // Panel slide-in: double-rAF guarantees the browser paints translateY(100%)
   // before transitioning, eliminating the 1-2 frame flash on iOS Safari.
@@ -219,11 +260,17 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       }))
   }, [activities, lang])
 
+  // Tänään: HomeClientin jo hakemat tapahtumat; muu päivä: oma haku yllä.
+  const sourceEvents = ideaDate === todayIso ? events : dateEvents
+
   const eventPool = useMemo((): Suggestion[] => {
     // Pakkamoottori (lib/idea-deck): kohderyhmäsuodatus, makumuisti, scenet,
     // seniori-alaskuopaus, siemen-jitteri (sama päivä+laite = sama pakka).
-    return buildIdeaDeck(events, {
-      seed: `${helsinkiToday()}-${deviceId}`,
+    // today-injektio rajaa pakan valittuun päivään (tulevat päivät: kaikki
+    // päivän tapahtumat kelpaavat, nowMs-portit eivät karsi mitään).
+    return buildIdeaDeck(sourceEvents, {
+      seed: `${ideaDate}-${deviceId}`,
+      today: ideaDate,
       scenes: ideaScenes,
       audience,
       demoted,
@@ -246,10 +293,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       emoji: eventEmoji(s.event),
       eventRef: s.event,
     }))
-  }, [events, lang, ideaScenes, audience, demoted])
+  }, [sourceEvents, lang, ideaScenes, audience, demoted, ideaDate, deviceId])
 
   const pool = useMemo(() => {
-    const base = shuffle([...activityPool, ...eventPool])
+    // Paikkakortit (sauna/näköala) vain tänään — "● Auki nyt" ei kerro mitään
+    // tulevasta lauantaista, eikä paikkoja pidä esittää päiväkohtaisina.
+    const base = shuffle([...(ideaDate === todayIso ? activityPool : []), ...eventPool])
       .filter(s => !seenIds.has(s.id))
     // "Tänään" (yksi tila): käynnissä/pian alkavat tapahtumat kärkeen, sitten
     // muut tämän päivän tapahtumat, sitten avoinna olevat paikat, sitten paikat
@@ -266,7 +315,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     }
     return [...base].sort((a, b) => score(a) - score(b))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activityPool.length, eventPool.length, seenIds])
+  }, [activityPool.length, eventPool.length, seenIds, ideaDate])
 
   const current = pool[0] ?? null
   const meta = current ? TYPE_META[current.type] : TYPE_META.event
@@ -475,21 +524,22 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   return (
     <>
     <main className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4" style={{ overscrollBehavior: 'none' }}>
-    {!current ? (
-      <p className="flex items-center justify-center min-h-[30vh] text-white/25 text-sm">
-        {activities.length === 0 ? t('idea.loading_suggestions') : t('idea.all_seen')}
-      </p>
-    ) : (
-    <>
 
-      {/* ── Header — yksi "tänään"-tila, ei valitsinta. Sydän-laskuri oikealla. ── */}
+      {/* ── Header + päivävalinta — AINA näkyvissä, jotta päivää voi vaihtaa
+          myös tyhjällä/loppuneella pakalla. ── */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI · {t('date.today').toUpperCase()}</p>
+          <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">
+            HELSINKI · {dayLabel(ideaDate, todayIso, lang).toUpperCase()}
+          </p>
           <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.6rem,6vw,2.6rem)', letterSpacing: '-0.03em' }}>
             {t('idea.dont_know')}
           </h1>
-          <p className="text-white/30 text-xs mt-1">{t('idea.tonight_all')}</p>
+          <p className="text-white/30 text-xs mt-1">
+            {ideaDate === todayIso
+              ? t('idea.tonight_all')
+              : lang === 'en' ? 'Swipe through the day’s events' : 'Pyyhkäise päivän menot läpi'}
+          </p>
         </div>
         {savedCount > 0 && (
           <div className="flex items-center gap-1.5 px-3 py-2 rounded-full shrink-0 mt-1"
@@ -499,6 +549,31 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           </div>
         )}
       </div>
+
+      {/* ── Päivärivi: arpomiskone muillekin päiville ── */}
+      <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1" style={{ scrollbarWidth: 'none' }}>
+        {Array.from({ length: IDEA_DAY_COUNT }, (_, i) => addDays(todayIso, i)).map((iso) => {
+          const on = iso === ideaDate
+          return (
+            <button key={iso} onClick={() => setIdeaDate(iso)}
+              className="shrink-0 text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
+              style={on
+                ? { background: 'rgba(107,118,255,.25)', color: '#c7ccff', border: '1px solid rgba(107,118,255,.45)' }
+                : { background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.08)' }}>
+              {dayLabel(iso, todayIso, lang)}
+            </button>
+          )
+        })}
+      </div>
+
+    {!current ? (
+      <p className="flex items-center justify-center min-h-[30vh] text-white/25 text-sm">
+        {(ideaDate === todayIso ? activities.length === 0 : dateLoading)
+          ? t('idea.loading_suggestions')
+          : t('idea.all_seen')}
+      </p>
+    ) : (
+    <>
 
       {/* ── Swipeable card ── */}
       <div className="relative select-none" style={cardHidden ? { visibility: 'hidden' } : {}}>
@@ -613,7 +688,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               </h2>
               {current.time && (
                 <p className="text-white/60 text-sm font-bold">
-                  {t('date.today')} {current.time}{current.price ? ` · ${t('discover.tickets_from')} ${current.price}` : ''}
+                  {dayLabel(ideaDate, todayIso, lang)} {current.time}{current.price ? ` · ${t('discover.tickets_from')} ${current.price}` : ''}
                 </p>
               )}
               {current.address && (
@@ -706,11 +781,6 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
     </>
     )}
-
-      {/* 🎰 Arvo valmis ilta — kaavakone. YKSI instanssi vakaassa kohdassa
-          puuta: pakan tila (latautuu/loppui) ei kosketa avointa paneelia. */}
-      <ArvoIlta />
-
     </main>
 
     {/* ── Detail panel (activities / restaurants) ── */}
@@ -837,7 +907,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 {d.time && (
                   <div className="flex items-center gap-2">
                     <Clock size={14} className="text-white/30 shrink-0" />
-                    <p className="text-sm text-white/50">{t('common.today_at')} {d.time}</p>
+                    <p className="text-sm text-white/50">{dayLabel(ideaDate, todayIso, lang)} {d.time}</p>
                   </div>
                 )}
 

@@ -68,7 +68,7 @@ import websiteImages from '../data/website-images.json'
 import { credibilityScore } from '../lib/credibility'
 import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/restaurant-news-match'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
-import { buildDeterministicArc, buildSceneArc } from '../lib/group-arc'
+import { buildDeterministicArc } from '../lib/group-arc'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
@@ -1268,149 +1268,12 @@ const arcFixtures: { name: string; ok: boolean }[] = []
   })
 }
 
-// ── PALIKKAKAARI (buildSceneArc) — tiukka lupaus 24.8.2026: palikka = pysäkki.
-// Mitattu vika: pelkkä Baarit-palikka antoi Löylyn + ravintolan, koska roolit
-// valittiin geneerisestä ROLE_ORDERista. Nämä fixturet lukitsevat: "keikan
-// pitää olla keikka, baarin baari, ravintolan ravintola" — eikä palikka
-// koskaan katoa hiljaa (missing nimeää sen).
-{
-  const baari1 = mkCand({ type: 'restaurant', role: 'drinks', title: 'Baari Yksi', tags: ['baari'], openingHours: 'Mo-Su 16:00-02:00', ...CENTER, _score: 5 })
-  const baari2 = mkCand({ type: 'restaurant', role: 'drinks', title: 'Baari Kaksi', tags: ['baari'], openingHours: 'Mo-Su 16:00-02:00', lat: 60.18, lon: 24.95, _score: 4 })
-  const kahvila = mkCand({ type: 'restaurant', role: 'food', title: 'Kahvila Korkea', tags: ['kahvila'], openingHours: 'Mo-Su 08:00-22:00', ...CENTER, _score: 9 })
-  const museo18 = mkCand({ role: 'activity', title: 'Museo M', tags: ['museo'], openingHours: 'Mo-Su 11:00-18:00', ...CENTER, _score: 6 })
-  const puisto = mkCand({ role: 'activity', title: 'Puisto P', tags: ['puisto'], ...CENTER, _score: 2 })
-  const keikka20 = mkCand({ type: 'event', role: 'program', title: 'Iltakeikka', tags: ['keikka'], time: 'su 20.00', dateISO: ARC_DAY, ...CENTER, _score: 5 })
-  const teatteri19 = mkCand({ type: 'event', role: 'program', title: 'Teatteriesitys', tags: ['teatteri'], time: 'su 19.00', dateISO: ARC_DAY, ...CENTER, _score: 4 })
-  // klo 17: sinfonia (17–19) + keikka (20) mahtuvat peräkkäin — testi mittaa
-  // dedupia, ei ankkurikonfliktia (18.00 versio törmäsi keikkaan aidosti)
-  const klassinen17 = mkCand({ type: 'event', role: 'program', title: 'Sinfonia', tags: ['klassinen'], time: 'su 17.00', dateISO: ARC_DAY, ...CENTER, _score: 9 })
-  const pakka = [baari1, baari2, ruokaX, ruokaY, kahvila, saunaA, museo18, puisto, keikka20, teatteri19]
-
-  // P1. Pelkkä Baarit → TASAN baari, ei saunaa/ravintolaa (mitatun vian vastakohta)
-  {
-    const r = buildSceneArc(pakka, ['baarit'], { when: 'tonight', date: ARC_DAY })
-    arcFixtures.push({
-      name: 'palikka: pelkkä Baarit → tasan 1 pysäkki ja se on baari',
-      ok: r.plan != null && r.plan.arc.length === 1 && r.plan.arc[0].title === 'Baari Yksi' && r.plan.arc[0].role === 'drinks',
-    })
-  }
-  // P2. Ruoka → ravintola, EI kahvila vaikka kahvilan pisteet ovat korkeammat
-  {
-    const r = buildSceneArc(pakka, ['ruoka'], { when: 'tonight', date: ARC_DAY })
-    arcFixtures.push({
-      name: 'palikka: Ruoka → ravintola (kahvila ei kelpaa illalliseksi)',
-      ok: r.plan != null && r.plan.arc.length === 1 && r.plan.arc[0].title.startsWith('Ravintola'),
-    })
-  }
-  // P3. Sauna+Ruoka+Baarit → 3 pysäkkiä oikeissa tyypeissä, kronologisesti
-  {
-    const r = buildSceneArc(pakka, ['baarit', 'ruoka', 'sauna'], { when: 'tonight', date: ARC_DAY })
-    const titles = r.plan?.arc.map(s => s.title) ?? []
-    const hours = r.plan?.arc.map(s => { const m = s.time?.match(/(\d{1,2})(?:\.(\d{2}))?/); return m ? Number(m[1]) + Number(m[2] ?? 0) / 60 : 99 }) ?? []
-    arcFixtures.push({
-      name: 'palikka: Sauna+Ruoka+Baarit → 3 oikeaa pysäkkiä aikajärjestyksessä',
-      ok: r.plan != null && r.plan.arc.length === 3 &&
-          titles[0] === 'Sauna A' && titles[1].startsWith('Ravintola') && titles[2].startsWith('Baari') &&
-          hours[0] < hours[1] && hours[1] < hours[2],
-    })
-  }
-  // P4. Keikka ilman keikkatarjontaa → null + missing nimeää palikan
-  {
-    const r = buildSceneArc([baari1, ruokaX, saunaA], ['keikka', 'baarit'], { when: 'tonight', date: ARC_DAY })
-    arcFixtures.push({
-      name: 'palikka: keikkaa ei ole → null + missing=[keikka] (ei korvikkeita)',
-      ok: r.plan === null && r.missing.length === 1 && r.missing[0] === 'keikka',
-    })
-  }
-  // P5. Keikka-palikka ankkuroituu tapahtuman OIKEAAN aikaan
-  {
-    const r = buildSceneArc(pakka, ['keikka'], { when: 'tonight', date: ARC_DAY })
-    arcFixtures.push({
-      name: 'palikka: keikkapysäkki kantaa tapahtuman todellisen ajan',
-      ok: r.plan != null && r.plan.arc.length === 1 && r.plan.arc[0].title === 'Iltakeikka' && r.plan.arc[0].time === 'su 20.00',
-    })
-  }
-  // P6. Kulttuuri illalla: museo (paras pistein) sulkeutuu 18 → korjaussilmukka
-  //     ottaa teatteriesityksen klo 19 — palikka toteutuu oikealla tyypillä
-  {
-    const r = buildSceneArc(pakka, ['kulttuuri'], { when: 'tonight', date: ARC_DAY, nowH: 18.5 })
-    arcFixtures.push({
-      name: 'palikka: museo kiinni illalla → teatteri paikkaa (sama palikka)',
-      ok: r.plan != null && r.plan.arc.length === 1 && r.plan.arc[0].title === 'Teatteriesitys',
-    })
-  }
-  // P7. Ulkona → puisto, ei museota (activity-roolin sisällä tiukka tagiraja)
-  {
-    const r = buildSceneArc(pakka, ['ulkona'], { when: 'day', date: ARC_DAY })
-    arcFixtures.push({
-      name: 'palikka: Ulkona → ulkokohde, ei museota',
-      ok: r.plan != null && r.plan.arc.length === 1 && r.plan.arc[0].title === 'Puisto P',
-    })
-  }
-  // P8. variant kiertää palikan sisäisiä vaihtoehtoja (arvo uudelleen → eri baari)
-  {
-    const v0 = buildSceneArc(pakka, ['baarit'], { when: 'tonight', date: ARC_DAY, variant: 0 })
-    const v1 = buildSceneArc(pakka, ['baarit'], { when: 'tonight', date: ARC_DAY, variant: 1 })
-    arcFixtures.push({
-      name: 'palikka: variant vaihtaa baarin toiseen baariin',
-      ok: v0.plan?.arc[0].title === 'Baari Yksi' && v1.plan?.arc[0].title === 'Baari Kaksi',
-    })
-  }
-  // P9. Sama kortti kahdessa palikassa (Sinfonia: klassinen = keikka JA
-  //     kulttuuri) → dedup: toiselle palikalle eri kortti, ei tuplapysäkkiä
-  {
-    const r = buildSceneArc([...pakka, klassinen17], ['kulttuuri', 'keikka'], { when: 'tonight', date: ARC_DAY })
-    const ids = r.plan?.arc.map(s => s.cardId) ?? []
-    arcFixtures.push({
-      name: 'palikka: sama kortti ei täytä kahta palikkaa (Sinfonia-dedup)',
-      ok: r.plan != null && r.plan.arc.length === 2 && new Set(ids).size === 2,
-    })
-  }
-  // P10. Myöhäinen ilta: sauna ei enää mahdu (nowH 22.5) → null + missing=[sauna],
-  //      EI vajaata suunnitelmaa ilman saunaa
-  {
-    const r = buildSceneArc(pakka, ['sauna', 'baarit'], { when: 'tonight', date: ARC_DAY, nowH: 22.5 })
-    arcFixtures.push({
-      name: 'palikka: sauna ei mahdu myöhään → null + missing=[sauna]',
-      ok: r.plan === null && r.missing.includes('sauna'),
-    })
-  }
-  // P11. Viikonlopun päivä: kulttuuri → museo (paras pistein, auki päivällä)
-  {
-    const r = buildSceneArc(pakka, ['kulttuuri'], { when: 'weekend', date: '2026-08-08' })
-    arcFixtures.push({
-      name: 'palikka: kulttuuri päivällä → museo (aukiolo sallii)',
-      ok: r.plan != null && r.plan.arc.length === 1 && r.plan.arc[0].title === 'Museo M',
-    })
-  }
-  // P12. Syöttöjärjestys ei ratkaise: [baarit, sauna] → sauna silti ensin
-  {
-    const r = buildSceneArc(pakka, ['baarit', 'sauna'], { when: 'tonight', date: ARC_DAY })
-    arcFixtures.push({
-      name: 'palikka: kanoninen iltajärjestys (sauna ennen baaria)',
-      ok: r.plan != null && r.plan.arc.length === 2 && r.plan.arc[0].title === 'Sauna A' && r.plan.arc[1].title.startsWith('Baari'),
-    })
-  }
-  // P13. Keikka on musiikki edellä: keikka+teatteri-sekaesitys (tukitilaisuus
-  //      musiikkiesityksin — United for Ukraine -tapaus 24.8.2026) EI kelpaa
-  //      keikaksi → missing; Kulttuuri-palikkaan se kelpaa.
-  {
-    const sekaesitys = mkCand({ type: 'event', role: 'program', title: 'Tukitilaisuus esityksin', tags: ['teatteri', 'keikka'], time: 'su 17.00', dateISO: ARC_DAY, ...CENTER, _score: 8 })
-    const rKeikka = buildSceneArc([sekaesitys, ruokaX], ['keikka'], { when: 'tonight', date: ARC_DAY })
-    const rKultt = buildSceneArc([sekaesitys, ruokaX], ['kulttuuri'], { when: 'tonight', date: ARC_DAY })
-    arcFixtures.push({
-      name: 'palikka: keikka+teatteri-sekaesitys ei ole keikka, on kulttuuria',
-      ok: rKeikka.plan === null && rKeikka.missing.includes('keikka') &&
-          rKultt.plan?.arc[0]?.title === 'Tukitilaisuus esityksin',
-    })
-  }
-}
-
 const arcChecks = arcFixtures
 for (const c of arcChecks) {
   if (c.ok) pass++
   else failures.push(`✗ kaarimoottori: ${c.name}`)
 }
+
 
 // ── Torstain pakka (viikkodigesti, lib/weekly-digest.ts) — puhdas kuratointi:
 // kattilat, pisteytys, duplikaattisuojat. Fixture-malli sama kuin kaaret yllä.

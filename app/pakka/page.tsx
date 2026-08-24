@@ -163,7 +163,7 @@ export default async function PakkaPage() {
             className="block text-center font-bold rounded-2xl py-3.5 transition-colors"
             style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)' }}
           >
-            🎰 Arvo valmis ilta Idea-välilehdellä →
+            🃏 Etkö tiedä mitä tehdä? Idea-välilehdellä →
           </Link>
         </div>
 
