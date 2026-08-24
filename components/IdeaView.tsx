@@ -197,10 +197,14 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   // ── Build pools ──────────────────────────────────────
 
   // ── Kohderyhmä- ja makutila (localStorage) ──
+  // Kylmäkäynnistyskysely ("Minkälainen ilta?") POISTETTU 25.8.2026
+  // (omistaja: "tätä ei kuuluisi olla ollenkaan") — pakka henkilökohtaistuu
+  // pelkällä makumuistilla (recordClick) ja "ei tällaista" -demotioilla.
+  // Aiemmin tallennetut scene-/perhevalinnat luetaan yhä (legacy-käyttäjät
+  // pitävät painotuksensa), uutta asetus-UI:ta ei ole.
   const [ideaScenes, setIdeaScenes] = useState<IdeaSceneId[]>([])
   const [audience, setAudience] = useState<'default' | 'perhe'>('default')
   const [demoted, setDemoted] = useState<string[]>([])
-  const [showColdStart, setShowColdStart] = useState(false)
   const [deviceId, setDeviceId] = useState('anon')
 
   useEffect(() => {
@@ -216,21 +220,10 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         let id = localStorage.getItem('idea-device-id')
         if (!id) { id = Math.random().toString(36).slice(2); localStorage.setItem('idea-device-id', id) }
         setDeviceId(id)
-        // Cold-start: ei scenejä EIKÄ makuhistoriaa → näytä valitsin kerran
-        const hasHistory = Object.keys(getCategoryScores()).length > 0
-        if ((!Array.isArray(scenes) || scenes.length === 0) && !hasHistory) setShowColdStart(true)
       } catch { /* privaattitila */ }
     }, 0)
     return () => clearTimeout(t0)
   }, [])
-
-  const saveScenes = (scenes: IdeaSceneId[], aud: 'default' | 'perhe') => {
-    setIdeaScenes(scenes); setAudience(aud); setShowColdStart(false)
-    try {
-      localStorage.setItem('idea-scenes', JSON.stringify(scenes))
-      localStorage.setItem('idea-audience', aud)
-    } catch { /* privaattitila */ }
-  }
 
   const activityPool = useMemo((): Suggestion[] => {
     // Ohut kerros illan paikkoja (sauna/näköala/uimaranta) — satunnaisia,
@@ -949,46 +942,6 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       )
     })()}
 
-    {/* Cold-start-valitsin: kerran, kun ei scenejä eikä makuhistoriaa.
-        Kaksi napia: scene (pakollinen) + perhe-toggle → pakka henkilökohtaistuu
-        heti ekaa kertaa käytettäessä. */}
-    {showColdStart && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(6,6,10,.92)', backdropFilter: 'blur(10px)' }}>
-        <div className="w-full max-w-sm rounded-3xl p-6 space-y-5" style={{ background: '#12121a', border: '1px solid rgba(255,255,255,.1)' }}>
-          <div>
-            <h2 className="font-black text-white text-xl leading-tight">Minkälainen ilta? 🎯</h2>
-            <p className="text-white/50 text-sm font-semibold mt-1.5">Valitse yksi — pakka painottuu heti sinulle sopivaksi. Voit muuttaa myöhemmin.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              { id: 'keikka' as IdeaSceneId, emoji: '🎸', label: 'Keikka' },
-              { id: 'rento' as IdeaSceneId, emoji: '🍷', label: 'Rento' },
-              { id: 'liikunta' as IdeaSceneId, emoji: '🏃', label: 'Liikunta' },
-              { id: 'kulttuuri' as IdeaSceneId, emoji: '🎭', label: 'Kulttuuri' },
-            ]).map(s => (
-              <button key={s.id} onClick={() => saveScenes([s.id], audience)}
-                className="flex flex-col items-start gap-1 rounded-2xl p-4 text-left transition-all active:scale-[.97]"
-                style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.35)' }}>
-                <span className="text-2xl leading-none">{s.emoji}</span>
-                <span className="text-[14px] font-black text-white">{s.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <label className="flex items-center gap-2 text-[13px] font-bold text-white/70 cursor-pointer select-none">
-              <input type="checkbox" checked={audience === 'perhe'}
-                onChange={e => setAudience(e.target.checked ? 'perhe' : 'default')}
-                className="w-4 h-4 accent-[#6b76ff]" />
-              Perhe mukana 👨‍👩‍👧
-            </label>
-            <button onClick={() => { setShowColdStart(false); try { localStorage.setItem('idea-scenes', '[]') } catch { /* privaattitila */ } }}
-              className="text-[12px] font-black text-white/35 hover:text-white/70 transition-colors">
-              Ohita →
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
     </>
   )
 }
