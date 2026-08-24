@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-23T17:27:25.588Z",
+  "fetchedAt": "2026-08-24T05:28:02.795Z",
   "byName": {
     "305": [
       {
@@ -4425,7 +4425,7 @@
     "noodle master kamppi": [
       {
         "kind": "uusi",
-        "label": "Avaa elokuussa",
+        "label": "Avattu elokuussa",
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-24",
@@ -4436,7 +4436,7 @@
     "noodlemasterkamppi": [
       {
         "kind": "uusi",
-        "label": "Avaa elokuussa",
+        "label": "Avattu elokuussa",
         "source": "Anniskelulupa­rekisteri",
         "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
         "date": "2026-08-24",
@@ -4673,28 +4673,6 @@
         "date": "2026-04-15",
         "street": "Fredrikinkatu 63 AB",
         "venue": "Bruuveri"
-      }
-    ],
-    "roberts coffee": [
-      {
-        "kind": "uusi",
-        "label": "Avattu maaliskuussa",
-        "source": "Anniskelulupa­rekisteri",
-        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
-        "date": "2026-03-27",
-        "street": "Kaivokatu 1",
-        "venue": "Roberts Coffee"
-      }
-    ],
-    "robertscoffee": [
-      {
-        "kind": "uusi",
-        "label": "Avattu maaliskuussa",
-        "source": "Anniskelulupa­rekisteri",
-        "url": "https://avoindata.suomi.fi/data/fi/dataset/alkoholielinkeinorekisteri",
-        "date": "2026-03-27",
-        "street": "Kaivokatu 1",
-        "venue": "Roberts Coffee"
       }
     ],
     "qvevri": [
@@ -6045,6 +6023,6 @@
     "top50": 36,
     "timeout": 224,
     "vuoden-ravintola": 12,
-    "uusi": 87
+    "uusi": 86
   }
 }

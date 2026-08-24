@@ -1,13 +1,13 @@
 {
-  "fetchedAt": "2026-08-23T10:28:31.642Z",
+  "fetchedAt": "2026-08-24T05:29:11.676Z",
   "openings": [
     {
-      "key": "bar & night club luck lady|kirkonkyla ntie|5",
+      "key": "bar & night club luck lady|kirkonkylantie|5",
       "name": "Bar & Night Club Luck Lady",
       "address": "Kirkonkyläntie 5, 00700 Helsinki",
       "lat": 60.251865099999996,
       "lon": 25.007861899999998,
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWn6XzuNxZH9JxNXBYAF4tb2kUBnVkkCuWVDSlqvef0dN1dgqheZU7zYUuoznhod0FfM9Y5PD_wosaySoL-N_PNVCdcwe77r-_80chqV6XS5XFsy7arv19KaffRhTzl4g8_vbis=w408-h544-k-no",
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmzXwNsIhY6wxOuHmIx2Q_z_7ZLZmrjaqYTMTe-3z5J9cwlLI0SrSpD42iy9GZmQgiRj7bhKd-cTu8U63xu1vySP02XtLFnkr15ybS2UrTGSHxCFJQGJTwvv_6a4hTw7Xaadm8=w408-h544-k-no",
       "www": null,
       "phone": "+358401523666",
       "category": "Baari",
@@ -17,7 +17,7 @@
       "googleRating": 3.7,
       "reviewCount": 358,
       "openedAt": "2026-09-01",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "noodle master kamppi|eerikinkatu|20",
@@ -74,7 +74,7 @@
       "fetchedAt": "2026-08-22T22:57:06.354Z"
     },
     {
-      "key": "qvevri|ha meentie|62",
+      "key": "qvevri|hameentie|62",
       "name": "QVEVRI",
       "address": "Hämeentie 62, 00500 Helsinki",
       "lat": 60.188682699999994,
@@ -87,9 +87,9 @@
       "openingHours": "Tu 16:00-22:00, We 16:00-22:00, Th 16:00-22:00, Fr 16:00-23:00, Sa 13:00-23:00, Su 13:00-20:00",
       "priceLevel": "inexpensive",
       "googleRating": 4.9,
-      "reviewCount": 679,
+      "reviewCount": 682,
       "openedAt": "2026-07-29",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "ravintola lasoon|kankiraudantie|1",
@@ -112,7 +112,7 @@
       "fetchedAt": "2026-08-22T22:46:40.960Z"
     },
     {
-      "key": "tian tian dumplings|lo nnrotinkatu|21",
+      "key": "tian tian dumplings|lonnrotinkatu|21",
       "name": "Tian Tian Dumplings",
       "address": "Lönnrotinkatu 21, 00120 Helsinki",
       "lat": 60.165025299999996,
@@ -127,7 +127,7 @@
       "googleRating": 4.1,
       "reviewCount": 19,
       "openedAt": "2026-07-21",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "gao kitchen & bar|rahapajankatu|3",
@@ -184,7 +184,7 @@
       "fetchedAt": "2026-08-22T22:57:06.354Z"
     },
     {
-      "key": "umami taste|ma kela nkatu|16",
+      "key": "umami taste|makelankatu|16",
       "name": "Umami Taste",
       "address": "Mäkelänkatu 16 L 3, 00510 Helsinki",
       "lat": 60.193172999999994,
@@ -199,7 +199,7 @@
       "googleRating": 5,
       "reviewCount": 18,
       "openedAt": "2026-07-09",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "juvenes oy patisserie teemu aura hakaniemi|siltasaarenkatu|12",
@@ -258,7 +258,7 @@
       "fetchedAt": "2026-08-22T22:57:06.354Z"
     },
     {
-      "key": "figaro|ha meentie|19",
+      "key": "figaro|hameentie|19",
       "name": "Figaro",
       "address": "Hämeentie 19, 00500 Helsinki",
       "lat": 60.1859396,
@@ -273,15 +273,15 @@
       "googleRating": 5,
       "reviewCount": 2,
       "openedAt": "2026-06-30",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
-      "key": "damak ravintola|insino o rinkatu|14",
+      "key": "damak ravintola|insinoorinkatu|14",
       "name": "Damak Ravintola",
       "address": "Insinöörinkatu 14, 00880 Helsinki",
       "lat": 60.1973401,
       "lon": 25.037492999999998,
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnXtruTqqUZasy3ecZYOr9E8FQrwZyu6P7ku_QaAFpY5RBVddGBC9E-6RZi_8iBPIOlCr6sTbRox34MWJ5ylneddJFM1uJhfpB3EWkLDR4HT02Uw-NtkKTvJnG89Gf-qLHBM-d4cepcietC=w408-h303-k-no",
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWm5S1ci_-9YBxo0iapRaoEwFGQALxj3Zilpxx3cTEbaJC5vKrXwluKFxbeNpQGJRRw3NMnFs5_NmqU7RBPqjnTYt2J_CkjagvbgAVUtDI_ZoCtZ6uaJAPbKhkq0imyCtMVETIjlCIP7Qczw=w408-h303-k-no",
       "www": "https://www.damak.fi/",
       "phone": "+358413270758",
       "category": "Ravintola",
@@ -291,7 +291,7 @@
       "googleRating": 4.9,
       "reviewCount": 61,
       "openedAt": "2026-06-30",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "weckström roastery|mastokatu|4",
@@ -424,7 +424,7 @@
       "fetchedAt": "2026-08-22T22:46:40.960Z"
     },
     {
-      "key": "el patio|tyo pajankatu|2",
+      "key": "el patio|tyopajankatu|2",
       "name": "El Patio",
       "address": "Työpajankatu 2a, 00580 Helsinki",
       "lat": 60.190199699999994,
@@ -439,7 +439,7 @@
       "googleRating": 5,
       "reviewCount": 3,
       "openedAt": "2026-05-28",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "ariel|koksikatu|12",
@@ -552,12 +552,12 @@
       "fetchedAt": "2026-08-22T22:46:40.960Z"
     },
     {
-      "key": "saari lotus,bar restaurant|yliskyla n puistokatu|4",
+      "key": "saari lotus,bar restaurant|yliskylan puistokatu|4",
       "name": "Saari Lotus,bar restaurant",
       "address": "Yliskylän puistokatu 4, 00840 Helsinki",
       "lat": 60.1798435,
       "lon": 25.0516401,
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWk8Bb4UYCLc00mC_fN0g6BXlBzKrJv0TsMsSaG89sGZaCt4nGis9wfKCfslwUSNb-wncbd3AHFXaDTcgsVC1Ftj7Y3rriyznSUp6_tahQCXG6-4aZQlbZ5e5OTQwcytW407kaiVF8iQMjTJ=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnjJO_-dBOhfaO0rVjyFE7LenrJKO5k5-naH0dmKGv00l22RpOZm0gA6aCIU_Zs_hCHr7SCAVUJU1SHgFotAhZdfqR-1AWCb7Q5C51O6UdH1A65drGVQRs6ZmswIazh004wOeMLwUyxz2Yl=w408-h306-k-no",
       "www": "https://saarilotus.fi/",
       "phone": "+358449243486",
       "category": "Baari",
@@ -567,7 +567,7 @@
       "googleRating": 4.3,
       "reviewCount": 17,
       "openedAt": "2026-05-01",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "1664 / market hall|aleksis kiven katu|17",
@@ -734,12 +734,12 @@
       "fetchedAt": "2026-08-22T22:46:40.960Z"
     },
     {
-      "key": "letona cafe & pizzeria|metsa purontie|20",
+      "key": "letona cafe & pizzeria|metsapurontie|20",
       "name": "Letona Cafe & Pizzeria",
       "address": "Metsäpurontie 20, 00630 Helsinki",
       "lat": 60.228539,
       "lon": 24.926631099999998,
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlVDN_UzS69pwb08a23anW_b6jLHXJ5JuXZsvGg2NcJnyb3rcD6DNM54sQQI-g-jUu6Q90jWcOBMPzEvMtUy6NGqbaMazs0Mor1InZKxvYqQBZ1HsTq2R_JskAK1t5BYgiFsgFjMw=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmU_CMbpR3QqBYl2WGmrnk63N_QUQDr2VBETgTqiGbFPgxNFZG5vmB1YLaH2JzyOvIAWjjJUHex2gkuq6Nit_d3YkIlfSufztM-HJy5eUHiX_rLElh9_saIj8MDQVxl7zuf2gcAcw=w408-h306-k-no",
       "www": "http://www.letona.fi/",
       "phone": "+358400550904",
       "category": "Ravintola",
@@ -751,7 +751,7 @@
       "googleRating": 4.8,
       "reviewCount": 216,
       "openedAt": "2026-04-17",
-      "fetchedAt": "2026-08-23T10:28:31.642Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "bui ramen|aallonhalkoja|1",
@@ -768,24 +768,6 @@
       "priceLevel": "inexpensive",
       "googleRating": 4.9,
       "reviewCount": 109,
-      "openedAt": "2026-04-15",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "bocado*28|va limerenkatu|15",
-      "name": "Bocado*28",
-      "address": "Välimerenkatu 15, 00180 Helsinki",
-      "lat": 60.158604,
-      "lon": 24.913603,
-      "image": "https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=adRA1RwjaoFv1fBajFQLqw&cb_client=search.gws-prod.gps&w=408&h=240&yaw=160.4159&pitch=0&thumbfov=100",
-      "www": null,
-      "phone": null,
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": null,
-      "priceLevel": null,
-      "googleRating": null,
-      "reviewCount": null,
       "openedAt": "2026-04-15",
       "fetchedAt": "2026-08-22T22:46:40.960Z"
     },
@@ -808,6 +790,24 @@
       "reviewCount": 2558,
       "openedAt": "2026-04-15",
       "fetchedAt": "2026-08-22T22:46:40.960Z"
+    },
+    {
+      "key": "bocado*28|valimerenkatu|15",
+      "name": "Bocado*28",
+      "address": "Välimerenkatu 15, 00180 Helsinki",
+      "lat": 60.158604,
+      "lon": 24.913603,
+      "image": "https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=adRA1RwjaoFv1fBajFQLqw&cb_client=search.gws-prod.gps&w=408&h=240&yaw=160.4159&pitch=0&thumbfov=100",
+      "www": null,
+      "phone": null,
+      "category": "Ravintola",
+      "cuisineCategories": [],
+      "openingHours": null,
+      "priceLevel": null,
+      "googleRating": null,
+      "reviewCount": null,
+      "openedAt": "2026-04-15",
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "focaccina|eerikinkatu|4",
@@ -846,12 +846,12 @@
       "fetchedAt": "2026-08-22T23:04:29.247Z"
     },
     {
-      "key": "bistro pasila|asemapa a lliko nkatu|3",
+      "key": "bistro pasila|asemapaallikonkatu|3",
       "name": "Bistro Pasila",
       "address": "K-Marketin yläpuolella, Asemapäällikönkatu 3A, 00520 Helsinki",
       "lat": 60.199230299999996,
       "lon": 24.9420762,
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWm6EXR7FLQD5vlVXCnY35W8SfTCxw6xorx-RNuAzHg2GNNf4HPbo-Xgf6tOlu2dBiBrJtApTxm3-s_WuAiaSA6aUpA5m0iF11YT3EzH7VAwC-QVVMM0_CyaNY6AjvTrzuAqgL24kATJ0wZv=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkFU5BNcDlR2VKxqa0AtfwmUxxDaSrQqvzwjusc4DQL16claoMPpeIJrrLkr8BTDWm3TQOrIv__TuWaTX43LNGdWF21YC69yMRdWGiEXfe__6EcFDgIw_lGF1L1GZ7BfRJRBBdNc4l0N2jY=w408-h306-k-no",
       "www": "https://bistropasila.fi/",
       "phone": "+358503753954",
       "category": "Ravintola",
@@ -861,7 +861,7 @@
       "googleRating": 3.9,
       "reviewCount": 28,
       "openedAt": "2026-04-09",
-      "fetchedAt": "2026-08-22T23:04:29.247Z"
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     },
     {
       "key": "ravintola huudi|huopalahdentie|24",
@@ -936,24 +936,6 @@
       "fetchedAt": "2026-08-22T22:46:40.960Z"
     },
     {
-      "key": "brutto cocktail bar|pa a skyla nrinne|2",
-      "name": "Brutto Cocktail Bar",
-      "address": "Pääskylänrinne 2, 00500 Helsinki",
-      "lat": 60.1873564,
-      "lon": 24.9658843,
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWm0Ly4KawMdELh3NadFbF635VH5rH-NGTiEuYGLlMIfkzzPUEMVU3k_onbcvCWMJyl_inVoG7uXAkRc8mgXb5CG9rxRS3ELGA8etn4OaaNPWNzMiRupPy8Z6ku2bS9qebtmnNSliaJdWZuI=w408-h408-k-no",
-      "www": "https://bside.fi/fi/bruttococktailbar",
-      "phone": null,
-      "category": "Baari",
-      "cuisineCategories": [],
-      "openingHours": "Mo 16:00-23:00, Tu 16:00-23:00, We 16:00-23:00, Th 16:00-23:00, Fr 15:00-02:00, Sa 15:00-02:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 5,
-      "reviewCount": 11,
-      "openedAt": "2026-04-01",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
       "key": "omu raisu|kulmavuorenkatu|4",
       "name": "Omu Raisu",
       "address": "Kulmavuorenkatu 4, 00500 Helsinki",
@@ -975,22 +957,22 @@
       "fetchedAt": "2026-08-22T22:57:06.354Z"
     },
     {
-      "key": "roberts coffee|kaivokatu|1",
-      "name": "Roberts Coffee",
-      "address": "Kaivokatu 1, 00100 Helsinki",
-      "lat": 60.1710772,
-      "lon": 24.9410946,
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmjx72awcouwLSKuFqobSJoGFJfu8iVAKiDdcCoU-DWmh3iqOIc2U7iDq54HZCPST_yfeZq0EUFo2mBArTngUPU_4aKxIIC-cQ_FeZU3xa0RCf5dza1-2uf6k6XEFAfD3bbZEBnlT8RuBtx=w408-h544-k-no",
-      "www": "http://www.robertscoffee.com/",
+      "key": "brutto cocktail bar|paaskylanrinne|2",
+      "name": "Brutto Cocktail Bar",
+      "address": "Pääskylänrinne 2, 00500 Helsinki",
+      "lat": 60.1873564,
+      "lon": 24.9658843,
+      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmAIWoUagN8b7FHY3o6uIul0R412O6FR7Aq4-kXD08yiH5sn2DB27LrTJIVKbZepKLbaDJp9cA2Avab6O5UXpNDYSjyU3QifjOlmfeKpM-VQ9kbXDvClDV4H8O0HQ-wGfS8S98-rDw12m28=w408-h408-k-no",
+      "www": "https://bside.fi/fi/bruttococktailbar",
       "phone": null,
-      "category": "Kahvila",
+      "category": "Baari",
       "cuisineCategories": [],
-      "openingHours": "Mo 06:00-21:00, Tu 06:00-21:00, We 06:00-21:00, Th 06:00-21:00, Fr 06:00-21:00, Sa 06:00-21:00, Su 06:00-21:00",
-      "priceLevel": "moderate",
-      "googleRating": 3.6,
-      "reviewCount": 113,
-      "openedAt": "2026-03-27",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "openingHours": "Mo 16:00-23:00, Tu 16:00-23:00, We 16:00-23:00, Th 16:00-23:00, Fr 15:00-02:00, Sa 15:00-02:00",
+      "priceLevel": "inexpensive",
+      "googleRating": 5,
+      "reviewCount": 11,
+      "openedAt": "2026-04-01",
+      "fetchedAt": "2026-08-24T05:29:11.676Z"
     }
   ],
   "misses": [
@@ -1035,27 +1017,7 @@
       "triedAt": "2026-08-22T22:57:06.354Z"
     },
     {
-      "key": "kallio bar|ha meentie|10",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "wisnia|o rskinkuja|2",
-      "why": "ei ravintola (Elintarviketoimittaja)",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
       "key": "aila chhen|porthaninkatu|9",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "borssi ja khachapuri|lo nnrotinkatu|34",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "lotus café|aino ackte n tie|8",
       "why": "ei Googlessa",
       "triedAt": "2026-08-22T22:57:06.354Z"
     },
@@ -1130,16 +1092,6 @@
       "triedAt": "2026-08-22T23:04:29.247Z"
     },
     {
-      "key": "juvenes oy patisserie teemu aura valla|ita merenkatu|19",
-      "why": "osoite ei täsmää (Itämerentori 2, 00180 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
-    },
-    {
-      "key": "sturen kulma|ma kela nkatu|28",
-      "why": "osoite ei täsmää (Mäkelänkatu 45, 00550 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
-    },
-    {
       "key": "zär syrian eatery|bruno granholmin kuja|4",
       "why": "osoite ei täsmää (Aleksis Kiven katu 17, 00510 Helsinki)",
       "triedAt": "2026-08-22T23:04:29.247Z"
@@ -1150,14 +1102,44 @@
       "triedAt": "2026-08-22T23:04:29.247Z"
     },
     {
-      "key": "rubert 180|yrjo nkatu|4",
-      "why": "osoite ei täsmää (Iso Roobertinkatu 2, 00120 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
-    },
-    {
       "key": "täproom tripla|firdonkatu|2",
       "why": "osoite ei täsmää (Fredikanterassi 1, 00520 Helsinki)",
       "triedAt": "2026-08-22T23:04:29.247Z"
+    },
+    {
+      "key": "sturen kulma|makelankatu|28",
+      "why": "osoite ei täsmää (Mäkelänkatu 45, 00550 Helsinki)",
+      "triedAt": "2026-08-24T05:29:11.676Z"
+    },
+    {
+      "key": "wisnia|orskinkuja|2",
+      "why": "ei ravintola (Elintarviketoimittaja)",
+      "triedAt": "2026-08-24T05:29:11.676Z"
+    },
+    {
+      "key": "juvenes oy patisserie teemu aura valla|itamerenkatu|19",
+      "why": "osoite ei täsmää (Itämerentori 2, 00180 Helsinki)",
+      "triedAt": "2026-08-24T05:29:11.676Z"
+    },
+    {
+      "key": "kallio bar|hameentie|10",
+      "why": "ei Googlessa",
+      "triedAt": "2026-08-24T05:29:11.676Z"
+    },
+    {
+      "key": "rubert 180|yrjonkatu|4",
+      "why": "osoite ei täsmää (Iso Roobertinkatu 2, 00120 Helsinki)",
+      "triedAt": "2026-08-24T05:29:11.676Z"
+    },
+    {
+      "key": "lotus café|aino ackten tie|8",
+      "why": "ei Googlessa",
+      "triedAt": "2026-08-24T05:29:11.676Z"
+    },
+    {
+      "key": "borssi ja khachapuri|lonnrotinkatu|34",
+      "why": "ei Googlessa",
+      "triedAt": "2026-08-24T05:29:11.676Z"
     }
   ]
 }

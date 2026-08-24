@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-23T22:27:22.191Z",
+  "fetchedAt": "2026-08-24T05:28:27.660Z",
   "byName": {
     "sinebrychoffin taidemuseo": [
       {
@@ -119,6 +119,50 @@
         "note": "Alia Ali: In Light of... (20.8.2026 – 1.11.2026)",
         "venue": "Helsingin Taidehalli",
         "image": "https://museot.fi/uploadkuvat/museot/9002/Alia-Ali-Homage_horizontal.jpg"
+      }
+    ],
+    "hakasalmen huvila": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43046",
+        "date": "2026-10-23",
+        "note": "PUNK! 50 vuotta säpinää Helsingin kaduilla (23.10.2026 – 29.8.2027)",
+        "venue": "Hakasalmen huvila",
+        "image": "https://museot.fi/uploadkuvat/museot/21100/artikkelikuva_825x513px_Punk_nahkarotsi_HH_syksy26.jpg"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40319",
+        "date": "2025-10-24",
+        "note": "Stefan Bremer – Helsinki by Night (24.10.2025 – 30.8.2026)",
+        "venue": "Hakasalmen huvila",
+        "image": "https://museot.fi/uploadkuvat/museot/21100/artikkelikuva_825x513px_Stefan_Bremer_Helsinki_by_Night_diinarit_HH_syksy25.jpg"
+      }
+    ],
+    "hakasalmenhuvila": [
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=43046",
+        "date": "2026-10-23",
+        "note": "PUNK! 50 vuotta säpinää Helsingin kaduilla (23.10.2026 – 29.8.2027)",
+        "venue": "Hakasalmen huvila",
+        "image": "https://museot.fi/uploadkuvat/museot/21100/artikkelikuva_825x513px_Punk_nahkarotsi_HH_syksy26.jpg"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Ajankohtainen näyttely",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40319",
+        "date": "2025-10-24",
+        "note": "Stefan Bremer – Helsinki by Night (24.10.2025 – 30.8.2026)",
+        "venue": "Hakasalmen huvila",
+        "image": "https://museot.fi/uploadkuvat/museot/21100/artikkelikuva_825x513px_Stefan_Bremer_Helsinki_by_Night_diinarit_HH_syksy25.jpg"
       }
     ],
     "sotamuseo maneesi": [
@@ -977,6 +1021,16 @@
         "note": "Modernit klassikot: Elga Sesemann (18.8.2026 – 8.8.2027)",
         "venue": "Ateneumin taidemuseo",
         "image": "https://museot.fi/uploadkuvat/museot/21094/Sesemann_museokorttiin.jpg"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41731",
+        "date": "2026-10-23",
+        "note": "Arcana Borealis - pohjoisen naiset ja esoteerisuus (23.10.2026 – 28.2.2027)",
+        "venue": "Ateneumin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21094/arcana-borealis.jpg"
       }
     ],
     "ateneumintaidemuseo": [
@@ -999,6 +1053,16 @@
         "note": "Modernit klassikot: Elga Sesemann (18.8.2026 – 8.8.2027)",
         "venue": "Ateneumin taidemuseo",
         "image": "https://museot.fi/uploadkuvat/museot/21094/Sesemann_museokorttiin.jpg"
+      },
+      {
+        "kind": "nayttely",
+        "label": "Uusi näyttely tulossa",
+        "source": "museot.fi",
+        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=41731",
+        "date": "2026-10-23",
+        "note": "Arcana Borealis - pohjoisen naiset ja esoteerisuus (23.10.2026 – 28.2.2027)",
+        "venue": "Ateneumin taidemuseo",
+        "image": "https://museot.fi/uploadkuvat/museot/21094/arcana-borealis.jpg"
       }
     ],
     "tiedemuseo liekki": [
@@ -1023,30 +1087,6 @@
         "note": "Angeloskooppi (4.12.2025 – 29.8.2026)",
         "venue": "Tiedemuseo Liekki",
         "image": "https://museot.fi/uploadkuvat/museot/21110/Angeloskooppi_banner1_1920-x-960-px.jpg"
-      }
-    ],
-    "hakasalmen huvila": [
-      {
-        "kind": "nayttely",
-        "label": "Ajankohtainen näyttely",
-        "source": "museot.fi",
-        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40319",
-        "date": "2025-10-24",
-        "note": "Stefan Bremer – Helsinki by Night (24.10.2025 – 30.8.2026)",
-        "venue": "Hakasalmen huvila",
-        "image": "https://museot.fi/uploadkuvat/museot/21100/artikkelikuva_825x513px_Stefan_Bremer_Helsinki_by_Night_diinarit_HH_syksy25.jpg"
-      }
-    ],
-    "hakasalmenhuvila": [
-      {
-        "kind": "nayttely",
-        "label": "Ajankohtainen näyttely",
-        "source": "museot.fi",
-        "url": "https://museot.fi/nayttelykalenteri/index.php?nayttely_id=40319",
-        "date": "2025-10-24",
-        "note": "Stefan Bremer – Helsinki by Night (24.10.2025 – 30.8.2026)",
-        "venue": "Hakasalmen huvila",
-        "image": "https://museot.fi/uploadkuvat/museot/21100/artikkelikuva_825x513px_Stefan_Bremer_Helsinki_by_Night_diinarit_HH_syksy25.jpg"
       }
     ],
     "teatterimuseo": [
@@ -5638,7 +5678,7 @@
     ]
   },
   "counts": {
-    "nayttely": 56,
+    "nayttely": 58,
     "timeout": 213,
     "uusi": 6
   },
