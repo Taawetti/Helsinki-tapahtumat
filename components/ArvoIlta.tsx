@@ -1,17 +1,20 @@
 'use client'
 
-// 🎰 ARVO VALMIS ILTA — Idea-välilehden arvontakone (Päättäkää yhdessä
-// -sivun seuraaja, omistajan linjaus: ryhmääänestys oli liian raskas, mutta
-// kaavakone on kultaa). Yksi painallus → koko illan suunnitelma HETI:
-// sama testattu kaarimoottori kuin ryhmäversiossa (aukiolot suunnitellulle
-// hetkelle, oikeat keikka-ajat ankkureina, kävelyajat, yön raja) — mutta
-// ilman linkkejä, sessioita ja odottelua. Jaa-nappi lähettää VALMIIN
-// suunnitelman WhatsAppiin — päätös tapahtuu ryhmächatissa, ei täällä.
+// 🎰 ARVO VALMIS ILTA — Idea-välilehden arvontakone. Käyttäjä KOKOAA illan
+// palikoista (ruoka, keikka, kulttuuri, sauna…) ja kone arpoo valmiin,
+// aikataulutetun suunnitelman (omistaja: "niistä voi valita mieleiset").
+// Sama 13 testin lukitsema kaarimoottori kuin ryhmäversiossa: aukiolot
+// suunnitellulle hetkelle, keikkojen oikeat alkuajat ankkureina, kävelyajat,
+// yön raja — ja rehellinen "ei toteutettavissa" kun ilta ei synny.
+//
+// Kilpailutilannesuoja (reqSeq): vain uusimman pyynnön vastaus kirjoittaa
+// tilaa — hidas "tänä iltana" -vastaus ei saa yliajaa viikonloppuvalintaa
+// (väärän päivän suunnitelma oli mahdollinen ilman tätä; mitattu).
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, MapPin, Navigation, MessageCircle, Copy, Check, Dices } from 'lucide-react'
-import { ARCS, type ThemeArc } from '@/components/ThemeArcs'
 import { planShareText } from '@/lib/arvo-ilta'
+import type { SceneId } from '@/lib/candidate'
 import type { GroupArcPlan, PlanStep } from '@/lib/group'
 
 type WhenChoice = 'tonight' | 'weekend'
@@ -22,7 +25,29 @@ interface ApiResponse {
   reason: 'too-late' | 'no-arc' | 'empty-deck' | null
 }
 
+// ── Illan palikat — moottorin scenet valintaruudukkona ──────────────────────
+
+const SCENES: { id: SceneId; emoji: string; label: string; tint: string }[] = [
+  { id: 'ruoka',     emoji: '🍽',  label: 'Ruoka',             tint: '232,120,60' },
+  { id: 'keikka',    emoji: '🎸', label: 'Keikka & klubi',    tint: '175,100,255' },
+  { id: 'kulttuuri', emoji: '🎭', label: 'Kulttuuri & taide', tint: '120,130,255' },
+  { id: 'sauna',     emoji: '🧖', label: 'Sauna',             tint: '240,110,110' },
+  { id: 'baarit',    emoji: '🍸', label: 'Baarit',            tint: '95,180,255' },
+  { id: 'ulkona',    emoji: '🌳', label: 'Ulkona',            tint: '95,217,140' },
+  { id: 'perhe',     emoji: '👨‍👩‍👧', label: 'Perheelle',      tint: '255,180,90' },
+  { id: 'ilmaista',  emoji: '💸', label: 'Ilmaista',          tint: '80,220,180' },
+]
+
 const WHEN_LABEL: Record<WhenChoice, string> = { tonight: '🌙 Tänä iltana', weekend: '🗓 Viikonloppuna' }
+
+// Roolikohtainen liukuväri kuvattomille pysäkeille — sama julistekieli kuin
+// tapahtumakorteissa.
+const ROLE_GRADIENT: Record<string, string> = {
+  activity: 'linear-gradient(135deg,#042f2e 0%,#0f4c35 55%,#065f46 100%)',
+  food:     'linear-gradient(160deg,#431407 0%,#78350f 55%,#92400e 100%)',
+  drinks:   'linear-gradient(155deg,#0c2a4a 0%,#0e4d6e 55%,#0369a1 100%)',
+  program:  'linear-gradient(135deg,#2e1065 0%,#4c1d95 55%,#6d28d9 100%)',
+}
 
 function fiDateLabel(iso: string): string {
   const d = new Date(`${iso}T12:00:00Z`)
@@ -30,17 +55,20 @@ function fiDateLabel(iso: string): string {
   return `${wd} ${d.getUTCDate()}.${d.getUTCMonth() + 1}.`
 }
 
-// ── Pysäkkirivi ─────────────────────────────────────────────────────────────
+// ── Pysäkkikortti — kuva tekee illasta houkuttelevan ────────────────────────
 
-function StepRow({ step, onReroll, rerolling }: {
+function StepCard({ step, onReroll, rerolling }: {
   step: PlanStep
   onReroll: () => void
   rerolling: boolean
 }) {
+  const [imgOk, setImgOk] = useState(true)
+  const gradient = ROLE_GRADIENT[step.role] ?? ROLE_GRADIENT.activity
   return (
     <>
       {typeof step.travelFromPrevMin === 'number' && step.travelFromPrevMin > 0 && (
-        <li className="flex items-center gap-2 pl-6 text-[12px] text-white/35">
+        <li className="flex items-center gap-2 pl-7 text-[12px] text-white/40" aria-label="siirtymä">
+          <span className="inline-block w-px h-4 -ml-3" style={{ background: 'rgba(255,255,255,.15)' }} />
           {step.travelFromPrevMode === 'transit' ? '🚌' : '🚶'} ~{step.travelFromPrevMin} min
           {step.travelFromPrevMode === 'transit' && step.travelFromPrevUrl && (
             <a href={step.travelFromPrevUrl} target="_blank" rel="noopener"
@@ -48,30 +76,44 @@ function StepRow({ step, onReroll, rerolling }: {
           )}
         </li>
       )}
-      <li className="rounded-xl p-3.5 flex gap-3"
-        style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-        <div className="shrink-0 w-14 text-center">
-          <p className="text-[13px] font-black" style={{ color: '#a3abff' }}>{step.time ?? ''}</p>
-          <p className="text-2xl leading-tight mt-0.5">{step.emoji}</p>
+      <li className="rounded-2xl overflow-hidden flex"
+        style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+        {/* Kuva — groundattu faktakuva (Google/tapahtuma) roolijulisteen päällä.
+            Juliste (liukuväri + emoji) piirtyy AINA alle: hidas tai kuollut
+            kuva näyttää värikkään tiilen, ei mustaa aukkoa (mitattu lh3-viive). */}
+        <div className="relative shrink-0 w-24 self-stretch" style={{ minHeight: 96, background: gradient }}>
+          <div className="absolute inset-0 flex items-center justify-center text-3xl" aria-hidden>{step.emoji}</div>
+          {step.image && imgOk && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={step.image} onError={() => setImgOk(false)} alt=""
+              className="absolute inset-0 w-full h-full object-cover" />
+          )}
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 p-3">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-bold text-white text-[14.5px] leading-snug">
-              {step.url ? (
-                <a href={step.url} target="_blank" rel="noopener" className="hover:text-blue-300 transition-colors">{step.title} ↗</a>
-              ) : step.title}
-            </p>
-            {/* Pysäkin uudelleenarvonta: vaihtaa VAIN tämän pysäkin */}
+            <div className="min-w-0">
+              <p className="text-[11.5px] font-black" style={{ color: '#a3abff' }}>{step.time ?? ''}</p>
+              <p className="font-bold text-white text-[15px] leading-snug mt-0.5">
+                {step.url ? (
+                  <a href={step.url} target="_blank" rel="noopener" className="hover:text-blue-300 transition-colors">{step.title} ↗</a>
+                ) : step.title}
+              </p>
+            </div>
+            {/* Pysäkin uudelleenarvonta */}
             <button onClick={onReroll} disabled={rerolling}
               aria-label={`Arvo tilalle toinen: ${step.title}`}
-              className="shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white transition-colors disabled:opacity-40"
+              className="shrink-0 p-2 rounded-xl text-white/45 hover:text-white transition-colors disabled:opacity-40"
               style={{ background: 'rgba(255,255,255,.06)' }}>
-              <Dices size={15} className={rerolling ? 'animate-spin' : ''} />
+              <Dices size={16} className={rerolling ? 'animate-spin' : ''} />
             </button>
           </div>
-          {step.why && <p className="text-[12.5px] text-white/55 leading-snug mt-0.5">{step.why}</p>}
-          <p className="text-[11.5px] text-white/35 mt-1 flex items-center gap-1 flex-wrap">
-            {step.isFree && <span className="text-emerald-400 font-bold">maksuton · </span>}
+          {step.why && <p className="text-[12.5px] text-white/55 leading-snug mt-1">{step.why}</p>}
+          <p className="text-[11.5px] text-white/35 mt-1.5 flex items-center gap-1 flex-wrap">
+            {step.isFree && <span className="text-emerald-400 font-bold">maksuton ·</span>}
+            {/* ★ vain jos why-teksti ei jo kerro arvosanaa — ei tuplana */}
+            {typeof step.rating === 'number' && !step.why?.includes('arvostelua') && (
+              <span style={{ color: '#e8c06a' }}>★ {step.rating.toFixed(1)} ·</span>
+            )}
             {step.address && (<><MapPin size={10} className="inline shrink-0" /> {step.address}</>)}
             {step.lat && step.lon && (
               <a href={`https://maps.google.com/maps?daddr=${step.lat},${step.lon}&travelmode=transit`}
@@ -86,10 +128,11 @@ function StepRow({ step, onReroll, rerolling }: {
   )
 }
 
-// ── Pääkomponentti: kaavachipit + suunnitelmapaneeli ────────────────────────
+// ── Pääkomponentti ──────────────────────────────────────────────────────────
 
 export default function ArvoIlta() {
-  const [formula, setFormula] = useState<ThemeArc | null>(null)
+  const [selected, setSelected] = useState<SceneId[]>([])
+  const [open, setOpen] = useState(false)
   const [when, setWhen] = useState<WhenChoice>('tonight')
   const [variant, setVariant] = useState(0)
   const [excluded, setExcluded] = useState<string[]>([])
@@ -98,15 +141,16 @@ export default function ArvoIlta() {
   const [result, setResult] = useState<ApiResponse | null>(null)
   const [error, setError] = useState(false)
   const [copied, setCopied] = useState(false)
-  // Pysäkkikohtainen ilmoitus ("ei löytynyt korvaajaa") — ei kaada suunnitelmaa.
   const [note, setNote] = useState<string | null>(null)
-  // KILPAILUTILANNESUOJA: vain uusimman pyynnön vastaus saa kirjoittaa tilaa.
-  // Ilman tätä hidas "tänä iltana" -vastaus yliajaisi nopean viikonloppu-
-  // vastauksen ja paneeli näyttäisi VÄÄRÄN PÄIVÄN suunnitelman (mitattu
-  // vastakkaistarkastuksessa) — juuri se mitä ei saa tapahtua.
   const reqSeq = useRef(0)
 
-  const roll = useCallback(async (arc: ThemeArc, w: WhenChoice, v: number, ex: string[], keepDate?: string) => {
+  const toggleScene = useCallback((id: SceneId) => {
+    setSelected((prev) => prev.includes(id)
+      ? prev.filter((x) => x !== id)
+      : prev.length >= 4 ? prev : [...prev, id])
+  }, [])
+
+  const roll = useCallback(async (scenes: SceneId[], w: WhenChoice, v: number, ex: string[], keepDate?: string) => {
     const my = ++reqSeq.current
     const isReroll = ex.length > 0
     setLoading(!isReroll)
@@ -117,24 +161,20 @@ export default function ArvoIlta() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          formulaId: arc.id,
-          scenes: arc.preset.scenes,
-          budget: arc.preset.budget,
+          formulaId: [...scenes].sort().join('-'),
+          scenes,
+          budget: 'any',                       // 'ilmaista'-scene pakottaa jo maksuttomat
           when: w,
-          maxSteps: Math.min(4, Math.max(2, arc.preset.scenes.length)),
+          maxSteps: Math.min(4, Math.max(2, scenes.length)),
           variant: v,
           excludeIds: ex,
-          // Pysäkkiarvonta pysyy näkyvän suunnitelman päivässä myös keskiyön yli.
-          date: keepDate,
+          date: keepDate,                      // pysäkkiarvonta pysyy näkyvän suunnitelman päivässä
         }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json() as ApiResponse
-      if (my !== reqSeq.current) return   // vanhentunut vastaus — uudempi pyyntö voitti
+      if (my !== reqSeq.current) return        // vanhentunut vastaus
       if (isReroll && !json.plan) {
-        // Pysäkille ei löytynyt korvaajaa — SÄILYTÄ toimiva suunnitelma,
-        // peru poissulku ja kerro syy. Koko suunnitelman hylkääminen
-        // "ilta on liian pitkällä" -viestillä olisi väärä väite.
         setExcluded((prev) => prev.slice(0, -1))
         setNote('Tälle pysäkille ei löytynyt korvaajaa — muut vaihtoehdot ovat joko kiinni tai eivät ehdi aikatauluun.')
         return
@@ -143,7 +183,6 @@ export default function ArvoIlta() {
     } catch {
       if (my !== reqSeq.current) return
       if (isReroll) {
-        // Verkkovirhe pysäkkiarvonnassa: peru poissulku, säilytä suunnitelma.
         setExcluded((prev) => prev.slice(0, -1))
         setNote('Arvonta epäonnistui — kokeile hetken päästä uudelleen.')
       } else {
@@ -157,100 +196,131 @@ export default function ArvoIlta() {
     }
   }, [])
 
-  const start = useCallback((arc: ThemeArc) => {
-    // Kaavan oma esivalinta: viikonloppukaava (Ulkoilupäivä) avautuu
-    // viikonlopulle, muut tälle illalle. 'day' pyöristyy iltaan — arvonta on
-    // illan työkalu; koko päivän suunnittelu kuuluu viikonloppuun.
-    const w: WhenChoice = arc.preset.when === 'weekend' ? 'weekend' : 'tonight'
-    setFormula(arc)
+  const start = useCallback(() => {
+    if (selected.length === 0) return
+    // Ulkoilu + perhe ovat päiväjuttuja → viikonloppu oletukseksi.
+    const w: WhenChoice = (selected.includes('ulkona') || selected.includes('perhe')) && selected.length <= 2 ? 'weekend' : 'tonight'
+    setOpen(true)
     setWhen(w)
     setVariant(0)
     setExcluded([])
     setResult(null)
-    roll(arc, w, 0, [])
-  }, [roll])
+    roll(selected, w, 0, [])
+  }, [selected, roll])
 
   const changeWhen = useCallback((w: WhenChoice) => {
-    if (!formula) return
     setWhen(w); setVariant(0); setExcluded([]); setResult(null)
-    roll(formula, w, 0, [])
-  }, [formula, roll])
+    roll(selected, w, 0, [])
+  }, [selected, roll])
 
   const rerollAll = useCallback(() => {
-    if (!formula) return
-    const v = (variant + 1) % 31          // palvelimen variant-katto on 30
+    const v = (variant + 1) % 31               // palvelimen variant-katto on 30
     setVariant(v); setExcluded([]); setResult(null)
-    roll(formula, when, v, [], result?.date)
-  }, [formula, when, variant, roll, result])
+    roll(selected, when, v, [], result?.date)
+  }, [selected, when, variant, roll, result])
 
   const rerollStep = useCallback((cardId: string) => {
-    if (!formula || rerollingId) return   // yksi pysäkkiarvonta kerrallaan
+    if (rerollingId) return                    // yksi pysäkkiarvonta kerrallaan
     const ex = [...excluded, cardId]
     setExcluded(ex)
     setRerollingId(cardId)
-    roll(formula, when, variant, ex, result?.date)
-  }, [formula, when, variant, excluded, roll, rerollingId, result])
+    roll(selected, when, variant, ex, result?.date)
+  }, [selected, when, variant, excluded, roll, rerollingId, result])
 
   const close = useCallback(() => {
-    reqSeq.current++            // lennossa oleva vastaus ei saa avata paneelia uudelleen
-    setFormula(null); setResult(null); setNote(null); setRerollingId(null); setLoading(false)
+    reqSeq.current++
+    setOpen(false); setResult(null); setNote(null); setRerollingId(null); setLoading(false)
   }, [])
 
   useEffect(() => {
-    if (!formula) return
+    if (!open) return
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
     document.addEventListener('keydown', esc)
     return () => document.removeEventListener('keydown', esc)
-  }, [formula, close])
+  }, [open, close])
 
   const plan = result?.plan ?? null
   const shareText = plan && result ? planShareText(plan, fiDateLabel(result.date)) : ''
+  // Hero: viimeisen kuvallisen pysäkin kuva (illan huipennus) — jos kuvia on
+  // useampi, banneri ei toista ensimmäisen kortin kuvaa heti sen yläpuolella.
+  const stepImages = plan?.arc.filter((s) => s.image).map((s) => s.image!) ?? []
+  const heroImage = stepImages.length > 0 ? stepImages[stepImages.length - 1] : null
+  const titleEmojis = selected.map((id) => SCENES.find((s) => s.id === id)?.emoji ?? '').join('')
+  const titleLabel = selected.map((id) => SCENES.find((s) => s.id === id)?.label ?? '').join(' · ')
 
   return (
     <>
-      {/* Kaavachipit — vaakascrollattava rivi */}
+      {/* ── Palikkavalitsin ── */}
       <section className="mt-2">
-        <div className="flex items-baseline gap-2 mb-2">
-          <h2 className="font-black text-white text-[15px]" style={{ letterSpacing: '-0.01em' }}>🎰 Arvo valmis ilta</h2>
-          <span className="text-[11px] text-white/35 font-medium">koko suunnitelma yhdellä painalluksella</span>
+        <div className="flex items-baseline gap-2 mb-2.5">
+          <h2 className="font-black text-white text-[16px]" style={{ letterSpacing: '-0.01em' }}>🎰 Arvo valmis ilta</h2>
+          <span className="text-[11px] text-white/35 font-medium">valitse palikat → kone aikatauluttaa</span>
         </div>
-        <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
-          {ARCS.map((a) => (
-            <button key={a.id} onClick={() => start(a)}
-              className="shrink-0 rounded-2xl px-3.5 py-2.5 text-left transition-transform active:scale-95"
-              style={{ background: a.gradient, minWidth: 148 }}>
-              <p className="text-[15px] leading-none">{a.emoji}</p>
-              <p className="text-[12.5px] font-black text-white mt-1 leading-tight">{a.name}</p>
-            </button>
-          ))}
+        <div className="grid grid-cols-4 gap-2">
+          {SCENES.map((s) => {
+            const on = selected.includes(s.id)
+            return (
+              <button key={s.id} onClick={() => toggleScene(s.id)}
+                aria-pressed={on}
+                className="relative flex flex-col items-center justify-center gap-1 rounded-[16px] py-3 px-1 transition-all active:scale-95"
+                style={{
+                  background: on
+                    ? `radial-gradient(120% 100% at 50% 0%, rgba(${s.tint},.38), rgba(${s.tint},.10) 75%)`
+                    : `radial-gradient(120% 100% at 50% 0%, rgba(${s.tint},.14), rgba(255,255,255,.03) 70%)`,
+                  border: on ? `1.5px solid rgba(${s.tint},.75)` : '1px solid rgba(255,255,255,.07)',
+                  boxShadow: on ? `0 6px 22px -8px rgba(${s.tint},.55)` : 'none',
+                }}>
+                {on && (
+                  <span className="absolute top-1 right-1.5 w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{ background: `rgb(${s.tint})` }}>
+                    <Check size={11} strokeWidth={3.5} className="text-black/80" />
+                  </span>
+                )}
+                <span className="text-[22px] leading-none">{s.emoji}</span>
+                <span className={`text-[10.5px] font-black text-center leading-tight ${on ? 'text-white' : 'text-white/70'}`}>{s.label}</span>
+              </button>
+            )
+          })}
         </div>
+        <button onClick={start} disabled={selected.length === 0}
+          className="mt-2.5 w-full flex items-center justify-center gap-2 rounded-[16px] py-3.5 font-black text-[14px] text-white transition-all active:scale-[0.98] disabled:opacity-40"
+          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: selected.length > 0 ? '0 10px 28px -10px rgba(91,101,230,.8)' : 'none' }}>
+          <Dices size={16} />
+          {selected.length === 0 ? 'Valitse illan palikat' : `Arvo ilta (${selected.length} ${selected.length === 1 ? 'palikka' : 'palikkaa'})`}
+        </button>
       </section>
 
-      {/* Suunnitelmapaneeli */}
-      {formula && (
+      {/* ── Suunnitelmapaneeli ── */}
+      {open && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60" onClick={close} aria-hidden />
-          <div role="dialog" aria-modal aria-label={formula.name}
+          <div role="dialog" aria-modal aria-label="Arvottu ilta"
             className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl overflow-hidden md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:rounded-none md:w-full md:max-w-lg">
             <div className="h-[92dvh] overflow-y-auto bg-[#0e1117] shadow-2xl md:h-full">
-              <div className="md:hidden flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-white/20" />
+
+              {/* Hero: ensimmäisen kuvallisen pysäkin kuva bannerina */}
+              <div className="relative h-44 w-full shrink-0" style={{ background: 'linear-gradient(135deg,#16162a,#1e2440)' }}>
+                {heroImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={heroImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0e1117] via-black/30 to-transparent" />
+                <div className="md:hidden absolute top-2 inset-x-0 flex justify-center">
+                  <div className="w-10 h-1 rounded-full bg-white/30" />
+                </div>
+                <button onClick={close} aria-label="Sulje"
+                  className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors">
+                  <X size={16} />
+                </button>
+                <div className="absolute bottom-3 left-5 right-5">
+                  <p className="text-[11px] font-black uppercase tracking-[.14em] text-white/60">{titleEmojis} {titleLabel}</p>
+                  <h2 className="text-2xl font-black text-white" style={{ letterSpacing: '-0.02em', textShadow: '0 2px 18px rgba(0,0,0,.7)' }}>
+                    {result ? fiDateLabel(result.date) : 'Arvotaan…'}
+                  </h2>
+                </div>
               </div>
 
               <div className="p-5 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[.12em] text-white/40">{formula.emoji} {formula.name}</p>
-                    <h2 className="text-xl font-black text-white mt-0.5" style={{ letterSpacing: '-0.02em' }}>
-                      {result ? fiDateLabel(result.date) : '…'}
-                    </h2>
-                  </div>
-                  <button onClick={close} aria-label="Sulje"
-                    className="p-2 bg-white/6 hover:bg-white/12 rounded-full text-white transition-colors">
-                    <X size={16} />
-                  </button>
-                </div>
-
                 {/* Milloin */}
                 <div className="flex gap-2">
                   {(['tonight', 'weekend'] as WhenChoice[]).map((w) => (
@@ -264,10 +334,9 @@ export default function ArvoIlta() {
                   ))}
                 </div>
 
-                {/* Sisältö */}
                 {loading && (
                   <div className="space-y-2 py-2">
-                    {[0, 1, 2].map((i) => <div key={i} className="rounded-xl skeleton-shimmer" style={{ height: 92 }} />)}
+                    {[0, 1, 2].map((i) => <div key={i} className="rounded-2xl skeleton-shimmer" style={{ height: 104 }} />)}
                     <p className="text-white/40 text-[13px] text-center pt-2">Arvotaan iltaa — aukiolot ja aikataulut tarkistetaan…</p>
                   </div>
                 )}
@@ -280,7 +349,7 @@ export default function ArvoIlta() {
                     <p className="text-white/60 text-sm leading-relaxed px-4">
                       {result.reason === 'too-late'
                         ? 'Ilta on jo niin pitkällä, ettei ehjää suunnitelmaa synny — paikat ehtivät kiinni.'
-                        : 'Tälle päivälle ei löytynyt toteutettavaa yhdistelmää.'}
+                        : 'Näillä palikoilla ei löytynyt toteutettavaa yhdistelmää tälle päivälle.'}
                     </p>
                     {when === 'tonight' && (
                       <button onClick={() => changeWhen('weekend')}
@@ -299,17 +368,14 @@ export default function ArvoIlta() {
                         {note}
                       </p>
                     )}
-                    <p className="text-[13px] text-white/55 leading-snug">{plan.intro}</p>
                     <ul className="space-y-2">
                       {plan.arc.map((s) => (
-                        <StepRow key={`${s.cardId ?? s.title}`} step={s}
+                        <StepCard key={`${s.cardId ?? s.title}`} step={s}
                           rerolling={rerollingId !== null}
                           onReroll={() => s.cardId && rerollStep(s.cardId)} />
                       ))}
                     </ul>
-                    {plan.outro && <p className="text-[12px] text-white/35">{plan.outro}</p>}
 
-                    {/* Toiminnot */}
                     <div className="flex flex-col gap-2 pt-1">
                       <button onClick={rerollAll}
                         className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3 rounded-xl transition-transform active:scale-[0.98]"
