@@ -8,6 +8,7 @@ import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
+import { isOutsideTargetAudience } from '@/lib/audience'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
@@ -633,6 +634,8 @@ export default function HomeClient({
     // olla päivälläkin, ne ovat kokopäiväisiä).
     const picks = baseEvents
       .filter((e) => {
+        // Kohderyhmärajaus (18–40): lastenkonsertti keikka-vibellä ei kuulu heroon
+        if (isOutsideTargetAudience(e)) return false
         const sc = nightlifeScore(e)
         if (sc < 3 || !e.image) return false
         return sc >= 8 || new Date(e.startTime).getHours() >= 15
@@ -671,7 +674,12 @@ export default function HomeClient({
       return s
     }
     const ranked = baseEvents
-      .filter((e) => !heroIds.has(e.id))
+      // Kohderyhmärajaus (18–40, lib/audience): lapsi-/nuoriso-/seniori-/
+      // käsityökerhotapahtumat EIVÄT kuulu poimintoihin — sakotus ei riitä,
+      // koska ohut päivä täyttää ruudukon sakotetuillakin (mitattu 24.8.:
+      // maanantain poiminnat olivat leikkipuistojumppaa ja neulekerhoja).
+      // Kategoriat, haku ja koCat-listat näyttävät ne edelleen.
+      .filter((e) => !heroIds.has(e.id) && !isOutsideTargetAudience(e))
       .map((e) => ({ e, s: score(e) }))
       .sort((a, b) => b.s - a.s)
     const out: Event[] = []

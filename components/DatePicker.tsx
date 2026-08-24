@@ -18,6 +18,8 @@ interface Props {
   valueEnd?: string
   onChangeRange?: (start: string, end: string) => void
   size?: 'sm' | 'md'
+  /** Napin teksti kun mitään ei ole valittu (oletus: t('date.custom')). */
+  placeholder?: string
 }
 
 function toLocalDate(iso: string) {
@@ -29,7 +31,7 @@ function fmtIso(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-export default function DatePicker({ value, onChange, valueEnd, onChangeRange, size = 'md' }: Props) {
+export default function DatePicker({ value, onChange, valueEnd, onChangeRange, size = 'md', placeholder }: Props) {
   const { t, lang } = useLanguage()
   const MONTHS = lang === 'fi' ? MONTHS_FI : MONTHS_EN
   const DAYS = lang === 'fi' ? DAYS_FI : DAYS_EN
@@ -285,7 +287,7 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
         style={hasSelection ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,0.5)' } : {}}
       >
         <Calendar size={btnSm ? 11 : 13} />
-        {label ?? t('date.custom')}
+        {label ?? placeholder ?? t('date.custom')}
       </button>
       {dropdown}
     </>

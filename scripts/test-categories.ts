@@ -69,6 +69,7 @@ import { credibilityScore } from '../lib/credibility'
 import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/restaurant-news-match'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
+import { isOutsideTargetAudience } from '../lib/audience'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
@@ -1272,6 +1273,37 @@ const arcChecks = arcFixtures
 for (const c of arcChecks) {
   if (c.ok) pass++
   else failures.push(`✗ kaarimoottori: ${c.name}`)
+}
+
+// ── Kohderyhmärajaus (lib/audience) — suositukset 18–40-vuotiaille.
+// Mitatut vuodot 24.8.2026 (etusivun poiminnat + Idea-pakka) pois;
+// K18-klubit, nuoret aikuiset ja bändinimet EIVÄT saa osua.
+{
+  const aud = (title: string, short = '', venue = '', cats: string[] = []) =>
+    isOutsideTargetAudience({ title, shortDescription: short, categories: cats, location: { name: venue } })
+
+  const audCases: { name: string; ok: boolean }[] = [
+    // Suljettavat (mitatut vuodot)
+    { name: 'lapset: taiteilua vanhemman kanssa (Perhetalo)', ok: aud('Picassot', 'Taiteilua yhdessä vanhemman kanssa.', 'Perhetalo Naapuri') === true },
+    { name: 'lapset: 0-6-vuotiaille liikuntahetki', ok: aud('Lammen liikuntahetki', 'joka maanantai 0-6-vuotiaille yhdessä vanhemman kanssa', 'Leikkipuisto Lampi') === true },
+    { name: 'lapset: alle 2v jumpparyhmä', ok: aud('Ilo liikkua-jumpparyhmä 1½- alle 2v. Ennakkoilmoittautuminen.') === true },
+    { name: 'nuoriso: 13-17-vuotiaiden ilta', ok: aud('Sateenkaarinuorten ilta 13-17-vuotiaille') === true },
+    { name: 'käsityökerho: neulominen', ok: aud('Neuletapaaminen', 'Tule mukaan neulomaan. Neuletapaamiset jatkuvat syksyllä') === true },
+    { name: 'seniorit: palvelukeskus', ok: aud('Senioritanssit', 'Tanssit palvelukeskuksessa joka viikko') === true },
+    { name: 'seniorit/palvelu: digituki', ok: aud('Digituen viikko-ohjelma 24.8.–28.8.2026', 'Kaupungin digineuvoja paikalla') === true },
+    { name: 'lapset: satutuokio', ok: aud('Satutuokio kirjastossa') === true },
+    // Säilyvät (tarkkuusansat)
+    { name: 'ansa: K18-klubi ("yli 18-vuotiaille") säilyy', ok: aud('Klubi-ilta', 'Vain yli 18-vuotiaille.') === false },
+    { name: 'ansa: nuorten aikuisten ilta ON kohderyhmää', ok: aud('Nuorten aikuisten suunnitteluilta', 'Kutsumme nuoria aikuisia mukaan') === false },
+    { name: 'ansa: bändinimi (Nuorgam 30 v) säilyy', ok: aud('Nuorgam 30 v -juhlakeikka') === false },
+    { name: 'ansa: sinfoniakonsertti säilyy', ok: aud('Helsingin juhlaviikot: Radion sinfoniaorkesteri – Le Grand Macabre', 'György Ligetin ooppera', 'Musiikkitalo') === false },
+    { name: 'ansa: "Muistopäivä"-näytelmä ei ole muistisairaustapahtuma', ok: aud('Muistopäivä', 'Järisyttävä näytelmä Stalinin vainoihin kadonneista', 'Suomen Kansallisteatteri') === false },
+    { name: 'ansa: stand up -klubi säilyy', ok: aud('Stand up -klubi', 'Illan koomikot Apollossa', 'Apollo Live Club') === false },
+  ]
+  for (const c of audCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ kohderyhmä: ${c.name}`)
+  }
 }
 
 

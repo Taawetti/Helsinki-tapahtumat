@@ -11,6 +11,8 @@ import { addDays } from '@/lib/arvo-ilta'
 import { buildIdeaDeck, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
 import { getEventVibes } from '@/lib/event-classify'
+import { isOutsideTargetAudience } from '@/lib/audience'
+import DatePicker from '@/components/DatePicker'
 
 // Idea-sivu 8/2026: käsin kuratoitu 13 klassikkoa POISTETTU (asiakkaat huomasivat
 // toiston) — pakka on nyt tapahtumakeskeinen: tämän päivän tapahtumat
@@ -82,9 +84,9 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 // ── Päivävalinta: arpomiskone toimii muillekin päiville (omistaja 24.8.2026:
-// "voi valita päivämäärän ... jos ei tiedä mitä haluaa tehdä") ──────────────
+// "voi valita päivämäärän ... jos ei tiedä mitä haluaa tehdä"; UI = YKSI
+// "Valitse päivämäärä" -nappi, ei chipsiriviä) ──────────────────────────────
 
-const IDEA_DAY_COUNT = 14
 const WD_FI = ['su', 'ma', 'ti', 'ke', 'to', 'pe', 'la']
 const WD_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -263,12 +265,20 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   // Tänään: HomeClientin jo hakemat tapahtumat; muu päivä: oma haku yllä.
   const sourceEvents = ideaDate === todayIso ? events : dateEvents
 
+  // Kohderyhmärajaus (18–40): lapsi-, nuoriso-, seniori- ja käsityökerho-
+  // tapahtumat eivät kuulu suosituksiin (lib/audience). Perhe-yleisön
+  // valinnut käyttäjä on OPT-IN — hänelle lapsisisältö kuuluu pakkaan.
+  const targetEvents = useMemo(
+    () => (audience === 'perhe' ? sourceEvents : sourceEvents.filter((e) => !isOutsideTargetAudience(e))),
+    [sourceEvents, audience],
+  )
+
   const eventPool = useMemo((): Suggestion[] => {
     // Pakkamoottori (lib/idea-deck): kohderyhmäsuodatus, makumuisti, scenet,
     // seniori-alaskuopaus, siemen-jitteri (sama päivä+laite = sama pakka).
     // today-injektio rajaa pakan valittuun päivään (tulevat päivät: kaikki
     // päivän tapahtumat kelpaavat, nowMs-portit eivät karsi mitään).
-    return buildIdeaDeck(sourceEvents, {
+    return buildIdeaDeck(targetEvents, {
       seed: `${ideaDate}-${deviceId}`,
       today: ideaDate,
       scenes: ideaScenes,
@@ -293,7 +303,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       emoji: eventEmoji(s.event),
       eventRef: s.event,
     }))
-  }, [sourceEvents, lang, ideaScenes, audience, demoted, ideaDate, deviceId])
+  }, [targetEvents, lang, ideaScenes, audience, demoted, ideaDate, deviceId])
 
   const pool = useMemo(() => {
     // Paikkakortit (sauna/näköala) vain tänään — "● Auki nyt" ei kerro mitään
@@ -550,20 +560,15 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         )}
       </div>
 
-      {/* ── Päivärivi: arpomiskone muillekin päiville ── */}
-      <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1" style={{ scrollbarWidth: 'none' }}>
-        {Array.from({ length: IDEA_DAY_COUNT }, (_, i) => addDays(todayIso, i)).map((iso) => {
-          const on = iso === ideaDate
-          return (
-            <button key={iso} onClick={() => setIdeaDate(iso)}
-              className="shrink-0 text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
-              style={on
-                ? { background: 'rgba(107,118,255,.25)', color: '#c7ccff', border: '1px solid rgba(107,118,255,.45)' }
-                : { background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.08)' }}>
-              {dayLabel(iso, todayIso, lang)}
-            </button>
-          )
-        })}
+      {/* ── Päivävalinta: yksi nappi, kalenteri aukeaa (sama DatePicker kuin
+          Tapahtumat-välilehdellä). Tyhjä arvo / kalenterin "Tyhjennä
+          valinta" = takaisin tähän päivään. ── */}
+      <div>
+        <DatePicker
+          value={ideaDate === todayIso ? '' : ideaDate}
+          onChange={(v) => setIdeaDate(v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : todayIso)}
+          placeholder={lang === 'en' ? 'Pick a date' : 'Valitse päivämäärä'}
+        />
       </div>
 
     {!current ? (
