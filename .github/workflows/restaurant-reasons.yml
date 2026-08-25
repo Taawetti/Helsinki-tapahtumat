@@ -88,6 +88,14 @@ jobs:
         continue-on-error: true
         run: npx tsx scripts/fetch-secondhand.ts
 
+      # Tapahtumapaikkojen omat kotisivut LinkedEventsin place-rekisteristä.
+      # Käytetään infopaneelissa kun tapahtumalla ei ole omaa lippu-/järjestäjä-
+      # linkkiä — ilman tätä paneeli tarjoaisi vain hakunapin. Ilmainen,
+      # avointa Helsinki-dataa; oma alaraja (FLOOR) skriptissä.
+      - name: Hae paikkojen kotisivut
+        continue-on-error: true
+        run: npx tsx scripts/fetch-venue-sites.ts
+
       # Saunojen Google-kortit /saunat-sivulle. Maksaa vain uusista ja
       # 60 pv välein virkistettävistä.
       - name: Hae saunakortit
@@ -139,7 +147,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/restaurant-reasons.json data/activity-reasons.json data/new-openings.json data/new-places-enriched.json data/sauna-cards.json data/secondhand.json data/dead-images.json data/website-images.json
+          git add data/restaurant-reasons.json data/activity-reasons.json data/new-openings.json data/new-places-enriched.json data/sauna-cards.json data/secondhand.json data/dead-images.json data/website-images.json data/venue-sites.json
           git commit -m "Reasons: weekly refresh (restaurants + activities)
 
           Automaattinen haku: Michelin-opas, Suomen 50 parasta, Vuoden

@@ -73,6 +73,8 @@ import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
+import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
+import venueSiteFile from '../data/venue-sites.json'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
@@ -1423,6 +1425,41 @@ for (const c of arcChecks) {
   for (const c of linkCases) {
     if (c.ok) pass++
     else failures.push(`✗ tapahtumalinkit: ${c.name}`)
+  }
+}
+
+// ── Paikkojen kotisivut (data/venue-sites.json + scripts/fetch-venue-sites).
+// Viikkohaku LinkedEventsin place-rekisteristä. Nostaa infopaneelin
+// "paikan sivut" -kattavuuden mitatusti 28 % → 73 % paikoista.
+{
+  const file = venueSiteFile as { fetchedAt?: string; sites?: Record<string, string> }
+  const sites = file.sites ?? {}
+  const entries = Object.entries(sites)
+  const vsCases: { name: string; ok: boolean }[] = [
+    { name: 'tiedosto: rakenne (fetchedAt + sites)', ok: typeof file.fetchedAt === 'string' && !!file.sites },
+    { name: 'tiedosto: vähintään 700 paikkaa (romahdusvahti)', ok: entries.length >= 700 },
+    { name: 'tiedosto: kaikki avaimet normalisoituja (pienet, ei pilkkua)', ok: entries.every(([k]) => k === venueKey(k) && !k.includes(',')) },
+    { name: 'tiedosto: kaikki arvot http(s)-osoitteita', ok: entries.every(([, v]) => /^https?:\/\//i.test(v)) },
+    { name: 'tiedosto: EI kilpailijadomaineja', ok: entries.every(([, v]) => !isCompetitorUrl(v)) },
+    { name: 'tiedosto: EI sosiaalista mediaa', ok: entries.every(([, v]) => !/(facebook|instagram|tiktok|twitter|linkedin)\.com/i.test(v)) },
+    { name: 'tiedosto: EI lomakkeita tai pdf:iä', ok: entries.every(([, v]) => !/docs\.google\.com|forms\.gle|webropolsurveys|\.pdf($|\?)/i.test(v)) },
+    // Vartijafunktiot
+    { name: 'venueKey: pilkun jälkeinen tarkenne pois', ok: venueKey('Kiasma, nykytaiteen museo') === 'kiasma' },
+    { name: 'venueKey: pienet kirjaimet ja tuplavälit', ok: venueKey('  Sellon   KIRJASTO ') === 'sellon kirjasto' },
+    { name: 'acceptSite: tavallinen osoite kelpaa', ok: acceptSite('https://kinotapiola.fi/') === 'https://kinotapiola.fi/' },
+    { name: 'acceptSite: protokollaton täydentyy', ok: acceptSite('helmet.fi/kirjasto') === 'https://helmet.fi/kirjasto' },
+    { name: 'acceptSite: kilpailija hylätään', ok: acceptSite('https://www.stadissa.fi/x') === null },
+    { name: 'acceptSite: Facebook hylätään', ok: acceptSite('https://www.facebook.com/paikka') === null },
+    { name: 'acceptSite: Google-lomake hylätään', ok: acceptSite('https://docs.google.com/forms/x') === null },
+    { name: 'acceptSite: PDF hylätään', ok: acceptSite('https://hel.fi/ohjelma.pdf') === null },
+    { name: 'acceptSite: tyhjä/rikkinäinen → null', ok: acceptSite(null) === null && acceptSite('   ') === null },
+    // Tunnetut paikat joiden pitää löytyä (mitattu 25.8.2026)
+    { name: 'kattavuus: kirjasto löytyy', ok: !!sites['tapulikaupungin kirjasto'] },
+    { name: 'kattavuus: elokuvateatteri löytyy', ok: !!sites['kino tapiola'] },
+  ]
+  for (const c of vsCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ paikkojen kotisivut: ${c.name}`)
   }
 }
 

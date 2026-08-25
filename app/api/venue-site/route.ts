@@ -16,6 +16,7 @@ import { fetchOSMCached } from '@/app/api/restaurants/route'
 import { VENUE_PAGES } from '@/lib/venue-pages'
 import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 import { isCompetitorUrl } from '@/lib/event-links'
+import venueSiteData from '@/data/venue-sites.json'
 
 export const revalidate = 3600
 
@@ -47,9 +48,20 @@ async function buildMap(): Promise<Map<string, string>> {
     const u = normalizeUrl(www)
     if (u) map.set(k, u)
   }
-  // Kuratoidut ensin — ne ovat tarkistettuja.
+  // PRIORITEETTI: kuratoitu > virallinen rekisteri > OSM. Ensimmäinen voittaa,
+  // joten järjestys ratkaisee — kuratoitu tieto on tarkistettua, LinkedEventsin
+  // place-rekisteri on kaupungin ylläpitämää, OSM talkoodataa.
   for (const v of VENUE_PAGES) add(v.name, v.www)
   for (const v of HELSINKI_NIGHTCLUBS) add(v.name, v.www)
+  // LinkedEventsin paikkarekisteri (data/venue-sites.json, viikkohaku):
+  // 2187 paikkaa kotisivuineen — kirjastot, seniorikeskukset, kulttuuritalot,
+  // elokuvateatterit. Mitattu 25.8.2026: nostaa kattavuuden 28 % → 68 %.
+  for (const [k, www] of Object.entries((venueSiteData as { sites?: Record<string, string> }).sites ?? {})) {
+    if (!map.has(k)) {
+      const u = normalizeUrl(www)
+      if (u) map.set(k, u)
+    }
+  }
   try {
     const acts = await fetchActivitiesCached()
     for (const a of acts) add(a.name, a.www)
