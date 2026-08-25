@@ -8,8 +8,10 @@
 import { useEffect, useState } from 'react'
 import type { NewInHelsinki } from '@/lib/new-in-helsinki'
 import NewInHelsinkiView from '@/components/NewInHelsinkiView'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function UuttaView() {
+  const { t } = useLanguage()
   const [data, setData] = useState<NewInHelsinki | null>(null)
   const [error, setError] = useState(false)
 
@@ -25,12 +27,12 @@ export default function UuttaView() {
       <div>
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
         <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
-          Uutta Helsingissä
+          {t('uutta.title')}
         </h1>
         {data && (
           <p className="text-white/45 text-[13px] font-bold mt-2">
-            {data.months[0] ? `${data.months[0].items.length} uutta paikkaa tässä kuussa` : 'Juuri avatut ja avautuvat paikat'}
-            {data.upcoming.length > 0 ? ` · ${data.upcoming.length} tulossa` : ''}
+            {data.months[0] ? `${data.months[0].items.length} ${t('uutta.new_places_month')}` : t('uutta.subtitle_fallback')}
+            {data.upcoming.length > 0 ? ` · ${data.upcoming.length} ${t('uutta.count_upcoming')}` : ''}
           </p>
         )}
       </div>
@@ -46,7 +48,7 @@ export default function UuttaView() {
       )}
       {error && (
         <p className="text-white/40 text-sm py-8 text-center">
-          Uutuuksien haku epäonnistui — kokeile hetken päästä uudelleen.
+          {t('uutta.load_error')}
         </p>
       )}
 

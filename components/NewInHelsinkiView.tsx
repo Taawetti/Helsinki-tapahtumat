@@ -8,15 +8,20 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { X, MapPin, Navigation, Globe, Clock, ExternalLink, MessageCircle, Copy, Check } from 'lucide-react'
-import type { NewInHelsinki, NewItem, NewKind } from '@/lib/new-in-helsinki'
+import type { MonthGroup, NewInHelsinki, NewItem, NewKind } from '@/lib/new-in-helsinki'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
-const KIND_META: Record<NewKind, { emoji: string; label: string; gradient: string; accent: string }> = {
-  ravintola: { emoji: '🍽', label: 'Ravintolat',          gradient: 'linear-gradient(160deg,#052e16 0%,#065f46 55%,#047857 100%)', accent: '#34d399' },
-  baari:     { emoji: '🍸', label: 'Baarit',              gradient: 'linear-gradient(155deg,#0c2a4a 0%,#0e4d6e 55%,#0369a1 100%)', accent: '#38bdf8' },
-  kahvila:   { emoji: '☕', label: 'Kahvilat & leipomot', gradient: 'linear-gradient(160deg,#431407 0%,#78350f 55%,#92400e 100%)', accent: '#fbbf24' },
-  kauppa:    { emoji: '🛍', label: 'Kaupat',              gradient: 'linear-gradient(135deg,#4a0520 0%,#881337 55%,#9f1239 100%)', accent: '#fb7185' },
-  tekeminen: { emoji: '🧖', label: 'Tekeminen',           gradient: 'linear-gradient(135deg,#042f2e 0%,#0f4c35 55%,#065f46 100%)', accent: '#2dd4bf' },
-  nayttely:  { emoji: '🖼', label: 'Näyttelyt',           gradient: 'linear-gradient(135deg,#2e1065 0%,#4c1d95 55%,#6d28d9 100%)', accent: '#a78bfa' },
+/** Moduulitason apurit saavat t():n parametrina — hookia ei voi kutsua täällä. */
+type Translate = (key: TranslationKey) => string
+
+const KIND_META: Record<NewKind, { emoji: string; labelKey: TranslationKey; gradient: string; accent: string }> = {
+  ravintola: { emoji: '🍽', labelKey: 'nav.restaurants',          gradient: 'linear-gradient(160deg,#052e16 0%,#065f46 55%,#047857 100%)', accent: '#34d399' },
+  baari:     { emoji: '🍸', labelKey: 'restaurants.tab_bars',     gradient: 'linear-gradient(155deg,#0c2a4a 0%,#0e4d6e 55%,#0369a1 100%)', accent: '#38bdf8' },
+  kahvila:   { emoji: '☕', labelKey: 'uutta.kind_cafes',         gradient: 'linear-gradient(160deg,#431407 0%,#78350f 55%,#92400e 100%)', accent: '#fbbf24' },
+  kauppa:    { emoji: '🛍', labelKey: 'uutta.kind_shops',         gradient: 'linear-gradient(135deg,#4a0520 0%,#881337 55%,#9f1239 100%)', accent: '#fb7185' },
+  tekeminen: { emoji: '🧖', labelKey: 'uutta.kind_activities',    gradient: 'linear-gradient(135deg,#042f2e 0%,#0f4c35 55%,#065f46 100%)', accent: '#2dd4bf' },
+  nayttely:  { emoji: '🖼', labelKey: 'uutta.kind_exhibitions',   gradient: 'linear-gradient(135deg,#2e1065 0%,#4c1d95 55%,#6d28d9 100%)', accent: '#a78bfa' },
 }
 
 /** 'uutiset' on pseudokategoria: avautumisjutut joille ei (vielä) ole omaa
@@ -25,9 +30,9 @@ const KIND_META: Record<NewKind, { emoji: string; label: string; gradient: strin
 type FilterKind = NewKind | 'all' | 'uutiset'
 const FILTERS: FilterKind[] = ['all', 'ravintola', 'baari', 'kahvila', 'nayttely', 'tekeminen', 'kauppa', 'uutiset']
 
-const MONTHS_INESSIVE = [
-  'tammikuussa', 'helmikuussa', 'maaliskuussa', 'huhtikuussa', 'toukokuussa', 'kesäkuussa',
-  'heinäkuussa', 'elokuussa', 'syyskuussa', 'lokakuussa', 'marraskuussa', 'joulukuussa',
+const MONTHS_INESSIVE: TranslationKey[] = [
+  'uutta.month_1', 'uutta.month_2', 'uutta.month_3', 'uutta.month_4', 'uutta.month_5', 'uutta.month_6',
+  'uutta.month_7', 'uutta.month_8', 'uutta.month_9', 'uutta.month_10', 'uutta.month_11', 'uutta.month_12',
 ]
 
 function fmtDate(iso: string): string {
@@ -38,24 +43,32 @@ function fmtDate(iso: string): string {
 
 /** Päivämäärämerkintä rehellisyysjärjestyksessä: OSM-rivin päivä on kartta-
  *  merkinnän luontipäivä, ei todennettu avauspäivä → sanotaan vain kuukausi. */
-function dateLabel(item: NewItem): { text: string; color: string } {
+function dateLabel(item: NewItem, t: Translate): { text: string; color: string } {
   if (item.upcoming) {
-    return { text: `${item.kind === 'nayttely' ? 'Avautuu' : 'Avaa'} ${fmtDate(item.date)}`, color: '#fcd34d' }
+    return { text: `${t(item.kind === 'nayttely' ? 'uutta.opens_exhibition' : 'uutta.opens')} ${fmtDate(item.date)}`, color: '#fcd34d' }
   }
-  if (item.kind === 'nayttely') return { text: `Alkoi ${fmtDate(item.date)}`, color: '#d8b4fe' }
+  if (item.kind === 'nayttely') return { text: `${t('uutta.started')} ${fmtDate(item.date)}`, color: '#d8b4fe' }
   if (item.dateApprox) {
     const m = new Date(item.date + 'T12:00:00Z').getUTCMonth()
-    return { text: `Uusi ${MONTHS_INESSIVE[m] ?? ''}`, color: '#6ee7b7' }
+    const monthKey = MONTHS_INESSIVE[m]
+    return { text: `${t('uutta.new_in')} ${monthKey ? t(monthKey) : ''}`, color: '#6ee7b7' }
   }
-  return { text: `Avattu ${fmtDate(item.date)}`, color: '#6ee7b7' }
+  return { text: `${t('uutta.opened')} ${fmtDate(item.date)}`, color: '#6ee7b7' }
 }
 
-function relativeNews(iso: string): string {
+/** Kuukausiotsikko kootaan vasta täällä: palvelin antaa nimen avaimena ja
+ *  vuoden lukuna, jotta otsikko kääntyy. label on suomenkielinen varateksti. */
+function monthHeading(m: Pick<MonthGroup, 'label' | 'monthKey' | 'year' | 'isThisYear'>, t: Translate): string {
+  if (!m.monthKey) return m.label
+  return m.isThisYear ? t(m.monthKey) : `${t(m.monthKey)} ${m.year}`
+}
+
+function relativeNews(iso: string, t: Translate): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
-  if (Number.isNaN(days) || days < 1) return 'tänään'
-  if (days === 1) return 'eilen'
-  if (days < 7) return `${days} pv sitten`
-  return `${Math.floor(days / 7)} vk sitten`
+  if (Number.isNaN(days) || days < 1) return t('uutta.rel_today')
+  if (days === 1) return t('uutta.rel_yesterday')
+  if (days < 7) return `${days} ${t('uutta.rel_days')}`
+  return `${Math.floor(days / 7)} ${t('uutta.rel_weeks')}`
 }
 
 function subLine(item: NewItem): string {
@@ -68,9 +81,10 @@ function subLine(item: NewItem): string {
 // ── JULISTEKORTTI — sama rakenne kuin tapahtumien PosterCard ────────────────
 
 function NewPosterCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) => void }) {
+  const { t } = useLanguage()
   const [imgOk, setImgOk] = useState(true)
   const meta = KIND_META[item.kind]
-  const date = dateLabel(item)
+  const date = dateLabel(item, t)
   const hasImage = !!item.image && imgOk
   const sub = subLine(item)
 
@@ -96,7 +110,7 @@ function NewPosterCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) =
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             <div className="absolute inset-0 flex flex-col justify-center px-4 py-5">
               <div className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-60" style={{ color: meta.accent }}>
-                {meta.label}
+                {t(meta.labelKey)}
               </div>
               <h3 className="font-black text-white leading-tight text-xl"
                 style={{
@@ -134,11 +148,11 @@ function NewPosterCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) =
         {sub && <p className="text-white/40 text-[11px] truncate">{sub}</p>}
         {item.news && (
           <p className="text-white/55 text-[11px] leading-snug line-clamp-2">
-            📰 {item.news.title} <span className="text-white/30">· {item.news.source || relativeNews(item.news.date)}</span>
+            📰 {item.news.title} <span className="text-white/30">· {item.news.source || relativeNews(item.news.date, t)}</span>
           </p>
         )}
         <p className="text-[10px] text-white/25 truncate">
-          {item.sources.map((s) => s.label).join(' · ')}
+          {item.sources.map((s) => (s.labelKey ? t(s.labelKey) : s.label)).join(' · ')}
         </p>
       </div>
     </>
@@ -156,9 +170,10 @@ function NewPosterCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) =
 // ── HEROKORTTI — sivun käyntikortti: tuorein kuvallinen nosto ───────────────
 
 function HeroCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) => void }) {
+  const { t } = useLanguage()
   const [imgOk, setImgOk] = useState(true)
   const meta = KIND_META[item.kind]
-  const date = dateLabel(item)
+  const date = dateLabel(item, t)
   const inner = (
     <>
       {item.image && imgOk ? (
@@ -179,7 +194,7 @@ function HeroCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) => voi
       </div>
       <div className="absolute bottom-0 left-0 right-0 p-5">
         <p className="text-[11px] font-black uppercase tracking-[.12em] mb-1" style={{ color: 'rgba(255,255,255,.55)' }}>
-          {meta.emoji} {meta.label.toUpperCase()}{item.neighborhood ? ` · ${item.neighborhood.toUpperCase()}` : ''}
+          {meta.emoji} {t(meta.labelKey).toUpperCase()}{item.neighborhood ? ` · ${item.neighborhood.toUpperCase()}` : ''}
         </p>
         <h2 className="font-black text-white text-2xl leading-tight" style={{ letterSpacing: '-0.02em' }}>
           {item.name}
@@ -187,7 +202,7 @@ function HeroCard({ item, onOpen }: { item: NewItem; onOpen: (i: NewItem) => voi
         <p className="text-[13px] text-white/60 mt-1">
           {subLine(item)}
           {typeof item.rating === 'number' && (item.reviews ?? 0) >= 5 && (
-            <span className="font-bold" style={{ color: '#e8c06a' }}> · jo ★ {item.rating.toFixed(1)} ({item.reviews})</span>
+            <span className="font-bold" style={{ color: '#e8c06a' }}> · {t('uutta.already')} ★ {item.rating.toFixed(1)} ({item.reviews})</span>
           )}
         </p>
         {item.news && (
@@ -219,6 +234,7 @@ function NewItemDetailPanel({ item, onClose }: { item: NewItem | null; onClose: 
 }
 
 function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: () => void }) {
+  const { t } = useLanguage()
   const [slideIn, setSlideIn] = useState(false)
   const [copied, setCopied] = useState(false)
   useEffect(() => {
@@ -229,10 +245,10 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
   }, [onClose])
 
   const meta = KIND_META[item.kind]
-  const date = dateLabel(item)
+  const date = dateLabel(item, t)
   const www = item.www ? (/^https?:\/\//i.test(item.www) ? item.www : `https://${item.www}`) : undefined
   const shareUrl = www ?? item.news?.url ?? item.sources.find((s) => s.url)?.url ?? 'https://helsinki-tapahtumat.vercel.app/uutta-helsingissa'
-  const shareText = `${item.name} — Uutta Helsingissä`
+  const shareText = `${item.name} — ${t('uutta.share_suffix')}`
   const mapsUrl = item.lat && item.lon
     ? `https://maps.google.com/maps?q=${item.lat},${item.lon}`
     : item.address ? `https://maps.google.com/maps?q=${encodeURIComponent(item.address + ', Helsinki')}` : undefined
@@ -265,7 +281,7 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
             <span className="absolute top-4 left-4 text-[11px] font-black px-3 py-1 rounded-full bg-black/55 backdrop-blur-sm" style={{ color: date.color }}>
               {date.text}
             </span>
-            <button onClick={onClose} aria-label="Sulje"
+            <button onClick={onClose} aria-label={t('common.close')}
               className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors">
               <X size={16} />
             </button>
@@ -274,7 +290,7 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
           <div className="p-6 space-y-5">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[.12em] mb-1" style={{ color: meta.accent }}>
-                {meta.emoji} {meta.label}
+                {meta.emoji} {t(meta.labelKey)}
               </p>
               <h2 className="text-xl font-bold text-white leading-tight">{item.name}</h2>
             </div>
@@ -301,7 +317,7 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
               {typeof item.rating === 'number' && (item.reviews ?? 0) >= 5 && (
                 <div className="flex items-center gap-3 text-sm">
                   <span className="text-[15px] leading-none" style={{ color: '#e8c06a' }}>★</span>
-                  <span className="text-white/80">jo {item.rating.toFixed(1)} · {item.reviews} arvostelua</span>
+                  <span className="text-white/80">{t('uutta.already')} {item.rating.toFixed(1)} · {item.reviews} {t('uutta.reviews')}</span>
                 </div>
               )}
             </div>
@@ -323,16 +339,16 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
                   {i > 0 && ' · '}
                   {s.url ? (
                     <a href={s.url} target="_blank" rel="noopener" className="hover:text-white/60 transition-colors underline-offset-2">
-                      {s.label} ↗
+                      {s.labelKey ? t(s.labelKey) : s.label} ↗
                     </a>
-                  ) : s.label}
+                  ) : (s.labelKey ? t(s.labelKey) : s.label)}
                 </span>
               ))}
             </p>
 
             {/* Jaa */}
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">Jaa kavereille</p>
+              <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">{t('detail.share_with')}</p>
               <div className="grid grid-cols-3 gap-2">
                 <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, '_blank')}
                   className="flex flex-col items-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/20 rounded-xl py-3 px-2 transition-colors">
@@ -347,7 +363,7 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
                 <button onClick={() => { navigator.clipboard.writeText(`${shareText}\n${shareUrl}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
                   className={`flex flex-col items-center gap-1.5 border rounded-xl py-3 px-2 transition-all ${copied ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/10 hover:bg-white/8'}`}>
                   {copied ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} className="text-white/50" />}
-                  <span className={`text-[11px] font-semibold ${copied ? 'text-emerald-400' : 'text-white/40'}`}>{copied ? 'Kopioitu' : 'Kopioi'}</span>
+                  <span className={`text-[11px] font-semibold ${copied ? 'text-emerald-400' : 'text-white/40'}`}>{copied ? t('detail.copied') : t('detail.copy')}</span>
                 </button>
               </div>
             </div>
@@ -358,7 +374,7 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
                 <a href={www} target="_blank" rel="noopener"
                   className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
                   style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                  <Globe size={15} /> Nettisivu <ExternalLink size={13} className="opacity-70" />
+                  <Globe size={15} /> {t('common.website')} <ExternalLink size={13} className="opacity-70" />
                 </a>
               )}
               {/* Lähde-CTA vain kun se vie SISÄLTÖÖN (museot.fi:n näyttelysivu).
@@ -370,7 +386,7 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
                   <a href={src.url} target="_blank" rel="noopener"
                     className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
                     style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                    <Globe size={15} /> {src.label} <ExternalLink size={13} className="opacity-70" />
+                    <Globe size={15} /> {src.labelKey ? t(src.labelKey) : src.label} <ExternalLink size={13} className="opacity-70" />
                   </a>
                 ) : null
               })()}
@@ -399,14 +415,14 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
                   {mapsUrl && (
                     <a href={mapsUrl} target="_blank" rel="noopener"
                       className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/8 text-white/60 font-medium text-sm py-3 rounded-xl border border-white/8 transition-colors">
-                      <Navigation size={14} /> Kartta
+                      <Navigation size={14} /> {t('detail.map')}
                     </a>
                   )}
                   {transitUrl && (
                     <a href={transitUrl} target="_blank" rel="noopener"
                       className="flex items-center justify-center gap-1.5 text-sm font-medium py-3 rounded-xl border transition-colors"
                       style={{ background: 'rgba(107,118,255,.1)', borderColor: 'rgba(107,118,255,.2)', color: '#a3abff' }}>
-                      <Navigation size={14} /> Reittiohjeet
+                      <Navigation size={14} /> {t('detail.directions')}
                     </a>
                   )}
                 </div>
@@ -424,6 +440,7 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
 const NEWS_GRADIENT = 'linear-gradient(155deg,#082f49 0%,#0c4a6e 55%,#0369a1 100%)'
 
 function NewsPosterCard({ item }: { item: { title: string; url: string; source: string; date: string } }) {
+  const { t } = useLanguage()
   return (
     <a href={item.url} target="_blank" rel="noopener"
       className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 block">
@@ -436,7 +453,7 @@ function NewsPosterCard({ item }: { item: { title: string; url: string; source: 
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-center px-4 py-5">
           <div className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-60" style={{ color: '#7dd3fc' }}>
-            {item.source || 'Uutinen'}
+            {item.source || t('uutta.news')}
           </div>
           <h3 className="font-black text-white leading-tight text-lg"
             style={{
@@ -449,12 +466,12 @@ function NewsPosterCard({ item }: { item: { title: string; url: string; source: 
         </div>
         <div className="absolute top-2.5 left-2.5">
           <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm" style={{ color: '#7dd3fc' }}>
-            {relativeNews(item.date)}
+            {relativeNews(item.date, t)}
           </span>
         </div>
       </div>
       <div className="px-3 pt-2.5 pb-3 space-y-0.5">
-        <p className="text-white/40 text-[11px] truncate">{item.source || 'uutinen'} · lue juttu ↗</p>
+        <p className="text-white/40 text-[11px] truncate">{item.source || t('uutta.news_lower')} · {t('uutta.read_article')}</p>
       </div>
     </a>
   )
@@ -463,6 +480,7 @@ function NewsPosterCard({ item }: { item: { title: string; url: string; source: 
 // ── NÄKYMÄ ──────────────────────────────────────────────────────────────────
 
 export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
+  const { t } = useLanguage()
   const [kind, setKind] = useState<FilterKind>('all')
   // Infopaneeli — kortit avaavat tämän kuten tapahtumakortit tapahtumapaneelin.
   const [selected, setSelected] = useState<NewItem | null>(null)
@@ -496,7 +514,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => {
           const active = kind === f
-          const label = f === 'all' ? '✨ Kaikki' : f === 'uutiset' ? '📰 Uutisissa' : `${KIND_META[f].emoji} ${KIND_META[f].label}`
+          const label = f === 'all' ? `✨ ${t('common.all')}` : f === 'uutiset' ? t('uutta.filter_news') : `${KIND_META[f].emoji} ${t(KIND_META[f].labelKey)}`
           return (
             <button key={f} onClick={() => setKind(f)}
               className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
@@ -517,7 +535,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       {kind === 'uutiset' && (
         <section>
           <div className="flex items-baseline gap-2 mb-3">
-            <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>📰 Uutisissa nyt</h2>
+            <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>{t('uutta.in_the_news_now')}</h2>
             <span className="text-[12px] font-bold text-white/30">{data.newsRail.length}</span>
           </div>
           {data.newsRail.length > 0 ? (
@@ -525,7 +543,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
               {data.newsRail.map((n) => <NewsPosterCard key={n.url} item={n} />)}
             </div>
           ) : (
-            <p className="text-white/40 text-sm py-8 text-center">Ei tuoreita avautumisjuttuja juuri nyt.</p>
+            <p className="text-white/40 text-sm py-8 text-center">{t('uutta.no_news')}</p>
           )}
         </section>
       )}
@@ -534,7 +552,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       {upcoming.length > 0 && (
         <section>
           <div className="flex items-baseline gap-2 mb-3">
-            <h2 className="font-black text-[18px]" style={{ color: '#fcd34d', letterSpacing: '-0.02em' }}>⏳ Tulossa</h2>
+            <h2 className="font-black text-[18px]" style={{ color: '#fcd34d', letterSpacing: '-0.02em' }}>{t('uutta.upcoming')}</h2>
             <span className="text-[12px] font-bold text-white/30">{upcoming.length}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
@@ -547,8 +565,8 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       {months.map((m) => (
         <section key={m.key}>
           <div className="flex items-baseline gap-2 mb-3">
-            <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>{m.label}</h2>
-            <span className="text-[12px] font-bold text-white/30">{m.items.length} uutta</span>
+            <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>{monthHeading(m, t)}</h2>
+            <span className="text-[12px] font-bold text-white/30">{m.items.length} {t('uutta.count_new')}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
             {m.items.map((i) => <NewPosterCard key={i.id} item={i} onOpen={setSelected} />)}
@@ -557,7 +575,7 @@ export default function NewInHelsinkiView({ data }: { data: NewInHelsinki }) {
       ))}
 
       {kind !== 'uutiset' && months.length === 0 && upcoming.length === 0 && (
-        <p className="text-white/40 text-sm py-8 text-center">Ei rivejä tällä suodattimella.</p>
+        <p className="text-white/40 text-sm py-8 text-center">{t('uutta.no_rows')}</p>
       )}
 
       <NewItemDetailPanel item={selected} onClose={() => setSelected(null)} />

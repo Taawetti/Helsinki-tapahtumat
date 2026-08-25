@@ -9,6 +9,8 @@
 
 import { useEffect, useState } from 'react'
 import PosterCard from '@/components/PosterCard'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { Lang, TranslationKey } from '@/lib/i18n'
 import type { Event } from '@/lib/types'
 import type { SaunaRow } from '@/components/SaunatView'
 import type { GuidePlace } from '@/components/GuidePlaceList'
@@ -16,13 +18,15 @@ import type { GuideEvent } from '@/lib/guide-data'
 
 export type GuideSlug = 'saunat' | 'terassit' | 'pubivisat' | 'kirpputorit' | 'jamit' | 'ilmaiset-museot'
 
-export const GUIDE_META: Record<GuideSlug, { emoji: string; title: string; sub: string }> = {
-  saunat:            { emoji: '🧖', title: 'Saunat',            sub: 'yleiset saunat & aukiolot' },
-  terassit:          { emoji: '☀️', title: 'Terassit',          sub: 'kattoterassit & kesä' },
-  pubivisat:         { emoji: '🧠', title: 'Pubivisat',         sub: 'visailut viikon varrella' },
-  kirpputorit:       { emoji: '🛍', title: 'Kirpputorit',       sub: 'second hand & kirppikset' },
-  jamit:             { emoji: '🎤', title: 'Jamit & open mic',  sub: 'avoimet lavat' },
-  'ilmaiset-museot': { emoji: '🏛', title: 'Ilmaiset museot',   sub: 'aina vapaa pääsy' },
+// Moduulitason taulukko → t() ei ole käytettävissä täällä, joten nimi ja
+// alaotsikko kannetaan käännösavaimina (sama kuvio kuin lib/types.ts:n VIBES).
+export const GUIDE_META: Record<GuideSlug, { emoji: string; titleKey: TranslationKey; subKey: TranslationKey }> = {
+  saunat:            { emoji: '🧖', titleKey: 'guides.saunat_title',      subKey: 'guides.saunat_sub' },
+  terassit:          { emoji: '☀️', titleKey: 'guides.terassit_title',    subKey: 'guides.terassit_sub' },
+  pubivisat:         { emoji: '🧠', titleKey: 'guides.pubivisat_title',   subKey: 'guides.pubivisat_sub' },
+  kirpputorit:       { emoji: '🛍', titleKey: 'guides.kirpputorit_title', subKey: 'guides.kirpputorit_sub' },
+  jamit:             { emoji: '🎤', titleKey: 'guides.jamit_title',       subKey: 'guides.jamit_sub' },
+  'ilmaiset-museot': { emoji: '🏛', titleKey: 'guides.museot_title',      subKey: 'guides.museot_sub' },
 }
 
 interface Rooftop { name: string; address: string; www: string | null; image?: string | null; rating?: number | null }
@@ -86,9 +90,9 @@ function toEvent(e: GuideEvent): Event {
   }
 }
 
-function visaTime(iso: string): string {
+function visaTime(iso: string, lang: Lang): string {
   try {
-    return new Intl.DateTimeFormat('fi-FI', {
+    return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'fi-FI', {
       timeZone: 'Europe/Helsinki', weekday: 'short', day: 'numeric', month: 'numeric',
       hour: '2-digit', minute: '2-digit',
     }).format(new Date(iso)).replace(',', '')
@@ -203,6 +207,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
   const [error, setError] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [showMenu, setShowMenu] = useState(false)
+  const { t, lang } = useLanguage()
   const meta = GUIDE_META[slug]
 
   useEffect(() => {
@@ -232,18 +237,18 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
       {/* Otsikkorivi — sama linja kuin "📍 Tapahtumat Kalliossa · Vaihda ▾ · ✕" */}
       <div className="flex items-center gap-2.5 flex-wrap">
         <h2 className="font-black text-white text-[22px]" style={{ letterSpacing: '-0.02em' }}>
-          {meta.emoji} {meta.title}
+          {meta.emoji} {t(meta.titleKey)}
         </h2>
         {count !== null && <span className="text-[13px] font-bold text-white/35">{count}</span>}
         <div className="relative">
           <button onClick={() => setShowMenu((v) => !v)}
             className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
             style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
-            Vaihda ▾
+            {t('guides.switch')}
           </button>
           {showMenu && (
             <>
-              <button className="fixed inset-0 z-40 cursor-default" aria-label="Sulje"
+              <button className="fixed inset-0 z-40 cursor-default" aria-label={t('common.close')}
                 onClick={() => setShowMenu(false)} />
               <div className="absolute z-50 mt-2 left-0 w-56 rounded-2xl p-1.5"
                 style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
@@ -254,8 +259,8 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
                       className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors">
                       <span className="text-base leading-none">{g.emoji}</span>
                       <span className="min-w-0">
-                        {g.title}
-                        <span className="block text-[10.5px] font-medium text-white/35 truncate">{g.sub}</span>
+                        {t(g.titleKey)}
+                        <span className="block text-[10.5px] font-medium text-white/35 truncate">{t(g.subKey)}</span>
                       </span>
                     </button>
                   )
@@ -264,7 +269,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
             </>
           )}
         </div>
-        <button onClick={onBack} aria-label="Sulje opas"
+        <button onClick={onBack} aria-label={t('guides.close_guide')}
           className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
           style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
           ✕
@@ -274,11 +279,11 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
       {error && (
         <div className="flex flex-col items-center py-14 text-center gap-3">
           <span className="text-4xl">🫥</span>
-          <p className="text-white/40 font-bold">Oppaan lataus epäonnistui.</p>
+          <p className="text-white/40 font-bold">{t('guides.load_error')}</p>
           <button onClick={() => setReloadKey((k) => k + 1)}
             className="text-[13px] font-bold px-4 py-2.5 rounded-full text-white"
             style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-            Yritä uudelleen
+            {t('guides.retry')}
           </button>
         </div>
       )}
@@ -287,7 +292,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
         <div className="space-y-4">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>Ladataan opasta</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>{t('guides.loading')}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {[0, 1, 2, 3].map((i) => (
@@ -301,7 +306,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
         <CardGrid>
           {(data.saunas ?? []).map((s) => (
             <PlaceCard key={s.id} id={s.id} name={s.name} address={s.address}
-              image={s.image} emoji="🧖" kicker="Sauna"
+              image={s.image} emoji="🧖" kicker={t('cat.sauna')}
               topBadge={s.newLabel}
               bottomChip={s.rating != null ? `★ ${s.rating.toFixed(1)}` : null}
               href={s.www} />
@@ -312,18 +317,18 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
       {data && slug === 'terassit' && (
         <>
           <div>
-            <SectionHead sub="Drinkit kaupungin kattojen yllä — auki säällä kuin säällä.">🏙 Kattoterassit & rooftop-baarit</SectionHead>
+            <SectionHead sub={t('guides.sec_rooftops_sub')}>{t('guides.sec_rooftops')}</SectionHead>
             <CardGrid>
               {(data.rooftops ?? []).map((r) => (
                 <PlaceCard key={r.name} id={r.name} name={r.name} address={r.address}
-                  image={r.image} emoji="🍸" kicker="Kattoterassi"
+                  image={r.image} emoji="🍸" kicker={t('guides.kicker_rooftop')}
                   bottomChip={r.rating != null ? `★ ${r.rating.toFixed(1)}` : null}
                   href={r.www} />
               ))}
             </CardGrid>
           </div>
           <div>
-            <SectionHead sub="Seuraavan kahden viikon ohjelma.">🎪 Terassi- ja ulkoilmatapahtumat</SectionHead>
+            <SectionHead sub={t('guides.sec_terrace_events_sub')}>{t('guides.sec_terrace_events')}</SectionHead>
             <CardGrid>
               {(data.events ?? []).map((e) => (
                 <PosterCard key={e.id} event={toEvent(e)} onClick={onEventClick} />
@@ -335,13 +340,13 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
 
       {data && slug === 'pubivisat' && (
         <div>
-          <SectionHead sub="Viikon visailut aikajärjestyksessä — lähde: pubivisat.fi.">🧠 Viikon pubivisat</SectionHead>
+          <SectionHead sub={t('guides.sec_quizzes_sub')}>{t('guides.sec_quizzes')}</SectionHead>
           <CardGrid>
             {(data.visas ?? []).map((v, i) => (
               <PlaceCard key={`${v.name}-${i}`} id={`${v.name}-${i}`} name={v.name} address={v.address}
-                image={v.image} emoji="🧠" kicker="Pubivisa"
+                image={v.image} emoji="🧠" kicker={t('guides.kicker_quiz')}
                 topBadge={v.rating != null ? `★ ${v.rating.toFixed(1)}` : null}
-                bottomChip={visaTime(v.nextISO)} href={v.www} />
+                bottomChip={visaTime(v.nextISO, lang)} href={v.www} />
             ))}
           </CardGrid>
         </div>
@@ -350,7 +355,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
       {data && slug === 'kirpputorit' && (
         <>
           <div>
-            <SectionHead sub="Kirppistapahtumat ja myyjäiset lähiviikkoina.">🎪 Kirppistapahtumat</SectionHead>
+            <SectionHead sub={t('guides.sec_flea_events_sub')}>{t('guides.sec_flea_events')}</SectionHead>
             <CardGrid>
               {(data.events ?? []).map((e) => (
                 <PosterCard key={e.id} event={toEvent(e)} onClick={onEventClick} />
@@ -358,7 +363,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
             </CardGrid>
           </div>
           <div>
-            <SectionHead sub="Second hand -liikkeet ja kirpputorit.">🛍 Liikkeet & kirpputorit</SectionHead>
+            <SectionHead sub={t('guides.sec_flea_shops_sub')}>{t('guides.sec_flea_shops')}</SectionHead>
             <CardGrid>
               {(data.shops ?? []).map((p) => (
                 <PlaceCard key={p.id} id={p.id} name={p.name} address={p.address}
@@ -371,7 +376,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
 
       {data && slug === 'jamit' && (
         <div>
-          <SectionHead sub="Avoimet lavat, jamit ja open micit — tule soittamaan tai kuuntelemaan.">🎤 Tulevat jamit & open micit</SectionHead>
+          <SectionHead sub={t('guides.sec_jams_sub')}>{t('guides.sec_jams')}</SectionHead>
           <CardGrid>
             {(data.events ?? []).map((e) => (
               <PosterCard key={e.id} event={toEvent(e)} onClick={onEventClick} />
@@ -383,22 +388,22 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
       {data && slug === 'ilmaiset-museot' && (
         <>
           <div>
-            <SectionHead sub="Aina vapaa pääsy — ei ilmaispäiviä, vaan pysyvästi maksuttomat.">🏛 Museot</SectionHead>
+            <SectionHead sub={t('guides.sec_museums_sub')}>{t('guides.sec_museums')}</SectionHead>
             <CardGrid>
               {(data.museums ?? []).map((p) => (
                 <PlaceCard key={p.id} id={p.id} name={p.name} address={p.address}
-                  image={p.image} emoji="🏛" kicker="Museo" topBadge="MAKSUTON"
+                  image={p.image} emoji="🏛" kicker={t('cat.museo')} topBadge={t('common.free_badge')}
                   bottomChip={p.rating != null ? `★ ${p.rating.toFixed(1)}` : null}
                   href={p.www} />
               ))}
             </CardGrid>
           </div>
           <div>
-            <SectionHead>🖼 Galleriat</SectionHead>
+            <SectionHead>{t('guides.sec_galleries')}</SectionHead>
             <CardGrid>
               {(data.galleries ?? []).map((p) => (
                 <PlaceCard key={p.id} id={p.id} name={p.name} address={p.address}
-                  image={p.image} emoji="🖼" kicker="Galleria" topBadge="MAKSUTON"
+                  image={p.image} emoji="🖼" kicker={t('cat.galleria')} topBadge={t('common.free_badge')}
                   bottomChip={p.rating != null ? `★ ${p.rating.toFixed(1)}` : null}
                   href={p.www} />
               ))}
@@ -409,7 +414,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
 
       {/* Tapahtumaosioiden tyhjätila */}
       {data && (slug === 'jamit' || slug === 'terassit' || slug === 'kirpputorit') && (data.events ?? []).length === 0 && (
-        <p className="text-white/30 text-sm">Ei tulevia tapahtumia juuri nyt.</p>
+        <p className="text-white/30 text-sm">{t('guides.no_events')}</p>
       )}
     </section>
   )

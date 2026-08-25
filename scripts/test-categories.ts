@@ -9,6 +9,7 @@
 
 import { readFileSync } from 'node:fs'
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
+import { classifyEventCategory } from '../lib/event-category'
 import {
   detectSourceAnomalies,
   nextStreak,
@@ -1502,6 +1503,69 @@ for (const c of arcChecks) {
     else failures.push(`✗ käännökset: ${c.name}${
       c.name.includes('en-vastine') && missingEn.length ? ` (${missingEn.slice(0, 5).join(', ')})` : ''
     }${c.name.includes('identtinen') && suspicious.length ? ` (${suspicious.slice(0, 3).join(', ')})` : ''}`)
+  }
+}
+
+// ── Julistekortin kategoria (lib/event-category) — EMOJIKETJU ON LUKITTU.
+// Yläteksti oli ennen lähteen raaka suomenkielinen kategoria; englanniksi se
+// johdetaan nyt samasta avainsanaketjusta joka valitsee emojin. Ketju siirrettiin
+// PosterCardista jaettuun moduuliin, ja emojien piti pysyä TÄSMÄLLEEN samoina,
+// jottei yhdenkään kortin ulkoasu muutu suomeksi. Nämä kiinnikkeet vartioivat sitä.
+{
+  const catFixtures: { cats: string[]; emoji: string; tKey: string }[] = [
+    { cats: ['Rock'],                    emoji: '🎸', tKey: 'legend.concert' },
+    { cats: ['jazz'],                    emoji: '🎷', tKey: 'evcat.jazz' },
+    { cats: ['Klassinen musiikki'],      emoji: '🎻', tKey: 'evcat.classical' },
+    { cats: ['musiikki'],                emoji: '🎵', tKey: 'evcat.music' },
+    // Monikko ei osu yläosan perusmuotosääntöihin → oletusemoji säilyy, mutta
+    // vartalosääntö antaa oikean tekstin. Tämä oli ennen 'Tapahtuma'/'Event'.
+    { cats: ['Keikat ja konsertit'],     emoji: '✨', tKey: 'evcat.music' },
+    { cats: ['konsertit'],               emoji: '✨', tKey: 'evcat.music' },
+    { cats: ['Kulttuuri'],               emoji: '✨', tKey: 'evcat.culture' },
+    { cats: ['kulttuuritapahtumat'],     emoji: '✨', tKey: 'evcat.culture' },
+    { cats: ['Baari'],                   emoji: '✨', tKey: 'legend.bar' },
+    { cats: ['Klubi'],                   emoji: '✨', tKey: 'legend.nightlife' },
+    { cats: ['Lastentapahtumat'],        emoji: '✨', tKey: 'evcat.kids' },
+    // 'Pubivisa' sisältää sekä 'visa' että 'baari'-naapurisanat — tietovisasääntö
+    // on ketjussa ensin, joten se voittaa. Vartija sille ettei järjestys vaihdu.
+    { cats: ['Pubivisa'],                emoji: '🧠', tKey: 'evcat.quiz' },
+    // 'Kulttuuri ja teatteri': teatterisääntö on ennen kulttuurisääntöä.
+    { cats: ['Kulttuuri ja teatteri'],   emoji: '🎭', tKey: 'legend.theatre' },
+    { cats: ['Stand-up'],                emoji: '🎤', tKey: 'evcat.standup' },
+    { cats: ['Teatteri'],                emoji: '🎭', tKey: 'legend.theatre' },
+    { cats: ['tanssi'],                  emoji: '💃', tKey: 'evcat.dance' },
+    { cats: ['liikunta'],                emoji: '⚽', tKey: 'legend.sport' },
+    { cats: ['lapsiperheet'],            emoji: '🎠', tKey: 'evcat.kids' },
+    { cats: ['festivaalit'],             emoji: '🎪', tKey: 'legend.festival' },
+    { cats: ['kuvataide'],               emoji: '🎨', tKey: 'legend.art' },
+    { cats: ['Yöelämä'],                 emoji: '🎧', tKey: 'legend.nightlife' },
+    { cats: ['Tietovisa'],               emoji: '🧠', tKey: 'evcat.quiz' },
+    { cats: ['Pubivisa'],                emoji: '🧠', tKey: 'evcat.quiz' },
+    { cats: ['karaoke'],                 emoji: '🎤', tKey: 'evcat.karaoke' },
+    // Ketjun laajennus: oletusemoji, joten aiempien korttien ulkoasu ei muutu.
+    { cats: ['näyttelyt'],               emoji: '✨', tKey: 'legend.exhibition' },
+    { cats: ['Työpajat'],                emoji: '✨', tKey: 'evcat.workshop' },
+    { cats: ['keskustelu'],              emoji: '✨', tKey: 'evcat.talk' },
+    { cats: ['opastus'],                 emoji: '✨', tKey: 'evcat.tour' },
+    { cats: ['hyvinvointi'],             emoji: '✨', tKey: 'evcat.wellbeing' },
+    // Mitatut roskakategoriat: kaupunginosan nimi ja hallintotermi eivät saa
+    // osua mihinkään sääntöön — ne putoavat neutraaliin 'Tapahtuma'/'Event'.
+    { cats: ['osallistuminen'],          emoji: '✨', tKey: 'common.event_default' },
+    { cats: ['Kivenlahti'],              emoji: '✨', tKey: 'common.event_default' },
+    { cats: [],                          emoji: '✨', tKey: 'common.event_default' },
+  ]
+  const i18nSrc = readFileSync(new URL('../lib/i18n.ts', import.meta.url), 'utf8')
+  for (const f of catFixtures) {
+    const got = classifyEventCategory(f.cats)
+    const label = f.cats[0] ?? '(tyhjä)'
+    if (got.emoji === f.emoji) pass++
+    else failures.push(`✗ julistekategoria: "${label}" emoji ${f.emoji} (sai: ${got.emoji})`)
+    if (got.tKey === f.tKey) pass++
+    else failures.push(`✗ julistekategoria: "${label}" avain ${f.tKey} (sai: ${got.tKey})`)
+    // Avaimen on oltava molemmissa lohkoissa, muuten englanti näyttäisi suomea.
+    const inBoth = i18nSrc.split(`'${got.tKey}':`).length - 1
+    if (inBoth === 2) pass++
+    else failures.push(`✗ julistekategoria: avain ${got.tKey} esiintyy ${inBoth}× (odotettu 2 = fi + en)`)
   }
 }
 

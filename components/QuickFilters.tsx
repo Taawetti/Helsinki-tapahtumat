@@ -1,6 +1,8 @@
 'use client'
 
 import { CATEGORIES, DateFilter, PriceFilter } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 interface ActiveFilters {
   dateFilter: DateFilter
@@ -18,18 +20,19 @@ interface Props {
   onClearAll: () => void
 }
 
-const DATE_CHIPS: { value: DateFilter; label: string }[] = [
-  { value: 'today', label: 'Tänään' },
-  { value: 'tonight', label: '🌙 Illalla' },
-  { value: 'tomorrow', label: 'Huomenna' },
-  { value: 'weekend', label: '🎉 Viikonloppu' },
-  { value: 'week', label: 'Viikko' },
-  { value: 'month', label: 'Kuukausi' },
+const DATE_CHIPS: { value: DateFilter; emoji?: string; tKey: TranslationKey }[] = [
+  { value: 'today', tKey: 'date.today' },
+  { value: 'tonight', emoji: '🌙', tKey: 'date.tonight_short' },
+  { value: 'tomorrow', tKey: 'date.tomorrow' },
+  { value: 'weekend', emoji: '🎉', tKey: 'date.weekend' },
+  { value: 'week', tKey: 'date.week_short' },
+  { value: 'month', tKey: 'date.month' },
 ]
 
 const CITIES = ['helsinki', 'espoo', 'vantaa']
 
 export default function QuickFilters({ active, onDateChange, onMunicipalityChange, onCategoryToggle, onPriceChange, onClearAll }: Props) {
+  const { t } = useLanguage()
   const hasActiveFilters = active.activeCategories.length > 0 || active.priceFilter !== 'all'
 
   return (
@@ -47,7 +50,7 @@ export default function QuickFilters({ active, onDateChange, onMunicipalityChang
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${isActive ? 'text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
                 style={isActive ? { background: 'linear-gradient(135deg, #a855f7, #ec4899)' } : {}}
               >
-                {d.label}
+                {d.emoji ? `${d.emoji} ` : ''}{t(d.tKey)}
               </button>
             )
           })}
@@ -72,7 +75,7 @@ export default function QuickFilters({ active, onDateChange, onMunicipalityChang
 
         {/* Price filter */}
         <div className="flex gap-1 bg-white/5 p-1 rounded-xl">
-          {([['all', 'Kaikki'], ['free', '🎁 Ilmaiset'], ['paid', '🎟 Maksulliset']] as [PriceFilter, string][]).map(([val, label]) => (
+          {([['all', t('filter.all_price')], ['free', t('filter.free')], ['paid', t('filter.paid')]] as [PriceFilter, string][]).map(([val, label]) => (
             <button
               key={val}
               onClick={() => onPriceChange(val)}
@@ -113,7 +116,7 @@ export default function QuickFilters({ active, onDateChange, onMunicipalityChang
             onClick={onClearAll}
             className="px-3 py-1.5 rounded-full text-xs text-white/30 hover:text-white/60 border border-white/8 hover:border-white/20 transition-all"
           >
-            ✕ Tyhjennä
+            {'✕ '}{t('common.clear')}
           </button>
         )}
       </div>

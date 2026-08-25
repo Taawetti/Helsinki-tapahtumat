@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export function TramLoader({ loading }: { loading: boolean }) {
+  const { t } = useLanguage()
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
 
@@ -176,7 +178,7 @@ export function TramLoader({ loading }: { loading: boolean }) {
         animation: 'tramTextIn 0.4s ease 0.5s both',
         transition: 'opacity .3s ease', opacity: exiting ? 0 : 1,
       }}>
-        Haetaan Helsingin parhaat menot
+        {t('loader.searching')}
         <span style={{ animation: 'tramDot 1.4s ease-in-out 1s infinite', opacity: 0 }}>.</span>
         <span style={{ animation: 'tramDot 1.4s ease-in-out 1.2s infinite', opacity: 0 }}>.</span>
         <span style={{ animation: 'tramDot 1.4s ease-in-out 1.4s infinite', opacity: 0 }}>.</span>

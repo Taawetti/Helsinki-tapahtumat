@@ -122,7 +122,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose, on
                   className="text-[11px] font-black text-center leading-tight px-1"
                   style={{ color: isFree ? '#7fe8bc' : 'rgba(255,255,255,.45)' }}
                 >
-                  Ilmaiseksi
+                  {t('discover.free_events')}
                 </span>
               </button>
             )

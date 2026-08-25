@@ -6,6 +6,7 @@ import { formatDate, formatTime, truncate, isTonight, fmtDistance } from '@/lib/
 import { recordClick } from '@/lib/preferences'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { classifyEventCategory } from '@/lib/event-category'
 import type { TranslationKey } from '@/lib/i18n'
 
 interface Props {
@@ -58,7 +59,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
   const gradient = hashGradient(event.id)
   const tonight = isTonight(event.startTime)
   const { toggle, isFavorite } = useFavorites()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const fav = isFavorite(event.id)
   const typeBadge = getTypeBadge(event.categories)
 
@@ -118,7 +119,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
 
         {/* Date chip bottom */}
         <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">
-          {formatDate(event.startTime)}
+          {formatDate(event.startTime, lang)}
         </div>
       </div>
 
@@ -147,7 +148,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
             )}
             <div className="flex items-center gap-1.5 text-purple-400 text-xs font-semibold">
               <Clock size={10} className="shrink-0" />
-              <span>{formatTime(event.startTime)}</span>
+              <span>{formatTime(event.startTime, lang)}</span>
               {!event.isFree && event.price && (
                 <span className="text-white/40 font-normal">· {event.price}</span>
               )}
@@ -160,7 +161,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
             </span>
           ) : event.categories[0] ? (
             <span className="shrink-0 text-[10px] text-white/30 bg-white/5 px-2 py-1 rounded-full">
-              {event.categories[0]}
+              {lang === 'en' ? t(classifyEventCategory(event.categories).tKey) : event.categories[0]}
             </span>
           ) : null}
         </div>

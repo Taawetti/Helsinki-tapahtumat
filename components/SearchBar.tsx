@@ -149,14 +149,16 @@ export default function SearchBar({
           <p className="text-white/30 text-[11px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1">
             {t('search.popular')}
           </p>
+          {/* Näytetään käännettynä, mutta HAETAAN aina suomenkielisellä q:lla —
+              tapahtumadata on suomeksi. */}
           {SEARCH_SUGGESTIONS.map((s) => (
             <button
-              key={s}
-              onClick={() => onChange(s)}
+              key={s.q}
+              onClick={() => onChange(s.q)}
               className="w-full text-left px-4 py-2.5 text-sm text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
             >
               <Search size={12} className="text-white/20 shrink-0" />
-              {s}
+              {t(s.tKey)}
             </button>
           ))}
         </div>

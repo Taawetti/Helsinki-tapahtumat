@@ -7,6 +7,7 @@ import { Event } from '@/lib/types'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 import { canBuyTickets } from '@/lib/tickets'
 import { shareUrlFor, externalUrlFor, searchUrlFor } from '@/lib/event-links'
+import { classifyEventCategory } from '@/lib/event-category'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VENUE_PAGES } from '@/lib/venue-pages'
@@ -40,7 +41,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   const fav = event ? isFavorite(event.id) : false
 
   function buildShareText(event: Event): string {
-    const date = `${formatDate(event.startTime)} ${t('share.at_time')} ${formatTime(event.startTime)}`
+    const date = `${formatDate(event.startTime, lang)} ${t('share.at_time')} ${formatTime(event.startTime, lang)}`
     const loc = event.location?.name ? ` @ ${event.location.name}` : ''
     const free = event.isFree ? ` 🎁 ${t('common.free_ticket')}` : ''
     return `${event.title}\n${date}${loc}${free}\n\n${t('share.found_in')}`
@@ -320,7 +321,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
           <div className="space-y-3 bg-white/4 rounded-xl p-4 border border-white/6">
             <div className="flex items-start gap-3 text-sm">
               <Clock size={15} className="text-[#0072C6] mt-0.5 shrink-0" />
-              <span className="text-white/80">{formatDateRange(event.startTime, event.endTime)}</span>
+              <span className="text-white/80">{formatDateRange(event.startTime, event.endTime, lang)}</span>
             </div>
             {event.location && (
               <div className="flex items-start gap-3 text-sm">
@@ -383,10 +384,12 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
             </p>
           )}
 
-          {/* Tags */}
+          {/* Tags. Englanniksi lähteen suomenkielisiä tageja ei näytetä raakana
+              ('osallistuminen', 'Kivenlahti') vaan yksi johdettu kategoria — sama
+              luokittelu kuin julistekortin ylätekstissä. */}
           {event.categories.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {event.categories.map((cat) => (
+              {(lang === 'en' ? [t(classifyEventCategory(event.categories).tKey)] : event.categories).map((cat) => (
                 <span key={cat} className="bg-white/5 text-white/40 text-xs px-2.5 py-1 rounded-full border border-white/8">
                   {cat}
                 </span>

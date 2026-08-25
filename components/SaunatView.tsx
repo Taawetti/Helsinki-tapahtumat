@@ -6,6 +6,7 @@
 
 import { useMemo, useState } from 'react'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export interface SaunaRow {
   id: string
@@ -31,6 +32,7 @@ function fmtReviews(n: number): string {
 }
 
 function SaunaCard({ s }: { s: SaunaRow }) {
+  const { t } = useLanguage()
   const [imgOk, setImgOk] = useState(true)
   const open = s.openingHours ? isOpenNow(s.openingHours) : undefined
   const today = s.openingHours ? getTodayHours(s.openingHours) : null
@@ -64,7 +66,7 @@ function SaunaCard({ s }: { s: SaunaRow }) {
             )}
             {open !== undefined && (
               <span className={`text-[11px] font-black ${open ? 'text-emerald-400' : 'text-red-400/60'}`}>
-                {open ? '● Avoinna' : '○ Suljettu'}
+                {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
               </span>
             )}
           </span>
@@ -77,7 +79,7 @@ function SaunaCard({ s }: { s: SaunaRow }) {
           {s.address ?? ''}
         </p>
         {today && (
-          <p className={`text-[12px] ${open ? 'text-emerald-400/80' : 'text-white/40'}`}>Tänään {today}</p>
+          <p className={`text-[12px] ${open ? 'text-emerald-400/80' : 'text-white/40'}`}>{t('date.today')} {today}</p>
         )}
         {price && <p className="text-[12px] text-amber-300/70">🎟 {price}</p>}
         {s.news && (
@@ -90,10 +92,10 @@ function SaunaCard({ s }: { s: SaunaRow }) {
           {s.lat && s.lon && (
             <>
               <a href={`https://maps.google.com/maps?q=${s.lat},${s.lon}`} target="_blank" rel="noopener"
-                className="hover:text-white/60 transition-colors">kartalla ↗</a>
+                className="hover:text-white/60 transition-colors">{t('guides.on_map')}</a>
               {' · '}
               <a href={`https://maps.google.com/maps?daddr=${s.lat},${s.lon}&travelmode=transit`} target="_blank" rel="noopener"
-                className="hover:text-white/60 transition-colors">reittiohjeet ↗</a>
+                className="hover:text-white/60 transition-colors">{t('guides.directions')}</a>
             </>
           )}
           {s.phone && <>{s.lat ? ' · ' : ''}<a href={`tel:${s.phone}`} className="hover:text-white/60 transition-colors">{s.phone}</a></>}
@@ -104,6 +106,7 @@ function SaunaCard({ s }: { s: SaunaRow }) {
 }
 
 export default function SaunatView({ saunas }: { saunas: SaunaRow[] }) {
+  const { t } = useLanguage()
   const [openOnly, setOpenOnly] = useState(false)
 
   const newSaunas = useMemo(() => saunas.filter((s) => s.newLabel), [saunas])
@@ -120,14 +123,14 @@ export default function SaunatView({ saunas }: { saunas: SaunaRow[] }) {
         style={openOnly
           ? { background: 'rgba(16,185,129,.2)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,.4)' }
           : { background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.08)' }}>
-        ● Avoinna nyt
+        {'● '}{t('idea.open_now')}
       </button>
 
       {/* Uudet saunat ensin — koko sivun paras sisältö paikalliselle */}
       {!openOnly && newSaunas.length > 0 && (
         <section>
           <h2 className="text-[15px] font-black tracking-[.08em] uppercase mb-3" style={{ color: '#6ee7b7' }}>
-            🆕 Uudet saunat <span className="text-white/30 font-bold">· {newSaunas.length}</span>
+            {t('guides.saunas_new')} <span className="text-white/30 font-bold">· {newSaunas.length}</span>
           </h2>
           <ul className="space-y-2">
             {newSaunas.map((s) => <SaunaCard key={s.id} s={s} />)}
@@ -137,7 +140,7 @@ export default function SaunatView({ saunas }: { saunas: SaunaRow[] }) {
 
       <section>
         <h2 className="text-[15px] font-black tracking-[.08em] uppercase text-white/70 mb-3">
-          Kaikki saunat <span className="text-white/30 font-bold">· {rest.length}</span>
+          {t('guides.saunas_all')} <span className="text-white/30 font-bold">· {rest.length}</span>
         </h2>
         {rest.length > 0 ? (
           <ul className="space-y-2">
@@ -145,7 +148,7 @@ export default function SaunatView({ saunas }: { saunas: SaunaRow[] }) {
           </ul>
         ) : (
           <p className="text-white/40 text-sm py-8 text-center">
-            Yksikään sauna ei ole juuri nyt auki — kokeile ilman suodatinta.
+            {t('guides.saunas_none_open')}
           </p>
         )}
       </section>

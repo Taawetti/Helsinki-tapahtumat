@@ -74,29 +74,40 @@ export function getDateRange(filter: DateFilter, customDate?: string, customDate
   }
 }
 
-export function formatDate(isoString: string): string {
+// Päivämäärät ja kellonajat kielen mukaan. Englannille 'en-GB' eikä 'en-US':
+// se säilyttää 24 tunnin kellon ja päivä-ensin-järjestyksen, jotka ovat
+// Helsingissä oikein — "3:30 PM" ja "8/26" olisivat väärää paikallisuutta.
+// lang on valinnainen, jotta palvelinpuoli ja vanhat kutsut toimivat
+// ennallaan suomeksi.
+type DateLang = 'fi' | 'en'
+const locale = (lang: DateLang = 'fi') => (lang === 'en' ? 'en-GB' : 'fi-FI')
+/** 'klo' vs 'at' — kellonajan edessä oleva sana. */
+export const atWord = (lang: DateLang = 'fi') => (lang === 'en' ? 'at' : 'klo')
+
+export function formatDate(isoString: string, lang: DateLang = 'fi'): string {
   const date = new Date(isoString)
-  return date.toLocaleDateString('fi-FI', {
+  return date.toLocaleDateString(locale(lang), {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
   })
 }
 
-export function formatTime(isoString: string): string {
+export function formatTime(isoString: string, lang: DateLang = 'fi'): string {
   const date = new Date(isoString)
-  return date.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit' })
 }
 
-export function formatDateRange(start: string, end: string | null): string {
-  if (!end) return `${formatDate(start)} klo ${formatTime(start)}`
+export function formatDateRange(start: string, end: string | null, lang: DateLang = 'fi'): string {
+  const at = atWord(lang)
+  if (!end) return `${formatDate(start, lang)} ${at} ${formatTime(start, lang)}`
   const startDate = new Date(start)
   const endDate = new Date(end)
   const sameDay = startDate.toDateString() === endDate.toDateString()
   if (sameDay) {
-    return `${formatDate(start)} klo ${formatTime(start)}–${formatTime(end)}`
+    return `${formatDate(start, lang)} ${at} ${formatTime(start, lang)}–${formatTime(end, lang)}`
   }
-  return `${formatDate(start)} – ${formatDate(end)}`
+  return `${formatDate(start, lang)} – ${formatDate(end, lang)}`
 }
 
 export function truncate(text: string, max: number): string {

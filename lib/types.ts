@@ -1,3 +1,5 @@
+import type { TranslationKey } from './i18n'
+
 export interface EventLocation {
   name: string
   streetAddress: string
@@ -71,7 +73,8 @@ export const NEIGHBORHOOD_INESSIVE: Record<string, string> = {
 export interface Neighborhood {
   id: string
   name: string
-  vibe: string          // short descriptor
+  vibe: string          // short descriptor (fi) — käytössä SSR-sivuilla ja metatiedoissa
+  vibeKey: TranslationKey // sama teksti käännettävänä avaimena (klienttinäkymät)
   emoji: string
   color: string         // tailwind gradient classes
   bbox: string          // "min_lon,min_lat,max_lon,max_lat" for Linked Events API
@@ -80,21 +83,22 @@ export interface Neighborhood {
 
 export const NEIGHBORHOODS: Neighborhood[] = [
   // Helsinki
-  { id: 'kallio',      name: 'Kallio',       vibe: 'baarit · keikat · indie',       emoji: '🍺', color: 'from-green-900/80 to-emerald-800/60',    bbox: '24.935,60.175,24.968,60.198', municipality: 'helsinki' },
-  { id: 'punavuori',   name: 'Punavuori',    vibe: 'cocktailit · design · yöelämä',  emoji: '🍸', color: 'from-fuchsia-900/80 to-pink-800/60',      bbox: '24.930,60.153,24.962,60.172', municipality: 'helsinki' },
-  { id: 'keskusta',    name: 'Keskusta',     vibe: 'kaikki · bileet · ravintolat',   emoji: '🌃', color: 'from-blue-900/80 to-indigo-800/60',       bbox: '24.925,60.160,24.960,60.180', municipality: 'helsinki' },
-  { id: 'kamppi',      name: 'Kamppi',       vibe: 'yökerhot · mainstage',           emoji: '🎉', color: 'from-violet-900/80 to-purple-800/60',     bbox: '24.920,60.163,24.944,60.178', municipality: 'helsinki' },
-  { id: 'sornäinen',   name: 'Sörnäinen',    vibe: 'underground · pop-up · teollisuus', emoji: '⚡', color: 'from-orange-900/80 to-amber-800/60',  bbox: '24.955,60.180,24.984,60.198', municipality: 'helsinki' },
-  { id: 'hakaniemi',   name: 'Hakaniemi',    vibe: 'perinteiset baarit · tori',      emoji: '🏪', color: 'from-amber-900/80 to-yellow-800/60',     bbox: '24.944,60.174,24.972,60.190', municipality: 'helsinki' },
-  { id: 'toolo',       name: 'Töölö',        vibe: 'kulttuuri · ravintolat · puisto', emoji: '🌿', color: 'from-teal-900/80 to-cyan-800/60',       bbox: '24.905,60.168,24.940,60.192', municipality: 'helsinki' },
-  { id: 'vallila',     name: 'Vallila',      vibe: 'foodie · craft beer · uusi',     emoji: '🍔', color: 'from-lime-900/80 to-green-800/60',       bbox: '24.950,60.192,24.986,60.212', municipality: 'helsinki' },
-  { id: 'kruununhaka', name: 'Kruununhaka',  vibe: 'cozy · viinikellari · historia', emoji: '🏛', color: 'from-rose-900/80 to-red-800/60',         bbox: '24.944,60.168,24.974,60.182', municipality: 'helsinki' },
-  { id: 'hermanni',    name: 'Hermanni',     vibe: 'nouseva · brewpub · loft',       emoji: '🔥', color: 'from-red-900/80 to-orange-800/60',       bbox: '24.958,60.193,24.992,60.214', municipality: 'helsinki' },
+  { id: 'kallio',      name: 'Kallio',       vibe: 'baarit · keikat · indie',       vibeKey: 'hood.kallio.vibe',      emoji: '🍺', color: 'from-green-900/80 to-emerald-800/60',    bbox: '24.935,60.175,24.968,60.198', municipality: 'helsinki' },
+  { id: 'punavuori',   name: 'Punavuori',    vibe: 'cocktailit · design · yöelämä',  vibeKey: 'hood.punavuori.vibe',   emoji: '🍸', color: 'from-fuchsia-900/80 to-pink-800/60',      bbox: '24.930,60.153,24.962,60.172', municipality: 'helsinki' },
+  { id: 'keskusta',    name: 'Keskusta',     vibe: 'kaikki · bileet · ravintolat',   vibeKey: 'hood.keskusta.vibe',    emoji: '🌃', color: 'from-blue-900/80 to-indigo-800/60',       bbox: '24.925,60.160,24.960,60.180', municipality: 'helsinki' },
+  { id: 'kamppi',      name: 'Kamppi',       vibe: 'yökerhot · mainstage',           vibeKey: 'hood.kamppi.vibe',      emoji: '🎉', color: 'from-violet-900/80 to-purple-800/60',     bbox: '24.920,60.163,24.944,60.178', municipality: 'helsinki' },
+  // id säilyy ääkkösellä (URL-slugit ja tallennetut suodattimet); käännösavain ilman.
+  { id: 'sornäinen',   name: 'Sörnäinen',    vibe: 'underground · pop-up · teollisuus', vibeKey: 'hood.sornainen.vibe', emoji: '⚡', color: 'from-orange-900/80 to-amber-800/60',  bbox: '24.955,60.180,24.984,60.198', municipality: 'helsinki' },
+  { id: 'hakaniemi',   name: 'Hakaniemi',    vibe: 'perinteiset baarit · tori',      vibeKey: 'hood.hakaniemi.vibe',   emoji: '🏪', color: 'from-amber-900/80 to-yellow-800/60',     bbox: '24.944,60.174,24.972,60.190', municipality: 'helsinki' },
+  { id: 'toolo',       name: 'Töölö',        vibe: 'kulttuuri · ravintolat · puisto', vibeKey: 'hood.toolo.vibe',      emoji: '🌿', color: 'from-teal-900/80 to-cyan-800/60',       bbox: '24.905,60.168,24.940,60.192', municipality: 'helsinki' },
+  { id: 'vallila',     name: 'Vallila',      vibe: 'foodie · craft beer · uusi',     vibeKey: 'hood.vallila.vibe',     emoji: '🍔', color: 'from-lime-900/80 to-green-800/60',       bbox: '24.950,60.192,24.986,60.212', municipality: 'helsinki' },
+  { id: 'kruununhaka', name: 'Kruununhaka',  vibe: 'cozy · viinikellari · historia', vibeKey: 'hood.kruununhaka.vibe', emoji: '🏛', color: 'from-rose-900/80 to-red-800/60',         bbox: '24.944,60.168,24.974,60.182', municipality: 'helsinki' },
+  { id: 'hermanni',    name: 'Hermanni',     vibe: 'nouseva · brewpub · loft',       vibeKey: 'hood.hermanni.vibe',    emoji: '🔥', color: 'from-red-900/80 to-orange-800/60',       bbox: '24.958,60.193,24.992,60.214', municipality: 'helsinki' },
   // Espoo
-  { id: 'tapiola',     name: 'Tapiola',      vibe: 'kulttuuri · Espoo-keskus',       emoji: '🎭', color: 'from-cyan-900/80 to-sky-800/60',         bbox: '24.790,60.168,24.828,60.192', municipality: 'espoo' },
-  { id: 'leppavaara',  name: 'Leppävaara',   vibe: 'ravintolat · shoppailu',         emoji: '🛍', color: 'from-slate-800/80 to-zinc-700/60',       bbox: '24.795,60.215,24.840,60.240', municipality: 'espoo' },
+  { id: 'tapiola',     name: 'Tapiola',      vibe: 'kulttuuri · Espoo-keskus',       vibeKey: 'hood.tapiola.vibe',     emoji: '🎭', color: 'from-cyan-900/80 to-sky-800/60',         bbox: '24.790,60.168,24.828,60.192', municipality: 'espoo' },
+  { id: 'leppavaara',  name: 'Leppävaara',   vibe: 'ravintolat · shoppailu',         vibeKey: 'hood.leppavaara.vibe',  emoji: '🛍', color: 'from-slate-800/80 to-zinc-700/60',       bbox: '24.795,60.215,24.840,60.240', municipality: 'espoo' },
   // Vantaa
-  { id: 'tikkurila',   name: 'Tikkurila',    vibe: 'Vantaa-keskus · tapahtumat',     emoji: '🎪', color: 'from-indigo-900/80 to-blue-800/60',      bbox: '25.028,60.283,25.072,60.312', municipality: 'vantaa' },
+  { id: 'tikkurila',   name: 'Tikkurila',    vibe: 'Vantaa-keskus · tapahtumat',     vibeKey: 'hood.tikkurila.vibe',   emoji: '🎪', color: 'from-indigo-900/80 to-blue-800/60',      bbox: '25.028,60.283,25.072,60.312', municipality: 'vantaa' },
 ]
 
 // ── NIGHTLIFE VIBES ────────────────────────────────────
@@ -309,17 +313,20 @@ export interface Activity {
   reasons?: import('./restaurant-reasons').RestaurantReason[]
 }
 
-export const SEARCH_SUGGESTIONS = [
-  'jazz',
-  'stand up',
-  'rock',
-  'tango',
-  'ooppera',
-  'baletti',
-  'elektroninen',
-  'folk',
-  'gospel',
-  'sushi',
-  'sauna',
-  'Kallio',
+// q = HAKUSANA joka kirjoitetaan hakukenttään. Se osuu SUOMENKIELISEEN
+// tapahtumadataan, joten sitä EI koskaan käännetä ('ooppera' → 'opera' ei
+// löytäisi mitään). tKey on vain näytettävä teksti.
+export const SEARCH_SUGGESTIONS: { q: string; tKey: TranslationKey }[] = [
+  { q: 'jazz',         tKey: 'search.sugg_jazz' },
+  { q: 'stand up',     tKey: 'search.sugg_standup' },
+  { q: 'rock',         tKey: 'search.sugg_rock' },
+  { q: 'tango',        tKey: 'search.sugg_tango' },
+  { q: 'ooppera',      tKey: 'search.sugg_opera' },
+  { q: 'baletti',      tKey: 'search.sugg_ballet' },
+  { q: 'elektroninen', tKey: 'search.sugg_electronic' },
+  { q: 'folk',         tKey: 'search.sugg_folk' },
+  { q: 'gospel',       tKey: 'search.sugg_gospel' },
+  { q: 'sushi',        tKey: 'search.sugg_sushi' },
+  { q: 'sauna',        tKey: 'search.sugg_sauna' },
+  { q: 'Kallio',       tKey: 'search.sugg_kallio' },
 ]

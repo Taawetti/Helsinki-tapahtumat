@@ -9,6 +9,9 @@
 // muutu liikennevaloksi.
 
 import type { ReasonKind, RestaurantReason } from '@/lib/restaurant-reasons'
+import type { TranslationKey } from '@/lib/i18n'
+
+type Translate = (key: TranslationKey) => string
 
 export const REASON_STYLE: Record<ReasonKind, { bg: string; fg: string; bd: string }> = {
   michelin:            { bg: 'rgba(239,68,68,.14)',  fg: '#fca5a5', bd: 'rgba(239,68,68,.18)' },
@@ -27,16 +30,19 @@ export const REASON_STYLE: Record<ReasonKind, { bg: string; fg: string; bd: stri
 }
 
 /** "2 t sitten" / "eilen" / "3 pv sitten" — uutisrivin aikaleima. Jaettu
- *  ravintola- ja tekemistä-korttien kesken. */
-export function relativeDate(pubDate: string): string {
+ *  ravintola- ja tekemistä-korttien kesken. Moduulitason funktio ei voi kutsua
+ *  hookia, joten t tulee parametrina (sama kuvio kuin NewInHelsinkiView'n
+ *  relativeNews). Luku yhdistetään avaimen loppuosaan täällä, koska avaimet
+ *  sisältävät vain yksikön ("pv sitten" / "days ago"). */
+export function relativeDate(pubDate: string, t: Translate): string {
   try {
     const diffH = Math.floor((Date.now() - new Date(pubDate).getTime()) / 3_600_000)
-    if (diffH < 1)  return 'juuri nyt'
-    if (diffH < 24) return `${diffH} t sitten`
+    if (diffH < 1)  return t('reason.rel_now')
+    if (diffH < 24) return `${diffH} ${t('reason.rel_hours')}`
     const d = Math.floor(diffH / 24)
-    if (d === 1)  return 'eilen'
-    if (d < 7)   return `${d} pv sitten`
-    return `${Math.floor(d / 7)} vk sitten`
+    if (d === 1)  return t('uutta.rel_yesterday')
+    if (d < 7)   return `${d} ${t('uutta.rel_days')}`
+    return `${Math.floor(d / 7)} ${t('uutta.rel_weeks')}`
   } catch { return '' }
 }
 

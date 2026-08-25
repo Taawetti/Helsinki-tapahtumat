@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
+import type { TranslationKey } from '@/lib/i18n'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { pickAttributes } from '@/lib/google-attributes'
@@ -28,49 +29,49 @@ const PRICE_LABELS = ['', '€', '€€', '€€€', '€€€€']
 
 type RestType = 'ruokapaikat' | 'kahvilat' | 'baarit' | 'yokerhot'
 
-const TYPE_TABS: { id: RestType; label: string; emoji: string; dbType: Restaurant['type'] | null }[] = [
-  { id: 'ruokapaikat', label: 'Ruokapaikat', emoji: '🍽', dbType: 'ravintola' },
-  { id: 'kahvilat',    label: 'Kahvilat',    emoji: '☕', dbType: 'kahvila'   },
-  { id: 'baarit',      label: 'Baarit',      emoji: '🍸', dbType: 'baari'     },
-  { id: 'yokerhot',    label: 'Yökerhot',    emoji: '🌃', dbType: 'yokerho'   },
+const TYPE_TABS: { id: RestType; tKey: TranslationKey; emoji: string; dbType: Restaurant['type'] | null }[] = [
+  { id: 'ruokapaikat', tKey: 'restaurants.tab_food',  emoji: '🍽', dbType: 'ravintola' },
+  { id: 'kahvilat',    tKey: 'restaurants.tab_cafes', emoji: '☕', dbType: 'kahvila'   },
+  { id: 'baarit',      tKey: 'restaurants.tab_bars',  emoji: '🍸', dbType: 'baari'     },
+  { id: 'yokerhot',    tKey: 'restaurants.tab_clubs', emoji: '🌃', dbType: 'yokerho'   },
 ]
 
-const SUB_CATS: Record<RestType, { id: string; label: string; emoji: string }[]> = {
+const SUB_CATS: Record<RestType, { id: string; tKey: TranslationKey; emoji: string }[]> = {
   ruokapaikat: [
-    { id: 'awarded',  label: 'Palkitut',      emoji: '🏆' },
-    { id: 'japanese', label: 'Japanilainen',  emoji: '🍣' },
-    { id: 'nordisk',  label: 'Pohjoismainen', emoji: '🇫🇮' },
-    { id: 'italian',  label: 'Italialainen',  emoji: '🍝' },
-    { id: 'pizza',    label: 'Pizza',         emoji: '🍕' },
-    { id: 'asian',    label: 'Aasialainen',   emoji: '🍜' },
-    { id: 'veggie',   label: 'Kasvis',        emoji: '🌱' },
-    { id: 'burger',   label: 'Hampurilaiset', emoji: '🍔' },
-    { id: 'seafood',  label: 'Kala & meri',   emoji: '🐟' },
-    { id: 'steak',    label: 'Pihvi & grilli',emoji: '🥩' },
-    { id: 'indian',         label: 'Intialainen',   emoji: '🍛' },
-    { id: 'mexican',        label: 'Meksikolainen', emoji: '🌮' },
-    { id: 'middle_eastern', label: 'Lähi-itä',      emoji: '🧆' },
-    { id: 'african',        label: 'Afrikkalainen',  emoji: '🌍' },
+    { id: 'awarded',  tKey: 'cuisine.awarded',  emoji: '🏆' },
+    { id: 'japanese', tKey: 'cuisine.japanese', emoji: '🍣' },
+    { id: 'nordisk',  tKey: 'cuisine.nordisk',  emoji: '🇫🇮' },
+    { id: 'italian',  tKey: 'cuisine.italian',  emoji: '🍝' },
+    { id: 'pizza',    tKey: 'cuisine.pizza',    emoji: '🍕' },
+    { id: 'asian',    tKey: 'cuisine.asian',    emoji: '🍜' },
+    { id: 'veggie',   tKey: 'cuisine.veggie',   emoji: '🌱' },
+    { id: 'burger',   tKey: 'cuisine.burger',   emoji: '🍔' },
+    { id: 'seafood',  tKey: 'cuisine.seafood',  emoji: '🐟' },
+    { id: 'steak',    tKey: 'cuisine.steak',    emoji: '🥩' },
+    { id: 'indian',         tKey: 'cuisine.indian',         emoji: '🍛' },
+    { id: 'mexican',        tKey: 'cuisine.mexican',        emoji: '🌮' },
+    { id: 'middle_eastern', tKey: 'cuisine.middle_eastern', emoji: '🧆' },
+    { id: 'african',        tKey: 'cuisine.african',        emoji: '🌍' },
   ],
   kahvilat: [
-    { id: 'klassikot',    label: 'Klassikot',       emoji: '🎩' },
-    { id: 'ranskalaiset', label: 'Ranskalaiset',    emoji: '🥖' },
-    { id: 'boheemit',     label: 'Boheemit',        emoji: '📖' },
-    { id: 'erikois',      label: 'Erikoiskahvilat', emoji: '☕' },
-    { id: 'paahtimo',     label: 'Paahtimot',       emoji: '🔥' },
-    { id: 'brunssi',      label: 'Brunssi',         emoji: '🥐' },
+    { id: 'klassikot',    tKey: 'restaurants.sub_klassikot',    emoji: '🎩' },
+    { id: 'ranskalaiset', tKey: 'restaurants.sub_ranskalaiset', emoji: '🥖' },
+    { id: 'boheemit',     tKey: 'restaurants.sub_boheemit',     emoji: '📖' },
+    { id: 'erikois',      tKey: 'restaurants.sub_erikois',      emoji: '☕' },
+    { id: 'paahtimo',     tKey: 'restaurants.sub_paahtimo',     emoji: '🔥' },
+    { id: 'brunssi',      tKey: 'restaurants.sub_brunssi',      emoji: '🥐' },
   ],
   baarit: [
-    { id: 'cocktail', label: 'Cocktail',      emoji: '🍸' },
-    { id: 'olut',     label: 'Olutbaarit',    emoji: '🍺' },
-    { id: 'viini',    label: 'Viinibaarit',   emoji: '🍷' },
-    { id: 'urheilu',  label: 'Sporttibaarit', emoji: '🏟' },
+    { id: 'cocktail', tKey: 'restaurants.sub_cocktail', emoji: '🍸' },
+    { id: 'olut',     tKey: 'restaurants.sub_olut',     emoji: '🍺' },
+    { id: 'viini',    tKey: 'restaurants.sub_viini',    emoji: '🍷' },
+    { id: 'urheilu',  tKey: 'restaurants.sub_urheilu',  emoji: '🏟' },
   ],
   yokerhot: [
-    { id: 'klubi',   label: 'Clubit',      emoji: '🎉' },
-    { id: 'karaoke', label: 'Karaoke',     emoji: '🎤' },
-    { id: 'tekno',   label: 'Tekno',       emoji: '🎧' },
-    { id: 'katto',   label: 'Kattoklubit', emoji: '🌃' },
+    { id: 'klubi',   tKey: 'restaurants.sub_klubi',   emoji: '🎉' },
+    { id: 'karaoke', tKey: 'restaurants.sub_karaoke', emoji: '🎤' },
+    { id: 'tekno',   tKey: 'restaurants.sub_tekno',   emoji: '🎧' },
+    { id: 'katto',   tKey: 'restaurants.sub_katto',   emoji: '🌃' },
   ],
 }
 
@@ -179,14 +180,17 @@ function twemojiUrl(cp: string): string {
   return `https://cdn.jsdelivr.net/gh/twitter/twemoji@v14.0.2/assets/svg/${cp}.svg`
 }
 
-function formatOpeningHoursHuman(raw: string): string {
+function formatOpeningHoursHuman(raw: string, t: (key: TranslationKey) => string): string {
   if (!raw) return ''
-  if (raw === '24/7') return 'Auki 24/7'
-  const FI: Record<string, string> = { Mo: 'Ma', Tu: 'Ti', We: 'Ke', Th: 'To', Fr: 'Pe', Sa: 'La', Su: 'Su' }
+  if (raw === '24/7') return t('restaurants.open_247')
+  // Viikonpäivälyhenteet samasta avaimesta kuin ruuhka-aikaotsikko
+  // (su-alkuinen järjestys) — suomeksi tulos on sama kuin ennen.
+  const SHORT = t('restaurants.weekday_short').split(', ')
+  const DAYS: Record<string, string> = { Su: SHORT[0], Mo: SHORT[1], Tu: SHORT[2], We: SHORT[3], Th: SHORT[4], Fr: SHORT[5], Sa: SHORT[6] }
   return raw
     .split(';')
     .map(p => {
-      let s = p.trim().replace(/\b(Mo|Tu|We|Th|Fr|Sa|Su)\b/g, k => FI[k] ?? k)
+      let s = p.trim().replace(/\b(Mo|Tu|We|Th|Fr|Sa|Su)\b/g, k => DAYS[k] ?? k)
       s = s.replace(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/g, '$1–$2')
       return s
     })
@@ -357,9 +361,9 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
   // muu — se on eri tieto kuin Michelin-luokka, ja lyhyt.
   const secondaryReason = useMemo(() => {
     if (!reason || reason.kind === 'top50') return null
-    const t = r.reasons?.find((x) => x.kind === 'top50' && typeof x.rank === 'number')
-    return t ? { ...t, label: `50 parasta · ${t.rank}` } : null
-  }, [r.reasons, reason])
+    const top50 = r.reasons?.find((x) => x.kind === 'top50' && typeof x.rank === 'number')
+    return top50 ? { ...top50, label: `${t('restaurants.top50')} · ${top50.rank}` } : null
+  }, [r.reasons, reason, t])
   // Tuore lehtijuttu tästä paikasta: otsikko näytetään omana rivinään, koska
   // se on juuri se tieto joka auttaa päätöstä ("isänpäivälounas", "tarjous").
   const newsReason = useMemo(
@@ -422,7 +426,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
         {r.googleRating && (
           <span className="inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>
             ⭐ {r.googleRating.toFixed(1)}
-            {r.reviewCount ? <span className="font-normal opacity-70">({r.reviewCount > 999 ? `${(r.reviewCount/1000).toFixed(1)}t` : r.reviewCount})</span> : null}
+            {r.reviewCount ? <span className="font-normal opacity-70">({r.reviewCount > 999 ? `${(r.reviewCount/1000).toFixed(1)}${t('restaurants.thousand_suffix')}` : r.reviewCount})</span> : null}
           </span>
         )}
         {/* SYY. Kun ulkoinen lähde on nostanut paikan, se sanotaan tässä ja
@@ -469,7 +473,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
             className="block text-[11.5px] leading-snug text-white/70 hover:text-white transition-colors"
           >
             📰 {newsReason.note}
-            <span className="text-white/35"> · {newsReason.date ? relativeDate(newsReason.date) : ''} ↗</span>
+            <span className="text-white/35"> · {newsReason.date ? relativeDate(newsReason.date, t) : ''} ↗</span>
           </a>
         )}
         {/* TOIMITUSLISTA — millä listalla ja monentenako. Linkki artikkeliin,
@@ -500,7 +504,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
               <span className="shrink-0 text-white/90 text-xs font-black">{r.menu.samples[0].price}</span>
             </div>
             <span className="text-white/30 text-[10.5px]">
-              {r.menu.dishCount} annosta · annokset n. {Math.round(r.menu.typicalPrice)} €
+              {r.menu.dishCount} {t('restaurants.dishes')} · {t('restaurants.dishes_approx')} {Math.round(r.menu.typicalPrice)} €
             </span>
           </div>
         ) : (
@@ -520,8 +524,8 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
               <Clock size={10} className="shrink-0" />
               <span className="truncate">
                 {today
-                  ? <><span className={open ? 'text-emerald-400/70' : ''}>Tänään {today}</span></>
-                  : formatOpeningHoursHuman(r.openingHours)}
+                  ? <><span className={open ? 'text-emerald-400/70' : ''}>{t('date.today')} {today}</span></>
+                  : formatOpeningHoursHuman(r.openingHours, t)}
               </span>
             </div>
           )
@@ -531,7 +535,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
             <a href={/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold hover:opacity-80 transition-opacity"
               style={{ color: '#a3abff' }}>
-              <Globe size={10} /> Nettisivu
+              <Globe size={10} /> {t('common.website')}
             </a>
           )}
           {r.phone && (
@@ -542,7 +546,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
           {onShowOnMap && r.lat && r.lon && (
             <button onClick={() => onShowOnMap(r.lat!, r.lon!, r.name)}
               className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-              <MapIcon size={10} /> Kartalla
+              <MapIcon size={10} /> {t('idea.on_map')}
             </button>
           )}
           {((r.lat && r.lon) || r.address) && (
@@ -551,7 +555,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
               : `https://maps.google.com/maps?daddr=${encodeURIComponent(r.address + ', Helsinki')}&travelmode=transit`}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
-              <Navigation size={10} /> Reittiohjeet
+              <Navigation size={10} /> {t('detail.directions')}
             </a>
           )}
         </div>
@@ -569,6 +573,7 @@ function ChainListCard({ chain, onClick }: {
   // Googlen kuvaosoitteet lahoavat (mitattu 24.8.2026: 32/60 otoksesta 403)
   // — rikkinäisen kuvakkeen sijaan pudotaan emoji-laattaan.
   const [imgOk, setImgOk] = useState(true)
+  const { t } = useLanguage()
   const r = chain.representative
   const cuisineStyle = getCuisineStyle(r)
   return (
@@ -598,7 +603,7 @@ function ChainListCard({ chain, onClick }: {
       </div>
       <div className="p-4">
         <h3 className="font-black text-white text-sm leading-tight">{r.name}</h3>
-        <p className="text-[11px] font-bold mt-0.5" style={{ color: '#a3abff' }}>{chain.locations.length} sijaintia · näytä kaikki</p>
+        <p className="text-[11px] font-bold mt-0.5" style={{ color: '#a3abff' }}>{chain.locations.length} {t('restaurants.locations')} · {t('common.show_all')}</p>
       </div>
     </button>
   )
@@ -625,7 +630,7 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
           style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
           <div>
             <h2 className="font-black text-white text-xl leading-tight">{chain.displayName}</h2>
-            <p className="text-[13px] mt-1 font-bold" style={{ color: '#a3abff' }}>📍 {chain.locations.length} sijaintia Helsingissä</p>
+            <p className="text-[13px] mt-1 font-bold" style={{ color: '#a3abff' }}>📍 {chain.locations.length} {t('restaurants.locations_in_helsinki')}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-full text-white/40 hover:text-white shrink-0 ml-2"
             style={{ background: 'rgba(255,255,255,.08)' }}>
@@ -664,14 +669,14 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
                 {todayH && (
                   <div className="flex items-center gap-1.5 text-xs" style={{ color: open ? '#6ee7b7' : 'rgba(255,255,255,.25)' }}>
                     <Clock size={10} className="shrink-0" />
-                    <span>Tänään {todayH}</span>
+                    <span>{t('date.today')} {todayH}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-3 pt-0.5 flex-wrap">
                   {onShowOnMap && r.lat && r.lon && (
                     <button onClick={() => { onShowOnMap(r.lat!, r.lon!, r.name); onClose() }}
                       className="flex items-center gap-1 text-[10px] font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
-                      <MapIcon size={10} /> Kartalla
+                      <MapIcon size={10} /> {t('idea.on_map')}
                     </button>
                   )}
                   {((r.lat && r.lon) || r.address) && (
@@ -680,7 +685,7 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
                       : `https://maps.google.com/maps?daddr=${encodeURIComponent(r.address + ', Helsinki')}&travelmode=transit`}
                       target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1 text-[10px] font-bold text-blue-400/70 hover:text-blue-300 transition-colors">
-                      <Navigation size={10} /> Reittiohjeet
+                      <Navigation size={10} /> {t('detail.directions')}
                     </a>
                   )}
                   {r.googleRating && (
@@ -692,7 +697,7 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
                     <a href={/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1 text-[10px] font-bold hover:opacity-80 transition-opacity"
                       style={{ color: '#a3abff' }}>
-                      <Globe size={10} /> Nettisivu
+                      <Globe size={10} /> {t('common.website')}
                     </a>
                   )}
                 </div>
@@ -723,10 +728,11 @@ function SubCatGrid({ restType, onSelect }: {
   restType: RestType
   onSelect: (id: string) => void
 }) {
+  const { t } = useLanguage()
   return (
     <section>
       <h2 className="font-black text-white text-[18px] mb-3" style={{ letterSpacing: '-0.02em' }}>
-        Selaa kategorioittain
+        {t('discover.grid_sub')}
       </h2>
       <div className="grid grid-cols-3 gap-2">
         {/* "Kaikki" — avaa selausnäkymän suodattimineen (koko lista, ei vain suosituimmat) */}
@@ -738,7 +744,7 @@ function SubCatGrid({ restType, onSelect }: {
           }}>
           <span className="text-[24px] leading-none">🍽</span>
           <span className="font-black text-[12.5px] leading-tight text-white/90" style={{ letterSpacing: '-0.01em' }}>
-            Kaikki
+            {t('common.all')}
           </span>
         </button>
         {SUB_CATS[restType].map(cat => (
@@ -750,7 +756,7 @@ function SubCatGrid({ restType, onSelect }: {
             }}>
             <span className="text-[24px] leading-none">{cat.emoji}</span>
             <span className="font-black text-[12.5px] leading-tight text-white/90" style={{ letterSpacing: '-0.01em' }}>
-              {cat.label}
+              {t(cat.tKey)}
             </span>
           </button>
         ))}
@@ -762,6 +768,7 @@ function SubCatGrid({ restType, onSelect }: {
 // ── Tyyppisegmentit — pillerit (design 3-ravintolat.png) ──────────────────
 
 function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestType) => void }) {
+  const { t } = useLanguage()
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
       {TYPE_TABS.map(tab => {
@@ -775,7 +782,7 @@ function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestT
             }>
             <span className="text-[16px] leading-none">{tab.emoji}</span>
             <span className="font-black text-[13.5px]" style={{ letterSpacing: '-0.01em', color: isActive ? '#fff' : 'rgba(255,255,255,.55)' }}>
-              {tab.label}
+              {t(tab.tKey)}
             </span>
           </button>
         )
@@ -791,7 +798,12 @@ function RestSubTabs({ restType, active, onSelect }: {
   active: string
   onSelect: (id: string) => void
 }) {
-  const items = [{ id: 'all', emoji: '⭐', label: 'Suosituimmat' }, { id: 'kaikki', emoji: '', label: 'Kaikki' }, ...SUB_CATS[restType]]
+  const { t } = useLanguage()
+  const items: { id: string; emoji: string; tKey: TranslationKey }[] = [
+    { id: 'all', emoji: '⭐', tKey: 'restaurants.most_popular' },
+    { id: 'kaikki', emoji: '', tKey: 'common.all' },
+    ...SUB_CATS[restType],
+  ]
   return (
     <div className="flex gap-5 overflow-x-auto scrollbar-none -mx-4 px-4 border-b border-white/6">
       {items.map(cat => {
@@ -804,7 +816,7 @@ function RestSubTabs({ restType, active, onSelect }: {
               borderBottom: isActive ? '2px solid #6b76ff' : '2px solid transparent',
               letterSpacing: '-0.01em',
             }}>
-            {cat.emoji ? `${cat.emoji} ` : ''}{cat.label}
+            {cat.emoji ? `${cat.emoji} ` : ''}{t(cat.tKey)}
           </button>
         )
       })}
@@ -939,7 +951,7 @@ function SortFilterRow({ open, nearby, byReviews, minRating, count, onOpen, onNe
           max={5}
           step={0.1}
           value={minRating ?? 3.5}
-          aria-label="Tähtien alaraja"
+          aria-label={t('restaurants.min_rating_aria')}
           onChange={(e) => {
             const v = Number(e.target.value)
             onMinRating(v <= 3.5 ? null : Math.round(v * 10) / 10)
@@ -1205,7 +1217,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       <div>
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
         <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
-          Ravintolat
+          {t('restaurants.heading')}
         </h1>
       </div>
 
@@ -1223,7 +1235,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
             <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>Haetaan ravintoloita</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>{t('map.loading_rests')}</span>
           </div>
         </div>
       )}
@@ -1236,7 +1248,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
           <button onClick={() => window.location.reload()}
             className="rounded-xl px-5 py-3 font-black text-white"
             style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-            Yritä uudelleen
+            {t('common.retry')}
           </button>
         </div>
       )}
@@ -1265,7 +1277,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {/* Kärkipoiminnat: ~60 parasta. Syylliset ensin, ks. lib/restaurant-reasons.ts. */}
               <section className="space-y-3">
                   <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
-                    ⭐ Suosituimmat {TYPE_TABS.find(tt => tt.id === restType)?.label.toLowerCase()}
+                    {'⭐ '}{t('restaurants.most_popular')} {(() => {
+                      const tab = TYPE_TABS.find(tt => tt.id === restType)
+                      return tab ? t(tab.tKey).toLowerCase() : ''
+                    })()}
                   </h2>
 
                   {/* Suosituimmat-listan suodattimet — sama rivi kuin
@@ -1291,7 +1306,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   </div>
                   {groupedSortedPool.length > TOP_PICKS && (
                     <p className="text-center text-[13px] font-bold text-white/35 pt-1">
-                      Löydä lisää selaamalla kategorioita ↓
+                      {t('restaurants.find_more_categories')}
                     </p>
                   )}
                 </>
@@ -1322,9 +1337,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
 
               <div className="flex items-center justify-between">
                 <h2 className="font-black text-white text-[19px]" style={{ letterSpacing: '-0.02em' }}>
-                  {subCat === 'kaikki'
-                    ? `Kaikki ${TYPE_TABS.find(tt => tt.id === restType)?.label.toLowerCase()}`
-                    : `${SUB_CATS[restType].find(c => c.id === subCat)?.emoji ?? ''} ${SUB_CATS[restType].find(c => c.id === subCat)?.label ?? ''}`}
+                  {(() => {
+                    if (subCat === 'kaikki') {
+                      const tab = TYPE_TABS.find(tt => tt.id === restType)
+                      return `${t('common.all')} ${tab ? t(tab.tKey).toLowerCase() : ''}`
+                    }
+                    const cat = SUB_CATS[restType].find(c => c.id === subCat)
+                    return `${cat?.emoji ?? ''} ${cat ? t(cat.tKey) : ''}`
+                  })()}
                   <span className="text-white/30 text-[14px] font-bold"> · {groupedSortedPool.length} {t('restaurants.places')}</span>
                 </h2>
               </div>
@@ -1415,7 +1435,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                     {selectedRest.googleRating && (
                       <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>
                         ⭐ {selectedRest.googleRating.toFixed(1)}
-                        {selectedRest.reviewCount ? ` (${selectedRest.reviewCount > 999 ? `${(selectedRest.reviewCount/1000).toFixed(1)}t` : selectedRest.reviewCount})` : ''}
+                        {selectedRest.reviewCount ? ` (${selectedRest.reviewCount > 999 ? `${(selectedRest.reviewCount/1000).toFixed(1)}${t('restaurants.thousand_suffix')}` : selectedRest.reviewCount})` : ''}
                       </span>
                     )}
                     {selectedRest.michelinStars && (
@@ -1430,7 +1450,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                     )}
                     {restGoogle?.isClaimed && (
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-500/12 text-sky-300/90">
-                        ✓ Vahvistettu
+                        {t('restaurants.verified')}
                       </span>
                     )}
                   </div>
@@ -1462,13 +1482,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                       <div className="flex items-center gap-2 text-sm font-semibold">
                         <Clock size={13} className="shrink-0 text-white/30" />
                         <span className={open ? 'text-emerald-400' : 'text-white/50'}>
-                          Tänään {todayH}
+                          {t('date.today')} {todayH}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-white/25 text-xs">
                       <Clock size={11} className="shrink-0 opacity-0" />
-                      <span>{formatOpeningHoursHuman(selectedRest.openingHours)}</span>
+                      <span>{formatOpeningHoursHuman(selectedRest.openingHours, t)}</span>
                     </div>
                   </div>
                 )
@@ -1508,7 +1528,11 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {(() => {
                 const pt = restGoogle?.popularTimes
                 if (!pt) return null
-                const DAY_FI: Record<string, string> = { sunday: 'Su', monday: 'Ma', tuesday: 'Ti', wednesday: 'Ke', thursday: 'To', friday: 'Pe', saturday: 'La' }
+                const DAY_SHORT = t('restaurants.weekday_short').split(', ')
+                const DAY_LABEL: Record<string, string> = {
+                  sunday: DAY_SHORT[0], monday: DAY_SHORT[1], tuesday: DAY_SHORT[2], wednesday: DAY_SHORT[3],
+                  thursday: DAY_SHORT[4], friday: DAY_SHORT[5], saturday: DAY_SHORT[6],
+                }
                 const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Helsinki', weekday: 'long', hour: 'numeric', hour12: false }).formatToParts(new Date())
                 const wd = (parts.find(p => p.type === 'weekday')?.value ?? '').toLowerCase()
                 let curHour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '-1', 10)
@@ -1519,13 +1543,13 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 if (maxIdx <= 0) return null       // kiinni / kaikki nollia → piilota (ei litteää tyhjää kaaviota)
                 const cur = today.find(h => h.hour === curHour)
                 const level = cur && cur.index > 0
-                  ? (cur.index >= 67 ? { t: 'Vilkasta', c: '#f0776a' } : cur.index >= 34 ? { t: 'Kohtalaista', c: '#e8c06a' } : { t: 'Rauhallista', c: '#8ee6a0' })
+                  ? (cur.index >= 67 ? { t: t('restaurants.busy_high'), c: '#f0776a' } : cur.index >= 34 ? { t: t('restaurants.busy_medium'), c: '#e8c06a' } : { t: t('restaurants.busy_low'), c: '#8ee6a0' })
                   : null
                 return (
                   <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,.04)' }}>
                     <div className="flex items-center justify-between">
-                      <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">Ruuhka-ajat · {DAY_FI[wd] ?? ''}</span>
-                      {level && <span className="text-[11px] font-black" style={{ color: level.c }}>Nyt: {level.t}</span>}
+                      <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">{t('restaurants.popular_times')} · {DAY_LABEL[wd] ?? ''}</span>
+                      {level && <span className="text-[11px] font-black" style={{ color: level.c }}>{t('restaurants.now_label')} {level.t}</span>}
                     </div>
                     <div className="flex items-end gap-[3px]" style={{ height: 34 }}>
                       {today.map((h, i) => {
@@ -1550,7 +1574,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {tags.map((tg, i) => (
                       <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/60" style={{ background: 'rgba(255,255,255,.06)' }}>
-                        {tg.emoji} {tg.label}
+                        {tg.emoji} {t(tg.labelKey)}
                       </span>
                     ))}
                   </div>
@@ -1562,7 +1586,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {restGoogle?.menu && restGoogle.menu.length > 0 && (
                 <div className="space-y-1.5">
                   <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">
-                    Ruokalista{restGoogle.menuTotal > restGoogle.menu.length ? ` · ${restGoogle.menu.length}/${restGoogle.menuTotal}` : ''}
+                    {t('restaurants.menu')}{restGoogle.menuTotal > restGoogle.menu.length ? ` · ${restGoogle.menu.length}/${restGoogle.menuTotal}` : ''}
                   </span>
                   <div className="space-y-1.5">
                     {restGoogle.menu.map((m, i) => (
@@ -1582,7 +1606,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                   {restGoogle.menuUrl && (
                     <a href={restGoogle.menuUrl} target="_blank" rel="noopener noreferrer"
                        className="inline-block text-[11px] font-bold text-[#6b76ff]">
-                      Koko ruokalista →
+                      {t('restaurants.full_menu')}
                     </a>
                   )}
                 </div>
@@ -1591,7 +1615,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {/* Vastaavat paikat (people_also_search) — nimi + arvosana */}
               {restGoogle?.peopleAlsoSearch && restGoogle.peopleAlsoSearch.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">Vastaavat paikat</span>
+                  <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">{t('restaurants.similar_places')}</span>
                   <div className="flex flex-wrap gap-1.5">
                     {restGoogle.peopleAlsoSearch.map((p, i) => (
                       <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/55" style={{ background: 'rgba(255,255,255,.06)' }}>
@@ -1617,7 +1641,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                     <a href={url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
                       style={{ background: 'linear-gradient(150deg,#10b981,#059669)' }}>
-                      🍽 Varaa pöytä
+                      {t('restaurants.book_table')}
                     </a>
                   ) : null
                 })()}
@@ -1655,7 +1679,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {restGoogle?.mapsUrl && (
                 <a href={restGoogle.mapsUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-white/35 text-xs font-bold pt-0.5 hover:text-white/60">
-                  {restGoogle.totalPhotos != null && restGoogle.totalPhotos > 0 ? `${restGoogle.totalPhotos} kuvaa · ` : ''}Katso Google Mapsissa →
+                  {restGoogle.totalPhotos != null && restGoogle.totalPhotos > 0 ? `${restGoogle.totalPhotos} ${t('restaurants.photos')} · ` : ''}{t('restaurants.view_on_google')}
                 </a>
               )}
             </div>

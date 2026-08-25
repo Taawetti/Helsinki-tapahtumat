@@ -164,7 +164,7 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
       {/* Hint when picking range end */}
       {rangeMode && pendingStart && (
         <div style={{ padding: '10px 16px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(107,118,255,0.8)' }}>
-          {lang === 'fi' ? 'Valitse loppupäivä' : 'Select end date'}
+          {t('date.pick_end')}
         </div>
       )}
 

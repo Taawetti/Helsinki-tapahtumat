@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Event, Restaurant, Activity } from '@/lib/types'
+import { Event, Restaurant, Activity, type ActivityCategory } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 
@@ -148,9 +148,9 @@ const EVENT_SUBS = [
 
 // Tyyppinapit vastaavat Ravintolat-välilehden tyyppejä (design 6-kartta.png)
 const REST_SUBS = [
-  { key: 'ravintola', emoji: '🍽', label: 'Ruokapaikat', color: '#5f96ff', tKey: 'legend.restaurant' as const },
-  { key: 'kahvila',   emoji: '☕', label: 'Kahvilat',    color: '#5f96ff', tKey: 'legend.cafe' as const },
-  { key: 'baari',     emoji: '🍸', label: 'Baarit',      color: '#5f96ff', tKey: 'legend.bar' as const },
+  { key: 'ravintola', emoji: '🍽', label: 'Ruokapaikat', color: '#5f96ff', tKey: 'map.rest_food' as const },
+  { key: 'kahvila',   emoji: '☕', label: 'Kahvilat',    color: '#5f96ff', tKey: 'map.rest_cafes' as const },
+  { key: 'baari',     emoji: '🍸', label: 'Baarit',      color: '#5f96ff', tKey: 'map.rest_bars' as const },
   { key: 'yokerho',   emoji: '🌃', label: 'Yökerhot',    color: '#5f96ff', tKey: 'legend.nightclub' as const },
   { key: 'pikaruoka', emoji: '🍔', label: 'Pikaruoka',   color: '#5f96ff', tKey: 'legend.fastfood' as const },
 ] as const
@@ -183,6 +183,50 @@ const ACT_SUBS = [
   { key: 'uimaranta',  emoji: '🏊', label: 'Uimaranta',     color: '#14b8a6', tKey: 'cat.uimaranta' as const },
   { key: 'nakopaikka', emoji: '🔭', label: 'Näköalapaikka', color: '#f59e0b', tKey: 'cat.nakopaikka' as const },
 ] as const
+
+// ── Popup-kuvausten käännösavaimet ────────────────────────
+// Popupit näyttävät palvelimen muotoileman kuvauksen: aktiviteeteilla se on
+// suomeksi (app/api/activities/route.ts osmDescription), ravintoloilla useimmiten
+// OSM:n raaka cuisine-tagi mutta uusilla avauksilla Googlen suomenkielinen
+// kategoria. Englanninkieliselle käyttäjälle näytetään käännetty kategoria.
+
+// Record<ActivityCategory, …> pitää tämän täydellisenä: uusi kategoria
+// lib/types.ts:ään pysäyttää käännöksen tsc:hen eikä jää suomeksi popupiin.
+const ACT_CAT_KEYS: Record<ActivityCategory, TranslationKey> = {
+  sauna:      'cat.sauna',
+  museo:      'cat.museo',
+  nahtavyys:  'cat.nahtavyys',
+  galleria:   'cat.galleria',
+  nakopaikka: 'cat.nakopaikka',
+  uimaranta:  'cat.uimaranta',
+  puisto:     'cat.puisto',
+  markkina:   'cat.markkina',
+  urheilu:    'cat.urheilu',
+  muu:        'cat.muu',
+}
+
+// Vain ne keittiökategoriat joille on käännösavain. Reitin OSM_TO_CATEGORY
+// tuottaa lisäksi 'french'-arvon, jolle avainta ei ole — se putoaa fallbackiin
+// (r.description, joka on tuolloin englantia: 'french'). 'awarded' on
+// suodatinnappi (featured), ei keittiö, joten se jätetään pois.
+const CUISINE_KEYS: Record<string, TranslationKey> = {
+  nordisk:        'cuisine.nordisk',
+  japanese:       'cuisine.japanese',
+  pizza:          'cuisine.pizza',
+  italian:        'cuisine.italian',
+  asian:          'cuisine.asian',
+  burger:         'cuisine.burger',
+  veggie:         'cuisine.veggie',
+  kebab:          'cuisine.kebab',
+  mediterranean:  'cuisine.mediterranean',
+  indian:         'cuisine.indian',
+  seafood:        'cuisine.seafood',
+  steak:          'cuisine.steak',
+  mexican:        'cuisine.mexican',
+  middle_eastern: 'cuisine.middle_eastern',
+  african:        'cuisine.african',
+  cafe:           'cuisine.cafe_dessert',
+}
 
 type DateFilterKey = 'today' | 'tomorrow' | 'week' | 'month' | 'custom'
 
@@ -457,9 +501,13 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       const { color, emoji } = restaurantColor(r.type)
       const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
       const icon = makePinIcon(color, emoji, true)
+      // Suomeksi r.description sellaisenaan; englanniksi käännetty keittiökategoria
+      // silloin kun sellainen on tiedossa (uusien avausten kuvaus on suomeksi).
+      const restCuisineKey = lang === 'en' ? CUISINE_KEYS[r.cuisineCategories?.[0] ?? ''] : undefined
+      const restDesc = restCuisineKey ? t(restCuisineKey) : r.description
       const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
         <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(r.name)}</p>
-        ${r.description ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(r.description)}</p>` : ''}
+        ${restDesc ? `<p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(restDesc)}</p>` : ''}
         ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(r.address)}${r.city && r.city !== 'Helsinki' ? `, ${esc(r.city)}` : ''}</p>` : ''}
         ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} ${t('map.dist_away')}</p>` : ''}
         ${safeUrl(r.www) ? `<a href="${safeUrl(r.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
@@ -483,11 +531,16 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       if (actCat && a.category !== actCat) return
       const { color, emoji } = activityColor(a.category)
       const icon = makePinIcon(color, emoji, true)
+      // a.description on palvelimella suomeksi muotoiltu (ja tarkempi: mm. saunan
+      // polttoaine), joten suomeksi se säilyy; englanniksi näytetään kategoria.
+      // Tuntematon kategoria putoaa turvallisesti takaisin kuvaukseen.
+      const actCatKey: TranslationKey | undefined = ACT_CAT_KEYS[a.category]
+      const actDesc = lang === 'en' && actCatKey ? t(actCatKey) : a.description
       const popup = `<div style="font-family:Inter,sans-serif;min-width:160px;max-width:210px">
         <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff">${esc(a.name)}</p>
-        <p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(a.description)}</p>
+        <p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(actDesc)}</p>
         ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(a.address)}</p>` : ''}
-        ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">🎁 ${t('map.free_act')}</p>` : ''}
+        ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">${t('map.free_act')}</p>` : ''}
         ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${a.openingHours.split(';')[0]}</p>` : ''}
         ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
       </div>`

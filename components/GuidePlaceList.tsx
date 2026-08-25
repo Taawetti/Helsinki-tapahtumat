@@ -6,6 +6,7 @@
 
 import { useMemo, useState } from 'react'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export interface GuidePlace {
   id: string
@@ -27,6 +28,7 @@ function fmtReviews(n: number): string {
 }
 
 function PlaceRow({ p, emoji }: { p: GuidePlace; emoji: string }) {
+  const { t } = useLanguage()
   const [imgOk, setImgOk] = useState(true)
   const open = p.openingHours ? isOpenNow(p.openingHours) : undefined
   const today = p.openingHours ? getTodayHours(p.openingHours) : null
@@ -53,7 +55,7 @@ function PlaceRow({ p, emoji }: { p: GuidePlace; emoji: string }) {
           </h3>
           {open !== undefined && (
             <span className={`text-[11px] font-black shrink-0 ${open ? 'text-emerald-400' : 'text-red-400/60'}`}>
-              {open ? '● Avoinna' : '○ Suljettu'}
+              {open ? '● ' : '○ '}{open ? t('common.open') : t('common.closed')}
             </span>
           )}
         </div>
@@ -65,16 +67,16 @@ function PlaceRow({ p, emoji }: { p: GuidePlace; emoji: string }) {
           {[p.address, p.sub].filter(Boolean).join(' · ')}
         </p>
         {today && (
-          <p className={`text-[12px] ${open ? 'text-emerald-400/80' : 'text-white/40'}`}>Tänään {today}</p>
+          <p className={`text-[12px] ${open ? 'text-emerald-400/80' : 'text-white/40'}`}>{t('date.today')} {today}</p>
         )}
         <p className="text-[11px] text-white/30 pt-0.5">
           {p.lat && p.lon && (
             <>
               <a href={`https://maps.google.com/maps?q=${p.lat},${p.lon}`} target="_blank" rel="noopener"
-                className="hover:text-white/60 transition-colors">kartalla ↗</a>
+                className="hover:text-white/60 transition-colors">{t('guides.on_map')}</a>
               {' · '}
               <a href={`https://maps.google.com/maps?daddr=${p.lat},${p.lon}&travelmode=transit`} target="_blank" rel="noopener"
-                className="hover:text-white/60 transition-colors">reittiohjeet ↗</a>
+                className="hover:text-white/60 transition-colors">{t('guides.directions')}</a>
             </>
           )}
         </p>
@@ -88,6 +90,7 @@ export default function GuidePlaceList({ places, emoji, showOpenFilter = true }:
   emoji: string
   showOpenFilter?: boolean
 }) {
+  const { t } = useLanguage()
   const [openOnly, setOpenOnly] = useState(false)
   const list = useMemo(
     () => (openOnly ? places.filter((p) => p.openingHours && isOpenNow(p.openingHours) === true) : places),
@@ -101,7 +104,7 @@ export default function GuidePlaceList({ places, emoji, showOpenFilter = true }:
           style={openOnly
             ? { background: 'rgba(16,185,129,.2)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,.4)' }
             : { background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.08)' }}>
-          ● Avoinna nyt
+          {'● '}{t('idea.open_now')}
         </button>
       )}
       {list.length > 0 ? (
@@ -110,7 +113,7 @@ export default function GuidePlaceList({ places, emoji, showOpenFilter = true }:
         </ul>
       ) : (
         <p className="text-white/40 text-sm py-8 text-center">
-          {openOnly ? 'Mikään ei ole juuri nyt auki — kokeile ilman suodatinta.' : 'Ei paikkoja listalla.'}
+          {openOnly ? t('guides.none_open') : t('guides.no_places')}
         </p>
       )}
     </div>

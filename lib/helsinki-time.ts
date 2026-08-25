@@ -127,9 +127,9 @@ export function normalizeHelsinkiTimestamp(iso: string | null | undefined): stri
 
 /** Event timestamp for list rows: 'ke 15. heinäk. klo 19.00' style, Helsinki time.
  *  Date-only strings (ongoing/all-day events) render without a misleading time. */
-export function formatEventDate(iso: string): string {
+export function formatEventDate(iso: string, lang: 'fi' | 'en' = 'fi'): string {
   const dateOnly = !iso.includes('T')
-  return new Date(iso).toLocaleDateString('fi-FI', {
+  return new Date(iso).toLocaleDateString(lang === 'en' ? 'en-GB' : 'fi-FI', {
     weekday: 'short', day: 'numeric', month: 'short',
     ...(dateOnly ? {} : { hour: '2-digit' as const, minute: '2-digit' as const }),
     timeZone: 'Europe/Helsinki',

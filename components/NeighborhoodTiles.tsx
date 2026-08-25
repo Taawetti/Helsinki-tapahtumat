@@ -1,6 +1,7 @@
 'use client'
 
 import { NEIGHBORHOODS, Neighborhood } from '@/lib/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
   activeMunicipality: string
@@ -15,6 +16,7 @@ const MUNICIPALITY_FILTER: Record<string, string> = {
 }
 
 export default function NeighborhoodTiles({ activeMunicipality, activeNeighborhood, onSelect }: Props) {
+  const { t } = useLanguage()
   const visible = NEIGHBORHOODS.filter((n) => n.municipality === activeMunicipality)
 
   return (
@@ -46,7 +48,7 @@ export default function NeighborhoodTiles({ activeMunicipality, activeNeighborho
           <span className="text-2xl leading-none">🌆</span>
           <div>
             <p className={`text-sm font-black leading-tight ${activeNeighborhood === null ? 'text-purple-300' : 'text-white'}`}>
-              Kaikki
+              {t('common.all')}
             </p>
             <p className="text-white/30 text-[10px] font-medium truncate">{MUNICIPALITY_FILTER[activeMunicipality]}</p>
           </div>

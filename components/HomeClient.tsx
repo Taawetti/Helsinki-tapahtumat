@@ -349,9 +349,9 @@ export default function HomeClient({
     if (!keyword || keyword.length < 2) return { venues: [], activities: [], restaurants: [] }
     const kw = keyword.toLowerCase()
     const ACT_LABEL: Record<string, string> = {
-      sauna: '🧖 Sauna', museo: '🏛 Museo', nahtavyys: '🌄 Nähtävyys',
-      galleria: '🖼 Galleria', nakopaikka: '🔭 Näköpaikka', uimaranta: '🏖 Uimaranta',
-      puisto: '🌳 Puisto', markkina: '🛍 Markkina', urheilu: '⚽ Urheilu', muu: '✨ Muut',
+      sauna: `🧖 ${t('cat.sauna')}`, museo: `🏛 ${t('cat.museo')}`, nahtavyys: `🌄 ${t('cat.nahtavyys')}`,
+      galleria: `🖼 ${t('cat.galleria')}`, nakopaikka: `🔭 ${t('cat.nakopaikka')}`, uimaranta: `🏖 ${t('cat.uimaranta')}`,
+      puisto: `🌳 ${t('cat.puisto')}`, markkina: `🛍 ${t('cat.markkina')}`, urheilu: `⚽ ${t('cat.urheilu')}`, muu: `✨ ${t('cat.muu')}`,
     }
     const REST_EMOJI: Record<string, string> = {
       ravintola: '🍽', kahvila: '☕', baari: '🍺', pikaruoka: '🍟', muu: '🍴',
@@ -376,7 +376,7 @@ export default function HomeClient({
     const venues = [...venueCounts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([name, count]) => ({ id: name, name, sub: count > 0 ? `📅 ${count} tapahtumaa` : '📅 tapahtumat' }))
+      .map(([name, count]) => ({ id: name, name, sub: count > 0 ? `📅 ${count} ${t('discover.events_count')}` : t('search.venue_events') }))
     return {
       venues,
       activities: allActivities
@@ -390,9 +390,12 @@ export default function HomeClient({
           r.cuisines?.some(c => c.toLowerCase().includes(kw))
         )
         .slice(0, 4)
-        .map(r => ({ id: r.id, name: r.name, sub: `${REST_EMOJI[r.type] ?? '🍴'} ${r.description || r.type}` })),
+        // description on Googlen/OSM:n raakateksti (usein suomeksi) — jätetään
+        // sellaisenaan; vain PUUTTUVAN tilalle tulee käännetty tyyppinimi,
+        // ei raakaa tunnistetta ('yokerho').
+        .map(r => ({ id: r.id, name: r.name, sub: `${REST_EMOJI[r.type] ?? '🍴'} ${r.description || t(`rest.type.${r.type}`)}` })),
     }
-  }, [keyword, allActivities, allRestaurants, events])
+  }, [keyword, allActivities, allRestaurants, events, t])
 
   const handleRangeChange = useCallback((start: string, end: string) => {
     setCustomDate(start)
@@ -513,14 +516,14 @@ export default function HomeClient({
       const last = Number(localStorage.getItem('hki-notif-ts') || 0)
       if (Date.now() - last < 8 * 60 * 60 * 1000) return
       localStorage.setItem('hki-notif-ts', String(Date.now()))
-      new Notification('Helsinki Tapahtumat', {
+      new Notification(t('notif.app_title'), {
         body: `${events.length} ${t('notif.events_today')}`,
         icon: '/icon-192.png',
         tag: 'hki-daily',
       })
     }
     ask()
-  }, [events.length])
+  }, [events.length, t])
 
   const handleMobileTab = useCallback((tab: typeof mobileTab) => {
     setMobileTab(tab)
@@ -766,8 +769,8 @@ export default function HomeClient({
   const activeFilterLabel = [
     ...activeVibes
       .filter((v) => v !== 'kaikki' && v !== 'ilmainen')
-      .map((v) => { const vb = VIBES.find((x) => x.id === v); return vb ? `${vb.emoji} ${vb.label}` : v }),
-    ...(priceFilter === 'free' ? [`🎁 ${t('common.free')}`] : priceFilter === 'paid' ? ['💳 Maksulliset'] : []),
+      .map((v) => { const vb = VIBES.find((x) => x.id === v); return vb ? `${vb.emoji} ${t(vb.tKey as TranslationKey)}` : v }),
+    ...(priceFilter === 'free' ? [`🎁 ${t('common.free')}`] : priceFilter === 'paid' ? [t('filter.paid_label')] : []),
   ].join(' · ') || t('common.filters')
 
   // Freshness badge counts — hoisted so the ok/fail split lives in one place
@@ -810,7 +813,7 @@ export default function HomeClient({
   const hoodMenuList = (
     <>
       {/* näkymätön tausta sulkee valikon ulkopuolelta klikattaessa */}
-      <button className="fixed inset-0 z-40 cursor-default" aria-label="Sulje"
+      <button className="fixed inset-0 z-40 cursor-default" aria-label={t('common.close')}
         onClick={() => setShowHoodMenu(false)} />
       <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-60 max-h-80 overflow-y-auto rounded-2xl p-1.5"
         style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
@@ -820,8 +823,8 @@ export default function HomeClient({
             className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors">
             <span className="text-base leading-none">{n.emoji}</span>
             <span className="min-w-0">
-              Tapahtumat {NEIGHBORHOOD_INESSIVE[n.id] ?? n.name}
-              <span className="block text-[10.5px] font-medium text-white/35 truncate">{n.vibe}</span>
+              {t('discover.events_in')} {lang === 'en' ? n.name : (NEIGHBORHOOD_INESSIVE[n.id] ?? n.name)}
+              <span className="block text-[10.5px] font-medium text-white/35 truncate">{t(n.vibeKey)}</span>
             </span>
           </button>
         ))}
@@ -964,7 +967,7 @@ export default function HomeClient({
         <main className="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-4">
           {/* Heading + ‹ back */}
           <div className="flex items-center gap-3">
-            <button onClick={goBack} aria-label="Takaisin"
+            <button onClick={goBack} aria-label={t('common.back')}
               className="shrink-0 w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
               <ChevronLeft size={18} className="text-white" />
             </button>
@@ -993,7 +996,7 @@ export default function HomeClient({
                 .map((e) => {
                   const isToday = new Date(e.startTime).toDateString() === new Date().toDateString()
                   const timeStr = new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
-                  const dateStr = isToday ? 'Tänään' : new Date(e.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+                  const dateStr = isToday ? t('date.today') : new Date(e.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
                   return (
                     <button key={e.id} onClick={() => setSelectedEvent(e)}
                       className="w-full text-left rounded-2xl overflow-hidden flex gap-0 transition-all active:scale-[.99]"
@@ -1050,11 +1053,11 @@ export default function HomeClient({
               {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
               {/* Tuoreusleima: montako lähdettä vastasi ja milloin — vajaa data ei saa olla näkymätöntä */}
               {fetchingFull ? (
-                <span className="normal-case tracking-normal"> · päivitetään lähteitä…</span>
+                <span className="normal-case tracking-normal">{' · '}{t('discover.updating_sources')}</span>
               ) : generatedAt && sources.length > 1 ? (
                 <span className="normal-case tracking-normal">
-                  {' · '}<Link href="/lahteet" className="underline decoration-white/20 underline-offset-2 hover:text-white/50 transition-colors">{okSourceCount} lähdettä</Link>{total > 0 ? ` · ${total} tapahtumaa` : ''} · klo {formatTime(generatedAt)}
-                  {failedSourceCount > 0 && ` · ${failedSourceCount} ei vastannut`}
+                  {' · '}<Link href="/lahteet" className="underline decoration-white/20 underline-offset-2 hover:text-white/50 transition-colors">{okSourceCount} {t('discover.sources_count')}</Link>{total > 0 ? ` · ${total} ${t('discover.events_count')}` : ''} · {t('share.at_time')} {formatTime(generatedAt, lang)}
+                  {failedSourceCount > 0 && ` · ${failedSourceCount} ${t('discover.sources_failed')}`}
                 </span>
               ) : null}
             </p>
@@ -1116,7 +1119,7 @@ export default function HomeClient({
             <div className="space-y-5">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>Haetaan tapahtumia</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>{t('discover.loading_events')}</span>
               </div>
               {[0, 1, 2].map(i => (
                 <div key={i} className="space-y-3">
@@ -1151,7 +1154,7 @@ export default function HomeClient({
                     ? `📋 ${t('discover.all_events')}`
                     : koCat === 'ilmainen'
                     ? `🎁 ${t('discover.free_events')}`
-                    : `${VIBES.find(v => v.id === koCat)?.emoji ?? ''} ${VIBES.find(v => v.id === koCat)?.label ?? ''}`}
+                    : `${VIBES.find(v => v.id === koCat)?.emoji ?? ''} ${(() => { const vb = VIBES.find(v => v.id === koCat); return vb ? t(vb.tKey as TranslationKey) : '' })()}`}
                 </h2>
                 {!((loading || fetchingFull) && koCatEvents.length === 0) && (
                   <span className="text-white/30 text-[13px] font-bold">· {koCatEvents.length}</span>
@@ -1163,7 +1166,7 @@ export default function HomeClient({
                 <div className="space-y-4">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>Haetaan tapahtumia</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>{t('discover.loading_events')}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {[0, 1, 2, 3].map(i => (
@@ -1275,7 +1278,7 @@ export default function HomeClient({
                     </button>
                     {showGuideMenu && (
                       <>
-                        <button className="fixed inset-0 z-40 cursor-default" aria-label="Sulje"
+                        <button className="fixed inset-0 z-40 cursor-default" aria-label={t('common.close')}
                           onClick={() => setShowGuideMenu(false)} />
                         <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-56 rounded-2xl p-1.5"
                           style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
@@ -1292,8 +1295,8 @@ export default function HomeClient({
                                 className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors">
                                 <span className="text-base leading-none">{g.emoji}</span>
                                 <span className="min-w-0">
-                                  {g.title}
-                                  <span className="block text-[10.5px] font-medium text-white/35 truncate">{g.sub}</span>
+                                  {t(g.titleKey)}
+                                  <span className="block text-[10.5px] font-medium text-white/35 truncate">{t(g.subKey)}</span>
                                 </span>
                               </button>
                             )
@@ -1331,7 +1334,7 @@ export default function HomeClient({
               {fetchingFull && baseEvents.length > 0 && (
                 <div className="flex items-center justify-center gap-2 py-3">
                   <Loader2 size={14} className="animate-spin text-white/30" />
-                  <span className="text-white/30 text-[13px]">Haetaan lisää...</span>
+                  <span className="text-white/30 text-[13px]">{t('discover.loading_more')}</span>
                 </div>
               )}
 
@@ -1343,7 +1346,9 @@ export default function HomeClient({
           {hoodFilter && (
             <div className="flex items-center gap-2.5 flex-wrap">
               <h2 className="font-black text-white text-[22px]" style={{ letterSpacing: '-0.02em' }}>
-                📍 Tapahtumat {NEIGHBORHOOD_INESSIVE[hoodFilter] ?? ''}
+                📍 {t('discover.events_in')} {lang === 'en'
+                  ? (NEIGHBORHOODS.find((n) => n.id === hoodFilter)?.name ?? '')
+                  : (NEIGHBORHOOD_INESSIVE[hoodFilter] ?? '')}
               </h2>
               {!loading && !fetchingFull && (
                 <span className="text-[13px] font-bold text-white/35">{discoverEvents.length}</span>
@@ -1352,12 +1357,12 @@ export default function HomeClient({
                 <button onClick={() => setShowHoodMenu((v) => !v)}
                   className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
                   style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
-                  Vaihda ▾
+                  {t('common.change')}
                 </button>
                 {showHoodMenu && hoodMenuList}
               </div>
               <button onClick={() => { setHoodFilter(null); setShowHoodMenu(false) }}
-                aria-label="Poista kaupunginosasuodatin"
+                aria-label={t('discover.clear_hood')}
                 className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
                 style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
                 ✕
@@ -1371,7 +1376,7 @@ export default function HomeClient({
           {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length === 0 && (loading || fetchingFull) && (
             <div className="flex items-center justify-center gap-2 py-10">
               <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>Haetaan tapahtumia</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>{t('discover.loading_events')}</span>
             </div>
           )}
 
@@ -1387,7 +1392,7 @@ export default function HomeClient({
                     &quot;{keyword}&quot;
                   </h2>
                   <span className="text-[13px] font-bold text-white/40">
-                    {discoverEvents.length} {discoverEvents.length === 1 ? 'tuleva tapahtuma' : 'tulevaa tapahtumaa'}
+                    {discoverEvents.length} {discoverEvents.length === 1 ? t('discover.upcoming_event') : t('discover.upcoming_events')}
                   </span>
                 </div>
               )}
@@ -1408,12 +1413,12 @@ export default function HomeClient({
           {!loading && !fetchingFull && error && (
             <div className="rounded-2xl p-6 text-center space-y-3 my-6" style={{ background: 'rgba(255,80,80,.06)', border: '1px solid rgba(255,80,80,.2)' }}>
               <p className="text-4xl">📡</p>
-              <p className="text-white font-black text-lg">Tapahtumien lataaminen epäonnistui</p>
+              <p className="text-white font-black text-lg">{t('discover.load_error')}</p>
               <p className="text-white/50 text-sm font-semibold">{error}</p>
               <button onClick={() => window.location.reload()}
                 className="rounded-xl px-5 py-3 font-black text-white"
                 style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                Yritä uudelleen
+                {t('common.retry')}
               </button>
             </div>
           )}
@@ -1457,7 +1462,7 @@ export default function HomeClient({
       {mode === 'map' && (
         <main className="px-2 pt-2 pb-0">
           <div className="flex items-center gap-3 px-2 pb-2">
-            <button onClick={goBack} aria-label="Takaisin"
+            <button onClick={goBack} aria-label={t('common.back')}
               className="shrink-0 w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
               <ChevronLeft size={18} className="text-white" />
             </button>

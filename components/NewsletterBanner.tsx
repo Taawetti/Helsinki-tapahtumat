@@ -2,10 +2,12 @@
 
 import { Mail, X, CheckCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 const STORAGE_KEY = 'hki-newsletter-v1'
 
 export default function NewsletterBanner() {
+  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [hidden, setHidden] = useState(true)
@@ -39,7 +41,7 @@ export default function NewsletterBanner() {
       localStorage.setItem(STORAGE_KEY, '1')
       setTimeout(dismiss, 3500)
     } catch {
-      setError('Tilaus epäonnistui. Yritä uudelleen.')
+      setError(t('newsletter.error'))
     } finally {
       setLoading(false)
     }
@@ -54,8 +56,8 @@ export default function NewsletterBanner() {
           <div className="flex items-center gap-3">
             <CheckCircle size={20} className="text-emerald-400 shrink-0" />
             <div>
-              <p className="text-white font-bold text-sm">Hienoa, tilaus vastaanotettu!</p>
-              <p className="text-white/35 text-xs mt-0.5">Saat viikonlopun parhaat menot sähköpostiisi.</p>
+              <p className="text-white font-bold text-sm">{t('newsletter.success_title')}</p>
+              <p className="text-white/35 text-xs mt-0.5">{t('newsletter.success_sub')}</p>
             </div>
           </div>
         ) : (
@@ -67,11 +69,11 @@ export default function NewsletterBanner() {
                   <Mail size={15} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-white font-black text-sm leading-tight">Viikonlopun parhaat menot</p>
-                  <p className="text-white/35 text-xs">Suoraan sähköpostiisi joka perjantai</p>
+                  <p className="text-white font-black text-sm leading-tight">{t('newsletter.title')}</p>
+                  <p className="text-white/35 text-xs">{t('newsletter.subtitle')}</p>
                 </div>
               </div>
-              <button onClick={dismiss} className="text-white/20 hover:text-white/50 transition-all p-1 -mr-1 -mt-1">
+              <button onClick={dismiss} aria-label={t('common.close')} className="text-white/20 hover:text-white/50 transition-all p-1 -mr-1 -mt-1">
                 <X size={14} />
               </button>
             </div>
@@ -81,7 +83,7 @@ export default function NewsletterBanner() {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="sähköpostisi@email.com"
+                  placeholder={t('newsletter.email_ph')}
                   disabled={loading}
                   className="flex-1 bg-white/6 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#6b76ff]/40 transition-colors disabled:opacity-50"
                 />
@@ -89,7 +91,7 @@ export default function NewsletterBanner() {
                   className="px-4 py-2.5 rounded-xl font-bold text-xs text-white shrink-0 hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 flex items-center gap-1.5"
                   style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 12px -4px rgba(91,101,230,.5)' }}>
                   {loading && <span className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />}
-                  Tilaa
+                  {t('newsletter.subscribe')}
                 </button>
               </div>
               {error && <p className="text-red-400/80 text-xs">{error}</p>}

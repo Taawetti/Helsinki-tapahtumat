@@ -20,6 +20,7 @@ import { matchNewsToRestaurants } from './restaurant-news-match'
 import type { NewsLike } from './restaurant-news-match'
 import { NEIGHBORHOODS } from './types'
 import { splitWebsite } from './socials'
+import type { TranslationKey } from './i18n'
 
 /** Suodatinluokat sivulla. */
 export type NewKind = 'ravintola' | 'baari' | 'kahvila' | 'kauppa' | 'tekeminen' | 'nayttely'
@@ -58,8 +59,13 @@ export interface NewItem {
   reviews?: number
   /** Näyttelyllä museo + ajanjakso; muilla ei käytössä. */
   note?: string
-  /** Mistä tieto on peräisin — näytetään merkkinä rivillä. */
-  sources: { label: string; url?: string }[]
+  /**
+   * Mistä tieto on peräisin — näytetään merkkinä rivillä. `label` on
+   * varatekstiä ja erisnimille ('OpenStreetMap', 'museot.fi') ainoa arvo;
+   * käännettävälle leimalle annetaan lisäksi `labelKey`, jonka näkymä
+   * kääntää käyttäjän kielelle.
+   */
+  sources: { label: string; labelKey?: TranslationKey; url?: string }[]
   /** Tuorein lehtijuttu juuri tästä paikasta. */
   news?: NewItemNews
 }
@@ -74,8 +80,18 @@ export interface NewsRailItem {
 export interface MonthGroup {
   /** "2026-08" — vakaa ryhmittelyavain. */
   key: string
-  /** "Elokuu" tai "Joulukuu 2025" kun vuosi ei ole kuluva. */
+  /**
+   * "Elokuu" tai "Joulukuu 2025" kun vuosi ei ole kuluva. Suomenkielinen
+   * varateksti — näkymä kokoaa otsikon mieluummin monthKey/year/isThisYear
+   * -kentistä, jotta se kääntyy käyttäjän kielelle.
+   */
   label: string
+  /** Kuukauden nimi nominatiivissa (Tammikuu/January) — näkymä kääntää. */
+  monthKey?: TranslationKey
+  /** Ryhmän vuosi, 2026. Näytetään otsikossa vain kun ei ole kuluva vuosi. */
+  year: number
+  /** true = kuluva vuosi → otsikkoon pelkkä kuukauden nimi. */
+  isThisYear: boolean
   items: NewItem[]
 }
 
@@ -104,6 +120,14 @@ export const MAX_REVIEWS_FOR_NEW = 150
 const MONTHS_FI = [
   'Tammikuu', 'Helmikuu', 'Maaliskuu', 'Huhtikuu', 'Toukokuu', 'Kesäkuu',
   'Heinäkuu', 'Elokuu', 'Syyskuu', 'Lokakuu', 'Marraskuu', 'Joulukuu',
+]
+
+/** Samat kuukaudet käännösavaimina (nominatiivi). Palvelin ei tiedä
+ *  käyttäjän kieltä, joten otsikkoteksti kootaan vasta näkymässä. */
+const MONTH_NAME_KEYS: TranslationKey[] = [
+  'uutta.month_name_1', 'uutta.month_name_2', 'uutta.month_name_3', 'uutta.month_name_4',
+  'uutta.month_name_5', 'uutta.month_name_6', 'uutta.month_name_7', 'uutta.month_name_8',
+  'uutta.month_name_9', 'uutta.month_name_10', 'uutta.month_name_11', 'uutta.month_name_12',
 ]
 
 /** Avautumisjutun tunnistus uutisotsikosta. 'avautu' kattaa avautuu/avautui,
@@ -240,7 +264,7 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
       facebook: oLinks.facebook,
       rating: o.googleRating ?? undefined,
       reviews: o.reviewCount ?? undefined,
-      sources: [{ label: 'anniskeluluparekisteri' }],
+      sources: [{ label: 'anniskeluluparekisteri', labelKey: 'uutta.source_alcohol_register' }],
     })
   }
 
@@ -369,10 +393,14 @@ export function buildNewInHelsinki(input: BuildInput): NewInHelsinki {
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([key, list]) => {
       const [year, month] = key.split('-')
-      const name = MONTHS_FI[Number(month) - 1] ?? key
+      const idx = Number(month) - 1
+      const name = MONTHS_FI[idx] ?? key
       return {
         key,
         label: year === thisYear ? name : `${name} ${year}`,
+        monthKey: MONTH_NAME_KEYS[idx],
+        year: Number(year),
+        isThisYear: year === thisYear,
         items: list.sort((a, b) => b.date.localeCompare(a.date)),
       }
     })

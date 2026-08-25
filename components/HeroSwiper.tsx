@@ -119,7 +119,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
           </span>
           <div
             role="button"
-            aria-label={fav ? 'Poista suosikeista' : 'Tallenna suosikkeihin'}
+            aria-label={fav ? t('detail.remove_fav') : t('detail.save_fav')}
             className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
             style={{ background: 'rgba(10,10,12,.55)', border: '1px solid rgba(255,255,255,.15)', backdropFilter: 'blur(8px)' }}
             onPointerDown={(ev) => ev.stopPropagation()}
@@ -154,7 +154,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
       {events.length > 1 && (
         <div className="flex items-center justify-center gap-1.5 mt-3">
           {events.map((_, i) => (
-            <button key={i} aria-label={`Nosto ${i + 1}`} onClick={() => setIdx(i)}
+            <button key={i} aria-label={`${t('hero.slide')} ${i + 1}`} onClick={() => setIdx(i)}
               className="rounded-full transition-all"
               style={{
                 width: i === safeIdx ? 18 : 6, height: 6,

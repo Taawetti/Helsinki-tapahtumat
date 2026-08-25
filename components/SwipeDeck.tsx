@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 // Geneerinen Tinder-swaippi. Irrotettu IdeaView'n tuotantokovennetusta
 // mekaniikasta: hiiri/stylus = React Pointer Events + setPointerCapture, kosketus
@@ -21,6 +22,7 @@ interface SwipeDeckProps<T extends { id: string }> {
 export default function SwipeDeck<T extends { id: string }>({
   cards, onSwipeRight, onSwipeLeft, onTap, onUndo, renderCard, emptyState, threshold = 80,
 }: SwipeDeckProps<T>) {
+  const { t } = useLanguage()
   const [seen, setSeen] = useState<Set<string>>(new Set())
   const [history, setHistory] = useState<T[]>([])  // swaippausjärjestys undoa varten
   const [dragX, setDragX] = useState(0)
@@ -181,14 +183,14 @@ export default function SwipeDeck<T extends { id: string }>({
       {/* Napit — sama logiikka kuin swaipilla */}
       <div className="flex items-center justify-center gap-6 pt-5">
         {onUndo && (
-          <button onClick={undo} disabled={!history.length} aria-label="Peruuta edellinen"
+          <button onClick={undo} disabled={!history.length} aria-label={t('swipe.undo')}
             className="w-11 h-11 rounded-full flex items-center justify-center text-lg active:scale-90 transition-all disabled:opacity-30"
             style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>↩️</button>
         )}
-        <button onClick={() => commit('left')} aria-label="Ohita"
+        <button onClick={() => commit('left')} aria-label={t('swipe.skip')}
           className="w-14 h-14 rounded-full flex items-center justify-center text-2xl active:scale-90 transition-transform"
           style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,90,90,.35)' }}>✕</button>
-        <button onClick={() => commit('right')} aria-label="Tykkää"
+        <button onClick={() => commit('right')} aria-label={t('swipe.like')}
           className="w-16 h-16 rounded-full flex items-center justify-center text-3xl active:scale-90 transition-transform"
           style={{ background: 'linear-gradient(150deg,#10b981,#059669)', boxShadow: '0 10px 24px -8px rgba(16,185,129,.7)' }}>❤️</button>
         {/* Symmetrinen täyte undo-napille → ✕/❤️ pysyvät keskellä */}

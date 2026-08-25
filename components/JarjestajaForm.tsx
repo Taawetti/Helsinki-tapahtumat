@@ -127,7 +127,7 @@ export default function JarjestajaForm({ onClose }: Props) {
 
             <div className="space-y-1.5">
               <label className={labelClass}>{t('form.field_email')} <span style={{ color: '#6b76ff' }}>*</span></label>
-              <input type="email" value={form.email} onChange={set('email')} placeholder="nimi@esimerkki.fi" className={inputClass} />
+              <input type="email" value={form.email} onChange={set('email')} placeholder={t('form.field_email_ph')} className={inputClass} />
             </div>
 
             <div className="border-t border-white/6 my-1" />

@@ -6,6 +6,7 @@ import { formatTime, fmtDistance } from '@/lib/utils'
 import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
 import { hasOwnEventPage } from '@/lib/event-links'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { classifyEventCategory } from '@/lib/event-category'
 
 // 12 distinct dark gradients with varied angles
 const GRADIENTS = [
@@ -36,28 +37,6 @@ function hashIdx(id: string, mod: number): number {
   return h % mod
 }
 
-function getCategoryEmoji(categories: string[]): string {
-  const s = (categories.join(' ')).toLowerCase()
-  if (s.includes('rock') || s.includes('metal') || s.includes('punk')) return '🎸'
-  if (s.includes('jazz') || s.includes('blues')) return '🎷'
-  if (s.includes('klassinen') || s.includes('ooppera') || s.includes('baleetti')) return '🎻'
-  if (s.includes('musiikki') || s.includes('konsertti') || s.includes('keikka')) return '🎵'
-  if (s.includes('stand-up') || s.includes('komedia') || s.includes('huumori')) return '🎤'
-  if (s.includes('teatteri') || s.includes('näytelmä') || s.includes('sirkus')) return '🎭'
-  if (s.includes('elokuv')) return '🎬'
-  if (s.includes('tanssi')) return '💃'
-  if (s.includes('urheilu') || s.includes('liikunta') || s.includes('jääkiekko') || s.includes('jalkapallo')) return '⚽'
-  if (s.includes('lapset') || s.includes('perhe')) return '🎠'
-  if (s.includes('ruoka') || s.includes('juoma') || s.includes('viini')) return '🍷'
-  if (s.includes('festivaali') || s.includes('juhla')) return '🎪'
-  if (s.includes('taide') || s.includes('galleria') || s.includes('kuvataide')) return '🎨'
-  if (s.includes('klubit') || s.includes('yöelämä') || s.includes('dj')) return '🎧'
-  if (s.includes('kirjallisuus') || s.includes('kirja') || s.includes('runous')) return '📖'
-  if (s.includes('ulkoilu') || s.includes('luonto')) return '🌿'
-  if (s.includes('pubivisa') || s.includes('visa') || s.includes('tietokilpailu')) return '🧠'
-  if (s.includes('karaoke')) return '🎤'
-  return '✨'
-}
 
 interface Props {
   event: Event
@@ -70,13 +49,14 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
   const idx = hashIdx(event.id, GRADIENTS.length)
   const gradient = GRADIENTS[idx]
   const accent = ACCENT_COLORS[idx]
-  const emoji = getCategoryEmoji(event.categories)
+  const catTag = classifyEventCategory(event.categories)
+  const emoji = catTag.emoji
   const hasImage = !!event.image
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   // "ti 26.8. " kun tapahtuma ei ole tänään; tyhjä kun on.
   const evDate = helsinkiDateOf(event.startTime)
   const dayPrefix = evDate && evDate !== helsinkiToday()
-    ? `${new Date(`${evDate}T12:00:00Z`).toLocaleDateString('fi-FI', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' })} `
+    ? `${new Date(`${evDate}T12:00:00Z`).toLocaleDateString(lang === 'en' ? 'en-GB' : 'fi-FI', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' })} `
     : ''
   // Crawlable href vain id:lle, jotka /e/[id] oikeasti ratkaisee (Google ei
   // saa massa-404:ia muiden lähteiden id:istä — klikki avaa aina paneelin).
@@ -132,7 +112,7 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
               <div
                 className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-60"
                 style={{ color: accent }}>
-                {event.categories[0] || t('common.event_default')}
+                {lang === 'en' ? t(catTag.tKey) : (event.categories[0] || t('common.event_default'))}
               </div>
               <h3
                 className={`font-black text-white leading-tight ${large ? 'text-3xl' : 'text-xl'}`}
@@ -171,7 +151,7 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
             "21:00" ei kerro milloin keikka on (omistaja 25.8.2026). */}
         <div className="absolute bottom-2.5 right-2.5">
           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white/90 bg-black/50 backdrop-blur-sm">
-            {dayPrefix}{formatTime(event.startTime)}
+            {dayPrefix}{formatTime(event.startTime, lang)}
           </span>
         </div>
       </div>
