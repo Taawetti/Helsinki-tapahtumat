@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Event } from '@/lib/types'
 import { formatTime, fmtDistance } from '@/lib/utils'
+import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 // 12 distinct dark gradients with varied angles
@@ -71,6 +72,11 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
   const emoji = getCategoryEmoji(event.categories)
   const hasImage = !!event.image
   const { t } = useLanguage()
+  // "ti 26.8. " kun tapahtuma ei ole tänään; tyhjä kun on.
+  const evDate = helsinkiDateOf(event.startTime)
+  const dayPrefix = evDate && evDate !== helsinkiToday()
+    ? `${new Date(`${evDate}T12:00:00Z`).toLocaleDateString('fi-FI', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' })} `
+    : ''
   // Crawlable href vain id:lle, jotka /e/[id] oikeasti ratkaisee (Google ei
   // saa massa-404:ia muiden lähteiden id:istä — klikki avaa aina paneelin).
   const hasOwnPage = event.source === 'linked-events' || event.id.startsWith('tm-') || event.id.startsWith('festival-')
@@ -157,10 +163,12 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
           )}
         </div>
 
-        {/* Time chip */}
+        {/* Aikamerkki: muun kuin tämän päivän tapahtumalle näytetään myös päivä.
+            Haku ja laajat listat sekoittavat eri päiviä, jolloin pelkkä
+            "21:00" ei kerro milloin keikka on (omistaja 25.8.2026). */}
         <div className="absolute bottom-2.5 right-2.5">
           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white/90 bg-black/50 backdrop-blur-sm">
-            {formatTime(event.startTime)}
+            {dayPrefix}{formatTime(event.startTime)}
           </span>
         </div>
       </div>

@@ -43,7 +43,10 @@ export interface SourceStatus {
   count: number
 }
 
-export type DateFilter = 'today' | 'tonight' | 'tomorrow' | 'weekend' | 'week' | 'month' | 'custom' | 'range'
+// 'search' = yläpalkin haun aikaikkuna: hakusana EI saa rajautua valittuun
+// päivään (omistaja 25.8.2026) — artistia haettaessa näytetään kaikki tulevat
+// esiintymiset. Ei ole käyttäjän valittavissa, vain haun sisäinen tila.
+export type DateFilter = 'today' | 'tonight' | 'tomorrow' | 'weekend' | 'week' | 'month' | 'search' | 'custom' | 'range'
 export type ViewMode = 'list' | 'map'
 export type PriceFilter = 'all' | 'free' | 'paid'
 

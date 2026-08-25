@@ -6,7 +6,7 @@ import type { Event } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 
-// "🎸 ILLAN KEIKAT" — swipeable hero of up to 5 tonight picks (design handoff,
+// "✦ ILLAN NOSTOT" — swipeable hero of up to 5 tonight picks (design handoff,
 // screenshot 1-koti.png). Horizontal drag > 8px = swipe; less = tap → open.
 export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen: (e: Event) => void }) {
   const { lang, t } = useLanguage()
@@ -104,7 +104,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
         <div className="absolute top-4 left-4 flex gap-2">
           <span className="text-[9px] font-black px-2.5 py-1.5 rounded-full text-white tracking-[.1em] uppercase"
             style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 6px 16px -6px rgba(91,101,230,.8)' }}>
-            🎸 {t('discover.hero_gigs')}
+            ✦ {t('discover.hero_gigs')}
           </span>
           <span className="text-[10px] font-black px-2.5 py-1.5 rounded-full"
             style={{ background: 'rgba(10,10,12,.55)', border: '1px solid rgba(107,118,255,.4)', color: '#c7caff', backdropFilter: 'blur(8px)' }}>

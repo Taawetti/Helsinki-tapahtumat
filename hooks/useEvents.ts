@@ -67,6 +67,19 @@ interface UseEventsResult {
   loadMore: () => void
 }
 
+// localStorage-kiintiö on 5–10 MB per origin. Hakuikkuna (90 pv) tuottaa
+// mitatusti ~5,8 MB dataa, joten sen tallentaminen täyttäisi kiintiön ja
+// QuotaExceededError voisi kaataa muutkin merkinnät. Iso vastaus jää siis
+// vain muistivälimuistiin (eventsCache), joka riittää istunnon ajan.
+const LS_MAX_CHARS = 250_000
+function persist(key: string, entry: CacheEntry): void {
+  try {
+    const json = JSON.stringify(entry)
+    if (json.length > LS_MAX_CHARS) return
+    localStorage.setItem(LS_PREFIX + key, json)
+  } catch { /* privaattitila tai kiintiö täynnä */ }
+}
+
 export function useEvents({
   dateFilter,
   customDate,
@@ -136,7 +149,11 @@ export function useEvents({
       const params = new URLSearchParams({ start, end, page: String(pageNum), municipality })
       if (startAfter) params.set('startAfter', startAfter)
       if (bbox) params.set('bbox', bbox)
-      if (keyword) params.set('keyword', keyword)
+      // keyword EI mene palvelimelle: LinkedEventsin text-haku ei tunne
+      // esiintyjänimiä, joten sen välittäminen pudotti mitatusti KOKO
+      // LinkedEvents-aineiston (1446 riviä → 0) ja tyhjensi openings-lähteen.
+      // Suodatus tehdään klientissä (HomeClient filteredEvents), joka osuu
+      // otsikkoon, kuvaukseen, paikkaan ja kategorioihin.
       if (keywordsFromCategories) params.set('categories', keywordsFromCategories)
 
       const cacheKey = params.toString()
@@ -167,7 +184,7 @@ export function useEvents({
           if (!controller.signal.aborted) {
             const staleEntry: CacheEntry = { events: data.events, hasMore: data.hasMore, total: data.total, ts: Date.now(), generatedAt: data.generatedAt, sources: data.sources }
             eventsCache.set(cacheKey, staleEntry)
-            try { localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify(staleEntry)) } catch {}
+            persist(cacheKey, staleEntry)
             // No count-based slicing — page sizes vary (day-window batches);
             // applySort dedupes re-fetched events by id.
             setEvents(prev => applySort(data.events, append ? prev : [], append))
@@ -216,7 +233,7 @@ export function useEvents({
         if (!controller.signal.aborted) {
           const entry: CacheEntry = { events: fullData.events, hasMore: fullData.hasMore, total: fullData.total, ts: Date.now(), generatedAt: fullData.generatedAt, sources: fullData.sources }
           eventsCache.set(cacheKey, entry)
-          try { localStorage.setItem(LS_PREFIX + cacheKey, JSON.stringify(entry)) } catch {}
+          persist(cacheKey, entry)
           // No count-based slicing — page sizes vary (day-window batches);
           // applySort dedupes re-fetched events by id.
           setEvents(prev => applySort(fullData.events, append ? prev : [], append))
@@ -238,7 +255,7 @@ export function useEvents({
         setFetchingFull(false)
       }
     },
-    [dateFilter, customDate, customDateEnd, keyword, municipality, activeCategories, bbox, nearbyCoords, applySort]
+    [dateFilter, customDate, customDateEnd, municipality, activeCategories, bbox, nearbyCoords, applySort]
   )
 
   useEffect(() => {
@@ -250,7 +267,7 @@ export function useEvents({
     const p = new URLSearchParams({ start, end, page: '1', municipality })
     if (startAfter) p.set('startAfter', startAfter)
     if (bbox) p.set('bbox', bbox)
-    if (keyword) p.set('keyword', keyword)
+    // (ks. yllä: keyword ei kuulu palvelinpyyntöön)
     if (kws) p.set('categories', kws)
     const ck = p.toString()
     if (!eventsCache.has(ck)) {
@@ -268,16 +285,19 @@ export function useEvents({
       } catch {}
       if (!eventsCache.has(ck)) setEvents([])
     }
+    // Ei debouncea hakusanalle: pyyntö ei enää riipu keywordista, joten
+    // kirjoittaminen ei laukaise uusia hakuja — haku tehdään KERRAN kun
+    // aikaikkuna vaihtuu 'search'-tilaan, ja loput suodatetaan klientissä.
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       fetchEvents(1, false)
-    }, keyword ? 350 : 0)
+    }, 0)
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateFilter, customDate, customDateEnd ?? '', keyword, municipality, activeCategories.join(','), bbox ?? '', nearbyCoords?.lat ?? '', nearbyCoords?.lon ?? ''])
+  }, [dateFilter, customDate, customDateEnd ?? '', municipality, activeCategories.join(','), bbox ?? '', nearbyCoords?.lat ?? '', nearbyCoords?.lon ?? ''])
 
   const loadMore = useCallback(() => {
     const next = page + 1

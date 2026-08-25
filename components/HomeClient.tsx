@@ -335,7 +335,11 @@ export default function HomeClient({
     // Idea-näkymä on aina "tänään" — ei riipu Discoverin päivävalinnasta (muuten
     // esim. "Huomenna" tyhjentäisi Idea-deckin tapahtumat). Ei muuta tallennettua
     // dateFilteriä, joten Discoveriin palatessa käyttäjän valinta säilyy.
-    dateFilter: mode === 'map' ? 'month' : mode === 'idea' ? 'today' : dateFilter,
+    // HAKU IRTI PÄIVÄVALINNASTA (omistaja 25.8.2026): hakusana katsoo 90 pv
+    // eteenpäin, jotta artistin kaikki tulevat keikat löytyvät. Muuttaa VAIN
+    // haun aikaikkunan — käyttäjän oma päivävalinta säilyy tilassa ja palaa
+    // voimaan heti kun hakukenttä tyhjennetään.
+    dateFilter: mode === 'map' ? 'month' : mode === 'idea' ? 'today' : keyword ? 'search' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
     nearbyCoords: null,
   })
@@ -577,7 +581,7 @@ export default function HomeClient({
       } else {
         // Specific search: match title or shortDescription
         result = result.filter((e) => {
-          const haystack = [e.title, e.shortDescription ?? '', e.location?.name ?? ''].join(' ').toLowerCase()
+          const haystack = [e.title, e.shortDescription ?? '', e.location?.name ?? '', ...e.categories].join(' ').toLowerCase()
           return haystack.includes(kw)
         })
       }
@@ -644,7 +648,7 @@ export default function HomeClient({
     [upcomingEvents]
   )
 
-  // "🎸 ILLAN KEIKAT" — pyyhkäisyheron 5 nostoa: parhaat pisteet ensin,
+  // "✦ ILLAN NOSTOT" — pyyhkäisyheron 5 nostoa: parhaat pisteet ensin,
   // näytöllä aikajärjestyksessä
   const heroGigs = useMemo(() => {
     // "ILLAN keikat": aamukymmenen työpaja ei kuulu tähän vaikka pisteet
@@ -873,7 +877,7 @@ export default function HomeClient({
         <div className="md:hidden px-4 pb-3">
           <SearchBar
             value={keyword}
-            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null) } }}
+            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null); setGuideView(null) } }}
             venueHits={localSearchHits.venues}
             activityHits={localSearchHits.activities}
             restaurantHits={localSearchHits.restaurants}
@@ -905,7 +909,7 @@ export default function HomeClient({
           <div className="flex-1 max-w-md">
             <SearchBar
             value={keyword}
-            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null) } }}
+            onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null); setGuideView(null) } }}
             venueHits={localSearchHits.venues}
             activityHits={localSearchHits.activities}
             restaurantHits={localSearchHits.restaurants}
@@ -1053,7 +1057,11 @@ export default function HomeClient({
             </p>
           </div>
 
-          {/* Date strip */}
+          {/* Date strip — PIILOSSA haun aikana: haku katsoo 90 pv eteenpäin,
+              joten korostettu "Tänään" antaisi väärän kuvan siitä mitä
+              tuloksissa näkyy (omistaja 25.8.2026). Valinta säilyy tilassa ja
+              palaa näkyviin kun hakukenttä tyhjennetään. */}
+          {!keyword && (
           <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 items-center">
             {([
               { d: 'today' as DateFilter, label: t('date.today') },
@@ -1075,6 +1083,7 @@ export default function HomeClient({
             })}
             <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
           </div>
+          )}
 
           {/* Aktiivinen filtteripalkki — ilmestyy kun kategoria valittu */}
           {(activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && (
@@ -1183,7 +1192,7 @@ export default function HomeClient({
           {!koCat && !guideView && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <>
               {/* Tilarivi: vihreä pulssipiste + päivän tapahtumamäärä */}
-              {!loading && baseEvents.length > 0 && (
+              {!loading && baseEvents.length > 0 && !keyword && (
                 <div className="flex items-center gap-2 -mb-1">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#5fd9a6', boxShadow: '0 0 8px rgba(95,217,166,.8)', animation: 'pulse-glow 2s ease-in-out infinite' }} />
                   <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,.55)' }}>
@@ -1366,6 +1375,19 @@ export default function HomeClient({
           {/* ── Flat grid — näkyy kun keyword, kategoria, vibe tai Nyt menossa valittu ── */}
           {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
+              {/* Hakuotsikko: kertoo että tulokset ovat KAIKILTA tulevilta
+                  päiviltä, ei valitulta päivältä — muuten laskuri ja
+                  päivävalinta jäisivät ristiriitaisiksi. */}
+              {keyword && (
+                <div className="flex items-baseline gap-2 mb-3 flex-wrap">
+                  <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
+                    &quot;{keyword}&quot;
+                  </h2>
+                  <span className="text-[13px] font-bold text-white/40">
+                    {discoverEvents.length} {discoverEvents.length === 1 ? 'tuleva tapahtuma' : 'tulevaa tapahtumaa'}
+                  </span>
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                 {discoverEvents.map(e => (
                   <PosterCard key={e.id} event={e} onClick={setSelectedEvent}
@@ -1394,13 +1416,19 @@ export default function HomeClient({
           )}
 
           {/* ── Nyt menossa: tyhjä tila — ilman tätä alue jäisi selittämättä tyhjäksi ── */}
-          {!loading && !fetchingFull && !error && baseEvents.length === 0 && (
+          {/* Tyhjä tila: kun jokin suodatin (haku/kaupunginosa/aihepiiri/hinta) on
+              päällä, ratkaisee SUODATETTU tulos — muuten "Ei tuloksia haulle X"
+              ei näkyisi koskaan, koska pakassa on aina tapahtumia. */}
+          {!loading && !fetchingFull && !error && !koCat && !guideView &&
+            ((keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all')
+              ? discoverEvents.length === 0
+              : baseEvents.length === 0) && (
             <EmptyState
               keyword={keyword}
               activeVibes={activeVibes}
               activeCategories={activeCategories}
               priceFilter={priceFilter}
-              dateFilter={dateFilter}
+              dateFilter={keyword ? 'search' : dateFilter}
               onClear={clearFilters}
               onDateChange={(d) => { setDateFilter(d); setCustomDate('') }}
             />

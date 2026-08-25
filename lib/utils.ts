@@ -51,6 +51,16 @@ export function getDateRange(filter: DateFilter, customDate?: string, customDate
       return { start: fmt(now), end: fmt(end) }
     }
 
+    case 'search': {
+      // Haku katsoo eteenpäin 90 päivää: mitattu 25.8.2026 että ulkoiset
+      // keikkalähteet (Tavastia ym.) kattavat koko välin yhdellä pyynnöllä
+      // ~1,4 s lämpimänä. Esim. Ismo Alanko Tavastialla 28.8. jäi kokonaan
+      // löytymättä 'today'-ikkunassa.
+      const end = new Date(now)
+      end.setDate(end.getDate() + 90)
+      return { start: fmt(now), end: fmt(end) }
+    }
+
     case 'custom': {
       const date = customDate || fmt(now)
       return { start: date, end: date }
