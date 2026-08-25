@@ -262,6 +262,19 @@ export default function HomeClient({
     if (koCat || guideView) window.scrollTo(0, 0)
   }, [koCat, guideView])
 
+  // Välilehden vaihto (Tapahtumat → Idea/Ravintolat/Uutta/Kartta/Suosikit)
+  // vie näkymän alkuun. Näkymät vaihtuvat samalla sivulla, joten ilman tätä
+  // selaimen vierityskohta säilyy ja uusi välilehti aukeaa keskeltä tai
+  // alalaidasta — mitattu mobiililla 25.8.2026.
+  // prevMode-vertailu: EI scrollata mountissa, jottei selaimen palauttama
+  // paluuvieritys (back-navigointi) mene rikki.
+  const prevModeRef = useRef(mode)
+  useEffect(() => {
+    if (prevModeRef.current === mode) return
+    prevModeRef.current = mode
+    window.scrollTo(0, 0)
+  }, [mode])
+
   // Ilta-painotus: illalla NOSTETAAN yökeikat kärkeen mutta EI rajata päivää —
   // oletus pysyy 'today' (koko päivä näkyvissä). Aiempi 'tonight'-automaatti
   // piilotti kaikki päiväsaikaan alkavat tapahtumat ja teki etusivusta tyhjän
