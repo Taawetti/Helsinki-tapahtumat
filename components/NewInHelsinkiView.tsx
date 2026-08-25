@@ -363,7 +363,10 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
                 <button onClick={() => { navigator.clipboard.writeText(`${shareText}\n${shareUrl}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
                   className={`flex flex-col items-center gap-1.5 border rounded-xl py-3 px-2 transition-all ${copied ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/10 hover:bg-white/8'}`}>
                   {copied ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} className="text-white/50" />}
-                  <span className={`text-[11px] font-semibold ${copied ? 'text-emerald-400' : 'text-white/40'}`}>{copied ? t('detail.copied') : t('detail.copy')}</span>
+                  {/* Ilman huutomerkkiä: detail.copied ('Kopioitu!') on jakopainikkeen
+                      ja tapahtumapaneelin teksti, tämän ruudukon nappi on aina ollut
+                      vaisumpi — nappi vaihtaa myös ikonin ja värin. */}
+                  <span className={`text-[11px] font-semibold ${copied ? 'text-emerald-400' : 'text-white/40'}`}>{copied ? t('uutta.copied') : t('detail.copy')}</span>
                 </button>
               </div>
             </div>

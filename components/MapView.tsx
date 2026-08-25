@@ -205,10 +205,10 @@ const ACT_CAT_KEYS: Record<ActivityCategory, TranslationKey> = {
   muu:        'cat.muu',
 }
 
-// Vain ne keittiökategoriat joille on käännösavain. Reitin OSM_TO_CATEGORY
-// tuottaa lisäksi 'french'-arvon, jolle avainta ei ole — se putoaa fallbackiin
-// (r.description, joka on tuolloin englantia: 'french'). 'awarded' on
-// suodatinnappi (featured), ei keittiö, joten se jätetään pois.
+// Keittiökategoria → käännösavain. 'awarded' on suodatinnappi (featured), ei
+// keittiö, joten se jätetään pois. Kun ravintolalla ei ole yhtään
+// cuisineCategoriesia, popup putoaa r.descriptioniin — uusilla avauksilla se on
+// Googlen suomenkielinen kategoria, ks. fallback renderöintikohdassa.
 const CUISINE_KEYS: Record<string, TranslationKey> = {
   nordisk:        'cuisine.nordisk',
   japanese:       'cuisine.japanese',
@@ -226,6 +226,7 @@ const CUISINE_KEYS: Record<string, TranslationKey> = {
   middle_eastern: 'cuisine.middle_eastern',
   african:        'cuisine.african',
   cafe:           'cuisine.cafe_dessert',
+  french:         'cuisine.french',
 }
 
 type DateFilterKey = 'today' | 'tomorrow' | 'week' | 'month' | 'custom'

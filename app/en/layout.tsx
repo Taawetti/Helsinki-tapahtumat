@@ -36,7 +36,14 @@ export const metadata: Metadata = {
     alternateLocale: ['fi_FI'],
     siteName: 'Mitä tänään',
     url: `${BASE}/en`,
-    images: [{ url: '/api/og', width: 1200, height: 630 }],
+    // Parametrit, koska parametriton /api/og piirtää suomenkielisen
+    // oletuskortin ("HELSINKI TAPAHTUMAT") — englanninkielinen jako näyttäisi
+    // suomea. Ks. app/api/og/route.tsx.
+    images: [{
+      url: '/api/og?brand=HELSINKI%20EVENTS&title=' + encodeURIComponent('What’s on in Helsinki today'),
+      width: 1200,
+      height: 630,
+    }],
   },
   twitter: {
     card: 'summary_large_image',

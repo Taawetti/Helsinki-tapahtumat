@@ -8,6 +8,7 @@
 //  - makumuisti (recordClick-historia) + cold-start-scenet painottavat
 //  - siemen-jitteri: sama päivä+laite = sama pakka, uusi päivä = uusi
 import type { Event } from './types'
+import type { TranslationKey } from './i18n'
 import { getEventVibes } from './event-classify'
 import { helsinkiDateOf } from './helsinki-time'
 import { COMMUNITY_DAYTIME_REGEX } from './nightlife'
@@ -70,7 +71,8 @@ export interface IdeaScored {
   event: Event
   score: number
   minutesUntil?: number
-  reason: string | null
+  /** Selitteen KÄÄNNÖSAVAIN, ei valmista tekstiä — ks. SCENE_REASON. */
+  reason: TranslationKey | null
 }
 
 export interface IdeaDeckOpts extends IdeaPrefs {
@@ -93,11 +95,15 @@ function baseScore(e: Event, nowMs: number): number {
   return s
 }
 
-const SCENE_REASON: Record<IdeaSceneId, string> = {
-  keikka: 'Valitsit keikat — tämä on sinua varten',
-  rento: 'Rento ilta — valintasi mukaan',
-  liikunta: 'Liikunnallista tekemistä — valintasi mukaan',
-  kulttuuri: 'Kulttuuriasiaa — valintasi mukaan',
+// Selitteet kannetaan KÄÄNNÖSAVAIMINA, ei valmiina tekstinä: tämä on
+// palvelinpuolen moduuli eikä voi kutsua t():tä, joten valmis merkkijono jäisi
+// suomeksi myös englanninkielisessä käyttöliittymässä (mitattu 25.8.2026 —
+// Idea-kortin ✦-rivi oli ainoa suomenkielinen rivi englanninkielisellä kortilla).
+const SCENE_REASON: Record<IdeaSceneId, TranslationKey> = {
+  keikka: 'idea.reason_scene_keikka',
+  rento: 'idea.reason_scene_rento',
+  liikunta: 'idea.reason_scene_liikunta',
+  kulttuuri: 'idea.reason_scene_kulttuuri',
 }
 
 /** Luo Idea-pakan: vain TÄMÄN päivän tapahtumat (ei päättyneitä), kohderyhmä-
@@ -157,11 +163,11 @@ export function buildIdeaDeck(events: Event[], opts: IdeaDeckOpts): IdeaScored[]
       const mins = minutesUntilStart(e.startTime, nowMs)
 
       // Selite kortille — rehellisin signaali ensisijaisena
-      let reason: string | null = null
-      if (hasTaste) reason = 'Sopii makuusi aiempien valintojesi perusteella'
+      let reason: TranslationKey | null = null
+      if (hasTaste) reason = 'idea.reason_taste'
       else if (scene) reason = SCENE_REASON[scene]
-      else if (mins >= 0 && mins <= 90) reason = 'Alkaa pian'
-      else if (e.isFree) reason = 'Ilmainen'
+      else if (mins >= 0 && mins <= 90) reason = 'idea.reason_soon'
+      else if (e.isFree) reason = 'idea.reason_free'
 
       return { event: e, score: s, minutesUntil: mins >= 0 ? mins : undefined, reason }
     })

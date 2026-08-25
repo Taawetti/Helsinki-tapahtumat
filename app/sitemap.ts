@@ -114,6 +114,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Julkinen lähdeterveyden sivu + tuleva raporttisivu (URL valmiiksi indeksiin)
     { url: `${BASE}/lahteet`,  lastModified: now, changeFrequency: 'hourly' as const, priority: 0.5 },
     { url: `${BASE}/raportti`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.6 },
+    // Järjestäjien laskeutumissivu — sai oman canonicalin, mutta puuttui
+    // sivukartasta eikä siihen ole sisäistä linkkiä, joten Google ei löytäisi sitä.
+    { url: `${BASE}/ohjelma-ilmoittajalle`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.7 },
     // Vertikaalin laskeutumissivut — yöelämä, visat, terassit
     { url: `${BASE}/yokerhot`,  lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },
     { url: `${BASE}/pubivisat`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },

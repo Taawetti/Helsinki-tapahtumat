@@ -385,6 +385,9 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
         </div>
       )}
 
+      {/* Ilmaiset museot -oppaan yläleima on 'MAKSUTON', ei common.free_badgen
+          'ILMAINEN': oma avain, koska free_badge on käytössä myös tapahtuma-
+          korteissa (PosterCard/IdeaView/HomeClient) joissa 'ILMAINEN' on oikein. */}
       {data && slug === 'ilmaiset-museot' && (
         <>
           <div>
@@ -392,7 +395,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
             <CardGrid>
               {(data.museums ?? []).map((p) => (
                 <PlaceCard key={p.id} id={p.id} name={p.name} address={p.address}
-                  image={p.image} emoji="🏛" kicker={t('cat.museo')} topBadge={t('common.free_badge')}
+                  image={p.image} emoji="🏛" kicker={t('cat.museo')} topBadge={t('guides.free_badge')}
                   bottomChip={p.rating != null ? `★ ${p.rating.toFixed(1)}` : null}
                   href={p.www} />
               ))}
@@ -403,7 +406,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
             <CardGrid>
               {(data.galleries ?? []).map((p) => (
                 <PlaceCard key={p.id} id={p.id} name={p.name} address={p.address}
-                  image={p.image} emoji="🖼" kicker={t('cat.galleria')} topBadge={t('common.free_badge')}
+                  image={p.image} emoji="🖼" kicker={t('cat.galleria')} topBadge={t('guides.free_badge')}
                   bottomChip={p.rating != null ? `★ ${p.rating.toFixed(1)}` : null}
                   href={p.www} />
               ))}

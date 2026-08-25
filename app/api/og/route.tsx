@@ -10,6 +10,9 @@ export async function GET(req: NextRequest) {
   const location = searchParams.get('location') || ''
   const isFree = searchParams.get('free') === '1'
   const imageUrl = searchParams.get('img') || ''
+  // Yläreunan tunnusrivi on parametroitu, jotta englanninkielinen /en saa
+  // englanninkielisen jakokortin. Oletus pitää kaikki vanhat kutsut ennallaan.
+  const brand = searchParams.get('brand') || 'HELSINKI TAPAHTUMAT'
 
   return new ImageResponse(
     (
@@ -62,7 +65,7 @@ export async function GET(req: NextRequest) {
           {/* Top: logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '40px', height: '40px', background: '#0072C6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '18px' }}>H</div>
-            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '16px', fontWeight: 600, letterSpacing: '0.05em' }}>HELSINKI TAPAHTUMAT</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '16px', fontWeight: 600, letterSpacing: '0.05em' }}>{brand}</span>
           </div>
 
           {/* Middle: title */}

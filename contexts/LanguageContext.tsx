@@ -61,7 +61,12 @@ export function LanguageProvider({ children, initial }: { children: ReactNode; i
         if (saved === 'fi' || saved === 'en') next = saved
       } catch { /* privaattitila */ }
       if (!next) next = detectLang()
-      if (next !== 'fi') setLangState(next)
+      // Asetetaan AINA, myös 'fi'. Aiempi ehto `if (next !== 'fi')` oletti että
+      // tila on lähtökohtaisesti 'fi', mutta /en pakottaa sen arvoon 'en' —
+      // sieltä poistuttaessa efekti ajautuu uudelleen, luki localStoragesta
+      // 'fi' eikä palauttanut tilaa, jolloin <html lang> sanoi 'fi' ja
+      // käyttöliittymä näytti yhä englantia.
+      setLangState(next)
       if (typeof document !== 'undefined') document.documentElement.lang = next
     }, 0)
     return () => clearTimeout(t0)

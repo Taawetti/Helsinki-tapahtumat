@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react'
 import type { Event } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
+import { classifyEventCategory } from '@/lib/event-category'
 
 // "✦ ILLAN NOSTOT" — swipeable hero of up to 5 tonight picks (design handoff,
 // screenshot 1-koti.png). Horizontal drag > 8px = swipe; less = tap → open.
@@ -133,7 +134,14 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
         {/* Bottom: kicker + title + CTA + time */}
         <div className="absolute bottom-0 left-0 right-0 p-5">
           <p className="text-[11px] font-black uppercase tracking-[.12em] mb-1" style={{ color: '#a3abff' }}>
-            {(e.categories[0] ? `${e.categories[0]} · ` : '')}{e.location?.name ?? ''}
+            {(() => {
+              // Sama kuvio kuin PosterCardissa: suomeksi lähteen oma kategoria,
+              // englanniksi avainsanaketjusta johdettu (lib/event-category.ts).
+              const cat = lang === 'en'
+                ? (e.categories.length ? t(classifyEventCategory(e.categories).tKey) : '')
+                : (e.categories[0] ?? '')
+              return `${cat ? `${cat} · ` : ''}${e.location?.name ?? ''}`
+            })()}
           </p>
           <h2 className="font-black text-white leading-[1.02] mb-3.5" style={{ fontSize: 'clamp(1.6rem,6.5vw,2.1rem)', letterSpacing: '-0.03em' }}>
             {e.title}

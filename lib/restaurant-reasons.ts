@@ -16,6 +16,8 @@
 // juuri avannut. Syy on aina peräisin nimetystä lähteestä ja siihen liittyy
 // linkki. Tässä tiedostossa ei keksitä yhtään syytä eikä yhtään kategoriaa.
 
+import type { Lang, TranslationKey } from './i18n'
+
 /** Syyn laji. Järjestys tässä ei ratkaise mitään — paino on `REASON_WEIGHT`. */
 export type ReasonKind =
   | 'michelin'         // Michelin-opas: tähti, Bib Gourmand tai Selected
@@ -713,4 +715,82 @@ export function openingLabel(isoDate: string, today: Date): string | null {
   return d.getTime() > today.getTime()
     ? `Avaa ${month}${suffix}`
     : `Avattu ${month}${suffix}`
+}
+
+// ── SYYMERKIN TEKSTI KIELEN MUKAAN ──────────────────────────────────────────
+//
+// Syiden label-kentät ovat valmiiksi muotoiltua SUOMEA (data/restaurant-reasons
+// .json, 623 riviä + ajonaikaiset uutis- ja arviosyyt), joten englanninkielinen
+// käyttöliittymä näytti kortin tärkeimmällä rivillä suomea: "Suomen 50 parasta
+// · sija 3", "Avattu huhtikuussa", "Time Out · sija 13". Mitattu 25.8.2026.
+//
+// Labelia EI käännetä merkkijonona vaan teksti KOOTAAN UUDELLEEN rakenteisista
+// kentistä (kind, rank, date, source). Näin uusi data toimii ilman että
+// käännöstaulua tarvitsee päivittää, eikä suomenkielinen ulosanti voi muuttua:
+// suomeksi palautetaan label sellaisenaan.
+export function reasonLabel(
+  r: RestaurantReason,
+  t: (key: TranslationKey) => string,
+  lang: Lang,
+): string {
+  if (lang !== 'en') return r.label
+
+  switch (r.kind) {
+    case 'michelin': {
+      // 'Michelin 2★' ja 'Michelin Bib Gourmand' ovat oppaan omia termejä eivätkä
+      // käänny; vain 'Michelin-oppaassa' ja vihreän tähden lisä ovat suomea.
+      const green = /vihreä tähti/i.test(r.label)
+      const base = /oppaassa/i.test(r.label)
+        ? t('reason.michelin_guide')
+        : r.label.replace(/\s*·\s*vihreä tähti\s*$/i, '')
+      return green ? `${base} · ${t('reason.green_star')}` : base
+    }
+    case 'top50':
+      return r.rank ? `${t('reason.top50')} · ${t('reason.rank')} ${r.rank}` : t('reason.top50')
+    case 'timeout': {
+      // 'Time Out', 'MyHelsinki', 'Happens', 'Venuu' ovat julkaisujen nimiä.
+      const m = /sija\s+(\d+)/i.exec(r.label)
+      return m ? `${r.label.split('·')[0].trim()} · ${t('reason.rank')} ${m[1]}` : r.label
+    }
+    case 'vuoden-ravintola': {
+      const year = /(\d{4})/.exec(r.label)?.[1] ?? r.date?.slice(0, 4)
+      return year ? `${t('reason.restaurant_of_year')} ${year}` : t('reason.restaurant_of_year')
+    }
+    case 'uusi': {
+      // Aktiviteettipuoli (OSM) käyttää eri muotoa: 'Uusi paikka · elokuu'.
+      if (/^uusi paikka/i.test(r.label)) {
+        const d0 = r.date ? new Date(`${r.date}T12:00:00Z`) : null
+        if (d0 && !Number.isNaN(d0.getTime())) {
+          return `${t('reason.new_place')} · ${t(`uutta.month_name_${d0.getUTCMonth() + 1}` as TranslationKey)}`
+        }
+        return t('reason.new_place')
+      }
+      // Verbi luetaan labelista: sama funktio tuottaa sekä 'Avaa' (tulevaisuus)
+      // että 'Avattu' (mennyt), ja ero on käyttäjälle merkityksellinen.
+      const opens = /^avaa\b/i.test(r.label)
+      const verb = opens ? t('reason.opens') : t('reason.opened')
+      if (!r.date) return verb
+      const d = new Date(`${r.date}T12:00:00Z`)
+      if (Number.isNaN(d.getTime())) return verb
+      const month = t(`uutta.month_name_${d.getUTCMonth() + 1}` as TranslationKey)
+      // Vuosiluku vain jos label kantoi sen (eri vuoden avaus).
+      const year = /\b(\d{4})\b/.exec(r.label)?.[1]
+      return `${verb} ${month}${year ? ` ${year}` : ''}`
+    }
+    case 'huippuarvio':
+      return t('reason.top_rated')
+    case 'uutinen': {
+      const src = r.source && r.source !== 'lehdistö' ? r.source : t('reason.press')
+      return `${t('reason.in_the_news')} · ${src}`
+    }
+    case 'nayttely': {
+      // Kaksi tuotettua labelia (scripts/fetch-activity-reasons.ts:102); muut
+      // arvot ovat näyttelyn omia nimiä eli sisältöä, joita ei käännetä.
+      if (/^uusi näyttely tulossa$/i.test(r.label)) return t('reason.new_exhibition')
+      if (/^ajankohtainen näyttely$/i.test(r.label)) return t('reason.current_exhibition')
+      return r.label
+    }
+    default:
+      return r.label
+  }
 }

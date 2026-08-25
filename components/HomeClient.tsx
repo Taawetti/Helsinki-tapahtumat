@@ -348,10 +348,14 @@ export default function HomeClient({
   const localSearchHits = useMemo(() => {
     if (!keyword || keyword.length < 2) return { venues: [], activities: [], restaurants: [] }
     const kw = keyword.toLowerCase()
+    // Hakuehdotusten omat lyhytmuodot kolmelle luokalle: cat.*-avaimet ovat
+    // kartan/oppaiden yhteinen kategoriasanasto ('Näköalapaikka', 'Tori & halli',
+    // 'Muu'), mutta hakurivi on aina käyttänyt tiiviimpiä muotoja. Omat avaimet
+    // pitävät molemmat ennallaan.
     const ACT_LABEL: Record<string, string> = {
       sauna: `🧖 ${t('cat.sauna')}`, museo: `🏛 ${t('cat.museo')}`, nahtavyys: `🌄 ${t('cat.nahtavyys')}`,
-      galleria: `🖼 ${t('cat.galleria')}`, nakopaikka: `🔭 ${t('cat.nakopaikka')}`, uimaranta: `🏖 ${t('cat.uimaranta')}`,
-      puisto: `🌳 ${t('cat.puisto')}`, markkina: `🛍 ${t('cat.markkina')}`, urheilu: `⚽ ${t('cat.urheilu')}`, muu: `✨ ${t('cat.muu')}`,
+      galleria: `🖼 ${t('cat.galleria')}`, nakopaikka: `🔭 ${t('search.act_nakopaikka')}`, uimaranta: `🏖 ${t('cat.uimaranta')}`,
+      puisto: `🌳 ${t('cat.puisto')}`, markkina: `🛍 ${t('search.act_markkina')}`, urheilu: `⚽ ${t('cat.urheilu')}`, muu: `✨ ${t('search.act_muu')}`,
     }
     const REST_EMOJI: Record<string, string> = {
       ravintola: '🍽', kahvila: '☕', baari: '🍺', pikaruoka: '🍟', muu: '🍴',

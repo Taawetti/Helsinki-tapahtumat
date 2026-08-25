@@ -15,10 +15,22 @@ import type { TranslationKey } from '@/lib/i18n'
 //   Laskeutumissivuilla (/saunat, /terassit, /tapahtumat/*…): täysi
 //   linkkifooter. Sinne Google ja hakijat tulevat, siellä sisäinen linkitys
 //   tekee työnsä ja "katso myös" on aidosti hyödyllinen.
+// Kategorialinkin teksti poikkeaa suodatinpaneelin tekstistä yhdessä kohdassa:
+// VIBES.tKey on paneelin monikko ('Festivaalit'), mutta footerin linkki vie
+// yhdelle /tapahtumat/-sivulle jonka otsikko on yksikössä ('Festivaali') —
+// linkkitekstin on vastattava kohdesivua. Muilla kategorioilla tKey kelpaa.
+const FOOTER_TKEY: Record<string, TranslationKey> = {
+  festivaali: 'footer.cat_festivaali',
+}
+
 export default function Footer() {
   const pathname = usePathname()
   const { t } = useLanguage()
-  if (pathname === '/') {
+  // '/en' on sama SOVELLUSNÄKYMÄ kuin '/', vain eri kielellä — sen on saatava
+  // sama kevyt footer. Ilman tätä englanninkielinen etusivu sai laskeutumis-
+  // sivujen 26 linkin valikon, jonka jokainen linkki vie suomenkieliselle
+  // sivulle (mitattu 25.8.2026).
+  if (pathname === '/' || pathname === '/en') {
     return (
       <footer className="border-t border-white/10 mt-16 pb-24 md:pb-8">
         <div className="max-w-5xl mx-auto px-4 pt-8">
@@ -63,7 +75,7 @@ export default function Footer() {
               {VIBES.map((v) => (
                 <li key={v.id}>
                   <Link className="hover:text-white transition-colors" href={`/tapahtumat/${v.id}`}>
-                    {t(v.tKey as TranslationKey)}
+                    {t(FOOTER_TKEY[v.id] ?? (v.tKey as TranslationKey))}
                   </Link>
                 </li>
               ))}

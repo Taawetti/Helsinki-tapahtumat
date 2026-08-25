@@ -603,7 +603,9 @@ function ChainListCard({ chain, onClick }: {
       </div>
       <div className="p-4">
         <h3 className="font-black text-white text-sm leading-tight">{r.name}</h3>
-        <p className="text-[11px] font-bold mt-0.5" style={{ color: '#a3abff' }}>{chain.locations.length} {t('restaurants.locations')} · {t('common.show_all')}</p>
+        {/* Rivinsisäinen muoto (pieni alkukirjain): common.show_all on painikkeen
+            teksti 'Näytä kaikki', tässä se jatkaa lausetta "3 sijaintia · …". */}
+        <p className="text-[11px] font-bold mt-0.5" style={{ color: '#a3abff' }}>{chain.locations.length} {t('restaurants.locations')} · {t('restaurants.show_all_inline')}</p>
       </div>
     </button>
   )
@@ -1235,7 +1237,9 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
             <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>{t('map.loading_rests')}</span>
+            {/* Ilman ellipsiä: kolme pistettä on kartan tekstissä (map.loading_rests),
+                tässä spinneri hoitaa saman viestin eikä pisteitä ole koskaan ollut. */}
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)', letterSpacing: '-0.01em' }}>{t('restaurants.loading_short')}</span>
           </div>
         </div>
       )}

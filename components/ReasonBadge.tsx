@@ -8,8 +8,9 @@
 // Värit erottavat lajit toisistaan mutta pysyvät hillittyinä, jottei ruudukko
 // muutu liikennevaloksi.
 
-import type { ReasonKind, RestaurantReason } from '@/lib/restaurant-reasons'
+import { reasonLabel, type ReasonKind, type RestaurantReason } from '@/lib/restaurant-reasons'
 import type { TranslationKey } from '@/lib/i18n'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 type Translate = (key: TranslationKey) => string
 
@@ -47,6 +48,7 @@ export function relativeDate(pubDate: string, t: Translate): string {
 }
 
 export function ReasonBadge({ reason }: { reason: RestaurantReason }) {
+  const { t, lang } = useLanguage()
   const s = REASON_STYLE[reason.kind] ?? REASON_STYLE.timeout
   return (
     <span
@@ -54,7 +56,7 @@ export function ReasonBadge({ reason }: { reason: RestaurantReason }) {
       style={{ background: s.bg, color: s.fg, borderColor: s.bd }}
       title={reason.source}
     >
-      {reason.label}
+      {reasonLabel(reason, t, lang)}
     </span>
   )
 }

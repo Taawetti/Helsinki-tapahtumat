@@ -64,7 +64,10 @@ const webAppJsonLd = {
   description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa.',
   applicationCategory: 'LifestyleApplication',
   operatingSystem: 'Any',
-  inLanguage: 'fi',
+  // Molemmat kielet: sovellus on saatavilla suomeksi (/) ja englanniksi (/en).
+  // Nämä lohkot ovat juurilayoutissa eli mukana myös /en-sivulla, joten pelkkä
+  // 'fi' olisi ilmoittanut englanninkielisen sivun suomenkieliseksi.
+  inLanguage: ['fi-FI', 'en-GB'],
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
   areaServed: {
     '@type': 'City',
@@ -81,7 +84,7 @@ const organizationJsonLd = {
   logo: { '@type': 'ImageObject', url: `${BASE}/icon-512.png` },
   description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikat, festivaalit, teatterit, näyttelyt ja paljon muuta.',
   areaServed: { '@type': 'City', name: 'Helsinki', sameAs: 'https://www.wikidata.org/wiki/Q1757' },
-  inLanguage: 'fi-FI',
+  inLanguage: ['fi-FI', 'en-GB'],
 }
 
 const webSiteJsonLd = {
@@ -90,7 +93,7 @@ const webSiteJsonLd = {
   name: 'Mitä tänään',
   alternateName: ['Mitä tänään Helsinki', 'mitatanaan.fi', 'mitätänään.fi'],
   url: BASE,
-  inLanguage: 'fi-FI',
+  inLanguage: ['fi-FI', 'en-GB'],
   description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa.',
   publisher: { '@type': 'Organization', name: 'Mitä tänään', url: BASE },
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Globe, MapPin, Map as MapIcon, Heart, X, Clock } from 'lucide-react'
 import type { Event, Activity, ActivityCategory } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { isOpenNow } from '@/lib/opening-hours'
 import { helsinkiToday } from '@/lib/helsinki-time'
@@ -30,7 +31,7 @@ interface Suggestion {
   title: string
   why: string
   subWhy?: string
-  reason?: string          // "miksi tämä sinulle" -selite (lib/idea-deck)
+  reason?: TranslationKey  // "miksi tämä sinulle" -selitteen avain (lib/idea-deck)
   image: string | null
   address?: string
   lat?: number
@@ -683,7 +684,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               )}
               {current.reason && (
                 <p className="text-[11px] font-black mb-1.5" style={{ color: meta.accent }}>
-                  ✦ {current.reason}
+                  ✦ {t(current.reason)}
                 </p>
               )}
               <h2 className="font-black text-white text-2xl leading-tight mb-1" style={{ letterSpacing: '-0.02em' }}>

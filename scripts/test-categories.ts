@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs'
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 import { classifyEventCategory } from '../lib/event-category'
+import { getTranslation } from '../lib/i18n'
 import {
   detectSourceAnomalies,
   nextStreak,
@@ -1877,12 +1878,16 @@ const ideaChecks: { name: string; ok: boolean }[] = [
   const noTaste = buildIdeaDeck([evKeikka], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY })[0]
   const taste = buildIdeaDeck([evKeikka], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY, categoryScores: { musiikki: 2 } })[0]
   ideaChecks.push({ name: 'makumuisti nostaa osuvan kategorian', ok: taste.score > noTaste.score })
-  ideaChecks.push({ name: 'makumuistin selite on rehellinen', ok: taste.reason === 'Sopii makuusi aiempien valintojesi perusteella' })
+  // Selite on nyt käännösavain, ei valmis teksti. Tarkistetaan sekä avain että
+  // sen suomenkielinen arvo, jotta ulosanti pysyy täsmälleen entisenä.
+  ideaChecks.push({ name: 'makumuistin selite on rehellinen', ok: taste.reason === 'idea.reason_taste' })
+  ideaChecks.push({ name: 'makumuistin selitteen suomi ennallaan', ok: taste.reason != null && getTranslation('fi', taste.reason) === 'Sopii makuusi aiempien valintojesi perusteella' })
 }
 
 {
   const scene = buildIdeaDeck([evKeikka], { seed: 'X', nowMs: IDEA_NOW, today: IDEA_TODAY, scenes: ['keikka'] })[0]
-  ideaChecks.push({ name: 'scene-selite generoituu', ok: scene.reason === 'Valitsit keikat — tämä on sinua varten' })
+  ideaChecks.push({ name: 'scene-selite generoituu', ok: scene.reason === 'idea.reason_scene_keikka' })
+  ideaChecks.push({ name: 'scene-selitteen suomi ennallaan', ok: scene.reason != null && getTranslation('fi', scene.reason) === 'Valitsit keikat — tämä on sinua varten' })
 }
 
 {
