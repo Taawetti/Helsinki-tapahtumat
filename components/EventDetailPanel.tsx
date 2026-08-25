@@ -6,6 +6,7 @@ import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCirc
 import { Event } from '@/lib/types'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 import { canBuyTickets } from '@/lib/tickets'
+import { shareUrlFor } from '@/lib/event-links'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VENUE_PAGES } from '@/lib/venue-pages'
@@ -171,29 +172,29 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
 
   if (!event) return null
 
-  const mapsUrl = event.location
-    ? `https://maps.google.com/?q=${encodeURIComponent(
-        [event.location.streetAddress, event.location.city].filter(Boolean).join(', ')
-      )}`
-    : null
+  // Karttahaku: PAIKAN NIMI mukaan. Ilman sitä osoitteeton tapahtuma haki
+  // pelkällä "Helsinki"-sanalla ja kartta avautui keskustaan — mitattu
+  // 25.8.2026: 271 tapahtumaa 1280:stä oli tässä tilassa.
+  const mapsQuery = event.location
+    ? [event.location.name, event.location.streetAddress, event.location.city]
+        .filter(Boolean).join(', ')
+    : ''
+  const mapsUrl = mapsQuery ? `https://maps.google.com/?q=${encodeURIComponent(mapsQuery)}` : null
 
   // Transit directions via Google Maps (shows HSL routes in Helsinki automatically)
   const transitUrl = event.location
     ? event.location.lat && event.location.lon
       ? `https://maps.google.com/maps?daddr=${event.location.lat},${event.location.lon}&travelmode=transit`
-      : `https://maps.google.com/maps?daddr=${encodeURIComponent([event.location.streetAddress, event.location.city].filter(Boolean).join(', '))}&travelmode=transit`
+      : `https://maps.google.com/maps?daddr=${encodeURIComponent(mapsQuery)}&travelmode=transit`
     : null
 
   const shareText = buildShareText(event)
-  // Jaetaan oma tapahtumasivu (/e/[id], OG-kuvalla ja JSON-LD:llä) aina kun sivu
-  // osaa ratkaista id:n — LinkedEvents-, Ticketmaster- ja festivaalitapahtumat.
-  // Muiden lähteiden id:t (scrapatut yms.) eivät ratkea → fallback ulkoiseen
-  // linkkiin. Näin jakaminen ohjaa kävijät palveluun, ei pois siitä.
-  const hasOwnPage =
-    event.source === 'linked-events' || event.id.startsWith('tm-') || event.id.startsWith('festival-')
-  const shareUrl = hasOwnPage
-    ? `https://helsinki-tapahtumat.vercel.app/e/${encodeURIComponent(event.id)}`
-    : event.infoUrl || event.ticketUrl || 'https://helsinki-tapahtumat.vercel.app'
+  // Jakolinkki: oma tapahtumasivu kun /e/[id] osaa sen ratkaista, muuten
+  // ulkoinen linkki — mutta EI KOSKAAN kilpailevaan tapahtumakalenteriin
+  // (lib/event-links). Aiemmin tämä katsoi source-kenttää, ja koska stadissa
+  // merkitsee tapahtumansa 'linked-events'-lähteeksi, jokainen jako niistä
+  // osoitti 404-sivulle (mitattu 25.8.2026).
+  const shareUrl = shareUrlFor(event, 'https://helsinki-tapahtumat.vercel.app')
 
   async function handleNativeShare() {
     if (navigator.share) {

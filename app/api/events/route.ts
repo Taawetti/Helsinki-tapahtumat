@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isCompetitorUrl } from '@/lib/event-links'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
 import { helsinkiDateOf, normalizeHelsinkiTimestamp } from '@/lib/helsinki-time'
@@ -11,6 +12,17 @@ export const maxDuration = 60
 
 // External sources fetched via internal API routes (api/<name>).
 // Order defines merge priority: earlier sources win dedup upgrades first.
+// JÄRJESTYSTÄ EI SAA SÄÄTÄÄ ILMAN MITTAUSTA. Kokeiltu 25.8.2026: 'stadissa'
+// siirto listan viimeiseksi (jotta kilpailijan linkki häviäisi dedupissä)
+// EI muuttanut mitattavasti mitään — kilpailijalinkkien määrä pysyi 198/1875
+// molemmilla järjestyksillä, koska päällekkäiset tapaukset korjautuvat jo
+// ticketUrl-päivityksen kautta. Kilpailijalinkki hoidetaan täsmällisellä
+// infoUrl-päivityksellä alempana (isCompetitorUrl).
+//
+// HUOM samalla mitattu: dedupin lopputulos EI ole täysin deterministinen —
+// sama tuotantokoodi antoi kahdella peräkkäisellä pyynnöllä eri CTA-linkin
+// 4 kortille (lähteiden vastausajat vaihtelevat → pariutuminen vaihtuu).
+// Se on oma erillinen vikansa; älä tulkitse tällaista eroa muutoksen syyksi.
 const EXTERNAL_SOURCES = [
   'ticketmaster', 'fienta', 'billetto', 'meetup', 'rss', 'venues', 'culture', 'espoo',
   'helmet', 'ilmonet', 'finna', 'visitfinland', 'sports', 'festivals', 'theatre',
@@ -375,6 +387,13 @@ export async function GET(req: NextRequest) {
               if (e.location?.lat && e.location?.lon && !existing?.location?.lat) upgrades.location = e.location
               if (e.image && !existing?.image) upgrades.image = e.image
               if (e.ticketUrl && !existing?.ticketUrl) upgrades.ticketUrl = e.ticketUrl
+              // infoUrlia EI aiemmin päivitetty lainkaan, joten kilpailijan
+              // osoite jäi kortille vaikka toinen lähde tiesi järjestäjän
+              // oman sivun. Korvataan vain kun nykyinen on kilpailijalta —
+              // muuten ensimmäisen lähteen linkki säilyy ennallaan.
+              if (e.infoUrl && !isCompetitorUrl(e.infoUrl) && isCompetitorUrl(existing?.infoUrl)) {
+                upgrades.infoUrl = e.infoUrl
+              }
               if (e.price && !existing?.price) upgrades.price = e.price
               // TODELLINEN kelloaika voittaa keksityn: säilyttäjä valittiin
               // lähdejärjestyksessä, ja aiempi lähde saattoi käyttää kiinteää

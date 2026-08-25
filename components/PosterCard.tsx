@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Event } from '@/lib/types'
 import { formatTime, fmtDistance } from '@/lib/utils'
 import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
+import { hasOwnEventPage } from '@/lib/event-links'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 // 12 distinct dark gradients with varied angles
@@ -79,7 +80,9 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
     : ''
   // Crawlable href vain id:lle, jotka /e/[id] oikeasti ratkaisee (Google ei
   // saa massa-404:ia muiden lähteiden id:istä — klikki avaa aina paneelin).
-  const hasOwnPage = event.source === 'linked-events' || event.id.startsWith('tm-') || event.id.startsWith('festival-')
+  // Tarkistus on id-muodossa, EI source-kentässä: stadissa merkitsee
+  // tapahtumansa 'linked-events'-lähteeksi mutta /e/stadissa-* on 404.
+  const hasOwnPage = hasOwnEventPage(event)
 
   return (
     <Link

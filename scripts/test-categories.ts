@@ -72,6 +72,7 @@ import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
+import { isCompetitorUrl, hasOwnEventPage, shareUrlFor } from '../lib/event-links'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
@@ -1373,6 +1374,37 @@ for (const c of arcChecks) {
   for (const c of gCases) {
     if (c.ok) pass++
     else failures.push(`✗ opasrikastus: ${c.name}`)
+  }
+}
+
+// ── Tapahtumalinkit (lib/event-links) — kilpailijalle ei ohjata, eikä
+// jakolinkki saa osoittaa 404-sivulle. Mitattu 25.8.2026: stadissa merkitsee
+// tapahtumansa 'linked-events'-lähteeksi, jolloin source-pohjainen tarkistus
+// tuotti /e/stadissa-116290 → 404 jokaisesta jaosta (189/189).
+{
+  const B = 'https://helsinki-tapahtumat.vercel.app'
+  const linkCases: { name: string; ok: boolean }[] = [
+    { name: 'kilpailija: stadissa.fi tunnistetaan', ok: isCompetitorUrl('https://www.stadissa.fi/tapahtumat/x') === true },
+    { name: 'kilpailija: alidomain', ok: isCompetitorUrl('https://menokone.hs.fi/tapahtuma/1') === true },
+    { name: 'kilpailija: järjestäjän oma sivu EI ole kilpailija', ok: isCompetitorUrl('https://tavastiaklubi.fi/keikka') === false },
+    { name: 'kilpailija: domain-huijaus (stadissa.fi.evil.com)', ok: isCompetitorUrl('https://stadissa.fi.evil.com/x') === false },
+    { name: 'kilpailija: tyhjä/rikkinäinen', ok: isCompetitorUrl(null) === false && isCompetitorUrl('ei-url') === false },
+    // Oma sivu: vain ne id:t jotka /e/[id] oikeasti ratkaisee
+    { name: 'oma sivu: LinkedEvents-id (helsinki:agqa74rrka)', ok: hasOwnEventPage({ id: 'helsinki:agqa74rrka' }) === true },
+    { name: 'oma sivu: tm- ja festival-', ok: hasOwnEventPage({ id: 'tm-Z698xZb' }) && hasOwnEventPage({ id: 'festival-viapori-jazz' }) },
+    { name: 'oma sivu: stadissa-id EI ratkea (404-suoja)', ok: hasOwnEventPage({ id: 'stadissa-116290' }) === false },
+    { name: 'oma sivu: venue-/lippu-skraperi-id ei ratkea', ok: !hasOwnEventPage({ id: 'venue-tavastia-119725' }) && !hasOwnEventPage({ id: 'lippu-21970031' }) },
+    { name: 'oma sivu: museum-helsinki:… ei ratkea (skraperin oma id)', ok: hasOwnEventPage({ id: 'museum-helsinki:agp3dof3km' }) === false },
+    { name: 'oma sivu: rss-/recurring- ei ratkea', ok: !hasOwnEventPage({ id: 'rss-123' }) && !hasOwnEventPage({ id: 'recurring-abc' }) },
+    // Jakolinkki
+    { name: 'jako: oma sivu kun id ratkeaa', ok: shareUrlFor({ id: 'helsinki:abc123' }, B) === `${B}/e/helsinki%3Aabc123` },
+    { name: 'jako: stadissa-tapahtuma → EI kilpailijan osoitetta', ok: shareUrlFor({ id: 'stadissa-1', infoUrl: 'https://www.stadissa.fi/tapahtumat/x' }, B) === B },
+    { name: 'jako: järjestäjän linkki kelpaa kun omaa sivua ei ole', ok: shareUrlFor({ id: 'venue-1', infoUrl: 'https://tavastiaklubi.fi/keikka' }, B) === 'https://tavastiaklubi.fi/keikka' },
+    { name: 'jako: kilpailija ohitetaan, lippulinkki käytetään', ok: shareUrlFor({ id: 'stadissa-2', infoUrl: 'https://stadissa.fi/x', ticketUrl: 'https://www.lippu.fi/y' }, B) === 'https://www.lippu.fi/y' },
+  ]
+  for (const c of linkCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ tapahtumalinkit: ${c.name}`)
   }
 }
 
