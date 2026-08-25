@@ -1109,7 +1109,8 @@ export default function HomeClient({
           {/* ═══ KATEGORIAN PYSTYLISTA (koCat) — ← Takaisin + rikkaat kortit ═══ */}
           {/* ═══ OPAS ETUSIVUN SISÄLLÄ (guideView) ═══ */}
           {guideView && !koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
-            <GuideInlineView slug={guideView} onBack={() => setGuideView(null)} />
+            <GuideInlineView slug={guideView} onBack={() => setGuideView(null)}
+              onSwitch={setGuideView} onEventClick={setSelectedEvent} />
           )}
 
           {koCat && !guideView && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
