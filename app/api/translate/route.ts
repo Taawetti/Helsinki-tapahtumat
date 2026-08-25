@@ -18,6 +18,10 @@ import {
   type TranslatableEvent, type TranslatedFields,
 } from '@/lib/translate'
 
+// Claude-kutsu kestää sekunteja ja niitä voi olla kolme rinnakkain; Vercelin
+// oletuskatkaisu on liian lyhyt isolle erälle.
+export const maxDuration = 60
+
 /** Yhden pyynnön yläraja. Etusivu näyttää ~30 korttia kerralla; 120 kattaa
  *  myös "näytä lisää" -latauksen ilman että yksi pyyntö voi räjähtää. */
 const MAX_ITEMS = 120
@@ -50,7 +54,12 @@ async function callClaude(prompt: string): Promise<string> {
       messages: [{ role: 'user', content: prompt }],
     }),
   })
-  if (!res.ok) throw new Error(`Anthropic ${res.status}`)
+  if (!res.ok) {
+    // Vastauksen alku mukaan: pelkkä statuskoodi ei kerro onko kyse avaimesta,
+    // mallista vai kiintiöstä.
+    const detail = await res.text().catch(() => '')
+    throw new Error(`Anthropic ${res.status}: ${detail.slice(0, 200)}`)
+  }
   const data = await res.json()
   const block = Array.isArray(data?.content) ? data.content[0] : null
   return typeof block?.text === 'string' ? block.text : ''
@@ -112,7 +121,9 @@ export async function POST(req: NextRequest) {
           description: row.description ?? '',
         }
       }
-    } catch { /* välimuisti nurin → käännetään kaikki */ }
+    } catch (err) {
+      console.error('translate: välimuistin luku epäonnistui:', err instanceof Error ? err.message : String(err))
+    }
   }
 
   const missing = clean.filter((it) => !out[it.id])
@@ -129,7 +140,14 @@ export async function POST(req: NextRequest) {
     }),
   )
   for (const r of results) {
-    if (r.status !== 'fulfilled') continue
+    if (r.status !== 'fulfilled') {
+      // ÄLÄ NIELE HILJAA. Ensimmäinen tuotantoajo palautti translated:0 ilman
+      // yhtään lokiriviä, eikä syytä voinut päätellä (25.8.2026). Käännös saa
+      // epäonnistua — käyttäjä näkee suomea — mutta syyn on näyttävä lokissa.
+      console.error('translate: erä epäonnistui:', r.reason instanceof Error ? r.reason.message : String(r.reason))
+      continue
+    }
+    if (!r.value.size) console.error('translate: erä palautti 0 riviä (jäsennys ei tunnistanut vastausta)')
     for (const [id, t] of r.value) { fresh.set(id, t); out[id] = t }
   }
 
@@ -147,7 +165,9 @@ export async function POST(req: NextRequest) {
     try {
       // Vanhentuneet rivit korvataan, uudet lisätään — sama operaatio.
       await supabaseAdmin.from('event_translations').upsert(rows, { onConflict: 'event_id,lang' })
-    } catch { /* tallennus epäonnistui — käännös silti palautetaan */ }
+    } catch (err) {
+      console.error('translate: välimuistiin tallennus epäonnistui:', err instanceof Error ? err.message : String(err))
+    }
   }
 
   return NextResponse.json({
