@@ -10,7 +10,7 @@ export default function VenueForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
-    nimi: '', paikka: '', pvm: '', aika: '',
+    nimi: '', paikka: '', pvm: '', aika: '', loppuu: '',
     linkki: '', kuvaus: '', email: '',
   })
 
@@ -81,14 +81,22 @@ export default function VenueForm() {
         <input value={form.paikka} onChange={set('paikka')} placeholder="Esim. Bar Loose, Annankatu 21" className={inputClass} />
       </div>
 
-      <div className="grid grid-cols-[3fr_2fr] gap-3">
+      <div className="space-y-1.5">
+        <label className={labelClass}>Päivämäärä <span style={{ color: '#6b76ff' }}>*</span></label>
+        <input type="date" value={form.pvm} onChange={set('pvm')} className={`${inputClass} [color-scheme:dark]`} />
+      </div>
+
+      {/* Loppumisaika myös tässä: molemmat lomakkeet postaavat samaan
+          /api/submit-event-reittiin, ja ilman kenttää tämän kautta tulleista
+          ilmoituksista puuttuisi tieto jonka sovelluksen sisäinen lomake kysyy. */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className={labelClass}>Päivämäärä <span style={{ color: '#6b76ff' }}>*</span></label>
-          <input type="date" value={form.pvm} onChange={set('pvm')} className={`${inputClass} [color-scheme:dark]`} />
+          <label className={labelClass}>Alkaa</label>
+          <input type="time" value={form.aika} onChange={set('aika')} className={`${inputClass} [color-scheme:dark]`} />
         </div>
         <div className="space-y-1.5">
-          <label className={labelClass}>Alkuaika</label>
-          <input type="time" value={form.aika} onChange={set('aika')} className={`${inputClass} [color-scheme:dark]`} />
+          <label className={labelClass}>Päättyy</label>
+          <input type="time" value={form.loppuu} onChange={set('loppuu')} className={`${inputClass} [color-scheme:dark]`} />
         </div>
       </div>
 

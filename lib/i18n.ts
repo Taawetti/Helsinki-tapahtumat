@@ -822,6 +822,10 @@ const t = {
     'reason.new_exhibition':       'Uusi näyttely tulossa',
     'reason.current_exhibition':   'Ajankohtainen näyttely',
     'reason.new_place':            'Uusi paikka',
+    'form.field_time_start':       'Alkaa',
+    'form.field_time_end':         'Päättyy',
+    'form.cat_other':              'Joku muu',
+    'form.add_event_cta':          'Lisää tapahtuma',
   },
 
   en: {
@@ -1646,6 +1650,10 @@ const t = {
     'reason.new_exhibition':       'New exhibition coming',
     'reason.current_exhibition':   'Current exhibition',
     'reason.new_place':            'New place',
+    'form.field_time_start':       'Starts',
+    'form.field_time_end':         'Ends',
+    'form.cat_other':              'Something else',
+    'form.add_event_cta':          'Add an event',
   },
 } as const
 

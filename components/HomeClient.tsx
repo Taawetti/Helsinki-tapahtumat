@@ -884,7 +884,8 @@ export default function HomeClient({
               )}
             </button>
             <button onClick={() => setShowJarjestajaForm((p) => !p)}
-              title={t('form.add_event')}
+              title={t('form.add_event_cta')}
+              aria-label={t('form.add_event_cta')}
               className={`relative p-2 rounded-xl border transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4'}`}
               style={showJarjestajaForm ? { color: '#6b76ff' } : {}}>
               <Plus size={16} strokeWidth={2.5} />
@@ -965,11 +966,22 @@ export default function HomeClient({
             )}
           </button>
 
+          {/* Järjestäjän sisäänkäynti. Pelkkä "+" ei kertonut kenellekään mitä
+              napista tapahtuu (omistaja 25.8.2026) — työpöydällä tilaa on, joten
+              teksti on mukana. Mobiilissa sama toiminto on tekstillisenä
+              painikkeena sisällön lopussa, koska yläpalkki on jo täynnä. */}
           <button onClick={() => setShowJarjestajaForm((p) => !p)}
-            title={t('form.add_event')}
-            className={`relative shrink-0 p-2 rounded-xl border transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
-            style={showJarjestajaForm ? { color: '#6b76ff' } : {}}>
-            <Plus size={16} strokeWidth={2.5} />
+            title={t('form.add_event_cta')}
+            aria-label={t('form.add_event_cta')}
+            className={`relative shrink-0 flex items-center gap-1.5 p-2 lg:pl-2.5 lg:pr-3 rounded-xl border text-[12.5px] font-bold transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/55 bg-white/4 hover:text-white/85'}`}>
+            <Plus size={15} strokeWidth={2.5} />
+            {/* Teksti vasta lg:stä ylöspäin. Mitattu 768 px:llä: teksti kasvatti
+                yläpalkin 877 px:iin eli koko sivu sai vaakavierityksen ja juuri
+                tämä nappi leikkautui ruudun ulkopuolelle — päinvastainen
+                lopputulos kuin haluttiin. Rivi on nowrap eikä shrink-0-nappi
+                anna periksi, joten teksti piilotetaan kapealla ja tilalle jää
+                sisällön tekstillinen painike (alempana, lg:hidden). */}
+            <span className="hidden lg:inline whitespace-nowrap">{t('form.add_event_cta')}</span>
           </button>
         </div>
 
@@ -1455,6 +1467,22 @@ export default function HomeClient({
             />
           )}
 
+
+          {/* JÄRJESTÄJÄN SISÄÄNKÄYNTI MOBIILISSA. Yläpalkissa toiminto on vain
+              "+"-ikonina. Mitattu 390 px:n leveydellä: rivillä on brändi (115 px)
+              ja viisi painiketta (203 px), joten vapaata on 40 px kun teksti
+              vaatisi ~90 px. Omistajan vaatimus 25.8.2026: "jos ei mahdu niin
+              asetella selkeästi että lisää tapahtuma" — tässä se on tekstinä.
+              Yläpalkin nappi näyttää tekstin vasta lg:stä ylöspäin, joten tämä
+              on näkyvissä siihen asti (lg:hidden) — myös iPadilla pystyssä. */}
+          <button
+            onClick={() => setShowJarjestajaForm(true)}
+            className="lg:hidden w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[13.5px] font-black text-white/70 border transition-all active:scale-[.99]"
+            style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.09)' }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            {t('form.add_event_cta')}
+          </button>
 
           {/* Newsletter signup */}
           <NewsletterBanner />

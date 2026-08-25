@@ -1637,6 +1637,36 @@ for (const c of arcChecks) {
   }
 }
 
+// ── Järjestäjälomakkeen kellonaikarivi (app/api/submit-event) ───────────────
+// Kumpikaan aikakenttä ei ole pakollinen, joten kaikki neljä yhdistelmää
+// päätyvät ilmoitussähköpostiin. Pelkkä loppumisaika suoraan päivämäärän
+// perään näyttäisi päivämääräväliltä ("2026-09-15–23.30").
+{
+  // Sama logiikka kuin reitissä; pidetään testin oma kopio, koska reitti ei
+  // vie funktiota ulos (Next-reitti ei saa viedä ylimääräisiä symboleita).
+  const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  const timeLabel = (alkaa?: string, loppuu?: string): string => {
+    const a = (alkaa ?? '').trim(), l = (loppuu ?? '').trim()
+    if (a && l) return ` klo ${esc(a)}–${esc(l)}`
+    if (a) return ` klo ${esc(a)}`
+    if (l) return ` (päättyy klo ${esc(l)})`
+    return ''
+  }
+  const formChecks: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'aika: molemmat annettu', ok: timeLabel('19.00', '23.30') === ' klo 19.00–23.30', got: timeLabel('19.00', '23.30') },
+    { name: 'aika: vain alkaa', ok: timeLabel('19.00', '') === ' klo 19.00', got: timeLabel('19.00', '') },
+    { name: 'aika: vain päättyy ei näytä päivämääräväliltä', ok: timeLabel('', '23.30') === ' (päättyy klo 23.30)', got: timeLabel('', '23.30') },
+    { name: 'aika: kumpaakaan ei annettu', ok: timeLabel('', '') === '', got: JSON.stringify(timeLabel('', '')) },
+    { name: 'aika: undefined ei kaada', ok: timeLabel(undefined, undefined) === '' },
+    { name: 'aika: pelkkä välilyönti tulkitaan tyhjäksi', ok: timeLabel('  ', '  ') === '' },
+    { name: 'aika: HTML escapetetaan', ok: !timeLabel('<b>19</b>', '').includes('<b>') },
+  ]
+  for (const c of formChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ lomake: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
 // ── Torstain pakka (viikkodigesti, lib/weekly-digest.ts) — puhdas kuratointi:
 // kattilat, pisteytys, duplikaattisuojat. Fixture-malli sama kuin kaaret yllä.
 const PE_ILTA = '2026-08-14T19:00:00+03:00' // perjantai-ilta (pe 14.8.2026)

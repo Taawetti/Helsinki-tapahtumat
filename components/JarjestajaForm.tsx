@@ -9,6 +9,15 @@ import type { TranslationKey } from '@/lib/i18n'
 // Kategoriapillerit VIBES-listasta (design 8-ilmoita.png; ei festivaali/underground)
 const FORM_VIBES = VIBES.filter((v) => v.id !== 'festivaali' && v.id !== 'underground')
 
+// "Joku muu" viimeisenä (omistaja 25.8.2026): järjestäjän tapahtuma ei aina osu
+// mihinkään valmiiseen luokkaan, ja ilman tätä hän jättäisi kategorian tyhjäksi
+// — jolloin emme tiedä oliko kyse unohduksesta vai siitä ettei sopivaa ollut.
+// label on suomeksi kuten VIBES-riveillä: se menee sellaisenaan ilmoitusmailiin.
+const FORM_CATS: { id: string; label: string; tKey: string }[] = [
+  ...FORM_VIBES.map((v) => ({ id: v.id, label: v.label, tKey: v.tKey })),
+  { id: 'muu', label: 'Joku muu', tKey: 'form.cat_other' },
+]
+
 interface Props {
   onClose: () => void
 }
@@ -20,7 +29,7 @@ export default function JarjestajaForm({ onClose }: Props) {
   const [error, setError] = useState('')
   const [missing, setMissing] = useState<string[]>([])
   const [form, setForm] = useState({
-    nimi: '', kuvaus: '', pvm: '', aika: '',
+    nimi: '', kuvaus: '', pvm: '', aika: '', loppuu: '',
     paikka: '', hinta: '', linkki: '', email: '',
   })
   const [kategoriat, setKategoriat] = useState<string[]>([])
@@ -109,14 +118,22 @@ export default function JarjestajaForm({ onClose }: Props) {
               <input value={form.nimi} onChange={set('nimi')} placeholder={t('form.field_name_ph')} className={inputClass} />
             </div>
 
-            <div className="grid grid-cols-[3fr_2fr] gap-3">
+            <div className="space-y-1.5">
+              <label className={labelClass}>{t('form.field_date')} <span style={{ color: '#6b76ff' }}>*</span></label>
+              <input type="date" value={form.pvm} onChange={set('pvm')} className={`${inputClass} [color-scheme:dark]`} />
+            </div>
+
+            {/* Alkaa + päättyy rinnakkain. Päivämäärä nostettiin omalle
+                rivilleen, koska kolme kenttää ei mahdu luettavasti 390 px:n
+                modaaliin — type="time" tarvitsee ~95 px kellonaikavalitsimineen. */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className={labelClass}>{t('form.field_date')} <span style={{ color: '#6b76ff' }}>*</span></label>
-                <input type="date" value={form.pvm} onChange={set('pvm')} className={`${inputClass} [color-scheme:dark]`} />
+                <label className={labelClass}>{t('form.field_time_start')}</label>
+                <input type="time" value={form.aika} onChange={set('aika')} className={`${inputClass} [color-scheme:dark]`} />
               </div>
               <div className="space-y-1.5">
-                <label className={labelClass}>{t('form.field_time')}</label>
-                <input type="time" value={form.aika} onChange={set('aika')} className={`${inputClass} [color-scheme:dark]`} />
+                <label className={labelClass}>{t('form.field_time_end')}</label>
+                <input type="time" value={form.loppuu} onChange={set('loppuu')} className={`${inputClass} [color-scheme:dark]`} />
               </div>
             </div>
 
@@ -134,8 +151,15 @@ export default function JarjestajaForm({ onClose }: Props) {
 
             <div className="space-y-1.5">
               <label className={labelClass}>{t('form.field_category')}</label>
-              <div className="flex gap-1.5 overflow-x-auto scrollbar-none -mx-5 px-5 pb-1">
-                {FORM_VIBES.map(v => {
+              {/* RIVITTYVÄ, ei vaakavieritettävä. Mitattu 390 px:n näkymässä:
+                  11 pilleriä vievät 1100 px, joten "Joku muu" olisi ollut
+                  1013 px:n kohdalla — eikä rivillä ole vierityspalkkia
+                  (scrollbar-none) eikä häivytystä, joten mikään ei vihjaa että
+                  oikealla on lisää. Juuri se järjestäjä jonka tapahtuma ei sovi
+                  mihinkään luokkaan ei olisi löytänyt vaihtoehtoaan. Lomakkeessa
+                  on valittava, joten kaikki vaihtoehdot on näytettävä kerralla. */}
+              <div className="flex flex-wrap gap-1.5">
+                {FORM_CATS.map(v => {
                   const active = kategoriat.includes(v.label)
                   return (
                     <button

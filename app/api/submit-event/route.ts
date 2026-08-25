@@ -7,11 +7,29 @@ interface EventSubmission {
   kuvaus?: string
   pvm: string
   aika?: string
+  /** Loppumisaika. Ilman tätä kestoltaan pitkä tapahtuma (näyttely, festari)
+   *  näyttäisi ilmoituksessa yhdeltä kellonlyömältä. */
+  loppuu?: string
   paikka: string
   hinta?: string
   kategoria?: string
   linkki?: string
   email: string
+}
+
+/** Kellonaikaosuus päivämäärärivin perään.
+ *
+ *  Kaikki neljä yhdistelmää on käsiteltävä erikseen: pelkkä loppumisaika on
+ *  mahdollinen, koska lomakkeessa kumpikaan aikakenttä ei ole pakollinen. Jos
+ *  se liimattaisiin suoraan päivämäärän perään ("2026-09-15–23.30"), rivi
+ *  näyttäisi päivämääräväliltä eikä kellonajalta. */
+function timeLabel(alkaa: string | undefined, loppuu: string | undefined): string {
+  const a = (alkaa ?? '').trim()
+  const l = (loppuu ?? '').trim()
+  if (a && l) return ` klo ${escHtml(a)}–${escHtml(l)}`
+  if (a) return ` klo ${escHtml(a)}`
+  if (l) return ` (päättyy klo ${escHtml(l)})`
+  return ''
 }
 
 function escHtml(s: string | undefined): string {
@@ -57,7 +75,7 @@ export async function POST(req: NextRequest) {
     <h2 style="font-family:sans-serif;color:#a855f7;">Uusi tapahtumaehdotus — Mitä tänään</h2>
     <table style="font-family:sans-serif;font-size:14px;border-collapse:collapse;width:100%;max-width:600px;">
       <tr><td style="padding:6px 12px;font-weight:bold;color:#666;width:140px;">Nimi</td><td style="padding:6px 12px;">${escHtml(body.nimi)}</td></tr>
-      <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Päivämäärä</td><td style="padding:6px 12px;">${escHtml(body.pvm)}${body.aika ? ' klo ' + escHtml(body.aika) : ''}</td></tr>
+      <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Päivämäärä</td><td style="padding:6px 12px;">${escHtml(body.pvm)}${timeLabel(body.aika, body.loppuu)}</td></tr>
       <tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Paikka</td><td style="padding:6px 12px;">${escHtml(body.paikka)}</td></tr>
       ${body.hinta ? `<tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Hinta</td><td style="padding:6px 12px;">${escHtml(body.hinta)}</td></tr>` : ''}
       ${body.kategoria ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kategoria</td><td style="padding:6px 12px;">${escHtml(body.kategoria)}</td></tr>` : ''}
@@ -80,7 +98,10 @@ export async function POST(req: NextRequest) {
         sender: { name: 'Helsinki Tapahtumat', email: senderEmail },
         to: [{ email: adminEmail }],
         replyTo: { email: body.email },
-        subject: `Tapahtumaehdotus: ${escHtml(body.nimi)} — ${body.pvm}`,
+        // EI escHtml: subject on pelkkää tekstiä, joten HTML-escapetus näkyisi
+        // postilaatikossa raakana ("Kalle &amp; Kaverit"). Rivinvaihdot pois,
+        // koska ne rikkoisivat otsikkokentän.
+        subject: `Tapahtumaehdotus: ${body.nimi.replace(/\s+/g, ' ').trim()} — ${body.pvm}`,
         htmlContent,
       }),
     })
