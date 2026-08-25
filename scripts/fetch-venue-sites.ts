@@ -171,7 +171,12 @@ async function main() {
   console.log(`\nKirjoitettu ${OUT}`)
 }
 
-main().catch((err) => {
-  console.error('fetch-venue-sites epäonnistui:', err)
-  process.exit(1)
-})
+// Aja VAIN kun tiedosto käynnistetään suoraan. Ilman tätä pelkkä
+// `import { venueKey } from './fetch-venue-sites'` (esim. testeissä) laukaisi
+// koko haun ja kirjoitti data/venue-sites.json:n uusiksi — mitattu 25.8.2026.
+if (process.argv[1]?.includes('fetch-venue-sites')) {
+  main().catch((err) => {
+    console.error('fetch-venue-sites epäonnistui:', err)
+    process.exit(1)
+  })
+}

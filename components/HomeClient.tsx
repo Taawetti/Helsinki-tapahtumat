@@ -25,6 +25,7 @@ import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
 import GuideInlineView, { GUIDE_META, type GuideSlug } from '@/components/GuideInlineView'
 import JarjestajaForm from '@/components/JarjestajaForm'
+import LanguageSwitch from '@/components/LanguageSwitch'
 import NewsletterBanner from '@/components/NewsletterBanner'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
@@ -841,9 +842,10 @@ export default function HomeClient({
             </span>
           </button>
           <div className="flex items-center gap-2">
+            <LanguageSwitch compact />
             <button
               onClick={handleBellClick}
-              title={pushEnabled ? 'Peruuta ilmoitukset' : 'Tilaa päiväilmoitukset'}
+              title={pushEnabled ? t('nav.notif_off') : t('nav.notif_on')}
               className={`p-2 rounded-xl border transition-all ${pushEnabled ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
             >
               <Bell size={15} />
@@ -919,9 +921,10 @@ export default function HomeClient({
           />
           </div>
 
+          <LanguageSwitch />
           <button
             onClick={handleBellClick}
-            title={pushEnabled ? 'Peruuta ilmoitukset' : 'Tilaa päiväilmoitukset'}
+            title={pushEnabled ? t('nav.notif_off') : t('nav.notif_on')}
             className={`shrink-0 p-2 rounded-xl border transition-all ${pushEnabled ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
           >
             <Bell size={15} />

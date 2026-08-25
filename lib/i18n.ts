@@ -460,6 +460,8 @@ const t = {
     // ── Misc ─────────────────────────────────────────────────
     'misc.distance_away': 'päässä',
     'misc.opening_hours': 'Aukioloajat',
+    'nav.notif_on':                'Tilaa päiväilmoitukset',
+    'nav.notif_off':               'Peruuta ilmoitukset',
   },
 
   en: {
@@ -922,6 +924,8 @@ const t = {
     'discover.events_today':       'events today',
     'discover.details':            'Details',
     'discover.exit_search':        'Clear search ×',
+    'nav.notif_on':                'Get daily notifications',
+    'nav.notif_off':               'Turn off notifications',
   },
 } as const
 

@@ -7,6 +7,7 @@
 // testinä ENNEN kuin sääntöjä korjataan — näin sama virhe ei voi palata.
 // Testit ovat puhtaita fixtureita: ei verkkoa, ei ympäristöriippuvuuksia.
 
+import { readFileSync } from 'node:fs'
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 import {
   detectSourceAnomalies,
@@ -1463,6 +1464,46 @@ for (const c of arcChecks) {
   }
 }
 
+
+// ── Käännösten eheys (lib/i18n.ts) — TYYPPIJÄRJESTELMÄ EI HAVAITSE PUUTTUVAA
+// KÄÄNNÖSTÄ: getTranslation castaa Record<string,string>:ksi ja kaatuu
+// hiljaa suomeen, joten puuttuva englanti näkyy suomenkielisenä tekstinä
+// englanninkielisessä käyttöliittymässä eikä virheenä. Mitattu 25.8.2026:
+// tsc --strict hyväksyi avaimen poiston en-lohkosta. Nämä testit ovat siis
+// AINOA vartija käännösten eheydelle.
+{
+  const src = readFileSync(new URL('../lib/i18n.ts', import.meta.url), 'utf8')
+  const fiBlock = src.slice(src.indexOf('\n  fi: {'), src.indexOf('\n  en: {'))
+  const enBlock = src.slice(src.indexOf('\n  en: {'))
+  const grab = (b: string) => [...b.matchAll(/^\s{4}'([a-z0-9_.]+)':/gm)].map((m) => m[1])
+  const fiKeys = grab(fiBlock)
+  const enKeys = grab(enBlock)
+  const missingEn = fiKeys.filter((k) => !enKeys.includes(k))
+  const missingFi = enKeys.filter((k) => !fiKeys.includes(k))
+  const dupFi = fiKeys.filter((k, i) => fiKeys.indexOf(k) !== i)
+  const dupEn = enKeys.filter((k, i) => enKeys.indexOf(k) !== i)
+  // Arvot: englanninkielinen arvo ei saa olla identtinen suomen kanssa PAITSI
+  // kun sana on sama molemmilla (Idea, Sauna, Pizza…). Sallitaan lyhyet.
+  const val = (b: string, k: string) => b.match(new RegExp(`^\\s{4}'${k.replace(/\./g, '\\.')}':\\s*'(.*)',$`, 'm'))?.[1] ?? ''
+  const suspicious = fiKeys.filter((k) => {
+    const f = val(fiBlock, k), e = val(enBlock, k)
+    return f.length > 14 && f === e
+  })
+  const i18nCases: { name: string; ok: boolean }[] = [
+    { name: 'jokaisella fi-avaimella on en-vastine', ok: missingEn.length === 0 },
+    { name: 'jokaisella en-avaimella on fi-vastine', ok: missingFi.length === 0 },
+    { name: 'ei duplikaattiavaimia fi-lohkossa', ok: dupFi.length === 0 },
+    { name: 'ei duplikaattiavaimia en-lohkossa', ok: dupEn.length === 0 },
+    { name: 'avaimia vähintään 390 (romahdusvahti)', ok: fiKeys.length >= 390 },
+    { name: 'pitkä käännös ei ole identtinen suomen kanssa', ok: suspicious.length === 0 },
+  ]
+  for (const c of i18nCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ käännökset: ${c.name}${
+      c.name.includes('en-vastine') && missingEn.length ? ` (${missingEn.slice(0, 5).join(', ')})` : ''
+    }${c.name.includes('identtinen') && suspicious.length ? ` (${suspicious.slice(0, 3).join(', ')})` : ''}`)
+  }
+}
 
 // ── Torstain pakka (viikkodigesti, lib/weekly-digest.ts) — puhdas kuratointi:
 // kattilat, pisteytys, duplikaattisuojat. Fixture-malli sama kuin kaaret yllä.

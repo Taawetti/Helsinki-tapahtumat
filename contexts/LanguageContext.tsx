@@ -1,7 +1,21 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+// Kielivalinta. Käännökset (lib/i18n.ts) ovat olleet valmiina 394 avaimella
+// molemmilla kielillä, mutta valitsin poistettiin vahingossa etusivun
+// uudistuksessa 15.7.2026 (commit ef4ef91) — sen jälkeen setLangilla ei ollut
+// yhtään kutsujaa ja englanti oli saavuttamatonta koodia. Tämä palauttaa
+// kytkimen JA lisää sen mitä alkuperäisestä puuttui: valinnan muistin ja
+// selaimen kielen tunnistuksen.
+//
+// SSR-TURVA: palvelin renderöi aina 'fi' (ei tiedä selaimen kieltä eikä
+// localStoragea). Selaimen kieli luetaan vasta mountin jälkeen efektissä,
+// jolloin hydraatio ei riko HTML:ää. Siksi ensimmäinen maalaus on suomeksi
+// myös englanninkielisellä käyttäjällä — vaihto tapahtuu heti sen jälkeen.
+
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { type Lang, type TranslationKey, getTranslation } from '@/lib/i18n'
+
+const STORAGE_KEY = 'mt-lang'
 
 interface LanguageContextValue {
   lang: Lang
@@ -15,14 +29,40 @@ const LanguageContext = createContext<LanguageContextValue>({
   t: (key) => key,
 })
 
+/** Selaimen kieli → tuettu kieli. Kaikki muu kuin suomi saa englannin:
+ *  ruotsin- tai vironkieliselle turistille englanti on lähempänä kuin suomi. */
+function detectLang(): Lang {
+  if (typeof navigator === 'undefined') return 'fi'
+  const langs = [navigator.language, ...(navigator.languages ?? [])]
+  for (const l of langs) {
+    if (!l) continue
+    if (/^fi\b/i.test(l)) return 'fi'
+  }
+  return langs.some(Boolean) ? 'en' : 'fi'
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>('fi')
 
+  // Tallennettu valinta voittaa selaimen kielen — käyttäjän oma päätös pysyy.
+  useEffect(() => {
+    const t0 = setTimeout(() => {
+      let next: Lang | null = null
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved === 'fi' || saved === 'en') next = saved
+      } catch { /* privaattitila */ }
+      if (!next) next = detectLang()
+      if (next !== 'fi') setLangState(next)
+      if (typeof document !== 'undefined') document.documentElement.lang = next
+    }, 0)
+    return () => clearTimeout(t0)
+  }, [])
+
   const setLang = useCallback((l: Lang) => {
     setLangState(l)
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = l
-    }
+    try { localStorage.setItem(STORAGE_KEY, l) } catch { /* privaattitila */ }
+    if (typeof document !== 'undefined') document.documentElement.lang = l
   }, [])
 
   const t = useCallback((key: TranslationKey) => getTranslation(lang, key), [lang])
