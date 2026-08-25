@@ -230,11 +230,17 @@ export async function buildSaunaRows(): Promise<SaunaRow[]> {
 
   // OSM:n uudet saunat (karttamerkintä ≤ 180 pv) → "Uusi elokuussa" -merkki.
   const reasonFile = activityReasonData as unknown as ReasonFileShape
+  // Kuukausi kannetaan NUMERONA (1-12) valmiin merkkijonon rinnalla: teksti
+  // muodostuu palvelimella, joten se jäi suomeksi myös englanninkielisessä
+  // käyttöliittymässä ("Uusi kesäkuussa" saunakortin merkissä). newLabel jää
+  // ennalleen suomenkielistä /saunat-SEO-sivua varten.
   const newSaunaByKey = new Map<string, string>()
+  const newSaunaMonthByKey = new Map<string, number>()
   for (const p of reasonFile.newPlaces ?? []) {
     if (p.venueType === 'sauna' && p.venue && p.date) {
       const m = new Date(p.date + 'T12:00:00Z').getUTCMonth()
       newSaunaByKey.set(reasonKey(p.venue), `Uusi ${MONTHS_INESSIVE[m] ?? ''}`)
+      newSaunaMonthByKey.set(reasonKey(p.venue), m + 1)
     }
   }
 
@@ -257,6 +263,7 @@ export async function buildSaunaRows(): Promise<SaunaRow[]> {
         rating: a.rating ?? null,
         reviews: a.reviewCount ?? null,
         newLabel: newSaunaByKey.get(reasonKey(a.name)) ?? null,
+        newMonth: newSaunaMonthByKey.get(reasonKey(a.name)) ?? null,
         news: null,
       }
     })

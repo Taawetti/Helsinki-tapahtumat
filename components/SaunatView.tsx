@@ -7,6 +7,7 @@
 import { useMemo, useState } from 'react'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { useLanguage } from '@/contexts/LanguageContext'
+import type { TranslationKey } from '@/lib/i18n'
 
 export interface SaunaRow {
   id: string
@@ -22,8 +23,12 @@ export interface SaunaRow {
   priceLevel: string | null
   rating: number | null
   reviews: number | null
-  /** "Uusi elokuussa" — OSM:n uusi karttamerkintä (kuukausitaso). */
+  /** "Uusi elokuussa" — OSM:n uusi karttamerkintä (kuukausitaso). Valmis
+   *  suomenkielinen teksti /saunat-SEO-sivua varten; käyttöliittymä käyttää
+   *  newMonthia, jotta merkki kääntyy. */
   newLabel: string | null
+  /** Kuukausi 1-12, tai null jos sauna ei ole uusi. */
+  newMonth: number | null
   news: { title: string; url: string; source: string } | null
 }
 
@@ -61,8 +66,10 @@ function SaunaCard({ s }: { s: SaunaRow }) {
             ) : s.name}
           </h3>
           <span className="flex items-center gap-1.5 shrink-0">
-            {s.newLabel && (
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">{s.newLabel}</span>
+            {s.newMonth && (
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">
+                {`${t('uutta.new_in')} ${t(`uutta.month_${s.newMonth}` as TranslationKey)}`}
+              </span>
             )}
             {open !== undefined && (
               <span className={`text-[11px] font-black ${open ? 'text-emerald-400' : 'text-red-400/60'}`}>

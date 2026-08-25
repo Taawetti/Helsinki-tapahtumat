@@ -307,7 +307,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
           {(data.saunas ?? []).map((s) => (
             <PlaceCard key={s.id} id={s.id} name={s.name} address={s.address}
               image={s.image} emoji="🧖" kicker={t('cat.sauna')}
-              topBadge={s.newLabel}
+              topBadge={s.newMonth ? `${t('uutta.new_in')} ${t(`uutta.month_${s.newMonth}` as TranslationKey)}` : null}
               bottomChip={s.rating != null ? `★ ${s.rating.toFixed(1)}` : null}
               href={s.www} />
           ))}
