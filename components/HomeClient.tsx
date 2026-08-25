@@ -12,6 +12,7 @@ import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
+import { useTranslatedEvents } from '@/hooks/useTranslatedEvents'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { getCategoryScores } from '@/lib/preferences'
 import EventCard from '@/components/EventCard'
@@ -332,7 +333,7 @@ export default function HomeClient({
   const [pushEnabled, setPushEnabled] = useState(false)
   const geo = useGeolocation() // korttien etäisyyslaskuun (jos sijainti jo sallittu)
 
-  const { events, loading, fetchingFull, error, hasMore, total, generatedAt, sources, loadMore } = useEvents({
+  const { events: rawEvents, loading, fetchingFull, error, hasMore, total, generatedAt, sources, loadMore } = useEvents({
     // Idea-näkymä on aina "tänään" — ei riipu Discoverin päivävalinnasta (muuten
     // esim. "Huomenna" tyhjentäisi Idea-deckin tapahtumat). Ei muuta tallennettua
     // dateFilteriä, joten Discoveriin palatessa käyttäjän valinta säilyy.
@@ -344,6 +345,14 @@ export default function HomeClient({
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
     nearbyCoords: null,
   })
+
+  // Tapahtumien OMA sisältö (otsikko, kuvaus) tulee lähteistä suomeksi, eikä
+  // englanninkielistä vastinetta ole olemassa — mitattu LinkedEventsista, vain
+  // 6 %:lla on name.en. Käännös tehdään siis itse ja välimuistitetaan.
+  // Suomeksi tämä palauttaa listan koskemattomana. Kytkentä on tässä, koska
+  // KAIKKI näkymät (kortit, kartta, Idea, infopaneeli) saavat tapahtumansa
+  // tämän saman listan kautta.
+  const events = useTranslatedEvents(rawEvents, lang)
 
   const localSearchHits = useMemo(() => {
     if (!keyword || keyword.length < 2) return { venues: [], activities: [], restaurants: [] }

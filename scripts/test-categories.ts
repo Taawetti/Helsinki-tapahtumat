@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs'
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 import { classifyEventCategory } from '../lib/event-category'
+import { sourceHash, batchItems, buildPrompt, parseResponse, applyTranslation, MAX_BATCH_CHARS } from '../lib/translate'
 import { getTranslation } from '../lib/i18n'
 import {
   detectSourceAnomalies,
@@ -1567,6 +1568,72 @@ for (const c of arcChecks) {
     const inBoth = i18nSrc.split(`'${got.tKey}':`).length - 1
     if (inBoth === 2) pass++
     else failures.push(`✗ julistekategoria: avain ${got.tKey} esiintyy ${inBoth}× (odotettu 2 = fi + en)`)
+  }
+}
+
+// ── Sisällön käännös (lib/translate) — tapahtumien OMA teksti englanniksi.
+// Lähdedataa ei ole (mitattu: LinkedEventsin otoksesta 6 %:lla name.en), joten
+// käännös tuotetaan Claudella ja välimuistitetaan. Nämä testit vartioivat
+// puhdasta logiikkaa: väärä hash kääntäisi kaiken uudelleen joka kerta, ja
+// löysä jäsennys päästäisi puolivalmiin käännöksen ruudulle.
+{
+  const trChecks: { name: string; ok: boolean; got?: string }[] = []
+
+  const ev = (id: string, title: string, short = '', desc = '') => ({ id, title, shortDescription: short, description: desc })
+
+  // Hash: sama teksti → sama hash, muuttunut teksti → eri hash.
+  const a = ev('1', 'Viapori Jazz', 'Keikka', 'Pitkä kuvaus')
+  const b = ev('1', 'Viapori Jazz', 'Keikka', 'Pitkä kuvaus')
+  const c = ev('1', 'Viapori Jazz', 'Keikka', 'Muutettu kuvaus')
+  trChecks.push({ name: 'hash on vakaa samalle tekstille', ok: sourceHash(a) === sourceHash(b) })
+  trChecks.push({ name: 'hash muuttuu kun lähde muokkaa tekstiä', ok: sourceHash(a) !== sourceHash(c) })
+  // Välilyöntien normalisointi: lähteet tuottavat rivinvaihtoja epävakaasti.
+  trChecks.push({ name: 'hash sietää välilyöntieroja', ok: sourceHash(ev('1', 'A  B')) === sourceHash(ev('1', 'A B')) })
+  trChecks.push({ name: 'eri id mutta sama teksti → sama hash', ok: sourceHash(ev('1', 'X')) === sourceHash(ev('2', 'X')) })
+
+  // Erät: mikään erä ei ylitä kattoa, EIKÄ yksikään alkio saa kadota.
+  const many = Array.from({ length: 40 }, (_, i) => ev(String(i), 'Otsikko ' + i, '', 'x'.repeat(800)))
+  const batches = batchItems(many)
+  const flatIds = batches.flat().map((x) => x.id)
+  trChecks.push({ name: 'erät: yksikään alkio ei katoa', ok: flatIds.length === many.length && new Set(flatIds).size === many.length, got: `${flatIds.length}/${many.length}` })
+  const tooBig = batches.filter((bt) => bt.reduce((n, x) => n + x.title.length + (x.description?.length ?? 0), 0) > MAX_BATCH_CHARS && bt.length > 1)
+  trChecks.push({ name: 'erät: yksikään monialkioinen erä ei ylitä kattoa', ok: tooBig.length === 0, got: String(tooBig.length) })
+  // Yksi ylisuuri alkio ei saa kadota vaan menee yksin omaan erään.
+  const huge = batchItems([ev('h', 'Iso', '', 'y'.repeat(MAX_BATCH_CHARS * 2))])
+  trChecks.push({ name: 'erät: ylisuuri alkio säilyy omassa erässään', ok: huge.length === 1 && huge[0].length === 1 })
+
+  // Kehote: sisältää lähdetekstin ja kieltää erisnimien kääntämisen.
+  const prompt = buildPrompt([ev('1', 'Viapori Jazz: Saariston lintuja')])
+  trChecks.push({ name: 'kehote sisältää lähdetekstin', ok: prompt.includes('Viapori Jazz: Saariston lintuja') })
+  trChecks.push({ name: 'kehote kieltää erisnimien kääntämisen', ok: /proper nouns/i.test(prompt) })
+  trChecks.push({ name: 'kehote kieltää tiedon lisäämisen', ok: /do NOT add information/i.test(prompt) })
+
+  // Jäsennys.
+  const items = [ev('a', 'Yksi'), ev('b', 'Kaksi')]
+  const good = parseResponse('[{"i":0,"title":"One","short":"","desc":""},{"i":1,"title":"Two","short":"s","desc":"d"}]', items)
+  trChecks.push({ name: 'jäsennys: kaksi riviä sisään, kaksi ulos', ok: good.size === 2 && good.get('a')?.title === 'One' && good.get('b')?.description === 'd' })
+  const fenced = parseResponse('```json\n[{"i":0,"title":"One"}]\n```', items)
+  trChecks.push({ name: 'jäsennys: koodiaita ei kaada', ok: fenced.get('a')?.title === 'One' })
+  const chatty = parseResponse('Here you go:\n[{"i":0,"title":"One"}]\nHope that helps!', items)
+  trChecks.push({ name: 'jäsennys: selittävä teksti ympärillä ei kaada', ok: chatty.get('a')?.title === 'One' })
+  trChecks.push({ name: 'jäsennys: rikkinäinen JSON → tyhjä, ei poikkeusta', ok: parseResponse('{ei json', items).size === 0 })
+  trChecks.push({ name: 'jäsennys: tyhjä vastaus → tyhjä', ok: parseResponse('', items).size === 0 })
+  // Otsikoton rivi hylätään: tyhjä otsikko jättäisi kortin nimettömäksi.
+  trChecks.push({ name: 'jäsennys: tyhjä otsikko hylätään', ok: parseResponse('[{"i":0,"title":"  "}]', items).size === 0 })
+  // Rajan ulkopuolinen indeksi ei saa osua vääriin tapahtumiin.
+  trChecks.push({ name: 'jäsennys: rajan ulkopuolinen indeksi hylätään', ok: parseResponse('[{"i":9,"title":"X"}]', items).size === 0 })
+  trChecks.push({ name: 'jäsennys: negatiivinen indeksi hylätään', ok: parseResponse('[{"i":-1,"title":"X"}]', items).size === 0 })
+
+  // Yhdistäminen: tyhjä käännös EI saa pyyhkiä suomenkielistä sisältöä.
+  const src = ev('a', 'Suomeksi', 'Lyhyt', 'Pitkä')
+  const merged = applyTranslation(src, { title: 'In English', shortDescription: '', description: '' })
+  trChecks.push({ name: 'yhdistys: otsikko korvautuu', ok: merged.title === 'In English' })
+  trChecks.push({ name: 'yhdistys: tyhjä käännös ei pyyhi suomea', ok: merged.shortDescription === 'Lyhyt' && merged.description === 'Pitkä' })
+  trChecks.push({ name: 'yhdistys: puuttuva käännös palauttaa alkuperäisen', ok: applyTranslation(src, undefined).title === 'Suomeksi' })
+
+  for (const c2 of trChecks) {
+    if (c2.ok) pass++
+    else failures.push(`✗ käännös: ${c2.name}${c2.got ? ` (sai: ${c2.got})` : ''}`)
   }
 }
 
