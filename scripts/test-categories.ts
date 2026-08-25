@@ -72,7 +72,7 @@ import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
-import { isCompetitorUrl, hasOwnEventPage, shareUrlFor } from '../lib/event-links'
+import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
@@ -1402,6 +1402,24 @@ for (const c of arcChecks) {
     { name: 'jako: järjestäjän linkki kelpaa kun omaa sivua ei ole', ok: shareUrlFor({ id: 'venue-1', infoUrl: 'https://tavastiaklubi.fi/keikka' }, B) === 'https://tavastiaklubi.fi/keikka' },
     { name: 'jako: kilpailija ohitetaan, lippulinkki käytetään', ok: shareUrlFor({ id: 'stadissa-2', infoUrl: 'https://stadissa.fi/x', ticketUrl: 'https://www.lippu.fi/y' }, B) === 'https://www.lippu.fi/y' },
   ]
+  // CTA-linkki: kilpailijan osoite ei kelpaa ulkoiseksi linkiksi, ja
+  // hakuvara vie hakukoneeseen tapahtuman nimellä + paikalla.
+  const ctaCases: { name: string; ok: boolean }[] = [
+    { name: 'CTA: lippulinkki voittaa infoUrlin', ok: externalUrlFor({ ticketUrl: 'https://lippu.fi/x', infoUrl: 'https://tavastiaklubi.fi' }) === 'https://lippu.fi/x' },
+    { name: 'CTA: pelkkä kilpailija → null (nappi korvataan)', ok: externalUrlFor({ infoUrl: 'https://www.stadissa.fi/tapahtumat/1' }) === null },
+    { name: 'CTA: kilpailija ohitetaan, järjestäjä kelpaa', ok: externalUrlFor({ ticketUrl: 'https://stadissa.fi/x', infoUrl: 'https://kiasma.fi' }) === 'https://kiasma.fi' },
+    { name: 'CTA: ei linkkejä → null', ok: externalUrlFor({}) === null },
+    { name: 'haku: nimi + paikka + Helsinki mukana', ok: (() => {
+      const u = searchUrlFor({ title: 'Pingistä (pöytätennis)', location: { name: 'Töölön seniorikeskus' } })
+      return u.startsWith('https://www.google.com/search?q=') && decodeURIComponent(u).includes('Pingistä (pöytätennis) Töölön seniorikeskus Helsinki')
+    })() },
+    { name: 'haku: toimii ilman paikkaa', ok: decodeURIComponent(searchUrlFor({ title: 'Keikka', location: null })).includes('Keikka Helsinki') },
+  ]
+  for (const c of ctaCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ CTA-linkki: ${c.name}`)
+  }
+
   for (const c of linkCases) {
     if (c.ok) pass++
     else failures.push(`✗ tapahtumalinkit: ${c.name}`)

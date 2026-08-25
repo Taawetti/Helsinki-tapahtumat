@@ -53,3 +53,18 @@ export function shareUrlFor(
   const external = [e.infoUrl, e.ticketUrl].find((u) => u && !isCompetitorUrl(u))
   return external ?? base
 }
+
+/** Tapahtuman ulkoinen linkki, tai null jos ainoa tiedossa oleva veisi
+ *  kilpailijalle. Kutsuja näyttää silloin paikan oman sivun tai hakunapin. */
+export function externalUrlFor(e: { infoUrl?: string | null; ticketUrl?: string | null }): string | null {
+  return [e.ticketUrl, e.infoUrl].find((u) => u && !isCompetitorUrl(u)) ?? null
+}
+
+/** Viimeinen oljenkorsi kun tapahtumasta ei tiedetä linkkiä eikä paikan
+ *  sivua: haku tapahtuman nimellä ja paikalla. Ei lupaa mitään, mutta vie
+ *  eteenpäin — ja järjestäjän oma sivu on hakutuloksissa käytännössä aina
+ *  kilpailijan listausta ylempänä. */
+export function searchUrlFor(e: { title: string; location?: { name?: string | null } | null }): string {
+  const q = [e.title, e.location?.name, 'Helsinki'].filter(Boolean).join(' ')
+  return `https://www.google.com/search?q=${encodeURIComponent(q)}`
+}

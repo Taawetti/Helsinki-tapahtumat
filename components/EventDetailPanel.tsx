@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart } from 'lucide-react'
+import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart, Globe, Search } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 import { canBuyTickets } from '@/lib/tickets'
-import { shareUrlFor } from '@/lib/event-links'
+import { shareUrlFor, externalUrlFor, searchUrlFor } from '@/lib/event-links'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VENUE_PAGES } from '@/lib/venue-pages'
@@ -28,6 +28,11 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
   const [copied, setCopied] = useState(false)
+  // Paikan oma kotisivu: haetaan VAIN kun tapahtumalla ei ole kelvollista
+  // ulkoista linkkiä (ainoa tiedossa oleva veisi kilpailevaan
+  // tapahtumakalenteriin). Näin kilpailijalinkin tilalle saadaan paikan
+  // oikea sivu — mitattu 25.8.2026: 23 % näistä tapahtumista saa osuman.
+  const [venueSite, setVenueSite] = useState<string | null>(null)
   const [showShare, setShowShare] = useState(false)
   const [slideIn, setSlideIn] = useState(false)
   const { toggle, isFavorite } = useFavorites()
@@ -159,6 +164,23 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event?.id])
+
+  // Paikan kotisivun haku (ks. venueSite yllä). Nollataan aina kun tapahtuma
+  // vaihtuu, jottei edellisen paikan linkki jää näkyviin.
+  const needsVenueSite = !!event && !externalUrlFor(event)
+  const venueName = event?.location?.name ?? ''
+  useEffect(() => {
+    let alive = true
+    const t0 = setTimeout(() => {
+      setVenueSite(null)
+      if (!needsVenueSite || !venueName) return
+      fetch(`/api/venue-site?name=${encodeURIComponent(venueName)}`)
+        .then((r) => (r.ok ? r.json() : { www: null }))
+        .then((d) => { if (alive) setVenueSite(typeof d?.www === 'string' ? d.www : null) })
+        .catch(() => { /* paikan sivu on lisä, ei ehto */ })
+    }, 0)
+    return () => { alive = false; clearTimeout(t0) }
+  }, [needsVenueSite, venueName])
 
   function handleClose() {
     if (closeTimer.current) clearTimeout(closeTimer.current)
@@ -404,20 +426,34 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
             </div>
           </div>
 
-          {/* CTA buttons */}
+          {/* CTA-nappi. KILPAILIJALLE EI OHJATA (omistaja 25.8.2026): jos
+              tapahtuman ainoa tiedossa oleva osoite on kilpailevan
+              tapahtumakalenterin, näytetään sen sijaan paikan oma sivu — ja
+              jos sitäkään ei tunneta, haku tapahtuman nimellä. Näin kortti
+              ei jää umpikujaksi (näillä tapahtumilla on mitatusti kuvaus vain
+              31 %:lla ja kuva 11 %:lla, joten paneelissa ei ole muuta luettavaa). */}
           <div className="flex flex-col gap-2.5 pt-1">
-            {(event.ticketUrl || event.infoUrl) && (
-              <a
-                href={affiliateUrl(event.ticketUrl || event.infoUrl) || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
-              >
-                <Ticket size={15} />
-                {canBuyTickets(event) ? t('detail.buy_tickets') : t('detail.read_more')}
-                <ExternalLink size={13} className="opacity-70" />
-              </a>
-            )}
+            {(() => {
+              const external = externalUrlFor(event)
+              const href = external ?? venueSite ?? searchUrlFor(event)
+              const label = external
+                ? (canBuyTickets(event) ? t('detail.buy_tickets') : t('detail.read_more'))
+                : venueSite
+                ? `${event.location?.name ?? t('detail.venue_site')} →`
+                : t('detail.search_more')
+              return (
+                <a
+                  href={external ? (affiliateUrl(external) || external) : href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
+                >
+                  {external ? <Ticket size={15} /> : venueSite ? <Globe size={15} /> : <Search size={15} />}
+                  <span className="truncate">{label}</span>
+                  <ExternalLink size={13} className="opacity-70 shrink-0" />
+                </a>
+              )
+            })()}
             {(mapsUrl || transitUrl) && (
               <div className="grid grid-cols-2 gap-2">
                 {mapsUrl && (
