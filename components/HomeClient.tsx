@@ -1353,7 +1353,7 @@ export default function HomeClient({
           {/* ── Flat grid — näkyy kun keyword, kategoria, vibe tai Nyt menossa valittu ── */}
           {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                 {discoverEvents.map(e => (
                   <PosterCard key={e.id} event={e} onClick={setSelectedEvent}
                     distance={geo.coords && e.location?.lat && e.location?.lon

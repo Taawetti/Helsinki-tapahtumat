@@ -100,11 +100,93 @@ async function fetchGuideEvents(opts: {
 export const fetchTerraceEvents = () =>
   fetchGuideEvents({ terms: ['terassi', 'ulkoilma'], days: 14, gate: TERRACE_REGEX, limit: 40, withMedia: true })
 
+// withMedia myös näille: LinkedEventsissä on kuva mitatusti 24/24 jamit- ja
+// kirppistapahtumalla, mutta ilman lippua kuva karsiutui hakuvaiheessa ja
+// kortit jäivät kuvattomiksi (mitattu 25.8.2026).
 export const fetchJamitEvents = () =>
-  fetchGuideEvents({ terms: ['jamit', 'open mic', 'open stage', 'jam session'], days: 30, gate: JAMIT_REGEX, limit: 30 })
+  fetchGuideEvents({ terms: ['jamit', 'open mic', 'open stage', 'jam session'], days: 30, gate: JAMIT_REGEX, limit: 30, withMedia: true })
 
 export const fetchKirppisEvents = () =>
-  fetchGuideEvents({ terms: ['kirpputori', 'kirppis', 'vintage'], days: 30, gate: KIRPPIS_REGEX, limit: 20 })
+  fetchGuideEvents({ terms: ['kirpputori', 'kirppis', 'vintage'], days: 30, gate: KIRPPIS_REGEX, limit: 20, withMedia: true })
+
+// ── Paikkarikastus ravintoladatasta (kuva + arvosana + kotisivu) ───────────
+// Kattoterassit ja pubivisapaikat ovat baareja, jotka ovat JO /api/restaurants
+// -datassa kuvineen ja Google-arvosanoineen — oppaan reitti vain ei hakenut
+// niitä. Mitattu 25.8.2026: kattoterasseista 5/5 saa kuvan ja 4/5 arvosanan,
+// pubivisoista ~39/92 osuu turvallisella säännöllä.
+//
+// MATCHAUS ON TIUKKA, EI SUMEA. Mitatut ansat:
+//  - sumea/token-overlap tuotti väärän osuman ("Helmi Grilli, Kontula" →
+//    "Alin Grilli 22" kuvineen ja 4,8 tähtineen)
+//  - "BISOUBISOU" on datassa kahdesti (kuvallinen kuratoitu + kuvaton OSM)
+//    samassa osoitteessa → sumea haku olisi voinut valita väärän
+//  - "Pub Kontula" ei osu mihinkään; se on oikea tulos, ei virhe
+// Siksi: täsmällinen normalisoitu nimi, ja kun osumia on monta, ratkaisu
+// tehdään VAIN katuosoitteella. Muuten kortti jää tekstijulisteeksi.
+
+export interface PlaceEnrichment {
+  image: string | null
+  rating: number | null
+  www: string | null
+}
+
+export const normName = (s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ')
+/** Katuosan vertailuavain: "Neljäs linja 17-19, 00530 Helsinki" → "neljas linja 17".
+ *  Postinumeroon EI voi luottaa (lähdedatassa sama katu kahdella eri numerolla). */
+export const streetKey = (s: string | null | undefined): string | null => {
+  if (!s) return null
+  const first = s.split(',')[0].trim().toLowerCase()
+  const m = first.match(/^(.+?)\s+(\d+)/)
+  if (!m) return null
+  return `${m[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '')} ${m[2]}`
+}
+
+interface RestaurantLite {
+  name: string
+  address?: string | null
+  image?: string | null
+  googleRating?: number | null
+  www?: string | null
+}
+
+/** Rakentaa nimi → rikastus -kartan ravintoladatasta. Palauttaa hakufunktion,
+ *  joka vaatii osoiteosuman kun samannimisiä on useita. */
+export async function buildPlaceEnricher(origin: string): Promise<(name: string, address?: string | null) => PlaceEnrichment | null> {
+  let rows: RestaurantLite[] = []
+  try {
+    const r = await fetch(`${origin}/api/restaurants`, { signal: AbortSignal.timeout(20000) })
+    if (r.ok) rows = ((await r.json()) as { restaurants?: RestaurantLite[] }).restaurants ?? []
+  } catch { /* rikastus on lisä, ei ehto — opas toimii ilmankin */ }
+
+  const byName = new Map<string, RestaurantLite[]>()
+  for (const row of rows) {
+    if (!row?.name) continue
+    const k = normName(row.name)
+    const list = byName.get(k)
+    if (list) list.push(row)
+    else byName.set(k, [row])
+  }
+
+  return (name: string, address?: string | null): PlaceEnrichment | null => {
+    const candidates = byName.get(normName(name))
+    if (!candidates || candidates.length === 0) return null
+    let hit: RestaurantLite | undefined
+    if (candidates.length === 1) {
+      hit = candidates[0]
+    } else {
+      // Monta samannimistä → ratkaise katuosoitteella; ilman osoitetta ei arvata.
+      const want = streetKey(address)
+      if (!want) return null
+      hit = candidates.find((c) => streetKey(c.address) === want)
+    }
+    if (!hit) return null
+    return {
+      image: hit.image ?? null,
+      rating: typeof hit.googleRating === 'number' ? hit.googleRating : null,
+      www: hit.www ?? null,
+    }
+  }
+}
 
 // ── Saunat: OSM-aktiviteetit + viikkorikastetut kortit + uutuusmerkit +
 // tuoreet lehtijutut (siirretty app/saunat/page.tsx:stä sellaisenaan) ──────

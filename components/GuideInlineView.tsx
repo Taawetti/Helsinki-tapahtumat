@@ -25,8 +25,8 @@ export const GUIDE_META: Record<GuideSlug, { emoji: string; title: string; sub: 
   'ilmaiset-museot': { emoji: '🏛', title: 'Ilmaiset museot',   sub: 'aina vapaa pääsy' },
 }
 
-interface Rooftop { name: string; address: string; www: string | null }
-interface VisaRow { name: string; address: string; nextISO: string }
+interface Rooftop { name: string; address: string; www: string | null; image?: string | null; rating?: number | null }
+interface VisaRow { name: string; address: string; nextISO: string; image?: string | null; rating?: number | null; www?: string | null }
 interface GuidePayload {
   saunas?: SaunaRow[]
   rooftops?: Rooftop[]
@@ -113,33 +113,31 @@ function PlaceCard({ id, name, address, image, emoji, kicker, topBadge, bottomCh
   const accent = ACCENTS[idx]
   const inner = (
     <>
-      {/* Juliste — sama geometria kuin PosterCardissa (3/4, rounded-xl) */}
+      {/* Juliste — sama geometria kuin PosterCardissa (3/4, rounded-xl).
+          Liukuväri + koristeemoji + luokkateksti piirtyvät AINA pohjalle, ja
+          valokuva niiden PÄÄLLE. Kun kuva kuolee (mitattu: Google-kuvista
+          40 % lahoaa, ja yksi pubi palautti 403 heti), alta paljastuu ehjä
+          juliste eikä tyhjä väripinta. Nimi ja osoite luetaan aina tieto-
+          riviltä — ei toistoa julisteessa (näkyi 25.8. kahdesti). */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: '3/4' }}>
         <div className="absolute inset-0" style={{ background: gradient }} />
-        {image ? (
+        <div className="absolute select-none pointer-events-none leading-none"
+          style={{ fontSize: '7rem', top: '-8px', right: '-8px', opacity: 0.14, filter: `drop-shadow(0 0 30px ${accent})` }}>
+          {emoji}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 px-4 pb-4">
+          <div className="text-[10px] font-black uppercase tracking-widest opacity-70" style={{ color: accent }}>
+            {kicker}
+          </div>
+        </div>
+        {image && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={image} alt={name} loading="lazy"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               onError={(e) => { (e.target as HTMLElement).style.display = 'none' }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-          </>
-        ) : (
-          <>
-            {/* Kuvaton juliste: iso koristeemoji + luokkateksti. Nimi ja osoite
-                luetaan AINA tietoriviltä alta — ei toistoa julisteessa (mitattu
-                25.8.: nimi näkyi kahdesti ja näytti rikkinäiseltä), ja kortin
-                korkeus pysyy samana kuvallisten kanssa samassa ruudukossa. */}
-            <div className="absolute select-none pointer-events-none leading-none"
-              style={{ fontSize: '7rem', top: '-8px', right: '-8px', opacity: 0.14, filter: `drop-shadow(0 0 30px ${accent})` }}>
-              {emoji}
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 px-4 pb-4">
-              <div className="text-[10px] font-black uppercase tracking-widest opacity-70" style={{ color: accent }}>
-                {kicker}
-              </div>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
           </>
         )}
 
@@ -168,14 +166,17 @@ function PlaceCard({ id, name, address, image, emoji, kicker, topBadge, bottomCh
       </div>
     </>
   )
-  const cls = 'group relative w-full text-left rounded-xl overflow-hidden bg-[#111] hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff] block'
+  // Linkitön kortti EI saa kantaa hover/focus-luokkia: ne eivät voi laueta
+  // (ei fokusoitava elementti) ja lupaisivat klikattavuutta jota ei ole.
+  const base = 'group relative w-full text-left rounded-xl overflow-hidden bg-[#111] block'
+  const interactive = ' hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]'
   return href ? (
     <a href={/^https?:\/\//i.test(href) ? href : `https://${href}`} target="_blank" rel="noopener noreferrer"
-      className={cls} style={{ textDecoration: 'none' }}>
+      className={base + interactive} style={{ textDecoration: 'none' }}>
       {inner}
     </a>
   ) : (
-    <div className={cls}>{inner}</div>
+    <div className={base}>{inner}</div>
   )
 }
 
@@ -315,7 +316,9 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
             <CardGrid>
               {(data.rooftops ?? []).map((r) => (
                 <PlaceCard key={r.name} id={r.name} name={r.name} address={r.address}
-                  emoji="🍸" kicker="Kattoterassi" href={r.www} />
+                  image={r.image} emoji="🍸" kicker="Kattoterassi"
+                  bottomChip={r.rating != null ? `★ ${r.rating.toFixed(1)}` : null}
+                  href={r.www} />
               ))}
             </CardGrid>
           </div>
@@ -336,7 +339,9 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
           <CardGrid>
             {(data.visas ?? []).map((v, i) => (
               <PlaceCard key={`${v.name}-${i}`} id={`${v.name}-${i}`} name={v.name} address={v.address}
-                emoji="🧠" kicker="Pubivisa" bottomChip={visaTime(v.nextISO)} />
+                image={v.image} emoji="🧠" kicker="Pubivisa"
+                topBadge={v.rating != null ? `★ ${v.rating.toFixed(1)}` : null}
+                bottomChip={visaTime(v.nextISO)} href={v.www} />
             ))}
           </CardGrid>
         </div>

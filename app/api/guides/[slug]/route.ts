@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   buildFreeMuseums,
+  buildPlaceEnricher,
   buildSaunaRows,
   fetchJamitEvents,
   fetchKirppisEvents,
@@ -17,24 +18,49 @@ export const maxDuration = 30
 
 const CACHE = { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=600' }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+  const origin = req.nextUrl.origin
   try {
     switch (slug) {
       case 'saunat':
         return NextResponse.json({ saunas: await buildSaunaRows() }, { headers: CACHE })
       case 'terassit': {
+        // Kattoterassit ovat ravintoladatassa kuvineen ja arvosanoineen
+        // (mitattu 5/5 kuva, 4/5 ★) — haetaan ne, muuten kortti jäisi
+        // tekstijulisteeksi vaikka kuva on olemassa.
+        const [enrich, events] = await Promise.all([buildPlaceEnricher(origin), fetchTerraceEvents()])
         const rooftops = HELSINKI_NIGHTCLUBS
           .filter((v) => v.subCategories.includes('katto'))
-          .map((v) => ({ name: v.name, address: v.address, www: v.www ?? null }))
-        return NextResponse.json({ rooftops, events: await fetchTerraceEvents() }, { headers: CACHE })
+          .map((v) => {
+            const e = enrich(v.name, v.address)
+            return {
+              name: v.name,
+              address: v.address,
+              www: v.www ?? e?.www ?? null,
+              image: e?.image ?? null,
+              rating: e?.rating ?? null,
+            }
+          })
+        return NextResponse.json({ rooftops, events }, { headers: CACHE })
       }
       case 'pubivisat': {
-        const visas = await fetchVisas()
+        const [visas, enrich] = await Promise.all([fetchVisas(), buildPlaceEnricher(origin)])
         // Seuraava kerta valmiiksi laskettuna — asiakas saa suoraan
-        // aikajärjestyksen ("tänään klo 19" ensin).
+        // aikajärjestyksen ("tänään klo 19" ensin). Kuva/★/kotisivu
+        // ravintoladatasta tiukalla nimi+osoite-matchilla (osumatta jäävä
+        // rivi näytetään tekstijulisteena — parempi kuin väärä kuva).
         const rows = visas
-          .map((v) => ({ ...v, nextISO: nextOccurrenceISO(v) }))
+          .map((v) => {
+            const e = enrich(v.name, v.address)
+            return {
+              ...v,
+              nextISO: nextOccurrenceISO(v),
+              image: e?.image ?? null,
+              rating: e?.rating ?? null,
+              www: e?.www ?? null,
+            }
+          })
           .sort((a, b) => a.nextISO.localeCompare(b.nextISO))
         return NextResponse.json({ visas: rows }, { headers: CACHE })
       }

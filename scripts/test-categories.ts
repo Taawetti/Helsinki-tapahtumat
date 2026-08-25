@@ -71,6 +71,7 @@ import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
+import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
 import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
@@ -1353,6 +1354,25 @@ for (const c of arcChecks) {
   for (const c of ticketCases) {
     if (c.ok) pass++
     else failures.push(`✗ lippulupaus: ${c.name}`)
+  }
+}
+
+// ── Oppaiden paikkarikastus (lib/guide-data) — nimi+osoite-matchaus.
+// Mitatut ansat 25.8.2026: sumea matchaus antoi "Helmi Grilli, Kontula"
+// -riville Alin Grilli 22:n kuvan ja 4,8 tähteä; BISOUBISOU on datassa
+// kahdesti samassa osoitteessa (kuvallinen + kuvaton).
+{
+  const gCases: { name: string; ok: boolean }[] = [
+    { name: 'normName: trimmaa, pienentää ja tiivistää välit', ok: guideNormName('  Ateljee   Bar ') === 'ateljee bar' },
+    { name: 'normName: eri kirjainkoko osuu samaan avaimeen', ok: guideNormName('BISOUBISOU') === guideNormName('bisoubisou') },
+    { name: 'streetKey: pilkku + postinumero pois', ok: guideStreetKey('Neljäs linja 17-19, 00530 Helsinki') === 'neljas linja 17' },
+    { name: 'streetKey: ääkköset normalisoituvat', ok: guideStreetKey('Töölönkatu 51 A') === 'toolonkatu 51' },
+    { name: 'streetKey: sama katu eri postinumerolla → sama avain', ok: guideStreetKey('Keinulaudankuja 4, 00930') === guideStreetKey('Keinulaudankuja 4, 00940') },
+    { name: 'streetKey: numeroton osoite → null (ei arvausta)', ok: guideStreetKey('Kauppatori') === null && guideStreetKey(null) === null },
+  ]
+  for (const c of gCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ opasrikastus: ${c.name}`)
   }
 }
 
