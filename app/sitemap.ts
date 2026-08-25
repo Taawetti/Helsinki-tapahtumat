@@ -97,6 +97,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'hourly',
       priority: 1,
     },
+    // Englanninkielinen etusivu. Oma URL, jotta turisti voi löytää palvelun
+    // hakemalla "what to do in Helsinki" — kielikytkin yksin ei näy Googlelle.
+    {
+      url: `${BASE}/en`,
+      lastModified: now,
+      changeFrequency: 'hourly' as const,
+      priority: 0.9,
+    },
     // Aikaperusteinen SEO-laskeutumissivut — korkean hakuvolyymin termit
     { url: `${BASE}/tapahtumat/tanaan`,     lastModified: now, changeFrequency: 'hourly' as const, priority: 0.95 },
     { url: `${BASE}/tapahtumat/viikonloppu`, lastModified: now, changeFrequency: 'daily' as const,  priority: 0.92 },

@@ -41,11 +41,19 @@ function detectLang(): Lang {
   return langs.some(Boolean) ? 'en' : 'fi'
 }
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('fi')
+/** @param initial Pakota kieli riippumatta selaimesta ja tallennetusta valinnasta.
+ *  Käytössä /en-reitillä: se on OMA osoitteensa hakukoneille, joten sen on
+ *  oltava englanniksi myös silloin kun käyttäjä on aiemmin valinnut suomen —
+ *  muuten Googlen indeksoima sisältö ja käyttäjän näkemä eroaisivat. */
+export function LanguageProvider({ children, initial }: { children: ReactNode; initial?: Lang }) {
+  const [lang, setLangState] = useState<Lang>(initial ?? 'fi')
 
   // Tallennettu valinta voittaa selaimen kielen — käyttäjän oma päätös pysyy.
   useEffect(() => {
+    if (initial) {
+      if (typeof document !== 'undefined') document.documentElement.lang = initial
+      return
+    }
     const t0 = setTimeout(() => {
       let next: Lang | null = null
       try {
@@ -57,7 +65,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       if (typeof document !== 'undefined') document.documentElement.lang = next
     }, 0)
     return () => clearTimeout(t0)
-  }, [])
+  }, [initial])
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l)

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import VenueForm from './VenueForm'
 
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+
 // Landing + lomake keikkapaikoille, baareille ja järjestäjille.
 export const metadata: Metadata = {
   title: 'Julkaise ohjelmasi 2 minuutissa — ohjelma-ilmoittajalle',
@@ -11,6 +13,9 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'fi_FI',
   },
+  // Ilman omaa canonicalia tämä peri juurilayoutin arvon eli ilmoitti Googlelle
+  // olevansa etusivu — sivu ei olisi voinut nousta hauille "ilmoita tapahtuma".
+  alternates: { canonical: `${BASE}/ohjelma-ilmoittajalle` },
 }
 
 const SELLING_POINTS = [

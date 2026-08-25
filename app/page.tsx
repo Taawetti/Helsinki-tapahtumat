@@ -1,28 +1,24 @@
-import HomeClient from '@/components/HomeClient'
-import { fetchInitialEvents } from '@/lib/fetchInitialEvents'
-import { getDateRange } from '@/lib/utils'
+import type { Metadata } from 'next'
+import HomeShell from '@/components/HomeShell'
+
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+
+// Canonical on sivukohtainen, ei juurilayoutissa: siellä se periytyi jokaiselle
+// sivulle jolla ei ole omaansa ja teki niistä Googlen silmissä etusivun kopioita.
+export const metadata: Metadata = {
+  alternates: {
+    canonical: BASE,
+    // Kielipari. Englanninkielinen etusivu on omassa osoitteessaan, jotta se voi
+    // ylipäänsä näkyä hakutuloksissa — kielikytkin yksin elää selaimessa eikä
+    // Google näe sitä. x-default osoittaa suomeen, koska pääyleisö on täällä.
+    languages: {
+      fi: BASE,
+      en: `${BASE}/en`,
+      'x-default': BASE,
+    },
+  },
+}
 
 export default async function Page() {
-  const todayRange   = getDateRange('today')
-  const tomorrowRange = getDateRange('tomorrow')
-  const weekendRange = getDateRange('weekend')
-  const weekRange    = getDateRange('week')
-
-  const [todayData, tomorrowData, weekendData, weekData] = await Promise.all([
-    fetchInitialEvents(todayRange.start,   todayRange.end),
-    fetchInitialEvents(tomorrowRange.start, tomorrowRange.end),
-    fetchInitialEvents(weekendRange.start, weekendRange.end),
-    fetchInitialEvents(weekRange.start,    weekRange.end),
-  ])
-
-  return (
-    <HomeClient
-      preloadedData={{
-        today:    { start: todayRange.start,    end: todayRange.end,    events: todayData.events,    total: todayData.total    },
-        tomorrow: { start: tomorrowRange.start, end: tomorrowRange.end, events: tomorrowData.events, total: tomorrowData.total },
-        weekend:  { start: weekendRange.start,  end: weekendRange.end,  events: weekendData.events,  total: weekendData.total  },
-        week:     { start: weekRange.start,     end: weekRange.end,     events: weekData.events,     total: weekData.total     },
-      }}
-    />
-  )
+  return <HomeShell />
 }

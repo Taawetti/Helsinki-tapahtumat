@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/next'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
-import { LanguageProvider } from '@/contexts/LanguageContext'
+import LanguageGate from '@/contexts/LanguageGate'
 import Footer from '@/components/Footer'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -50,9 +50,10 @@ export const metadata: Metadata = {
     'konsertti Helsinki', 'yöelämä Helsinki', 'tapahtumakalenteri Helsinki',
     'Helsinki tänään', 'mitä tapahtuu Helsingissä',
   ],
-  alternates: {
-    canonical: BASE,
-  },
+  // HUOM: canonicalia EI aseteta täällä. Juurilayoutin alternates periytyy
+  // jokaiselle sivulle jolla ei ole omaansa, ja mitattu 25.8.2026: /vote ja
+  // /ohjelma-ilmoittajalle ilmoittivat canonicaliksi etusivun eli kertoivat
+  // Googlelle olevansa sen kopioita. Etusivun oma canonical on app/page.tsx:ssä.
 }
 
 const webAppJsonLd = {
@@ -109,12 +110,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }} />
       </head>
       <body className="min-h-screen">
-        <LanguageProvider>
+        <LanguageGate>
           <FavoritesProvider>
             {children}
             <Footer />
           </FavoritesProvider>
-        </LanguageProvider>
+        </LanguageGate>
         {/* Vercel Web Analytics — kävijämittaus ilman evästeitä (GDPR-kevyt).
             Vaatii Web Analyticsin kytkemisen päälle Vercelin projektiasetuksista;
             siihen asti skripti on inertti. */}
