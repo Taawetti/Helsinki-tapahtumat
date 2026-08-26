@@ -13,13 +13,16 @@
 // Tapahtumien otsikot tulevat lähteestä suomeksi — tiedossa oleva rajoite,
 // jota ei yritetä kääntää. Sivun oma teksti ja päivämäärät ovat englantia
 // (formatEventDate(iso, 'en')).
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva laskeutuu SAMAAN
+// sovellusnäkymään jonka etusivun opasvalikko avaa, ei erilliseen kehykseen.
+// Kieli tulee LanguageGatelta (/en-polku → 'en'), joten sovellus renderöityy
+// englanniksi ilman erillistä lippua. Data haetaan yhä palvelimella, jotta
+// Googlelle lähtevässä HTML:ssä on lista eikä tyhjä kuori.
 
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { formatEventDate } from '@/lib/helsinki-time'
-import { fetchKirppisEvents, mapSecondhandShops } from '@/lib/guide-data'
-import EnGuidePage from '@/components/EnGuidePage'
-import GuidePlaceList, { type GuidePlace } from '@/components/GuidePlaceList'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -56,8 +59,9 @@ export const metadata: Metadata = {
 }
 
 export default async function EnFleaMarketsPage() {
-  const events = await fetchKirppisEvents()
-  const shops: GuidePlace[] = mapSecondhandShops()
+  const data = await buildGuidePayload('kirpputorit', BASE)
+  const shops = data.shops ?? []
+  const events = data.events ?? []
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -91,48 +95,20 @@ export default async function EnFleaMarketsPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <EnGuidePage
-        emoji="🛍"
-        title="Flea markets & second hand in Helsinki"
-        crumb="Flea markets"
-        stat={`${shops.length} shops in Helsinki, Espoo and Vantaa · upcoming flea market events`}
-        intro={DESC}
-        seeAlso={[
-          { href: '/en/new-in-helsinki', label: '🆕 New in Helsinki' },
-          { href: '/en/saunas', label: '🧖 Saunas' },
-          { href: '/en', label: '🎉 Events today' },
-        ]}
-        sources="Sources: OpenStreetMap (second hand, charity and antique shops in Helsinki, Espoo and Vantaa) and Helsinki LinkedEvents for the events. Event titles come from the organisers in Finnish. Opening hours can change — check before you travel across town. Missing a shop? It gets added to OpenStreetMap, and this page updates itself."
-      >
-        {/* Tapahtumat ensin — ne vanhenevat, liikkeet pysyvät */}
-        {events.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-[15px] font-black tracking-[.08em] uppercase mb-3" style={{ color: '#fcd34d' }}>
-              🎪 Flea market events <span className="text-white/30 font-bold">· {events.length}</span>
-            </h2>
-            <ul className="space-y-2">
-              {events.map((e) => (
-                <li key={e.id}>
-                  <Link href={`/e/${encodeURIComponent(e.id)}`}
-                    className="block rounded-xl p-3.5 transition-colors hover:bg-white/6"
-                    style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-                    <p className="font-bold text-white text-[14px] leading-snug">{e.title}</p>
-                    <p className="text-[12.5px] text-white/50 mt-0.5">
-                      {formatEventDate(e.startTime, 'en')}{e.venue ? ` · ${e.venue}` : ''}
-                      {e.isFree ? ' · 🎁 free entry' : ''}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
-        <h2 className="text-[15px] font-black tracking-[.08em] uppercase text-white/70 mb-3">
-          Shops <span className="text-white/30 font-bold">· {shops.length}</span>
-        </h2>
-        <GuidePlaceList places={shops} emoji="🛍" />
-      </EnGuidePage>
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="kirpputorit" initialGuideData={{ shops, events }} />
+
+      {/* Sivun oma kuvausteksti ja lähdeseloste — hakukoneelle merkityksellistä
+          sisältöä. H1 on ruudunlukijoille ja Googlelle; sovellusnäkymässä on jo
+          oma otsikkorivinsä, joten kahta näkyvää otsikkoa ei haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Flea markets & second hand in Helsinki — {shops.length} shops</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          {'Sources: OpenStreetMap (second hand, charity and antique shops in Helsinki, Espoo and Vantaa) and Helsinki LinkedEvents for the events. Event titles come from the organisers in Finnish. Opening hours can change — check before you travel across town. Missing a shop? It gets added to OpenStreetMap, and this page updates itself.'}
+        </p>
+      </section>
     </>
   )
 }

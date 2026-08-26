@@ -12,12 +12,16 @@
 // TIEDOSSA OLEVA RAJOITE: tapahtumien omat otsikot tulevat LinkedEventsistä
 // järjestäjän kielellä, usein suomeksi. Niitä ei käännetä täällä — arvaus
 // olisi väärää tietoa. Lähdemaininta kertoo tämän lukijalle suoraan.
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva laskeutuu SAMAAN
+// sovellusnäkymään jonka etusivun opasvalikko avaa, ei erilliseen kehykseen.
+// Kieli tulee LanguageGatelta (/en-polku → 'en'), joten sovellus renderöityy
+// englanniksi ilman erillistä lippua. Data haetaan yhä palvelimella, jotta
+// Googlelle lähtevässä HTML:ssä on lista eikä tyhjä kuori.
 
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { formatEventDate } from '@/lib/helsinki-time'
-import EnGuidePage from '@/components/EnGuidePage'
-import { fetchJamitEvents } from '@/lib/guide-data'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -50,7 +54,8 @@ export const metadata: Metadata = {
 }
 
 export default async function EnJamSessionsPage() {
-  const events = await fetchJamitEvents()
+  const data = await buildGuidePayload('jamit', BASE)
+  const events = data.events ?? []
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -87,41 +92,20 @@ export default async function EnJamSessionsPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <EnGuidePage
-        emoji="🎤"
-        title="Jam sessions & open mic in Helsinki"
-        crumb="Jam sessions & open mic"
-        stat={events.length > 0 ? `${events.length} open stages over the next month` : 'Open stages and jam sessions'}
-        intro={DESC}
-        seeAlso={[
-          { href: '/en/saunas', label: '🧖 Saunas' },
-          { href: '/en', label: '🎉 Events today' },
-        ]}
-        sources="Source: Helsinki LinkedEvents. Bar-run jam nights don't always reach the city calendars — tell the organiser they can list the night in this app too. Event titles come straight from the organisers, so some of them are in Finnish."
-      >
-        {events.length === 0 ? (
-          <div className="text-center py-12 text-white/40">
-            <p className="text-4xl mb-3">🎸</p>
-            <p>No jams listed right now — new ones turn up here as soon as organisers publish them.</p>
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {events.map((e) => (
-              <li key={e.id}>
-                <Link href={`/e/${encodeURIComponent(e.id)}`}
-                  className="block rounded-xl p-3.5 transition-colors hover:bg-white/6"
-                  style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-                  <p className="font-bold text-white text-[14px] leading-snug">{e.title}</p>
-                  <p className="text-[12.5px] text-white/50 mt-0.5">
-                    {formatEventDate(e.startTime, 'en')}{e.venue ? ` · ${e.venue}` : ''}
-                    {e.isFree ? ' · 🎁 free entry' : ''}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </EnGuidePage>
+
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="jamit" initialGuideData={{ events }} />
+
+      {/* Sivun oma kuvausteksti ja lähdeseloste — hakukoneelle merkityksellistä
+          sisältöä. H1 on ruudunlukijoille ja Googlelle; sovellusnäkymässä on jo
+          oma otsikkorivinsä, joten kahta näkyvää otsikkoa ei haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Jam sessions & open mic in Helsinki — {events.length} open stages</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          {'Source: Helsinki LinkedEvents. Bar-run jam nights don\'t always reach the city calendars — tell the organiser they can list the night in this app too. Event titles come straight from the organisers, so some of them are in Finnish.'}
+        </p>
+      </section>
     </>
   )
 }

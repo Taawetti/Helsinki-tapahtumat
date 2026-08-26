@@ -12,13 +12,16 @@
 //
 // Data jaetaan suomenkielisen sivun kanssa (fetchTerraceEvents +
 // HELSINKI_NIGHTCLUBS) — sama välimuisti, ei kaksinkertaista kuormaa.
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva laskeutuu SAMAAN
+// sovellusnäkymään jonka etusivun opasvalikko avaa, ei erilliseen kehykseen.
+// Kieli tulee LanguageGatelta (/en-polku → 'en'), joten sovellus renderöityy
+// englanniksi ilman erillistä lippua. Data haetaan yhä palvelimella, jotta
+// Googlelle lähtevässä HTML:ssä on lista eikä tyhjä kuori.
 
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import EnGuidePage from '@/components/EnGuidePage'
-import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
-import { formatEventDate } from '@/lib/helsinki-time'
-import { fetchTerraceEvents } from '@/lib/guide-data'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -51,8 +54,9 @@ export const metadata: Metadata = {
 }
 
 export default async function EnTerracesPage() {
-  const events = await fetchTerraceEvents()
-  const rooftops = HELSINKI_NIGHTCLUBS.filter((v) => v.subCategories.includes('katto'))
+  const data = await buildGuidePayload('terassit', BASE)
+  const rooftops = data.rooftops ?? []
+  const events = data.events ?? []
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -109,84 +113,20 @@ export default async function EnTerracesPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <EnGuidePage
-        emoji="☀️"
-        title="Helsinki terraces & rooftop bars"
-        crumb="Terraces"
-        stat={stat}
-        intro={DESC}
-        seeAlso={[
-          { href: '/en/saunas', label: '🧖 Saunas' },
-          { href: '/en/nightclubs', label: '🪩 Nightlife' },
-          { href: '/en', label: '🎉 Events today' },
-        ]}
-        sources="Sources: Helsinki Linked Events for the events, and a hand-picked rooftop list (MyHelsinki, Resident Advisor, venue sites). Event titles come from the organisers, so some are in Finnish only. Terrace opening depends on the weather — check the venue's own site before you head out."
-      >
-        {/* Rooftop bars */}
-        <section className="mb-10">
-          <h2 className="text-lg font-bold mb-1 text-white">🌇 Rooftop bars</h2>
-          <p className="text-sm text-white/40 mb-3">Drinks above the city — open rain or shine.</p>
-          <ul className="space-y-2">
-            {rooftops.map((v) => (
-              <li key={v.id} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,.05)' }}>
-                <h3 className="font-semibold text-white leading-snug">
-                  {v.www ? (
-                    <a href={v.www} target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
-                      {v.name} ↗
-                    </a>
-                  ) : v.name}
-                </h3>
-                <p className="text-sm text-white/40 truncate">{v.address}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
 
-        {/* Terrace events */}
-        <section>
-          <h2 className="text-lg font-bold mb-1 text-white">🎪 Terrace &amp; open-air events</h2>
-          <p className="text-sm text-white/40 mb-3">What&rsquo;s on over the next two weeks — Superterassi, Allas Sea Pool and the rest.</p>
-          {events.length === 0 ? (
-            <div className="text-center py-12 text-white/40">
-              <p className="text-4xl mb-3">🍂</p>
-              <p>No terrace events listed right now — the season runs from June to August.</p>
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {events.map((e) => (
-                <li key={e.id}>
-                  <Link
-                    href={`/e/${encodeURIComponent(e.id)}`}
-                    className="flex items-start gap-3 rounded-xl p-4 transition-colors group"
-                    style={{ background: 'rgba(255,255,255,.05)' }}
-                  >
-                    {e.image && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={e.image} alt="" className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
-                        {e.title}
-                      </h3>
-                      <p className="text-sm text-white/60 mt-1">
-                        {formatEventDate(e.startTime, 'en')}
-                        {e.venue && <span className="text-white/40"> • {e.venue}</span>}
-                      </p>
-                    </div>
-                    <div className="flex-shrink-0 self-center">
-                      {e.isFree ? (
-                        <span className="text-green-400 text-xs font-medium">Free</span>
-                      ) : e.price ? (
-                        <span className="text-white/50 text-xs">{e.price}</span>
-                      ) : null}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </EnGuidePage>
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="terassit" initialGuideData={{ rooftops, events }} />
+
+      {/* Sivun oma kuvausteksti ja lähdeseloste — hakukoneelle merkityksellistä
+          sisältöä. H1 on ruudunlukijoille ja Googlelle; sovellusnäkymässä on jo
+          oma otsikkorivinsä, joten kahta näkyvää otsikkoa ei haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Helsinki terraces & rooftop bars — {rooftops.length} rooftops</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          {'Sources: Helsinki Linked Events for the events, and a hand-picked rooftop list (MyHelsinki, Resident Advisor, venue sites). Event titles come from the organisers, so some are in Finnish only. Terrace opening depends on the weather — check the venue\'s own site before you head out.'}
+        </p>
+      </section>
     </>
   )
 }

@@ -9,10 +9,16 @@
 //
 // Data jaetaan suomenkielisen sivun kanssa (lib/pubivisat.ts, fetchVisas) —
 // sama välimuisti, ei kaksinkertaista kuormaa pubivisat.fi:lle.
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva laskeutuu SAMAAN
+// sovellusnäkymään jonka etusivun opasvalikko avaa, ei erilliseen kehykseen.
+// Kieli tulee LanguageGatelta (/en-polku → 'en'), joten sovellus renderöityy
+// englanniksi ilman erillistä lippua. Data haetaan yhä palvelimella, jotta
+// Googlelle lähtevässä HTML:ssä on lista eikä tyhjä kuori.
 
 import type { Metadata } from 'next'
-import EnGuidePage from '@/components/EnGuidePage'
-import { fetchVisas, nextOccurrenceISO, PUBIVISAT_SOURCE_URL } from '@/lib/pubivisat'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 86400 // sama kuin /pubivisat — aikataulu muuttuu harvoin
 
@@ -55,7 +61,8 @@ export const metadata: Metadata = {
 }
 
 export default async function EnPubQuizzesPage() {
-  const visas = await fetchVisas()
+  const data = await buildGuidePayload('pubivisat', BASE)
+  const visas = data.visas ?? []
 
   // Group Mon..Sun (JS weekday 1..6, 0)
   const weekdayOrder = [1, 2, 3, 4, 5, 6, 0]
@@ -82,7 +89,7 @@ export default async function EnPubQuizzesPage() {
       item: {
         '@type': 'Event',
         name: `Pub quiz – ${v.name}`,
-        startDate: nextOccurrenceISO(v),
+        startDate: v.nextISO,
         eventStatus: 'https://schema.org/EventScheduled',
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
         isAccessibleForFree: true,
@@ -124,54 +131,20 @@ export default async function EnPubQuizzesPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <EnGuidePage
-        emoji="🧠"
-        title="Pub quizzes in Helsinki"
-        crumb="Pub quizzes"
-        stat={`${visas.length} weekly trivia nights in bars across the city`}
-        intro={DESC}
-        seeAlso={[
-          { href: '/en/nightclubs', label: '🪩 Nightlife' },
-          { href: '/en/jam-sessions', label: '🎤 Jam sessions' },
-          { href: '/en', label: '🎉 Events today' },
-        ]}
-        sources={`Source: pubivisat.fi, refreshed daily. Start times and venues change now and then — check the bar's own channels before you head out. Entry is free at every quiz listed here.`}
-      >
-        {/* Weekly schedule */}
-        {byDay.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">
-            <p className="text-4xl mb-3">🧠</p>
-            <p>The quiz listings could not be loaded right now.</p>
-            <a href={PUBIVISAT_SOURCE_URL} target="_blank" rel="noopener noreferrer"
-              className="mt-4 inline-block text-blue-400 hover:text-blue-300 text-sm">
-              Check pubivisat.fi ↗
-            </a>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {byDay.map((g) => (
-              <section key={g.weekday}>
-                <h2 className="text-lg font-bold mb-3 text-white">{g.label}</h2>
-                <ul className="space-y-2">
-                  {g.visas.map((v, i) => (
-                    <li key={`${g.weekday}-${i}`}
-                      className="flex items-center gap-3 bg-gray-900 rounded-xl p-4">
-                      <span className="text-sm font-mono text-blue-300 flex-shrink-0 w-12">
-                        {hhmm(v.hour, v.minute)}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white leading-snug">{v.name}</h3>
-                        <p className="text-sm text-gray-500 truncate">{v.address}</p>
-                      </div>
-                      <span className="text-green-400 text-xs font-medium flex-shrink-0">Free</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-        )}
-      </EnGuidePage>
+
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="pubivisat" initialGuideData={{ visas }} />
+
+      {/* Sivun oma kuvausteksti ja lähdeseloste — hakukoneelle merkityksellistä
+          sisältöä. H1 on ruudunlukijoille ja Googlelle; sovellusnäkymässä on jo
+          oma otsikkorivinsä, joten kahta näkyvää otsikkoa ei haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Pub quizzes in Helsinki — {visas.length} weekly trivia nights</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          {'Source: pubivisat.fi, refreshed daily. Start times and venues change now and then — check the bar\'s own channels before you head out. Entry is free at every quiz listed here.'}
+        </p>
+      </section>
     </>
   )
 }

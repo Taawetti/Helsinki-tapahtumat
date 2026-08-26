@@ -30,7 +30,10 @@ export const GUIDE_META: Record<GuideSlug, { emoji: string; titleKey: Translatio
   'ilmaiset-museot': { emoji: '🏛', titleKey: 'guides.museot_title',      subKey: 'guides.museot_sub' },
 }
 
-export interface Rooftop { name: string; address: string; www: string | null; image?: string | null; rating?: number | null }
+// lat/lon EIVÄT näy kortissa, mutta ne ovat lähdedatassa ja menevät sivujen
+// GeoCoordinates-rakennedataan. Ilman näitä kenttiä koordinaatit olisivat
+// pudonneet hiljaa pois, kun terassisivut alkoivat lukea jaettua pakettia.
+export interface Rooftop { name: string; address: string; www: string | null; image?: string | null; rating?: number | null; lat?: number; lon?: number }
 // Viikonpäivä ja kellonaika OVAT datassa (PubVisa), mutta ne puuttuivat
 // tästä tyypistä. Puuttuminen esti pubivisat-sivua rakentamasta FAQ-
 // rakennedataa ("Missä on pubivisa tiistaina?") jaetusta paketista, vaikka

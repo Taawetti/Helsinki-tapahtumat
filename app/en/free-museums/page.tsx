@@ -15,11 +15,16 @@
 // välimuisti, ei kaksinkertaista kuormaa lähteille. Paikkojen nimet tulevat
 // OSM:stä suomeksi eikä niitä käännetä; osoitteet ja nimet toimivat
 // englanninkieliselle lukijalle sellaisenaan.
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva laskeutuu SAMAAN
+// sovellusnäkymään jonka etusivun opasvalikko avaa, ei erilliseen kehykseen.
+// Kieli tulee LanguageGatelta (/en-polku → 'en'), joten sovellus renderöityy
+// englanniksi ilman erillistä lippua. Data haetaan yhä palvelimella, jotta
+// Googlelle lähtevässä HTML:ssä on lista eikä tyhjä kuori.
 
 import type { Metadata } from 'next'
-import { buildFreeMuseums } from '@/lib/guide-data'
-import EnGuidePage from '@/components/EnGuidePage'
-import GuidePlaceList from '@/components/GuidePlaceList'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -56,7 +61,9 @@ export const metadata: Metadata = {
 }
 
 export default async function EnFreeMuseumsPage() {
-  const { museums, galleries } = await buildFreeMuseums()
+  const data = await buildGuidePayload('ilmaiset-museot', BASE)
+  const museums = data.museums ?? []
+  const galleries = data.galleries ?? []
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -92,33 +99,20 @@ export default async function EnFreeMuseumsPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <EnGuidePage
-        emoji="🏛"
-        title="Free museums & galleries in Helsinki"
-        crumb="Free museums"
-        stat={`${museums.length} museums and ${galleries.length} galleries where entry is always free`}
-        intro={DESC}
-        seeAlso={[
-          { href: '/en/new-in-helsinki', label: '🆕 New in Helsinki' },
-          { href: '/en/saunas', label: '🧖 Saunas' },
-          { href: '/en', label: '🎉 Events today' },
-        ]}
-        sources="Sources: OpenStreetMap (the fee tag, opening hours) and Google (photos and ratings). This list covers places that never charge admission — many paid museums also run occasional free days, so check the museum's own site for those. Opening hours can change."
-      >
-        <section className="mb-8">
-          <h2 className="text-[15px] font-black tracking-[.08em] uppercase text-white/70 mb-3">
-            Museums <span className="text-white/30 font-bold">· {museums.length}</span>
-          </h2>
-          <GuidePlaceList places={museums} emoji="🏛" />
-        </section>
 
-        <section>
-          <h2 className="text-[15px] font-black tracking-[.08em] uppercase text-white/70 mb-3">
-            Galleries <span className="text-white/30 font-bold">· {galleries.length}</span>
-          </h2>
-          <GuidePlaceList places={galleries} emoji="🖼" />
-        </section>
-      </EnGuidePage>
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="ilmaiset-museot" initialGuideData={{ museums, galleries }} />
+
+      {/* Sivun oma kuvausteksti ja lähdeseloste — hakukoneelle merkityksellistä
+          sisältöä. H1 on ruudunlukijoille ja Googlelle; sovellusnäkymässä on jo
+          oma otsikkorivinsä, joten kahta näkyvää otsikkoa ei haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Free museums & galleries in Helsinki — {museums.length + galleries.length} places</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          {'Sources: OpenStreetMap (the fee tag, opening hours) and Google (photos and ratings). This list covers places that never charge admission — many paid museums also run occasional free days, so check the museum\'s own site for those. Opening hours can change.'}
+        </p>
+      </section>
     </>
   )
 }

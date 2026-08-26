@@ -365,6 +365,8 @@ export async function buildGuidePayload(slug: GuideDataSlug, origin: string): Pr
             www: v.www ?? e?.www ?? null,
             image: e?.image ?? null,
             rating: e?.rating ?? null,
+            lat: v.lat,
+            lon: v.lon,
           }
         })
       return { rooftops, events }

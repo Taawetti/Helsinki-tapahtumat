@@ -60,6 +60,7 @@ export default async function TerassitSivu() {
           '@type': 'BarOrPub',
           name: v.name,
           ...(v.address ? { address: { '@type': 'PostalAddress', streetAddress: v.address, addressLocality: 'Helsinki', addressCountry: 'FI' } } : {}),
+          ...(v.lat && v.lon ? { geo: { '@type': 'GeoCoordinates', latitude: v.lat, longitude: v.lon } } : {}),
           ...(v.www ? { url: v.www } : {}),
         },
       })),

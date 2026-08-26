@@ -12,11 +12,16 @@
 //
 // Data jaetaan suomenkielisen sivun kanssa (lib/guide-data.ts) — sama
 // välimuisti, ei kaksinkertaista kuormaa lähteille.
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva laskeutuu SAMAAN
+// sovellusnäkymään jonka etusivun opasvalikko avaa, ei erilliseen kehykseen.
+// Kieli tulee LanguageGatelta (/en-polku → 'en'), joten sovellus renderöityy
+// englanniksi ilman erillistä lippua. Data haetaan yhä palvelimella, jotta
+// Googlelle lähtevässä HTML:ssä on lista eikä tyhjä kuori.
 
 import type { Metadata } from 'next'
-import SaunatView from '@/components/SaunatView'
-import EnGuidePage from '@/components/EnGuidePage'
-import { buildSaunaRows } from '@/lib/guide-data'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -49,7 +54,10 @@ export const metadata: Metadata = {
 }
 
 export default async function EnSaunasPage() {
-  const saunas = await buildSaunaRows()
+  // Sama paketti jonka sovelluksen opas saa — yhteinen buildGuidePayload
+  // takaa, ettei hakukoneen ja sovelluksen näkemä data eroa.
+  const data = await buildGuidePayload('saunat', BASE)
+  const saunas = data.saunas ?? []
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -84,21 +92,20 @@ export default async function EnSaunasPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <EnGuidePage
-        emoji="🧖"
-        title="Public saunas in Helsinki"
-        crumb="Saunas"
-        stat={`${saunas.length} public saunas · opening hours, prices and ratings`}
-        intro={DESC}
-        seeAlso={[
-          { href: '/en/new-in-helsinki', label: '🆕 New in Helsinki' },
-          { href: '/en/terraces', label: '☀️ Terraces' },
-          { href: '/en', label: '🎉 Events today' },
-        ]}
-        sources="Sources: OpenStreetMap (saunas, opening hours), Google (photos and ratings) and Finnish news outlets. Opening hours can change — check the sauna's own site before you go. Missing a sauna? It gets added to OpenStreetMap, and this page updates itself."
-      >
-        <SaunatView saunas={saunas} />
-      </EnGuidePage>
+
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="saunat" initialGuideData={{ saunas }} />
+
+      {/* Sivun oma kuvausteksti ja lähdeseloste — hakukoneelle merkityksellistä
+          sisältöä. H1 on ruudunlukijoille ja Googlelle; sovellusnäkymässä on jo
+          oma otsikkorivinsä, joten kahta näkyvää otsikkoa ei haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Public saunas in Helsinki — {saunas.length} saunas</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          {'Sources: OpenStreetMap (saunas, opening hours), Google (photos and ratings) and Finnish news outlets. Opening hours can change — check the sauna\'s own site before you go. Missing a sauna? It gets added to OpenStreetMap, and this page updates itself.'}
+        </p>
+      </section>
     </>
   )
 }
