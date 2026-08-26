@@ -5,6 +5,8 @@ import { Analytics } from '@vercel/analytics/next'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import LanguageGate from '@/contexts/LanguageGate'
 import Footer from '@/components/Footer'
+import GoogleTag from '@/components/GoogleTag'
+import ConsentBanner from '@/components/ConsentBanner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -142,10 +144,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }} />
       </head>
       <body className="min-h-screen">
+        {/* Google Ads -tagi mainoskampanjaa varten (omistaja 26.8.2026).
+            KERRAN, juurilayoutissa: se renderöityy jokaiselle sivulle, ja
+            kahdesti lisättynä konversiot laskettaisiin tuplana. Sisältää
+            Consent Mode v2:n oletukset, jotka evätään kunnes käyttäjä valitsee
+            — ks. components/GoogleTag.tsx ja lib/consent.ts. */}
+        <GoogleTag />
         <LanguageGate>
           <FavoritesProvider>
             {children}
             <Footer />
+            {/* Banneri LanguageGaten sisällä, koska se tarvitsee käännökset. */}
+            <ConsentBanner />
           </FavoritesProvider>
         </LanguageGate>
         {/* Vercel Web Analytics — kävijämittaus ilman evästeitä (GDPR-kevyt).

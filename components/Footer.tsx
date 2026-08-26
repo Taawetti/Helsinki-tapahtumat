@@ -25,7 +25,7 @@ const FOOTER_TKEY: Record<string, TranslationKey> = {
 
 export default function Footer() {
   const pathname = usePathname()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   // '/en' on sama SOVELLUSNÄKYMÄ kuin '/', vain eri kielellä — sen on saatava
   // sama kevyt footer. Ilman tätä englanninkielinen etusivu sai laskeutumis-
   // sivujen 26 linkin valikon, jonka jokainen linkki vie suomenkieliselle
@@ -84,8 +84,14 @@ export default function Footer() {
 
         </div>
 
-        <p className="text-white/30 text-xs mt-10">
-          © {new Date().getFullYear()} Mitä tänään
+        <p className="text-white/30 text-xs mt-10 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>© {new Date().getFullYear()} Mitä tänään</span>
+          {/* Tietosuojaseloste on evästebannerin ehto: valinnan on löydyttävä
+              myös sen jälkeen kun banneri on kuitattu pois. */}
+          <Link href={lang === 'en' ? '/en/privacy' : '/tietosuoja'}
+            className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
+            {t('priv.title')}
+          </Link>
         </p>
       </div>
     </footer>
