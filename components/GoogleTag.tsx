@@ -35,6 +35,26 @@ export default function GoogleTag() {
             // heti hyväksyvän käyttäjän käynti ei katoa mittauksesta.
             wait_for_update: 500
           });
+
+          // AIEMMIN TALLENNETTU VALINTA TOISTETAAN HETI.
+          // Ilman tätä hyväksyntä koski vain sitä yhtä sivulatausta jolla
+          // nappia painettiin: seuraavalla latauksella oletus asetti kaiken
+          // uudelleen denied-tilaan, eikä mikään kertonut gtagille että
+          // käyttäjä oli jo hyväksynyt. Kampanja olisi mitannut murto-osan
+          // todellisista käynneistä, ja tietosuojasivu olisi silti näyttänyt
+          // "Mainosevästeet hyväksytty". Tämä ajetaan ennen gtag.js:ää, joten
+          // valinta on voimassa ensimmäisestä osumasta alkaen.
+          try {
+            var mtC = localStorage.getItem('mt-consent-v1');
+            if (mtC === 'granted' || mtC === 'denied') {
+              gtag('consent', 'update', {
+                ad_storage: mtC,
+                ad_user_data: mtC,
+                ad_personalization: mtC,
+                analytics_storage: mtC
+              });
+            }
+          } catch (e) { /* privaattitila: jää denied-tilaan, mikä on oikea oletus */ }
         `}
       </Script>
 

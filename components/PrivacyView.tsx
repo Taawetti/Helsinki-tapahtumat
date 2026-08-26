@@ -59,11 +59,18 @@ export default function PrivacyView() {
     }
   }
 
+  // Järjestys: ensin mitä sinusta kerätään selatessa, sitten mitä sinä itse
+  // annat, sitten kenelle se siirtyy, viimeisenä mistä sisältö tulee.
+  // Ilmoitukset, lomakkeet ja kolmannet osapuolet puuttuivat ensimmäisestä
+  // versiosta kokonaan — koodin tarkistus paljasti puutteen.
   const SECTIONS: { h: string; p: string }[] = [
     { h: 'priv.h_analytics', p: 'priv.analytics' },
     { h: 'priv.h_ads',       p: 'priv.ads' },
     { h: 'priv.h_local',     p: 'priv.local' },
+    { h: 'priv.h_push',      p: 'priv.push' },
     { h: 'priv.h_email',     p: 'priv.email' },
+    { h: 'priv.h_forms',     p: 'priv.forms' },
+    { h: 'priv.h_third',     p: 'priv.third' },
     { h: 'priv.h_events',    p: 'priv.events' },
   ] as const as { h: string; p: string }[]
 
