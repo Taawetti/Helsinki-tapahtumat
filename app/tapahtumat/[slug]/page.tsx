@@ -6,7 +6,7 @@ import HomeShell from '@/components/HomeShell'
 import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE, type Vibe, type Neighborhood } from '@/lib/types'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
-import { helsinkiToday } from '@/lib/helsinki-time'
+import { helsinkiToday, formatEventDate } from '@/lib/helsinki-time'
 
 export const revalidate = 3600
 
@@ -169,15 +169,16 @@ async function fetchByBbox(neighborhood: Neighborhood): Promise<PageEvent[]> {
   return events.slice(0, 40)
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('fi-FI', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+// AIKAVYÖHYKE PUUTTUI. Tämä sivu muotoili ajat omalla kopiollaan ilman
+// timeZonea, jolloin palvelimen vyöhyke ratkaisi: Vercel ajaa UTC:ssä, joten
+// klo 21.00 alkava keikka näkyi muodossa "klo 18.00" — kolme tuntia väärin
+// kaikilla 25 kategoriasivulla. Mitattu 26.8.2026 samalla tapahtumalla:
+// UTC "pe 11.9. klo 18.00" vs. Helsinki "pe 11.9. klo 21.00".
+//
+// Kolmella sisarsivulla (tanaan, viikonloppu, ilmaiset) timeZone oli jo
+// mukana — vain tämä kopio jäi jälkeen, mikä on juuri se mitä kopioidulle
+// logiikalle tapahtuu. Käytetään jaettua apufunktiota, joka hoitaa myös
+// pelkän päivämäärän sisältävät rivit.
 
 const VIBE_DESCRIPTIONS: Record<string, string> = {
   keikka:   'Helsingin parhaat live-keikat ja konsertit yhdessä paikassa. Tavastia, Circus Helsinki, On the Rocks, G Livelab ja kaikki muut keikkapaikat — ohjelma päivitetään automaattisesti päivittäin.',
@@ -362,7 +363,7 @@ export default async function TapahtumaSivu({ params }: Props) {
                         {e.title}
                       </h3>
                       <p className="text-[12px] text-white/35 mt-1">
-                        {formatDate(e.startTime)}
+                        {formatEventDate(e.startTime)}
                         {e.venue && <span className="text-white/25"> • {e.venue}</span>}
                       </p>
                     </div>
