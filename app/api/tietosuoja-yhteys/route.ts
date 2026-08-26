@@ -80,7 +80,13 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
-        sender: { name: 'Mitä tänään?', email: senderEmail },
+        // Lähettäjän nimessä EI kysymysmerkkiä, vaikka tuotenimi on
+        // "Mitä tänään?". Ääkkönen pakottaa otsikkokentän MIME-koodaukseen
+        // (=?UTF-8?B?...?=), jossa kysymysmerkki on erotinmerkki — nimen
+        // sisällä oleva "?" voi rikkoa koodauksen. Mitattu 26.8.2026:
+        // tällä nimellä Brevo torjui viestin, ASCII-nimellä toimiva
+        // tapahtumailmoitus menee läpi samalla avaimella.
+        sender: { name: 'Mitä tänään', email: senderEmail },
         to: [{ email: vastaanottaja }],
         // Vastaa-painike osuu suoraan kysyjään ilman että osoitetta tarvitsee
         // kopioida viestin rungosta.
@@ -90,7 +96,9 @@ export async function POST(req: NextRequest) {
       }),
     })
     if (!res.ok) {
-      console.error('[tietosuoja-yhteys] Brevo error:', res.status)
+      // Runko mukaan lokiin: pelkkä status ei kerro miksi Brevo torjui.
+      const virhe = await res.text().catch(() => '')
+      console.error('[tietosuoja-yhteys] Brevo error:', res.status, virhe.slice(0, 400))
       return NextResponse.json({ error: 'Lähetys epäonnistui' }, { status: 500 })
     }
     return NextResponse.json({ ok: true })
