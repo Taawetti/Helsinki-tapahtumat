@@ -826,6 +826,10 @@ const t = {
     'form.field_time_end':         'Päättyy',
     'form.cat_other':              'Joku muu',
     'form.add_event_cta':          'Lisää tapahtuma',
+    'nf.title':                    'Sivua ei löytynyt',
+    'nf.sub':                      'Osoite ei osunut mihinkään. Tarkista kirjoitusasu tai jatka tästä.',
+    'nf.home':                     'Etusivulle',
+    'nf.popular':                  'Suosittuja sivuja',
   },
 
   en: {
@@ -1654,6 +1658,10 @@ const t = {
     'form.field_time_end':         'Ends',
     'form.cat_other':              'Something else',
     'form.add_event_cta':          'Add an event',
+    'nf.title':                    'Page not found',
+    'nf.sub':                      'That address didn’t match anything. Check the spelling, or carry on from here.',
+    'nf.home':                     'Go to the front page',
+    'nf.popular':                  'Popular pages',
   },
 } as const
 
