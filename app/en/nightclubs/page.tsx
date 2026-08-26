@@ -28,6 +28,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Helsinki nightlife in one place: the best clubs, techno venues, karaoke bars and rooftop bars, hand-picked with addresses, ratings and tips for planning a night out.'
 
+const OG_TITLE = "Helsinki nightlife — the best clubs, bars & karaoke"
+
 export const metadata: Metadata = {
   title: 'Helsinki nightlife — the best clubs, bars & karaoke',
   description: DESC,
@@ -36,6 +38,10 @@ export const metadata: Metadata = {
     languages: { fi: `${BASE}/yokerhot`, en: `${BASE}/en/nightclubs`, 'x-default': `${BASE}/yokerhot` },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20EVENTS&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: '🪩 Helsinki nightlife',
     description: DESC,
     locale: 'en_GB',

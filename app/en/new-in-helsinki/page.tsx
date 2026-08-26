@@ -35,6 +35,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'New restaurants, bars, cafés, saunas and exhibitions in Helsinki — what has just opened and what is opening next. Built from the alcohol licence register, OpenStreetMap, museot.fi and Finnish news.'
 
+const OG_TITLE = "New in Helsinki — new restaurants, bars & cafés that just opened"
+
 export const metadata: Metadata = {
   title: 'New in Helsinki — new restaurants, bars & cafés that just opened',
   description: DESC,
@@ -47,6 +49,10 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20EVENTS&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: '🆕 New in Helsinki',
     description: DESC,
     locale: 'en_GB',

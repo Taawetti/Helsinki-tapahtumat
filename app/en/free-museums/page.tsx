@@ -28,6 +28,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Free museums in Helsinki — museums and galleries you can walk into without a ticket: Helsinki City Museum, the Money Museum, the Tram Museum and dozens of galleries. Opening hours and map.'
 
+const OG_TITLE = "Free museums in Helsinki — museums & galleries with free entry"
+
 export const metadata: Metadata = {
   title: 'Free museums in Helsinki — museums & galleries with free entry',
   description: DESC,
@@ -40,6 +42,10 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20EVENTS&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: '🏛 Free museums & galleries in Helsinki',
     description: DESC,
     locale: 'en_GB',

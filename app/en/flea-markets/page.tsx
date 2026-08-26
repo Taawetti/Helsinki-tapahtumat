@@ -28,6 +28,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Flea markets, second hand and vintage shops in Helsinki, Espoo and Vantaa — opening hours and map, plus upcoming flea market events and vintage fairs.'
 
+const OG_TITLE = "Flea markets in Helsinki — second hand & vintage shops"
+
 export const metadata: Metadata = {
   title: 'Flea markets in Helsinki — second hand & vintage shops',
   description: DESC,
@@ -40,6 +42,10 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20EVENTS&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: '🛍 Flea markets & second hand in Helsinki',
     description: DESC,
     locale: 'en_GB',

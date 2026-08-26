@@ -8,6 +8,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 
 const DESC = 'Pubivisat Helsingissä viikon jokaisena päivänä: tietovisojen aikataulut ja baarit maanantaista sunnuntaihin — löydä lähin visa ja kerää joukkue kasaan.'
 
+const OG_TITLE = "Pubivisat Helsinki — viikon tietovisat baareissa"
+
 export const metadata: Metadata = {
   title: 'Pubivisat Helsinki — viikon tietovisat baareissa',
   description: DESC,
@@ -15,7 +17,11 @@ export const metadata: Metadata = {
     canonical: `${BASE}/pubivisat`,
     languages: { fi: `${BASE}/pubivisat`, en: `${BASE}/en/pub-quizzes`, 'x-default': `${BASE}/pubivisat` },
   },
-  openGraph: { title: '🧠 Pubivisat Helsinki', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/pubivisat` },
+  openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }], title: '🧠 Pubivisat Helsinki', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/pubivisat` },
 }
 
 export default async function PubivisatSivu() {

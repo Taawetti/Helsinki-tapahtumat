@@ -17,6 +17,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Museot ja galleriat joihin on aina vapaa pääsy Helsingissä — Helsingin kaupunginmuseo, Rahamuseo, Ratikkamuseo ja kymmenet galleriat. Aukiolot ja kartta.'
 
+const OG_TITLE = "Ilmaiset museot Helsinki — vapaan pääsyn museot & galleriat"
+
 export const metadata: Metadata = {
   title: 'Ilmaiset museot Helsinki — vapaan pääsyn museot & galleriat',
   description: DESC,
@@ -30,7 +32,11 @@ export const metadata: Metadata = {
       'x-default': `${BASE}/ilmaiset-museot`,
     },
   },
-  openGraph: { title: '🏛 Ilmaiset museot & galleriat', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/ilmaiset-museot` },
+  openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }], title: '🏛 Ilmaiset museot & galleriat', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/ilmaiset-museot` },
 }
 
 export default async function IlmaisetMuseotSivu() {

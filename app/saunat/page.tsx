@@ -21,6 +21,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Yleiset saunat Helsingissä: aukiolot, hinnat, arvosanat ja uudet saunat — Löyly, Kotiharju, Sompasauna, Uusi Sauna ja koko kaupungin saunakartta yhdessä paikassa.'
 
+const OG_TITLE = "Saunat Helsinki — yleiset saunat, aukiolot & uudet saunat"
+
 export const metadata: Metadata = {
   title: 'Saunat Helsinki — yleiset saunat, aukiolot & uudet saunat',
   description: DESC,
@@ -30,7 +32,11 @@ export const metadata: Metadata = {
     canonical: `${BASE}/saunat`,
     languages: { fi: `${BASE}/saunat`, en: `${BASE}/en/saunas`, 'x-default': `${BASE}/saunat` },
   },
-  openGraph: { title: '🧖 Saunat Helsingissä', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/saunat` },
+  openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }], title: '🧖 Saunat Helsingissä', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/saunat` },
 }
 
 export default async function SaunatSivu() {

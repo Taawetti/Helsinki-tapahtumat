@@ -34,6 +34,8 @@ const EN_URL = `${BASE}/en/events-this-weekend`
 const DESC =
   'Things to do in Helsinki this weekend: Friday, Saturday and Sunday gigs, club nights, festivals and free events — the whole weekend’s programme in one place.'
 
+const OG_TITLE = "Things to do in Helsinki this weekend — gigs, clubs & free events"
+
 export const metadata: Metadata = {
   title: 'Things to do in Helsinki this weekend — gigs, clubs & free events',
   description: DESC,
@@ -42,6 +44,10 @@ export const metadata: Metadata = {
     languages: { fi: FI_URL, en: EN_URL, 'x-default': FI_URL },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20EVENTS&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: '🎉 Helsinki this weekend',
     description: DESC,
     locale: 'en_GB',

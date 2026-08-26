@@ -31,6 +31,8 @@ const hhmm = (hour: number, minute: number) =>
 const DESC =
   'Every pub quiz in Helsinki, day by day: trivia nights from Monday to Sunday with start times, bars and addresses — all free to enter, just bring a team.'
 
+const OG_TITLE = "Pub quizzes in Helsinki — weekly trivia nights, bar by bar"
+
 export const metadata: Metadata = {
   title: 'Pub quizzes in Helsinki — weekly trivia nights, bar by bar',
   description: DESC,
@@ -39,6 +41,10 @@ export const metadata: Metadata = {
     languages: { fi: `${BASE}/pubivisat`, en: `${BASE}/en/pub-quizzes`, 'x-default': `${BASE}/pubivisat` },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20EVENTS&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: '🧠 Pub quizzes in Helsinki',
     description: DESC,
     locale: 'en_GB',

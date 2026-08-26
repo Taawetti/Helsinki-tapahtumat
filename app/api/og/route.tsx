@@ -3,6 +3,14 @@ import { NextRequest } from 'next/server'
 
 export const runtime = 'edge'
 
+// Kuvan alalaidan osoiterivi. Oli kovakoodattu 'helsinki-tapahtumat.vercel.app',
+// eli JOKA jaettu linkki näytti vanhan osoitteen sen jälkeen kun domain vaihtui
+// mitatanaan.fi:hin (havaittu 26.8.2026). Johdetaan nyt samasta muuttujasta kuin
+// canonicalit, jotta se ei voi jäädä jälkeen uudestaan.
+const SITE_HOST = (process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app')
+  .replace(/^https?:\/\//, '')
+  .replace(/\/+$/, '')
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const title = searchParams.get('title') || 'Helsinki Tapahtumat'
@@ -95,7 +103,7 @@ export async function GET(req: NextRequest) {
               </div>
             )}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.3)', fontSize: '16px' }}>
-              <span>helsinki-tapahtumat.vercel.app</span>
+              <span>{SITE_HOST}</span>
             </div>
           </div>
         </div>

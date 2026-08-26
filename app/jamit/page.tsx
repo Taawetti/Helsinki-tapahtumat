@@ -15,6 +15,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Jamit, open mic -illat ja open stage -lavat Helsingissä — missä pääsee soittamaan, laulamaan tai lavalle seuraavan kuukauden aikana.'
 
+const OG_TITLE = "Jamit & open mic Helsinki — avoimet lavat ja jamisessiot"
+
 export const metadata: Metadata = {
   title: 'Jamit & open mic Helsinki — avoimet lavat ja jamisessiot',
   description: DESC,
@@ -22,7 +24,11 @@ export const metadata: Metadata = {
     canonical: `${BASE}/jamit`,
     languages: { fi: `${BASE}/jamit`, en: `${BASE}/en/jam-sessions`, 'x-default': `${BASE}/jamit` },
   },
-  openGraph: { title: '🎤 Jamit & open mic', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/jamit` },
+  openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }], title: '🎤 Jamit & open mic', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/jamit` },
 }
 
 // Tekstihaku on löyhä — vaadi aito jami-/lavasana. HUOM: pelkkä /jami/

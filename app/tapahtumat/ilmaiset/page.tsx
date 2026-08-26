@@ -8,6 +8,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 
 const DESC = 'Ilmaiset tapahtumat Helsingissä: maksuttomat konsertit, näyttelyt, puisto- ja toritapahtumat ja perhemenot — koko ilmainen ohjelma yhdessä paikassa.'
 
+const OG_TITLE = "Ilmaiset tapahtumat Helsinki – maksuton ohjelma"
+
 export const metadata: Metadata = {
   title: 'Ilmaiset tapahtumat Helsinki – maksuton ohjelma',
   description: DESC,
@@ -22,6 +24,10 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: 'Ilmaiset tapahtumat Helsinki',
     description: DESC,
     locale: 'fi_FI',

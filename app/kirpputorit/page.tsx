@@ -15,6 +15,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Kirpputorit ja second hand -liikkeet Helsingissä, Espoossa ja Vantaalla — aukiolot ja kartta, sekä tulevat kirppistapahtumat ja vintage-myyjäiset.'
 
+const OG_TITLE = "Kirpputorit Helsinki — second hand -liikkeet & kirppistapahtumat"
+
 export const metadata: Metadata = {
   title: 'Kirpputorit Helsinki — second hand -liikkeet & kirppistapahtumat',
   description: DESC,
@@ -24,7 +26,11 @@ export const metadata: Metadata = {
     canonical: `${BASE}/kirpputorit`,
     languages: { fi: `${BASE}/kirpputorit`, en: `${BASE}/en/flea-markets`, 'x-default': `${BASE}/kirpputorit` },
   },
-  openGraph: { title: '🛍 Kirpputorit & second hand', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/kirpputorit` },
+  openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }], title: '🛍 Kirpputorit & second hand', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/kirpputorit` },
 }
 
 // Tekstihaku on löyhä — vaadi aito kirppissana otsikosta/kuvauksesta.

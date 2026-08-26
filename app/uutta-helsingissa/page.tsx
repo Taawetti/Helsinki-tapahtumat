@@ -15,6 +15,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Uudet ravintolat, kahvilat, baarit, saunat ja näyttelyt Helsingissä — mitä on juuri avattu ja mitä on aukeamassa. Lähteinä luparekisteri, OpenStreetMap, museot.fi ja tuoreet uutiset.'
 
+const OG_TITLE = "Uutta Helsingissä — uudet ravintolat, kahvilat & paikat"
+
 export const metadata: Metadata = {
   title: 'Uutta Helsingissä — uudet ravintolat, kahvilat & paikat',
   description: DESC,
@@ -26,7 +28,11 @@ export const metadata: Metadata = {
       'x-default': `${BASE}/uutta-helsingissa`,
     },
   },
-  openGraph: { title: '🆕 Uutta Helsingissä', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/uutta-helsingissa` },
+  openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }], title: '🆕 Uutta Helsingissä', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/uutta-helsingissa` },
 }
 
 export default async function UuttaHelsingissaSivu() {

@@ -26,6 +26,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Jam sessions, open mic nights and open stages in Helsinki — the live music you can actually take part in. Where to play, sing or step on stage over the next month.'
 
+const OG_TITLE = "Jam sessions & open mic nights in Helsinki — live music calendar"
+
 export const metadata: Metadata = {
   title: 'Jam sessions & open mic nights in Helsinki — live music calendar',
   description: DESC,
@@ -34,6 +36,10 @@ export const metadata: Metadata = {
     languages: { fi: `${BASE}/jamit`, en: `${BASE}/en/jam-sessions`, 'x-default': `${BASE}/jamit` },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20EVENTS&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: '🎤 Jam sessions & open mic in Helsinki',
     description: DESC,
     locale: 'en_GB',

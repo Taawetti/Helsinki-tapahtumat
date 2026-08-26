@@ -9,6 +9,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 
 const DESC = 'Mitä tänään tapahtuu Helsingissä? Kaikki päivän keikat, klubit, näyttelyt ja perhetapahtumat yhdessä paikassa — päivitetty joka tunti 41 lähteestä.'
 
+const OG_TITLE = "Tapahtumat Helsinki tänään – mitä tapahtuu nyt"
+
 export const metadata: Metadata = {
   title: 'Tapahtumat Helsinki tänään – mitä tapahtuu nyt',
   description: DESC,
@@ -21,6 +23,10 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: 'Tapahtumat Helsinki tänään',
     description: DESC,
     locale: 'fi_FI',

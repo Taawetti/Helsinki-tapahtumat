@@ -27,6 +27,8 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC =
   'Rooftop bars and summer terraces in Helsinki: where to drink above the city, plus every terrace and open-air event over the next two weeks — addresses, times and prices.'
 
+const OG_TITLE = "Helsinki terraces — rooftop bars & summer terrace events"
+
 export const metadata: Metadata = {
   title: 'Helsinki terraces — rooftop bars & summer terrace events',
   description: DESC,
@@ -35,6 +37,10 @@ export const metadata: Metadata = {
     languages: { fi: `${BASE}/terassit`, en: `${BASE}/en/terraces`, 'x-default': `${BASE}/terassit` },
   },
   openGraph: {
+    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+    images: [{ url: `/api/og?brand=HELSINKI%20EVENTS&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: '☀️ Helsinki terraces & rooftop bars',
     description: DESC,
     locale: 'en_GB',
