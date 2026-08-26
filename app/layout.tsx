@@ -11,7 +11,10 @@ import ConsentBanner from '@/components/ConsentBanner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const viewport: Viewport = {
-  themeColor: '#6b76ff',
+  // Ohjeen VERSIO 3 arvo. Pidettävä synkassa manifestin theme_color-kentän
+  // kanssa — eripari näkyisi Androidin osoitepalkin ja asennetun sovelluksen
+  // välillä eri värinä. Aksenttiväri (#6b76ff) ei muutu, tämä on selainpalkki.
+  themeColor: '#0a0a0c',
   width: 'device-width',
   initialScale: 1,
 }
@@ -25,13 +28,15 @@ export const metadata: Metadata = {
     template: '%s | Mitä tänään Helsinki',
   },
   description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikat, teatterit, festivaalit, näyttelyt, urheilu, ilmaiset tapahtumat ja paljon muuta.',
-  manifest: '/manifest.json',
-  // Kuvakkeet suunnittelijan toimituksesta 26.8.2026. HUOM: app/favicon.ico
-  // on Next.js:n tiedostokonventio ja tuottaa oman rivinsä ennen näitä
-  // (mitattu tuloste: rel="icon" sizes="32x32" type="image/x-icon"). Selain
-  // suosii sitä, joten myös se tiedosto oli vaihdettava — pelkkä tämä lohko ei
-  // olisi vaihtanut välilehden kuvaketta lainkaan, ja siellä oli Next.js:n
-  // oletuskolmio aina projektin ensimmäisestä commitista asti.
+  manifest: '/manifest.webmanifest',
+  // Kuvakkeet suunnittelijan toimituksesta (KUVAKE-OHJE.md VERSIO 3, 26.8.2026).
+  // Tiedostot ovat toimitettuja PNG:itä sellaisenaan — merkki on Inter 900:n
+  // kysymysmerkki, ei piirretty polku.
+  //
+  // app/favicon.ico on POISTETTU tarkoituksella. Next.js:n tiedostokonventio
+  // olisi tuottanut siitä oman rivinsä ENNEN näitä ja voittanut ne selaimessa,
+  // jolloin vanha kuvake olisi jäänyt voimaan vaikka tämä lohko olisi oikein.
+  // Ohjeen VERSIO 3 vaatii sen poiston erikseen.
   icons: {
     icon: [
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
@@ -55,12 +60,18 @@ export const metadata: Metadata = {
     locale: 'fi_FI',
     siteName: 'Mitä tänään?',
     url: BASE,
-    images: [{ url: '/api/og', width: 1200, height: 630 }],
+    // Suunnittelijan valmis jakokuva (ohjeen tehtävä 4). Laskeutumissivut
+    // määrittelevät yhä oman kuvansa /api/og:n kautta, joten niiden
+    // sivukohtaiset otsikot säilyvät — tämä on juuren oletus.
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Mitä tänään — Kaikki Helsinki tapahtumat',
     description: 'Löydä parhaat tapahtumat Helsingissä tänään ja tulevinä päivinä.',
+    // Ohjeen tehtävä 4: twitter-lohkosta puuttui images kokonaan, jolloin X ja
+    // Slack eivät saaneet kuvaa summary_large_image -kortille.
+    images: ['/og-image.png'],
   },
   keywords: [
     'mitä tänään', 'Helsinki tapahtumat', 'tapahtumat Helsinki', 'mitä tehdä Helsinki',

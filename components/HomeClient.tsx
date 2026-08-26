@@ -911,7 +911,7 @@ export default function HomeClient({
           <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="flex items-center gap-2">
             {/* Merkki tulee nimen PERÄÄN — se on nimen kysymysmerkki, ei
                 erillinen ikoni. Aiemmin tässä oli indigo-laatta jossa luki M. */}
-            <Logo tileSize={28} />
+            <Logo size={14} />
           </button>
           <div className="flex items-center gap-2">
             <LanguageSwitch compact />
@@ -965,7 +965,7 @@ export default function HomeClient({
         {/* ── Desktop header: single row ── */}
         <div className="hidden md:flex max-w-6xl mx-auto px-4 py-3 items-center gap-3">
           <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="shrink-0 flex items-center gap-2">
-            <Logo tileSize={32} className="shrink-0" />
+            <Logo size={15} className="shrink-0" />
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">

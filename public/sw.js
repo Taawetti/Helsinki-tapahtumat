@@ -6,16 +6,23 @@
 // ESIVÄLIMUISTITETTU install-vaiheessa — eli paluukävijä saisi vanhat tavut
 // vaikka tiedostot on korvattu palvelimella. Nimen nosto on AINOA tapa pudottaa
 // ne: activate poistaa jokaisen välimuistin jonka nimi ei ole tämä.
+// v6 (26.8.2026): kuvakkeet vaihdettiin uudestaan (Inter 900 -kysymysmerkki
+// aiemman käsin piirretyn tilalle) ja manifest nimettiin uudelleen. Nimen nosto
+// on ainoa tapa pudottaa esivälimuistitetut vanhat kuvaketavut.
 // API_CACHE ja QUICK_CACHE EI nosteta — ne ovat tapahtumadataa, ja turha nosto
 // tyhjentäisi käyttäjän offline-tapahtumat ilman syytä.
-const CACHE = 'hki-v5'
+const CACHE = 'hki-v6'
 // v3: timestamps are now normalized (naive → Helsinki offset). Cached v2
 // responses hold un-normalized times that would show late-night events on the
 // wrong day (and drop them from the "tonight" view) for up to API_MAX_AGE, so
 // the generation is bumped to drop them on activate.
 const API_CACHE = 'hki-api-v3'
 const QUICK_CACHE = 'hki-quick-v3'
-const STATIC = ['/', '/manifest.json', '/icon-192.png', '/icon-512.png']
+// HUOM: cache.addAll on ATOMINEN — yksikin 404 estää koko service workerin
+// asentumisen. Jokaisen polun on siis oltava olemassa. Manifest nimettiin
+// uudelleen .webmanifestiksi ohjeen mukaan, ja tämä rivi päivitettiin samassa
+// commitissa juuri siksi.
+const STATIC = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
 const API_TTL = 5 * 60 * 1000     // full fetch: 5 min fresh
 const API_MAX_AGE = 60 * 60 * 1000 // full fetch: 1 h max stale
 const QUICK_TTL = 60 * 1000        // quick fetch: 1 min fresh (LinkedEvents only)
@@ -158,7 +165,7 @@ self.addEventListener('push', e => {
       // Badge on eri tiedosto kuin icon: Android tinttaa badgen yksiväriseksi
       // siluetiksi, joten täysvärinen gradienttilaatta renderöityisi umpinaisena
       // palluraksi. Tämä on läpinäkyvätaustainen valkoinen merkki.
-      badge: '/badge-mono.png',
+      badge: '/splash-mark.png',
       tag: tag || 'hki-events',
       renotify: true,
       data: { url: url || '/' },

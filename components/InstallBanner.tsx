@@ -56,10 +56,10 @@ export default function InstallBanner() {
         {/* Oikea sovelluskuvake eikä kirjain: banneri kehottaa asentamaan
             sovelluksen, joten sen on näytettävä se kuvake joka kotinäytölle
             oikeasti tulee. Aiemmin tässä oli vanha sininen H-laatta.
-            96 px eikä 192 px: kuva näytetään 40 px ruudussa, ja banneri liukuu
-            esiin juuri silloin kun verkko on muutenkin käytössä. */}
+            Käyttää /icon-192.png:tä: VERSIO 3 -paketissa ei ole 96 px kokoa,
+            eikä sitä saa generoida itse ("älä generoi kuvakkeita uudelleen"). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon-96.png" alt="" width={40} height={40} className="w-10 h-10 rounded-xl shrink-0" />
+        <img src="/icon-192.png" alt="" width={40} height={40} className="w-10 h-10 rounded-xl shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-white font-semibold text-sm">{t('install.title')}</p>
           <p className="text-white/50 text-xs mt-0.5">{t('install.desc')}</p>

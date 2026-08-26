@@ -1,7 +1,21 @@
 # Kuvake & logo — ohje Claude Codelle
 
-Valittu suunta: **2B "Täysi kysymys"** — valkoinen kysymysmerkki indigo-gradienttilaatalla.
-Sama indigo kuin sovelluksessa jo on (`#6b76ff → #5059e6`), joten värejä ei tarvitse muuttaa muualta.
+> **VERSIO 3 — korvaa kaiken aiemman. Lue tämä laatikko ensin.**
+>
+> Aiemmat versiot menivät pieleen, koska ohje sisälsi **käsin piirretyn SVG-polun**, joka ei
+> ollut sama merkki kuin hyväksytty design. Kuvake on tuotannossa väärän näköisenä — tämä korjaa sen.
+>
+> Merkki on **Inter 900 -fontin kysymysmerkki**, ei piirros. PNG-tiedostot on tuotettu
+> juuri siitä fontista. **Älä piirrä SVG-polkua, älä generoi kuvakkeita uudelleen, älä korvaa
+> merkkiä ikonikirjaston kysymysmerkillä.** Käytä annettuja tiedostoja sellaisenaan, ja
+> yläpalkissa oikeaa Inter-tekstimerkkiä.
+>
+> **Poista ensin vanhat kuvaketiedostot** `public/`-kansiosta sekä mahdolliset
+> `app/icon.*`, `app/favicon.ico`, `app/apple-icon.*` — muuten Next.js tai selain
+> näyttää vanhaa.
+
+Valittu suunta: **2B "Täysi kysymys"** — valkoinen Inter 900 -kysymysmerkki indigo-gradienttilaatalla,
+merkki täyttää laatan reunojen yli. Sama indigo kuin sovelluksessa jo on (`#6b76ff → #5059e6`).
 
 ---
 
@@ -10,21 +24,27 @@ Sama indigo kuin sovelluksessa jo on (`#6b76ff → #5059e6`), joten värejä ei 
 Kopioi alla oleva laatikko sellaisenaan. Tee tämä **omana tehtävänään**, ei muiden muutosten seassa.
 
 ```
-Lue design_handoff_mita_tanaan/logo/KUVAKE-OHJE.md ja toteuta se.
+Lue design_handoff_mita_tanaan/logo/KUVAKE-OHJE.md kokonaan ja toteuta se.
+Aloita ohjeen alussa olevasta VERSIO 3 -laatikosta — kuvake on nyt tuotannossa
+väärän näköisenä ja tämä korjaa sen.
 
-Lyhyesti: kansiossa design_handoff_mita_tanaan/logo/ on valmiit logo- ja
-kuvaketiedostot (valkoinen kysymysmerkki indigo-gradienttilaatalla). Tehtäväsi:
+Kriittiset säännöt:
+- Kuvakemerkki on Inter 900 -fontin kysymysmerkki. Kansiossa logo/ on siitä
+  tuotetut valmiit PNG-tiedostot. Käytä niitä SELLAISENAAN.
+- ÄLÄ piirrä SVG-polkua kysymysmerkistä. ÄLÄ generoi kuvakkeita uudelleen.
+  ÄLÄ käytä ikonikirjaston (lucide, heroicons tms.) kysymysmerkkiä.
+  Aiempi yritys epäonnistui juuri tästä syystä.
+- Poista vanhat kuvaketiedostot ennen uusien kopiointia (public/ sekä
+  app/icon.*, app/favicon.ico, app/apple-icon.*).
 
-1. Kopioi tiedostot public/-kansioon ohjeen "Mihin tiedostot menevät" -taulukon
-   mukaan. Käytä valmiita tiedostoja sellaisenaan — ÄLÄ piirrä tai generoi
-   kuvakkeita uudelleen, äläkä muuta niiden värejä, muotoa tai marginaaleja.
+Tehtävät:
+1. Kopioi tiedostot public/-kansioon ohjeen "Mihin tiedostot menevät" -taulukon mukaan.
 2. Lisää favicon- ja kuvakeviittaukset (app/layout.tsx metadata + manifest).
-3. Korvaa yläpalkin nykyinen "M"-pallo uudella merkillä ohjeen
-   "Yläpalkin merkki" -osion koodilla.
-4. Lisää some-jakokuva (og-image) metadataan.
+3. Korvaa yläpalkin nykyinen "M"-pallo ohjeen kohdan 3 Logo-komponentilla.
+4. Lisää og-image metadataan.
 
-Noudata ohjeen "Säännöt"-osiota tarkasti. Kun olet valmis, kerro mitkä tiedostot
-lisäsit ja mitä muutit, ja mainitse jos jokin puuttui.
+Kun olet valmis: listaa muutetut tiedostot ja kerro erikseen, mistä kuvakkeen
+merkki tuli (pitää olla logo/-kansion PNG, ei piirretty eikä ikonikirjastosta).
 ```
 
 ---
@@ -33,23 +53,24 @@ lisäsit ja mitä muutit, ja mainitse jos jokin puuttui.
 
 | Tiedosto | Mihin |
 |---|---|
-| `app-icon.svg` | Kuvakkeen alkuperäinen vektori (laatta + merkki). Lähde, josta kaikki PNG:t on tehty. |
-| `mark-white.svg` | Pelkkä merkki valkoisena, läpinäkyvä tausta. Käyttöliittymään tummalla pohjalla. |
-| `mark-indigo.svg` | Pelkkä merkki indigona. Vaalealle pohjalle. |
-| `mark-black.svg` | Pelkkä merkki mustana. Yksivärisiin tulosteisiin. |
-| `mark-currentcolor.svg` | Merkki, joka perii tekstin värin (`currentColor`). Kätevin React-komponenttiin. |
-| `icon-1024.png` | App Store / Google Play -kuvake. |
+| `icon-1024.png` | **Master.** App Store / Google Play. Kaikki muut koot on skaalattu tästä. |
 | `icon-512.png`, `icon-192.png` | PWA-kuvakkeet (manifest). |
 | `apple-touch-icon-180.png` | iPhonen kotinäyttö. |
 | `icon-152.png`, `icon-120.png` | iPad ja vanhemmat iPhonet. |
 | `icon-32.png`, `icon-16.png` | Favicon selaimen välilehdellä. |
-| `maskable-512.png` | PWA:n "maskable"-kuvake — merkki mahtuu turva-alueelle, kun selain rajaa ympyräksi. |
+| `maskable-512.png` | PWA:n "maskable"-kuvake — merkki mahtuu turva-alueelle kun selain rajaa ympyräksi. |
 | `adaptive-foreground-432.png` | Androidin mukautuva kuvake, **etuala** (läpinäkyvä). |
 | `adaptive-background-432.png` | Androidin mukautuva kuvake, **tausta** (gradientti). |
-| `mark-white-512.png` | Latausruutuun (splash) tummalla pohjalla. |
+| `mark-white-512.png` | Pelkkä valkoinen merkki läpinäkyvällä taustalla — latausruutuun. |
 | `og-image-1200x630.png` | Kuva, joka näkyy kun linkki jaetaan WhatsAppissa, Facebookissa, Slackissa. |
 
-**Miksi kolme eri kokoluokkaa samasta merkistä:** isoissa kuvakkeissa merkki on 88 % laatan korkeudesta, faviconeissa 94 % (pieni kuvake tarvitsee enemmän mustetta pysyäkseen luettavana), ja maskable/adaptive-versioissa vain 55–58 %, koska Android leikkaa reunoilta jopa kolmanneksen pois. Nämä eivät ole vahinkoja — älä yhtenäistä niitä.
+**Miksi eri kokoluokkia:** tavallisissa kuvakkeissa merkki täyttää laatan reunojen yli (kuten
+designissa), mutta `maskable`- ja `adaptive`-versioissa se on vain 54–56 %, koska Android leikkaa
+reunoilta jopa kolmanneksen pois. Nämä eivät ole vahinkoja — älä yhtenäistä niitä.
+
+**SVG-tiedostoja ei ole tarkoituksella.** Merkki on fonttimerkki: yläpalkissa se ladotaan tekstinä
+(kohta 3), kuvakkeissa käytetään valmiita PNG:itä. Älä tee SVG-versiota piirtämällä — se on juuri
+se virhe joka teki edellisestä kuvakkeesta väärän näköisen.
 
 ---
 
@@ -58,25 +79,22 @@ lisäsit ja mitä muutit, ja mainitse jos jokin puuttui.
 Kopioi `design_handoff_mita_tanaan/logo/` → projektin `public/`:
 
 ```
-public/favicon-32.png              ← icon-32.png
-public/favicon-16.png              ← icon-16.png
-public/apple-touch-icon.png        ← apple-touch-icon-180.png
-public/icon-192.png                ← icon-192.png
-public/icon-512.png                ← icon-512.png
-public/icon-maskable-512.png       ← maskable-512.png
-public/icon-1024.png               ← icon-1024.png        (vain kauppaa varten, ei sivustolle)
-public/og-image.png                ← og-image-1200x630.png
-public/logo-mark.svg               ← mark-white.svg
-public/splash-mark.png             ← mark-white-512.png
-public/android/foreground.png      ← adaptive-foreground-432.png
-public/android/background.png      ← adaptive-background-432.png
+public/favicon-32.png            ← icon-32.png
+public/favicon-16.png            ← icon-16.png
+public/apple-touch-icon.png      ← apple-touch-icon-180.png
+public/icon-192.png              ← icon-192.png
+public/icon-512.png              ← icon-512.png
+public/icon-maskable-512.png     ← maskable-512.png
+public/icon-1024.png             ← icon-1024.png   (vain kauppaa varten, ei sivustolle)
+public/og-image.png              ← og-image-1200x630.png
+public/splash-mark.png           ← mark-white-512.png
+public/android/foreground.png    ← adaptive-foreground-432.png
+public/android/background.png    ← adaptive-background-432.png
 ```
 
 ---
 
 ## 1. Metadata (`app/layout.tsx`)
-
-Lisää tai yhdistä olemassa olevaan `metadata`-objektiin:
 
 ```ts
 export const metadata: Metadata = {
@@ -105,7 +123,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: '#0a0a0c' };
 ```
 
-**Huom:** jos projektissa on jo `app/icon.png`, `app/favicon.ico` tai `app/apple-icon.png`, Next.js käyttää niitä automaattisesti ja ne **ohittavat** yllä olevat. Poista tai korvaa vanhat, muuten vanha kuvake jää voimaan.
+**Huom:** jos projektissa on `app/icon.png`, `app/favicon.ico` tai `app/apple-icon.png`, Next.js
+käyttää niitä automaattisesti ja ne **ohittavat** yllä olevat. Poista vanhat, muuten vanha kuvake jää.
 
 ## 2. Manifest (`public/manifest.webmanifest`)
 
@@ -131,33 +150,32 @@ export const viewport: Viewport = { themeColor: '#0a0a0c' };
 
 Nykyinen yläpalkki käyttää pyöreää "M"-laattaa (indigo-gradientti + kirjain M). Etsi se ja korvaa.
 
+Merkki ladotaan **tekstinä Inter 900:lla** — sovellus lataa Interin jo. Ei SVG:tä, ei kuvaa.
+
 Luo `components/Logo.tsx`:
 
 ```tsx
-export function LogoMark({ size = 26, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg viewBox="20 4 61 96" width={size * 0.635} height={size} className={className}
-         role="img" aria-label="Mitä tänään">
-      <path d="M 20 38 C 20 19 32 4 50 4 C 68 4 81 17 81 34 C 81 48 70 54 63 60 C 58 64.5 57 67 57 72 L 57 78 L 41 78 L 41 70 C 41 63 44 58 51 52 C 59 45 66 42 66 33 C 66 24 59 17 50 17 C 41 17 35 24 35 34 Z"
-            fill="currentColor" />
-      <circle cx="49" cy="91" r="9" fill="currentColor" />
-    </svg>
-  );
-}
-
 export function Logo() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <span style={{ fontWeight: 800, fontSize: 16, color: '#fff', letterSpacing: '-.025em' }}>
         Mitä tänään
       </span>
-      <LogoMark size={21} className="text-[#6b76ff]" />
+      <span style={{
+        fontWeight: 900, fontSize: 21, lineHeight: 1, color: '#6b76ff',
+        letterSpacing: '-.05em', transform: 'translateY(1px)',
+      }}>
+        ?
+      </span>
     </div>
   );
 }
 ```
 
-Käytä `<Logo />` siinä missä nykyinen "M"-pallo + teksti on. **Merkki tulee nimen perään**, ei eteen — se on nimen kysymysmerkki, ei erillinen ikoni.
+Käytä `<Logo />` siinä missä nykyinen "M"-pallo + teksti on.
+
+**Merkki tulee nimen perään**, ei eteen — se on nimen kysymysmerkki, ei erillinen ikoni.
+Varmista että `font-family` periytyy Interiksi; jos ei, lisää `fontFamily: 'Inter, sans-serif'`.
 
 ## 4. Latausruutu (jos appi asennetaan kotinäytölle)
 
@@ -168,28 +186,29 @@ Tausta `#0a0a0c`, keskellä `splash-mark.png` noin 96 px leveänä. Ei tekstiä,
 ## Säännöt
 
 **Tee näin**
-- Käytä valmiita tiedostoja sellaisenaan.
-- Kuvakkeen laatta on **neliö ilman pyöristyksiä** — iOS ja Android pyöristävät sen itse. Jos pyöristät sen valmiiksi, lopputulos saa kaksinkertaiset kulmat.
-- Sovelluksen aksenttiväri pysyy indigona (`#6b76ff`). Kuvake ei tuo uusia värejä.
+- Käytä valmiita PNG-tiedostoja sellaisenaan.
+- Kuvakkeen laatta on **neliö ilman pyöristyksiä** — iOS ja Android pyöristävät sen itse. Jos
+  pyöristät valmiiksi, tulee kaksinkertaiset kulmat.
+- Aksenttiväri pysyy indigona (`#6b76ff`). Kuvake ei tuo uusia värejä.
 - Nimi kirjoitetaan **"Mitä tänään?"** kysymysmerkillä otsikoissa, kaupan tiedoissa ja metadatassa.
 
 **Älä tee näin**
-- Älä generoi kuvakkeita uudelleen tekstistä tai fontista. Merkki on vektoripolku juuri siksi, ettei se riipu fontin saatavuudesta — Inter-fontilla ladottu "?" näyttää eri laitteilla eri paksuiselta.
+- **Älä piirrä kysymysmerkkiä SVG-polkuna.** Merkki on Inter 900 -fonttimerkki. Tämä on se virhe
+  joka meni tuotantoon aiemmin.
+- Älä käytä ikonikirjaston kysymysmerkkiä (lucide `HelpCircle` tms.).
 - Älä lisää kuvakkeeseen varjoa, hehkua, kehystä tai tekstiä.
-- Älä käytä `maskable`- tai `adaptive`-versioita tavallisena kuvakkeena — niissä merkki on tarkoituksella pienempi ja näyttäisi hukkuvan.
+- Älä käytä `maskable`- tai `adaptive`-versioita tavallisena kuvakkeena.
 - Älä läpinäkyvöi iOS-kuvaketta. Applen kuvakkeessa ei saa olla läpinäkyvyyttä.
 - Älä laita merkkiä nimen eteen.
 
 ---
 
-## Jos tarvitset .ico-tiedoston
-
-Nykyselaimet lukevat PNG-faviconit, joten `.ico` ei ole pakollinen. Jos jokin vanha järjestelmä sitä vaatii, tee se `icon-32.png`:stä ja `icon-16.png`:stä — älä piirrä uutta.
-
 ## Tarkistus lopuksi
 
+- [ ] Kuvake näyttää samalta kuin `icon-1024.png` — paksu valkoinen kysymysmerkki, joka ulottuu
+      laatan ylä- ja alareunan yli. Vertaa silmällä.
 - [ ] Välilehden favicon vaihtunut (tyhjennä selaimen välimuisti — favicon jää usein muistiin).
 - [ ] Puhelimen kotinäytölle lisätty sivu näyttää uuden kuvakkeen.
 - [ ] Linkin jakaminen WhatsAppiin näyttää og-kuvan.
-- [ ] Yläpalkissa ei ole enää "M"-palloa.
-- [ ] Kuvake näkyy ja tunnistuu myös 16 px:n kokoisena.
+- [ ] Yläpalkissa ei ole enää "M"-palloa, ja "?" on nimen perässä.
+- [ ] Koodissa ei ole yhtään käsin kirjoitettua `<path d="...">` -kysymysmerkkiä.
