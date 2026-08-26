@@ -1,4 +1,18 @@
-// Saunat Helsingissä — yleisten saunojen referenssisivu. Omistajan linjaus:
+// Saunat Helsingissä — yleisten saunojen referenssisivu.
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva ei saa laskeutua karuun
+// erillissivuun vaan SAMAAN näkymään jonka etusivun opasvalikko avaa, ja hänen
+// on voitava jatkaa sovelluksen käyttöä normaalisti (yläpalkki, päivävalitsimet,
+// Switch-valikko). Sama "linja pysyy" -periaate kuin 24.8., jolloin oppaat
+// siirrettiin etusivun sisään.
+//
+// DATA HAETAAN YHÄ TÄÄLLÄ PALVELIMELLA. Sovelluksen opasnäkymä hakee listan
+// normaalisti vasta selaimessa; jos tämä sivu tekisi samoin, Googlelle lähtevä
+// HTML olisi tyhjä kuori ja sivun hakukonearvo katoaisi (mitattu ennen
+// muutosta: 41 saunaa ja 48 nimiesiintymää palvelimen HTML:ssä). Siksi data
+// haetaan tässä ja SYÖTETÄÄN valmiina sovellukselle.
+//
+// Alkuperäinen linjaus:
 // saunat ovat se osa tekemistä-dataa, jolle EI ole hyvää yhtä paikkaa
 // netissä — aukiolot, hinnat, arvosanat, uudet saunat ja saunauutiset
 // yhdessä. Sama vertikaalisivujen sarja kuin /terassit ja /yokerhot;
@@ -10,8 +24,7 @@
 // tiedoston newPlaces-osiosta ja uutiset tunneittain uutisputkesta.
 
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import SaunatView from '@/components/SaunatView'
+import HomeShell from '@/components/HomeShell'
 import { buildSaunaRows } from '@/lib/guide-data'
 
 export const revalidate = 3600
@@ -76,44 +89,25 @@ export default async function SaunatSivu() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <main className="min-h-screen text-white" style={{ background: '#0a0a0c' }}>
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <nav className="text-sm text-white/35 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-white/70 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-white">Saunat</span>
-          </nav>
 
-          <div className="mb-6">
-            <h1 className="text-3xl font-black mb-2" style={{ letterSpacing: '-0.02em' }}>🧖 Saunat Helsingissä</h1>
-            <p className="text-white/50 mb-3">
-              {saunas.length} yleistä saunaa · aukiolot, hinnat ja arvosanat
-            </p>
-            <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
-          </div>
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="saunat" initialGuideData={{ saunas }} />
 
-          <SaunatView saunas={saunas} />
-
-          <div className="mt-10">
-            <p className="text-xs text-white/30 uppercase tracking-wider mb-2">Katso myös</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/uutta-helsingissa" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>🆕 Uutta Helsingissä</Link>
-              <Link href="/terassit" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>☀️ Terassit</Link>
-              <Link href="/" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>🎉 Tapahtumat tänään</Link>
-            </div>
-          </div>
-
-          <p className="mt-8 text-[11px] text-white/25 leading-relaxed">
-            Lähteet: OpenStreetMap (saunat, aukiolot), Google (kuvat ja arvosanat)
-            ja suomalaiset uutislähteet. Aukiolot voivat muuttua — tarkista
-            saunan omalta sivulta ennen lähtöä. Puuttuuko sauna? Se lisätään
-            OpenStreetMapiin, josta sivu päivittyy itsestään.
-          </p>
-        </div>
-      </main>
+      {/* Sivun oma kuvausteksti ja lähdeseloste. Nämä ovat hakukoneelle
+          merkityksellistä sisältöä (sivun lupaus omin sanoin), joten ne
+          säilytettiin kehyksen vaihtuessa — ne siirtyivät listan alle.
+          H1 on ruudunlukijoille ja Googlelle; sovellusnäkymässä on jo oma
+          otsikkorivinsä, joten kahta näkyvää otsikkoa ei haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Saunat Helsingissä — {saunas.length} yleistä saunaa</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          Lähteet: OpenStreetMap (saunat, aukiolot), Google (kuvat ja arvosanat)
+          ja suomalaiset uutislähteet. Aukiolot voivat muuttua — tarkista
+          saunan omalta sivulta ennen lähtöä. Puuttuuko sauna? Se lisätään
+          OpenStreetMapiin, josta sivu päivittyy itsestään.
+        </p>
+      </section>
     </>
   )
 }

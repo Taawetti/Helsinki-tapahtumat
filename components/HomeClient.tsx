@@ -24,7 +24,7 @@ import InstallBanner from '@/components/InstallBanner'
 import VibePanel from '@/components/VibePanel'
 import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
-import GuideInlineView, { GUIDE_META, type GuideSlug } from '@/components/GuideInlineView'
+import GuideInlineView, { GUIDE_META, type GuideSlug, type GuidePayload } from '@/components/GuideInlineView'
 import JarjestajaForm from '@/components/JarjestajaForm'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import NewsletterBanner from '@/components/NewsletterBanner'
@@ -164,7 +164,16 @@ let tonightSeeded = false
 
 export default function HomeClient({
   preloadedData,
+  initialGuide,
+  initialGuideData,
 }: {
+  /** SEO-sivu (esim. /saunat) avaa saman sovellusnäkymän kuin oppaan
+   *  klikkaus etusivulla, mutta data on esiladattu palvelimella jotta
+   *  Googlelle lähtevä HTML sisältää listan. Omistajan linjaus 26.8.2026:
+   *  hakutuloksesta tuleva laskeutuu samaan näkymään ja voi jatkaa
+   *  sovelluksen käyttöä normaalisti. */
+  initialGuide?: GuideSlug
+  initialGuideData?: GuidePayload
   preloadedData: {
     today: PreloadedDateRange
     tomorrow: PreloadedDateRange
@@ -254,7 +263,7 @@ export default function HomeClient({
   const [showGuideMenu, setShowGuideMenu] = useState(false)
   // Avoinna oleva opas ETUSIVUN SISÄLLÄ (omistaja 25.8.: oppaat eivät saa
   // viedä pois etusivunäkymästä — sama linjaus kuin kaupunginosilla).
-  const [guideView, setGuideView] = useState<GuideSlug | null>(null)
+  const [guideView, setGuideView] = useState<GuideSlug | null>(initialGuide ?? null)
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -1162,7 +1171,7 @@ export default function HomeClient({
           {/* ═══ KATEGORIAN PYSTYLISTA (koCat) — ← Takaisin + rikkaat kortit ═══ */}
           {/* ═══ OPAS ETUSIVUN SISÄLLÄ (guideView) ═══ */}
           {guideView && !koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
-            <GuideInlineView slug={guideView} onBack={() => setGuideView(null)}
+            <GuideInlineView slug={guideView} initialSlug={initialGuide} initialData={initialGuideData} onBack={() => setGuideView(null)}
               onSwitch={setGuideView} onEventClick={setSelectedEvent} />
           )}
 

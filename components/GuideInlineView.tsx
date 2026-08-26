@@ -31,7 +31,7 @@ export const GUIDE_META: Record<GuideSlug, { emoji: string; titleKey: Translatio
 
 interface Rooftop { name: string; address: string; www: string | null; image?: string | null; rating?: number | null }
 interface VisaRow { name: string; address: string; nextISO: string; image?: string | null; rating?: number | null; www?: string | null }
-interface GuidePayload {
+export interface GuidePayload {
   saunas?: SaunaRow[]
   rooftops?: Rooftop[]
   events?: GuideEvent[]
@@ -197,13 +197,22 @@ function SectionHead({ children, sub }: { children: React.ReactNode; sub?: strin
   )
 }
 
-export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }: {
+export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, initialSlug, initialData }: {
   slug: GuideSlug
   onBack: () => void
   onSwitch: (slug: GuideSlug) => void
   onEventClick: (e: Event) => void
+  /** Palvelimella esiladattu data ja se opas jolle se kuuluu. Käytössä
+   *  SEO-sivuilla (/saunat jne), jotka renderöivät saman sovellusnäkymän:
+   *  ilman tätä lista haettaisiin vasta selaimessa, jolloin Googlelle
+   *  lähtevä HTML olisi tyhjä ja koko sivun hakukonearvo katoaisi. */
+  initialSlug?: GuideSlug
+  initialData?: GuidePayload
 }) {
-  const [data, setData] = useState<GuidePayload | null>(null)
+  // Esiladattu data kelpaa VAIN sille oppaalle jolle se haettiin. Kun käyttäjä
+  // vaihtaa opasta Switch-valikosta, slug muuttuu eikä data enää vastaa sitä.
+  const preloaded = initialSlug === slug ? initialData : undefined
+  const [data, setData] = useState<GuidePayload | null>(preloaded ?? null)
   const [error, setError] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [showMenu, setShowMenu] = useState(false)
@@ -212,6 +221,9 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
 
   useEffect(() => {
     let alive = true
+    // Esiladattu opas: data on jo tilassa palvelimelta, ei haeta uudelleen.
+    // reloadKey ohittaa tämän, jotta "Yritä uudelleen" toimii yhä.
+    if (initialSlug === slug && initialData && reloadKey === 0) return
     // Tilan nollaus + haku timeout-callbackissa (React Compiler: ei
     // synkronista setStateä efektissä — sama kuvio kuin IdeaViewissä).
     const t0 = setTimeout(() => {
@@ -224,7 +236,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick }
         .catch(() => { if (alive) setError(true) })
     }, 0)
     return () => { alive = false; clearTimeout(t0) }
-  }, [slug, reloadKey])
+  }, [slug, reloadKey, initialSlug, initialData])
 
   const count = data
     ? (data.saunas?.length ?? 0) + (data.rooftops?.length ?? 0) + (data.events?.length ?? 0) +
