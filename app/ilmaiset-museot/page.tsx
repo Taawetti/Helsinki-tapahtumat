@@ -6,9 +6,8 @@
 // päivälähde löytyy myöhemmin, se lisätään tähän omana osionaan.
 
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { buildFreeMuseums } from '@/lib/guide-data'
-import GuidePlaceList, { type GuidePlace } from '@/components/GuidePlaceList'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -41,7 +40,10 @@ export const metadata: Metadata = {
 
 export default async function IlmaisetMuseotSivu() {
   // Datakompositio jaettu lib/guide-data.ts:ään (sama data in-app-oppaassa).
-  const { museums, galleries } = await buildFreeMuseums()
+  // Sama paketti jonka sovelluksen opas saa (/api/guides/ilmaiset-museot).
+  const data = await buildGuidePayload('ilmaiset-museot', BASE)
+  const museums = data.museums ?? []
+  const galleries = data.galleries ?? []
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -66,56 +68,20 @@ export default async function IlmaisetMuseotSivu() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <main className="min-h-screen text-white" style={{ background: '#0a0a0c' }}>
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <nav className="text-sm text-white/35 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-white/70 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-white">Ilmaiset museot</span>
-          </nav>
 
-          <div className="mb-6">
-            <h1 className="text-3xl font-black mb-2" style={{ letterSpacing: '-0.02em' }}>🏛 Ilmaiset museot & galleriat</h1>
-            <p className="text-white/50 mb-3">
-              {museums.length} museota ja {galleries.length} galleriaa, joihin on aina vapaa pääsy
-            </p>
-            <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
-          </div>
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="ilmaiset-museot" initialGuideData={{ museums, galleries }} />
 
-          <section className="mb-8">
-            <h2 className="text-[15px] font-black tracking-[.08em] uppercase text-white/70 mb-3">
-              Museot <span className="text-white/30 font-bold">· {museums.length}</span>
-            </h2>
-            <GuidePlaceList places={museums} emoji="🏛" />
-          </section>
-
-          <section>
-            <h2 className="text-[15px] font-black tracking-[.08em] uppercase text-white/70 mb-3">
-              Galleriat <span className="text-white/30 font-bold">· {galleries.length}</span>
-            </h2>
-            <GuidePlaceList places={galleries} emoji="🖼" />
-          </section>
-
-          <div className="mt-10">
-            <p className="text-xs text-white/30 uppercase tracking-wider mb-2">Katso myös</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/uutta-helsingissa" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>🆕 Uutta Helsingissä</Link>
-              <Link href="/tapahtumat/museo" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>🏛 Museotapahtumat</Link>
-              <Link href="/" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>🎉 Tapahtumat tänään</Link>
-            </div>
-          </div>
-
-          <p className="mt-8 text-[11px] text-white/25 leading-relaxed">
-            Maksuttomuustieto tulee OpenStreetMapista (fee-merkintä) — lista
-            kattaa paikat joihin on aina vapaa pääsy. Monella maksullisella
-            museolla on lisäksi yksittäisiä ilmaispäiviä; tarkista ne museon
-            omalta sivulta. Aukiolot voivat muuttua.
-          </p>
-        </div>
-      </main>
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Ilmaiset museot ja galleriat Helsingissä — {museums.length + galleries.length} kohdetta</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          Maksuttomuustieto tulee OpenStreetMapista (fee-merkintä) — lista
+          kattaa paikat joihin on aina vapaa pääsy. Monella maksullisella
+          museolla on lisäksi yksittäisiä ilmaispäiviä; tarkista ne museon
+          omalta sivulta. Aukiolot voivat muuttua.
+        </p>
+      </section>
     </>
   )
 }

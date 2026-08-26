@@ -1,8 +1,18 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import { fetchVisas, nextOccurrenceISO, WEEKDAY_FI, PUBIVISAT_SOURCE_URL } from '@/lib/pubivisat'
+// Pubivisat Helsingissä — viikon tietovisojen referenssisivu.
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva ei saa laskeutua karuun
+// erillissivuun vaan SAMAAN näkymään jonka etusivun opasvalikko avaa, ja hänen
+// on voitava jatkaa sovelluksen käyttöä normaalisti. Sama kuvio kuin /saunat.
+//
+// DATA HAETAAN YHÄ TÄÄLLÄ PALVELIMELLA, jotta Googlelle lähtevässä HTML:ssä on
+// lista eikä tyhjä kuori. Mitattu ennen muutosta: 91 baarin nimeä HTML:ssä.
 
-export const revalidate = 86400 // schedule changes rarely
+import type { Metadata } from 'next'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
+import { WEEKDAY_FI } from '@/lib/pubivisat'
+
+export const revalidate = 86400 // aikataulu muuttuu harvoin
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
@@ -25,9 +35,11 @@ export const metadata: Metadata = {
 }
 
 export default async function PubivisatSivu() {
-  const visas = await fetchVisas()
+  // Sama paketti jonka sovelluksen opas saa (/api/guides/pubivisat).
+  const data = await buildGuidePayload('pubivisat', BASE)
+  const visas = data.visas ?? []
 
-  // Group Mon..Sun (JS weekday 1..6, 0)
+  // Ryhmittely ma..su (JS-viikonpäivä 1..6, 0) FAQ-rakennedataa varten.
   const weekdayOrder = [1, 2, 3, 4, 5, 6, 0]
   const byDay = weekdayOrder
     .map((wd) => ({
@@ -51,7 +63,7 @@ export default async function PubivisatSivu() {
       item: {
         '@type': 'Event',
         name: `Tietovisa – ${v.name}`,
-        startDate: nextOccurrenceISO(v),
+        startDate: v.nextISO,
         eventStatus: 'https://schema.org/EventScheduled',
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
         isAccessibleForFree: true,
@@ -92,77 +104,19 @@ export default async function PubivisatSivu() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <main className="min-h-screen bg-gray-950 text-white">
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          {/* Breadcrumb */}
-          <nav className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-gray-300 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-white">Pubivisat</span>
-          </nav>
 
-          {/* Page header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">🧠 Pubivisat Helsingissä</h1>
-            <p className="text-gray-400 mb-3">{visas.length} viikoittaista tietovisaa baareissa ympäri kaupunkia</p>
-            <p className="text-sm text-gray-500 leading-relaxed">{DESC}</p>
-          </div>
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="pubivisat" initialGuideData={{ visas }} />
 
-          {/* Related pages */}
-          <div className="mb-8">
-            <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Katso myös</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/tapahtumat/baari" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🍺 Baaritapahtumat</Link>
-              <Link href="/yokerhot" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🪩 Yökerhot</Link>
-              <Link href="/tapahtumat/yoelama" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🌃 Yöelämä</Link>
-            </div>
-          </div>
-
-          {/* Weekly schedule */}
-          {byDay.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">
-              <p className="text-4xl mb-3">🧠</p>
-              <p>Visalistaa ei saatu ladattua juuri nyt.</p>
-              <a href={PUBIVISAT_SOURCE_URL} target="_blank" rel="noopener noreferrer"
-                className="mt-4 inline-block text-blue-400 hover:text-blue-300 text-sm">
-                Katso pubivisat.fi ↗
-              </a>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {byDay.map((g) => (
-                <section key={g.weekday}>
-                  <h2 className="text-lg font-bold mb-3 text-white">{g.label}</h2>
-                  <ul className="space-y-2">
-                    {g.visas.map((v, i) => (
-                      <li key={`${g.weekday}-${i}`}
-                        className="flex items-center gap-3 bg-gray-900 rounded-xl p-4">
-                        <span className="text-sm font-mono text-blue-300 flex-shrink-0 w-12">
-                          {String(v.hour).padStart(2, '0')}.{String(v.minute).padStart(2, '0')}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-white leading-snug">{v.name}</h3>
-                          <p className="text-sm text-gray-500 truncate">{v.address}</p>
-                        </div>
-                        <span className="text-green-400 text-xs font-medium flex-shrink-0">Ilmainen</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-10 pt-6 border-t border-gray-800 flex items-center justify-between">
-            <Link href="/" className="text-blue-400 hover:text-blue-300 transition-colors text-sm">
-              ← Kaikki Helsinki tapahtumat
-            </Link>
-            <a href={PUBIVISAT_SOURCE_URL} target="_blank" rel="noopener noreferrer" className="text-gray-600 text-xs hover:text-gray-400">
-              Lähde: pubivisat.fi
-            </a>
-          </div>
-        </div>
-      </main>
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Pubivisat Helsingissä — {visas.length} tietovisaa viikossa</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          Lähde: pubivisat.fi. Kuvat ja arvosanat Googlesta. Aikataulut voivat
+          muuttua ja kesätauot ovat yleisiä — tarkista baarin omalta sivulta
+          ennen lähtöä.
+        </p>
+      </section>
     </>
   )
 }

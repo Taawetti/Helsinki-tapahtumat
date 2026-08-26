@@ -14,9 +14,12 @@ import { credibilityScore } from '@/lib/credibility'
 import { reasonKey } from '@/lib/restaurant-reasons'
 import type { SaunaRow } from '@/components/SaunatView'
 import type { GuidePlace } from '@/components/GuidePlaceList'
+import type { GuidePayload } from '@/components/GuideInlineView'
 import saunaCardData from '@/data/sauna-cards.json'
 import activityReasonData from '@/data/activity-reasons.json'
 import secondhandData from '@/data/secondhand.json'
+import { fetchVisas, nextOccurrenceISO } from '@/lib/pubivisat'
+import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
 
 export const JAMIT_REGEX = /jamit\b|jameja\b|jamien\b|jameissa\b|jameihin\b|\bjami\b|jam[\s-]?sessio|jam session|open[\s-]?mic|open[\s-]?stage|lavamikki|avoin lava/i
 export const KIRPPIS_REGEX = /kirppis|kirpputori|second\s?hand|vintage|vaatteidenvaihto|myyjäis/i
@@ -318,4 +321,77 @@ export async function buildFreeMuseums(): Promise<{ museums: GuidePlace[]; galle
       }))
       .sort((a, b) => (b.reviews ?? 0) - (a.reviews ?? 0))
   return { museums: toPlace('museo'), galleries: toPlace('galleria') }
+}
+
+// ── Oppaan koko datapaketti yhdestä paikasta ─────────────────────────────────
+//
+// MIKSI TÄMÄ ON OLEMASSA. Sama kytkin oli aiemmin vain /api/guides/[slug]:ssä.
+// Kun opassivut (/saunat, /terassit, …) muutettiin avautumaan sovellusnäkymään,
+// nekin tarvitsivat täsmälleen saman paketin — palvelimella haettuna, jotta
+// Googlelle lähtevässä HTML:ssä on lista eikä tyhjä kuori. Kaksi kopiota olisi
+// ajautunut erilleen ensimmäisessä muutoksessa: sovellus näyttäisi yhtä ja
+// hakukone toista. Nyt molemmat pinnat kutsuvat tätä.
+//
+// @param origin  Rikastukseen käytettävän /api/restaurants-kutsun osoite.
+//   Rikastus on LISÄ eikä ehto: jos kutsu ei onnistu (esim. build-aikana kun
+//   omaa palvelinta ei vielä ole pystyssä), opas näytetään ilman kuvia ja
+//   arvosanoja — sama kuin näiden sivujen käytös ennen tätä muutosta.
+
+export type GuideDataSlug = 'saunat' | 'terassit' | 'pubivisat' | 'kirpputorit' | 'jamit' | 'ilmaiset-museot'
+
+// Paluutyyppi on SE SAMA jonka opaskomponentti kuluttaa. Omaa rinnakkaista
+// määrittelyä ei tehdä: se sallisi väärän muotoisen datan mennä läpi
+// tyyppitarkistuksesta ja rikkoutua vasta selaimessa. Tyyppituonti katoaa
+// käännöksessä, joten kehäriippuvuutta ei synny.
+export type GuideDataPayload = GuidePayload
+
+export async function buildGuidePayload(slug: GuideDataSlug, origin: string): Promise<GuidePayload> {
+  switch (slug) {
+    case 'saunat':
+      return { saunas: await buildSaunaRows() }
+
+    case 'terassit': {
+      // Kattoterassit ovat ravintoladatassa kuvineen ja arvosanoineen
+      // (mitattu 5/5 kuva, 4/5 ★) — haetaan ne, muuten kortti jäisi
+      // tekstijulisteeksi vaikka kuva on olemassa.
+      const [enrich, events] = await Promise.all([buildPlaceEnricher(origin), fetchTerraceEvents()])
+      const rooftops = HELSINKI_NIGHTCLUBS
+        .filter((v) => v.subCategories.includes('katto'))
+        .map((v) => {
+          const e = enrich(v.name, v.address)
+          return {
+            name: v.name,
+            address: v.address,
+            www: v.www ?? e?.www ?? null,
+            image: e?.image ?? null,
+            rating: e?.rating ?? null,
+          }
+        })
+      return { rooftops, events }
+    }
+
+    case 'pubivisat': {
+      const [visas, enrich] = await Promise.all([fetchVisas(), buildPlaceEnricher(origin)])
+      // Seuraava kerta valmiiksi laskettuna — asiakas saa suoraan
+      // aikajärjestyksen ("tänään klo 19" ensin). Kuva/★/kotisivu
+      // ravintoladatasta tiukalla nimi+osoite-matchilla (osumatta jäävä
+      // rivi näytetään tekstijulisteena — parempi kuin väärä kuva).
+      const rows = visas
+        .map((v) => {
+          const e = enrich(v.name, v.address)
+          return { ...v, nextISO: nextOccurrenceISO(v), image: e?.image ?? null, rating: e?.rating ?? null, www: e?.www ?? null }
+        })
+        .sort((a, b) => a.nextISO.localeCompare(b.nextISO))
+      return { visas: rows }
+    }
+
+    case 'kirpputorit':
+      return { shops: mapSecondhandShops(), events: await fetchKirppisEvents() }
+
+    case 'jamit':
+      return { events: await fetchJamitEvents() }
+
+    case 'ilmaiset-museot':
+      return await buildFreeMuseums()
+  }
 }

@@ -166,6 +166,7 @@ export default function HomeClient({
   preloadedData,
   initialGuide,
   initialGuideData,
+  heroAsHeading = true,
 }: {
   /** SEO-sivu (esim. /saunat) avaa saman sovellusnäkymän kuin oppaan
    *  klikkaus etusivulla, mutta data on esiladattu palvelimella jotta
@@ -174,6 +175,13 @@ export default function HomeClient({
    *  sovelluksen käyttöä normaalisti. */
   initialGuide?: GuideSlug
   initialGuideData?: GuidePayload
+  /** Laskeutumissivu tuo OMAN h1:nsä (esim. "Saunat Helsingissä"), joten
+   *  sovelluksen koristeellinen kaupunkiotsikko ei saa olla h1 — muuten
+   *  jokaisen laskeutumissivun vahvin otsikkosignaali Googlelle olisi sama
+   *  sana "HELSINKI" ja 50 sivua näyttäisi keskenään samalta. Mitattu
+   *  26.8.2026: /saunat tuotti kaksi h1:tä, joista ensimmäinen oli HELSINKI.
+   *  Etusivulla otsikko on aito h1 eikä tähän kosketa. */
+  heroAsHeading?: boolean
   preloadedData: {
     today: PreloadedDateRange
     tomorrow: PreloadedDateRange
@@ -1079,10 +1087,16 @@ export default function HomeClient({
 
           {/* City headline */}
           <div>
-            <h1 className="font-black text-white leading-none select-none"
-              style={{ fontSize: 'clamp(2.8rem,12vw,8rem)', letterSpacing: '-0.04em' }}>
-              {municipality.toUpperCase()}
-            </h1>
+            {(() => {
+              // Sama ulkoasu kummassakin tapauksessa — vaihtuu vain elementti.
+              const HeroTag = heroAsHeading ? 'h1' : 'div'
+              return (
+                <HeroTag className="font-black text-white leading-none select-none"
+                  style={{ fontSize: 'clamp(2.8rem,12vw,8rem)', letterSpacing: '-0.04em' }}>
+                  {municipality.toUpperCase()}
+                </HeroTag>
+              )
+            })()}
             <p className="text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
               {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
               {/* Tuoreusleima: montako lähdettä vastasi ja milloin — vajaa data ei saa olla näkymätöntä */}

@@ -4,9 +4,8 @@
 // LinkedEventsissä).
 
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { formatEventDate } from '@/lib/helsinki-time'
-import { fetchJamitEvents, type GuideEvent } from '@/lib/guide-data'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -31,13 +30,15 @@ export const metadata: Metadata = {
     images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }], title: '🎤 Jamit & open mic', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/jamit` },
 }
 
-// Tekstihaku on löyhä — vaadi aito jami-/lavasana. HUOM: pelkkä /jami/
-// osuisi nimeen "Jamie" — siksi taivutusmuodot ja yhdyssanaloppu (…jamit).
-// Datahaku + JAMIT_REGEX jaettu lib/guide-data.ts:ään.
-type PageEvent = GuideEvent
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva laskeutuu SAMAAN
+// näkymään jonka etusivun opasvalikko avaa. Data haetaan yhä palvelimella,
+// jotta Googlelle lähtevässä HTML:ssä on lista eikä tyhjä kuori (mitattu ennen
+// muutosta: 11 tapahtuman nimeä). Tekstihaku + JAMIT_REGEX guide-datassa.
 
 export default async function JamitSivu() {
-  const events = await fetchJamitEvents()
+  // Sama paketti jonka sovelluksen opas saa (/api/guides/jamit).
+  const data = await buildGuidePayload('jamit', BASE)
+  const events = data.events ?? []
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -63,64 +64,19 @@ export default async function JamitSivu() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <main className="min-h-screen text-white" style={{ background: '#0a0a0c' }}>
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <nav className="text-sm text-white/35 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-white/70 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-white">Jamit & open mic</span>
-          </nav>
 
-          <div className="mb-6">
-            <h1 className="text-3xl font-black mb-2" style={{ letterSpacing: '-0.02em' }}>🎤 Jamit & open mic</h1>
-            <p className="text-white/50 mb-3">
-              {events.length > 0 ? `${events.length} avointa lavaa seuraavan kuukauden aikana` : 'Avoimet lavat ja jamisessiot'}
-            </p>
-            <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
-          </div>
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="jamit" initialGuideData={{ events }} />
 
-          {events.length === 0 ? (
-            <div className="text-center py-12 text-white/40">
-              <p className="text-4xl mb-3">🎸</p>
-              <p>Ei jameja listattuna juuri nyt — uudet ilmestyvät tänne heti kun järjestäjät julkaisevat ne.</p>
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {events.map((e) => (
-                <li key={e.id}>
-                  <Link href={`/e/${encodeURIComponent(e.id)}`}
-                    className="block rounded-xl p-3.5 transition-colors hover:bg-white/6"
-                    style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-                    <p className="font-bold text-white text-[14px] leading-snug">{e.title}</p>
-                    <p className="text-[12.5px] text-white/50 mt-0.5">
-                      {formatEventDate(e.startTime)}{e.venue ? ` · ${e.venue}` : ''}
-                      {e.isFree ? ' · 🎁 maksuton' : ''}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mt-10">
-            <p className="text-xs text-white/30 uppercase tracking-wider mb-2">Katso myös</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/pubivisat" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>🧠 Pubivisat</Link>
-              <Link href="/tapahtumat/keikka" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>🎸 Keikat</Link>
-              <Link href="/" className="text-sm px-3 py-1.5 rounded-full transition-colors"
-                style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>🎉 Tapahtumat tänään</Link>
-            </div>
-          </div>
-
-          <p className="mt-8 text-[11px] text-white/25 leading-relaxed">
-            Lähde: Helsingin LinkedEvents. Baarien omat jami-illat eivät aina
-            päädy tapahtumakalentereihin — vinkkaa järjestäjälle, että
-            tapahtuman voi ilmoittaa myös tässä sovelluksessa.
-          </p>
-        </div>
-      </main>
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Jamit ja open mic Helsingissä — {events.length} tapahtumaa</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          Lähde: LinkedEvents-rajapinta, ikkuna seuraava kuukausi. Jamit ovat
+          usein toistuvia iltoja joita ei aina ilmoiteta erikseen — tarkista
+          paikan omalta sivulta ennen lähtöä.
+        </p>
+      </section>
     </>
   )
 }

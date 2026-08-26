@@ -1,8 +1,21 @@
+// Terassit Helsingissä — kattoterassien ja terassitapahtumien referenssisivu.
+//
+// OMISTAJAN LINJAUS 26.8.2026: hakutuloksesta tuleva ei saa laskeutua karuun
+// erillissivuun vaan SAMAAN näkymään jonka etusivun opasvalikko avaa, ja hänen
+// on voitava jatkaa sovelluksen käyttöä normaalisti (yläpalkki, päivävalitsimet,
+// Switch-valikko). Sama kuvio kuin /saunat, joka tehtiin koekappaleena.
+//
+// DATA HAETAAN YHÄ TÄÄLLÄ PALVELIMELLA. Sovelluksen opasnäkymä hakee listan
+// vasta selaimessa; jos tämä sivu tekisi samoin, Googlelle lähtevä HTML olisi
+// tyhjä kuori ja sivun hakukonearvo katoaisi. Mitattu ennen muutosta:
+// 13 nimeä palvelimen HTML:ssä (5 kattoterassia + 8 tapahtumaa).
+//
+// Data: kattoterassit lib/helsinki-nightclubs.ts:stä ravintoladatalla
+// rikastettuna (kuva + arvosana), tapahtumat LinkedEventsistä terassisuotimella.
+
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
-import { formatEventDate } from '@/lib/helsinki-time'
-import { fetchTerraceEvents, type GuideEvent } from '@/lib/guide-data'
+import HomeShell from '@/components/HomeShell'
+import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
@@ -26,12 +39,12 @@ export const metadata: Metadata = {
     images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }], title: '☀️ Terassit Helsinki', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/terassit` },
 }
 
-// Datahaku jaettu lib/guide-data.ts:ään (sama data in-app-oppaassa).
-type PageEvent = GuideEvent
-
 export default async function TerassitSivu() {
-  const events = await fetchTerraceEvents()
-  const rooftops = HELSINKI_NIGHTCLUBS.filter((v) => v.subCategories.includes('katto'))
+  // Sama paketti jonka sovelluksen opas saa (/api/guides/terassit) — yhteinen
+  // buildGuidePayload takaa, ettei hakukoneen ja sovelluksen näkemä data eroa.
+  const data = await buildGuidePayload('terassit', BASE)
+  const rooftops = data.rooftops ?? []
+  const events = data.events ?? []
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -46,8 +59,7 @@ export default async function TerassitSivu() {
         item: {
           '@type': 'BarOrPub',
           name: v.name,
-          address: { '@type': 'PostalAddress', streetAddress: v.address, addressLocality: 'Helsinki', addressCountry: 'FI' },
-          geo: { '@type': 'GeoCoordinates', latitude: v.lat, longitude: v.lon },
+          ...(v.address ? { address: { '@type': 'PostalAddress', streetAddress: v.address, addressLocality: 'Helsinki', addressCountry: 'FI' } } : {}),
           ...(v.www ? { url: v.www } : {}),
         },
       })),
@@ -81,101 +93,24 @@ export default async function TerassitSivu() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <main className="min-h-screen bg-gray-950 text-white">
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          {/* Breadcrumb */}
-          <nav className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-gray-300 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-white">Terassit</span>
-          </nav>
 
-          {/* Page header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">☀️ Terassit Helsingissä</h1>
-            <p className="text-gray-400 mb-3">Kattoterassit, rooftop-baarit ja terassitapahtumat</p>
-            <p className="text-sm text-gray-500 leading-relaxed">{DESC}</p>
-          </div>
+      {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
+      <HomeShell initialGuide="terassit" initialGuideData={{ rooftops, events }} />
 
-          {/* Related pages */}
-          <div className="mb-8">
-            <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Katso myös</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/yokerhot" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🪩 Yökerhot</Link>
-              <Link href="/tapahtumat/baari" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🍺 Baaritapahtumat</Link>
-              <Link href="/tapahtumat/ilmaiset" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🎁 Ilmaiset tapahtumat</Link>
-            </div>
-          </div>
-
-          {/* Rooftop bars */}
-          <section className="mb-10">
-            <h2 className="text-lg font-bold mb-1 text-white">🌇 Kattoterassit & rooftop-baarit</h2>
-            <p className="text-sm text-gray-500 mb-3">Drinkit kaupungin kattojen yllä — auki säällä kuin säällä.</p>
-            <ul className="space-y-2">
-              {rooftops.map((v) => (
-                <li key={v.id} className="bg-gray-900 rounded-xl p-4">
-                  <h3 className="font-semibold text-white leading-snug">
-                    {v.www ? (
-                      <a href={v.www} target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
-                        {v.name} ↗
-                      </a>
-                    ) : v.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 truncate">{v.address}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Terrace events */}
-          <section>
-            <h2 className="text-lg font-bold mb-1 text-white">🎪 Terassi- ja ulkoilmatapahtumat</h2>
-            <p className="text-sm text-gray-500 mb-3">Seuraavan kahden viikon ohjelma — mm. Superterassin ja Allas Sea Poolin menot.</p>
-            {events.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p className="text-4xl mb-3">🍂</p>
-                <p>Ei terassitapahtumia listattuna juuri nyt — terassikausi on kesä–elokuussa.</p>
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {events.map((e) => (
-                  <li key={e.id}>
-                    <Link href={`/e/${encodeURIComponent(e.id)}`}
-                      className="flex items-start gap-3 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors group">
-                      {e.image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={e.image} alt="" className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
-                          {e.title}
-                        </h3>
-                        <p className="text-sm text-gray-400 mt-1">
-                          {formatEventDate(e.startTime)}
-                          {e.venue && <span className="text-gray-500"> • {e.venue}</span>}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 self-center">
-                        {e.isFree ? (
-                          <span className="text-green-400 text-xs font-medium">Ilmainen</span>
-                        ) : e.price ? (
-                          <span className="text-gray-400 text-xs">{e.price}</span>
-                        ) : null}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <div className="mt-10 pt-6 border-t border-gray-800">
-            <Link href="/" className="text-blue-400 hover:text-blue-300 transition-colors text-sm">
-              ← Kaikki Helsinki tapahtumat
-            </Link>
-          </div>
-        </div>
-      </main>
+      {/* Sivun oma kuvausteksti ja lähdeseloste — hakukoneelle merkityksellistä
+          sisältöä (sivun lupaus omin sanoin), joten se säilytettiin kehyksen
+          vaihtuessa. H1 on ruudunlukijoille ja Googlelle; sovellusnäkymässä on
+          jo oma otsikkorivinsä, joten kahta näkyvää otsikkoa ei haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">Terassit Helsingissä — {rooftops.length} kattoterassia</h1>
+        <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
+          Lähteet: kattoterassit kaupungin baari- ja yökerhotiedoista, kuvat ja
+          arvosanat Googlesta, tapahtumat LinkedEvents-rajapinnasta.
+          Terassikausi on kesä–elokuussa — aukiolot riippuvat säästä, joten
+          tarkista paikan omalta sivulta ennen lähtöä.
+        </p>
+      </section>
     </>
   )
 }

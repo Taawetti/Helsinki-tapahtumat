@@ -8,6 +8,7 @@
 // Data /api/guides/[slug]:sta — jaettu lib/guide-data.ts SEO-sivujen kanssa.
 
 import { useEffect, useState } from 'react'
+import type { PubVisa } from '@/lib/pubivisat'
 import PosterCard from '@/components/PosterCard'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { Lang, TranslationKey } from '@/lib/i18n'
@@ -29,8 +30,17 @@ export const GUIDE_META: Record<GuideSlug, { emoji: string; titleKey: Translatio
   'ilmaiset-museot': { emoji: '🏛', titleKey: 'guides.museot_title',      subKey: 'guides.museot_sub' },
 }
 
-interface Rooftop { name: string; address: string; www: string | null; image?: string | null; rating?: number | null }
-interface VisaRow { name: string; address: string; nextISO: string; image?: string | null; rating?: number | null; www?: string | null }
+export interface Rooftop { name: string; address: string; www: string | null; image?: string | null; rating?: number | null }
+// Viikonpäivä ja kellonaika OVAT datassa (PubVisa), mutta ne puuttuivat
+// tästä tyypistä. Puuttuminen esti pubivisat-sivua rakentamasta FAQ-
+// rakennedataa ("Missä on pubivisa tiistaina?") jaetusta paketista, vaikka
+// tieto oli valmiina. Tyyppi kertoo nyt mitä datassa oikeasti on.
+export interface VisaRow extends PubVisa {
+  nextISO: string
+  image?: string | null
+  rating?: number | null
+  www?: string | null
+}
 export interface GuidePayload {
   saunas?: SaunaRow[]
   rooftops?: Rooftop[]
