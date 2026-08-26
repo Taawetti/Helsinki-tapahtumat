@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { curateForLanding } from '@/lib/seo-curation'
 import Link from 'next/link'
 import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
@@ -110,7 +111,10 @@ async function fetchToday(): Promise<PageEvent[]> {
       // would point at the previous day
       if (helsinkiDateOf(e.startTime) === today) events.push(e)
     }
-    return events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    // Kuratoitu järjestys: kiinnostavimmat ensin, kohderyhmän ulkopuoliset
+    // (seniori, vauva, lapsi, neulonta) pohjalle. MITÄÄN EI POISTETA — sama
+    // määrä kuin ennen. Ks. lib/seo-curation.ts.
+    return curateForLanding(events)
   } catch {
     return []
   }

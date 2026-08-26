@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 import { classifyEventCategory } from '../lib/event-category'
 import { sourceHash, batchItems, buildPrompt, parseResponse, applyTranslation, MAX_BATCH_CHARS } from '../lib/translate'
+import { curateForLanding, inTargetInTop } from '../lib/seo-curation'
 import { getTranslation } from '../lib/i18n'
 import {
   detectSourceAnomalies,
@@ -1664,6 +1665,53 @@ for (const c of arcChecks) {
   for (const c of formChecks) {
     if (c.ok) pass++
     else failures.push(`✗ lomake: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Laskeutumissivujen järjestys (lib/seo-curation) ─────────────────────────
+// Hakukonesivut näyttivät tapahtumat pelkässä aikajärjestyksessä, jolloin
+// kärjessä oli aamun palvelukeskusohjelma ("Pingistä", "Omatoiminen ompelu",
+// mitattu tuotannosta 26.8.2026). Omistaja: nämä eivät saa tulla ekana,
+// "sovelluksen trendi kärsii". MITÄÄN EI SAA POISTUA — kategoriat näyttävät
+// yhä kaiken, järjestys vain muuttuu.
+{
+  const ev = (title: string, extra: Record<string, unknown> = {}) => ({
+    title, startTime: '2026-08-26T10:00:00+03:00', categories: [] as string[], ...extra,
+  })
+  const seoChecks: { name: string; ok: boolean; got?: string }[] = []
+
+  const lista = [
+    ev('Omatoiminen ompelu', { startTime: '2026-08-26T09:00:00+03:00' }),
+    ev('Seniorien tuolijumppa', { startTime: '2026-08-26T09:30:00+03:00' }),
+    ev('Vauvojen värikylpy 0-1v', { startTime: '2026-08-26T10:00:00+03:00' }),
+    ev('Tavastia: Iso keikka', { startTime: '2026-08-26T21:00:00+03:00', image: 'x', categories: ['keikka'] }),
+    ev('Flow Festival', { startTime: '2026-08-26T20:00:00+03:00', image: 'x', categories: ['festivaali'] }),
+  ]
+  const out = curateForLanding(lista)
+
+  seoChecks.push({ name: 'määrä ei muutu — mitään ei poisteta', ok: out.length === lista.length, got: `${out.length}/${lista.length}` })
+  seoChecks.push({ name: 'kaikki alkuperäiset säilyvät', ok: lista.every((x) => out.some((y) => y.title === x.title)) })
+  seoChecks.push({ name: 'keikka tai festari nousee kärkeen', ok: /Tavastia|Flow/.test(out[0].title), got: out[0].title })
+  seoChecks.push({ name: 'ompelu ei ole ensimmäinen', ok: out[0].title !== 'Omatoiminen ompelu', got: out[0].title })
+  const pohja = out.slice(-3).map((x) => x.title)
+  seoChecks.push({ name: 'seniori/vauva/ompelu painuvat pohjalle', ok: pohja.every((t) => /ompelu|Seniorien|Vauvojen/.test(t)), got: pohja.join(' | ') })
+
+  // Mittari: kärjen kohderyhmäosuus paranee.
+  const aikajarjestys = [...lista].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  seoChecks.push({ name: 'kärjen kohderyhmäosuus paranee', ok: inTargetInTop(out, 3) > inTargetInTop(aikajarjestys, 3), got: `${inTargetInTop(aikajarjestys, 3)} → ${inTargetInTop(out, 3)}` })
+
+  // Vakaus: sama syöte → sama järjestys (ISR uusii sivun, ei saa heilua).
+  seoChecks.push({ name: 'järjestys on vakaa', ok: JSON.stringify(curateForLanding(lista)) === JSON.stringify(out) })
+  // Ei kaadu vajaalla datalla.
+  seoChecks.push({ name: 'sietää puuttuvat kentät', ok: curateForLanding([{ title: 'X', startTime: '2026-08-26T10:00:00+03:00' }]).length === 1 })
+  seoChecks.push({ name: 'tyhjä lista ei kaada', ok: curateForLanding([]).length === 0 })
+  // Visaspammi ei täytä kärkeä.
+  const visat = [ev('Pubivisa Lepakkomies', { categories: ['Pubivisa'] }), ev('Konsertti Musiikkitalossa', { image: 'x', categories: ['konsertit'] })]
+  seoChecks.push({ name: 'visa ei ohita konserttia', ok: curateForLanding(visat)[0].title.includes('Konsertti'), got: curateForLanding(visat)[0].title })
+
+  for (const c of seoChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ laskeutumisjärjestys: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { curateForLanding } from '@/lib/seo-curation'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE, type Vibe, type Neighborhood } from '@/lib/types'
@@ -124,7 +125,7 @@ async function fetchByText(keywords: string[]): Promise<PageEvent[]> {
     ),
   )
 
-  const events: PageEvent[] = []
+  let events: PageEvent[] = []
   const seen = new Set<string>()
   for (const { rows } of perTerm) {
     for (const raw of rows) {
@@ -135,7 +136,8 @@ async function fetchByText(keywords: string[]): Promise<PageEvent[]> {
     }
   }
 
-  events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  // Kuratoitu järjestys, ks. lib/seo-curation.ts — mitään ei poisteta.
+  events = curateForLanding(events)
   return events.slice(0, 40)
 }
 
@@ -160,8 +162,9 @@ async function fetchByBbox(neighborhood: Neighborhood): Promise<PageEvent[]> {
     () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) }),
   )
 
-  const events = rows.map(normalizeLE).filter((e) => startsWithin(e, start, end))
-  events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  let events = rows.map(normalizeLE).filter((e) => startsWithin(e, start, end))
+  // Kuratoitu järjestys, ks. lib/seo-curation.ts — mitään ei poisteta.
+  events = curateForLanding(events)
   return events.slice(0, 40)
 }
 
