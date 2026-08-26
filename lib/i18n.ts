@@ -854,6 +854,16 @@ const t = {
     'priv.denied':                 'Vain välttämättömät',
     'priv.unset':                  'Et ole vielä valinnut',
     'priv.change':                 'Vaihda valintaa',
+    'priv.h_contact':              'Yhteydenotto',
+    'priv.contact_intro':          'Tietosuoja-asioissa — esimerkiksi jos haluat tietosi poistettavaksi tai haluat kysyä mitä sinusta on tallessa — käytä tätä lomaketta. Viesti menee suoraan ylläpitäjälle.',
+    'priv.c_email':                'Sähköpostisi',
+    'priv.c_msg':                  'Viesti',
+    'priv.c_send':                 'Lähetä',
+    'priv.c_sending':              'Lähetetään…',
+    'priv.c_ok':                   'Kiitos, viesti lähti. Vastaamme antamaasi sähköpostiin.',
+    'priv.c_err':                  'Lähetys ei onnistunut. Yritä hetken päästä uudelleen.',
+    'priv.c_need':                 'Täytä sähköposti ja viesti.',
+    'priv.c_reply':                'Vastaamme sähköpostiisi. Osoitettasi ei käytetä mihinkään muuhun eikä sitä liitetä uutiskirjeeseen.',
   },
 
   en: {
@@ -1710,6 +1720,16 @@ const t = {
     'priv.denied':                 'Essential only',
     'priv.unset':                  'You have not chosen yet',
     'priv.change':                 'Change my choice',
+    'priv.h_contact':              'Contact',
+    'priv.contact_intro':          'For privacy matters — for example if you want your data deleted, or want to ask what is stored about you — use this form. The message goes straight to the site operator.',
+    'priv.c_email':                'Your email',
+    'priv.c_msg':                  'Message',
+    'priv.c_send':                 'Send',
+    'priv.c_sending':              'Sending…',
+    'priv.c_ok':                   'Thanks, your message was sent. We will reply to the address you gave.',
+    'priv.c_err':                  'Sending failed. Please try again in a moment.',
+    'priv.c_need':                 'Please fill in both your email and a message.',
+    'priv.c_reply':                'We reply by email. Your address is not used for anything else and is not added to the newsletter.',
   },
 } as const
 

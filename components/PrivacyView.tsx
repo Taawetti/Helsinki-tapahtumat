@@ -8,21 +8,53 @@
 // selaimen muistissa, uutiskirjeen sähköposti, tapahtumadata julkisista
 // lähteistä. Jos jokin näistä muuttuu, tämä sivu on päivitettävä samalla.
 
-import { useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { subscribeConsent, readConsent, readConsentServer, setConsent } from '@/lib/consent'
 
-// Rekisterinpitäjän yhteystieto. TYHJÄ = osiota ei näytetä lainkaan.
-// Omistajan on täydennettävä tämä ennen mainoskampanjan alkua: seloste ilman
-// yhteystietoa on vaillinainen. Jätetty tyhjäksi tarkoituksella, koska
-// yhteystiedon julkaiseminen on omistajan päätös eikä minun.
-const YHTEYSTIETO = ''
+// Rekisterinpitäjän NIMI. Osoitetta ei tarvita tähän: yhteydenotto hoituu
+// sivun lomakkeella, joka lähettää viestin palvelimen kautta (osoite on
+// ympäristömuuttujassa, ei koskaan selaimessa eikä tässä julkisessa repossa).
+// Nimi on silti kerrottava — tietosuojaseloste kertoo KUKA tietoja käsittelee,
+// ja lomake vastaa vain kysymykseen MITEN häneen saa yhteyden.
+// TYHJÄ = riviä ei näytetä. Omistajan täytettävä ennen kampanjan alkua.
+const REKISTERINPITAJA = ''
 
 const PAIVITETTY = '26.8.2026'
 
 export default function PrivacyView() {
   const { t, lang } = useLanguage()
   const choice = useSyncExternalStore(subscribeConsent, readConsent, readConsentServer)
+
+  const [email, setEmail] = useState('')
+  const [viesti, setViesti] = useState('')
+  const [hunaja, setHunaja] = useState('')
+  const [status, setStatus] = useState<'idle' | 'sending' | 'ok'>('idle')
+  const [virhe, setVirhe] = useState('')
+  // Avaushetki robottisuodatusta varten. Refiin eikä tilaan, koska tämä ei
+  // vaikuta renderöintiin; luetaan vasta lähetyksessä.
+  const avattuRef = useRef(0)
+  // Kirjoitetaan vasta liitoksen jälkeen: palvelimella ei ole avaushetkeä, ja
+  // renderissä laskettu aikaleima rikkoisi hydraation. Pelkkä refin kirjoitus,
+  // ei tilamuutosta, joten ylimääräistä renderöintiä ei synny.
+  useEffect(() => { avattuRef.current = Date.now() }, [])
+
+  async function laheta(e: FormEvent) {
+    e.preventDefault()
+    if (!email.trim() || viesti.trim().length < 5) { setVirhe(t('priv.c_need')); return }
+    setVirhe(''); setStatus('sending')
+    try {
+      const r = await fetch('/api/tietosuoja-yhteys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, viesti, hunaja, avattu: avattuRef.current }),
+      })
+      if (!r.ok) throw new Error()
+      setStatus('ok')
+    } catch {
+      setStatus('idle'); setVirhe(t('priv.c_err'))
+    }
+  }
 
   const SECTIONS: { h: string; p: string }[] = [
     { h: 'priv.h_analytics', p: 'priv.analytics' },
@@ -81,9 +113,55 @@ export default function PrivacyView() {
           </div>
         </section>
 
-        {YHTEYSTIETO && (
-          <p className="mt-8 text-[12px] text-white/30 leading-relaxed">{YHTEYSTIETO}</p>
-        )}
+        {/* Yhteydenotto lomakkeella. Sähköpostiosoitetta ei näytetä sivulla
+            eikä se ole selaimeen lähtevässä koodissa — palvelin ratkaisee
+            vastaanottajan ympäristömuuttujasta. */}
+        <section className="mt-8">
+          <h2 className="text-[15px] font-black tracking-[.06em] uppercase text-white/70 mb-2">{t('priv.h_contact')}</h2>
+          <p className="text-white/45 text-[13.5px] leading-relaxed mb-4">{t('priv.contact_intro')}</p>
+
+          {status === 'ok' ? (
+            <p className="text-[13.5px] rounded-xl p-4" style={{ background: 'rgba(16,185,129,.10)', color: '#6ee7b7' }}>
+              {t('priv.c_ok')}
+            </p>
+          ) : (
+            <form onSubmit={laheta} className="space-y-2.5">
+              <input
+                type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('priv.c_email')} autoComplete="email" required maxLength={200}
+                className="w-full px-4 py-3 rounded-xl text-[14px] text-white placeholder-white/25 outline-none focus:ring-2 focus:ring-[#6b76ff]/50"
+                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)' }}
+              />
+              <textarea
+                value={viesti} onChange={(e) => setViesti(e.target.value)}
+                placeholder={t('priv.c_msg')} required rows={4} maxLength={4000}
+                className="w-full px-4 py-3 rounded-xl text-[14px] text-white placeholder-white/25 outline-none focus:ring-2 focus:ring-[#6b76ff]/50 resize-y"
+                style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)' }}
+              />
+              {/* Hunajapurkki: ihminen ei näe tätä eikä täytä sitä. Robotit
+                  täyttävät kaikki kentät. aria-hidden + tabIndex pitävät sen
+                  myös ruudunlukijan ja sarkaimen ulottumattomissa. */}
+              <input
+                type="text" name="hunaja" value={hunaja} onChange={(e) => setHunaja(e.target.value)}
+                tabIndex={-1} autoComplete="off" aria-hidden="true"
+                style={{ position: 'absolute', left: '-9999px', width: 1, height: 1 }}
+              />
+              {virhe && <p className="text-[12.5px]" style={{ color: '#fca5a5' }}>{virhe}</p>}
+              <button
+                type="submit" disabled={status === 'sending'}
+                className="px-5 py-2.5 rounded-xl font-black text-[13px] text-white transition-transform active:scale-[.98] disabled:opacity-50"
+                style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}
+              >
+                {status === 'sending' ? t('priv.c_sending') : t('priv.c_send')}
+              </button>
+              <p className="text-[11.5px] text-white/25 leading-relaxed pt-1">{t('priv.c_reply')}</p>
+            </form>
+          )}
+
+          {REKISTERINPITAJA && (
+            <p className="mt-6 text-[12px] text-white/30 leading-relaxed">{REKISTERINPITAJA}</p>
+          )}
+        </section>
 
         <a href={lang === 'en' ? '/en' : '/'}
           className="inline-block mt-10 text-[13px] text-white/35 hover:text-white/70 transition-colors">
