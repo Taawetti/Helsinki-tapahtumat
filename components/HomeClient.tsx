@@ -166,6 +166,11 @@ export default function HomeClient({
   preloadedData,
   initialGuide,
   initialGuideData,
+  initialVibes,
+  initialHood,
+  initialPriceFilter,
+  initialMode,
+  initialDateFilter,
   heroAsHeading = true,
 }: {
   /** SEO-sivu (esim. /saunat) avaa saman sovellusnäkymän kuin oppaan
@@ -175,6 +180,24 @@ export default function HomeClient({
    *  sovelluksen käyttöä normaalisti. */
   initialGuide?: GuideSlug
   initialGuideData?: GuidePayload
+  /** Laskeutumissivu avaa sovelluksen valmiiksi tällä tunnelmasuodattimella
+   *  (esim. /tapahtumat/keikka → 'keikka'). Sama tila kuin jos käyttäjä
+   *  painaisi tunnelmasirua itse, joten hän voi jatkaa normaalisti: poistaa
+   *  suodattimen, vaihtaa päivää tai hakea. */
+  initialVibes?: string[]
+  /** Kaupunginosasivu (esim. /tapahtumat/kallio) avaa sovelluksen valmiiksi
+   *  tällä kaupunginosasuodattimella — sama tila kuin sirun painallus. */
+  initialHood?: string | null
+  /** Ilmaistapahtumien sivu avaa sovelluksen hintasuodatin päällä. */
+  initialPriceFilter?: PriceFilter
+  /** Laskeutumissivu voi avata sovelluksen muuhun kuin tapahtumanäkymään —
+   *  /uutta-helsingissa avaa 'uutta'-välilehden, joka on sen sovellusvastine. */
+  initialMode?: AppMode
+  /** Laskeutumissivun päiväikkuna. Kategoriasivut käyttävät 'week':iä eivätkä
+   *  oletusta 'today', koska kapealla tunnelmalla (esim. työpaja) yksi päivä on
+   *  usein tyhjä ja laskeutuja näkisi tyhjän näkymän. Viikko on jo esiladattu
+   *  eikä siitä tule lisäkuormaa. */
+  initialDateFilter?: DateFilter
   /** Laskeutumissivu tuo OMAN h1:nsä (esim. "Saunat Helsingissä"), joten
    *  sovelluksen koristeellinen kaupunkiotsikko ei saa olla h1 — muuten
    *  jokaisen laskeutumissivun vahvin otsikkosignaali Googlelle olisi sama
@@ -239,17 +262,33 @@ export default function HomeClient({
   }
   const { lang, t } = useLanguage()
   const { favorites, count: favCount } = useFavorites()
-  const [mode, setMode] = useState<AppMode>('discover')
+  const [mode, setMode] = useState<AppMode>(initialMode ?? 'discover')
   // Kartta/Suosikit ovat "toisen tason" sivuja (yläpalkin pyöreät napit) —
   // ‹-paluunappi palaa sivulle jolta tultiin
   const [pageBack, setPageBack] = useState<AppMode>('discover')
-  const [dateFilter, setDateFilter] = useState<DateFilter>('today')
+  const [dateFilter, setDateFilter] = useState<DateFilter>(initialDateFilter ?? 'today')
+  // Päivärivin rullaus. Laskeutumissivu voi avata muun kuin ensimmäisen päivän
+  // (esim. /tapahtumat/keikka → 'week'), ja rivi on kapealla ruudulla leveämpi
+  // kuin näkymä: mitattu 26.8.2026 iPhone-leveydellä rivi 712 px, näkymä 420 px,
+  // joten valittu "Viikko" jäi oikealle näkymättömiin. Laskeutuja näki rivin
+  // jossa MIKÄÄN ei ollut valittuna — se näyttää rikkinäiseltä, vaikka suodatin
+  // oli päällä. Rullataan valittu näkyviin kerran mountissa; käyttäjän omat
+  // valinnat eivät rullaa riviä, koska hän näkee jo painamansa sirun.
+  const dateStripRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!initialDateFilter || initialDateFilter === 'today') return
+    const strip = dateStripRef.current
+    const active = strip?.querySelector<HTMLElement>('[data-active-date="1"]')
+    if (!strip || !active) return
+    // Suora scrollLeft eikä scrollIntoView: jälkimmäinen rullaisi myös sivua.
+    strip.scrollLeft = Math.max(0, active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2)
+  }, [initialDateFilter])
   const [municipality, setMunicipality] = useState('helsinki')
   const [activeCategories, setActiveCategories] = useState<string[]>([])
-  const [activeVibes, setActiveVibes] = useState<string[]>([])
+  const [activeVibes, setActiveVibes] = useState<string[]>(initialVibes ?? [])
   const [keyword, setKeyword] = useState('')
   const [listStyle, setListStyle] = useState<ListStyle>('feed')
-  const [priceFilter, setPriceFilter] = useState<PriceFilter>('all')
+  const [priceFilter, setPriceFilter] = useState<PriceFilter>(initialPriceFilter ?? 'all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta'>('discover')
@@ -264,7 +303,7 @@ export default function HomeClient({
   const [showHoodMenu, setShowHoodMenu] = useState(false)
   // Kaupunginosasuodatin: valinta EI vie erilliselle sivulle vaan suodattaa
   // tapahtumat tässä näkymässä ("Tapahtumat Kalliossa") — omistajan linjaus.
-  const [hoodFilter, setHoodFilter] = useState<string | null>(null)
+  const [hoodFilter, setHoodFilter] = useState<string | null>(initialHood ?? null)
   // Oppaat-valikko: vertikaalisivut (Saunat, Terassit…) eivät ansaitse omia
   // välilehtiä mutta footerissa niitä ei kukaan nähnyt — pilleri kategorioiden
   // alla on niiden koti.
@@ -1116,7 +1155,7 @@ export default function HomeClient({
               tuloksissa näkyy (omistaja 25.8.2026). Valinta säilyy tilassa ja
               palaa näkyviin kun hakukenttä tyhjennetään. */}
           {!keyword && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 items-center">
+          <div ref={dateStripRef} className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 items-center">
             {([
               { d: 'today' as DateFilter, label: t('date.today') },
               { d: 'tonight' as DateFilter, label: '🌙 ' + t('date.tonight_short') },
@@ -1126,7 +1165,8 @@ export default function HomeClient({
             ]).map(({ d, label }) => {
               const isActive = dateFilter === d && !customDate && !customDateEnd
               return (
-                <button key={d} onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
+                <button key={d} data-active-date={isActive ? '1' : undefined}
+                  onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
                   className={`shrink-0 px-4 py-2 rounded-full text-sm font-black transition-all ${
                     isActive ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
                   }`}

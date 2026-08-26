@@ -59,7 +59,13 @@ export const NEIGHBORHOOD_INESSIVE: Record<string, string> = {
   punavuori:   'Punavuoressa',
   keskusta:    'Keskustassa',
   kamppi:      'Kampissa',
-  'sornäinen': 'Sörnäisissä',
+  // Tunniste on ASCII vaikka kaupunginosa on Sörnäinen. SYY: tunniste menee
+  // sellaisenaan osoitteeseen (/tapahtumat/<id>), ja ääkkösellinen osoite EI
+  // toiminut — mitattu 26.8.2026: /tapahtumat/sornäinen palautti 404 kaikilla
+  // kolmella kirjoitusasulla, vaikka sivu oli sivustokartassa eli Google
+  // ohjattiin umpikujaan. Käännösavain (hood.sornainen.vibe) käytti jo
+  // ASCII-muotoa, joten tämä myös yhtenäistää ne.
+  'sornainen': 'Sörnäisissä',
   hakaniemi:   'Hakaniemessä',
   toolo:       'Töölössä',
   vallila:     'Vallilassa',
@@ -88,7 +94,7 @@ export const NEIGHBORHOODS: Neighborhood[] = [
   { id: 'keskusta',    name: 'Keskusta',     vibe: 'kaikki · bileet · ravintolat',   vibeKey: 'hood.keskusta.vibe',    emoji: '🌃', color: 'from-blue-900/80 to-indigo-800/60',       bbox: '24.925,60.160,24.960,60.180', municipality: 'helsinki' },
   { id: 'kamppi',      name: 'Kamppi',       vibe: 'yökerhot · mainstage',           vibeKey: 'hood.kamppi.vibe',      emoji: '🎉', color: 'from-violet-900/80 to-purple-800/60',     bbox: '24.920,60.163,24.944,60.178', municipality: 'helsinki' },
   // id säilyy ääkkösellä (URL-slugit ja tallennetut suodattimet); käännösavain ilman.
-  { id: 'sornäinen',   name: 'Sörnäinen',    vibe: 'underground · pop-up · teollisuus', vibeKey: 'hood.sornainen.vibe', emoji: '⚡', color: 'from-orange-900/80 to-amber-800/60',  bbox: '24.955,60.180,24.984,60.198', municipality: 'helsinki' },
+  { id: 'sornainen',   name: 'Sörnäinen',    vibe: 'underground · pop-up · teollisuus', vibeKey: 'hood.sornainen.vibe', emoji: '⚡', color: 'from-orange-900/80 to-amber-800/60',  bbox: '24.955,60.180,24.984,60.198', municipality: 'helsinki' },
   { id: 'hakaniemi',   name: 'Hakaniemi',    vibe: 'perinteiset baarit · tori',      vibeKey: 'hood.hakaniemi.vibe',   emoji: '🏪', color: 'from-amber-900/80 to-yellow-800/60',     bbox: '24.944,60.174,24.972,60.190', municipality: 'helsinki' },
   { id: 'toolo',       name: 'Töölö',        vibe: 'kulttuuri · ravintolat · puisto', vibeKey: 'hood.toolo.vibe',      emoji: '🌿', color: 'from-teal-900/80 to-cyan-800/60',       bbox: '24.905,60.168,24.940,60.192', municipality: 'helsinki' },
   { id: 'vallila',     name: 'Vallila',      vibe: 'foodie · craft beer · uusi',     vibeKey: 'hood.vallila.vibe',     emoji: '🍔', color: 'from-lime-900/80 to-green-800/60',       bbox: '24.950,60.192,24.986,60.212', municipality: 'helsinki' },

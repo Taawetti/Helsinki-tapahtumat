@@ -26,6 +26,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { assembleNewInHelsinki } from '@/lib/uutta-data'
 import NewInHelsinkiView from '@/components/NewInHelsinkiView'
+import HomeShell from '@/components/HomeShell'
 import { getTranslation } from '@/lib/i18n'
 
 export const revalidate = 3600
@@ -110,18 +111,16 @@ export default async function EnNewInHelsinkiPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <main className="min-h-screen text-white" style={{ background: '#0a0a0c' }}>
-        <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Sovellusnäkymä avataan Uutta-välilehteen — se on tämän sivun suora
+          vastine sovelluksessa. Sivun oma sisältö jää alle hakukonearvoksi. */}
+      <HomeShell initialMode="uutta" />
+
+      <section className="max-w-6xl mx-auto px-4 pb-10 pt-2">
           {/* Breadcrumb */}
-          <nav className="text-sm text-white/35 mb-6 flex items-center gap-2">
-            <Link href="/en" className="hover:text-white/70 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-white">New in Helsinki</span>
-          </nav>
 
           {/* Otsikko */}
           <div className="mb-6">
-            <h1 className="text-3xl font-black mb-2" style={{ letterSpacing: '-0.02em' }}>🆕 New in Helsinki</h1>
+            <h1 className="sr-only">🆕 New in Helsinki</h1>
             <p className="text-white/50 mb-3">
               {monthCount > 0 && monthName
                 ? `${monthCount} new places in ${monthName}`
@@ -155,8 +154,7 @@ export default async function EnNewInHelsinkiPage() {
             A new place can be missing if no source knows about it yet. Venue names
             and news headlines come from the sources in Finnish.
           </p>
-        </div>
-      </main>
+      </section>
     </>
   )
 }

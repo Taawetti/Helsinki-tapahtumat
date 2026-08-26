@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { curateForLanding } from '@/lib/seo-curation'
 import Link from 'next/link'
+import HomeShell from '@/components/HomeShell'
 import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
@@ -165,16 +166,15 @@ export default async function TanaanPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
-      <main className="min-h-screen bg-gray-950 text-white">
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <nav className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-gray-300 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-white">Tapahtumat tänään</span>
-          </nav>
+      {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
+          jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
+          alle: se on tämän sivun hakukonearvo, eikä sitä saa menettää. */}
+      <HomeShell initialDateFilter="today" />
+
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
 
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">📅 Tapahtumat Helsinki tänään</h1>
+            <h1 className="sr-only">📅 Tapahtumat Helsinki tänään</h1>
             <p className="text-gray-400 mb-4">{dateStr} — {events.length} tapahtumaa · {freeCount} ilmaista</p>
 
             <div className="text-sm text-gray-400 leading-relaxed space-y-3">
@@ -246,8 +246,7 @@ export default async function TanaanPage() {
             </div>
             <Link href="/" className="block text-gray-500 hover:text-gray-300 text-sm">← Avaa sovellus</Link>
           </div>
-        </div>
-      </main>
+      </section>
     </>
   )
 }

@@ -18,6 +18,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import EnGuidePage from '@/components/EnGuidePage'
+import HomeShell from '@/components/HomeShell'
 import { helsinkiDateOf } from '@/lib/helsinki-time'
 
 // Sama ISR-ikkuna kuin suomenkielisellä sivulla — sivu pysyy staattisena.
@@ -181,7 +182,13 @@ export default async function EnFreeEventsPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
+          jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
+          alle: se on tämän sivun hakukonearvo. */}
+      <HomeShell initialDateFilter="week" initialPriceFilter="free" />
+
       <EnGuidePage
+        asSection
         emoji="🆓"
         title="Free events in Helsinki"
         crumb="Free events"

@@ -37,6 +37,10 @@ const nextConfig: NextConfig = {
       '/uutta': '/uutta-helsingissa',
       '/uutta-helsingissä': '/uutta-helsingissa',
       '/uutta-helsingiss%C3%A4': '/uutta-helsingissa',
+      '/tapahtumat/sornäinen': '/tapahtumat/sornainen',
+      '/tapahtumat/sorn%C3%A4inen': '/tapahtumat/sornainen',
+      '/tapahtumat/sörnäinen': '/tapahtumat/sornainen',
+      '/tapahtumat/s%C3%B6rn%C3%A4inen': '/tapahtumat/sornainen',
       // luontevat arvaukset joita ei ole olemassa
       '/tapahtumat': '/tapahtumat/tanaan',
       '/keikat': '/tapahtumat/keikka',

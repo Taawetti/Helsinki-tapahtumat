@@ -21,6 +21,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import EnGuidePage from '@/components/EnGuidePage'
+import HomeShell from '@/components/HomeShell'
 import { formatEventDate, helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
@@ -199,7 +200,13 @@ export default async function EnWeekendPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
+          jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
+          alle: se on tämän sivun hakukonearvo. */}
+      <HomeShell initialDateFilter="weekend" />
+
       <EnGuidePage
+        asSection
         emoji="🎉"
         title="Things to do in Helsinki this weekend"
         crumb="This weekend"

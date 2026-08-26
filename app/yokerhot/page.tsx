@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import HomeShell from '@/components/HomeShell'
 import { HELSINKI_NIGHTCLUBS, type CuratedVenue } from '@/lib/helsinki-nightclubs'
 import { supabase } from '@/lib/supabase'
 
@@ -112,18 +113,17 @@ export default async function YokerhotSivu() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <main className="min-h-screen bg-gray-950 text-white">
-        <div className="max-w-2xl mx-auto px-4 py-8">
+      {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
+          jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
+          alle: se on tämän sivun hakukonearvo, eikä sitä saa menettää. */}
+      <HomeShell initialVibes={['yoelama']} initialDateFilter="week" />
+
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
           {/* Breadcrumb */}
-          <nav className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-gray-300 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-white">Yökerhot</span>
-          </nav>
 
           {/* Page header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">🪩 Yökerhot Helsingissä</h1>
+            <h1 className="sr-only">🪩 Yökerhot Helsingissä</h1>
             <p className="text-gray-400 mb-3">{HELSINKI_NIGHTCLUBS.length} kuratoitua klubia, baaria ja kattoterassia</p>
             <p className="text-sm text-gray-500 leading-relaxed">{DESC}</p>
           </div>
@@ -180,8 +180,7 @@ export default async function YokerhotSivu() {
               ← Kaikki Helsinki tapahtumat
             </Link>
           </div>
-        </div>
-      </main>
+      </section>
     </>
   )
 }

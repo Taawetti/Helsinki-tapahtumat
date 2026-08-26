@@ -33,21 +33,37 @@ interface Props {
   seeAlso: EnSeeAlso[]
   /** Lähdemaininta sivun alalaidassa. Rehellisyys datan alkuperästä. */
   sources: string
+  /** Runko sovellusnäkymän ALLE eikä omaksi sivukseen. Kun laskeutumissivu
+   *  avaa sovelluksen (HomeShell), tämä ei saa olla oma kokoruudun main —
+   *  muuten sivulla olisi kaksi kehystä. Otsikko muuttuu samalla
+   *  ruudunlukijoille näkyväksi mutta visuaalisesti piilotetuksi: sovelluksella
+   *  on jo oma otsikkorivinsä, eikä sivulla saa olla kahta h1:tä. */
+  asSection?: boolean
 }
 
-export default function EnGuidePage({ emoji, title, crumb, stat, intro, children, seeAlso, sources }: Props) {
+export default function EnGuidePage({ emoji, title, crumb, stat, intro, children, seeAlso, sources, asSection }: Props) {
+  const Frame = asSection ? 'section' : 'main'
   return (
-    <main className="min-h-screen text-white" style={{ background: '#0a0a0c' }}>
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <nav className="text-sm text-white/35 mb-6 flex items-center gap-2">
-          <Link href="/en" className="hover:text-white/70 transition-colors">Mitä tänään</Link>
-          <span>/</span>
-          <span className="text-white">{crumb}</span>
-        </nav>
+    <Frame
+      className={asSection ? 'max-w-2xl mx-auto px-4 pb-10 pt-2 block text-white' : 'min-h-screen text-white'}
+      style={asSection ? undefined : { background: '#0a0a0c' }}
+    >
+      <div className={asSection ? '' : 'max-w-2xl mx-auto px-4 py-8'}>
+        {!asSection && (
+          <nav className="text-sm text-white/35 mb-6 flex items-center gap-2">
+            <Link href="/en" className="hover:text-white/70 transition-colors">Mitä tänään</Link>
+            <span>/</span>
+            <span className="text-white">{crumb}</span>
+          </nav>
+        )}
 
         <div className="mb-6">
-          <h1 className="text-3xl font-black mb-2" style={{ letterSpacing: '-0.02em' }}>{emoji} {title}</h1>
-          <p className="text-white/50 mb-3">{stat}</p>
+          {asSection ? (
+            <h1 className="sr-only">{title}</h1>
+          ) : (
+            <h1 className="text-3xl font-black mb-2" style={{ letterSpacing: '-0.02em' }}>{emoji} {title}</h1>
+          )}
+          {!asSection && <p className="text-white/50 mb-3">{stat}</p>}
           <p className="text-sm text-white/35 leading-relaxed">{intro}</p>
         </div>
 
@@ -65,6 +81,6 @@ export default function EnGuidePage({ emoji, title, crumb, stat, intro, children
 
         <p className="mt-8 text-[11px] text-white/25 leading-relaxed">{sources}</p>
       </div>
-    </main>
+    </Frame>
   )
 }
