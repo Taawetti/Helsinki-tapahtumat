@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Event, Restaurant, Activity, type ActivityCategory } from '@/lib/types'
+import { getBasemap } from '@/lib/basemap'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 
@@ -361,14 +362,15 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (L.Icon.Default.prototype as any)._getIconUrl
     const map = L.map(containerRef.current, { center: HELSINKI_CENTER, zoom: 12, zoomControl: true })
-    // Voyager, EI dark_all: tumma pohja näytti tyylikkäältä mutta siitä ei
-    // saanut selvää — kadut, kaupunginosat ja vesialueet hukkuivat mustaan
-    // (omistaja: "kartan pitäisi olla niin kuin Google Mapsissa"). Voyager on
-    // CARTOn luettavin tyyli: värilliset tiet, selkeät nimet, sama luokka
-    // kuin Google Maps. Sama ilmainen palvelu ja attribuutio kuin ennenkin.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd', maxZoom: 20,
+    // Vaalea, luettava pohja — EI tummaa: tumma näytti tyylikkäältä mutta
+    // kadut ja vesialueet hukkuivat mustaan (omistaja: "kartan pitäisi olla
+    // niin kuin Google Mapsissa"). Taustakartan lähde on nyt lib/basemap.ts,
+    // koska CARTO alkoi vaatia avainta ja rikkoi molemmat kartat kerralla.
+    const base = getBasemap()
+    L.tileLayer(base.url, {
+      attribution: base.attribution,
+      maxZoom: base.maxZoom,
+      ...(base.subdomains ? { subdomains: base.subdomains } : {}),
     }).addTo(map)
     mapRef.current = map
 

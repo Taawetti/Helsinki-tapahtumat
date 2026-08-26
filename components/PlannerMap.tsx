@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { getBasemap } from '@/lib/basemap'
 import type { Map as LeafletMap } from 'leaflet'
 // KRIITTINEN: leaflet.css pitää ladata TÄSSÄ komponentissa — MapView lataa sen
 // vain omilla sivuillaan (unpkg-linkki), joten /paatakaa-sivuilla ilman tätä
@@ -47,10 +48,13 @@ export default function PlannerMap({ items }: { items: MapItem[] }) {
       })
       instanceRef.current = map
 
-      // Voyager kuten pääkartassa — tumma pohja ei ollut luettava.
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CartoDB</a>',
-        maxZoom: 19,
+      // Sama taustakartta kuin pääkartassa — jaettu lib/basemap.ts, jotta
+      // nämä kaksi eivät voi ajautua erilleen kuten CARTO-vaihdoksessa kävi.
+      const base = getBasemap()
+      L.tileLayer(base.url, {
+        attribution: base.attribution,
+        maxZoom: base.maxZoom,
+        ...(base.subdomains ? { subdomains: base.subdomains } : {}),
       }).addTo(map)
 
       const latLngs: [number, number][] = []
