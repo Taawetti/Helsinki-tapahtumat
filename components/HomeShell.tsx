@@ -33,11 +33,35 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
   const weekendRange  = getDateRange('weekend')
   const weekRange     = getDateRange('week')
 
+  // ── MITÄ ESILADATAAN ────────────────────────────────────────────────────
+  // Etusivu esilataa kaikki neljä päiväikkunaa, koska käyttäjä voi painaa mitä
+  // tahansa siruista heti. Laskeutumissivu avautuu YHTEEN tiettyyn tilaan,
+  // joten se tarvitsee vain sen yhden.
+  //
+  // MIKSI TÄMÄ ON TÄRKEÄÄ. Kun 47 laskeutumissivua muutettiin 26.8.2026
+  // avautumaan sovellusnäkymään, jokainen niistä alkoi hakea neljä ikkunaa
+  // palvelimella tunnin välein uusiutuen. Se nelinkertaisti palvelintyön
+  // sivua kohden, ja samana päivänä Vercelin laskenta-aika loppui kesken
+  // (FAIR_USE_LIMITS_EXCEEDED, fluidCpuDuration) ja koko sivusto sulkeutui.
+  // Käyttäjä ei menetä mitään: hakemattomat ikkunat haetaan normaalisti
+  // selaimessa jos hän vaihtaa päivää, kuten 'month'-ikkunan kanssa on aina
+  // tehty. Tyhjä lista ohitetaan välimuistin siemennyksessä (HomeClient),
+  // joten se putoaa suoraan tavalliseen hakuun.
+  const tarvitaan: DateFilter[] = initialDateFilter
+    ? [initialDateFilter]
+    : (initialGuide || initialVibes?.length || initialHood || initialMode)
+      ? ['today']
+      : ['today', 'tomorrow', 'weekend', 'week']
+
+  const tyhja = { events: [], total: 0 }
+  const hae = (f: DateFilter, start: string, end: string) =>
+    tarvitaan.includes(f) ? fetchInitialEvents(start, end) : Promise.resolve(tyhja)
+
   const [todayData, tomorrowData, weekendData, weekData] = await Promise.all([
-    fetchInitialEvents(todayRange.start,    todayRange.end),
-    fetchInitialEvents(tomorrowRange.start, tomorrowRange.end),
-    fetchInitialEvents(weekendRange.start,  weekendRange.end),
-    fetchInitialEvents(weekRange.start,     weekRange.end),
+    hae('today',    todayRange.start,    todayRange.end),
+    hae('tomorrow', tomorrowRange.start, tomorrowRange.end),
+    hae('weekend',  weekendRange.start,  weekendRange.end),
+    hae('week',     weekRange.start,     weekRange.end),
   ])
 
   return (
