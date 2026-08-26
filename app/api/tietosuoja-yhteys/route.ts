@@ -80,12 +80,16 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
-        // Lähettäjän nimessä EI kysymysmerkkiä, vaikka tuotenimi on
-        // "Mitä tänään?". Ääkkönen pakottaa otsikkokentän MIME-koodaukseen
-        // (=?UTF-8?B?...?=), jossa kysymysmerkki on erotinmerkki — nimen
-        // sisällä oleva "?" voi rikkoa koodauksen. Mitattu 26.8.2026:
-        // tällä nimellä Brevo torjui viestin, ASCII-nimellä toimiva
-        // tapahtumailmoitus menee läpi samalla avaimella.
+        // Lähettäjän nimessä ei kysymysmerkkiä, vaikka tuotenimi on
+        // "Mitä tänään?". Sama muoto kuin muissa lähtevissä viesteissä.
+        //
+        // HUOM seuraavalle lukijalle: epäilin ensin että kysymysmerkki rikkoo
+        // otsikon MIME-koodauksen, ja kirjoitin sen tähän varmana. Se oli
+        // arvaus ja se oli VÄÄRÄ — todellinen syy löytyi lokista: Brevo-tilillä
+        // oli IP-rajoitus päällä ja se torjui Vercelin osoitteen (401
+        // unauthorized). Sama virhe kaatoi myös tapahtumailmoituslomakkeen.
+        // Nimi jätettiin silti ASCII-muotoon, koska se on yhtenäinen muiden
+        // viestien kanssa, mutta se EI ollut vika.
         sender: { name: 'Mitä tänään', email: senderEmail },
         to: [{ email: vastaanottaja }],
         // Vastaa-painike osuu suoraan kysyjään ilman että osoitetta tarvitsee
