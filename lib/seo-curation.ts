@@ -32,6 +32,17 @@ export interface Curatable {
   ysoIds?: string[]
   isFree?: boolean
   location?: { name?: string | null } | null
+  /** Osa laskeutumissivuista kantaa paikan nimen litteänä 'venue'-kenttänä
+   *  (PageEvent), ei location-oliona. Paikka on RATKAISEVA signaali: mitattu
+   *  26.8.2026, "Musiikkia ja liikettä" ei osu mihinkään otsikon perusteella,
+   *  mutta paikka "Leikkipuisto Arabia" kertoo sen olevan lapsille. Ilman tätä
+   *  kenttää leikkipuisto- ja palvelukeskustapahtumat jäivät kärkeen. */
+  venue?: string | null
+}
+
+/** Paikan nimi kummasta tahansa kentästä. */
+function venueName(e: Curatable): string {
+  return e.location?.name ?? e.venue ?? ''
 }
 
 /** Kuvattomat rivit näyttävät keskeneräisiltä ruudukossa; kuva on myös merkki
@@ -50,7 +61,7 @@ function vibesOf(e: Curatable): string[] {
 
 function score(e: Curatable): number {
   let s = 0
-  if (isOutsideTargetAudience({ ...e, categories: e.categories ?? [] })) s -= 100   // seniori, vauva, lapsi, neulonta → pohjalle
+  if (isOutsideTargetAudience({ ...e, categories: e.categories ?? [], location: { name: venueName(e) } })) s -= 100   // seniori, vauva, lapsi, neulonta → pohjalle
   if (e.image) s += 6
   const vibes = vibesOf(e)
   if (vibes.includes('festivaali')) s += 5
@@ -79,5 +90,5 @@ export function curateForLanding<T extends Curatable>(events: T[]): T[] {
 /** Montako kärkitapahtumaa on kohderyhmässä. Mittari jolla voi todeta ettei
  *  sivun ensivaikutelma ole ompeluryhmä — käytetään testeissä. */
 export function inTargetInTop(events: Curatable[], n = 8): number {
-  return events.slice(0, n).filter((e) => !isOutsideTargetAudience({ ...e, categories: e.categories ?? [] })).length
+  return events.slice(0, n).filter((e) => !isOutsideTargetAudience({ ...e, categories: e.categories ?? [], location: { name: venueName(e) } })).length
 }

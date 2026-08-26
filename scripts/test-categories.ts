@@ -1709,6 +1709,25 @@ for (const c of arcChecks) {
   const visat = [ev('Pubivisa Lepakkomies', { categories: ['Pubivisa'] }), ev('Konsertti Musiikkitalossa', { image: 'x', categories: ['konsertit'] })]
   seoChecks.push({ name: 'visa ei ohita konserttia', ok: curateForLanding(visat)[0].title.includes('Konsertti'), got: curateForLanding(visat)[0].title })
 
+  // PAIKAN NIMI on ratkaiseva signaali. Mitattu tuotannosta 26.8.2026:
+  // "Musiikkia ja liikettä" ei osu mihinkään otsikon perusteella, mutta paikka
+  // "Leikkipuisto Arabia" kertoo sen olevan lapsille. Ensimmäinen toteutus
+  // pudotti venue-kentän matkalla (näillä sivuilla se ei ole location-olio),
+  // jolloin leikkipuisto- ja palvelukeskustapahtumat jäivät kärkeen.
+  const venueCase = curateForLanding([
+    { title: 'Musiikkia ja liikettä', startTime: '2026-08-26T10:00:00+03:00', venue: 'Leikkipuisto Arabia' },
+    { title: 'Pingistä', startTime: '2026-08-26T08:00:00+03:00', venue: 'Töölön seniorikeskus/Palvelukeskus' },
+    { title: 'Iso keikka', startTime: '2026-08-26T21:00:00+03:00', venue: 'Tavastia', image: 'x', categories: ['keikka'] },
+  ])
+  seoChecks.push({ name: 'venue-kenttä painaa leikkipuiston alas', ok: venueCase[0].title === 'Iso keikka', got: venueCase[0].title })
+  seoChecks.push({ name: 'venue-kenttä painaa palvelukeskuksen alas', ok: venueCase[2].title === 'Pingistä', got: venueCase[2].title })
+  // Sama myös location-oliona, jotta molemmat muodot toimivat.
+  const locCase = curateForLanding([
+    { title: 'Musiikkihetki', startTime: '2026-08-26T10:00:00+03:00', location: { name: 'Leikkipuisto Arabia' } },
+    { title: 'Klubi-ilta', startTime: '2026-08-26T22:00:00+03:00', location: { name: 'Kaiku' }, image: 'x', categories: ['yoelama'] },
+  ])
+  seoChecks.push({ name: 'location-olio toimii samoin', ok: locCase[0].title === 'Klubi-ilta', got: locCase[0].title })
+
   for (const c of seoChecks) {
     if (c.ok) pass++
     else failures.push(`✗ laskeutumisjärjestys: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
