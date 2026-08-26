@@ -9,9 +9,18 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC = 'Ilmaiset tapahtumat Helsingissä: maksuttomat konsertit, näyttelyt, puisto- ja toritapahtumat ja perhemenot — koko ilmainen ohjelma yhdessä paikassa.'
 
 export const metadata: Metadata = {
-  title: 'Ilmaiset tapahtumat Helsinki – maksuton ohjelma | Mitä tänään',
+  title: 'Ilmaiset tapahtumat Helsinki – maksuton ohjelma',
   description: DESC,
-  alternates: { canonical: `${BASE}/tapahtumat/ilmaiset` },
+  // Kielipari: englanninkielinen vastine on /en/free-events. Vastavuoroisuus on
+  // hreflangin ehto — Google jättää yksipuolisen parin huomiotta.
+  alternates: {
+    canonical: `${BASE}/tapahtumat/ilmaiset`,
+    languages: {
+      fi: `${BASE}/tapahtumat/ilmaiset`,
+      en: `${BASE}/en/free-events`,
+      'x-default': `${BASE}/tapahtumat/ilmaiset`,
+    },
+  },
   openGraph: {
     title: 'Ilmaiset tapahtumat Helsinki',
     description: DESC,

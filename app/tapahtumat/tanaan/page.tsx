@@ -10,9 +10,16 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC = 'Mitä tänään tapahtuu Helsingissä? Kaikki päivän keikat, klubit, näyttelyt ja perhetapahtumat yhdessä paikassa — päivitetty joka tunti 41 lähteestä.'
 
 export const metadata: Metadata = {
-  title: 'Tapahtumat Helsinki tänään – mitä tapahtuu nyt | Mitä tänään',
+  title: 'Tapahtumat Helsinki tänään – mitä tapahtuu nyt',
   description: DESC,
-  alternates: { canonical: `${BASE}/tapahtumat/tanaan` },
+  alternates: {
+    canonical: `${BASE}/tapahtumat/tanaan`,
+    languages: {
+      fi: `${BASE}/tapahtumat/tanaan`,
+      en: `${BASE}/en/events-today`,
+      'x-default': `${BASE}/tapahtumat/tanaan`,
+    },
+  },
   openGraph: {
     title: 'Tapahtumat Helsinki tänään',
     description: DESC,

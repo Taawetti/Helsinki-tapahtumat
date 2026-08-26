@@ -17,10 +17,18 @@
 import { usePathname } from 'next/navigation'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 
+/** Onko polku englanninkielisessä puussa: '/en' tai '/en/mikä-tahansa'.
+ *  Tarkka vertailu ei riitä enää, kun /en:n alle tuli laskeutumissivuja
+ *  (/en/saunas jne). Huom: '/energia'-tyyppinen polku EI saa osua — siksi
+ *  '/en/' eikä pelkkä startsWith('/en'). */
+function isEnglishRoute(pathname: string): boolean {
+  return pathname === '/en' || pathname.startsWith('/en/')
+}
+
 export default function LanguageGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   return (
-    <LanguageProvider initial={pathname === '/en' ? 'en' : undefined}>
+    <LanguageProvider initial={isEnglishRoute(pathname) ? 'en' : undefined}>
       {children}
     </LanguageProvider>
   )

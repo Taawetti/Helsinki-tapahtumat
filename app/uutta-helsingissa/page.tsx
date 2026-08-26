@@ -16,9 +16,16 @@ const DESC =
   'Uudet ravintolat, kahvilat, baarit, saunat ja näyttelyt Helsingissä — mitä on juuri avattu ja mitä on aukeamassa. Lähteinä luparekisteri, OpenStreetMap, museot.fi ja tuoreet uutiset.'
 
 export const metadata: Metadata = {
-  title: 'Uutta Helsingissä — uudet ravintolat, kahvilat & paikat | Mitä tänään',
+  title: 'Uutta Helsingissä — uudet ravintolat, kahvilat & paikat',
   description: DESC,
-  alternates: { canonical: `${BASE}/uutta-helsingissa` },
+  alternates: {
+    canonical: `${BASE}/uutta-helsingissa`,
+    languages: {
+      fi: `${BASE}/uutta-helsingissa`,
+      en: `${BASE}/en/new-in-helsinki`,
+      'x-default': `${BASE}/uutta-helsingissa`,
+    },
+  },
   openGraph: { title: '🆕 Uutta Helsingissä', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/uutta-helsingissa` },
 }
 

@@ -10,9 +10,12 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC = 'Yökerhot Helsingissä: parhaat klubit, teknoklubit, karaokebaarit ja kattoterassit kuratoituna — osoitteet, arvosanat ja vinkit yhden illan suunnitteluun.'
 
 export const metadata: Metadata = {
-  title: 'Yökerhot Helsinki — parhaat klubit, tekno & karaoke | Mitä tänään',
+  title: 'Yökerhot Helsinki — parhaat klubit, tekno & karaoke',
   description: DESC,
-  alternates: { canonical: `${BASE}/yokerhot` },
+  alternates: {
+    canonical: `${BASE}/yokerhot`,
+    languages: { fi: `${BASE}/yokerhot`, en: `${BASE}/en/nightclubs`, 'x-default': `${BASE}/yokerhot` },
+  },
   openGraph: { title: '🪩 Yökerhot Helsinki', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/yokerhot` },
 }
 

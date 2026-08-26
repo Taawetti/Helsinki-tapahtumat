@@ -18,9 +18,18 @@ const DESC =
   'Museot ja galleriat joihin on aina vapaa pääsy Helsingissä — Helsingin kaupunginmuseo, Rahamuseo, Ratikkamuseo ja kymmenet galleriat. Aukiolot ja kartta.'
 
 export const metadata: Metadata = {
-  title: 'Ilmaiset museot Helsinki — vapaan pääsyn museot & galleriat | Mitä tänään',
+  title: 'Ilmaiset museot Helsinki — vapaan pääsyn museot & galleriat',
   description: DESC,
-  alternates: { canonical: `${BASE}/ilmaiset-museot` },
+  // Kielipari: englanninkielinen vastine on /en/free-museums. Vastavuoroisuus
+  // on hreflangin ehto — Google jättää yksipuolisen parin huomiotta.
+  alternates: {
+    canonical: `${BASE}/ilmaiset-museot`,
+    languages: {
+      fi: `${BASE}/ilmaiset-museot`,
+      en: `${BASE}/en/free-museums`,
+      'x-default': `${BASE}/ilmaiset-museot`,
+    },
+  },
   openGraph: { title: '🏛 Ilmaiset museot & galleriat', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/ilmaiset-museot` },
 }
 

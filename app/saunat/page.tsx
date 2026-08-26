@@ -22,9 +22,14 @@ const DESC =
   'Yleiset saunat Helsingissä: aukiolot, hinnat, arvosanat ja uudet saunat — Löyly, Kotiharju, Sompasauna, Uusi Sauna ja koko kaupungin saunakartta yhdessä paikassa.'
 
 export const metadata: Metadata = {
-  title: 'Saunat Helsinki — yleiset saunat, aukiolot & uudet saunat | Mitä tänään',
+  title: 'Saunat Helsinki — yleiset saunat, aukiolot & uudet saunat',
   description: DESC,
-  alternates: { canonical: `${BASE}/saunat` },
+  // Kielipari: englanninkielinen vastine on /en/saunas. Vastavuoroisuus on
+  // hreflangin ehto — Google jättää yksipuolisen parin huomiotta.
+  alternates: {
+    canonical: `${BASE}/saunat`,
+    languages: { fi: `${BASE}/saunat`, en: `${BASE}/en/saunas`, 'x-default': `${BASE}/saunat` },
+  },
   openGraph: { title: '🧖 Saunat Helsingissä', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/saunat` },
 }
 

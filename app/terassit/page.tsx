@@ -11,9 +11,12 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC = 'Terassit Helsingissä: kattoterassit, rooftop-baarit ja terassitapahtumat kesäkaudella — ohjelma, osoitteet ja aurinkoisimmat paikat yhdessä näkymässä.'
 
 export const metadata: Metadata = {
-  title: 'Terassit Helsinki — kattoterassit & terassitapahtumat | Mitä tänään',
+  title: 'Terassit Helsinki — kattoterassit & terassitapahtumat',
   description: DESC,
-  alternates: { canonical: `${BASE}/terassit` },
+  alternates: {
+    canonical: `${BASE}/terassit`,
+    languages: { fi: `${BASE}/terassit`, en: `${BASE}/en/terraces`, 'x-default': `${BASE}/terassit` },
+  },
   openGraph: { title: '☀️ Terassit Helsinki', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/terassit` },
 }
 

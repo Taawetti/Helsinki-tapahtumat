@@ -9,9 +9,12 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC = 'Pubivisat Helsingissä viikon jokaisena päivänä: tietovisojen aikataulut ja baarit maanantaista sunnuntaihin — löydä lähin visa ja kerää joukkue kasaan.'
 
 export const metadata: Metadata = {
-  title: 'Pubivisat Helsinki — viikon tietovisat baareissa | Mitä tänään',
+  title: 'Pubivisat Helsinki — viikon tietovisat baareissa',
   description: DESC,
-  alternates: { canonical: `${BASE}/pubivisat` },
+  alternates: {
+    canonical: `${BASE}/pubivisat`,
+    languages: { fi: `${BASE}/pubivisat`, en: `${BASE}/en/pub-quizzes`, 'x-default': `${BASE}/pubivisat` },
+  },
   openGraph: { title: '🧠 Pubivisat Helsinki', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/pubivisat` },
 }
 

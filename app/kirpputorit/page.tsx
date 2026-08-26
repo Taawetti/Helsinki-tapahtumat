@@ -16,9 +16,14 @@ const DESC =
   'Kirpputorit ja second hand -liikkeet Helsingissä, Espoossa ja Vantaalla — aukiolot ja kartta, sekä tulevat kirppistapahtumat ja vintage-myyjäiset.'
 
 export const metadata: Metadata = {
-  title: 'Kirpputorit Helsinki — second hand -liikkeet & kirppistapahtumat | Mitä tänään',
+  title: 'Kirpputorit Helsinki — second hand -liikkeet & kirppistapahtumat',
   description: DESC,
-  alternates: { canonical: `${BASE}/kirpputorit` },
+  // Kielipari: englanninkielinen vastine on /en/flea-markets. Vastavuoroisuus
+  // on hreflangin ehto — Google jättää yksipuolisen parin huomiotta.
+  alternates: {
+    canonical: `${BASE}/kirpputorit`,
+    languages: { fi: `${BASE}/kirpputorit`, en: `${BASE}/en/flea-markets`, 'x-default': `${BASE}/kirpputorit` },
+  },
   openGraph: { title: '🛍 Kirpputorit & second hand', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/kirpputorit` },
 }
 

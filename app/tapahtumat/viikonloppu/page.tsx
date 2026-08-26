@@ -10,9 +10,16 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 const DESC = 'Helsingin viikonlopun tapahtumat: perjantain, lauantain ja sunnuntain keikat, klubit, festivaalit ja menovinkit — koko viikonlopun ohjelma yhdessä paikassa.'
 
 export const metadata: Metadata = {
-  title: 'Tapahtumat Helsinki viikonloppu – perjantai, lauantai, sunnuntai | Mitä tänään',
+  title: 'Tapahtumat Helsinki viikonloppu – perjantai, lauantai, sunnuntai',
   description: DESC,
-  alternates: { canonical: `${BASE}/tapahtumat/viikonloppu` },
+  alternates: {
+    canonical: `${BASE}/tapahtumat/viikonloppu`,
+    languages: {
+      fi: `${BASE}/tapahtumat/viikonloppu`,
+      en: `${BASE}/en/events-this-weekend`,
+      'x-default': `${BASE}/tapahtumat/viikonloppu`,
+    },
+  },
   openGraph: {
     title: 'Tapahtumat Helsinki viikonloppu',
     description: DESC,

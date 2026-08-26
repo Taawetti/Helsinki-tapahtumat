@@ -16,9 +16,12 @@ const DESC =
   'Jamit, open mic -illat ja open stage -lavat Helsingissä — missä pääsee soittamaan, laulamaan tai lavalle seuraavan kuukauden aikana.'
 
 export const metadata: Metadata = {
-  title: 'Jamit & open mic Helsinki — avoimet lavat ja jamisessiot | Mitä tänään',
+  title: 'Jamit & open mic Helsinki — avoimet lavat ja jamisessiot',
   description: DESC,
-  alternates: { canonical: `${BASE}/jamit` },
+  alternates: {
+    canonical: `${BASE}/jamit`,
+    languages: { fi: `${BASE}/jamit`, en: `${BASE}/en/jam-sessions`, 'x-default': `${BASE}/jamit` },
+  },
   openGraph: { title: '🎤 Jamit & open mic', description: DESC, locale: 'fi_FI', type: 'website', url: `${BASE}/jamit` },
 }
 

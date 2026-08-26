@@ -97,14 +97,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'hourly',
       priority: 1,
     },
-    // Englanninkielinen etusivu. Oma URL, jotta turisti voi löytää palvelun
-    // hakemalla "what to do in Helsinki" — kielikytkin yksin ei näy Googlelle.
+    // ── ENGLANNINKIELINEN PUU ────────────────────────────────────────────
+    // Oma URL jokaiselle, jotta turisti voi löytää palvelun englanniksi —
+    // kielikytkin yksin ei näy Googlelle. Prioriteetit mitatun hakuvolyymin
+    // mukaan (DataForSEO 26.8.2026, maailmanlaajuinen kk-volyymi):
+    //   sauna helsinki 8 100 · helsinki bars 2 900 · helsinki events 2 400
+    //   helsinki nightlife 2 400 · helsinki festivals 1 900 · concerts 1 600
+    // Kaikki matalalla tai keskitason kilpailulla — siksi näihin kannattaa
+    // panostaa, toisin kuin "things to do in helsinki" (18 100 mutta KOVA
+    // kilpailu ja väärä hakuaikomus: se koskee nähtävyyksiä, ei menoja).
     {
       url: `${BASE}/en`,
       lastModified: now,
       changeFrequency: 'hourly' as const,
       priority: 0.9,
     },
+    { url: `${BASE}/en/saunas`,              lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.88 },
+    { url: `${BASE}/en/nightclubs`,          lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.85 },
+    { url: `${BASE}/en/events-today`,        lastModified: now, changeFrequency: 'hourly' as const,  priority: 0.85 },
+    { url: `${BASE}/en/events-this-weekend`, lastModified: now, changeFrequency: 'daily' as const,   priority: 0.82 },
+    { url: `${BASE}/en/terraces`,            lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.78 },
+    { url: `${BASE}/en/new-in-helsinki`,     lastModified: now, changeFrequency: 'daily' as const,   priority: 0.75 },
+    { url: `${BASE}/en/free-events`,         lastModified: now, changeFrequency: 'daily' as const,   priority: 0.75 },
+    { url: `${BASE}/en/pub-quizzes`,         lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.72 },
+    { url: `${BASE}/en/flea-markets`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
+    { url: `${BASE}/en/free-museums`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
+    { url: `${BASE}/en/jam-sessions`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
     // Aikaperusteinen SEO-laskeutumissivut — korkean hakuvolyymin termit
     { url: `${BASE}/tapahtumat/tanaan`,     lastModified: now, changeFrequency: 'hourly' as const, priority: 0.95 },
     { url: `${BASE}/tapahtumat/viikonloppu`, lastModified: now, changeFrequency: 'daily' as const,  priority: 0.92 },
