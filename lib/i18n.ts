@@ -864,6 +864,7 @@ const t = {
     'priv.c_err':                  'Lähetys ei onnistunut. Yritä hetken päästä uudelleen.',
     'priv.c_need':                 'Täytä sähköposti ja viesti.',
     'priv.c_reply':                'Vastaamme sähköpostiisi. Osoitettasi ei käytetä mihinkään muuhun eikä sitä liitetä uutiskirjeeseen.',
+    'priv.controller':             'Rekisterinpitäjä',
   },
 
   en: {
@@ -1730,6 +1731,7 @@ const t = {
     'priv.c_err':                  'Sending failed. Please try again in a moment.',
     'priv.c_need':                 'Please fill in both your email and a message.',
     'priv.c_reply':                'We reply by email. Your address is not used for anything else and is not added to the newsletter.',
+    'priv.controller':             'Data controller',
   },
 } as const
 

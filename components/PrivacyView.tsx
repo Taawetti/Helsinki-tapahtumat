@@ -17,8 +17,11 @@ import { subscribeConsent, readConsent, readConsentServer, setConsent } from '@/
 // ympäristömuuttujassa, ei koskaan selaimessa eikä tässä julkisessa repossa).
 // Nimi on silti kerrottava — tietosuojaseloste kertoo KUKA tietoja käsittelee,
 // ja lomake vastaa vain kysymykseen MITEN häneen saa yhteyden.
-// TYHJÄ = riviä ei näytetä. Omistajan täytettävä ennen kampanjan alkua.
-const REKISTERINPITAJA = ''
+//
+// Omistajan vahvistama virallinen nimi 26.8.2026: "Broven Oy".
+// Y-tunnusta ei lisätty, koska sitä ei kerrottu eikä sitä pidä arvata.
+// TYHJÄ = riviä ei näytetä lainkaan.
+const REKISTERINPITAJA = 'Broven Oy'
 
 const PAIVITETTY = '26.8.2026'
 
@@ -159,7 +162,9 @@ export default function PrivacyView() {
           )}
 
           {REKISTERINPITAJA && (
-            <p className="mt-6 text-[12px] text-white/30 leading-relaxed">{REKISTERINPITAJA}</p>
+            <p className="mt-6 text-[12px] text-white/30 leading-relaxed">
+              {t('priv.controller')}: <span className="text-white/45">{REKISTERINPITAJA}</span>
+            </p>
           )}
         </section>
 
