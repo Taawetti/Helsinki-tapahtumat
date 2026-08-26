@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     description: 'Näkyvyys 41 tapahtumalähteen yhdistelmässä, oma venue-sivu ja ryhmäpäätöspakat. Ilmoita ohjelmasi Helsinkiin.',
     type: 'website',
     locale: 'fi_FI',
+    // Ilman images-kenttää sivun oma openGraph korvasi juurilayoutin ja
+    // jakokuva katosi kokonaan.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent('Julkaise ohjelmasi')}`, width: 1200, height: 630 }],
   },
   // Ilman omaa canonicalia tämä peri juurilayoutin arvon eli ilmoitti Googlelle
   // olevansa etusivu — sivu ei olisi voinut nousta hauille "ilmoita tapahtuma".

@@ -60,7 +60,7 @@ export default function NotFound() {
     <main className="min-h-screen text-white flex items-start justify-center" style={{ background: '#0a0a0c' }}>
       <div className="max-w-lg w-full px-5 pt-24 pb-16">
         <Link href={en ? '/en' : '/'} className="flex items-center gap-2.5 mb-10 w-fit">
-          <Logo textClassName="font-black text-[15px] tracking-tight" markSize={19} />
+          <Logo textClassName="font-black text-[15px] tracking-tight" tileSize={36} />
         </Link>
 
         <p className="text-[11px] font-black uppercase tracking-[.2em] text-white/25 mb-2">404</p>

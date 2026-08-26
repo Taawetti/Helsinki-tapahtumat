@@ -6,10 +6,14 @@
 // fontin saatavuudesta. Polku näyttää kaikkialla samalta. Älä korvaa tätä
 // tekstimerkillä äläkä generoi uudelleen.
 //
-// MIKSI MERKKI TULEE NIMEN PERÄÄN. Se on nimen "Mitä tänään" kysymysmerkki,
-// ei erillinen ikoni nimen edessä. Ohjeessa tämä on oma kieltonsa. Aiemmin
-// tässä oli indigo-laatta jossa luki M — se oli nimen EDESSÄ ja toistui
-// kolmessa paikassa erikokoisena.
+// LAATTA, EI PALJAS MERKKI. KUVAKE-OHJE.md sanoi että merkki tulee nimen
+// perään ilman laattaa, ja tein niin. Omistaja katsoi tulosta 26.8.2026 ja
+// sanoi sen näyttävän väärältä: hyväksytyssä suunnitelmassa (kanvaan sivu
+// "2B Täysi kysymys") merkki on indigo-laatan sisällä, ja paljaana pienessä
+// koossa se lukeutuu ohueksi välimerkiksi eikä tunnukseksi.
+// Omistajan ohje voittaa dokumentin. Laatta on nyt sama kuin kotinäytön
+// kuvakkeessa: merkki 88 % laatan korkeudesta ja keskitetty, täsmälleen kuten
+// design_handoff_mita_tanaan/logo/app-icon.svg — sama tunnus joka paikassa.
 //
 // Merkki perii värin tekstistä (currentColor), joten sama komponentti käy
 // tummalle ja vaalealle pohjalle.
@@ -44,29 +48,48 @@ export function LogoMark({ size = 26, className = '', style, decorative = false 
   )
 }
 
+/** Sovelluksen kuvake sellaisenaan: indigo-laatta ja valkoinen merkki.
+ *  Mittasuhteet luettu app-icon.svg:stä: merkki on 88 % laatan korkeudesta ja
+ *  keskitetty. Älä muuta lukua — silloin yläpalkin tunnus lakkaisi vastaamasta
+ *  kotinäytön kuvaketta. */
+export function LogoTile({ size = 28, className = '' }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={className}
+      style={{
+        width: size, height: size,
+        borderRadius: Math.round(size * 0.28),
+        background: 'linear-gradient(150deg,#6b76ff,#5059e6)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <LogoMark size={size * 0.88} style={{ color: '#fff' }} decorative />
+    </span>
+  )
+}
+
 interface LogoProps {
   /** Nimen typografia. Oletus vastaa yläpalkin aiempaa sanamerkkiä, jotta
-   *  kirjasinkoko ja -leikkaus eivät muutu merkin vaihdon yhteydessä. */
+   *  kirjasinkoko ja -leikkaus eivät muutu tunnuksen vaihdon yhteydessä. */
   textClassName?: string
-  /** Merkin korkeus. Eri paikoissa eri koko — ks. kutsut, älä yhtenäistä. */
-  markSize?: number
+  /** Laatan koko. Eri paikoissa eri koko — ks. kutsut, älä yhtenäistä. */
+  tileSize?: number
   textColor?: string
-  markColor?: string
   className?: string
 }
 
-/** Nimi + merkki. Käytä tätä siellä missä sovelluksen tunnus näytetään. */
+/** Laatta + nimi. Käytä tätä siellä missä sovelluksen tunnus näytetään. */
 export function Logo({
   textClassName = 'font-black text-sm tracking-tight',
-  markSize = 17,
+  tileSize = 28,
   textColor = '#fff',
-  markColor = '#6b76ff',
   className = '',
 }: LogoProps) {
   return (
-    <span className={`inline-flex items-center gap-1.5 ${className}`}>
+    <span className={`inline-flex items-center gap-2 ${className}`}>
+      <LogoTile size={tileSize} />
       <span className={textClassName} style={{ color: textColor }}>Mitä tänään</span>
-      <LogoMark size={markSize} style={{ color: markColor }} decorative />
     </span>
   )
 }

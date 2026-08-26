@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     locale: 'fi_FI',
     type: 'website',
     url: `${BASE}/lahteet`,
+    // Ilman images-kenttää sivun oma openGraph korvasi juurilayoutin ja
+    // jakokuva katosi kokonaan.
+    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent('Lähteet')}`, width: 1200, height: 630 }],
   },
 }
 

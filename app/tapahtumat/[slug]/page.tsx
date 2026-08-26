@@ -220,7 +220,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${vibe.label} Helsinki – tapahtumat | Mitä tänään`,
       description: desc,
       alternates: { canonical: `${BASE}/tapahtumat/${slug}` },
-      openGraph: { title: `${vibe.emoji} ${vibe.label} Helsinki`, description: desc, locale: 'fi_FI', type: 'website', url: `${BASE}/tapahtumat/${slug}` },
+      // JAKOKUVA. Sivun oma openGraph KORVAA juurilayoutin kokonaan, joten
+      // ilman images-kenttää näillä 25 sivulla ei ollut og:imagea lainkaan —
+      // jaettu linkki näkyi pelkkänä tekstirivinä. Havaittu 26.8.2026 kun
+      // sivustoa jo mainostettiin.
+      openGraph: { title: `${vibe.emoji} ${vibe.label} Helsinki`, description: desc, locale: 'fi_FI', type: 'website', url: `${BASE}/tapahtumat/${slug}`, images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(`${vibe.label} Helsinki`)}`, width: 1200, height: 630 }] },
     }
   }
 
@@ -232,7 +236,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `Tapahtumat ${locative} | Mitä tänään`,
       description: desc,
       alternates: { canonical: `${BASE}/tapahtumat/${slug}` },
-      openGraph: { title: `${n.emoji} ${n.name} tapahtumat`, description: desc, locale: 'fi_FI', type: 'website', url: `${BASE}/tapahtumat/${slug}` },
+      openGraph: { title: `${n.emoji} ${n.name} tapahtumat`, description: desc, locale: 'fi_FI', type: 'website', url: `${BASE}/tapahtumat/${slug}`, images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(`Tapahtumat ${n.name}`)}`, width: 1200, height: 630 }] },
     }
   }
 

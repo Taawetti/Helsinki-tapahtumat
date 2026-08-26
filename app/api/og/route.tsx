@@ -72,22 +72,27 @@ export async function GET(req: NextRequest) {
 
           {/* Top: logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* TUNNUS: nimi + merkki, sitten erotin ja hakusanarivi.
-                Merkki on nimen "Mitä tänään" kysymysmerkki — ensimmäisessä
-                yrityksessä se liimattiin {brand}-muuttujan perään, jolloin
-                jokainen jaettu linkki luki "HELSINKI TAPAHTUMAT ?". Nimi on
-                kiinteä, koska se on tuotenimi; {brand} pysyy muuttujana, koska
-                /en-sivut lokalisoivat sen ("HELSINKI EVENTS").
+            {/* TUNNUS: laatta + nimi, sitten erotin ja hakusanarivi.
+                Laatta on sama kuin kotinäytön kuvakkeessa (merkki 88 % laatan
+                korkeudesta, keskitetty) — omistaja 26.8.2026: tunnuksen on
+                oltava täsmälleen sama joka paikassa. Aiemmin tässä oli paljas
+                merkki ilman laattaa, ja sitä ennen vanha sininen H-laatta.
 
                 Raaka <svg> eikä Logo-komponentti: Satori (next/og) renderöi
                 vain rajattua osajoukkoa eikä osaa currentColoria, joten fill on
                 kirjoitettava auki. Polku on sama kuin components/Logo.tsx:ssä. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ color: 'rgba(255,255,255,0.88)', fontSize: '17px', fontWeight: 800, letterSpacing: '-0.01em' }}>Mitä tänään</span>
-              <svg width="12" height="19" viewBox="20 4 61 96">
-                <path d="M 20 38 C 20 19 32 4 50 4 C 68 4 81 17 81 34 C 81 48 70 54 63 60 C 58 64.5 57 67 57 72 L 57 78 L 41 78 L 41 70 C 41 63 44 58 51 52 C 59 45 66 42 66 33 C 66 24 59 17 50 17 C 41 17 35 24 35 34 Z" fill="#6b76ff" />
-                <circle cx="49" cy="91" r="9" fill="#6b76ff" />
-              </svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: 'linear-gradient(150deg,#6b76ff,#5059e6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="25" height="39" viewBox="20 4 61 96">
+                  <path d="M 20 38 C 20 19 32 4 50 4 C 68 4 81 17 81 34 C 81 48 70 54 63 60 C 58 64.5 57 67 57 72 L 57 78 L 41 78 L 41 70 C 41 63 44 58 51 52 C 59 45 66 42 66 33 C 66 24 59 17 50 17 C 41 17 35 24 35 34 Z" fill="#ffffff" />
+                  <circle cx="49" cy="91" r="9" fill="#ffffff" />
+                </svg>
+              </div>
+              <span style={{ color: 'rgba(255,255,255,0.88)', fontSize: '19px', fontWeight: 800, letterSpacing: '-0.01em' }}>Mitä tänään</span>
             </div>
             <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: '15px' }}>·</span>
             <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '15px', fontWeight: 600, letterSpacing: '0.05em' }}>{brand}</span>
