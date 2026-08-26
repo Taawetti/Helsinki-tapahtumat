@@ -65,15 +65,32 @@ export async function GET(req: NextRequest) {
         />
 
         {/* Blue accent line */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#0072C6', display: 'flex' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#6b76ff', display: 'flex' }} />
 
         {/* Content */}
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', padding: '56px 64px' }}>
 
           {/* Top: logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '40px', height: '40px', background: '#0072C6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '18px' }}>H</div>
-            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '16px', fontWeight: 600, letterSpacing: '0.05em' }}>{brand}</span>
+            {/* TUNNUS: nimi + merkki, sitten erotin ja hakusanarivi.
+                Merkki on nimen "Mitä tänään" kysymysmerkki — ensimmäisessä
+                yrityksessä se liimattiin {brand}-muuttujan perään, jolloin
+                jokainen jaettu linkki luki "HELSINKI TAPAHTUMAT ?". Nimi on
+                kiinteä, koska se on tuotenimi; {brand} pysyy muuttujana, koska
+                /en-sivut lokalisoivat sen ("HELSINKI EVENTS").
+
+                Raaka <svg> eikä Logo-komponentti: Satori (next/og) renderöi
+                vain rajattua osajoukkoa eikä osaa currentColoria, joten fill on
+                kirjoitettava auki. Polku on sama kuin components/Logo.tsx:ssä. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ color: 'rgba(255,255,255,0.88)', fontSize: '17px', fontWeight: 800, letterSpacing: '-0.01em' }}>Mitä tänään</span>
+              <svg width="12" height="19" viewBox="20 4 61 96">
+                <path d="M 20 38 C 20 19 32 4 50 4 C 68 4 81 17 81 34 C 81 48 70 54 63 60 C 58 64.5 57 67 57 72 L 57 78 L 41 78 L 41 70 C 41 63 44 58 51 52 C 59 45 66 42 66 33 C 66 24 59 17 50 17 C 41 17 35 24 35 34 Z" fill="#6b76ff" />
+                <circle cx="49" cy="91" r="9" fill="#6b76ff" />
+              </svg>
+            </div>
+            <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: '15px' }}>·</span>
+            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '15px', fontWeight: 600, letterSpacing: '0.05em' }}>{brand}</span>
           </div>
 
           {/* Middle: title */}
@@ -91,7 +108,7 @@ export async function GET(req: NextRequest) {
           {/* Bottom: meta */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             {date && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0072C6', fontSize: '20px', fontWeight: 600 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b76ff', fontSize: '20px', fontWeight: 600 }}>
                 <span>📅</span>
                 <span>{date}</span>
               </div>

@@ -1,6 +1,14 @@
 // v4: navigations are network-first now — the old cache-first '/' kept
 // serving a stale HTML shell (and thus a stale JS bundle) after deploys.
-const CACHE = 'hki-v4'
+//
+// v5 (26.8.2026): sovelluksen kuvake vaihtui. Staattiset tiedostot palvellaan
+// cache-first (ks. alempana), ja /icon-192.png + /icon-512.png on
+// ESIVÄLIMUISTITETTU install-vaiheessa — eli paluukävijä saisi vanhat tavut
+// vaikka tiedostot on korvattu palvelimella. Nimen nosto on AINOA tapa pudottaa
+// ne: activate poistaa jokaisen välimuistin jonka nimi ei ole tämä.
+// API_CACHE ja QUICK_CACHE EI nosteta — ne ovat tapahtumadataa, ja turha nosto
+// tyhjentäisi käyttäjän offline-tapahtumat ilman syytä.
+const CACHE = 'hki-v5'
 // v3: timestamps are now normalized (naive → Helsinki offset). Cached v2
 // responses hold un-normalized times that would show late-night events on the
 // wrong day (and drop them from the "tonight" view) for up to API_MAX_AGE, so
@@ -147,7 +155,10 @@ self.addEventListener('push', e => {
     self.registration.showNotification(title, {
       body,
       icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      // Badge on eri tiedosto kuin icon: Android tinttaa badgen yksiväriseksi
+      // siluetiksi, joten täysvärinen gradienttilaatta renderöityisi umpinaisena
+      // palluraksi. Tämä on läpinäkyvätaustainen valkoinen merkki.
+      badge: '/badge-mono.png',
       tag: tag || 'hki-events',
       renotify: true,
       data: { url: url || '/' },

@@ -19,22 +19,39 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.ve
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: {
-    default: 'Mitä tänään — Kaikki Helsinki tapahtumat',
+    default: 'Mitä tänään? — Kaikki Helsinki tapahtumat',
     template: '%s | Mitä tänään Helsinki',
   },
   description: 'Kaikki pääkaupunkiseudun tapahtumat yhdessä paikassa — keikat, teatterit, festivaalit, näyttelyt, urheilu, ilmaiset tapahtumat ja paljon muuta.',
   manifest: '/manifest.json',
+  // Kuvakkeet suunnittelijan toimituksesta 26.8.2026. HUOM: app/favicon.ico
+  // on Next.js:n tiedostokonventio ja tuottaa oman rivinsä ennen näitä
+  // (mitattu tuloste: rel="icon" sizes="32x32" type="image/x-icon"). Selain
+  // suosii sitä, joten myös se tiedosto oli vaihdettava — pelkkä tämä lohko ei
+  // olisi vaihtanut välilehden kuvaketta lainkaan, ja siellä oli Next.js:n
+  // oletuskolmio aina projektin ensimmäisestä commitista asti.
+  icons: {
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Mitä tänään',
+    // iOS-kotinäytön teksti kuvakkeen alla. Sama muoto kuin manifestin
+    // short_name, jotta Android ja iOS näyttävät saman nimen.
+    title: 'Mitä tänään?',
   },
   openGraph: {
     title: 'Mitä tänään — Kaikki Helsinki tapahtumat',
     description: 'Löydä parhaat tapahtumat Helsingissä tänään ja tulevinä päivinä. Keikat, teatterit, festivaalit, näyttelyt, urheilu.',
     type: 'website',
     locale: 'fi_FI',
-    siteName: 'Mitä tänään',
+    siteName: 'Mitä tänään?',
     url: BASE,
     images: [{ url: '/api/og', width: 1200, height: 630 }],
   },
@@ -105,9 +122,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fi" className={inter.className}>
       <head>
-        <link rel="apple-touch-icon" href="/icon-180.png" />
+        {/* Kuvakkeet tulevat metadatasta (icons). Täällä oli aiemmin käsin
+            kirjoitettu apple-touch-icon joka osoitti tiedostoon /icon-180.png:
+            siinä on läpinäkyviä pikseleitä (mitattu alfa 0–255), ja Applen
+            kuvake ei saa olla läpinäkyvä — iOS maalaa niiden taakse mustaa.
+
+            TÄMÄ TAGI SEN SIJAAN JÄÄ. Poistin sen ensin olettaen että
+            metadata.appleWebApp tuottaa sen, mutta tarkistin Next.js:n omasta
+            dokumentaatiosta (generate-metadata.md rivi 806) ja mittasin
+            palvelimen tulosteesta: appleWebApp.capable tuottaa VAIN
+            name="mobile-web-app-capable", ei koskaan apple-etuliitteistä.
+            Vanhemmat iOS-versiot lukevat nimenomaan apple-muotoa, joten ilman
+            tätä riviä kotinäytölle asennettu sovellus avautuisi selaimen
+            osoitepalkin kanssa eikä kokoruutuna. Status-bar-style ja title
+            sen sijaan tulevat metadatasta, joten niitä ei toisteta. */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppJsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }} />

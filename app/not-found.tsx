@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSyncExternalStore } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { Logo } from '@/components/Logo'
 
 interface Pick { href: string; hrefEn: string; emoji: string; fi: string; en: string }
 
@@ -59,9 +60,7 @@ export default function NotFound() {
     <main className="min-h-screen text-white flex items-start justify-center" style={{ background: '#0a0a0c' }}>
       <div className="max-w-lg w-full px-5 pt-24 pb-16">
         <Link href={en ? '/en' : '/'} className="flex items-center gap-2.5 mb-10 w-fit">
-          <span className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white"
-            style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>M</span>
-          <span className="font-black text-[15px] tracking-tight" style={{ color: '#a3abff' }}>Mitä tänään</span>
+          <Logo textClassName="font-black text-[15px] tracking-tight" markSize={19} />
         </Link>
 
         <p className="text-[11px] font-black uppercase tracking-[.2em] text-white/25 mb-2">404</p>

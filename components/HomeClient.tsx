@@ -9,6 +9,7 @@ import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
+import { Logo } from '@/components/Logo'
 import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
@@ -908,10 +909,9 @@ export default function HomeClient({
         {/* ── Mobile header row 1: logo + actions ── */}
         <div className="md:hidden flex items-center justify-between px-4 pt-3 pb-2">
           <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>M</div>
-            <span className="font-black text-sm tracking-tight" style={{ color: '#a3abff' }}>
-              Mitä tänään
-            </span>
+            {/* Merkki tulee nimen PERÄÄN — se on nimen kysymysmerkki, ei
+                erillinen ikoni. Aiemmin tässä oli indigo-laatta jossa luki M. */}
+            <Logo markSize={16} />
           </button>
           <div className="flex items-center gap-2">
             <LanguageSwitch compact />
@@ -965,10 +965,7 @@ export default function HomeClient({
         {/* ── Desktop header: single row ── */}
         <div className="hidden md:flex max-w-6xl mx-auto px-4 py-3 items-center gap-3">
           <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="shrink-0 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0 text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>M</div>
-            <span className="font-black text-sm tracking-tight" style={{ color: '#a3abff' }}>
-              Mitä tänään
-            </span>
+            <Logo markSize={18} className="shrink-0" />
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
