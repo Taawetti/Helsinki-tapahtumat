@@ -1,53 +1,45 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+// Kelluva asennuskehote. Asennuslogiikka tulee lib/install.ts:stä.
+//
+// MIKSI JAETTU LÄHDE. Selain laukaisee beforeinstallprompt-tapahtuman VAIN
+// KERRAN sivulatausta kohden. Aiemmin tämä komponentti kuunteli sitä itse
+// useEffectissä — eli vasta liitoksen jälkeen — ja latausivu olisi kuunnellut
+// erikseen. Kumpi tahansa olisi voinut jäädä ilman tapahtumaa ja sen painike
+// kuolleeksi. lib/install.ts ottaa tapahtuman talteen heti moduulin
+// latautuessa, ja molemmat lukevat samaa arvoa.
+
+import { useState, useSyncExternalStore } from 'react'
 import { X, Download } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled } from '@/lib/install'
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+const alwaysFalse = () => false
 
 export default function InstallBanner() {
-  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [dismissed, setDismissed] = useState(false)
-  const [installed, setInstalled] = useState(false)
   const { t } = useLanguage()
+  const prompt = useSyncExternalStore(subscribeInstall, getInstallPrompt, getInstallPromptServer)
+  const installed = useSyncExternalStore(subscribeInstall, isInstalled, alwaysFalse)
+  const [dismissed, setDismissed] = useState(false)
 
-  useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time sync with matchMedia
-      setInstalled(true)
-      return
-    }
-    if (sessionStorage.getItem('install-dismissed')) {
-      setDismissed(true)
-      return
-    }
+  // Istunnon aikainen sulkeminen luetaan vasta klikkauksessa ja mountissa
+  // renderin ulkopuolella: sessionStorage voi heittää privaattitilassa.
+  const piilotettu = dismissed || (() => {
+    try { return sessionStorage.getItem('install-dismissed') === '1' } catch { return false }
+  })()
 
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setPrompt(e as BeforeInstallPromptEvent)
-    }
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
-
-  if (!prompt || dismissed || installed) return null
+  if (!prompt || piilotettu || installed) return null
 
   async function handleInstall() {
     if (!prompt) return
     await prompt.prompt()
-    const { outcome } = await prompt.userChoice
-    if (outcome === 'accepted') setInstalled(true)
+    await prompt.userChoice
     setDismissed(true)
   }
 
   function handleDismiss() {
     setDismissed(true)
-    sessionStorage.setItem('install-dismissed', '1')
+    try { sessionStorage.setItem('install-dismissed', '1') } catch { /* privaattitila */ }
   }
 
   return (

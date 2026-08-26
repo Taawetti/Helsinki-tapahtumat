@@ -36,7 +36,22 @@ export default function Footer() {
         <div className="max-w-5xl mx-auto px-4 pt-8">
           <p className="font-bold text-white">Mitä tänään</p>
           <p className="text-white/40 text-sm mt-1">{t('footer.tagline')}</p>
-          <p className="text-white/30 text-xs mt-6">© {new Date().getFullYear()} Mitä tänään</p>
+          {/* Kevyt footer on tarkoituksella lyhyt, mutta NÄMÄ KAKSI kuuluvat
+              tännekin. Latauslinkki, koska etusivu on se sivu jolla kävijä
+              useimmiten on. Tietosuojalinkki, koska evästebanneri katoaa
+              valinnan jälkeen — ilman tätä etusivulta ei pääsisi selosteeseen
+              eikä peruuttamaan suostumusta lainkaan. */}
+          <p className="text-white/30 text-xs mt-6 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>© {new Date().getFullYear()} Mitä tänään</span>
+            <Link href={lang === 'en' ? '/en/download' : '/lataa'}
+              className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
+              {t('dl.nav')}
+            </Link>
+            <Link href={lang === 'en' ? '/en/privacy' : '/tietosuoja'}
+              className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
+              {t('priv.title')}
+            </Link>
+          </p>
         </div>
       </footer>
     )
@@ -88,6 +103,10 @@ export default function Footer() {
           <span>© {new Date().getFullYear()} Mitä tänään</span>
           {/* Tietosuojaseloste on evästebannerin ehto: valinnan on löydyttävä
               myös sen jälkeen kun banneri on kuitattu pois. */}
+          <Link href={lang === 'en' ? '/en/download' : '/lataa'}
+            className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
+            {t('dl.nav')}
+          </Link>
           <Link href={lang === 'en' ? '/en/privacy' : '/tietosuoja'}
             className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
             {t('priv.title')}
