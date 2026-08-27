@@ -24,6 +24,21 @@
 -- country   = kaksikirjaiminen maakoodi (FI, SE, DE…) Vercelin otsakkeesta.
 --             MAAKOODI YKSINÄÄN EI OLE HENKILÖTIETO — se on maan tarkkuudella
 --             eikä siitä voi tunnistaa ketään, eikä IP-osoitetta tallenneta.
+-- visitor   = KÄVIJÄTIIVISTE eri kävijöiden laskemiseen.
+--             Lasketaan palvelimella: sha256(IP + selain + KUUKAUSIKOHTAINEN
+--             salainen suola), josta tallennetaan 16 merkkiä. IP-osoitetta
+--             EI tallenneta missään vaiheessa eikä selaimeen kirjoiteta mitään.
+--
+--             MIKSI SUOLA VAIHTUU KUUKAUSITTAIN. Pysyvä suola tekisi
+--             tiivisteestä pysyvän tunnisteen, jolla saman ihmisen voisi
+--             yhdistää kuukausien yli — se olisi seurantaa. Kuukausittain
+--             vaihtuva suola antaa tarkan luvun kuukauden sisällä ja katkaisee
+--             yhteyden kuukausien välillä. "Kaikkien aikojen eri kävijät" ei
+--             siis ole laskettavissa, eikä sen kuulukaan olla.
+--
+--             ePrivacy: selaimeen ei tallenneta mitään, joten evästesuostumusta
+--             ei tarvita. GDPR: tiivistettä on kohdeltava henkilötietona, ja se
+--             on kerrottu tietosuojaselosteessa.
 -- region    = maakunta ISO 3166-2 -koodina (Suomessa 01–19) samasta lähteestä.
 --             Tallennetaan kaupungin RINNALLE eikä johdeta kaupunkinimestä:
 --             kuntia on yli 300, ja käsin tehty nimi→maakunta-taulukko
@@ -48,6 +63,7 @@ create table if not exists click_events (
   country    text,
   city       text,
   region     text,
+  visitor    text,
   created_at timestamptz not null default now()
 );
 
@@ -56,6 +72,7 @@ create table if not exists click_events (
 alter table click_events add column if not exists country text;
 alter table click_events add column if not exists city    text;
 alter table click_events add column if not exists region  text;
+alter table click_events add column if not exists visitor text;
 
 -- Raportit kysyvät aina aikaväliltä ja ryhmittelevät kindin tai event_id:n
 -- mukaan. Nämä kaksi indeksiä kattavat molemmat.
@@ -63,6 +80,7 @@ create index if not exists click_events_created_idx on click_events (created_at 
 create index if not exists click_events_kind_idx    on click_events (kind, created_at desc);
 create index if not exists click_events_country_idx on click_events (country, created_at desc);
 create index if not exists click_events_city_idx    on click_events (city, created_at desc);
+create index if not exists click_events_visitor_idx on click_events (visitor, created_at desc);
 
 -- Siivous: raportointi katsoo enintään vuoden taakse. Aja ajoittain, jottei
 -- taulu kasva rajatta.

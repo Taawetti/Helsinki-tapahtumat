@@ -17,6 +17,7 @@
 // pudotetaan hiljaa — vastaus on silti ok, jottei mittaus koskaan riko
 // sovellusta eikä robotti saa vihjettä siitä mikä sen pysäytti.
 
+import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { SESSION_COOKIE as ADMIN_COOKIE } from '@/lib/admin-auth'
@@ -48,7 +49,7 @@ const siisti = (v: unknown): string | null => {
 
 interface Rivi {
   kind: string; surface: string | null; event_id: string | null
-  label: string | null; meta: string | null; country: string | null; city: string | null; region: string | null
+  label: string | null; meta: string | null; country: string | null; city: string | null; region: string | null; visitor: string | null
 }
 
 /** Maa Vercelin sijaintiotsakkeesta. Vercel asettaa sen jokaiseen pyyntöön
@@ -67,6 +68,29 @@ function maa(req: NextRequest): string | null {
 /** Kaupunki samasta lähteestä. Vercel URL-koodaa arvon, joten "Jyväskylä"
  *  saapuu muodossa "Jyv%C3%A4skyl%C3%A4" — ilman purkua kanta täyttyisi
  *  lukukelvottomista nimistä. */
+/** Kävijätiiviste eri kävijöiden laskemiseen.
+ *
+ *  IP-OSOITETTA EI TALLENNETA. Siitä lasketaan tiiviste yhdessä selaimen
+ *  tunnisteen ja salaisen suolan kanssa, ja vain tiiviste menee kantaan.
+ *  Selaimeen ei kirjoiteta mitään, joten evästesuostumusta ei tarvita.
+ *
+ *  SUOLA VAIHTUU KUUKAUSITTAIN. Pysyvä suola tekisi tiivisteestä pysyvän
+ *  tunnisteen, jolla saman ihmisen voisi yhdistää kuukausien yli. Kuukauden
+ *  sisällä luku on tarkka; kuukausien välillä yhteys katkeaa tarkoituksella.
+ *
+ *  Suola otetaan ympäristöstä eikä koodista: koodi on julkisessa repossa, ja
+ *  arvattavalla suolalla tiivisteen voisi laskea takaisin IP-osoitteeksi. */
+function kavijatiiviste(req: NextRequest): string | null {
+  const salaisuus = process.env.TRACK_SALT || process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!salaisuus) return null
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim()
+    || req.headers.get('x-real-ip') || ''
+  const ua = req.headers.get('user-agent') ?? ''
+  if (!ip) return null
+  const kuukausi = new Date().toISOString().slice(0, 7) // YYYY-MM
+  return createHash('sha256').update(`${ip}|${ua}|${kuukausi}|${salaisuus}`).digest('hex').slice(0, 16)
+}
+
 /** Maakunta ISO 3166-2 -koodina. Vercel lähettää joko pelkän numeron ("18")
  *  tai maakoodillisen muodon ("FI-18") — normalisoidaan kaksinumeroiseksi,
  *  jotta raportissa on yksi muoto eikä kahta rinnakkaista. */
@@ -109,6 +133,7 @@ export async function POST(req: NextRequest) {
   const maakoodi = maa(req)
   const kaupunkiNimi = kaupunki(req)
   const maakuntaKoodi = maakunta(req)
+  const kavija = kavijatiiviste(req)
   const rivit: Rivi[] = []
 
   for (const raw of era) {
@@ -125,6 +150,7 @@ export async function POST(req: NextRequest) {
       country: maakoodi,
       city: kaupunkiNimi,
       region: maakuntaKoodi,
+      visitor: kavija,
     })
   }
 

@@ -34,6 +34,16 @@ interface Data {
   kaupungitFILippu: Rivi[]
   maakunnat: Record<string, number>
   kaupunkiMaarat: Record<string, number>
+  eriKavijat: number
+  kavijatKuukausittain: Record<string, number>
+  ilmanKavijaa: number
+}
+
+const KUUKAUDET = ['tammi','helmi','maalis','huhti','touko','kesä','heinä','elo','syys','loka','marras','joulu']
+const kuukausiNimi = (avain: string) => {
+  const [v, k] = avain.split('-')
+  const i = Number(k) - 1
+  return KUUKAUDET[i] ? `${KUUKAUDET[i]}kuu ${v}` : avain
 }
 
 // Suomen maakunnat ISO 3166-2 -koodeilla. KAIKKI 19 näytetään aina, myös ne
@@ -137,7 +147,7 @@ export default function AdminStats() {
       const j = await r.json()
       if (!r.ok) {
         setVirhe(j.tauluPuuttuu
-          ? 'Taulua click_events ei ole vielä luotu. Aja sql/create-click-events.sql Supabasen SQL-editorissa.'
+          ? 'Tietokanta on vanhempaa versiota: aja sql/create-click-events.sql uudelleen Supabasen SQL-editorissa. Se on turvallista ajaa monta kertaa ja lisää puuttuvat sarakkeet.'
           : (j.error ?? 'Haku epäonnistui'))
         setData(null)
       } else {
@@ -208,6 +218,30 @@ export default function AdminStats() {
               vajaita tältä jaksolta. Lyhennä jaksoa tai tee koostetaulu.
             </p>
           )}
+
+          {/* ERI KÄVIJÄT ensimmäisenä: se on se luku jota omistaja kysyy
+              ensimmäisenä ja jonka hän kertoo eteenpäin. */}
+          <div className="rounded-2xl p-5 mb-6"
+            style={{ background: 'linear-gradient(150deg,rgba(107,118,255,.16),rgba(80,89,230,.08))', border: '1px solid rgba(107,118,255,.25)' }}>
+            <div className="text-4xl font-black text-white tabular-nums">{data.eriKavijat}</div>
+            <div className="text-[12px] text-white/60 mt-1">eri kävijää valitulla jaksolla</div>
+            <p className="text-[11px] text-white/35 mt-2.5 leading-relaxed">
+              Laskettu ilman evästeitä ja ilman IP-osoitteen tallennusta. Tunniste vaihtuu
+              kuukausittain, joten kuukauden sisällä luku on tarkka — yli kuukausirajan
+              menevällä jaksolla sama kävijä voi näkyä kahtena.
+              {data.ilmanKavijaa > 0 && ` ${data.ilmanKavijaa} riviltä tunniste puuttuu.`}
+            </p>
+            {Object.keys(data.kavijatKuukausittain).length > 0 && (
+              <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3.5 pt-3.5" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+                {Object.entries(data.kavijatKuukausittain).sort().map(([k, v]) => (
+                  <div key={k}>
+                    <span className="text-lg font-black text-white tabular-nums">{v}</span>
+                    <span className="text-[11px] text-white/40 ml-1.5">{kuukausiNimi(k)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             {Object.entries(data.maarat)

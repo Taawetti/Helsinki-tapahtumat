@@ -18,7 +18,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 
 const KATTO = 50000
 
-interface Rivi { kind: string; surface: string | null; event_id: string | null; label: string | null; country: string | null; city: string | null; region: string | null }
+interface Rivi { kind: string; surface: string | null; event_id: string | null; label: string | null; country: string | null; city: string | null; region: string | null; visitor: string | null; created_at: string }
 
 /** Laskee esiintymät ja palauttaa suurimmat ensin. */
 function top(rivit: Rivi[], avain: (r: Rivi) => string | null, n = 15) {
@@ -43,14 +43,17 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('click_events')
-    .select('kind, surface, event_id, label, country, city, region')
+    .select('kind, surface, event_id, label, country, city, region, visitor, created_at')
     .gte('created_at', alkaen)
     .order('created_at', { ascending: false })
     .limit(KATTO)
 
   if (error) {
-    // Tuttu tilanne: taulua ei ole vielä luotu Supabasessa.
-    const puuttuu = /relation .* does not exist|schema cache/i.test(error.message)
+    // Kaksi tuttua tilannetta, joissa syy on ajamaton migraatio eikä vika
+    // koodissa: taulua ei ole luotu lainkaan, tai se on luotu vanhemmalla
+    // versiolla jossa jokin sarake puuttuu. Molemmissa vastaus kertoo sen
+    // selkokielellä, jottei omistaja joudu tulkitsemaan SQL-virhettä.
+    const puuttuu = /relation .* does not exist|schema cache|column .* does not exist/i.test(error.message)
     return NextResponse.json(
       { error: error.message, tauluPuuttuu: puuttuu },
       { status: puuttuu ? 424 : 500 },
@@ -68,6 +71,22 @@ export async function GET(req: NextRequest) {
     rivejaLuettu: rivit.length,
     kattoTayttyi: rivit.length >= KATTO,
     maarat,
+    // ERI KÄVIJÄT. Tiiviste on kuukausikohtainen, joten luku on tarkka
+    // kuukauden sisällä. Jaksolla joka ylittää kuukausirajan sama ihminen voi
+    // esiintyä kahtena — se on tietoinen hinta siitä ettei kenenkään käyntejä
+    // yhdistetä kuukausien yli. Näkymä kertoo tämän.
+    eriKavijat: new Set(rivit.map((r) => r.visitor).filter(Boolean)).size,
+    // Kuukausittain, jotta kasvun näkee. Avain YYYY-MM.
+    kavijatKuukausittain: (() => {
+      const kk: Record<string, Set<string>> = {}
+      for (const r of rivit) {
+        if (!r.visitor || !r.created_at) continue
+        const k = r.created_at.slice(0, 7)
+        ;(kk[k] ??= new Set()).add(r.visitor)
+      }
+      return Object.fromEntries(Object.entries(kk).map(([k, v]) => [k, v.size]))
+    })(),
+    ilmanKavijaa: rivit.filter((r) => !r.visitor).length,
     tapahtumatAvaukset: top(vain('event_open'), (r) => r.label),
     lippuklikit:        top(vain('ticket_click'), (r) => r.label),
     ulkoisetKlikit:     top(vain('external_click'), (r) => r.label),
