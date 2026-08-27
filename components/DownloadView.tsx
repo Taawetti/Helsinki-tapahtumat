@@ -16,6 +16,7 @@
 import { useState, useSyncExternalStore } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Logo } from '@/components/Logo'
+import { track } from '@/lib/track'
 import {
   subscribeInstall, getInstallPrompt, getInstallPromptServer,
   isInstalled, detectPlatform, type Platform,
@@ -37,7 +38,8 @@ export default function DownloadView() {
   async function asenna() {
     if (!prompt) return
     await prompt.prompt()
-    await prompt.userChoice
+    const { outcome } = await prompt.userChoice
+    if (outcome === 'accepted') track('install', { surface: 'download_page' })
   }
 
   const OHJEET: { id: Platform; otsikko: string; askeleet: string[] }[] = [

@@ -13,6 +13,7 @@ import { useState, useSyncExternalStore } from 'react'
 import { X, Download } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled } from '@/lib/install'
+import { track } from '@/lib/track'
 
 const alwaysFalse = () => false
 
@@ -33,7 +34,8 @@ export default function InstallBanner() {
   async function handleInstall() {
     if (!prompt) return
     await prompt.prompt()
-    await prompt.userChoice
+    const { outcome } = await prompt.userChoice
+    if (outcome === 'accepted') track('install', { surface: 'banner' })
     setDismissed(true)
   }
 

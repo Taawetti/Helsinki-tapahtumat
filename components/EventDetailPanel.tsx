@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart, Globe, Search } from 'lucide-react'
 import { Event } from '@/lib/types'
+import { track } from '@/lib/track'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 import { canBuyTickets } from '@/lib/tickets'
 import { shareUrlFor, externalUrlFor, searchUrlFor } from '@/lib/event-links'
@@ -445,10 +446,29 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                 ? `${event.location?.name ?? t('detail.venue_site')} →`
                 : t('detail.search_more')
               return (
+                /* TÄRKEIN MITATTAVA. Erotellaan oikea lippukauppa (ticket_click)
+                   muusta uloslinkistä (external_click): vain lippukauppaklikki on
+                   myyntiargumentti. Erottelun tekee canBuyTickets — sama portti
+                   joka päättää näkyykö "Osta liput" lainkaan.
+
+                   HUOM: linkki vie käyttäjän POIS sivulta, joten tavallinen fetch
+                   ehdittäisiin perua. lib/track lähettää poistuttaessa
+                   sendBeaconilla, joka jää selaimen hoidettavaksi. */
                 <a
                   href={external ? (affiliateUrl(external) || external) : href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => {
+                    const kohde = external ? (affiliateUrl(external) || external) : href
+                    let domain = ''
+                    try { domain = new URL(kohde).hostname.replace(/^www\./, '') } catch { /* ei osoite */ }
+                    track(external && canBuyTickets(event) ? 'ticket_click' : 'external_click', {
+                      surface: 'detail',
+                      eventId: event.id,
+                      label: event.title,
+                      meta: domain,
+                    })
+                  }}
                   className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
                 >
                   {external ? <Ticket size={15} /> : venueSite ? <Globe size={15} /> : <Search size={15} />}

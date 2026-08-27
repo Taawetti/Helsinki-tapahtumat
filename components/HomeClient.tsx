@@ -10,6 +10,7 @@ import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { Logo } from '@/components/Logo'
+import { track } from '@/lib/track'
 import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
@@ -288,9 +289,39 @@ export default function HomeClient({
   const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [activeVibes, setActiveVibes] = useState<string[]>(initialVibes ?? [])
   const [keyword, setKeyword] = useState('')
+
+  // Haku mitataan VASTA kun kirjoittaminen loppuu. Jokaisen näppäimen
+  // kirjaaminen tuottaisi roskaa ("k", "ke", "kei", "keik"…) ja kymmenkertaisen
+  // datamäärän. Alle kolmen merkin hakuja ei kirjata lainkaan — ne eivät kerro
+  // mitään siitä mitä ihmiset etsivät.
+  useEffect(() => {
+    const kw = keyword.trim()
+    if (kw.length < 3) return
+    const t = setTimeout(() => track('search', { label: kw.slice(0, 60) }), 1200)
+    return () => clearTimeout(t)
+  }, [keyword])
   const [listStyle, setListStyle] = useState<ListStyle>('feed')
   const [priceFilter, setPriceFilter] = useState<PriceFilter>(initialPriceFilter ?? 'all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+
+  // Tapahtuman avaus mitataan PINNAN mukaan: sama tapahtuma voi aueta
+  // ruudukosta, poiminnoista, hausta, herosta, kartalta, Ideasta, oppaasta tai
+  // paikan listalta. Pelkkä "avattiin" ei kertoisi mikä osio tuottaa
+  // klikkaukset — juuri se on se tieto jota tässä haetaan.
+  //
+  // useMemo eikä uusi funktio joka renderillä: lapsikomponentit saavat pysyvän
+  // viitteen, joten mittaus ei aiheuta ylimääräisiä uudelleenrenderöintejä.
+  const avaa = useMemo(() => {
+    const tee = (surface: string) => (e: Event) => {
+      track('event_open', { surface, eventId: e.id, label: e.title, meta: e.categories?.[0] })
+      setSelectedEvent(e)
+    }
+    return {
+      grid: tee('grid'), picks: tee('picks'), search: tee('search'), hero: tee('hero'),
+      map: tee('map'), idea: tee('idea'), guide: tee('guide'), venue: tee('venue'),
+      eitieda: tee('eitieda'),
+    }
+  }, [])
   const [showFilters, setShowFilters] = useState(false)
   const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta'>('discover')
   const [customDate, setCustomDate] = useState('')
@@ -494,7 +525,11 @@ export default function HomeClient({
     // Selecting a specific vibe deselects 'kaikki'
     setActiveVibes((prev) => {
       const without = prev.filter((v) => v !== 'kaikki')
-      return without.includes(id) ? without.filter((v) => v !== id) : [...without, id]
+      const paalle = !without.includes(id)
+      // Vain PÄÄLLE kytkeminen mitataan. Pois kytkeminen ei kerro
+      // kiinnostuksesta, ja molemmat samana lukuna tekisi luvusta hyödyttömän.
+      if (paalle) track('category', { label: id })
+      return paalle ? [...without, id] : without.filter((v) => v !== id)
     })
     // Map "ilmainen" vibe to price filter
     if (id === 'ilmainen') {
@@ -596,6 +631,9 @@ export default function HomeClient({
   }, [events.length, t])
 
   const handleMobileTab = useCallback((tab: typeof mobileTab) => {
+    // Osiot ovat React-tilaa, eivät osoitteita, joten sivulatausmittaus ei näe
+    // niitä lainkaan. Tämä on ainoa tapa tietää mitä osiota käytetään.
+    track('section', { label: tab })
     setMobileTab(tab)
     if (tab === 'discover') { setMode('discover'); setKoCat(null) }
     else if (tab === 'idea') setMode('idea')
@@ -608,6 +646,7 @@ export default function HomeClient({
   // Kartta/Suosikit avataan yläpalkin pyöreistä napeista; muistetaan mistä
   // tultiin niin ‹-paluunappi vie takaisin oikealle sivulle
   const openOverlayMode = useCallback((m: 'map' | 'favorites') => {
+    track(m === 'map' ? 'map_open' : 'section', { label: m })
     setMode((prev) => {
       if (prev !== 'map' && prev !== 'favorites') setPageBack(prev)
       return m
@@ -1076,7 +1115,7 @@ export default function HomeClient({
                   const timeStr = new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
                   const dateStr = isToday ? t('date.today') : new Date(e.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
                   return (
-                    <button key={e.id} onClick={() => setSelectedEvent(e)}
+                    <button key={e.id} onClick={() => avaa.venue(e)}
                       className="w-full text-left rounded-2xl overflow-hidden flex gap-0 transition-all active:scale-[.99]"
                       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
                       {e.image && (
@@ -1102,7 +1141,11 @@ export default function HomeClient({
                         )}
                         {(e.ticketUrl || e.infoUrl) && (
                           <a href={e.ticketUrl ?? e.infoUrl ?? '#'} target="_blank" rel="noopener noreferrer"
-                            onClick={ev => ev.stopPropagation()}
+                            onClick={ev => {
+                              ev.stopPropagation()
+                              track(canBuyTickets(e) ? 'ticket_click' : 'external_click',
+                                { surface: 'venue', eventId: e.id, label: e.title })
+                            }}
                             className="inline-block text-[11px] font-black px-3 py-1 rounded-full text-white"
                             style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                             {canBuyTickets(e) ? `${t('detail.buy_tickets')} →` : `${t('common.more_info')} →`}
@@ -1223,7 +1266,7 @@ export default function HomeClient({
           {/* ═══ OPAS ETUSIVUN SISÄLLÄ (guideView) ═══ */}
           {guideView && !koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <GuideInlineView slug={guideView} initialSlug={initialGuide} initialData={initialGuideData} onBack={() => setGuideView(null)}
-              onSwitch={setGuideView} onEventClick={setSelectedEvent} />
+              onSwitch={setGuideView} onEventClick={avaa.guide} />
           )}
 
           {koCat && !guideView && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
@@ -1269,7 +1312,7 @@ export default function HomeClient({
                 /* Responsiivinen ruudukko: 2 mobiili · 3 tabletti · 4 desktop */
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                   {koCatEvents.map((e) => (
-                    <EventCard key={e.id} event={e} onClick={setSelectedEvent}
+                    <EventCard key={e.id} event={e} onClick={avaa.grid}
                       distance={geo.coords && e.location?.lat && e.location?.lon
                         ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
                         : undefined} />
@@ -1293,7 +1336,7 @@ export default function HomeClient({
               )}
 
               {/* HERO: 🎸 Illan keikat — pyyhkäistävä, 5 nostoa */}
-              {!loading && <HeroSwiper events={heroGigs} onOpen={setSelectedEvent} />}
+              {!loading && <HeroSwiper events={heroGigs} onOpen={avaa.hero} />}
 
               {/* Kategoriaruudukko */}
               {!loading && baseEvents.length > 0 && (
@@ -1376,7 +1419,10 @@ export default function HomeClient({
                             const g = GUIDE_META[slug]
                             return (
                               <button key={slug}
-                                onClick={() => { setGuideView(slug); setShowGuideMenu(false) }}
+                                onClick={() => {
+                                  track('guide_open', { label: slug })
+                                  setGuideView(slug); setShowGuideMenu(false)
+                                }}
                                 className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors">
                                 <span className="text-base leading-none">{g.emoji}</span>
                                 <span className="min-w-0">
@@ -1406,7 +1452,7 @@ export default function HomeClient({
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                     {bestPicks.map((e) => (
-                      <EventCard key={e.id} event={e} onClick={setSelectedEvent}
+                      <EventCard key={e.id} event={e} onClick={avaa.picks}
                         distance={geo.coords && e.location?.lat && e.location?.lon
                           ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
                           : undefined} />
@@ -1483,7 +1529,7 @@ export default function HomeClient({
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                 {discoverEvents.map(e => (
-                  <PosterCard key={e.id} event={e} onClick={setSelectedEvent}
+                  <PosterCard key={e.id} event={e} onClick={avaa.search}
                     distance={geo.coords && e.location?.lat && e.location?.lon
                       ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
                       : undefined} />
@@ -1555,7 +1601,7 @@ export default function HomeClient({
         <IdeaView
           events={filteredEvents}
           onShowOnMap={(lat, lon, name, type) => handleShowOnMap(lat, lon, name, type)}
-          onEventClick={setSelectedEvent}
+          onEventClick={avaa.idea}
         />
       )}
 
@@ -1571,7 +1617,7 @@ export default function HomeClient({
               {t('nav.map')}
             </h1>
           </div>
-          <MapView events={filteredEvents} onEventClick={setSelectedEvent} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}/>
+          <MapView events={filteredEvents} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}/>
         </main>
       )}
 
@@ -1627,7 +1673,7 @@ export default function HomeClient({
           events={filteredEvents}
           mode={eiTiedaMode}
           onClose={() => setShowEiTieda(false)}
-          onSelect={(e) => { setSelectedEvent(e); setShowEiTieda(false) }}
+          onSelect={(e) => { avaa.eitieda(e); setShowEiTieda(false) }}
         />
       )}
 

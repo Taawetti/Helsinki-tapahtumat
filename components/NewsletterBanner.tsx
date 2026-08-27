@@ -3,6 +3,7 @@
 import { Mail, X, CheckCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { track } from '@/lib/track'
 
 const STORAGE_KEY = 'hki-newsletter-v1'
 
@@ -37,6 +38,9 @@ export default function NewsletterBanner() {
         body: JSON.stringify({ email }),
       })
       if (!res.ok) throw new Error()
+      // Vasta onnistunut tilaus kirjataan — epäonnistunut yritys ei ole
+      // tilaus, ja sen laskeminen mukaan vääristäisi luvun.
+      track('newsletter')
       setSent(true)
       localStorage.setItem(STORAGE_KEY, '1')
       setTimeout(dismiss, 3500)

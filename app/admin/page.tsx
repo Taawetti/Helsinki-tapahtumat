@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import AdminStats from '@/components/AdminStats'
 import { useRouter } from 'next/navigation'
 import type { SourceStatus } from '@/lib/types'
 import { getDateRange, formatTime } from '@/lib/utils'
@@ -110,7 +111,7 @@ function recurringFromDb(row: Record<string, unknown>): RecurringEvent {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type Tab = 'festivals' | 'recurring' | 'sources'
+type Tab = 'festivals' | 'recurring' | 'sources' | 'stats'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -371,7 +372,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="border-b border-white/8 px-6 flex gap-1">
-        {(['festivals', 'recurring', 'sources'] as Tab[]).map(t => (
+        {(['festivals', 'recurring', 'sources', 'stats'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -381,12 +382,12 @@ export default function AdminPage() {
                 : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            {t === 'festivals' ? 'Festivaalit' : t === 'recurring' ? 'Toistuvat tapahtumat' : 'Lähteet'}
+            {t === 'festivals' ? 'Festivaalit' : t === 'recurring' ? 'Toistuvat tapahtumat' : t === 'sources' ? 'Lähteet' : 'Kävijätiedot'}
           </button>
         ))}
       </div>
 
-      {tab === 'festivals' ? <FestivalsTab /> : tab === 'recurring' ? <RecurringTab /> : <SourcesTab />}
+      {tab === 'festivals' ? <FestivalsTab /> : tab === 'recurring' ? <RecurringTab /> : tab === 'sources' ? <SourcesTab /> : <AdminStats />}
     </div>
   )
 }

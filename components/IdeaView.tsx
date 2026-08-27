@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Globe, MapPin, Map as MapIcon, Heart, X, Clock } from 'lucide-react'
 import type { Event, Activity, ActivityCategory } from '@/lib/types'
+import { track } from '@/lib/track'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 import { useFavorites } from '@/contexts/FavoritesContext'
@@ -718,6 +719,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             <div className="flex items-center gap-4 flex-wrap">
               {current.url && (
                 <a href={/^https?:\/\//i.test(current.url) ? current.url : '#'} target="_blank" rel="noopener noreferrer"
+                  onClick={() => track('external_click', { surface: 'idea', label: current.title })}
                   className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity"
                   style={{ color: '#a3abff' }}>
                   <Globe size={12} />
@@ -766,6 +768,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         {/* Link / tickets */}
         {current.url ? (
           <a href={/^https?:\/\//i.test(current.url) ? current.url : '#'} target="_blank" rel="noopener noreferrer"
+            onClick={() => track('external_click', { surface: 'idea', label: current.title })}
             className="w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
             style={{ background: 'rgba(250,146,60,.12)', border: '2px solid rgba(250,146,60,.3)' }}>
             <Clock size={22} style={{ color: '#fb923c' }} />
@@ -919,6 +922,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 <div className="flex flex-col gap-2 pt-1 pb-2">
                   {d.url && (
                     <a href={/^https?:\/\//i.test(d.url) ? d.url : '#'} target="_blank" rel="noopener noreferrer"
+                      onClick={() => track('external_click', { surface: 'idea', label: d.title })}
                       className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-sm text-white"
                       style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
                       <Globe size={15} />
