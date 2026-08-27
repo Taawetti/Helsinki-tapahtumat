@@ -174,6 +174,18 @@ function tokenize(text: string): string[] {
 //            LOPPUUN (joulu·konsertti, sinfonia·konsertti, nykytanssi). Näitä
 //            morfeemeja EI voi token-prefixata ilman että recall romahtaa.
 // Failure-moodi (aliosuma → Kaikki-syöte) on hyväksytympi kuin väärä kategoria.
+/** Yksiselitteinen mestaruuskilpailu. Suomen kielessä "mestaruus" ei tarkoita
+ *  mitään muuta, joten se kelpaa osamerkkijononakin ("suomenmestaruuskilpailut").
+ *
+ *  Miksi tämä on olemassa (omistaja 27.8.2026: "Skate SM 26 Vert on tärkeä
+ *  tapahtuma ja pitäisi näkyä"): lähde merkitsi skeittauksen SM-kisan
+ *  kategorioihin "perheet, Perhe, aikuiset, Urheilu". KIDS_EXCLUDE-veto osui
+ *  sanaan "perhe" ja kumosi Urheilu-luokituksen, joten jäljelle jäi vain
+ *  yso:p4363:n (perheet) antama 'lapset' — ja tapahtuma putosi suosituksista.
+ *  Kisa on kisa, vaikka koko perhe olisi tervetullut katsomaan. */
+export const CHAMPIONSHIP_REGEX =
+  /mestaruus|\bchampionship|\b(?:SM|MM|EM|PM)[\s-](?:kisa|kilpailu|karsinta|finaali|osakilpailu)/i
+
 function matchesKeyword(keyword: string, tokens: string[], joined: string): boolean {
   const k = keyword.toLowerCase().trim()
   if (!k) return false
@@ -189,7 +201,14 @@ export function classifyEvent(e: ClassifiableEvent): string[] {
   const tokens = tokenize(text)
   const joined = ` ${tokens.join(' ')} `
   const venue = (e.location?.name ?? '').toLowerCase().trim()
-  const vetoed = (vibe: Vibe) => !!vibe.excludeKeywords?.some((k) => matchesKeyword(k, tokens, joined))
+  const onKisa = CHAMPIONSHIP_REGEX.test(text)
+  const vetoed = (vibe: Vibe) => {
+    // Mestaruuskilpailu on urheilua, vaikka lähde merkitsisi sen perheille.
+    // Rajattu VAIN urheiluun: muut vetot (lastenkonsertti Tavastialla) pätevät
+    // yhä, eikä tämä lisää mitään vibeä jota jokin kerros ei jo ehdottanut.
+    if (vibe.id === 'urheilu' && onKisa) return false
+    return !!vibe.excludeKeywords?.some((k) => matchesKeyword(k, tokens, joined))
+  }
 
   const out = new Set<string>()
 

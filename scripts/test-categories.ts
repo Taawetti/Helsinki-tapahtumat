@@ -613,6 +613,19 @@ const CASES: Case[] = [
     e: { title: 'Naapurini | Ensi-ilta', shortDescription: 'Lämmin lastenteatteriesitys muuttamisesta.', categories: ['Lastentapahtumat', 'Teatteri'], ysoIds: [] },
     in: ['lapset'],
   },
+  // ── Mestaruuskilpailu (omistaja 27.8.2026: "Skate SM 26 Vert on tärkeä
+  // tapahtuma ja pitäisi näkyä"). Lähde merkitsi sen perheille, jolloin
+  // KIDS_EXCLUDE-veto kumosi Urheilu-luokituksen. Kisa on kisa.
+  {
+    name: 'SM-kisa saa urheilu-leiman vaikka lähde merkitsi sen perheille',
+    e: { title: 'Skate SM 26 Vert', shortDescription: 'Tervetuloa katsomaan tai osallistumaan Skate SM 26 Vert suomenmestaruuskilpailuihin.', categories: ['osallistuminen', 'nuoret', 'rullalautailu', 'perheet', 'aikuiset', 'Perhe', 'Urheilu'], ysoIds: [] },
+    in: ['urheilu'],
+  },
+  {
+    name: 'ilman kisasignaalia perhe-veto pätee yhä (urheilu ei läpäise)',
+    e: { title: 'Perheiden liikuntapäivä', shortDescription: 'Urheilua koko perheelle.', categories: ['Urheilu', 'perheet'], ysoIds: [] },
+    out: ['urheilu'],
+  },
   {
     name: 'koko perheelle ON yhä lastentapahtuma',
     e: { title: 'Uskomaton taikashow', shortDescription: 'Koko perheelle suunnattu taikashow.', categories: ['Sirkus'], ysoIds: [] },
@@ -1402,6 +1415,17 @@ for (const c of arcChecks) {
     { name: 'ansa: kirjaston kasvienvaihto säilyy', ok: aud('Omatoimiset kasvitreffit / Pistokasvaihtarit', 'Tuo pistokkaita, taimia tai kokonaisia kasveja vaihtopöytään.', 'Pasilan kirjasto') === false },
     { name: 'ansa: varautumisluento Malmitalolla säilyy', ok: aud('Varautuminen arjen häiriötilanteissa', 'Tule kuulemaan omatoimisesta varautumisesta ja väestönsuojelusta.', 'Malmitalo') === false },
     { name: 'ansa: kirjaston jamit säilyvät', ok: aud('Orivesi All Stars -jamit', 'Livemusiikkia kirjastossa.', 'Pasilan kirjasto') === false },
+
+    // ── Mestaruuskilpailu ei putoa perhe-leimasta. Mitattu 5 062 tuotannon
+    // tapahtumasta: tämä vapautti tasan yhden eikä rajannut yhtään uutta.
+    { name: 'kisa: Skate SM näkyy vaikka lähde merkitsi sen perheille', ok:
+      isOutsideTargetAudience({ title: 'Skate SM 26 Vert', shortDescription: 'Tervetuloa katsomaan tai osallistumaan suomenmestaruuskilpailuihin.', categories: ['nuoret', 'rullalautailu', 'perheet', 'aikuiset', 'Perhe', 'Urheilu'], location: { name: 'Pihlajamäen nuorisopuisto / Freestyle-skeittipuisto' }, vibes: ['lapset', 'tyopaja'] }) === false },
+    { name: 'kisa: EM-kisa näkyy', ok: aud('TeamGym European Championships 2026', 'Kilpailut Helsingissä.', '', ['perheet']) === false },
+    // ANSAT: kisapoikkeus koskee VAIN luokittelun leimaa. Tekstisäännöt ajetaan
+    // silti, joten lasten kisat putoavat yhä.
+    { name: 'ansa: lasten SM-kisat putoavat yhä (tekstisääntö)', ok: aud('Lasten SM-kisat', 'Kisat 7–8-vuotiaille.') === true },
+    { name: 'ansa: perhekonsertti ilman kisaa putoaa yhä', ok:
+      isOutsideTargetAudience({ title: 'Konsertti', shortDescription: 'Musiikkia.', categories: ['Musiikki'], vibes: ['lapset'] }) === true },
 
     // ── Luokittelun tuoma rajaus. Tekstisäännöt EIVÄT näe vibejä: lastenooppera
     // jonka otsikossa/kuvauksessa ei lue mitään lapsista läpäisi ennen kaiken.

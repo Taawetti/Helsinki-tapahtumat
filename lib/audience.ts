@@ -20,7 +20,7 @@
 //  - "alle 2v"…"alle 12v" = lapset; "alle 18-vuotiailta kielletty" ei osu
 //  - bänditrap: "Nuorgam" ei sisällä sanaa \bnuorten\b → ei osu
 
-import { classifyEvent, getEventVibes } from './event-classify'
+import { CHAMPIONSHIP_REGEX, classifyEvent, getEventVibes } from './event-classify'
 import type { Event } from './types'
 
 interface AudienceCheckable {
@@ -129,7 +129,12 @@ export function isOutsideTargetAudience(e: AudienceCheckable): boolean {
       vibes = []
     }
   }
-  if (vibes.some((v) => OUT_OF_TARGET_VIBES.includes(v))) return true
+  // Mestaruuskilpailu ei ole lastentapahtuma, vaikka lähde merkitsisi sen
+  // perheille (omistaja 27.8.2026). Mitattu 5 062 tuotannon tapahtumasta:
+  // kilpailusignaali osuu 11:een ja niistä lapset-leima on YHDELLÄ — Skate SM.
+  // Tekstisäännöt ajetaan silti alla, joten "Lasten SM-kisat" putoaisi yhä.
+  if (vibes.some((v) => OUT_OF_TARGET_VIBES.includes(v)) &&
+      !CHAMPIONSHIP_REGEX.test(`${e.title} ${e.shortDescription ?? ''}`)) return true
 
   // 2) Opastetut kierrokset: VAIN otsikosta, ks. TOUR_TITLE_REGEX.
   if (TOUR_TITLE_REGEX.test(e.title)) return true
