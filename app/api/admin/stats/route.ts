@@ -18,7 +18,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 
 const KATTO = 50000
 
-interface Rivi { kind: string; surface: string | null; event_id: string | null; label: string | null }
+interface Rivi { kind: string; surface: string | null; event_id: string | null; label: string | null; country: string | null; city: string | null; region: string | null }
 
 /** Laskee esiintymät ja palauttaa suurimmat ensin. */
 function top(rivit: Rivi[], avain: (r: Rivi) => string | null, n = 15) {
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('click_events')
-    .select('kind, surface, event_id, label')
+    .select('kind, surface, event_id, label, country, city, region')
     .gte('created_at', alkaen)
     .order('created_at', { ascending: false })
     .limit(KATTO)
@@ -77,5 +77,30 @@ export async function GET(req: NextRequest) {
     oppaat:             top(vain('guide_open'), (r) => r.label),
     kategoriat:         top(vain('category'), (r) => r.label),
     haut:               top(vain('search'), (r) => r.label, 25),
+    // Maajakauma kaikista tapahtumista ja erikseen lippuklikeistä: nämä
+    // vastaavat eri kysymyksiin ("mistä kävijät tulevat" vs "kuka oikeasti
+    // aikoo ostaa"). Rivit joilta maa puuttuu jäävät pois top-listasta.
+    maat:               top(rivit, (r) => r.country, 20),
+    maatLippuklikit:    top(vain('ticket_click'), (r) => r.country, 20),
+    ilmanMaata:         rivit.filter((r) => !r.country).length,
+    // Paikkakunnat VAIN Suomesta: ulkomaiset kaupungit sekoittaisivat listan
+    // eivätkä kerro kotimaisesta käytöstä mitään.
+    kaupungitFI:        top(rivit.filter((r) => r.country === 'FI'), (r) => r.city, 25),
+    kaupungitFILippu:   top(rivit.filter((r) => r.country === 'FI' && r.kind === 'ticket_click'), (r) => r.city, 15),
+    // Maakunnat palautetaan RAAKANA koodi→määrä -parina, ei top-listana:
+    // näkymä täydentää puuttuvat maakunnat nolliksi, jotta lista on aina
+    // täydellinen. Top-lista jättäisi tyhjät maakunnat kokonaan pois eikä
+    // omistaja näkisi mistä päin Suomea EI tulla.
+    maakunnat: (() => {
+      const m: Record<string, number> = {}
+      for (const r of rivit) if (r.country === 'FI' && r.region) m[r.region] = (m[r.region] ?? 0) + 1
+      return m
+    })(),
+    // Suurten kaupunkien luvut erikseen, myös nollat.
+    kaupunkiMaarat: (() => {
+      const m: Record<string, number> = {}
+      for (const r of rivit) if (r.country === 'FI' && r.city) m[r.city] = (m[r.city] ?? 0) + 1
+      return m
+    })(),
   })
 }

@@ -45,7 +45,46 @@ const siisti = (v: unknown): string | null => {
   return s ? s.slice(0, MAX_PITUUS) : null
 }
 
-interface Rivi { kind: string; surface: string | null; event_id: string | null; label: string | null; meta: string | null }
+interface Rivi {
+  kind: string; surface: string | null; event_id: string | null
+  label: string | null; meta: string | null; country: string | null; city: string | null; region: string | null
+}
+
+/** Maa Vercelin sijaintiotsakkeesta. Vercel asettaa sen jokaiseen pyyntöön
+ *  reunalla; paikallisesti sitä ei ole, jolloin arvo jää tyhjäksi.
+ *
+ *  MIKSI TÄMÄ EI RIKO TUNNISTEETTOMUUTTA: tallennamme vain kaksikirjaimisen
+ *  maakoodin, emme IP-osoitetta emmekä kaupunkia. Maan tarkkuudella kukaan ei
+ *  ole tunnistettavissa, joten rivit pysyvät ei-henkilötietona. ÄLÄ lisää
+ *  tähän kaupunkia (x-vercel-ip-city) tai IP:tä miettimättä selostetta uusiksi. */
+function maa(req: NextRequest): string | null {
+  const c = req.headers.get('x-vercel-ip-country')
+  // Kaksi isoa kirjainta tai ei mitään — näin otsakkeen roskaa ei päädy kantaan.
+  return c && /^[A-Z]{2}$/.test(c) ? c : null
+}
+
+/** Kaupunki samasta lähteestä. Vercel URL-koodaa arvon, joten "Jyväskylä"
+ *  saapuu muodossa "Jyv%C3%A4skyl%C3%A4" — ilman purkua kanta täyttyisi
+ *  lukukelvottomista nimistä. */
+/** Maakunta ISO 3166-2 -koodina. Vercel lähettää joko pelkän numeron ("18")
+ *  tai maakoodillisen muodon ("FI-18") — normalisoidaan kaksinumeroiseksi,
+ *  jotta raportissa on yksi muoto eikä kahta rinnakkaista. */
+function maakunta(req: NextRequest): string | null {
+  const r = req.headers.get('x-vercel-ip-country-region')
+  if (!r) return null
+  const m = r.trim().toUpperCase().match(/(?:^|-)([0-9]{1,2})$/)
+  return m ? m[1].padStart(2, '0') : null
+}
+
+function kaupunki(req: NextRequest): string | null {
+  const raw = req.headers.get('x-vercel-ip-city')
+  if (!raw) return null
+  let nimi = raw
+  try { nimi = decodeURIComponent(raw) } catch { /* viallinen koodaus: käytä raakaa */ }
+  nimi = nimi.trim()
+  // Pituusraja ja merkkirajaus: kantaan ei päädy otsakkeen roskaa.
+  return nimi && nimi.length <= 60 ? nimi : null
+}
 
 export async function POST(req: NextRequest) {
   let body: { events?: unknown }
@@ -56,6 +95,9 @@ export async function POST(req: NextRequest) {
   }
 
   const era = Array.isArray(body.events) ? body.events.slice(0, MAX_ERA) : []
+  const maakoodi = maa(req)
+  const kaupunkiNimi = kaupunki(req)
+  const maakuntaKoodi = maakunta(req)
   const rivit: Rivi[] = []
 
   for (const raw of era) {
@@ -69,6 +111,9 @@ export async function POST(req: NextRequest) {
       event_id: siisti(e.eventId),
       label: siisti(e.label),
       meta: siisti(e.meta),
+      country: maakoodi,
+      city: kaupunkiNimi,
+      region: maakuntaKoodi,
     })
   }
 

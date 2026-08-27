@@ -26,7 +26,43 @@ interface Data {
   oppaat: Rivi[]
   kategoriat: Rivi[]
   haut: Rivi[]
+  maat: Rivi[]
+  maatLippuklikit: Rivi[]
+  ilmanMaata: number
+  kaupungitFI: Rivi[]
+  kaupungitFILippu: Rivi[]
+  maakunnat: Record<string, number>
+  kaupunkiMaarat: Record<string, number>
 }
+
+// Suomen maakunnat ISO 3166-2 -koodeilla. KAIKKI 19 näytetään aina, myös ne
+// joista ei ole yhtään käyntiä — omistajan pyyntö. Tyhjä maakunta on itsessään
+// tieto: se kertoo mistä päin Suomea EI vielä tulla.
+const MAAKUNNAT: [string, string][] = [
+  ['18', 'Uusimaa'], ['19', 'Varsinais-Suomi'], ['11', 'Pirkanmaa'],
+  ['14', 'Pohjois-Pohjanmaa'], ['08', 'Keski-Suomi'], ['15', 'Pohjois-Savo'],
+  ['17', 'Satakunta'], ['16', 'Päijät-Häme'], ['09', 'Kymenlaakso'],
+  ['06', 'Kanta-Häme'], ['13', 'Pohjois-Karjala'], ['12', 'Pohjanmaa'],
+  ['03', 'Etelä-Pohjanmaa'], ['02', 'Etelä-Karjala'], ['04', 'Etelä-Savo'],
+  ['10', 'Lappi'], ['05', 'Kainuu'], ['07', 'Keski-Pohjanmaa'], ['01', 'Ahvenanmaa'],
+]
+
+// Kymmenen suurinta kaupunkia väkiluvun mukaan. Nimet ovat samassa muodossa
+// jossa sijaintipalvelu ne antaa, jotta osuma löytyy.
+const SUURET_KAUPUNGIT = [
+  'Helsinki', 'Espoo', 'Tampere', 'Vantaa', 'Oulu',
+  'Turku', 'Jyväskylä', 'Kuopio', 'Lahti', 'Pori',
+]
+
+// Maakoodit ihmisluettavaksi. Vain yleisimmät nimetään; muut näkyvät koodina,
+// mikä on parempi kuin väärä tai puuttuva nimi.
+const MAAT: Record<string, string> = {
+  FI: 'Suomi', SE: 'Ruotsi', NO: 'Norja', DK: 'Tanska', EE: 'Viro',
+  DE: 'Saksa', GB: 'Britannia', US: 'Yhdysvallat', FR: 'Ranska', NL: 'Alankomaat',
+  ES: 'Espanja', IT: 'Italia', PL: 'Puola', RU: 'Venäjä', LV: 'Latvia', LT: 'Liettua',
+  CA: 'Kanada', AU: 'Australia', JP: 'Japani', CH: 'Sveitsi', AT: 'Itävalta', BE: 'Belgia',
+}
+const maaNimi = (koodi: string) => MAAT[koodi] ? `${MAAT[koodi]} (${koodi})` : koodi
 
 const JAKSOT = [7, 30, 90] as const
 
@@ -165,6 +201,33 @@ export default function AdminStats() {
             selite="Lue lisää -linkit ja paikkojen sivut, eli klikkaukset jotka eivät menneet lippukauppaan." />
           <Palkit otsikko="Haetuimmat sanat" rivit={data.haut}
             selite="Vain vähintään kolmen merkin haut, kirjattu vasta kun kirjoittaminen loppui." />
+
+          <Palkit otsikko="Mistä maasta klikkaukset tulevat"
+            rivit={data.maat.map((r) => ({ ...r, nimi: maaNimi(r.nimi) }))}
+            selite={`Kaikki mitatut toiminnot maan mukaan. Maa tulee Vercelin sijaintitiedosta — vain maan tarkkuudella, ei IP-osoitetta.${data.ilmanMaata > 0 ? ` ${data.ilmanMaata} riviltä maa puuttuu (paikallinen kehitys tai tuntematon).` : ''}`} />
+
+          {/* Kaikki maakunnat, myös nollat — niin näkee mistä ei tulla. */}
+          <Palkit otsikko="Maakunnat"
+            rivit={MAAKUNNAT
+              .map(([koodi, nimi]) => ({ nimi, maara: data.maakunnat[koodi] ?? 0 }))
+              .sort((a, b) => b.maara - a.maara)}
+            selite="Kaikki 19 maakuntaa. Nolla tarkoittaa ettei tältä alueelta ole vielä yhtään mitattua toimintoa." />
+
+          {/* Kymmenen suurinta kaupunkia omana listanaan, myös nollat. */}
+          <Palkit otsikko="10 suurinta kaupunkia"
+            rivit={SUURET_KAUPUNGIT
+              .map((nimi) => ({ nimi, maara: data.kaupunkiMaarat[nimi] ?? 0 }))
+              .sort((a, b) => b.maara - a.maara)}
+            selite="Väkiluvultaan suurimmat, järjestettynä mitatun käytön mukaan." />
+
+          <Palkit otsikko="Kaikki paikkakunnat" rivit={data.kaupungitFI}
+            selite="Vain Suomesta tulleet. HUOM: sijainti on IP-paikannusta — moni mobiiliverkon käyttäjä näkyy Helsingissä oikeasta sijainnista riippumatta, joten luvut ovat suuntaa antavia." />
+
+          <Palkit otsikko="Lippuklikit paikkakunnittain (Suomi)" rivit={data.kaupungitFILippu} />
+
+          <Palkit otsikko="Lippuklikit maittain"
+            rivit={data.maatLippuklikit.map((r) => ({ ...r, nimi: maaNimi(r.nimi) }))}
+            selite="Eri kysymys kuin yllä: mistä maasta tulevat ne joilla on ostoaikomus." />
         </>
       )}
     </div>
