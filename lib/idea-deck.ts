@@ -8,6 +8,7 @@
 //  - makumuisti (recordClick-historia) + cold-start-scenet painottavat
 //  - siemen-jitteri: sama päivä+laite = sama pakka, uusi päivä = uusi
 import type { Event } from './types'
+import { isOutsideTargetAudience } from './audience'
 import type { TranslationKey } from './i18n'
 import { getEventVibes } from './event-classify'
 import { helsinkiDateOf } from './helsinki-time'
@@ -16,11 +17,21 @@ import { seedRand } from './seed-rand'
 
 export type IdeaAudience = 'default' | 'perhe'
 
-// Vauva/perhe-sisältö: pois oletuksena, perhe-valinnalla mukaan.
-const FAMILY_VIBES = ['lapset']
+// Kohderyhmärajaus tulee JAETUSTA lähteestä lib/audience.ts. Täällä oli
+// aiemmin oma lista (['lapset']), joka tunsi vain yhden tunnelman eikä yhtään
+// sanamuotoa — se olisi ajautunut erilleen jaetusta säännöstä ensimmäisessä
+// muutoksessa. Nyt sääntöjä on yksi.
+//
+// HUOM: getEventVibes lasketaan tässä, koska tapahtumalla ei aina ole valmiita
+// vibejä. Ilman sitä luokitteluun perustuva rajaus jäisi tekemättä.
 
 // Seniori-painotteiset: alaskuopaus (ei poissulkua — kulttuuri-scenen valitsija
 // haluaa klassistakin, joten rangaistus ohitetaan silloin).
+//
+// TÄMÄ EI OLE KOHDERYHMÄRAJAUKSEN KAKSOISKAPPALE vaan pisteytysvivahde:
+// sinfoniakonsertti EI ole kohderyhmän ulkopuolella, mutta se ei myöskään ole
+// ensimmäinen ehdotus 25-vuotiaalle ellei hän ole valinnut kulttuuria.
+// Varsinainen rajaus tehdään audienceOk:ssa lib/audience.ts:n kautta.
 const SENIOR_SKEW_VIBES = ['klassinen']
 const SENIOR_SKEW_KEYWORDS = ['lukupiiri', 'seniori', 'vanhusten', 'päiväkahvit', 'ikäihmis']
 
@@ -35,8 +46,9 @@ export const IDEA_SCENES: Record<'keikka' | 'rento' | 'liikunta' | 'kulttuuri', 
 export type IdeaSceneId = keyof typeof IDEA_SCENES
 
 export function audienceOk(e: Event, audience: IdeaAudience): boolean {
+  // Perhe-valinta on OPT-IN: sen tehnyt käyttäjä haluaa lapsisisällön mukaan.
   if (audience === 'perhe') return true
-  return !getEventVibes(e).some(v => FAMILY_VIBES.includes(v))
+  return !isOutsideTargetAudience({ ...e, vibes: getEventVibes(e) })
 }
 
 export function seniorSkew(e: Event): boolean {
@@ -151,7 +163,15 @@ export function buildIdeaDeck(events: Event[], opts: IdeaDeckOpts): IdeaScored[]
       // Yhteisötalojen/leikkipuistojen päiväohjelma: alaskuopaus oletuksena
       // (mitattu 24.8.: maanantain kaupunkiohjelma valtasi pakan kärjen).
       // Perhe-yleisölle nämä ovat juuri oikeaa sisältöä → ei sakkoa.
-      if (audience !== 'perhe' && COMMUNITY_DAYTIME_REGEX.test(`${e.title} ${e.shortDescription ?? ''}`)) s -= 3
+      //
+      // PAIKAN NIMI ON MUKANA, ja se on tässä koko pointti: "Bingo" klo 12.30
+      // pääsi pakkaan selainajossa 27.8.2026, koska sen otsikossa ja
+      // kuvauksessa ("Pelataan yhdessä bingoa!") ei lue mitään yhteisötalosta —
+      // se lukee vain paikan nimessä "Stadin yhteisötalo Lassila". Samassa
+      // päivässä paikan nimi paljasti 58 muuta päiväohjelmaa jotka olivat
+      // menneet sakotta läpi.
+      const communityText = `${e.title} ${e.shortDescription ?? ''} ${e.location?.name ?? ''}`
+      if (audience !== 'perhe' && COMMUNITY_DAYTIME_REGEX.test(communityText)) s -= 3
 
       // "Ei tällaista" -demotiot (vibe tai kategoria osuu demotoituun)
       const isDemoted = vibes.some(v => demoted.has(v)) || cats.some(c => demoted.has(c))

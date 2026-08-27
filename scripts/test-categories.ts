@@ -578,6 +578,65 @@ const CASES: Case[] = [
     e: { title: 'Willman Dance Company: USKO-FAITH', shortDescription: 'Tanssiteos esitetään lasitaidenäyttelyn tiloissa.', categories: [], ysoIds: [] },
     in: ['teatteri'],
   },
+  // ── Lapset & Perhe: sananalkuosuma (mitattu 3 136 tapahtumasta 27.8.2026).
+  // Nämä neljä olivat OIKEASTI väärässä kategoriassa tuotannossa.
+  {
+    name: 'bluesikeikka EI ole lastentapahtuma ("bluesperheenä" ei ole perhe)',
+    e: { title: 'Juuristo-klubilla Pepe Ahlqvist & Sons', shortDescription: 'Pepe & Sons -trio kertoo elämästään aitona bluesperheenä sekä musisoi livenä.', categories: ['musiikki'], ysoIds: [] },
+    out: ['lapset'],
+  },
+  {
+    name: 'aikuisten monologi EI ole lastentapahtuma ("pakolaislasten" ei ole lasten)',
+    e: { title: 'Pitkästä ikävästä', shortDescription: 'Eppu Nuotion monologinäytelmä kutoo yhteen Vienan pakolaislasten tarinoita.', categories: ['monologit', 'Teatteri'], ysoIds: [] },
+    out: ['lapset'],
+  },
+  {
+    name: 'omaishoitajien vertaisryhmä EI ole lastentapahtuma ("omaishoitoperheille")',
+    e: { title: 'Vertaisryhmä omaishoitoperheille', shortDescription: 'Vertaistukiryhmä sinulle, joka hoidat omaistasi.', categories: ['vertaistuki'], ysoIds: [] },
+    out: ['lapset'],
+  },
+  {
+    name: 'i4KIDS-lääkärikonferenssi EI ole lastentapahtuma (tunnus, ei sana)',
+    e: { title: 'i4KIDS Paediatric Innovation Day 2026', shortDescription: '', categories: [], ysoIds: [] },
+    out: ['lapset'],
+  },
+  // Vastapari: prefiksointi EI saa mennä liian pitkälle. 'koululais' jätettiin
+  // tarkoituksella prefiksoimatta, koska "alakoululaiset" alkaa sanalla
+  // "alakoulu" — prefiksi olisi pudottanut tämän oikean lastentapahtuman.
+  {
+    name: 'läksyapu alakoululaisille ON yhä lastentapahtuma',
+    e: { title: 'Läksyapu', shortDescription: 'Kirjasto tarjoaa alakoululaisille läksyapua.', categories: ['opastus', 'alakoululaiset'], ysoIds: [] },
+    in: ['lapset'],
+  },
+  {
+    name: 'lastenteatteri ON yhä lastentapahtuma (sananalku osuu)',
+    e: { title: 'Naapurini | Ensi-ilta', shortDescription: 'Lämmin lastenteatteriesitys muuttamisesta.', categories: ['Lastentapahtumat', 'Teatteri'], ysoIds: [] },
+    in: ['lapset'],
+  },
+  {
+    name: 'koko perheelle ON yhä lastentapahtuma',
+    e: { title: 'Uskomaton taikashow', shortDescription: 'Koko perheelle suunnattu taikashow.', categories: ['Sirkus'], ysoIds: [] },
+    in: ['lapset'],
+  },
+  // Yhdyssanat jotka OLIVAT aiemmin 'perhe'-avainsanan varassa (ne oli
+  // hyväksytty fixtures/compound-golden.json:issa). Sananalku vei tuen pois,
+  // joten jokaisen on tultava jotain toista kautta — muuten prefiksointi
+  // olisi pudottanut aitoja perhetapahtumia. Tarkistettu kaikki 11.
+  {
+    name: 'lapsiperheille kulkee yhä (^lapsi kantaa, ei enää perhe)',
+    e: { title: 'Tapahtuma', shortDescription: 'Ohjelmaa lapsiperheille keskiviikkoisin.', categories: [], ysoIds: [] },
+    in: ['lapset'],
+  },
+  {
+    name: 'vauvaperheille kulkee yhä (vauva kantaa)',
+    e: { title: 'Tapahtuma', shortDescription: 'Ohjelmaa vauvaperheille keskiviikkoisin.', categories: [], ysoIds: [] },
+    in: ['lapset'],
+  },
+  {
+    name: 'taaperoperheiden tapahtuma kulkee yhä (taapero kantaa)',
+    e: { title: 'Tapahtuma', shortDescription: 'Taaperoperheiden yhteinen hetki.', categories: [], ysoIds: [] },
+    in: ['lapset'],
+  },
 ]
 
 // extractYsoIds — @id-poiminnan yksikkötestit
@@ -1313,6 +1372,47 @@ for (const c of arcChecks) {
     { name: 'ansa: stand up -klubi säilyy', ok: aud('Stand up -klubi', 'Illan koomikot Apollossa', 'Apollo Live Club') === false },
     { name: 'ansa: "18-vuotias juhlavuosi" säilyy', ok: aud('Klubin 18-vuotias juhlavuosi', 'Synttärikeikat koko viikon') === false },
     { name: 'ansa: "1800-luvulla syntyneet aatteet" säilyy', ok: aud('Luento', 'Miten 1800-luvulla syntyneet aatteet muokkasivat Helsinkiä') === false },
+
+    // ── Opastetut kierrokset (omistaja 27.8.2026: "en halua turistikierroksia").
+    // Sääntö lukee VAIN otsikon; mitattu 3 136 tapahtumasta: 28 osumaa, 0 väärää.
+    { name: 'kierros: opastettu yleisökierros Suomenlinnassa', ok: aud('Opastettu yleisökierros Suomenlinnassa') === true },
+    { name: 'kierros: arkkitehtuurikävely', ok: aud('Keisarin Helsinki -arkkitehtuurikävely') === true },
+    { name: 'kierros: englanninkielinen sightseeing tour', ok: aud('ESN Aalto Helsinki Sightseeing Tour') === true },
+    { name: 'kierros: kävelykierros', ok: aud('Keskustakampus, kävelykierros englanniksi') === true },
+    { name: 'kierros: opastettu saarikierros (\\w*kierros)', ok: aud('Opastettu saarikierros Harakassa') === true },
+    // ANSA joka kaatoi ensimmäisen version: kuvauksessa MAINITTU kierros ei saa
+    // pudottaa keikkaa. Molemmat ovat oikeita tapahtumia otoksesta.
+    { name: 'ansa: metallikeikan "Solo Tour" säilyy', ok: aud('Devin Townsend Metamorphosis Solo Tour', 'Talon opastuskierros tutustuttaa historiaan.') === false },
+    { name: 'ansa: kilpailukierros säilyy', ok: aud('Cup-ottelun toinen kierros') === false },
+    { name: 'ansa: kiertue säilyy', ok: aud('Bändin 50-vuotisjuhlakiertue') === false },
+    // Otoksen oikea tapahtuma: "Helsinki tour" on KLUBI-ILTA, ei kierros.
+    // Kuvion laajentaminen kattamaan pelkkä "tour" olisi vienyt sen.
+    { name: 'ansa: klubi-ilta nimeltä "Helsinki tour" säilyy', ok: aud('Helsinki tour', "Kide.app · O'Diako", '', ['Yöelämä', 'Klubi']) === false },
+    { name: 'ansa: hiilenkierros-näyttely säilyy', ok: aud('Kaupungin keuhkot – näyttely viheralueiden hiilenkierrosta') === false },
+
+    // ── Yhteisö-/asukastalojen päiväohjelma (omistaja 27.8.2026: "pois
+    // kokonaan"). Tunnistus tulee PAIKAN NIMESTÄ: otsikko ja kuvaus eivät
+    // kerro siitä mitään. Mitattu otoksesta: sulkee 109, jättää 2.
+    { name: 'yhteisötalo: bingo klo 12.30 rajautuu', ok: aud('Bingo', 'Pelataan yhdessä bingoa!', 'Stadin yhteisötalo Lassila') === true },
+    { name: 'yhteisötalo: kielikerho rajautuu', ok: aud('English Chat Club', 'Tervetuloa juttelemaan englanniksi.', 'Stadin yhteisötalo Malmi') === true },
+    { name: 'asukastalo rajautuu', ok: aud('Avoin ryhmä', 'Kaikille avoin tapaaminen.', 'Asukastalo Ankkuri') === true },
+    { name: 'ompelupaja rajautuu (omistajan nimeämä)', ok: aud('Avoin ompelupaja', 'Vapaaehtoinen ohjaaja paikalla.') === true },
+    // ANSAT: nämä eivät saa pudota. 'omatoimi' jätettiin tarkoituksella pois
+    // yhteisösäännöstä juuri näiden takia — ne kelpaavat kohderyhmälle.
+    { name: 'ansa: kirjaston kasvienvaihto säilyy', ok: aud('Omatoimiset kasvitreffit / Pistokasvaihtarit', 'Tuo pistokkaita, taimia tai kokonaisia kasveja vaihtopöytään.', 'Pasilan kirjasto') === false },
+    { name: 'ansa: varautumisluento Malmitalolla säilyy', ok: aud('Varautuminen arjen häiriötilanteissa', 'Tule kuulemaan omatoimisesta varautumisesta ja väestönsuojelusta.', 'Malmitalo') === false },
+    { name: 'ansa: kirjaston jamit säilyvät', ok: aud('Orivesi All Stars -jamit', 'Livemusiikkia kirjastossa.', 'Pasilan kirjasto') === false },
+
+    // ── Luokittelun tuoma rajaus. Tekstisäännöt EIVÄT näe vibejä: lastenooppera
+    // jonka otsikossa/kuvauksessa ei lue mitään lapsista läpäisi ennen kaiken.
+    { name: 'vibe: lapsille luokiteltu ilman tekstivihjettä rajautuu', ok: isOutsideTargetAudience({ title: 'Heinähattu, Vilttitossu ja suuri pamaus', categories: ['oopperataide'], vibes: ['lapset'] }) === true },
+    { name: 'vibe: keikka ei rajaudu', ok: isOutsideTargetAudience({ title: 'Iltakeikka', categories: ['musiikki'], vibes: ['keikka'] }) === false },
+    { name: 'vibe: puuttuvat vibet eivät kaada tarkistusta', ok: isOutsideTargetAudience({ title: 'Iltakeikka', categories: ['musiikki'] }) === false },
+    // ILMAN valmiita vibejä: luokittelu ajetaan itse. Tekstisäännöt eivät tunne
+    // fraasia "koko perheelle", joten tämä osuu VAIN laskettujen vibejen kautta.
+    // Näin etusivun poiminnat saavat saman suojan kuin Idea-pakka.
+    { name: 'vibe: lasketaan jos puuttuu (koko perheelle)', ok: isOutsideTargetAudience({ title: 'Uskomaton taikashow', shortDescription: 'Koko perheelle suunnattu taikashow.', categories: ['Sirkus'] }) === true },
+    { name: 'vibe: laskenta ei rajaa aikuisten keikkaa', ok: isOutsideTargetAudience({ title: 'Juuristo-klubilla Pepe Ahlqvist & Sons', shortDescription: 'Trio kertoo elämästään aitona bluesperheenä.', categories: ['musiikki'] }) === false },
   ]
   for (const c of audCases) {
     if (c.ok) pass++
@@ -2020,6 +2120,12 @@ const ideaChecks: { name: string; ok: boolean }[] = [
   { name: 'audienceOk: vauva/perhe pois oletuksena', ok: audienceOk(evVauva, 'default') === false },
   { name: 'audienceOk: vauva/perhe sallittu perhe-tilassa', ok: audienceOk(evVauva, 'perhe') === true },
   { name: 'audienceOk: keikka sallittu aina', ok: audienceOk(evKeikka, 'default') === true },
+  // Yhteisötalon päiväohjelma tunnistetaan PAIKAN NIMESTÄ. Mitattu selaimessa
+  // 27.8.2026: "Bingo" klo 12.30 nousi pakkaan, koska otsikko ja kuvaus eivät
+  // kerro paikasta mitään — vain location.name kertoo.
+  { name: 'yhteisötalo: tunnistus vaatii paikan nimen', ok:
+    COMMUNITY_DAYTIME_REGEX.test('Bingo Pelataan yhdessä bingoa!') === false &&
+    COMMUNITY_DAYTIME_REGEX.test('Bingo Pelataan yhdessä bingoa! Stadin yhteisötalo Lassila') === true },
   { name: 'seniorSkew: klassinen osuu, keikka ei', ok: seniorSkew(evKlassinen) === true && seniorSkew(evKeikka) === false },
 ]
 

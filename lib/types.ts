@@ -170,7 +170,17 @@ export const VIBES: Vibe[] = [
   // 'historia' poistettu — aihe, ei tyyppi (teki historialuennosta/-kierroksesta
   // museon); museonäyttelyt osuvat 'museo'/'näyttely'/venue-signaaleihin
   { id: 'museo',     label: 'Museo',             tKey: 'vibe.museo',    emoji: '🏛', keywords: ['museo', 'museum', 'perinne', '^kokoelma', 'taidekokoelma', 'museokokoelma', 'ateneum', 'kiasma', 'amos rex', 'seurasaar'], excludeKeywords: ['^klubi', '^yökerho', 'dj ilta', 'dj set', 'kiasma teatteri'] },
-  { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['lapsi', 'lapset', 'perhe', 'lasten', 'nuoret', 'nuoriso', 'koululais', 'kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'satutuokio', 'leikkipuisto', 'loru', 'temppurata', 'leikkiminen', 'eskari', 'päiväkoti'] },
+  // '^'-alkuiset = sananalkuosuma. Ilman sitä avainsana osui YHDYSSANAN KESKELLE
+  // ja teki aikuisten tapahtumista lastentapahtumia (mitattu 3 136 tapahtumasta
+  // 27.8.2026): 'perhe' osui sanaan "bluesperheenä" → bluesikeikka "Juuristo-
+  // klubilla Pepe Ahlqvist & Sons" ja "Vertaisryhmä omaishoitoperheille";
+  // 'lasten' osui sanaan "pakolaislasten" → Eppu Nuotion aikuisten monologi
+  // "Pitkästä ikävästä"; 'kids' osui tunnukseen "i4KIDS" → lääkärikonferenssi.
+  // Nämä eivät kuuluneet Lapset & Perhe -kategoriaan eivätkä pudonneet
+  // suosituksista (lib/audience) syystä jonka kukaan ei olisi arvannut.
+  // 'koululais' EI ole prefiksoitu: se on jo yksiselitteinen, ja "alakoululaiset"
+  // alkaa sanalla "alakoulu" → prefiksi olisi pudottanut Läksyavun (mitattu).
+  { id: 'lapset',    label: 'Lapset & Perhe',    tKey: 'vibe.lapset',   emoji: '👨‍👩‍👧', keywords: ['^lapsi', '^lapset', '^perhe', '^lasten', 'nuoret', 'nuoriso', 'koululais', '^kids', 'family', 'children', 'vauva', 'taapero', 'muskari', 'satutunti', 'satutuokio', 'leikkipuisto', 'loru', 'temppurata', 'leikkiminen', 'eskari', 'päiväkoti'] },
   // "Harrastukset & Kurssit". '^kurssi' ei osu konkurssi/diskurssi; 'opetus'
   // substringinä osuu 'paritanssiopetus'; osallistavat tanssit lisätty tänne
   // (mihin teatteri ne poissulkee).

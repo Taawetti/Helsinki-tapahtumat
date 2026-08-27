@@ -233,7 +233,16 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     return shuffle(
       activities.filter(a =>
         a.image &&
-        SUPPLEMENTAL_CATS.includes(a.category)
+        SUPPLEMENTAL_CATS.includes(a.category) &&
+        // Sama kohderyhmärajaus kuin tapahtumilla. Tällä hetkellä listalla on
+        // vain saunoja ja näköalapaikkoja, joten tämä ei karsi mitään — mutta
+        // ilman sitä listan laajentaminen päästäisi turisti- ja lapsikohteet
+        // pakkaan huomaamatta, koska paikat eivät kulje buildIdeaDeckin läpi.
+        !isOutsideTargetAudience({
+          title: a.name,
+          shortDescription: a.description,
+          categories: [a.category],
+        })
       )
     )
       .slice(0, 8)
