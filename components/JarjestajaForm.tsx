@@ -2,6 +2,7 @@
 
 import { X, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
+import { pienennaKuva } from '@/lib/image-resize'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VIBES } from '@/lib/types'
 import type { TranslationKey } from '@/lib/i18n'
@@ -33,6 +34,10 @@ export default function JarjestajaForm({ onClose }: Props) {
     paikka: '', hinta: '', linkki: '', email: '',
   })
   const [kategoriat, setKategoriat] = useState<string[]>([])
+  // Kuva pidetään omassa tilassaan eikä form-oliossa: se on data-URL eikä
+  // tekstikenttä, ja se nollataan erikseen lähetyksen jälkeen.
+  const [kuva, setKuva] = useState<string | null>(null)
+  const [kuvaVirhe, setKuvaVirhe] = useState('')
 
   type Field = keyof typeof form
   const set = (key: Field) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -55,7 +60,7 @@ export default function JarjestajaForm({ onClose }: Props) {
       const res = await fetch('/api/submit-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, kategoria: kategoriat.join(', ') }),
+        body: JSON.stringify({ ...form, kategoria: kategoriat.join(', '), kuva }),
       })
       if (!res.ok) {
         // Näytä palvelimen tarkka syy (esim. "Virheellinen linkki — käytä
@@ -200,6 +205,55 @@ export default function JarjestajaForm({ onClose }: Props) {
               <label className={labelClass}>{t('form.field_desc')}</label>
               <textarea value={form.kuvaus} onChange={set('kuvaus')} placeholder={t('form.field_desc_ph')} rows={3}
                 className={`${inputClass} resize-none`} />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={labelClass}>{t('form.field_image')}</label>
+              {kuva ? (
+                <div className="space-y-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={kuva} alt="" className="w-full rounded-xl" style={{ maxHeight: 220, objectFit: 'cover' }} />
+                  <button type="button" onClick={() => { setKuva(null); setKuvaVirhe('') }}
+                    className="text-[12px] font-bold text-white/50 hover:text-white/80 transition-colors">
+                    {t('form.image_remove')}
+                  </button>
+                </div>
+              ) : (
+                /* Oma painike piilotetun kentän päällä. Selaimen oma
+                   tiedostovalitsin näyttää tekstin "Choose File / No file
+                   chosen" käyttöjärjestelmän kielellä — suomenkielisellä
+                   lomakkeella se on englanniksi eikä sitä voi kääntää.
+                   Label-elementti avaa piilotetun inputin ilman JavaScriptiä,
+                   ja näppäimistökäyttö säilyy. */
+                <label className={`${inputClass} flex items-center gap-2.5 cursor-pointer hover:bg-white/[0.07] transition-colors`}>
+                  <span className="px-3 py-1.5 rounded-lg text-[12px] font-bold shrink-0"
+                    style={{ background: 'rgba(255,255,255,.10)', color: 'rgba(255,255,255,.85)' }}>
+                    {t('form.field_image_ph')}
+                  </span>
+                  <span className="text-[12.5px] text-white/30 truncate">{t('form.image_none')}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0]
+                      if (!f) return
+                      setKuvaVirhe('')
+                      try {
+                        setKuva(await pienennaKuva(f))
+                      } catch {
+                        setKuvaVirhe(t('form.image_error'))
+                      } finally {
+                        // Nollaa, jotta saman tiedoston voi valita uudelleen
+                        // poistamisen jälkeen — muuten onChange ei laukea.
+                        e.target.value = ''
+                      }
+                    }}
+                  />
+                </label>
+              )}
+              {kuvaVirhe && <p className="text-red-400/80 text-[11px]">{kuvaVirhe}</p>}
+              <p className="text-[11px] text-white/30 leading-snug">{t('form.image_help')}</p>
             </div>
 
             {missing.length > 0 && (

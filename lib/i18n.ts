@@ -892,6 +892,12 @@ const t = {
     'dl.why_2':                    'Toimii myös ilman verkkoa — viimeksi katsotut tapahtumat pysyvät saatavilla.',
     'dl.why_3':                    'Päivittyy itsestään. Ei vie tilaa niin kuin sovelluskaupan sovellukset.',
     'dl.store_note':               'Sovelluskauppaversio on tulossa. Siihen asti tämä on koko sovellus — sama sisältö, sama nopeus.',
+    'form.field_image':            'Kuva tapahtumasta',
+    'form.field_image_ph':         'Valitse kuva',
+    'form.image_help':             'Vaakakuva toimii parhaiten. Kuva pienennetään automaattisesti, joten suurikin puhelinkuva kelpaa.',
+    'form.image_remove':           'Poista kuva',
+    'form.image_error':            'Kuvaa ei voitu lukea. Kokeile toista kuvaa.',
+    'form.image_none':             'Ei kuvaa valittuna',
   },
 
   en: {
@@ -1786,6 +1792,12 @@ const t = {
     'dl.why_2':                    'Works offline too — the events you looked at last stay available.',
     'dl.why_3':                    'Updates itself. It does not take up space the way app store apps do.',
     'dl.store_note':               'An app store version is coming. Until then this is the whole app — same content, same speed.',
+    'form.field_image':            'Event photo',
+    'form.field_image_ph':         'Choose a photo',
+    'form.image_help':             'A landscape photo works best. The image is resized automatically, so a large phone photo is fine.',
+    'form.image_remove':           'Remove photo',
+    'form.image_error':            'The image could not be read. Try another one.',
+    'form.image_none':             'No photo selected',
   },
 } as const
 
