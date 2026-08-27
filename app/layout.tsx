@@ -37,14 +37,21 @@ export const metadata: Metadata = {
   // olisi tuottanut siitä oman rivinsä ENNEN näitä ja voittanut ne selaimessa,
   // jolloin vanha kuvake olisi jäänyt voimaan vaikka tämä lohko olisi oikein.
   // Ohjeen VERSIO 3 vaatii sen poiston erikseen.
+  // VERSIOTUNNISTE ?v=3. Selaimet — erityisesti Safari — säilyttävät faviconin
+  // omassa tietokannassaan, joka EI tottele Cache-Control-otsakkeita. Palvelin
+  // tarjosi jo oikeaa kuvaketta (tarkistussummat vastasivat lähdetiedostoja),
+  // mutta välilehdessä näkyi yhä vanha. Kyselyparametri tekee osoitteesta
+  // selaimelle täysin uuden, jolloin jokainen välimuistikerros hakee sen
+  // uudelleen. Tiedostot itse ovat koskemattomia — vain osoite muuttuu.
+  // Jos kuvake vaihtuu vielä joskus, nosta tätä numeroa.
   icons: {
     icon: [
-      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/favicon-32.png?v=3', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16.png?v=3', sizes: '16x16', type: 'image/png' },
+      { url: '/icon-192.png?v=3', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png?v=3', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+    apple: [{ url: '/apple-touch-icon.png?v=3', sizes: '180x180' }],
   },
   appleWebApp: {
     capable: true,
