@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { SESSION_COOKIE as ADMIN_COOKIE } from '@/lib/admin-auth'
 
 /** Sallitut tapahtumatyypit. Vapaa teksti kelpaisi kenelle tahansa roskan
  *  syöttäjälle ja tekisi raporteista lukukelvottomia. */
@@ -87,6 +88,16 @@ function kaupunki(req: NextRequest): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  // OMISTAJAN OMAT KÄYNNIT POIS. Jos selaimessa on voimassa admin-istunto,
+  // kirjauksia ei tallenneta lainkaan. Tämä on karsinnan tärkein taso: se
+  // toimii vaikka selaimen muisti tyhjenisi tai laite vaihtuisi, koska eväste
+  // seuraa kirjautumista eikä laitetta.
+  //
+  // Evästeen OLEMASSAOLO riittää — allekirjoitusta ei tarvitse tarkistaa.
+  // Väärennetty eväste johtaisi vain siihen ettei väärentäjän omia klikkauksia
+  // lasketa, mikä ei hyödytä ketään eikä vahingoita dataa.
+  if (req.cookies.get(ADMIN_COOKIE)) return NextResponse.json({ ok: true })
+
   let body: { events?: unknown }
   try {
     body = await req.json()

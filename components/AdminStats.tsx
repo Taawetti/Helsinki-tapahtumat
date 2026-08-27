@@ -10,6 +10,7 @@
 // pakettia eikä toisi tähän mitään.
 
 import { useCallback, useEffect, useState } from 'react'
+import { onkoPoissuljettu, asetaPoissulku } from '@/lib/track'
 
 interface Rivi { nimi: string; maara: number }
 interface Data {
@@ -119,6 +120,13 @@ export default function AdminStats() {
   // ketjuuntuvia renderöintejä). Jakson vaihto asettaa latauksen päälle
   // painikkeen käsittelijässä, mikä on käyttäjän toimi eikä efekti.
   const [lataa, setLataa] = useState(true)
+  // Laitekohtainen poissulku. Luetaan vasta napin painalluksessa ja mountin
+  // jälkeen, jottei palvelimen ja selaimen ensimmäinen maalaus eroa.
+  const [poissuljettu, setPoissuljettu] = useState(false)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-synkkaus selaimen muistista
+    setPoissuljettu(onkoPoissuljettu())
+  }, [])
 
   // HUOM: yhtään setStatea ei saa kutsua ennen ensimmäistä awaitia. Efekti
   // kutsuu tätä, ja lint-sääntö seuraa kutsun funktion sisälle — synkroninen
@@ -148,6 +156,30 @@ export default function AdminStats() {
 
   return (
     <div>
+      {/* Omat käynnit pois. Kolme tasoa, mutta vain yksi vaatii toimenpiteen:
+          admin-istunto ja kehitysympäristö karsiutuvat itsestään. */}
+      <div className="rounded-xl p-4 mb-6" style={{ background: 'rgba(255,255,255,.04)' }}>
+        <p className="text-sm font-bold text-white mb-1">Omat käynnit</p>
+        <p className="text-xs text-gray-500 leading-relaxed mb-3">
+          Kirjautuneena adminiin käyntejäsi ei kirjata koskaan, eikä kehityspalvelimelta
+          tai esikatselujulkaisuista tallennu mitään. Sulje tämä laite pois myös silloin
+          kun selaat sivustoa tavallisesti ilman kirjautumista.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { asetaPoissulku(!poissuljettu); setPoissuljettu(!poissuljettu) }}
+            className="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors"
+            style={poissuljettu
+              ? { background: 'rgba(16,185,129,.15)', color: '#6ee7b7' }
+              : { background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.8)' }}>
+            {poissuljettu ? 'Tämä laite on suljettu pois' : 'Sulje tämä laite pois'}
+          </button>
+          <span className="text-[11px] text-gray-600">
+            {poissuljettu ? 'Paina uudelleen jos haluat mitata tämänkin laitteen.' : 'Koskee vain tätä selainta.'}
+          </span>
+        </div>
+      </div>
+
       <div className="flex items-center gap-2 mb-6">
         {JAKSOT.map((d) => (
           <button key={d} onClick={() => { setLataa(true); setPaivat(d) }}
