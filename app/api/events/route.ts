@@ -550,6 +550,14 @@ export async function GET(req: NextRequest) {
     }
     if (perEventFailures > 0) console.warn(`[events] ${perEventFailures} tapahtumaa ohitettiin jäsennysvirheen takia`)
 
+    // Uniformi hakusanasuodatus KOKO lopputulokseen: osuma otsikossa,
+    // kategorioissa tai vipeissä (luokittelu on juuri laskettu yllä).
+    // Aiemmin keyword vaikutti vain osaan lähteistä → "punk"-haku toi
+    // käytännössä koko suodattamattoman syötteen (käyttäjäraportti 8/2026).
+    if (keyword) {
+      events = events.filter((e: Event) => eventMatchesKeyword(e, keyword))
+    }
+
     return NextResponse.json({ events, hasMore, total, generatedAt: new Date().toISOString(), sources })
   } catch (err) {
     console.error('Events API error:', err)

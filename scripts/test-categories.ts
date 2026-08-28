@@ -9,6 +9,7 @@
 
 import { readFileSync } from 'node:fs'
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
+import { eventMatchesKeyword } from '../lib/keyword-filter'
 import { classifyEventCategory } from '../lib/event-category'
 import { sourceHash, batchItems, buildPrompt, parseResponse, applyTranslation, MAX_BATCH_CHARS } from '../lib/translate'
 import { curateForLanding, inTargetInTop } from '../lib/seo-curation'
@@ -3152,6 +3153,24 @@ for (const c of whyChecks) {
   const got = usefulWhy(mkEvent({ id: 'w1', title: 'Tavastia', startTime: '2026-08-21T20:00:00+03:00', shortDescription: c.desc ?? '' }))
   if ((got != null) === c.expect) pass++
   else failures.push(`✗ usefulWhy: ${c.name} → sai '${got}'`)
+}
+
+// Hakusanasuodatus (käyttäjäraportti 8/2026: "punk"-haku toi luontokävelyn
+// ja kirjastopäivän). Osuma vain otsikossa/kategorioissa/vipeissä.
+const kwChecks: { name: string; title: string; kw: string; cats?: string[]; vibes?: string[]; expect: boolean }[] = [
+  { name: '"punk" → punkkeikka otsikossa osuu', title: 'Punk-ilta: Sargeist + Sielun Veljet', kw: 'punk', expect: true },
+  { name: '"punk" → luontokävely EI osu (Punkaharju-tyyppinen roska pois)', title: 'Keskuspuiston eteläosan kävely', kw: 'punk', expect: false },
+  { name: '"punk" → kirjastopäivä EI osu', title: 'Stoan Suomen luonnon päivä: Pekko Käppi', kw: 'punk', expect: false },
+  { name: '"punk" → kategoria osuu', title: 'Klubi-ilta', kw: 'punk', cats: ['punk rock', 'klubi'], expect: true },
+  { name: '"keikka" → vibe osuu', title: 'Joku tapahtuma', kw: 'keikka', vibes: ['keikka'], expect: true },
+  { name: '"keikka" → ilman osumaa ei', title: 'Näyttely', kw: 'keikka', cats: ['taide'], expect: false },
+  { name: 'iso kirjain → case-insensitive osuma', title: 'Punk-ilta: Sargeist', kw: 'PUNK', expect: true },
+  { name: 'tyhjä keyword → kaikki läpi', title: 'Mikä tahansa', kw: '', expect: true },
+]
+for (const c of kwChecks) {
+  const e = mkEvent({ id: `kw-${c.title}`, title: c.title, startTime: '2026-08-21T20:00:00+03:00', categories: c.cats ?? [], vibes: c.vibes })
+  if (eventMatchesKeyword(e, c.kw) === c.expect) pass++
+  else failures.push(`✗ keyword-suodatus: ${c.name}`)
 }
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.
