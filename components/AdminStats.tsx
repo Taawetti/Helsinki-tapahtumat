@@ -108,14 +108,14 @@ function Palkit({ otsikko, rivit, selite }: { otsikko: string; rivit: Rivi[]; se
         <div className="space-y-1.5">
           {rivit.map((r) => (
             <div key={r.nimi} className="flex items-center gap-3">
-              <span className="text-xs text-gray-300 w-64 shrink-0 truncate" title={r.nimi}>{r.nimi}</span>
+              <span className="text-xs text-gray-300 w-28 sm:w-64 shrink-0 truncate" title={r.nimi}>{r.nimi}</span>
               <div className="flex-1 h-4 rounded bg-white/5 overflow-hidden">
                 <div className="h-full rounded" style={{
                   width: `${Math.round((r.maara / max) * 100)}%`,
                   background: 'linear-gradient(90deg,#6b76ff,#5059e6)',
                 }} />
               </div>
-              <span className="text-xs text-gray-400 w-12 text-right tabular-nums">{r.maara}</span>
+              <span className="text-xs text-gray-400 w-12 shrink-0 text-right tabular-nums">{r.maara}</span>
             </div>
           ))}
         </div>
@@ -168,7 +168,10 @@ export default function AdminStats() {
   useEffect(() => { void hae(paivat) }, [hae, paivat])
 
   return (
-    <div>
+    // Sama kehys kuin muilla admin-välilehdillä (max-w-6xl + padding). Ilman
+    // tätä tilastot menivät reunaan reunaan ja kapealla ruudulla palkkirivit
+    // ylivuotoivat — lukujen sarake jäi näkymättömiin oikean reunan taakse.
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
       {/* Omat käynnit pois. Kolme tasoa, mutta vain yksi vaatii toimenpiteen:
           admin-istunto ja kehitysympäristö karsiutuvat itsestään. */}
       <div className="rounded-xl p-4 mb-6" style={{ background: 'rgba(255,255,255,.04)' }}>

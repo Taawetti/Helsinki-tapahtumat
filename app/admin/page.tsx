@@ -325,17 +325,17 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
-      <div className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
-        <div>
-          <div className="font-bold text-lg">Helsinki Tapahtumat</div>
-          <div className="text-gray-400 text-sm">Admin</div>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap justify-end">
-          {enrichResult && <span className={`text-xs ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</span>}
-          {enrichSubsResult && <span className={`text-xs ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</span>}
-          {enrichActivitiesResult && <span className={`text-xs ${enrichActivitiesResult.startsWith('✓') ? 'text-green-400' : enrichActivitiesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivitiesResult}</span>}
-          {testAlertResult && <span className={`text-xs ${testAlertResult.startsWith('✓') ? 'text-green-400' : testAlertResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{testAlertResult}</span>}
+      {/* Header. Toimintonapit menevät kapealla näytöllä otsikon alle
+          (flex-col → sm:flex-row). Pitkät rikastusajojen tilaviestit ovat
+          omalla rivillään alempana — samassa rivissä nappien kanssa ne
+          rikkoivat koko headerin asettelun pienellä ruudulla. */}
+      <div className="border-b border-white/8 px-4 sm:px-6 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="font-bold text-lg">Helsinki Tapahtumat</div>
+            <div className="text-gray-400 text-sm">Admin</div>
+          </div>
+          <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
           <button
             onClick={handleEnrichRestaurants}
             className={`text-sm transition-colors ${enriching ? 'text-red-400 hover:text-red-300' : 'text-orange-400 hover:text-orange-300'}`}
@@ -367,16 +367,26 @@ export default function AdminPage() {
           >
             Kirjaudu ulos
           </button>
+          </div>
         </div>
+        {(enrichResult || enrichSubsResult || enrichActivitiesResult || testAlertResult) && (
+          <div className="mt-3 space-y-1">
+            {enrichResult && <div className={`text-xs break-words ${enrichResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichResult}</div>}
+            {enrichSubsResult && <div className={`text-xs break-words ${enrichSubsResult.startsWith('✓') ? 'text-green-400' : 'text-yellow-400'}`}>{enrichSubsResult}</div>}
+            {enrichActivitiesResult && <div className={`text-xs break-words ${enrichActivitiesResult.startsWith('✓') ? 'text-green-400' : enrichActivitiesResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{enrichActivitiesResult}</div>}
+            {testAlertResult && <div className={`text-xs break-words ${testAlertResult.startsWith('✓') ? 'text-green-400' : testAlertResult.startsWith('✋') ? 'text-blue-400' : 'text-yellow-400'}`}>{testAlertResult}</div>}
+          </div>
+        )}
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-white/8 px-6 flex gap-1">
+      {/* Tabs. overflow-x-auto + nowrap: neljä välilehteä mahtuu kapeallekin
+          ruudulle scrollattavaksi sen sijaan että ne puristuisivat/rivittyisivät. */}
+      <div className="border-b border-white/8 px-4 sm:px-6 flex gap-1 overflow-x-auto">
         {(['festivals', 'recurring', 'sources', 'stats'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
               tab === t
                 ? 'border-purple-500 text-white'
                 : 'border-transparent text-gray-400 hover:text-white'
@@ -441,7 +451,7 @@ function SourcesTab() {
   const failed = sources.filter(s => !s.ok)
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="p-4 sm:p-6 max-w-3xl">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="font-bold text-lg">Lähteiden terveys</h2>
@@ -624,8 +634,8 @@ function FestivalsTab() {
   )
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <input
           type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Hae nimellä tai kaupungilla..."
@@ -736,8 +746,8 @@ function FestivalsTab() {
       {loading ? (
         <div className="text-center text-gray-400 py-20">Ladataan...</div>
       ) : (
-        <div className="bg-gray-900 rounded-2xl border border-white/8 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-gray-900 rounded-2xl border border-white/8 overflow-x-auto">
+          <table className="w-full min-w-[600px] text-sm">
             <thead>
               <tr className="border-b border-white/8 text-gray-400 text-xs uppercase tracking-wider">
                 <th className="text-left px-4 py-3">Tapahtuma</th>
@@ -788,22 +798,22 @@ function FestivalsTab() {
               <h2 className="font-semibold text-white">{modal === 'add' ? 'Lisää festivaali' : 'Muokkaa festivaalia'}</h2>
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-white">✕</button>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
-              <div className="col-span-2"><Field label="Nimi *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} /></div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2"><Field label="Nimi *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} /></div>
               <Field label="Lyhytnimi *" value={form.shortName} onChange={v => setForm(f => ({ ...f, shortName: v }))} />
               <Field label="Aika" value={form.time} onChange={v => setForm(f => ({ ...f, time: v }))} placeholder="12:00" />
               <Field label="Alkupäivä *" value={form.startDate} onChange={v => setForm(f => ({ ...f, startDate: v }))} type="date" />
               <Field label="Loppupäivä *" value={form.endDate} onChange={v => setForm(f => ({ ...f, endDate: v }))} type="date" />
               <Field label="Tapahtumapaikka *" value={form.venueName} onChange={v => setForm(f => ({ ...f, venueName: v }))} />
               <Field label="Kaupunki" value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))} />
-              <div className="col-span-2"><Field label="Osoite" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} /></div>
+              <div className="sm:col-span-2"><Field label="Osoite" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} /></div>
               <Field label="Lippulinkki *" value={form.ticketUrl} onChange={v => setForm(f => ({ ...f, ticketUrl: v }))} placeholder="https://" />
               <Field label="Infosivun URL *" value={form.infoUrl} onChange={v => setForm(f => ({ ...f, infoUrl: v }))} placeholder="https://" />
-              <div className="col-span-2"><Field label="Kuva URL" value={form.image || ''} onChange={v => setForm(f => ({ ...f, image: v || null }))} placeholder="https://..." /></div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2"><Field label="Kuva URL" value={form.image || ''} onChange={v => setForm(f => ({ ...f, image: v || null }))} placeholder="https://..." /></div>
+              <div className="sm:col-span-2">
                 <Field label="Kategoriat (pilkulla erotettu)" value={Array.isArray(form.categories) ? form.categories.join(', ') : form.categories} onChange={v => setForm(f => ({ ...f, categories: v as unknown as string[] }))} placeholder="Musiikki, Festivaali, Rock" />
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-xs text-gray-400 mb-1">Kuvaus</label>
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none text-sm" />
               </div>
@@ -902,8 +912,8 @@ function RecurringTab() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex-1 text-gray-400 text-sm">Tapahtumat jotka toistuvat joka viikko samana viikonpäivänä</div>
         <span className="text-gray-500 text-sm">{events.length} kpl</span>
         <button onClick={openAdd} className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-5 py-2 rounded-lg transition-colors whitespace-nowrap">
@@ -916,8 +926,8 @@ function RecurringTab() {
       {loading ? (
         <div className="text-center text-gray-400 py-20">Ladataan...</div>
       ) : (
-        <div className="bg-gray-900 rounded-2xl border border-white/8 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-gray-900 rounded-2xl border border-white/8 overflow-x-auto">
+          <table className="w-full min-w-[600px] text-sm">
             <thead>
               <tr className="border-b border-white/8 text-gray-400 text-xs uppercase tracking-wider">
                 <th className="text-left px-4 py-3">Tapahtuma</th>
@@ -966,9 +976,9 @@ function RecurringTab() {
               <h2 className="font-semibold text-white">{modal === 'add' ? 'Lisää toistuva tapahtuma' : 'Muokkaa tapahtumaa'}</h2>
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-white">✕</button>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
-              <div className="col-span-2"><Field label="Nimi *" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} /></div>
-              <div className="col-span-2"><Field label="Lyhyt kuvaus" value={form.shortDescription} onChange={v => setForm(f => ({ ...f, shortDescription: v }))} /></div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2"><Field label="Nimi *" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} /></div>
+              <div className="sm:col-span-2"><Field label="Lyhyt kuvaus" value={form.shortDescription} onChange={v => setForm(f => ({ ...f, shortDescription: v }))} /></div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Viikonpäivä *</label>
                 <select
@@ -989,10 +999,10 @@ function RecurringTab() {
               <Field label="Kaupunki/Osoite" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} />
               <Field label="Infosivun URL" value={form.infoUrl} onChange={v => setForm(f => ({ ...f, infoUrl: v }))} placeholder="https://" />
               <Field label="Lippulinkki" value={form.ticketUrl} onChange={v => setForm(f => ({ ...f, ticketUrl: v }))} placeholder="https://" />
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Field label="Kategoriat (pilkulla erotettu)" value={Array.isArray(form.categories) ? form.categories.join(', ') : form.categories} onChange={v => setForm(f => ({ ...f, categories: v as unknown as string[] }))} placeholder="Jazz, Musiikki, Baari" />
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Field label="Aktiiviset kuukaudet (pilkulla, esim. 6,7,8 = kesä–elokuu, tyhjä = ympäri vuoden)" value={form.activeMonths} onChange={v => setForm(f => ({ ...f, activeMonths: v }))} placeholder="6, 7, 8" />
               </div>
               <div className="flex items-center gap-3">
