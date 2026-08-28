@@ -3166,6 +3166,14 @@ const kwChecks: { name: string; title: string; kw: string; cats?: string[]; vibe
   { name: '"keikka" → ilman osumaa ei', title: 'Näyttely', kw: 'keikka', cats: ['taide'], expect: false },
   { name: 'iso kirjain → case-insensitive osuma', title: 'Punk-ilta: Sargeist', kw: 'PUNK', expect: true },
   { name: 'tyhjä keyword → kaikki läpi', title: 'Mikä tahansa', kw: '', expect: true },
+  // Kokonaissanasääntö (8/2026): osasanaosumat pois — "kaupunki" sisältää
+  // osajonon "punk", joten kaupunki*-kategoriat osuivat ennen korjausta.
+  { name: '"punk" → kaupunkiluonto-kategoria EI osu', title: 'Asukastilaisuus puistosta', kw: 'punk', cats: ['kaupunkiluonto'], expect: false },
+  { name: '"punk" → kaupunkikulttuuri-kategoria EI osu', title: 'Kaupunkikävely', kw: 'punk', cats: ['kaupunkikulttuuri'], expect: false },
+  { name: '"punk" → Punkaharju EI osu (yksi sana)', title: 'Punkaharju-retki', kw: 'punk', cats: ['retki', 'punkaharju'], expect: false },
+  // Hyväksytty tradeoff: taivutus "punkkia" ei osu kokonaissanasäännöllä —
+  // tarkkuus priorisoitu recallin edelle (kommentti lib/keyword-filter.ts).
+  { name: '"punk" → taivutus "punkkia" EI osu (dokumentoitu tradeoff)', title: 'Ilta täynnä punkkia', kw: 'punk', expect: false },
 ]
 for (const c of kwChecks) {
   const e = mkEvent({ id: `kw-${c.title}`, title: c.title, startTime: '2026-08-21T20:00:00+03:00', categories: c.cats ?? [], vibes: c.vibes })
