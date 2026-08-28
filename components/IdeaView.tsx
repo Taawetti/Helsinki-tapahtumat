@@ -10,7 +10,7 @@ import { useFavorites } from '@/contexts/FavoritesContext'
 import { isOpenNow } from '@/lib/opening-hours'
 import { helsinkiToday } from '@/lib/helsinki-time'
 import { addDays } from '@/lib/arvo-ilta'
-import { buildIdeaDeck, type IdeaSceneId } from '@/lib/idea-deck'
+import { buildIdeaDeck, usefulWhy, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
 import { getEventVibes } from '@/lib/event-classify'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
@@ -295,7 +295,10 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       id: `event-${s.event.id}`,
       type: 'event' as const,
       title: s.event.title,
-      why: s.event.shortDescription || s.event.description || '',
+      // "Miksi juuri tämä?" näyttää vain aidosti hyödyllisen kuvauksen —
+      // pelkkä osoite ("@ Öljysäiliö 468") tai muu roska ei KOSKAAN pääse
+      // ruudulle (laatikko piilotetaan jos hyvää tekstiä ei ole).
+      why: usefulWhy(s.event) ?? '',
       reason: s.reason ?? undefined,
       image: s.event.image,
       address: s.event.location?.name || s.event.location?.streetAddress,
@@ -715,14 +718,17 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
           {/* Card body */}
           <div className="bg-[#0d0d12] p-5 space-y-3">
-            {/* Why */}
-            <div className="rounded-xl p-3.5 space-y-1" style={{ background: `${meta.accent}0d`, border: `1px solid ${meta.accent}22` }}>
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${meta.accent}88` }}>{t('idea.why_this')}</p>
-              <p className="text-sm leading-relaxed font-medium line-clamp-3" style={{ color: meta.accent }}>{current.why}</p>
-              {current.subWhy && (
-                <p className="text-xs text-white/30 italic">{current.subWhy}</p>
-              )}
-            </div>
+            {/* Why — vain kun sisältö on aidosti hyödyllinen (usefulWhy).
+                Tyhjä laatikko piilotetaan kokonaan: parempi ei laatikkoa kuin roskaa. */}
+            {current.why && (
+              <div className="rounded-xl p-3.5 space-y-1" style={{ background: `${meta.accent}0d`, border: `1px solid ${meta.accent}22` }}>
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${meta.accent}88` }}>{t('idea.why_this')}</p>
+                <p className="text-sm leading-relaxed font-medium line-clamp-3" style={{ color: meta.accent }}>{current.why}</p>
+                {current.subWhy && (
+                  <p className="text-xs text-white/30 italic">{current.subWhy}</p>
+                )}
+              </div>
+            )}
 
             {/* Links */}
             <div className="flex items-center gap-4 flex-wrap">
@@ -872,19 +878,21 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
               {/* Body */}
               <div className="p-5 space-y-4">
-                {/* Why */}
-                <div className="rounded-xl p-4 space-y-1.5"
-                  style={{ background: `${m.accent}0d`, border: `1px solid ${m.accent}22` }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${m.accent}88` }}>
-                    {t('idea.why_this')}
-                  </p>
-                  <p className="text-sm leading-relaxed font-medium" style={{ color: m.accent }}>
-                    {d.why}
-                  </p>
-                  {d.subWhy && (
-                    <p className="text-xs text-white/40 italic">{d.subWhy}</p>
-                  )}
-                </div>
+                {/* Why — vain kun hyödyllinen sisältö on olemassa (usefulWhy-suodatus) */}
+                {d.why && (
+                  <div className="rounded-xl p-4 space-y-1.5"
+                    style={{ background: `${m.accent}0d`, border: `1px solid ${m.accent}22` }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${m.accent}88` }}>
+                      {t('idea.why_this')}
+                    </p>
+                    <p className="text-sm leading-relaxed font-medium" style={{ color: m.accent }}>
+                      {d.why}
+                    </p>
+                    {d.subWhy && (
+                      <p className="text-xs text-white/40 italic">{d.subWhy}</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Info chips */}
                 <div className="flex flex-wrap gap-2">

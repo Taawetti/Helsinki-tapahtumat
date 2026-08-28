@@ -28,7 +28,7 @@ import { parseSuperterassi, parseSeason } from '../lib/superterassi'
 import { parseSetlistText, parseFinnishDate } from '../lib/flyingdutchman-parse'
 import { weekParamDates } from '../lib/stadissa-weeks'
 import { parseSiltanenGrid } from '../lib/siltanen-parse'
-import { buildIdeaDeck, audienceOk, seniorSkew } from '../lib/idea-deck'
+import { buildIdeaDeck, audienceOk, seniorSkew, usefulWhy } from '../lib/idea-deck'
 import { parseApolloGrid } from '../lib/apollo-parse'
 import { parseMaxineTribe } from '../lib/maxine-parse'
 import { parseTanssintaloEntries } from '../lib/tanssintalo-parse'
@@ -3133,6 +3133,25 @@ for (const c of ideaChecks) {
     if (c.ok) pass++
     else failures.push(`✗ ravintolasyyt: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
+}
+
+// usefulWhy — "Miksi juuri tämä?" -laatikon laatuvahti (käyttäjäraportti 8/2026:
+// laatikossa näkyi "@ Öljysäiliö 468"). Roska ei KOSKAAN pääse ruudulle.
+const whyChecks: { name: string; desc: string | null; expect: boolean }[] = [
+  { name: 'pelkkä @-osoite → pois', desc: '@ Öljysäiliö 468', expect: false },
+  { name: 'pelkkä osoite muodossa Katu 12 → pois', desc: 'Mannerheimintie 12', expect: false },
+  { name: 'osoite + kaupunki → pois', desc: 'Hämeentie 13 B, Helsinki', expect: false },
+  { name: 'venue-echo → pois', desc: 'Tavastia', expect: false },
+  { name: 'pelkkä URL → pois', desc: 'https://tiketti.fi/keikka/123', expect: false },
+  { name: 'liian lyhyt → pois', desc: 'Hyvä keikka', expect: false },
+  { name: 'tyhjä → pois', desc: '', expect: false },
+  { name: 'hyvä kuvaus → säilyy', desc: 'Kotimaisen indie-rockin kärkinimet samalla lavalla — koko illan keikka, joka on vuoden odotetuin.', expect: true },
+  { name: 'pitkä tieto-teksti → säilyy', desc: 'Stand up -ilta kolmella koomikolla. Ovet klo 19, show klo 20. Paikalla myös ruokaa ja juomaa.', expect: true },
+]
+for (const c of whyChecks) {
+  const got = usefulWhy(mkEvent({ id: 'w1', title: 'Tavastia', startTime: '2026-08-21T20:00:00+03:00', shortDescription: c.desc ?? '' }))
+  if ((got != null) === c.expect) pass++
+  else failures.push(`✗ usefulWhy: ${c.name} → sai '${got}'`)
 }
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.

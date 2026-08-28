@@ -72,6 +72,27 @@ export function minutesUntilStart(startTime: string, nowMs: number): number {
   return Math.round((new Date(startTime).getTime() - nowMs) / 60000)
 }
 
+// "Miksi juuri tämä?" -laatikon sisällön laatuvahti (8/2026 käyttäjäraportti:
+// laatikossa näkyi "@ Öljysäiliö 468" — tapahtuman description oli pelkkä
+// osoite). Palauttaa kuvauksen VAIN jos se on aidosti hyödyllinen; muuten null
+// → laatikko piilotetaan UI:ssä. Roskapostia ei KOSKAAN näytetä.
+export function usefulWhy(e: Event): string | null {
+  const desc = (e.shortDescription || e.description || '').replace(/\s+/g, ' ').trim()
+  if (!desc) return null
+  if (desc.length < 30) return null
+  if (desc.startsWith('@')) return null
+  if (/^https?:\/\/\S+$/.test(desc)) return null
+
+  const low = desc.toLowerCase()
+  const venue = (e.location?.name ?? '').toLowerCase().trim()
+  const title = e.title.toLowerCase().trim()
+  if (title && low === title) return null
+  if (venue && (low === venue || low === `@ ${venue}` || low === `${venue}, helsinki` || low === venue.replace(/\s+/g, ' '))) return null
+  // Pelkkä osoite ("Katu 12", "Katu 12, Helsinki", "Öljysäiliö 468")
+  if (/^[\p{L} .''-]+\d{1,4}[a-zA-Z]?(,\s*helsinki)?$/iu.test(desc) && desc.length < 60) return null
+  return desc
+}
+
 export interface IdeaPrefs {
   scenes?: IdeaSceneId[]               // cold-start-valinnat
   categoryScores?: Record<string, number> // makumuisti (recordClick-historia)
