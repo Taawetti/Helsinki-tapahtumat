@@ -18,6 +18,7 @@
 // Ks. sql/create-click-events.sql: ilman tunnistetta data ei ole henkilötietoa.
 
 export type TrackKind =
+  | 'pageview'
   | 'event_open' | 'ticket_click' | 'external_click' | 'favorite_add'
   | 'section' | 'guide_open' | 'category' | 'search'
   | 'map_open' | 'install' | 'newsletter'

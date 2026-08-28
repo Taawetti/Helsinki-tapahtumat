@@ -7,6 +7,7 @@ import LanguageGate from '@/contexts/LanguageGate'
 import Footer from '@/components/Footer'
 import GoogleTag from '@/components/GoogleTag'
 import ConsentBanner from '@/components/ConsentBanner'
+import PageView from '@/components/PageView'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -168,6 +169,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Consent Mode v2:n oletukset, jotka evätään kunnes käyttäjä valitsee
             — ks. components/GoogleTag.tsx ja lib/consent.ts. */}
         <GoogleTag />
+        {/* Oman mittauksen sivulatauskirjaus. Juurilayoutissa, jotta se kattaa
+            kaikki sivut — ks. components/PageView.tsx. */}
+        <PageView />
         <LanguageGate>
           <FavoritesProvider>
             {children}

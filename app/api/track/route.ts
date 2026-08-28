@@ -21,10 +21,16 @@ import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { SESSION_COOKIE as ADMIN_COOKIE } from '@/lib/admin-auth'
+import { onRobotti } from '@/lib/bot'
 
 /** Sallitut tapahtumatyypit. Vapaa teksti kelpaisi kenelle tahansa roskan
  *  syöttäjälle ja tekisi raporteista lukukelvottomia. */
 const SALLITUT = new Set([
+  // Sivun avaus. TÄMÄ ON AINOA TYYPPI JOKA EI VAADI KLIKKAUSTA — ilman sitä
+  // kävijä joka saapuu, lukee ja poistuu ei näkyisi missään luvussa, ei edes
+  // eri kävijöissä. Mitattu 28.8.2026: kannassa oli 74 riviä ja jokainen
+  // niistä oli syntynyt klikkauksesta.
+  'pageview',
   'event_open',      // tapahtuman tietopaneeli avattiin
   'ticket_click',    // ulos lippukauppaan (canBuyTickets = true)
   'external_click',  // ulos muualle (lue lisää, paikan sivu, haku)
@@ -112,6 +118,11 @@ function kaupunki(req: NextRequest): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  // ROBOTIT EIVÄT OLE KÄVIJÖITÄ. Ennen tallennusta, jotta ne eivät päädy
+  // myöskään kävijätiivisteeseen eivätkä maajakaumaan. Ks. lib/bot.ts —
+  // sivulatauskirjaus teki tästä pakollisen.
+  if (onRobotti(req.headers.get('user-agent'))) return NextResponse.json({ ok: true })
+
   // OMISTAJAN OMAT KÄYNNIT POIS. Jos selaimessa on voimassa admin-istunto,
   // kirjauksia ei tallenneta lainkaan. Tämä on karsinnan tärkein taso: se
   // toimii vaikka selaimen muisti tyhjenisi tai laite vaihtuisi, koska eväste

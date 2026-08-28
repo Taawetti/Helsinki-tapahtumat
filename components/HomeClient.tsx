@@ -630,7 +630,12 @@ export default function HomeClient({
     ask()
   }, [events.length, t])
 
-  const handleMobileTab = useCallback((tab: typeof mobileTab) => {
+  // KÄYTÖSSÄ MOLEMMISSA NAVIGAATIOISSA — mobiilin alapalkissa ja työpöydän
+  // yläpalkissa. Työpöytä kutsui aiemmin setModea suoraan eikä kirjannut
+  // mitään, joten osiotilasto oli tosiasiassa vain mobiilikäyttäjien tilasto
+  // (havaittu 28.8.2026). Yksi funktio molemmille, jotta ne eivät voi ajautua
+  // erilleen uudestaan.
+  const handleTab = useCallback((tab: typeof mobileTab) => {
     // Osiot ovat React-tilaa, eivät osoitteita, joten sivulatausmittaus ei näe
     // niitä lainkaan. Tämä on ainoa tapa tietää mitä osiota käytetään.
     track('section', { label: tab })
@@ -1009,7 +1014,7 @@ export default function HomeClient({
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
             {(['discover', 'idea', 'restaurants', 'uutta'] as AppMode[]).map((m) => (
-              <button key={m} onClick={() => { setMode(m); setMobileTab(m as typeof mobileTab); if (m === 'discover') setKoCat(null) }}
+              <button key={m} onClick={() => handleTab(m as typeof mobileTab)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
                 style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
                 {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🆕 ${t('nav.uutta')}`}
@@ -1640,7 +1645,7 @@ export default function HomeClient({
           ] as const).map(({ tab, emoji, labelKey }) => {
             const isActive = mobileTab === tab
             return (
-              <button key={tab} onClick={() => handleMobileTab(tab)}
+              <button key={tab} onClick={() => handleTab(tab)}
                 className="relative flex flex-col items-center justify-center gap-0.5 transition-all"
                 style={{ color: isActive ? '#6b76ff' : 'rgba(255,255,255,0.4)' }}>
                 <span className="text-lg leading-none" style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(91,101,230,.5))' } : {}}>{emoji}</span>

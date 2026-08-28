@@ -18,6 +18,8 @@ interface Data {
   rivejaLuettu: number
   kattoTayttyi: boolean
   maarat: Record<string, number>
+  kaynnit: number
+  sivut: Rivi[]
   tapahtumatAvaukset: Rivi[]
   lippuklikit: Rivi[]
   ulkoisetKlikit: Rivi[]
@@ -80,6 +82,7 @@ const JAKSOT = [7, 30, 90] as const
 // Ihmisluettavat nimet tapahtumatyypeille. Tietokannassa ne ovat lyhyitä
 // tunnisteita, mutta näytöllä niiden pitää kertoa mitä ne tarkoittavat.
 const NIMET: Record<string, string> = {
+  pageview: 'Sivun avaus',
   event_open: 'Tapahtuma avattu',
   ticket_click: 'Klikkaus lippukauppaan',
   external_click: 'Klikkaus ulos (lue lisää)',
@@ -223,13 +226,26 @@ export default function AdminStats() {
               ensimmäisenä ja jonka hän kertoo eteenpäin. */}
           <div className="rounded-2xl p-5 mb-6"
             style={{ background: 'linear-gradient(150deg,rgba(107,118,255,.16),rgba(80,89,230,.08))', border: '1px solid rgba(107,118,255,.25)' }}>
-            <div className="text-4xl font-black text-white tabular-nums">{data.eriKavijat}</div>
-            <div className="text-[12px] text-white/60 mt-1">eri kävijää valitulla jaksolla</div>
+            <div className="flex items-baseline gap-6 flex-wrap">
+              <div>
+                <div className="text-4xl font-black text-white tabular-nums">{data.eriKavijat}</div>
+                <div className="text-[12px] text-white/60 mt-1">eri kävijää valitulla jaksolla</div>
+              </div>
+              <div>
+                <div className="text-4xl font-black text-white tabular-nums">{data.kaynnit}</div>
+                <div className="text-[12px] text-white/60 mt-1">käyntiä yhteensä</div>
+              </div>
+            </div>
             <p className="text-[11px] text-white/35 mt-2.5 leading-relaxed">
               Laskettu ilman evästeitä ja ilman IP-osoitteen tallennusta. Tunniste vaihtuu
               kuukausittain, joten kuukauden sisällä luku on tarkka — yli kuukausirajan
               menevällä jaksolla sama kävijä voi näkyä kahtena.
               {data.ilmanKavijaa > 0 && ` ${data.ilmanKavijaa} riviltä tunniste puuttuu.`}
+            </p>
+            <p className="text-[11px] text-white/35 mt-2 leading-relaxed">
+              Käynti kirjataan heti sivun avautuessa, joten myös se joka vain lukee
+              eikä klikkaa mitään näkyy luvuissa ja maajakaumassa. Jos käyntejä on
+              enemmän kuin kävijöitä, sama ihminen on palannut.
             </p>
             {Object.keys(data.kavijatKuukausittain).length > 0 && (
               <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3.5 pt-3.5" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
@@ -254,6 +270,8 @@ export default function AdminStats() {
               ))}
           </div>
 
+          <Palkit otsikko="Käydyimmät sivut" rivit={data.sivut}
+            selite="Sivun osoite. / on sovelluksen etusivu ja /en sen englanninkielinen osoite; muut ovat laskeutumissivuja, jotka kilpailevat hakutuloksista." />
           <Palkit otsikko="Klikkaukset lippukauppaan" rivit={data.lippuklikit}
             selite="Tämä on lähin asia ostoon. Sovellus EI näe toteutuiko osto — vain että käyttäjä siirtyi lipunmyyjälle." />
           <Palkit otsikko="Avatuimmat tapahtumat" rivit={data.tapahtumatAvaukset} />

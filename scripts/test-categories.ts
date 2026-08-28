@@ -75,6 +75,7 @@ import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/rest
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
+import { onRobotti } from '../lib/bot'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
@@ -1441,6 +1442,33 @@ for (const c of arcChecks) {
   for (const c of audCases) {
     if (c.ok) pass++
     else failures.push(`✗ kohderyhmä: ${c.name}`)
+  }
+
+  // ── ROBOTTITUNNISTUS (lib/bot). Sivulatauskirjaus 28.8.2026 teki tästä
+  // pakollisen: rivi syntyy nyt ilman klikkausta, joten JS:ää suorittava
+  // indeksointirobotti kirjautuisi kävijäksi. Molemmat suunnat lukitaan —
+  // liian tiukka kuvio pudottaisi oikeita kävijöitä, mikä on pahempi virhe.
+  const botCases: { name: string; ok: boolean }[] = [
+    { name: 'robotti: Googlebot', ok: onRobotti('Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)') === true },
+    { name: 'robotti: bingbot', ok: onRobotti('Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)') === true },
+    { name: 'robotti: AhrefsBot', ok: onRobotti('Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)') === true },
+    { name: 'robotti: HeadlessChrome (myös oma selainvarmennus)', ok: onRobotti('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/140.0.0.0 Safari/537.36') === true },
+    { name: 'robotti: curl', ok: onRobotti('curl/8.7.1') === true },
+    { name: 'robotti: linkin esikatselu (facebookexternalhit)', ok: onRobotti('facebookexternalhit/1.1') === true },
+    { name: 'robotti: tyhjä user-agent', ok: onRobotti('') === true && onRobotti(null) === true },
+    // ANSAT: oikeat selaimet EIVÄT saa pudota. Nämä ovat aitoja user-agentteja.
+    { name: 'ihminen: iPhone Safari', ok: onRobotti('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1') === false },
+    { name: 'ihminen: Mac Chrome', ok: onRobotti('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36') === false },
+    { name: 'ihminen: Windows Firefox', ok: onRobotti('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0') === false },
+    { name: 'ihminen: Android Chrome', ok: onRobotti('Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36') === false },
+    { name: 'ihminen: iPad Safari', ok: onRobotti('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/604.1') === false },
+    { name: 'ihminen: Safari Technology Preview (paljas "preview" ei saa osua)', ok: onRobotti('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/620.1.1 (KHTML, like Gecko) Version/18.0 Safari/620.1.1 Preview') === false },
+    { name: 'robotti: BingPreview osuu silti', ok: onRobotti('Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) BingPreview/1.0b') === true },
+    { name: 'robotti: Slackbot (bot\\b kattaa)', ok: onRobotti('Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)') === true },
+  ]
+  for (const c of botCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ robotti: ${c.name}`)
   }
 
   // Poimintojen ykköskori (isPrimaryPick): kulttuurikategoriat + festivaalit

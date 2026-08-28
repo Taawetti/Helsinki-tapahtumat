@@ -87,6 +87,13 @@ export async function GET(req: NextRequest) {
       return Object.fromEntries(Object.entries(kk).map(([k, v]) => [k, v.size]))
     })(),
     ilmanKavijaa: rivit.filter((r) => !r.visitor).length,
+    // KÄYNNIT. Ainoa luku joka ei vaadi kävijältä klikkausta, joten tämä on
+    // lähin vastine "kävijämäärälle". Erotus eriKavijat-lukuun kertoo kuinka
+    // moni palasi: käynnit > kävijät = paluukäyntejä.
+    kaynnit: vain('pageview').length,
+    // Mikä sivu avattiin. 47 laskeutumissivua kilpailee hakutuloksista, ja
+    // tämä on ainoa paikka jossa niiden liikenteen näkee erikseen.
+    sivut:              top(vain('pageview'), (r) => r.label, 25),
     tapahtumatAvaukset: top(vain('event_open'), (r) => r.label),
     lippuklikit:        top(vain('ticket_click'), (r) => r.label),
     ulkoisetKlikit:     top(vain('external_click'), (r) => r.label),
