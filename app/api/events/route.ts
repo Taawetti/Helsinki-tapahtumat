@@ -4,6 +4,7 @@ import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
 import { helsinkiDateOf, normalizeHelsinkiTimestamp } from '@/lib/helsinki-time'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
+import { eventMatchesKeyword } from '@/lib/keyword-filter'
 
 // Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
 // Ilman tätä alusta voi katkaista pyynnön oletuksellaan kesken kaiken, jolloin
