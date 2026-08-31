@@ -712,32 +712,20 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
       <div ref={containerRef} className="w-full h-full" />
-      {/* Zoom-nappi piiloon mobiilissa: se jäi suodatinvalikoiden alle ja
-          pilkotti niiden välistä valkoisena laatikkona. Puhelimella
-          zoomataan nipistämällä; sm+ säilyttää napin. */}
-      <style>{`@media (max-width: 639px) { .leaflet-control-zoom { display: none } }`}</style>
+      {/* Zoom-nappi piiloon mobiilissa (nipistyszoomaus toimii); sm+:lla
+          nappi siirretään suodatinrivien ALLE — top-vasemmalla se jäisi
+          uusien tasonappien taakse kuten mobiilissa ennen piilotusta. */}
+      <style>{`
+        @media (max-width: 639px) { .leaflet-control-zoom { display: none } }
+        @media (min-width: 640px) { .leaflet-top.leaflet-left .leaflet-control-zoom { margin-top: 96px } }
+      `}</style>
 
-      {/* ── Layer toggles (vain sm+; mobiililla omat nimetyt napit alla) ── */}
-      <div className="absolute top-3 left-3 z-[1000] hidden sm:block">
-        <div className="flex gap-1.5 bg-black/85 backdrop-blur-md rounded-xl p-1.5 shadow-xl border border-white/8">
-          {LAYER_META.map(opt => (
-            <button key={opt.key} onClick={() => toggleLayer(opt.key)}
-              className={`flex items-center gap-1.5 rounded-lg text-xs font-black transition-all shrink-0 whitespace-nowrap px-3 py-1.5 ${
-                layers[opt.key] ? 'text-white shadow-sm' : 'text-white/35 hover:text-white/60'
-              }`}
-              style={layers[opt.key] ? { background: opt.bg } : {}}>
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${layers[opt.key] ? 'bg-white' : 'bg-white/20'}`} />
-              <span>{opt.key === 'events' ? t('map.layer_events') : opt.key === 'restaurants' ? t('map.layer_restaurants') : t('map.layer_activities')}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── MOBIILI: kaksi tiivistä riviä (omistaja 31.8.2026: suodattimet
-          veivät liikaa karttatilaa — "selkeäksi ja sitten scroll menuja").
-          Rivi 1: nimetyt tasot. Rivi 2: aktiivisten tasojen pudotusvalikot.
-          Ennen: jopa 4 pilleririviä; nyt aina tasan 2 riviä. ── */}
-      <div className="absolute z-[1001] sm:hidden flex flex-col gap-1.5" style={{ top: 10, left: 8, right: 8 }}>
+      {/* ── Suodattimet: kaksi tiivistä riviä KAIKILLA leveyksillä (omistaja
+          31.8.2026: ensin mobiiliin — "selkeäksi ja sitten scroll menuja" —
+          ja saman päivän jatko: "karttanäkymä pitäisi olla myös tietokoneella
+          samanlainen"). Rivi 1: nimetyt tasot. Rivi 2: aktiivisten tasojen
+          pudotusvalikot. Vanhat pilleririvit poistettu kokonaan. ── */}
+      <div className="absolute z-[1001] flex flex-col gap-1.5 items-start" style={{ top: 10, left: 8, right: 8 }}>
         {openMenu && <div className="fixed inset-0 z-[-1]" onClick={() => setOpenMenu(null)} />}
         <div className="flex gap-1.5">
           {LAYER_META.map(opt => (
@@ -819,108 +807,6 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
             </MapMenu>
           )}
         </div>
-      </div>
-
-      {/* ── Date + sub-filters stack (pilleririvit vain sm+; mobiililla valikot yllä) ── */}
-      <div className="absolute z-[1000] flex-col gap-1 hidden sm:flex" style={{ top: 60, left: 8, right: 8 }}>
-
-        {/* Date filter row — only when events layer ON */}
-        {layers.events && (
-          <div style={{ borderRadius: 12, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
-              {DATE_PILLS.map(dp => (
-                <button key={dp.key}
-                  onClick={() => { setDateFilter(dp.key); setCustomDate(''); setCalOpen(false) }}
-                  className="shrink-0 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border"
-                  style={dateFilter === dp.key && customDate === ''
-                    ? { background: '#6b76ff', color: '#fff', borderColor: 'transparent' }
-                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                  {t(dp.tKey)}
-                </button>
-              ))}
-              <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
-              <button
-                onClick={() => setCalOpen(o => !o)}
-                className="shrink-0 flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border"
-                style={calOpen || (dateFilter === 'custom' && customDate)
-                  ? { background: '#6b76ff', color: '#fff', borderColor: 'transparent' }
-                  : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.08)' }}>
-                📅 {dateFilter === 'custom' && customDate
-                  ? new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'short' })
-                  : t('map.select_date')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Row 1: event subs + restaurant type row + activity subs */}
-        {(layers.events || layers.restaurants || layers.activities) && (
-          <div style={{ borderRadius: 12, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
-              {layers.events && EVENT_SUBS.map(sf => (
-                <button key={sf.key}
-                  onClick={() => setEventGroup(eventGroup === sf.key ? null : sf.key)}
-                  className="shrink-0 flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
-                  style={eventGroup === sf.key
-                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
-                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {t(sf.tKey)}
-                </button>
-              ))}
-              {layers.events && (layers.restaurants || layers.activities) && (
-                <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
-              )}
-              {layers.restaurants && REST_SUBS.map(sf => (
-                <button key={sf.key}
-                  onClick={() => { setRestType(restType === sf.key ? null : sf.key); setRestCuisine(null) }}
-                  className="shrink-0 flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
-                  style={restType === sf.key
-                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
-                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {t(sf.tKey)}
-                </button>
-              ))}
-              {layers.restaurants && layers.activities && (
-                <span className="shrink-0 w-px self-stretch my-0.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
-              )}
-              {layers.activities && ACT_SUBS.map(sf => (
-                <button key={sf.key}
-                  onClick={() => setActCat(actCat === sf.key ? null : sf.key)}
-                  className="shrink-0 flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
-                  style={actCat === sf.key
-                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
-                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {t(sf.tKey)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Row 2: restaurant cuisine sub-filter (↳ only for Ruokapaikat —
-            cuisine categories don't apply to cafés/bars/nightclubs) */}
-        {layers.restaurants && restType === 'ravintola' && (
-          <div style={{ borderRadius: 12, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)', border: '1px solid rgba(95,150,255,0.25)' }}>
-            <div className="flex gap-1 overflow-x-auto px-2 py-1.5" style={{ scrollbarWidth: 'none' }}>
-              <span className="shrink-0 text-[10px] font-black self-center pr-1" style={{ color: '#5f96ff' }}>↳</span>
-              {REST_CUISINE_SUBS.map(sf => (
-                <button key={sf.key}
-                  onClick={() => setRestCuisine(restCuisine === sf.key ? null : sf.key)}
-                  className="shrink-0 flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/8"
-                  style={restCuisine === sf.key
-                    ? { background: sf.color, color: '#fff', borderColor: 'transparent' }
-                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  {sf.emoji} {t(sf.tKey)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Mini calendar popup: siirretty omaksi lohkoksi stackin ULKOPUOLELLE,
-            ks. alempana — mobiilissa tämä stack on piilossa, mutta kalenterin
-            pitää aueta myös mobiilivalikon "Valitse päivä" -rivistä. */}
-
       </div>
 
       {/* ── Locate me ── */}
