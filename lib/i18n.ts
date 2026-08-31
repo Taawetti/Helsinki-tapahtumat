@@ -100,6 +100,8 @@ const t = {
     'map.cal_clear':         'Tyhjennä',
     'map.free_popup':        '🎁 Maksuton',
     'map.dist_away':         'päässä',
+    'map.toggle_list':       'Lista',
+    'map.toggle_map':        'Kartta',
     'map.free_act':          '🎁 Ilmainen',
 
     // ── Map legend ───────────────────────────────────────────
@@ -999,6 +1001,8 @@ const t = {
     'map.cal_clear':         'Clear',
     'map.free_popup':        '🎁 Free',
     'map.dist_away':         'away',
+    'map.toggle_list':       'List',
+    'map.toggle_map':        'Map',
     'map.free_act':          '🎁 Free',
 
     // ── Map legend ───────────────────────────────────────────

@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { Loader2, Heart, Bell, Plus, ChevronLeft } from 'lucide-react'
+import { Loader2, Heart, Bell, Plus, ChevronLeft, ChevronDown } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
@@ -549,6 +549,9 @@ export default function HomeClient({
   }, [])
 
   const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
+    // Mittaus myös syvälinkeistä: aiemmin vain yläpalkin ikoni laski
+    // map_open-tapahtumia, joten kartan käyttö aliarvioitui tilastoissa.
+    track('map_open', { label: 'map', meta: 'show_on_map' })
     setMapTarget({ lat, lon, name, type })
     // Muista lähtösivu, jotta kartan ‹-paluunappi palaa oikeaan näkymään
     setMode((prev) => {
@@ -648,10 +651,11 @@ export default function HomeClient({
     else if (tab === 'uutta') setMode('uutta')
   }, [])
 
-  // Kartta/Suosikit avataan yläpalkin pyöreistä napeista; muistetaan mistä
-  // tultiin niin ‹-paluunappi vie takaisin oikealle sivulle
-  const openOverlayMode = useCallback((m: 'map' | 'favorites') => {
-    track(m === 'map' ? 'map_open' : 'section', { label: m })
+  // Kartta/Suosikit avataan yläpalkin pyöreistä napeista TAI discover-näkymän
+  // Lista⇄Kartta-kytkimestä; muistetaan mistä tultiin niin ‹-paluunappi vie
+  // takaisin oikealle sivulle. src kertoo mittauksessa sisäänkäynnin.
+  const openOverlayMode = useCallback((m: 'map' | 'favorites', src?: string) => {
+    track(m === 'map' ? 'map_open' : 'section', { label: m, meta: src })
     setMode((prev) => {
       if (prev !== 'map' && prev !== 'favorites') setPageBack(prev)
       return m
@@ -1200,7 +1204,34 @@ export default function HomeClient({
               tuloksissa näkyy (omistaja 25.8.2026). Valinta säilyy tilassa ja
               palaa näkyviin kun hakukenttä tyhjennetään. */}
           {!keyword && (
-          <div ref={dateStripRef} className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 items-center">
+          <div className="flex items-center gap-2">
+          {/* MOBIILI: vaakavieritys pois (omistaja 31.8.2026: "tänään, sitten
+              valikko vieressä mistä saa muut vaihtoehdot, ja kartta esillä").
+              Aktiivinen päivä + ▾-valikko + kalenteri + Lista⇄Kartta mahtuvat
+              kaikki ruutuun kerralla. Työpöydällä pilleririvi säilyy — siellä
+              tila riittää eikä omistaja halunnut siihen muutosta. */}
+          <div className="flex md:hidden items-center gap-2 flex-1 min-w-0">
+            <MobileDateMenu
+              options={[
+                // short = liipaisimen teksti ILMAN emojia: "🎉 Viikonloppu ▾"
+                // työnsi kalenterinapin Lista⇄Kartta-kytkimen alle 390 px
+                // leveydellä (mitattu kuvakaappauksesta 31.8.2026).
+                { d: 'today' as DateFilter, label: t('date.today') },
+                { d: 'tonight' as DateFilter, label: '🌙 ' + t('date.tonight_short'), short: t('date.tonight_short') },
+                { d: 'tomorrow' as DateFilter, label: t('date.tomorrow') },
+                { d: 'weekend' as DateFilter, label: '🎉 ' + t('date.weekend'), short: t('date.weekend') },
+                { d: 'week' as DateFilter, label: t('date.week_short') },
+              ]}
+              active={customDate || customDateEnd ? null : dateFilter}
+              customLabel={customDate
+                ? '📅 ' + new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
+                  + (customDateEnd ? '–' + new Date(customDateEnd + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' }) : '')
+                : null}
+              onPick={(d) => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
+            />
+            <DatePicker size="md" iconOnly value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
+          </div>
+          <div ref={dateStripRef} className="hidden md:flex gap-2 overflow-x-auto scrollbar-none -ml-4 pl-4 items-center flex-1 min-w-0">
             {([
               { d: 'today' as DateFilter, label: t('date.today') },
               { d: 'tonight' as DateFilter, label: '🌙 ' + t('date.tonight_short') },
@@ -1221,6 +1252,11 @@ export default function HomeClient({
               )
             })}
             <DatePicker size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
+          </div>
+          {/* Lista⇄Kartta-kytkin — kartta on saman suodatetun listan
+              näkymätila, ei erillinen piilossa oleva sivu (omistaja 8/2026).
+              Kiinteä peukalovyöhykkeellä päivärivin oikeassa reunassa. */}
+          <ListMapToggle view="list" onMap={() => openOverlayMode('map', 'toggle')} />
           </div>
           )}
 
@@ -1618,11 +1654,24 @@ export default function HomeClient({
               className="shrink-0 w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
               <ChevronLeft size={18} className="text-white" />
             </button>
-            <h1 className="font-black text-white leading-none text-[22px]" style={{ letterSpacing: '-0.02em' }}>
-              {t('nav.map')}
-            </h1>
+            {/* Sama Lista⇄Kartta-kytkin kuin discover-näkymässä — takaisin
+                listaan pääsee yhdellä napautuksella, ei vain ‹-napilla. */}
+            <ListMapToggle view="map" onList={goBack} />
           </div>
-          <MapView events={filteredEvents} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}/>
+          <MapView events={filteredEvents} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}
+            initialDateFilter={
+              // Listan päivävalinta tulee mukaan karttaan: kartta näyttää
+              // samat tapahtumat. MapViewn pillerit eivät tunne tonight/
+              // weekend/range — lähin vastine valitaan. Syvälinkki
+              // (mapTarget) avaa kuukauden, jotta kohdepinni varmasti näkyy.
+              mapTarget ? 'month'
+              : dateFilter === 'tomorrow' ? 'tomorrow'
+              : dateFilter === 'week' || dateFilter === 'weekend' ? 'week'
+              : dateFilter === 'month' ? 'month'
+              : dateFilter === 'custom' || dateFilter === 'range' ? 'custom'
+              : 'today'
+            }
+            initialCustomDate={(dateFilter === 'custom' || dateFilter === 'range') && !mapTarget ? customDate : ''} />
         </main>
       )}
 
@@ -1685,6 +1734,78 @@ export default function HomeClient({
       {showJarjestajaForm && (
         <JarjestajaForm onClose={() => setShowJarjestajaForm(false)} />
       )}
+    </div>
+  )
+}
+
+// ── Mobiilin päivävalikko ───────────────────────────────────────────────────
+// Vaakavieritettävä pilleririvi ei toiminut kännykällä: "Viikonloppu" ja
+// kalenteri jäivät ruudun ulkopuolelle eikä niitä löytänyt (omistaja 31.8.2026,
+// kuvakaappaus). Nyt näkyvissä on aktiivinen valinta ja ▾-valikko — kaikki
+// vaihtoehdot yhden napautuksen takana, mitään ei tarvitse vierittää sivulle.
+function MobileDateMenu({ options, active, customLabel, onPick }: {
+  options: { d: DateFilter; label: string; short?: string }[]
+  /** null kun kalenteripäivä on valittuna — silloin mikään pilleri ei ole aktiivinen */
+  active: DateFilter | null
+  /** Kalenterivalinnan teksti nappiin ("📅 5.9."), null kun pikavalinta käytössä */
+  customLabel: string | null
+  onPick: (d: DateFilter) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const valittu = options.find((o) => o.d === active)
+  const label = customLabel ?? valittu?.short ?? valittu?.label ?? options[0].label
+  return (
+    <div className="relative shrink-0">
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-black text-white transition-all"
+        style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,.4)' }}>
+        {label}
+        <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          {/* Näkymätön tausta: napautus muualle sulkee valikon */}
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-2 z-40 min-w-[210px] rounded-2xl border border-white/10 p-1.5"
+            style={{ background: 'rgba(16,16,20,.98)', backdropFilter: 'blur(18px)', boxShadow: '0 18px 44px -10px rgba(0,0,0,.75)' }}>
+            {options.map((o) => {
+              const on = !customLabel && active === o.d
+              return (
+                <button key={o.d} onClick={() => { onPick(o.d); setOpen(false) }}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all ${on ? 'text-white' : 'text-white/60 hover:text-white hover:bg-white/6'}`}
+                  style={on ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
+                  {o.label}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── Lista⇄Kartta-kytkin ─────────────────────────────────────────────────────
+// Kartta on saman suodatetun listan näkymätila, ei erillinen piilossa oleva
+// sivu (omistajan päätös 8/2026: kartan löydettävyys mobiilissa). Sama
+// komponentti discover-näkymän päivärivissä ja karttamoodin ylätunnisteessa.
+// Aktiivisen puolen napilla ei ole käsittelijää — se on tila, ei toiminto.
+function ListMapToggle({ view, onList, onMap }: {
+  view: 'list' | 'map'
+  onList?: () => void
+  onMap?: () => void
+}) {
+  const { t } = useLanguage()
+  return (
+    <div className="flex shrink-0 rounded-full p-0.5 border border-white/10" style={{ background: 'rgba(255,255,255,0.05)' }}>
+      {([['list', '📋', 'map.toggle_list'], ['map', '🗺', 'map.toggle_map']] as const).map(([v, emoji, key]) => (
+        <button key={v}
+          onClick={v === 'list' ? onList : onMap}
+          className={`px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap ${view === v ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+          style={view === v ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 2px 10px -2px rgba(91,101,230,.5)' } : {}}>
+          {emoji} {t(key)}
+        </button>
+      ))}
     </div>
   )
 }

@@ -28,6 +28,12 @@ interface Props {
   onEventClick: (event: Event) => void
   mapTarget?: MapTarget | null
   onTargetConsumed?: () => void
+  /** Discover-näkymän Lista⇄Kartta-kytkin tuo listan päiväsuodattimen
+      mukanaan — kartta näyttää SAMAT tapahtumat kuin lista, ei omaa
+      oletusvalintaansa. Koskee vain mountausta (kartta umounttuu
+      moodivaihdoksissa, joten alkuarvo on aina tuore). */
+  initialDateFilter?: DateFilterKey
+  initialCustomDate?: string
 }
 
 type Layers = { events: boolean; restaurants: boolean; activities: boolean }
@@ -109,9 +115,10 @@ function esc(s: string | null | undefined): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createClusterIcon(cluster: any, color: string) {
   const count = cluster.getChildCount()
-  const size = count < 10 ? 32 : count < 100 ? 38 : 44
+  // Peukalokoot: 32/38/44 px oli liian pieniä osua mobiilissa → 40/48/56 px
+  const size = count < 10 ? 40 : count < 100 ? 48 : 56
   return L.divIcon({
-    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2.5px solid rgba(255,255,255,0.88);box-shadow:0 2px 10px rgba(0,0,0,0.55),0 0 0 4px ${color}40;display:flex;align-items:center;justify-content:center;font-size:${count < 10 ? 13 : 11}px;font-weight:900;color:#fff;font-family:-apple-system,sans-serif;letter-spacing:-.02em">${count}</div>`,
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.88);box-shadow:0 2px 10px rgba(0,0,0,0.55),0 0 0 4px ${color}40;display:flex;align-items:center;justify-content:center;font-size:${count < 10 ? 14 : 12}px;font-weight:900;color:#fff;font-family:-apple-system,sans-serif;letter-spacing:-.02em">${count}</div>`,
     className: '',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     iconSize: [size, size] as any,
@@ -125,13 +132,14 @@ function makePinIcon(color: string, emoji: string, round = false) {
     ? `border-radius:50%`
     : `border-radius:50% 50% 50% 4px;transform:rotate(-45deg)`
   const inner = round ? emoji : `<span style="transform:rotate(45deg)">${emoji}</span>`
+  // 30 px → 36 px: pinnit pitää saada osuttua peukalolla mobiilissa
   return L.divIcon({
-    html: `<div style="width:30px;height:30px;${shape};background:${color};border:2px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.6),0 0 10px ${color}66;display:flex;align-items:center;justify-content:center;font-size:13px">${inner}</div>`,
+    html: `<div style="width:36px;height:36px;${shape};background:${color};border:2.5px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.6),0 0 10px ${color}66;display:flex;align-items:center;justify-content:center;font-size:15px">${inner}</div>`,
     className: '',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    iconSize: [30, 30] as any,
+    iconSize: [36, 36] as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    iconAnchor: (round ? [15, 15] : [15, 26]) as any,
+    iconAnchor: (round ? [18, 18] : [18, 31]) as any,
   })
 }
 
@@ -289,7 +297,7 @@ const LEGEND_ACT = [
 
 // ── Component ─────────────────────────────────────────────
 
-export default function MapView({ events, onEventClick, mapTarget, onTargetConsumed }: Props) {
+export default function MapView({ events, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate }: Props) {
   const { t, lang } = useLanguage()
 
   const LEGEND_KEYS: Record<string, TranslationKey> = {
@@ -331,13 +339,16 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   const [restCuisine,  setRestCuisine]  = useState<string | null>(null)
   const [actCat,       setActCat]       = useState<string | null>(null)
 
-  const [dateFilter,  setDateFilter]  = useState<DateFilterKey>('today')
-  const [customDate,  setCustomDate]  = useState('')
+  const [dateFilter,  setDateFilter]  = useState<DateFilterKey>(initialDateFilter ?? 'today')
+  const [customDate,  setCustomDate]  = useState(initialCustomDate ?? '')
   const [calOpen,     setCalOpen]     = useState(false)
   const [calMonth,    setCalMonth]    = useState<{ year: number; month: number }>(() => {
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
   })
+  // Pinnin napautus avaa pohjaan liukuvan esikatselukortin (EI Leaflet-popupia
+  // + infopaneelia päällekkäin kuten ennen — tuplaus oli mobiilissa bugi).
+  const [previewEvent, setPreviewEvent] = useState<Event | null>(null)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userMarkerRef      = useRef<any>(null)
@@ -373,6 +384,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       ...(base.subdomains ? { subdomains: base.subdomains } : {}),
     }).addTo(map)
     mapRef.current = map
+    // Kartan tyhjän kohdan napautus sulkee esikatselukortin
+    map.on('click', () => setPreviewEvent(null))
 
     // With the webpack alias (next.config.ts), the static 'leaflet.markercluster'
     // side-effect import patches the same CJS exports object that our L references.
@@ -466,6 +479,9 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     if (!mapReady || !mapRef.current || !eventClusterRef.current) return
     const cluster = eventClusterRef.current
     cluster.clearLayers()
+    // Esikatselukortti suljetaan kun suodattimet vaihtuvat, jottei kortti
+    // jää näyttämään pinniä joka poistui kartalta.
+    setPreviewEvent(null)
     if (!layers.events) return
     events.forEach((event) => {
       if (!event.location?.lat || !event.location?.lon) return
@@ -473,20 +489,15 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       if (!filterEventByDate(event, dateFilter, customDate)) return
       const { color, emoji } = eventColor(event)
       const icon = makePinIcon(color, emoji, false)
-      const time = new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
-      const popup = `<div style="font-family:Inter,sans-serif;min-width:180px;max-width:220px">
-        ${event.image ? `<img src="${event.image}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:8px" loading="lazy"/>` : ''}
-        <p style="font-weight:700;font-size:13px;margin:0 0 4px;color:#fff;line-height:1.3">${esc(event.title)}</p>
-        <p style="font-size:11px;color:${color};margin:0 0 2px;font-weight:600">${time}${event.isFree ? ' · ' + t('map.free_popup') : ''}</p>
-        <p style="font-size:11px;color:#777;margin:0">${esc(event.location?.name)}</p>
-      </div>`
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const marker = L.marker([event.location.lat, event.location.lon] as any, { icon })
-      marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 240 })
-      marker.on('click', () => onEventClick(event))
+      // Pinnin klikkaus avasi aiemmin SEKÄ Leaflet-popupin että koko
+      // infopaneelin päällekkäin — mobiilissa sekava tuplaus. Nyt vain
+      // esikatselukortti, josta on selkeä CTA varsinaisiin tietoihin.
+      marker.on('click', () => setPreviewEvent(event))
       cluster.addLayer(marker)
     })
-  }, [mapReady, events, onEventClick, layers.events, eventGroup, dateFilter, customDate, t, lang])
+  }, [mapReady, events, layers.events, eventGroup, dateFilter, customDate])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {
@@ -615,8 +626,11 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   ]
 
   return (
-    <div className="relative w-full rounded-2xl border border-white/8"
-      style={{ height: 'calc(100dvh - 148px)', minHeight: 480, clipPath: 'inset(0 round 1rem)' }}>
+    // Korkeus: mobiilissa vähennetään alanavigaation 72 px (100dvh - 220px),
+    // muuten kartta jatkuu navigaation ALLE ja alareunan lukumäärä- ja
+    // latausmerkit sekä esikatselukortti jäävät sen taakse piiloon.
+    <div className="relative w-full rounded-2xl border border-white/8 h-[calc(100dvh-220px)] min-h-[400px] md:h-[calc(100dvh-148px)] md:min-h-[480px]"
+      style={{ clipPath: 'inset(0 round 1rem)' }}>
       {/* Leaflet-CSS vain karttaa käytettäessä (ennen render-block kaikilla sivuilla layoutin kautta) */}
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -849,6 +863,45 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>{t((LEGEND_KEYS[label] ?? label) as TranslationKey)}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── Tapahtuman esikatselukortti — pinnin napautuksesta.
+          Mobiilimalli: kortti liukuu alareunaan (ei popupia pinniin). ── */}
+      {previewEvent && (
+        <div className="absolute left-2 right-2 bottom-5 z-[1001] flex justify-center pointer-events-none">
+          <div className="pointer-events-auto w-full max-w-md rounded-2xl border border-white/10 overflow-hidden"
+            style={{ background: 'rgba(13,13,16,.97)', backdropFilter: 'blur(16px)', boxShadow: '0 20px 50px -12px rgba(0,0,0,.8)' }}>
+            {previewEvent.image && (
+              // eslint-disable-next-line @next/next/no-img-element -- Leaflet-konteksti, ei next/image-optimointia
+              <img src={previewEvent.image} alt="" className="w-full h-28 object-cover" loading="lazy" />
+            )}
+            <div className="p-3.5">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white text-sm leading-snug">{previewEvent.title}</p>
+                  <p className="text-xs mt-1 font-semibold" style={{ color: '#a3abff' }}>
+                    {new Date(previewEvent.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'numeric' })}
+                    {' '}
+                    {new Date(previewEvent.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    {previewEvent.isFree ? ' · ' + t('map.free_popup') : ''}
+                  </p>
+                  {previewEvent.location?.name && (
+                    <p className="text-xs text-white/45 mt-0.5 truncate">{previewEvent.location.name}</p>
+                  )}
+                </div>
+                <button onClick={() => setPreviewEvent(null)} aria-label={t('common.close')}
+                  className="shrink-0 w-8 h-8 rounded-full text-white/50 hover:text-white text-sm transition-colors"
+                  style={{ background: 'rgba(255,255,255,.06)' }}>✕</button>
+              </div>
+              <button
+                onClick={() => { const e = previewEvent; setPreviewEvent(null); onEventClick(e) }}
+                className="mt-3 w-full py-2.5 rounded-xl text-sm font-black text-white transition-opacity hover:opacity-90"
+                style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                {t('common.more_info')} →
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

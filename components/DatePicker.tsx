@@ -13,6 +13,11 @@ const DAYS_FI = ['Ma','Ti','Ke','To','Pe','La','Su']
 const DAYS_EN = ['Mo','Tu','We','Th','Fr','Sa','Su']
 
 interface Props {
+  /** Pelkkä kalenteri-ikoni ilman tekstiä. Mobiilin päivärivi (HomeClient):
+      valittu päivä näkyy viereisessä valikkonapissa, joten teksti tässä
+      veisi tilan Lista⇄Kartta-kytkimeltä — mitattu 31.8.2026: "Valitse
+      päivämäärä" jäi kytkimen alle 390 px leveydellä. */
+  iconOnly?: boolean
   value: string
   onChange: (v: string) => void
   valueEnd?: string
@@ -31,7 +36,7 @@ function fmtIso(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-export default function DatePicker({ value, onChange, valueEnd, onChangeRange, size = 'md', placeholder }: Props) {
+export default function DatePicker({ value, onChange, valueEnd, onChangeRange, size = 'md', placeholder, iconOnly }: Props) {
   const { t, lang } = useLanguage()
   const MONTHS = lang === 'fi' ? MONTHS_FI : MONTHS_EN
   const DAYS = lang === 'fi' ? DAYS_FI : DAYS_EN
@@ -287,7 +292,7 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
         style={hasSelection ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,0.5)' } : {}}
       >
         <Calendar size={btnSm ? 11 : 13} />
-        {label ?? placeholder ?? t('date.custom')}
+        {!iconOnly && (label ?? placeholder ?? t('date.custom'))}
       </button>
       {dropdown}
     </>
