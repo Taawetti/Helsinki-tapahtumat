@@ -109,11 +109,23 @@ const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h — schedule changes rarely
 export async function fetchVisas(): Promise<PubVisa[]> {
   if (cachedVisas && Date.now() - cacheTime < CACHE_TTL) return cachedVisas
 
-  const res = await fetch(PUBIVISAT_SOURCE_URL, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' },
-    signal: AbortSignal.timeout(10000),
-    next: { revalidate: 86400 },
-  })
+  // try/catch KOKO haun ympärillä: !res.ok kattaa vain virhevastauksen, mutta
+  // verkkotason kaatuminen (DNS, connect timeout) HEITTÄÄ — ja heitto kulki
+  // buildGuidePayloadin läpi /pubivisat-sivun prerenderiin asti, jolloin koko
+  // sivuston build kaatui aina kun pubivisat.fi oli nurin. Mitattu 31.8.2026:
+  // kaksi buildia peräkkäin kaatui lähteen ConnectTimeoutiin. Lähteen alhaalla-
+  // olo ei saa estää MEIDÄN julkaisuamme — sivu renderöityy silloin tyhjänä
+  // ja täyttyy revalidaten (24 h) myötä kun lähde palaa.
+  let res: Response
+  try {
+    res = await fetch(PUBIVISAT_SOURCE_URL, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' },
+      signal: AbortSignal.timeout(10000),
+      next: { revalidate: 86400 },
+    })
+  } catch {
+    return cachedVisas ?? []
+  }
   if (!res.ok) return cachedVisas ?? []
 
   const html = await res.text()
