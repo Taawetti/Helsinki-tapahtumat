@@ -41,12 +41,32 @@ export async function GET(req: NextRequest) {
   const paivat = Math.min(Math.max(Number(req.nextUrl.searchParams.get('days') ?? 30), 1), 365)
   const alkaen = new Date(Date.now() - paivat * 24 * 60 * 60 * 1000).toISOString()
 
-  const { data, error } = await supabaseAdmin
-    .from('click_events')
-    .select('kind, surface, event_id, label, country, city, region, visitor, created_at')
-    .gte('created_at', alkaen)
-    .order('created_at', { ascending: false })
-    .limit(KATTO)
+  // SIVUITTAIN, EI YHDELLÄ KYSELYLLÄ. Supabase palauttaa yhdestä kyselystä
+  // enintään 1 000 riviä riippumatta .limit()-arvosta (PostgREST max-rows).
+  // Tämä huomattiin vasta tuotannossa 1.9.2026: kanta oli kasvanut 2 723
+  // riviin, kooste luki niistä hiljaa vain 1 000 UUSINTA, ja "eri kävijää"
+  // -luku PIENENI kun uudet rivit työnsivät vanhoja kävijöitä ikkunan yli —
+  // ja koko "Sovelluksen lataus" -laatikko katosi, koska ainoa install-rivi
+  // putosi tuhannen joukosta. kattoTayttyi ei varoittanut, koska 1 000 <
+  // 50 000. Kiinteä järjestys (created_at + id) takaa etteivät sivut mene
+  // limittäin kesken luvun saapuvien rivien kanssa.
+  const SIVU = 1000
+  const rows: Rivi[] = []
+  let error: { message: string } | null = null
+  for (let alku = 0; alku < KATTO; alku += SIVU) {
+    const vastaus = await supabaseAdmin
+      .from('click_events')
+      .select('kind, surface, event_id, label, country, city, region, visitor, created_at')
+      .gte('created_at', alkaen)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(alku, alku + SIVU - 1)
+    if (vastaus.error) { error = vastaus.error; break }
+    const era = (vastaus.data ?? []) as Rivi[]
+    rows.push(...era)
+    if (era.length < SIVU) break
+  }
+  const data = rows
 
   if (error) {
     // Kaksi tuttua tilannetta, joissa syy on ajamaton migraatio eikä vika
