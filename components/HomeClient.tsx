@@ -1,9 +1,10 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Fragment, useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { Loader2, Heart, Bell, Plus, ChevronLeft, ChevronDown } from 'lucide-react'
+import { Fragment, useState, useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
+import { Loader2, Heart, Bell, Plus, ChevronLeft, ChevronDown, Download } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
@@ -11,6 +12,7 @@ import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/ni
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
+import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled } from '@/lib/install'
 import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
@@ -963,6 +965,7 @@ export default function HomeClient({
           </button>
           <div className="flex items-center gap-2">
             <LanguageSwitch compact />
+            <InstallHeaderButton />
             <button
               onClick={handleBellClick}
               title={pushEnabled ? t('nav.notif_off') : t('nav.notif_on')}
@@ -1048,6 +1051,7 @@ export default function HomeClient({
             <Bell size={15} />
           </button>
 
+          <InstallHeaderButton />
           <button
             onClick={() => openOverlayMode('map')}
             title={t('nav.map')}
@@ -1735,6 +1739,40 @@ export default function HomeClient({
         <JarjestajaForm onClose={() => setShowJarjestajaForm(false)} />
       )}
     </div>
+  )
+}
+
+// ── Pysyvä latausnappi yläpalkissa ──────────────────────────────────────────
+// Omistaja 1.9.2026: asennusmahdollisuuden pitää olla esillä KOKO AJAN, ei
+// vain silloin kun selain sattuu tarjoamaan asennuskehotteen. Nappi näkyy
+// aina paitsi jo asennetussa sovelluksessa. Jos selain tukee suoraa
+// asennusta, nappi avaa kehotteen heti; muuten se vie /lataa-sivulle, jossa
+// on laitekohtaiset ohjeet (iPhonelle asennus on AINA käsin Jaa-valikosta —
+// Apple ei tarjoa asennus-APIa, joten suoraa nappia ei voi olla olemassa).
+const alwaysFalse = () => false
+
+function InstallHeaderButton() {
+  const { t, lang } = useLanguage()
+  const router = useRouter()
+  const prompt = useSyncExternalStore(subscribeInstall, getInstallPrompt, getInstallPromptServer)
+  const installed = useSyncExternalStore(subscribeInstall, isInstalled, alwaysFalse)
+  if (installed) return null
+
+  async function handleClick() {
+    if (prompt) {
+      await prompt.prompt()
+      const { outcome } = await prompt.userChoice
+      if (outcome === 'accepted') track('install', { surface: 'header' })
+      return
+    }
+    router.push(lang === 'en' ? '/en/download' : '/lataa')
+  }
+
+  return (
+    <button onClick={handleClick} title={t('dl.nav')} aria-label={t('dl.nav')}
+      className="relative p-2 rounded-xl border transition-all border-white/8 bg-white/4 text-white/40 hover:text-white/70">
+      <Download size={15} />
+    </button>
   )
 }
 

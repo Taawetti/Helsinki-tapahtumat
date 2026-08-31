@@ -67,3 +67,32 @@ export function detectPlatform(): Platform {
   if (/Android/.test(ua)) return 'android'
   return 'desktop'
 }
+
+/** Sovelluksen sisäinen selain (WhatsApp, Instagram, Facebook, Telegram…).
+ *  Näissä PWA-asennus EI ole mahdollista lainkaan — ainoa toimiva neuvo on
+ *  avata sivu oikeassa selaimessa. Tunnistus on tarkoituksella suppea:
+ *  tunnistamatta jäänyt sisäinen selain saa iOS-/latausohjeet, mikä on
+ *  vaaraton lopputulos. ('wv' on Androidin WebView-merkintä.) */
+export function isInAppBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  return /WhatsApp|Instagram|FBAN|FBAV|FB_IAB|Line\/|Snapchat|TikTok|; wv\)/i.test(ua)
+}
+
+// ── Bannerin hiljennys ────────────────────────────────────────────────────
+// ✕ hiljentää saapumisbannerin 14 päiväksi. Aiemmin sessionStorage → banneri
+// palasi JOKA istunnossa, mikä ärsyttää vakiokävijää joka on jo päättänyt
+// olla asentamatta. Pysyvä 📲-nappi yläpalkissa säilyy silti aina.
+const DISMISS_KEY = 'install-dismissed-until'
+const DISMISS_DAYS = 14
+
+export function isBannerDismissed(): boolean {
+  try {
+    const v = localStorage.getItem(DISMISS_KEY)
+    return !!v && Date.now() < Number(v)
+  } catch { return false }
+}
+
+export function dismissBanner(): void {
+  try { localStorage.setItem(DISMISS_KEY, String(Date.now() + DISMISS_DAYS * 864e5)) } catch { /* privaattitila */ }
+}

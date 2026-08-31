@@ -904,6 +904,9 @@ const t = {
     'map.layer_guide':             '🧭 Opas',
     'map.all':                     'Kaikki',
     'map.pick_day':                '📅 Valitse päivä',
+    'install.ios_hint':            'Lisää kotinäytölle: paina Safarin Jaa-nappia ja valitse ”Lisää Kotivalikkoon”.',
+    'install.inapp_hint':          'Olet sovelluksen sisäisessä selaimessa, jossa asennus ei ole mahdollista. Avaa sivu Safarissa tai Chromessa.',
+    'install.guide':               'Asennusohjeet',
   },
 
   en: {
@@ -1810,6 +1813,9 @@ const t = {
     'map.layer_guide':             '🧭 Guide',
     'map.all':                     'All',
     'map.pick_day':                '📅 Pick a date',
+    'install.ios_hint':            'Add to your home screen: tap Safari\'s Share button and choose ”Add to Home Screen”.',
+    'install.inapp_hint':          'You\'re in an in-app browser where installing isn\'t possible. Open this page in Safari or Chrome.',
+    'install.guide':               'Install guide',
   },
 } as const
 
