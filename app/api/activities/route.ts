@@ -55,6 +55,9 @@ function osmCategory(tags: Record<string, string>): ActivityCategory {
 function osmDescription(tags: Record<string, string>, cat: ActivityCategory): string {
   // Return a human-readable category label in Finnish
   const labels: Record<ActivityCategory, string> = {
+    // kirpputori ei tule OSM:stä vaan data/secondhand.json:sta (MapView
+    // yhdistää sen karttakerrokseen) — tyyppi vaatii silti rivin tähän.
+    kirpputori: 'Kirpputori',
     sauna:      'Julkinen sauna',
     museo:      'Museo',
     nahtavyys:  'Nähtävyys',

@@ -55,6 +55,7 @@ export const ROLE_META: Record<CandidateRole, { emoji: string; label: string }> 
 const ACT_EMOJI: Record<ActivityCategory, string> = {
   sauna: '🧖', museo: '🏛', nahtavyys: '📸', galleria: '🎨', nakopaikka: '🌆',
   uimaranta: '🏖', puisto: '🌳', markkina: '🛍', urheilu: '⚽', muu: '📍',
+  kirpputori: '🛍',
 }
 // Ulkokohteet ilman aukioloa lasketaan aina auki (sama sääntö kuin ActivitiesView).
 const OUTDOOR_ALWAYS_OPEN: ActivityCategory[] = ['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys']
@@ -169,7 +170,8 @@ function activityPasses(a: Activity, rating: { rating: number; reviewCount: numb
 }
 function activityToCandidate(a: Activity, rating?: { rating: number; reviewCount: number }): Candidate {
   const ACT_CAT_WEIGHT: Record<ActivityCategory, number> = {
-    sauna: 5, nakopaikka: 5, uimaranta: 4, galleria: 4, markkina: 4, museo: 3, nahtavyys: 2, puisto: 1, urheilu: 0.5, muu: 1,
+    // kirpputori: sama paino kuin markkinalla — kelpo löytö, ei kärkinosto
+    sauna: 5, nakopaikka: 5, uimaranta: 4, galleria: 4, markkina: 4, kirpputori: 4, museo: 3, nahtavyys: 2, puisto: 1, urheilu: 0.5, muu: 1,
   }
   let s = ACT_CAT_WEIGHT[a.category] ?? 1
   if (a.image) s += 3

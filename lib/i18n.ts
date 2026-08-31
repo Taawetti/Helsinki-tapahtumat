@@ -900,6 +900,10 @@ const t = {
     'form.image_remove':           'Poista kuva',
     'form.image_error':            'Kuvaa ei voitu lukea. Kokeile toista kuvaa.',
     'form.image_none':             'Ei kuvaa valittuna',
+    'cat.kirpputori':              'Kirpputori',
+    'map.layer_guide':             '🧭 Opas',
+    'map.all':                     'Kaikki',
+    'map.pick_day':                '📅 Valitse päivä',
   },
 
   en: {
@@ -1802,6 +1806,10 @@ const t = {
     'form.image_remove':           'Remove photo',
     'form.image_error':            'The image could not be read. Try another one.',
     'form.image_none':             'No photo selected',
+    'cat.kirpputori':              'Flea market',
+    'map.layer_guide':             '🧭 Guide',
+    'map.all':                     'All',
+    'map.pick_day':                '📅 Pick a date',
   },
 } as const
 

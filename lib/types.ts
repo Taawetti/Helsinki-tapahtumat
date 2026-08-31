@@ -293,6 +293,7 @@ export interface Restaurant {
 // ── ACTIVITIES ─────────────────────────────────────────
 export type ActivityCategory =
   | 'sauna'
+  | 'kirpputori'
   | 'museo'
   | 'nahtavyys'
   | 'galleria'

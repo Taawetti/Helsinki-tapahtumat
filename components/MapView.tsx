@@ -12,6 +12,28 @@ import type { TranslationKey } from '@/lib/i18n'
 // so markerClusterGroup is reachable via (L as any).default after the side-effect.
 import * as L from 'leaflet'
 import 'leaflet.markercluster'
+import secondhandData from '@/data/secondhand.json'
+
+// ── Kirpputorit karttakerrokseen ──────────────────────────
+// /api/activities (OSM) ei tunne kirpputoreja, mutta /kirpputorit-oppaan
+// liiketiedosto tuntee — 113 liikettä koordinaatteineen samasta reposta.
+// Omistaja 31.8.2026: oppaan kategoriat (kirpputori, sauna jne) pitää
+// löytyä kartalta. Moduulitasolla kerran, ei jokaisella renderillä.
+const KIRPPUTORIT: Activity[] = ((secondhandData as { shops?: { name?: string; lat?: number; lon?: number; address?: string; openingHours?: string | null; www?: string | null }[] }).shops ?? [])
+  .filter((x) => typeof x.lat === 'number' && typeof x.lon === 'number' && x.name)
+  .map((x, i) => ({
+    id: `kirppis-${i}`,
+    name: x.name!,
+    description: 'Kirpputori',
+    category: 'kirpputori' as const,
+    address: x.address ?? '',
+    city: 'Helsinki',
+    lat: x.lat, lon: x.lon,
+    www: x.www ?? null,
+    phone: null,
+    openingHours: x.openingHours ?? undefined,
+    image: null,
+  }))
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -90,6 +112,7 @@ function restaurantColor(type: Restaurant['type']): { color: string; emoji: stri
 function activityColor(category: string): { color: string; emoji: string } {
   switch (category) {
     case 'sauna':      return { color: '#5fd9a6', emoji: '🧖' }
+    case 'kirpputori': return { color: '#5fd9a6', emoji: '🛍' }
     case 'museo':      return { color: '#5fd9a6', emoji: '🏛' }
     case 'nahtavyys':  return { color: '#5fd9a6', emoji: '📍' }
     case 'galleria':   return { color: '#5fd9a6', emoji: '🎨' }
@@ -185,6 +208,7 @@ const REST_CUISINE_SUBS = [
 
 const ACT_SUBS = [
   { key: 'sauna',      emoji: '🧖', label: 'Sauna',         color: '#f97316', tKey: 'cat.sauna' as const },
+  { key: 'kirpputori', emoji: '🛍', label: 'Kirpputori',    color: '#ec4899', tKey: 'cat.kirpputori' as const },
   { key: 'museo',      emoji: '🏛', label: 'Museo',         color: '#06b6d4', tKey: 'cat.museo' as const },
   { key: 'nahtavyys',  emoji: '📍', label: 'Nähtävyys',     color: '#3b82f6', tKey: 'cat.nahtavyys' as const },
   { key: 'galleria',   emoji: '🎨', label: 'Galleria',      color: '#a855f7', tKey: 'cat.galleria' as const },
@@ -203,6 +227,7 @@ const ACT_SUBS = [
 // lib/types.ts:ään pysäyttää käännöksen tsc:hen eikä jää suomeksi popupiin.
 const ACT_CAT_KEYS: Record<ActivityCategory, TranslationKey> = {
   sauna:      'cat.sauna',
+  kirpputori: 'cat.kirpputori',
   museo:      'cat.museo',
   nahtavyys:  'cat.nahtavyys',
   galleria:   'cat.galleria',
@@ -297,8 +322,56 @@ const LEGEND_ACT = [
 
 // ── Component ─────────────────────────────────────────────
 
+// ── Mobiilin pudotusvalikko ───────────────────────────────
+// Suodatinpillerit veivät mobiilissa kolme riviä karttatilaa (omistaja
+// 31.8.2026 kuvakaappauksen kanssa): nyt jokainen suodatinryhmä on YKSI
+// nappi, joka avaa vieritettävän valikon. Työpöydällä pilleririvit säilyvät.
+function MapMenu({ id, open, onToggle, label, active, children }: {
+  id: string
+  open: string | null
+  onToggle: (id: string | null) => void
+  label: string
+  /** Näkyykö nappi korostettuna (jokin muu kuin oletus valittuna) */
+  active: boolean
+  children: React.ReactNode
+}) {
+  const on = open === id
+  return (
+    <div className="relative shrink-0">
+      <button onClick={() => onToggle(on ? null : id)} aria-expanded={on}
+        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-all"
+        style={active || on
+          ? { background: '#6b76ff', color: '#fff', borderColor: 'transparent', boxShadow: '0 2px 10px -2px rgba(91,101,230,.5)' }
+          // Kiinteä tumma tausta: läpinäkyvä nappi ei erottunut vaalean
+          // karttapohjan päältä lainkaan (mitattu kuvakaappauksesta 31.8.).
+          : { background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(10px)', color: 'rgba(255,255,255,0.75)', borderColor: 'rgba(255,255,255,0.12)' }}>
+        {label}
+        <span className={`text-[9px] transition-transform ${on ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+      {on && (
+        <div className="absolute left-0 top-full mt-1.5 z-[1002] min-w-[190px] max-h-[46vh] overflow-y-auto rounded-2xl border border-white/10 p-1.5"
+          style={{ background: 'rgba(13,13,16,.98)', backdropFilter: 'blur(18px)', boxShadow: '0 18px 44px -10px rgba(0,0,0,.85)' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MapMenuItem({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick}
+      className={`w-full text-left px-3 py-2 rounded-xl text-[13px] font-bold transition-all ${on ? 'text-white' : 'text-white/60 hover:text-white hover:bg-white/6'}`}
+      style={on ? { background: '#6b76ff' } : {}}>
+      {children}
+    </button>
+  )
+}
+
 export default function MapView({ events, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate }: Props) {
   const { t, lang } = useLanguage()
+  // Mobiilivalikoista auki enintään yksi kerrallaan; kartan/taustan napautus sulkee.
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
 
   const LEGEND_KEYS: Record<string, TranslationKey> = {
     'Keikka':     'legend.concert',
@@ -364,7 +437,9 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     if (key === 'events')      { setEventGroup(null); setCalOpen(false) }
     if (key === 'restaurants') { setRestType(null); setRestCuisine(null) }
     if (key === 'activities')  setActCat(null)
-  }, [])
+    // Setterit ovat vakaita; listattu jotta React Compiler voi todistaa sen
+    // eikä ohita koko komponentin optimointia (lint-virhe 31.8.2026).
+  }, [setEventGroup, setCalOpen, setRestType, setRestCuisine, setActCat])
 
   // ── Init map ─────────────────────────────────────────────
   useEffect(() => {
@@ -384,8 +459,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       ...(base.subdomains ? { subdomains: base.subdomains } : {}),
     }).addTo(map)
     mapRef.current = map
-    // Kartan tyhjän kohdan napautus sulkee esikatselukortin
-    map.on('click', () => setPreviewEvent(null))
+    // Kartan tyhjän kohdan napautus sulkee esikatselukortin ja mobiilivalikon
+    map.on('click', () => { setPreviewEvent(null); setOpenMenu(null) })
 
     // With the webpack alias (next.config.ts), the static 'leaflet.markercluster'
     // side-effect import patches the same CJS exports object that our L references.
@@ -470,7 +545,9 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     // eslint-disable-next-line react-hooks/set-state-in-effect -- latauslipun synkkaus fetch-efektissä
     setActivitiesLoading(true)
     fetch('/api/activities').then(r => r.json())
-      .then(d => setActivities((d.activities ?? []).slice(0, 400)))
+      // Kirpputorit LIITETÄÄN 400 kärkipaikan PERÄÄN, ei sekaan: slice ei saa
+      // pudottaa niitä, koska ne ovat ainoa kirpputori-lähde kartalla.
+      .then(d => setActivities([...(d.activities ?? []).slice(0, 400), ...KIRPPUTORIT]))
       .catch(() => {}).finally(() => setActivitiesLoading(false))
   }, [layers.activities, activities.length, activitiesLoading])
 
@@ -635,26 +712,117 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
       <div ref={containerRef} className="w-full h-full" />
+      {/* Zoom-nappi piiloon mobiilissa: se jäi suodatinvalikoiden alle ja
+          pilkotti niiden välistä valkoisena laatikkona. Puhelimella
+          zoomataan nipistämällä; sm+ säilyttää napin. */}
+      <style>{`@media (max-width: 639px) { .leaflet-control-zoom { display: none } }`}</style>
 
-      {/* ── Layer toggles ── */}
-      <div className="absolute top-3 left-3 z-[1000]">
+      {/* ── Layer toggles (vain sm+; mobiililla omat nimetyt napit alla) ── */}
+      <div className="absolute top-3 left-3 z-[1000] hidden sm:block">
         <div className="flex gap-1.5 bg-black/85 backdrop-blur-md rounded-xl p-1.5 shadow-xl border border-white/8">
           {LAYER_META.map(opt => (
             <button key={opt.key} onClick={() => toggleLayer(opt.key)}
-              className={`flex items-center gap-1.5 rounded-lg text-xs font-black transition-all shrink-0 whitespace-nowrap px-2 py-1.5 sm:px-3 ${
+              className={`flex items-center gap-1.5 rounded-lg text-xs font-black transition-all shrink-0 whitespace-nowrap px-3 py-1.5 ${
                 layers[opt.key] ? 'text-white shadow-sm' : 'text-white/35 hover:text-white/60'
               }`}
               style={layers[opt.key] ? { background: opt.bg } : {}}>
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${layers[opt.key] ? 'bg-white' : 'bg-white/20'}`} />
-              <span className="sm:hidden">{opt.key === 'events' ? '🎟' : opt.key === 'restaurants' ? '🍽' : '🧖'}</span>
-              <span className="hidden sm:inline">{opt.key === 'events' ? t('map.layer_events') : opt.key === 'restaurants' ? t('map.layer_restaurants') : t('map.layer_activities')}</span>
+              <span>{opt.key === 'events' ? t('map.layer_events') : opt.key === 'restaurants' ? t('map.layer_restaurants') : t('map.layer_activities')}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Date + sub-filters stack ── */}
-      <div className="absolute z-[1000] flex flex-col gap-1" style={{ top: 60, left: 8, right: 8 }}>
+      {/* ── MOBIILI: kaksi tiivistä riviä (omistaja 31.8.2026: suodattimet
+          veivät liikaa karttatilaa — "selkeäksi ja sitten scroll menuja").
+          Rivi 1: nimetyt tasot. Rivi 2: aktiivisten tasojen pudotusvalikot.
+          Ennen: jopa 4 pilleririviä; nyt aina tasan 2 riviä. ── */}
+      <div className="absolute z-[1001] sm:hidden flex flex-col gap-1.5" style={{ top: 10, left: 8, right: 8 }}>
+        {openMenu && <div className="fixed inset-0 z-[-1]" onClick={() => setOpenMenu(null)} />}
+        <div className="flex gap-1.5">
+          {LAYER_META.map(opt => (
+            <button key={opt.key} onClick={() => { toggleLayer(opt.key); setOpenMenu(null) }}
+              className={`flex items-center gap-1.5 rounded-full text-xs font-black transition-all shrink-0 whitespace-nowrap px-3 py-1.5 border ${
+                layers[opt.key] ? 'text-white border-transparent' : 'text-white/45 border-white/10'
+              }`}
+              style={layers[opt.key] ? { background: opt.bg } : { background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)' }}>
+              {opt.key === 'events' ? t('map.layer_events') : opt.key === 'restaurants' ? t('map.layer_restaurants') : t('map.layer_guide')}
+            </button>
+          ))}
+        </div>
+        {/* flex-wrap, EI overflow-x-auto: vaakavieritysrajaus leikkaisi myös
+            pystysuunnassa ja pudotusvalikko jäisi piiloon (mitattu 31.8.). */}
+        <div className="flex flex-wrap gap-1.5">
+          {layers.events && (
+            <MapMenu id="date" open={openMenu} onToggle={setOpenMenu} active={dateFilter !== 'today' || !!customDate}
+              label={dateFilter === 'custom' && customDate
+                ? '📅 ' + new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
+                : t(DATE_PILLS.find(dp => dp.key === dateFilter)?.tKey ?? 'date.today')}>
+              {DATE_PILLS.map(dp => (
+                <MapMenuItem key={dp.key} on={dateFilter === dp.key && !customDate}
+                  onClick={() => { setDateFilter(dp.key); setCustomDate(''); setCalOpen(false); setOpenMenu(null) }}>
+                  {t(dp.tKey)}
+                </MapMenuItem>
+              ))}
+              <MapMenuItem on={dateFilter === 'custom' && !!customDate}
+                onClick={() => { setCalOpen(true); setOpenMenu(null) }}>
+                {t('map.pick_day')}
+              </MapMenuItem>
+            </MapMenu>
+          )}
+          {layers.events && (
+            <MapMenu id="egroup" open={openMenu} onToggle={setOpenMenu} active={!!eventGroup}
+              label={eventGroup ? `${EVENT_SUBS.find(sf => sf.key === eventGroup)?.emoji} ${t(EVENT_SUBS.find(sf => sf.key === eventGroup)!.tKey)}` : `🎟 ${t('map.all')}`}>
+              <MapMenuItem on={!eventGroup} onClick={() => { setEventGroup(null); setOpenMenu(null) }}>{t('map.all')}</MapMenuItem>
+              {EVENT_SUBS.map(sf => (
+                <MapMenuItem key={sf.key} on={eventGroup === sf.key}
+                  onClick={() => { setEventGroup(sf.key); setOpenMenu(null) }}>
+                  {sf.emoji} {t(sf.tKey)}
+                </MapMenuItem>
+              ))}
+            </MapMenu>
+          )}
+          {layers.restaurants && (
+            <MapMenu id="rest" open={openMenu} onToggle={setOpenMenu} active={!!restType}
+              label={restType ? `${REST_SUBS.find(sf => sf.key === restType)?.emoji} ${t(REST_SUBS.find(sf => sf.key === restType)!.tKey)}` : `🍽 ${t('map.all')}`}>
+              <MapMenuItem on={!restType} onClick={() => { setRestType(null); setRestCuisine(null); setOpenMenu(null) }}>{t('map.all')}</MapMenuItem>
+              {REST_SUBS.map(sf => (
+                <MapMenuItem key={sf.key} on={restType === sf.key}
+                  onClick={() => { setRestType(sf.key); setRestCuisine(null); setOpenMenu(null) }}>
+                  {sf.emoji} {t(sf.tKey)}
+                </MapMenuItem>
+              ))}
+            </MapMenu>
+          )}
+          {layers.restaurants && restType === 'ravintola' && (
+            <MapMenu id="cuisine" open={openMenu} onToggle={setOpenMenu} active={!!restCuisine}
+              label={restCuisine ? `${REST_CUISINE_SUBS.find(sf => sf.key === restCuisine)?.emoji} ${t(REST_CUISINE_SUBS.find(sf => sf.key === restCuisine)!.tKey)}` : `↳ ${t('map.all')}`}>
+              <MapMenuItem on={!restCuisine} onClick={() => { setRestCuisine(null); setOpenMenu(null) }}>{t('map.all')}</MapMenuItem>
+              {REST_CUISINE_SUBS.map(sf => (
+                <MapMenuItem key={sf.key} on={restCuisine === sf.key}
+                  onClick={() => { setRestCuisine(sf.key); setOpenMenu(null) }}>
+                  {sf.emoji} {t(sf.tKey)}
+                </MapMenuItem>
+              ))}
+            </MapMenu>
+          )}
+          {layers.activities && (
+            <MapMenu id="act" open={openMenu} onToggle={setOpenMenu} active={!!actCat}
+              label={actCat ? `${ACT_SUBS.find(sf => sf.key === actCat)?.emoji} ${t(ACT_SUBS.find(sf => sf.key === actCat)!.tKey)}` : `🧭 ${t('map.all')}`}>
+              <MapMenuItem on={!actCat} onClick={() => { setActCat(null); setOpenMenu(null) }}>{t('map.all')}</MapMenuItem>
+              {ACT_SUBS.map(sf => (
+                <MapMenuItem key={sf.key} on={actCat === sf.key}
+                  onClick={() => { setActCat(sf.key); setOpenMenu(null) }}>
+                  {sf.emoji} {t(sf.tKey)}
+                </MapMenuItem>
+              ))}
+            </MapMenu>
+          )}
+        </div>
+      </div>
+
+      {/* ── Date + sub-filters stack (pilleririvit vain sm+; mobiililla valikot yllä) ── */}
+      <div className="absolute z-[1000] flex-col gap-1 hidden sm:flex" style={{ top: 60, left: 8, right: 8 }}>
 
         {/* Date filter row — only when events layer ON */}
         {layers.events && (
@@ -749,10 +917,47 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
           </div>
         )}
 
-        {/* Mini calendar popup */}
-        {calOpen && layers.events && (
-          <div style={{ alignSelf: 'center', width: 282 }}>
-            <div style={{ background: '#0d0d10', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.9)' }}>
+        {/* Mini calendar popup: siirretty omaksi lohkoksi stackin ULKOPUOLELLE,
+            ks. alempana — mobiilissa tämä stack on piilossa, mutta kalenterin
+            pitää aueta myös mobiilivalikon "Valitse päivä" -rivistä. */}
+
+      </div>
+
+      {/* ── Locate me ── */}
+      <button onClick={locateMe} disabled={locating}
+        className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 px-2 py-2 sm:px-3 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 text-white/60 hover:text-white text-xs font-bold transition-all shadow-lg disabled:opacity-60">
+        {locating
+          ? <span className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'rgba(107,118,255,.5)', borderTopColor: '#6b76ff' }} />
+          : <span>📍</span>}
+        <span className="hidden sm:inline">{userPos ? t('common.update_loc') : t('common.locate_me')}</span>
+      </button>
+
+      {/* ── Loading indicators ── */}
+      {(restsLoading || activitiesLoading) && (
+        <div className="absolute bottom-16 right-3 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
+          <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white/70 animate-spin" />
+          {restsLoading ? t('map.loading_rests') : t('map.loading_acts')}
+        </div>
+      )}
+
+      {/* ── Legend ── */}
+      {activeLegend.length > 0 && (
+        <div className="absolute bottom-10 left-3 hidden sm:flex flex-col gap-1 bg-black/75 backdrop-blur-sm rounded-xl p-2.5 z-[1000] max-h-48 overflow-hidden">
+          {activeLegend.slice(0, 12).map(({ color, label }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <div style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}` }} />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>{t((LEGEND_KEYS[label] ?? label) as TranslationKey)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Minikalenteri — YHTEINEN mobiilivalikolle ja työpöydän 📅-napille.
+          Oma lohko eikä suodatinstackin sisällä: stack on mobiilissa piilossa,
+          mutta kalenterin pitää aueta myös mobiilivalikon Valitse päivä -rivistä. ── */}
+      {calOpen && layers.events && (
+        <div className="absolute z-[1003] left-1/2 -translate-x-1/2" style={{ top: 96, width: 282 }}>
+          <div style={{ background: '#0d0d10', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.9)' }}>
               {/* Month navigation */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 8px 8px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                 <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month - 1); return { year: d.getFullYear(), month: d.getMonth() } })}
@@ -833,36 +1038,6 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                 )}
               </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Locate me ── */}
-      <button onClick={locateMe} disabled={locating}
-        className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 px-2 py-2 sm:px-3 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 text-white/60 hover:text-white text-xs font-bold transition-all shadow-lg disabled:opacity-60">
-        {locating
-          ? <span className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'rgba(107,118,255,.5)', borderTopColor: '#6b76ff' }} />
-          : <span>📍</span>}
-        <span className="hidden sm:inline">{userPos ? t('common.update_loc') : t('common.locate_me')}</span>
-      </button>
-
-      {/* ── Loading indicators ── */}
-      {(restsLoading || activitiesLoading) && (
-        <div className="absolute bottom-16 right-3 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
-          <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white/70 animate-spin" />
-          {restsLoading ? t('map.loading_rests') : t('map.loading_acts')}
-        </div>
-      )}
-
-      {/* ── Legend ── */}
-      {activeLegend.length > 0 && (
-        <div className="absolute bottom-10 left-3 hidden sm:flex flex-col gap-1 bg-black/75 backdrop-blur-sm rounded-xl p-2.5 z-[1000] max-h-48 overflow-hidden">
-          {activeLegend.slice(0, 12).map(({ color, label }) => (
-            <div key={label} className="flex items-center gap-1.5">
-              <div style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}` }} />
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter,sans-serif' }}>{t((LEGEND_KEYS[label] ?? label) as TranslationKey)}</span>
-            </div>
-          ))}
         </div>
       )}
 
