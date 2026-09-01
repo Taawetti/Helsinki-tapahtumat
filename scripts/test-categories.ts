@@ -77,6 +77,7 @@ import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
 import { onRobotti } from '../lib/bot'
+import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/health-hysteresis'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
@@ -1470,6 +1471,52 @@ for (const c of arcChecks) {
   for (const c of botCases) {
     if (c.ok) pass++
     else failures.push(`✗ robotti: ${c.name}`)
+  }
+
+  // ── TERVEYSHYSTEREESI (lib/health-hysteresis). Vahti heilui DOWN↔UP
+  // välimuistiarpajaisten mukana ja jokainen heilahdus lähetti sähköpostin
+  // (omistaja 1.9.2026: "maksimissaan yksi sähköposti päivässä"). Nämä
+  // lukitsevat kaikki siirtymät — myös sen ettei toipumisväläys kesken vian
+  // käännä tilaa.
+  {
+    const H = 60 * 60 * 1000
+    const t0 = 1_800_000_000_000 // kiinteä kello: testit eivät saa riippua ajopäivästä
+    const ok = (changedAt: number, okSince: number | null = null) => ({ status: 'ok' as const, changedAt, okSince })
+    const down = (changedAt: number, okSince: number | null = null) => ({ status: 'down' as const, changedAt, okSince })
+    const hCases: { name: string; ok: boolean }[] = [
+      { name: 'ensimmäinen mittaus näytetään suoraan (down)', ok: (() => {
+        const p = paataTerveystila(null, true, t0)
+        return p.tila.status === 'down' && !p.vaihtui
+      })() },
+      { name: 'vika kääntää tilan heti kun vaihtoväli on täynnä', ok: (() => {
+        const p = paataTerveystila(ok(t0 - VAIHTOVALI_MS - H), true, t0)
+        return p.tila.status === 'down' && p.vaihtui
+      })() },
+      { name: 'uudelleen hajoaminen alle vaihtovälin EI käännä (max 1 posti/vrk)', ok: (() => {
+        const p = paataTerveystila(ok(t0 - 2 * H), true, t0)
+        return p.tila.status === 'ok' && !p.vaihtui && p.vaimennettu
+      })() },
+      { name: 'toipumisväläys kesken vian EI käännä tilaa', ok: (() => {
+        const p = paataTerveystila(down(t0 - 30 * H), false, t0)
+        return p.tila.status === 'down' && !p.vaihtui && p.vaimennettu && p.tila.okSince === t0
+      })() },
+      { name: 'toipuminen kääntää vasta yhtäjaksoisen ok-jakson jälkeen', ok: (() => {
+        const p = paataTerveystila(down(t0 - 30 * H, t0 - TOIPUMISVAHVISTUS_MS), false, t0)
+        return p.tila.status === 'ok' && p.vaihtui
+      })() },
+      { name: 'vika ok-jakson keskellä nollaa toipumislaskurin', ok: (() => {
+        const p = paataTerveystila(down(t0 - 30 * H, t0 - 5 * H), true, t0)
+        return p.tila.status === 'down' && p.tila.okSince === null && !p.vaihtui
+      })() },
+      { name: 'vakaa ok pysyy (ei vaihtoa, ei vaimennusta)', ok: (() => {
+        const p = paataTerveystila(ok(t0 - 100 * H), false, t0)
+        return p.tila.status === 'ok' && !p.vaihtui && !p.vaimennettu
+      })() },
+    ]
+    for (const c of hCases) {
+      if (c.ok) pass++
+      else failures.push(`✗ terveyshystereesi: ${c.name}`)
+    }
   }
 
   // Poimintojen ykköskori (isPrimaryPick): kulttuurikategoriat + festivaalit

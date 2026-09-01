@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
 import { checkSourceHealth } from '@/lib/source-health'
+import { supabaseAdmin } from '@/lib/supabase'
+import { paataTerveystila, type TerveysTila } from '@/lib/health-hysteresis'
 
 // JULKINEN terveysosoite ulkoiselle valvonnalle (UptimeRobot tms.).
 // EI autentikointia — paljastaa vain tapahtumamäärän + tilan. Riippumaton
@@ -37,15 +39,60 @@ export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get('deep') === '1') {
     try {
       let issues = await getDeepIssues(origin)
-      if (issues.length === 0) return NextResponse.json({ status: 'ok', mode: 'deep' })
-      // Välimuistitettu "down" voi olla vanha (jopa 30 min) ja perustua
-      // hetkelliseen lähteen pätkäisyyn → varmista yhdellä tuoreella ajolla
-      // ennen 503:ta. checkSourceHealth tekee sisäisesti vielä lämmitys-
-      // uudelleenyrityksen, joten hälytys vaatii nyt peräkkäisiä vahvistuksia
-      // useasta itsenäisestä hausta.
-      issues = (await checkSourceHealth(origin)).issues
-      if (issues.length === 0) return NextResponse.json({ status: 'ok', mode: 'deep', recovered: true })
-      return NextResponse.json({ status: 'down', mode: 'deep', issues }, { status: 503 })
+      if (issues.length > 0) {
+        // Välimuistitettu "down" voi olla vanha (jopa 30 min) ja perustua
+        // hetkelliseen lähteen pätkäisyyn → varmista yhdellä tuoreella ajolla
+        // ennen 503:ta.
+        issues = (await checkSourceHealth(origin)).issues
+      }
+
+      // ── HYSTEREESI (lib/health-hysteresis): max yksi tilanvaihto / vrk.
+      // Ilman tätä verdikti heilui DOWN↔UP välimuistiarpajaisten mukana ja
+      // UptimeRobot lähetti postin joka heilahduksesta (omistaja 1.9.2026).
+      // Tila on Supabasessa, jotta se on sama joka palvelinyksikölle. Jos
+      // taulua ei ole (SQL ajamatta) tai kanta ei vastaa, palataan suoraan
+      // mittaukseen — vahti ei saa pimentyä oman muistinsa vian takia.
+      const mitattuAlhaalla = issues.length > 0
+      let naytettava: 'ok' | 'down' = mitattuAlhaalla ? 'down' : 'ok'
+      let vaimennettu = false
+      if (supabaseAdmin) {
+        try {
+          const { data: rivi, error: lukuvirhe } = await supabaseAdmin
+            .from('health_state')
+            .select('status, changed_at, ok_since')
+            .eq('id', 'deep')
+            .maybeSingle()
+          if (!lukuvirhe) {
+            const tallennettu: TerveysTila | null = rivi
+              ? {
+                  status: rivi.status as 'ok' | 'down',
+                  changedAt: new Date(rivi.changed_at as string).getTime(),
+                  okSince: rivi.ok_since ? new Date(rivi.ok_since as string).getTime() : null,
+                }
+              : null
+            const paatos = paataTerveystila(tallennettu, mitattuAlhaalla, Date.now())
+            naytettava = paatos.tila.status
+            vaimennettu = paatos.vaimennettu
+            await supabaseAdmin.from('health_state').upsert({
+              id: 'deep',
+              status: paatos.tila.status,
+              changed_at: new Date(paatos.tila.changedAt).toISOString(),
+              ok_since: paatos.tila.okSince ? new Date(paatos.tila.okSince).toISOString() : null,
+              issues,
+              updated_at: new Date().toISOString(),
+            })
+          }
+        } catch { /* kanta ei vastaa → suora mittaus riittää */ }
+      }
+
+      if (naytettava === 'ok') {
+        // measured kertoo vianetsijälle jos tuore mittaus erosi verdiktistä
+        return NextResponse.json({ status: 'ok', mode: 'deep', ...(vaimennettu ? { measured: 'down', issues } : {}) })
+      }
+      return NextResponse.json(
+        { status: 'down', mode: 'deep', issues, ...(vaimennettu ? { measured: 'ok', recovering: true } : {}) },
+        { status: 503 },
+      )
     } catch (err) {
       return NextResponse.json({ status: 'down', mode: 'deep', reason: (err as Error).message }, { status: 503 })
     }
