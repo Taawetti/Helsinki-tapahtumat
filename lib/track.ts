@@ -17,6 +17,8 @@
 // EI TUNNISTETTA. Täältä ei lähde laite-, istunto- eikä käyttäjätunnistetta.
 // Ks. sql/create-click-events.sql: ilman tunnistetta data ei ole henkilötietoa.
 
+import { fireAdsConversion } from './ads-conversions'
+
 export type TrackKind =
   | 'pageview'
   | 'event_open' | 'ticket_click' | 'external_click' | 'favorite_add'
@@ -100,6 +102,10 @@ function laheta(beaconilla = false) {
 export function track(kind: TrackKind, data: TrackData = {}): void {
   if (typeof window === 'undefined') return
   if (!tuotannossa() || poissuljettu()) return
+  // Google Ads -konversio samasta putkesta (lib/ads-conversions): sama
+  // poissulkuketju pätee, eikä kutsujiin tarvita toista mittauskutsua.
+  // No-op kunnes konversiotunnisteet on asetettu Verceliin.
+  fireAdsConversion(kind)
   try {
     jono.push({ kind, ...data })
     if (jono.length >= ERA_TAYSI) {
