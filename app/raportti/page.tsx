@@ -169,9 +169,10 @@ export default async function RaporttiPage() {
           )}
 
           <p className="text-white/30 text-[12px] font-semibold leading-relaxed">
-            Luvut koostetaan suoraan Mitä tänään -palvelun aggregaatista ({okSources > 0 ? `${okSources} lähdettä` : 'kaikki lähteet'}:
-            Linked Events, lipunmyyjät, venuet, kulttuurikalenterit jne.). Lähteiden reaaliaikainen tila:{' '}
-            <Link href="/lahteet" className="underline decoration-white/20 underline-offset-2 hover:text-white/60 transition-colors">/lahteet</Link>.
+            {/* Lähdemäärä ja /lahteet-linkki poistettu (omistaja 3.9.2026:
+                lähteet eivät ole julkista tietoa). */}
+            Luvut koostetaan suoraan Mitä tänään -palvelun aggregaatista
+            (tapahtumajärjestäjät, lipunmyyjät, venuet ja kulttuurikalenterit).
             Data on vapaasti viitattavissa lähdemerkinnällä ”Mitä tänään”.
           </p>
         </>

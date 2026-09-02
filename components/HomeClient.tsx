@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
 import { Loader2, Heart, Bell, Plus, ChevronLeft, ChevronDown, Download } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
@@ -1190,13 +1189,17 @@ export default function HomeClient({
             })()}
             <p className="text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
               {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-              {/* Tuoreusleima: montako lähdettä vastasi ja milloin — vajaa data ei saa olla näkymätöntä */}
+              {/* Tuoreusleima: tapahtumamäärä ja kellonaika. Lähdemäärä ja
+                  /lahteet-linkki POISTETTU julkisesta näkymästä (omistaja
+                  3.9.2026: käyttäjän ei kuulu nähdä lähteitä eikä niiden
+                  määrää). Lähteiden terveys valvotaan admin-puolella ja
+                  UptimeRobot-kanarialla — "vajaa data ei saa olla
+                  näkymätöntä" pätee yhä, mutta omistajalle, ei kävijälle. */}
               {fetchingFull ? (
                 <span className="normal-case tracking-normal">{' · '}{t('discover.updating_sources')}</span>
               ) : generatedAt && sources.length > 1 ? (
                 <span className="normal-case tracking-normal">
-                  {' · '}<Link href="/lahteet" className="underline decoration-white/20 underline-offset-2 hover:text-white/50 transition-colors">{okSourceCount} {t('discover.sources_count')}</Link>{total > 0 ? ` · ${total} ${t('discover.events_count')}` : ''} · {t('share.at_time')} {formatTime(generatedAt, lang)}
-                  {failedSourceCount > 0 && ` · ${failedSourceCount} ${t('discover.sources_failed')}`}
+                  {total > 0 ? `${' · '}${total} ${t('discover.events_count')}` : ''} · {t('share.at_time')} {formatTime(generatedAt, lang)}
                 </span>
               ) : null}
             </p>

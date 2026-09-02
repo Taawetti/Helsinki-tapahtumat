@@ -130,7 +130,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Pakka-sivu — ryhmien yhteinen swaippaus, korkea sitoutumisprioriteetti
     { url: `${BASE}/pakka`,    lastModified: now, changeFrequency: 'daily' as const,  priority: 0.9 },
     // Julkinen lähdeterveyden sivu + tuleva raporttisivu (URL valmiiksi indeksiin)
-    { url: `${BASE}/lahteet`,  lastModified: now, changeFrequency: 'hourly' as const, priority: 0.5 },
     { url: `${BASE}/raportti`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.6 },
     // Järjestäjien laskeutumissivu — sai oman canonicalin, mutta puuttui
     // sivukartasta eikä siihen ole sisäistä linkkiä, joten Google ei löytäisi sitä.

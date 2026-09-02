@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   title: 'Lähteet kunnossa — Mitä tänään',
   description: DESC,
   alternates: { canonical: `${BASE}/lahteet` },
+  // Pois hakukoneista (omistaja 3.9.2026: lähteet eivät ole julkista tietoa).
+  // Sivu jää suoralla osoitteella toimivaksi omistajan omaan käyttöön —
+  // kaikki linkit siihen on poistettu julkisista näkymistä ja sivustokartasta.
+  robots: { index: false, follow: true },
   openGraph: {
     title: '📡 Lähteet kunnossa — Mitä tänään',
     description: DESC,

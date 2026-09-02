@@ -12,8 +12,6 @@ export const revalidate = 3600
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
 
 // = app/api/events/route.ts EXTERNAL_SOURCES.length (40) + linked-events.
-// Pidä synkassa jos lähteitä lisätään — /lahteet näyttää reaaliaikaisen luvun.
-const SOURCES_TOTAL = 41
 
 interface PageEvent {
   id: string
@@ -341,9 +339,8 @@ export default async function OhjelmaSivu({ params }: Props) {
             <Link href="/" className="text-blue-400 hover:text-blue-300 transition-colors text-sm">
               ← Kaikki Helsinki tapahtumat
             </Link>
-            <Link href="/lahteet" className="text-gray-500 hover:text-gray-300 transition-colors text-sm text-right">
-              Mitä tänään kerää ohjelman {SOURCES_TOTAL} lähteestä — katso lähteiden tila →
-            </Link>
+            {/* Lähdelinkki poistettu (omistaja 3.9.2026: lähteet eivät ole
+                julkista tietoa) — sama linjaus kuin etusivun tuoreusleimassa. */}
           </div>
         </div>
       </main>
