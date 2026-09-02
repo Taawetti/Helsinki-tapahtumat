@@ -28,14 +28,20 @@ const LABELS: Partial<Record<TrackKind, string | undefined>> = {
   ticket_click: process.env.NEXT_PUBLIC_ADS_CONV_TICKET,
   // Sovelluksen asennus — vahvin sitoutumissignaali
   install: process.env.NEXT_PUBLIC_ADS_CONV_INSTALL,
-  // Uutiskirjeen tilaus
-  newsletter: process.env.NEXT_PUBLIC_ADS_CONV_NEWSLETTER,
+  // (Uutiskirjekonversio poistettu 2.9.2026: 0 tilausta 30 päivässä, lomake
+  // pois käyttöliittymästä — push-ilmoitukset korvaavat. TrackKind ja
+  // palvelimen sallittulista säilyttävät 'newsletter'-tyypin historiadataa
+  // ja taustaputkia varten.)
   // Tapahtuman avaus — kevyt sitoutuminen; mainostaja voi käyttää tätä
   // optimointiin kun raskaampia konversioita on vielä vähän
   event_open: process.env.NEXT_PUBLIC_ADS_CONV_EVENT_OPEN,
   // Sitoutunut käynti (lib/engagement): ≥2 avausta tai arvoteko — volyymin
   // (mitattu ~54/kk) ja laadun paras yhdistelmä optimointiin
   engaged: process.env.NEXT_PUBLIC_ADS_CONV_ENGAGED,
+  // Palaava kävijä — vahvin laatusignaali: mainos toi ihmisen joka tuli
+  // takaisin eri päivänä. Tunnistus palvelimella (app/api/track), ei
+  // selaintallennusta.
+  returning: process.env.NEXT_PUBLIC_ADS_CONV_RETURNING,
 }
 
 /** Ampuu Google Ads -konversion jos kyseiselle toiminnolle on asetettu

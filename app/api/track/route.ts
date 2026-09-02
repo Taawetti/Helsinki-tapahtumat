@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { SESSION_COOKIE as ADMIN_COOKIE } from '@/lib/admin-auth'
 import { onRobotti } from '@/lib/bot'
+import { helsinkiDateOf, helsinkiOffset } from '@/lib/helsinki-time'
 
 /** Sallitut tapahtumatyypit. Vapaa teksti kelpaisi kenelle tahansa roskan
  *  syöttäjälle ja tekisi raporteista lukukelvottomia. */
@@ -32,6 +33,7 @@ const SALLITUT = new Set([
   // niistä oli syntynyt klikkauksesta.
   'pageview',
   'engaged',         // käynti ylitti sitoutumiskynnyksen (lib/engagement)
+  'returning',       // kävijä palasi eri päivänä (tunnistus palvelimella, ks. POST)
   'event_open',      // tapahtuman tietopaneeli avattiin
   'ticket_click',    // ulos lippukauppaan (canBuyTickets = true)
   'external_click',  // ulos muualle (lue lisää, paikan sivu, haku)
@@ -177,5 +179,30 @@ export async function POST(req: NextRequest) {
   const { error } = await supabaseAdmin.from('click_events').insert(rivit)
   if (error) console.error('[track] insert:', error.message)
 
-  return NextResponse.json({ ok: true })
+  // ── PALAAVA KÄVIJÄ — tunnistus PALVELIMELLA, EI selaintallennusta.
+  // Tietosuojaseloste lupaa ettei mittaus tallenna selaimeen mitään, joten
+  // paluuta ei saa päätellä localStorage-leimalla. Sen sijaan käytetään jo
+  // olemassa olevaa kuukausisuolattua kävijätiivistettä: jos tältä
+  // tiivisteeltä on rivejä AIEMMALTA Helsinki-päivältä eikä paluukonversiota
+  // ole vielä myönnetty, vastaus kertoo selaimelle returning: true → selain
+  // kirjaa 'returning'-tapahtuman (se rivi toimii samalla kuittauksena,
+  // ettei konversiota myönnetä toista kertaa). Suola vaihtuu kuukausittain,
+  // joten kuukausirajan yli palaavaa ei tunnisteta — sama tietoinen raja
+  // kuin eri kävijöiden laskennassa.
+  let returning = false
+  if (kavija && rivit.some((r) => r.kind === 'pageview')) {
+    try {
+      const nyt = new Date()
+      const paivanAlku = `${helsinkiDateOf(nyt.toISOString())}T00:00:00${helsinkiOffset(nyt)}`
+      const jo = await supabaseAdmin.from('click_events')
+        .select('id').eq('visitor', kavija).eq('kind', 'returning').limit(1)
+      if (!jo.error && (jo.data?.length ?? 0) === 0) {
+        const vanha = await supabaseAdmin.from('click_events')
+          .select('id').eq('visitor', kavija).lt('created_at', paivanAlku).limit(1)
+        returning = !vanha.error && (vanha.data?.length ?? 0) > 0
+      }
+    } catch { /* paluutunnistus ei saa kaataa kirjausta */ }
+  }
+
+  return NextResponse.json({ ok: true, ...(returning ? { returning: true } : {}) })
 }

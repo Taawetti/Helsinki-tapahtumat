@@ -1546,6 +1546,8 @@ for (const c of arcChecks) {
       { name: 'sivun avaus tai osiovaihto EI sitouta', ok:
         !arvioiSitoutuminen(TYHJA_TILA, 'pageview').uusiSitoutuminen &&
         !arvioiSitoutuminen(TYHJA_TILA, 'section').uusiSitoutuminen },
+      { name: 'paluukonversio EI ruoki sitoutumisilmaisinta', ok:
+        !arvioiSitoutuminen(TYHJA_TILA, 'returning').uusiSitoutuminen },
       { name: 'engaged itse ei ruoki ilmaisinta (ei ketjureaktiota)', ok: (() => {
         const a = arvioiSitoutuminen(TYHJA_TILA, 'ticket_click')
         const b = arvioiSitoutuminen(a.tila, 'engaged')

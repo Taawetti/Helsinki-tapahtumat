@@ -84,6 +84,7 @@ const JAKSOT = [7, 30, 90] as const
 const NIMET: Record<string, string> = {
   pageview: 'Sivun avaus',
   engaged: 'Sitoutunut käynti',
+  returning: 'Palaava kävijä',
   event_open: 'Tapahtuma avattu',
   ticket_click: 'Klikkaus lippukauppaan',
   external_click: 'Klikkaus ulos (lue lisää)',

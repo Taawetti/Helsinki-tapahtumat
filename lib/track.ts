@@ -21,7 +21,7 @@ import { fireAdsConversion } from './ads-conversions'
 import { kirjaaToiminto } from './engagement'
 
 export type TrackKind =
-  | 'pageview' | 'engaged'
+  | 'pageview' | 'engaged' | 'returning'
   | 'event_open' | 'ticket_click' | 'external_click' | 'favorite_add'
   | 'section' | 'guide_open' | 'category' | 'search'
   | 'map_open' | 'install' | 'newsletter'
@@ -95,7 +95,15 @@ function laheta(beaconilla = false) {
       headers: { 'Content-Type': 'application/json' },
       body: runko,
       keepalive: true,
-    }).catch(() => {})
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d) => {
+        // Palvelin tunnisti paluukävijän (ks. app/api/track): kirjataan
+        // kerran. Tämä erä ei sisällä pageview'ta, joten vastaus ei voi
+        // ehdottaa paluuta uudestaan — ei silmukkaa.
+        if (d && (d as { returning?: boolean }).returning) track('returning')
+      })
+      .catch(() => {})
   } catch { /* mittaus ei saa näkyä käyttäjälle */ }
 }
 
