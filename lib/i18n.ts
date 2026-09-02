@@ -907,6 +907,8 @@ const t = {
     'install.ios_hint':            'Lisää kotinäytölle: paina Safarin Jaa-nappia ja valitse ”Lisää Kotivalikkoon”.',
     'install.inapp_hint':          'Olet sovelluksen sisäisessä selaimessa, jossa asennus ei ole mahdollista. Avaa sivu Safarissa tai Chromessa.',
     'install.guide':               'Asennusohjeet',
+    'hero.prev':                   'Edellinen nosto',
+    'hero.next':                   'Seuraava nosto',
   },
 
   en: {
@@ -1816,6 +1818,8 @@ const t = {
     'install.ios_hint':            'Add to your home screen: tap Safari\'s Share button and choose ”Add to Home Screen”.',
     'install.inapp_hint':          'You\'re in an in-app browser where installing isn\'t possible. Open this page in Safari or Chrome.',
     'install.guide':               'Install guide',
+    'hero.prev':                   'Previous pick',
+    'hero.next':                   'Next pick',
   },
 } as const
 
