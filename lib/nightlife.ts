@@ -17,21 +17,41 @@ export const TERRACE_REGEX = /terassi|ulkoilma|outdoor|puisto|esplanadi|kasarmit
 export const COMMUNITY_DAYTIME_REGEX =
   /perheaamu|perhekahvila|leikkipuisto|leikkituokio|pihapuuhat|muskari|satutunti|satutuokio|vauva|taapero|nuorisotalo|nuorisotila|\bnuta\b|tyttönuta|seniorikeskus|palvelukeskus|palvelutalo|asukastalo|yhteisötalo|eläkeläis|ikäihmis|kerhohuone|askartelu|käsityöryhmä|ompelu|omatoimi/i
 
+// Pisteytysportaat DATANA, jotta yhdyssana-auditointi (scripts/audit-compounds
+// --nightlife-osio) voi ajaa samat kuviot oikeaa sanastoa vasten. Barbaari-
+// tapaus 2.9.2026 oli TOINEN kerta kun osamerkkijono osui yhdyssanan sisään
+// ("bluesperheenä" oli ensimmäinen) — VIBES-avainsanoilla vartija oli jo,
+// näillä ei. Järjestys on merkitsevä: poissulut ensin, sitten laskevat pisteet.
+//
+// baari: (?<!sauna) = "Saunabaari" on yhteisötalon nimi; (?<!bar) =
+// "barbaari(rannikon)" EI ole baari — merirosvokirjan julkistus nousi heroon
+// 3 pisteellä (mitattu 1.9.2026: "Kirjailijavieraana Ari Saastamoinen",
+// kuvauksessa "Barbaarirannikon merirosvot"). Sanarajaa ei voi käyttää,
+// koska viinibaari/olutbaari/kellaribaari OVAT baareja.
+export const NIGHTLIFE_TIERS: { pisteet: number; kuvio: RegExp }[] = [
+  { pisteet: -2, kuvio: COMMUNITY_DAYTIME_REGEX },
+  { pisteet: -1, kuvio: /näyttely|museo|luento|seminaari|workshop|työpaja/ },
+  { pisteet: 8,  kuvio: /festivaali|festival|festarit/ },
+  { pisteet: 7,  kuvio: /keikka|konsertti|live[\s-]?musiikki|bändi|gig/ },
+  // (?<!käsit)yökerho: "käsitYÖKERHO" sai 6 pistettä yökerhona (löytyi
+  // yhdyssana-auditoinnissa 2.9.2026) — sama ansa oli jo korjattu yoelama-
+  // VIBEN avainsanoista ('^yökerho'), mutta tämä regex jäi silloin väliin.
+  { pisteet: 6,  kuvio: /klubi|dj[\s-]?set|(?<!käsit)yökerho|disco|rave|after[\s-]?party/ },
+  { pisteet: 5,  kuvio: /jääkiekko|jalkapallo|ottelu|urheilu|koripallo/ },
+  // tragi-/draamakomedia on teatteria, ei stand-upia (sama rajaus kuin
+  // standup-VIBEN '^komedia'-avainsanassa).
+  { pisteet: 4,  kuvio: /stand[\s-]?up|(?<!tragi)(?<!draama)komedia|comedy/ },
+  { pisteet: 3,  kuvio: /(?<!sauna)(?<!bar)baari|\bpubi?\b|cocktail|terassi/ },
+  { pisteet: 2,  kuvio: /ravintola|illallinen|pop[\s-]?up|ruoka/ },
+]
+
 export function nightlifeScore(e: Event): number {
   const text = [e.title, e.shortDescription, ...e.categories].join(' ').toLowerCase()
-  // POISSULUT ENSIN. Aiemmin baari-osuma voitti työpaja-sakon, koska
-  // järjestys palkitsi ensin — ja "Stadin yhteisötalo SaunaBAARI" antoi
-  // askarteluryhmälle yöelämäpisteet (mitattu).
-  if (COMMUNITY_DAYTIME_REGEX.test(text)) return -2
-  if (/näyttely|museo|luento|seminaari|workshop|työpaja/.test(text)) return -1
-  if (/festivaali|festival|festarit/.test(text)) return 8
-  if (/keikka|konsertti|live[\s-]?musiikki|bändi|gig/.test(text)) return 7
-  if (/klubi|dj[\s-]?set|yökerho|disco|rave|after[\s-]?party/.test(text)) return 6
-  if (/jääkiekko|jalkapallo|ottelu|urheilu|koripallo/.test(text)) return 5
-  if (/stand[\s-]?up|komedia|comedy/.test(text)) return 4
-  // (?<!sauna): "Saunabaari" on yhteisötalon nimi, ei baari — mutta
-  // viinibaari/olutbaari OVAT baareja, joten sanaraja ei käy.
-  if (/(?<!sauna)baari|\bpubi?\b|cocktail|terassi/.test(text)) return 3
-  if (/ravintola|illallinen|pop[\s-]?up|ruoka/.test(text)) return 2
+  // POISSULUT ENSIN (taulukon järjestys). Aiemmin baari-osuma voitti työpaja-
+  // sakon, koska järjestys palkitsi ensin — ja "Stadin yhteisötalo SaunaBAARI"
+  // antoi askarteluryhmälle yöelämäpisteet (mitattu).
+  for (const { pisteet, kuvio } of NIGHTLIFE_TIERS) {
+    if (kuvio.test(text)) return pisteet
+  }
   return e.image ? 1 : 0
 }

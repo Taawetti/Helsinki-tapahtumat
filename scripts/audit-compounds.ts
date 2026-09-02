@@ -23,6 +23,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import { VIBES } from '../lib/types'
+import { NIGHTLIFE_TIERS } from '../lib/nightlife'
 
 const VOCAB_PATH = 'fixtures/vocab-helsinki.json'
 const GOLDEN_PATH = 'fixtures/compound-golden.json'
@@ -132,9 +133,50 @@ for (const [key, info] of pairs) {
   )
 }
 
+// 3b) NIGHTLIFE-PISTEYTYKSEN KUVIOT SAMAA SANASTOA VASTEN. Barbaari-tapaus
+// 2.9.2026 ("Barbaarirannikon merirosvot" sai 3 baaripistettä ja nousi heroon)
+// oli TOINEN osamerkkijono-yhdyssanaosuma tuotannossa; VIBES-avainsanoilla
+// vartija oli, nightlifeScoren regexeillä ei. Sama triage-mekaniikka:
+// jokainen ETULIITTEELLINEN sisäosuma (osuma alkaa keskeltä tokenia) vaatii
+// approved- tai rejected-verdiktin. Tokenin ALUSTA alkava osuma on avainsanan
+// oma taivutusmuoto (askartelu→askartelua) eikä vaadi katselmointia — vaara
+// piilee vain siinä, että EDELTÄVÄ osa muuttaa merkityksen (bar+baari,
+// käsit+yökerho, tragi+komedia).
+const nlKeys = new Set<string>()
+for (const { pisteet, kuvio } of NIGHTLIFE_TIERS) {
+  for (const token of Object.keys(vocab)) {
+    const m = token.match(kuvio)
+    if (!m || m.index === undefined || m.index === 0) continue
+    const key = `nl${pisteet}|${m[0]}|${token}`
+    nlKeys.add(key)
+    if (key in golden.rejected) {
+      errors.push(
+        `TUNNETTU VIRHEPARI PALASI (nightlife): "${m[0]}" osuu sanan "${token}" sisään (${pisteet} p)\n` +
+        `    syy kirjattu aiemmin: ${golden.rejected[key]}\n` +
+        `    korjaa kuvio lookbehind-suojalla — älä siirrä paria approved-osioon.`,
+      )
+      continue
+    }
+    if (key in golden.approved) {
+      if (golden.approved[key].trim() === TODO) errors.push(`KATSELMOIMATON PARI (nightlife): "${m[0]}" ⊂ "${token}" — kirjoita perustelu.`)
+      continue
+    }
+    newPairs[key] = TODO
+    errors.push(
+      `UUSI HYVÄKSYMÄTÖN NIGHTLIFE-OSUMA: "${m[0]}" ⊂ "${token}" (${pisteet} p)\n` +
+      `    esimerkki: ${vocab[token]}\n` +
+      `    → jos yhdyssana kuuluu tähän pistetasoon aidosti, hyväksy perusteluineen; muuten korjaa kuvio.`,
+    )
+  }
+}
+
+// REJECTED-vartijat myös silloin kun kuvio EI enää osu: jos rejected-parin
+// token on sanastossa mutta osumaa ei tule, suoja toimii — mutta jos joku
+// poistaa lookbehindin, osuma palaa ja yllä oleva silmukka hälyttää.
+
 // 4) SIIVOUS: approved-pari jonka avainsana ei enää ole VIBES:issä on kuollutta
 //    painoa. Elossa olevat = substring-parit JA fraasiparit.
-const liveKeys = new Set([...pairs.keys(), ...phraseKeys])
+const liveKeys = new Set([...pairs.keys(), ...phraseKeys, ...nlKeys])
 const stale = Object.keys(golden.approved).filter((k) => !liveKeys.has(k))
 
 if (update && Object.keys(newPairs).length > 0) {

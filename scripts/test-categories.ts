@@ -3129,6 +3129,19 @@ for (const c of ideaChecks) {
     })
     // Aidot yhdyssanabaarit säilyvät yöelämänä.
     rChecks.push({ name: 'yöelämä: viinibaari on baari', ok: nightlifeScore(ev('Viinibaarin avajaisillat', '', [], 'x.jpg')) === 3 })
+    // Barbaari-tapaus (mitattu herossa 1.9.2026): merirosvokirjan julkistus
+    // sai 3 baaripistettä sanasta "Barbaarirannikon" ja nousi ohuena iltana
+    // heroon. Oikea taso on 1 (kuvallinen, ei mitään yöelämäsignaalia).
+    rChecks.push({ name: 'yöelämä: barbaari EI ole baari (kirjailijailta jää herosta)', ok:
+      nightlifeScore(ev('Kirjailijavieraana Ari Saastamoinen', 'Tietokirjailija kertoo kirjastaan Barbaarirannikon merirosvot.', ['keskustelu', 'kirjat'], 'x.jpg')) === 1 })
+    rChecks.push({ name: 'yöelämä: käsityökerho EI ole yökerho', ok:
+      nightlifeScore(ev('Käsityökerho', 'Kokoonnumme torstaisin.', [], 'x.jpg')) < 6 })
+    rChecks.push({ name: 'yöelämä: tragikomedia EI ole stand-upia', ok:
+      nightlifeScore(ev('Tragikomedia illasta', 'Elokuvanäytös.', [], 'x.jpg')) < 4 })
+    rChecks.push({ name: 'yöelämä: aito yökerho pisteyttyy yhä', ok:
+      nightlifeScore(ev('Yökerho X: klubi-ilta', '', [], 'x.jpg')) === 6 })
+    rChecks.push({ name: 'yöelämä: aito komedia pisteyttyy yhä', ok:
+      nightlifeScore(ev('Komediaklubin ilta', '', [], 'x.jpg')) >= 4 })
     rChecks.push({ name: 'yöelämä: keikka pisteyttyy yhä', ok: nightlifeScore(ev('Perjantain keikka: Bändi', '')) === 7 })
     // Yhteisöohjelman tunnistin — poiminnoista mitatut otsikot.
     for (const t of ['Avoin perheaamu', 'Pihapuuhat', 'Tyttönuta', 'Maanantaimaalarit omatoiminen', 'Eläkeläisten taidepiiri']) {
