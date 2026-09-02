@@ -18,9 +18,10 @@
 // Ks. sql/create-click-events.sql: ilman tunnistetta data ei ole henkilötietoa.
 
 import { fireAdsConversion } from './ads-conversions'
+import { kirjaaToiminto } from './engagement'
 
 export type TrackKind =
-  | 'pageview'
+  | 'pageview' | 'engaged'
   | 'event_open' | 'ticket_click' | 'external_click' | 'favorite_add'
   | 'section' | 'guide_open' | 'category' | 'search'
   | 'map_open' | 'install' | 'newsletter'
@@ -106,6 +107,13 @@ export function track(kind: TrackKind, data: TrackData = {}): void {
   // poissulkuketju pätee, eikä kutsujiin tarvita toista mittauskutsua.
   // No-op kunnes konversiotunnisteet on asetettu Verceliin.
   fireAdsConversion(kind)
+  // Sitoutumisilmaisin (lib/engagement): kun käynti ylittää kynnyksen
+  // (2. tapahtuma-avaus tai arvoteko), kirjataan KERRAN 'engaged' — sekä
+  // omaan mittaukseen että Ads-konversiona. Rekursio pysähtyy heti:
+  // 'engaged' itse ei ruoki ilmaisinta.
+  if (kind !== 'engaged' && kirjaaToiminto(kind)) {
+    track('engaged', { meta: kind })
+  }
   try {
     jono.push({ kind, ...data })
     if (jono.length >= ERA_TAYSI) {

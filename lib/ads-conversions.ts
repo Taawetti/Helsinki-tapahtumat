@@ -33,6 +33,9 @@ const LABELS: Partial<Record<TrackKind, string | undefined>> = {
   // Tapahtuman avaus — kevyt sitoutuminen; mainostaja voi käyttää tätä
   // optimointiin kun raskaampia konversioita on vielä vähän
   event_open: process.env.NEXT_PUBLIC_ADS_CONV_EVENT_OPEN,
+  // Sitoutunut käynti (lib/engagement): ≥2 avausta tai arvoteko — volyymin
+  // (mitattu ~54/kk) ja laadun paras yhdistelmä optimointiin
+  engaged: process.env.NEXT_PUBLIC_ADS_CONV_ENGAGED,
 }
 
 /** Ampuu Google Ads -konversion jos kyseiselle toiminnolle on asetettu

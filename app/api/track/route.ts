@@ -31,6 +31,7 @@ const SALLITUT = new Set([
   // eri kävijöissä. Mitattu 28.8.2026: kannassa oli 74 riviä ja jokainen
   // niistä oli syntynyt klikkauksesta.
   'pageview',
+  'engaged',         // käynti ylitti sitoutumiskynnyksen (lib/engagement)
   'event_open',      // tapahtuman tietopaneeli avattiin
   'ticket_click',    // ulos lippukauppaan (canBuyTickets = true)
   'external_click',  // ulos muualle (lue lisää, paikan sivu, haku)

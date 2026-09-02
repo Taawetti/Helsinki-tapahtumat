@@ -78,6 +78,7 @@ import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
 import { onRobotti } from '../lib/bot'
 import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/health-hysteresis'
+import { arvioiSitoutuminen, TYHJA_TILA } from '../lib/engagement'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
@@ -1516,6 +1517,50 @@ for (const c of arcChecks) {
     for (const c of hCases) {
       if (c.ok) pass++
       else failures.push(`✗ terveyshystereesi: ${c.name}`)
+    }
+  }
+
+  // ── SITOUTUNUT KÄYNTI (lib/engagement). Konversio saa lähteä täsmälleen
+  // kerran per käynti, täsmälleen kynnyksen ylittävällä teolla. Mitattu
+  // volyymi ~54/kk (2.9.2026) — Adsin laatuoptimoinnin pääsignaali.
+  {
+    const eCases: { name: string; ok: boolean }[] = [
+      { name: 'yksi tapahtuma-avaus EI sitouta', ok: (() => {
+        const p = arvioiSitoutuminen(TYHJA_TILA, 'event_open')
+        return !p.uusiSitoutuminen && p.tila.avaukset === 1
+      })() },
+      { name: 'toinen avaus sitouttaa — täsmälleen silloin', ok: (() => {
+        const a = arvioiSitoutuminen(TYHJA_TILA, 'event_open')
+        const b = arvioiSitoutuminen(a.tila, 'event_open')
+        return b.uusiSitoutuminen === true
+      })() },
+      { name: 'kolmas avaus EI laukaise uudestaan', ok: (() => {
+        let t = TYHJA_TILA, kertoja = 0
+        for (let i = 0; i < 3; i++) { const p = arvioiSitoutuminen(t, 'event_open'); t = p.tila; if (p.uusiSitoutuminen) kertoja++ }
+        return kertoja === 1
+      })() },
+      { name: 'lippuklikki sitouttaa heti (ilman avauksia)', ok:
+        arvioiSitoutuminen(TYHJA_TILA, 'ticket_click').uusiSitoutuminen === true },
+      { name: 'asennus sitouttaa heti', ok:
+        arvioiSitoutuminen(TYHJA_TILA, 'install').uusiSitoutuminen === true },
+      { name: 'sivun avaus tai osiovaihto EI sitouta', ok:
+        !arvioiSitoutuminen(TYHJA_TILA, 'pageview').uusiSitoutuminen &&
+        !arvioiSitoutuminen(TYHJA_TILA, 'section').uusiSitoutuminen },
+      { name: 'engaged itse ei ruoki ilmaisinta (ei ketjureaktiota)', ok: (() => {
+        const a = arvioiSitoutuminen(TYHJA_TILA, 'ticket_click')
+        const b = arvioiSitoutuminen(a.tila, 'engaged')
+        return !b.uusiSitoutuminen && b.tila.ilmoitettu === true
+      })() },
+      { name: 'arvoteon jälkeen avaukset eivät laukaise toista kertaa', ok: (() => {
+        let t = arvioiSitoutuminen(TYHJA_TILA, 'ticket_click').tila
+        const p1 = arvioiSitoutuminen(t, 'event_open'); t = p1.tila
+        const p2 = arvioiSitoutuminen(t, 'event_open')
+        return !p1.uusiSitoutuminen && !p2.uusiSitoutuminen
+      })() },
+    ]
+    for (const c of eCases) {
+      if (c.ok) pass++
+      else failures.push(`✗ sitoutuminen: ${c.name}`)
     }
   }
 

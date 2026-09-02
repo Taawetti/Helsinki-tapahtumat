@@ -83,6 +83,7 @@ const JAKSOT = [7, 30, 90] as const
 // tunnisteita, mutta näytöllä niiden pitää kertoa mitä ne tarkoittavat.
 const NIMET: Record<string, string> = {
   pageview: 'Sivun avaus',
+  engaged: 'Sitoutunut käynti',
   event_open: 'Tapahtuma avattu',
   ticket_click: 'Klikkaus lippukauppaan',
   external_click: 'Klikkaus ulos (lue lisää)',
