@@ -31,7 +31,6 @@ import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
 import GuideInlineView, { GUIDE_META, type GuideSlug, type GuidePayload } from '@/components/GuideInlineView'
 import JarjestajaForm from '@/components/JarjestajaForm'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import NewsletterBanner from '@/components/NewsletterBanner'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 import { VENUE_PAGES } from '@/lib/venue-pages'
@@ -1635,8 +1634,12 @@ export default function HomeClient({
             {t('form.add_event_cta')}
           </button>
 
-          {/* Newsletter signup */}
-          <NewsletterBanner />
+          {/* Uutiskirjelomake POISTETTU näkyvistä (omistaja 2.9.2026: 0 tilausta
+              30 päivässä ~2 700 kävijällä — "vanhanaikainen tähän sovellukseen").
+              Push-ilmoitukset ovat tämän sovelluksen uutiskirje. Taustaputket
+              (tilaus-API, peruutuslinkit, Brevo) jäävät: kannassa on yksi
+              tilaaja jonka peruutuslinkin pitää toimia, ja paluu on yksi
+              import-rivi jos mieli muuttuu. */}
 
         </main>
       )}
