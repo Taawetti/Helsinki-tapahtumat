@@ -932,6 +932,7 @@ const t = {
     'poiminnat.yokerhot_ilta':     'Illan klubit',
     'poiminnat.yokerhot_myohainen': 'Yön klubit',
     'poiminnat.title_avoinna':     'Avoinna nyt',
+    'discover.all_vibes_short':    'Aihepiirit',
   },
 
   en: {
@@ -1866,6 +1867,7 @@ const t = {
     'poiminnat.yokerhot_ilta':     'Tonight\'s clubs',
     'poiminnat.yokerhot_myohainen': 'Late-night clubs',
     'poiminnat.title_avoinna':     'Open now',
+    'discover.all_vibes_short':    'Topics',
   },
 } as const
 

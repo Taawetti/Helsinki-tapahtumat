@@ -1428,25 +1428,26 @@ export default function HomeClient({
                   pyyntö). Kaupunginosa suodattaa tapahtumat tässä näkymässä,
                   ei vie erilliselle sivulle. */}
               {!loading && baseEvents.length > 0 && (
-                <div className="flex justify-center gap-2 pt-1 flex-wrap">
-                  <button onClick={() => setShowVibePanel(true)}
-                    className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
-                    style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
-                    🎨 {t('discover.all_vibes')}
-                    <span className="text-white/40">▾</span>
-                  </button>
+                <div className="flex justify-center gap-1 sm:gap-2 pt-1 flex-nowrap sm:flex-wrap">
                   <div className="relative">
                     <button onClick={() => { setShowGuideMenu(false); setShowHoodMenu((v) => !v) }}
-                      className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+                      className="flex items-center gap-1 sm:gap-2 px-2 py-2.5 text-[11px] sm:px-5 sm:py-3 sm:text-[13.5px] rounded-full font-black text-white transition-all active:scale-95"
                       style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
                       📍 {t('discover.neighborhoods')}
                       <span className="text-white/40">▾</span>
                     </button>
                     {showHoodMenu && hoodMenuList}
                   </div>
+                  {/* Kaikki aihepiirit KESKELLÄ (omistaja 3.9.2026) — täysi nimi. */}
+                  <button onClick={() => setShowVibePanel(true)}
+                    className="flex items-center gap-1 sm:gap-2 px-2 py-2.5 text-[11px] sm:px-5 sm:py-3 sm:text-[13.5px] rounded-full font-black text-white transition-all active:scale-95"
+                    style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+                    🎨 {t('discover.all_vibes')}
+                    <span className="text-white/40">▾</span>
+                  </button>
                   <div className="relative">
                     <button onClick={() => { setShowHoodMenu(false); setShowGuideMenu((v) => !v) }}
-                      className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+                      className="flex items-center gap-1 sm:gap-2 px-2 py-2.5 text-[11px] sm:px-5 sm:py-3 sm:text-[13.5px] rounded-full font-black text-white transition-all active:scale-95"
                       style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
                       🧭 {t('discover.guides')}
                       <span className="text-white/40">▾</span>
