@@ -14,7 +14,7 @@ import { WEEKDAY_FI } from '@/lib/pubivisat'
 
 export const revalidate = 86400 // aikataulu muuttuu harvoin
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC = 'Pubivisat Helsingissä viikon jokaisena päivänä: tietovisojen aikataulut ja baarit maanantaista sunnuntaihin — löydä lähin visa ja kerää joukkue kasaan.'
 

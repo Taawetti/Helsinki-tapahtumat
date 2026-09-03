@@ -8,7 +8,7 @@ import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Kirpputorit ja second hand -liikkeet Helsingissä, Espoossa ja Vantaalla — aukiolot ja kartta, sekä tulevat kirppistapahtumat ja vintage-myyjäiset.'

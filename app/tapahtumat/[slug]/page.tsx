@@ -10,7 +10,7 @@ import { helsinkiToday, formatEventDate } from '@/lib/helsinki-time'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 interface LEEvent {
   id: string

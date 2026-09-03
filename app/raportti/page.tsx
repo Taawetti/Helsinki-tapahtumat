@@ -32,7 +32,7 @@ async function loadReport(): Promise<Report> {
   const endDate = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10)
 
   const h = await headers()
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'helsinki-tapahtumat.vercel.app'
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'mitatanaan.fi'
   const proto = h.get('x-forwarded-proto') ?? 'https'
   const origin = `${proto}://${host}`
 

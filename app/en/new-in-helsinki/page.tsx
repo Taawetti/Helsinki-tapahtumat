@@ -31,7 +31,7 @@ import { getTranslation } from '@/lib/i18n'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'New restaurants, bars, cafés, saunas and exhibitions in Helsinki — what has just opened and what is opening next. Built from the alcohol licence register, OpenStreetMap, museot.fi and Finnish news.'

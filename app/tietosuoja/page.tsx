@@ -4,7 +4,7 @@
 import type { Metadata } from 'next'
 import PrivacyView from '@/components/PrivacyView'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC = 'Mitä tänään? — tietosuoja: mitä tietoja kerätään, miksi ja miten voit vaikuttaa siihen. Kävijälaskenta ilman evästeitä, mainosevästeet vain suostumuksella.'
 

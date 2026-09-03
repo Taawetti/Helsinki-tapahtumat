@@ -27,7 +27,7 @@ import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 // Sama luku kuin suomenkielisellä sivulla — sivu pysyy staattisena (ISR).
 export const revalidate = 900
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Helsinki events today in one list: gigs, club nights, exhibitions, theatre and free events across the city — gathered automatically and refreshed through the day.'

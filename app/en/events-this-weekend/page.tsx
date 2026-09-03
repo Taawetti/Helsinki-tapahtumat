@@ -27,7 +27,7 @@ import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const FI_URL = `${BASE}/tapahtumat/viikonloppu`
 const EN_URL = `${BASE}/en/events-this-weekend`

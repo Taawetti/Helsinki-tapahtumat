@@ -10,7 +10,7 @@ import { formatEventDate } from '@/lib/helsinki-time'
 // Server-renderöity, ei klientikomponentteja; aggregaattihaku välimuistissa tunti.
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 export async function generateMetadata(): Promise<Metadata> {
   const { label } = nextWeekendRange()

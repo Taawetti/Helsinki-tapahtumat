@@ -9,7 +9,7 @@ import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Jamit, open mic -illat ja open stage -lavat Helsingissä — missä pääsee soittamaan, laulamaan tai lavalle seuraavan kuukauden aikana.'

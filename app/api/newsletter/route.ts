@@ -4,7 +4,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabase'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'Mitä tänään <newsletter@mitatanaan.fi>'
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json().catch(() => ({}))

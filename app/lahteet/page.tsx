@@ -4,7 +4,7 @@ import { helsinkiDateOf, helsinkiDateRange } from '@/lib/helsinki-time'
 
 export const revalidate = 900 // 15 min — lähdeterveys tuoreena ilman jatkuvaa fan-outia
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Kaikkien 41 tapahtumalähteen tila nyt: mitkä lähteet vastaavat ja paljonko tapahtumia kukin tuottaa. Läpinäkyvyys: näytämme itse, kun lähde rikkoutuu.'

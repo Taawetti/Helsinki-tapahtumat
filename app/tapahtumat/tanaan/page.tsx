@@ -7,7 +7,7 @@ import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 
 export const revalidate = 900 // 15 min — today's events update frequently
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC = 'Mitä tänään tapahtuu Helsingissä? Kaikki päivän keikat, klubit, näyttelyt ja perhetapahtumat yhdessä paikassa — päivitetty joka tunti 41 lähteestä.'
 

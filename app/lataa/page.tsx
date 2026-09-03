@@ -4,7 +4,7 @@
 import type { Metadata } from 'next'
 import DownloadView from '@/components/DownloadView'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC = 'Asenna Mitä tänään? puhelimeen tai tietokoneelle suoraan selaimesta — ei sovelluskauppaa. Ohjeet iPhonelle, Androidille ja tietokoneelle.'
 

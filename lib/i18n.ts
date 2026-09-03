@@ -411,7 +411,7 @@ const t = {
 
     // ── Share text ────────────────────────────────────────────
     'share.at_time':  'klo',
-    'share.found_in': 'Löysin tämän Helsinki Tapahtumat -sovelluksesta 👉',
+    'share.found_in': 'Löysin tämän Mitä tänään -sovelluksesta 👉',
 
     // ── FilterBar ─────────────────────────────────────────────
     'filter.tonight_short': 'Illalla',
@@ -1293,7 +1293,7 @@ const t = {
 
     // ── Share text ────────────────────────────────────────────
     'share.at_time':  'at',
-    'share.found_in': 'Found on Helsinki Events 👉',
+    'share.found_in': 'Found this in the Mitä tänään app 👉',
 
     // ── FilterBar ─────────────────────────────────────────────
     'filter.tonight_short': 'Tonight',

@@ -6,7 +6,7 @@ import { VENUE_PAGES } from '@/lib/venue-pages'
 import { LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 import { helsinkiToday } from '@/lib/helsinki-time'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
 
 // Montako päivää eteenpäin sivukartalle kerätään tapahtumasivuja. Sivukartta

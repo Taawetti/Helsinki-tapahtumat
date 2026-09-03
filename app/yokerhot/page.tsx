@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 export const revalidate = 86400 // curated list changes rarely
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC = 'Yökerhot Helsingissä: parhaat klubit, teknoklubit, karaokebaarit ja kattoterassit kuratoituna — osoitteet, arvosanat ja vinkit yhden illan suunnitteluun.'
 

@@ -247,7 +247,7 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
   const meta = KIND_META[item.kind]
   const date = dateLabel(item, t)
   const www = item.www ? (/^https?:\/\//i.test(item.www) ? item.www : `https://${item.www}`) : undefined
-  const shareUrl = www ?? item.news?.url ?? item.sources.find((s) => s.url)?.url ?? 'https://helsinki-tapahtumat.vercel.app/uutta-helsingissa'
+  const shareUrl = www ?? item.news?.url ?? item.sources.find((s) => s.url)?.url ?? 'https://mitatanaan.fi/uutta-helsingissa'
   const shareText = `${item.name} — ${t('uutta.share_suffix')}`
   const mapsUrl = item.lat && item.lon
     ? `https://maps.google.com/maps?q=${item.lat},${item.lon}`
@@ -349,18 +349,12 @@ function NewItemDetailPanelInner({ item, onClose }: { item: NewItem; onClose: ()
             {/* Jaa */}
             <div className="space-y-2">
               <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">{t('detail.share_with')}</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, '_blank')}
                   className="flex flex-col items-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/20 rounded-xl py-3 px-2 transition-colors">
                   <MessageCircle size={18} className="text-[#25D366]" />
                   <span className="text-[#25D366] text-[11px] font-semibold">WhatsApp</span>
-                </button>
-                <button onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank')}
-                  className="flex flex-col items-center gap-1.5 bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/20 rounded-xl py-3 px-2 transition-colors">
-                  <span className="text-[#0088cc] text-lg leading-none">✈️</span>
-                  <span className="text-[#0088cc] text-[11px] font-semibold">Telegram</span>
-                </button>
-                <button onClick={() => { navigator.clipboard.writeText(`${shareText}\n${shareUrl}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                </button>                <button onClick={() => { navigator.clipboard.writeText(`${shareText}\n${shareUrl}`); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
                   className={`flex flex-col items-center gap-1.5 border rounded-xl py-3 px-2 transition-all ${copied ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-white/5 border-white/10 hover:bg-white/8'}`}>
                   {copied ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} className="text-white/50" />}
                   {/* Ilman huutomerkkiä: detail.copied ('Kopioitu!') on jakopainikkeen

@@ -8,7 +8,7 @@ import ShareButton from '@/components/ShareButton'
 export const revalidate = 3600
 export const dynamicParams = true
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 async function getFestival(id: string): Promise<FestivalDef | null> {
   if (supabase) {

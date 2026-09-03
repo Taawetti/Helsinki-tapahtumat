@@ -26,7 +26,7 @@ import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Flea markets, second hand and vintage shops in Helsinki, Espoo and Vantaa — opening hours and map, plus upcoming flea market events and vintage fairs.'

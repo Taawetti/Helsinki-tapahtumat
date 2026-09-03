@@ -25,7 +25,7 @@ import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Rooftop bars and summer terraces in Helsinki: where to drink above the city, plus every terrace and open-air event over the next two weeks — addresses, times and prices.'

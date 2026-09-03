@@ -25,7 +25,7 @@ import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Public saunas in Helsinki: opening hours, prices, ratings and new openings — Löyly, Kotiharju, Sompasauna, Uusi Sauna and the whole city sauna map in one place.'

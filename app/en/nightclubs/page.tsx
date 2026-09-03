@@ -24,7 +24,7 @@ import HomeShell from '@/components/HomeShell'
 
 export const revalidate = 86400 // curated list changes rarely — sama kuin /yokerhot
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Helsinki nightlife in one place: the best clubs, techno venues, karaoke bars and rooftop bars, hand-picked with addresses, ratings and tips for planning a night out.'

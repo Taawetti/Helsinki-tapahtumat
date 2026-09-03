@@ -11,7 +11,7 @@ import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Museot ja galleriat joihin on aina vapaa pääsy Helsingissä — Helsingin kaupunginmuseo, Rahamuseo, Ratikkamuseo ja kymmenet galleriat. Aukiolot ja kartta.'

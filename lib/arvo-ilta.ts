@@ -87,6 +87,6 @@ export function planShareText(plan: {
     }
     lines.push(`${s.time ?? ''} ${s.emoji} ${s.title}${s.address ? ` — ${s.address}` : ''}`.trim())
   }
-  lines.push('', 'Arvottu: helsinki-tapahtumat.vercel.app')
+  lines.push('', 'Arvottu: mitatanaan.fi')
   return lines.join('\n')
 }

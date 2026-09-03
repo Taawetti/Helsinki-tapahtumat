@@ -6,7 +6,7 @@ import { helsinkiDateOf } from '@/lib/helsinki-time'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC = 'Ilmaiset tapahtumat Helsingissä: maksuttomat konsertit, näyttelyt, puisto- ja toritapahtumat ja perhemenot — koko ilmainen ohjelma yhdessä paikassa.'
 

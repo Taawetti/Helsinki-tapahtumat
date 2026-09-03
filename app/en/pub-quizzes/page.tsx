@@ -22,7 +22,7 @@ import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 86400 // sama kuin /pubivisat — aikataulu muuttuu harvoin
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 // JS getDay() -indeksi → englanninkielinen viikonpäivä. Paikallinen taulukko,
 // koska lib/pubivisat.ts:n WEEKDAY_FI on suomenkielisen näkymän oma.

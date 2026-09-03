@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import HomeShell from '@/components/HomeShell'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 // Canonical on sivukohtainen, ei juurilayoutissa: siellä se periytyi jokaiselle
 // sivulle jolla ei ole omaansa ja teki niistä Googlen silmissä etusivun kopioita.

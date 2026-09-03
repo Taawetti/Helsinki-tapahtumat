@@ -17,7 +17,7 @@ interface ScrapedEvent {
   is_free: boolean
 }
 
-const UA = 'Mitä tänään event aggregator (+https://helsinki-tapahtumat.vercel.app)'
+const UA = 'Mitä tänään event aggregator (+https://mitatanaan.fi)'
 
 // ── TEC-probe (The Events Calendar, WP-plugin) ──────────────────────────────
 // Jos venue ajaa WordPressiä + TEC:ä, tapahtumat saadaan strukturoituna REST:stä

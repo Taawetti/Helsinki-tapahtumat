@@ -26,7 +26,7 @@ const EVENTIM_BASE = 'https://public-api.eventim.com/websearch/search/api/explor
 // pysyy YHTENÄ kyselynä (ks. perustelu GET:ssä). Tunnistautuminen antaa
 // Eventimille mahdollisuuden estää tai tavoittaa meidät nimenomaisesti.
 // Sama muoto kuin festival-watch-cronissa.
-const UA = 'Mita-tanaan/1.0 (+https://helsinki-tapahtumat.vercel.app)'
+const UA = 'Mita-tanaan/1.0 (+https://mitatanaan.fi)'
 
 interface EventimProduct {
   name: string

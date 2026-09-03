@@ -24,7 +24,7 @@ import { helsinkiDateOf } from '@/lib/helsinki-time'
 // Sama ISR-ikkuna kuin suomenkielisellä sivulla — sivu pysyy staattisena.
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Free events in Helsinki this week: free concerts, exhibitions, park and market events and family days — all the free things to do in the city in one list, updated daily.'

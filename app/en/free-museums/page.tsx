@@ -28,7 +28,7 @@ import { buildGuidePayload } from '@/lib/guide-data'
 
 export const revalidate = 3600
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 const DESC =
   'Free museums in Helsinki — museums and galleries you can walk into without a ticket: Helsinki City Museum, the Money Museum, the Tram Museum and dozens of galleries. Opening hours and map.'

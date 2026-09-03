@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import VenueForm from './VenueForm'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 // Landing + lomake keikkapaikoille, baareille ja järjestäjille.
 export const metadata: Metadata = {

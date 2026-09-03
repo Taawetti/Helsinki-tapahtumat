@@ -19,7 +19,7 @@
 
 import type { Metadata } from 'next'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://helsinki-tapahtumat.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 export const metadata: Metadata = {
   // absolute ohittaa juuren mallin '%s | Mitä tänään Helsinki' — suomenkielinen

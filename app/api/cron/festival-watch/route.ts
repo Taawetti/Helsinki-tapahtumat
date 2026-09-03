@@ -10,7 +10,7 @@ import { extractJsonLdEvents } from '@/lib/jsonld-events'
 // tehdään manuaalisesti muutoksen jälkeen → jatkuva kustannus ~0 €.
 export const maxDuration = 120
 
-const UA = 'Mitä tänään festival watch (+https://helsinki-tapahtumat.vercel.app)'
+const UA = 'Mitä tänään festival watch (+https://mitatanaan.fi)'
 const FROM = process.env.RESEND_FROM_EMAIL || 'Mitä tänään <onboarding@resend.dev>'
 const ALERT_TO = process.env.ALERT_EMAIL || 'timo.heinamaki@broven.fi'
 
