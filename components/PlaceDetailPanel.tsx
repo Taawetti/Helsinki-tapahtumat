@@ -283,7 +283,7 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
 
           {/* Metakortti — sama pohja kuin tapahtumapaneelissa */}
           <div className="space-y-3 bg-white/4 rounded-xl p-4 border border-white/6">
-            {(tanaan || paikka.bottomChip) && (
+            {(tanaan || (paikka.bottomChip && !paikka.bottomChip.startsWith('★'))) && (
               <div className="flex items-start gap-3 text-sm">
                 <Clock size={15} className="text-[#0072C6] mt-0.5 shrink-0" />
                 <div className="min-w-0">
