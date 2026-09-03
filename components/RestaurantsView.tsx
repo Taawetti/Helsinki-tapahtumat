@@ -5,7 +5,8 @@ import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'luci
 import type { Restaurant } from '@/lib/types'
 import type { TranslationKey } from '@/lib/i18n'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
+import { isOpenNow, getTodayHours, helsinkiNow } from '@/lib/opening-hours'
+import { poimiPoydat, aukioloTieto, type PoimintaSlot } from '@/lib/poyta-poiminnat'
 import { pickAttributes } from '@/lib/google-attributes'
 import { credibilityScore } from '@/lib/credibility'
 import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaurant-reasons'
@@ -37,20 +38,23 @@ const TYPE_TABS: { id: RestType; tKey: TranslationKey; emoji: string; dbType: Re
 ]
 
 const SUB_CATS: Record<RestType, { id: string; tKey: TranslationKey; emoji: string }[]> = {
+  // Järjestys on myös NÄKYVYYSJÄRJESTYS: kategorialaatoista näytetään
+  // oletuksena 8 ensimmäistä (etusivun kaava), loput avautuvat napista.
+  // Kasvis POISTETTU 3.9.2026 (omistaja; mitattu: kategoriassa oli tasan
+  // 1 ravintola) — lähi-itä nostettiin kärkeen sen tilalle (31 paikkaa).
   ruokapaikat: [
-    { id: 'awarded',  tKey: 'cuisine.awarded',  emoji: '🏆' },
-    { id: 'japanese', tKey: 'cuisine.japanese', emoji: '🍣' },
-    { id: 'nordisk',  tKey: 'cuisine.nordisk',  emoji: '🇫🇮' },
-    { id: 'italian',  tKey: 'cuisine.italian',  emoji: '🍝' },
-    { id: 'pizza',    tKey: 'cuisine.pizza',    emoji: '🍕' },
-    { id: 'asian',    tKey: 'cuisine.asian',    emoji: '🍜' },
-    { id: 'veggie',   tKey: 'cuisine.veggie',   emoji: '🌱' },
-    { id: 'burger',   tKey: 'cuisine.burger',   emoji: '🍔' },
-    { id: 'seafood',  tKey: 'cuisine.seafood',  emoji: '🐟' },
-    { id: 'steak',    tKey: 'cuisine.steak',    emoji: '🥩' },
+    { id: 'awarded',        tKey: 'cuisine.awarded',        emoji: '🏆' },
+    { id: 'japanese',       tKey: 'cuisine.japanese',       emoji: '🍣' },
+    { id: 'pizza',          tKey: 'cuisine.pizza',          emoji: '🍕' },
+    { id: 'italian',        tKey: 'cuisine.italian',        emoji: '🍝' },
+    { id: 'asian',          tKey: 'cuisine.asian',          emoji: '🍜' },
+    { id: 'middle_eastern', tKey: 'cuisine.middle_eastern', emoji: '🧆' },
+    { id: 'nordisk',        tKey: 'cuisine.nordisk',        emoji: '🇫🇮' },
+    { id: 'burger',         tKey: 'cuisine.burger',         emoji: '🍔' },
+    { id: 'seafood',        tKey: 'cuisine.seafood',        emoji: '🐟' },
+    { id: 'steak',          tKey: 'cuisine.steak',          emoji: '🥩' },
     { id: 'indian',         tKey: 'cuisine.indian',         emoji: '🍛' },
     { id: 'mexican',        tKey: 'cuisine.mexican',        emoji: '🌮' },
-    { id: 'middle_eastern', tKey: 'cuisine.middle_eastern', emoji: '🧆' },
     { id: 'african',        tKey: 'cuisine.african',        emoji: '🌍' },
   ],
   kahvilat: [
@@ -264,6 +268,95 @@ function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean 
   return false
 }
 
+// ── "Pöydät nyt" — kellonaikaan sidotut päiväpoiminnat ────────────────────
+// Ravintolasivu oli hakemisto: sama ruudukko aamulla ja illalla, eikä mikään
+// antanut syytä avata sitä juuri nyt. Tämä rivi tuo etusivun "Illan parhaat
+// poiminnat" -idean ravintoloihin: kellonaikaan sopiva, auki oleva ja
+// päivittäin vaihtuva valikoima syineen. Valinta: lib/poyta-poiminnat.
+
+const SLOT_OTSIKKO: Record<PoimintaSlot, { tKey: TranslationKey; emoji: string }> = {
+  aamu:      { tKey: 'poiminnat.title_aamu',      emoji: '☕' },
+  lounas:    { tKey: 'poiminnat.title_lounas',    emoji: '🍽' },
+  paiva:     { tKey: 'poiminnat.title_paiva',     emoji: '🧁' },
+  ilta:      { tKey: 'poiminnat.title_ilta',      emoji: '🕯' },
+  myohainen: { tKey: 'poiminnat.title_myohainen', emoji: '🌙' },
+}
+
+function PoimintaKortti({ r, nyt, onOpen }: { r: Restaurant; nyt: Date; onOpen: (r: Restaurant) => void }) {
+  const { t } = useLanguage()
+  const [imgOk, setImgOk] = useState(true)
+  const tieto = aukioloTieto(r.openingHours, nyt)
+  const reason = primaryReason(r.reasons, nyt)
+  const tyyli = getCuisineStyle(r)
+  return (
+    <button onClick={() => onOpen(r)}
+      className="rounded-2xl overflow-hidden text-left transition-transform active:scale-[.97] flex flex-col"
+      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)', boxShadow: '0 14px 30px -16px rgba(0,0,0,.7)' }}>
+      <div className="relative w-full overflow-hidden" style={{ aspectRatio: '4/3', background: '#141418' }}>
+        {r.image && imgOk ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img loading="lazy" src={r.image} onError={() => setImgOk(false)} alt={r.name}
+            className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center"
+            style={{ background: `radial-gradient(circle at 50% 60%, ${tyyli.color}28 0%, transparent 70%)` }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={twemojiUrl(tyyli.cp)} alt="" width={44} height={44} style={{ objectFit: 'contain' }} />
+          </div>
+        )}
+        {r.priceRange && (
+          <span className="absolute top-2 right-2 text-[10px] font-black px-2 py-0.5 rounded-full text-white/85"
+            style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(4px)' }}>
+            {PRICE_LABELS[r.priceRange]}
+          </span>
+        )}
+      </div>
+      <div className="p-3 flex flex-col gap-1.5 flex-1 min-w-0">
+        <h3 className="font-black text-white text-[13px] leading-tight line-clamp-2">{r.name}</h3>
+        {r.googleRating && (
+          <span className="text-[11px] font-bold" style={{ color: '#fbbf24' }}>
+            ⭐ {r.googleRating.toFixed(1)}
+            {r.reviewCount ? <span className="opacity-60 font-normal"> ({r.reviewCount > 999 ? `${(r.reviewCount / 1000).toFixed(1)}${t('restaurants.thousand_suffix')}` : r.reviewCount})</span> : null}
+          </span>
+        )}
+        {reason && <div className="min-w-0 overflow-hidden"><ReasonBadge reason={reason} /></div>}
+        {/* Rivissä on vain auki olevia (lib/poyta-poiminnat) — merkki kertoo
+            mihin asti ehtii. Nuoli toimii molemmilla kielillä ilman taivutusta. */}
+        <span className="mt-auto pt-0.5 text-[10.5px] font-black" style={{ color: tieto.pian ? '#fbbf24' : '#34d399' }}>
+          {tieto.tila === 'auki'
+            ? (tieto.pian ? `● ${t('hours.closing_soon')}` : `● ${t('common.open')}${tieto.klo ? ` → ${tieto.klo}` : ''}`)
+            : ''}
+        </span>
+      </div>
+    </button>
+  )
+}
+
+function PoydatNyt({ poiminta, nyt, onOpen }: {
+  poiminta: { slot: PoimintaSlot; poiminnat: Restaurant[] }
+  nyt: Date
+  onOpen: (r: Restaurant) => void
+}) {
+  const { t } = useLanguage()
+  if (poiminta.poiminnat.length === 0) return null
+  const otsikko = SLOT_OTSIKKO[poiminta.slot]
+  // Ruudukko kuten etusivun poiminnoissa — EI karusellia (omistaja 3.9.2026:
+  // "en halua karusellia tähän, sitä ei ole muuallakaan sivustossa").
+  return (
+    <section className="space-y-2.5">
+      <div>
+        <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
+          {otsikko.emoji} {t(otsikko.tKey)}
+        </h2>
+        <p className="text-[11.5px] font-bold text-white/35 mt-0.5">{t('poiminnat.subtitle')}</p>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
+        {poiminta.poiminnat.map((r) => <PoimintaKortti key={r.id} r={r} nyt={nyt} onOpen={onOpen} />)}
+      </div>
+    </section>
+  )
+}
+
 // ── Hero card ─────────────────────────────────────────────
 
 function HeroCard({ r, distance, onShowOnMap }: {
@@ -354,7 +447,11 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
   // — rikkinäisen kuvakkeen sijaan pudotaan emoji-laattaan.
   const [imgOk, setImgOk] = useState(true)
   const { t } = useLanguage()
-  const open = r.openingHours ? isOpenNow(r.openingHours) : undefined
+  // Aikatietoinen merkki: auki → mihin asti, kiinni → milloin avautuu tänään.
+  // Punainen "Suljettu"-seinä poistui tarkoituksella: kiinni oleminen ei ole
+  // hälytys vaan tieto, ja seuraava avautumisaika on se hyödyllinen osa.
+  const tieto = useMemo(() => aukioloTieto(r.openingHours, helsinkiNow()), [r.openingHours])
+  const open = tieto.tila === 'auki' ? true : tieto.tila === 'kiinni' ? false : undefined
   const cuisineStyle = getCuisineStyle(r)
   const reason = useMemo(() => primaryReason(r.reasons, new Date()), [r.reasons])
   // Sijaluku 50 parasta -listalta näytetään myös silloin kun päämerkki on jokin
@@ -406,10 +503,22 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-black text-white text-sm leading-tight">{r.name}</h3>
           <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-            {open !== undefined && (
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
-                {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
-              </span>
+            {tieto.tila !== 'tuntematon' && (
+              tieto.tila === 'auki' ? (
+                tieto.pian ? (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400">
+                    ● {t('hours.closing_soon')}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                    ● {t('common.open')}{tieto.klo ? ` → ${tieto.klo}` : ''}
+                  </span>
+                )
+              ) : (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/40">
+                  ○ {tieto.klo ? `${t('hours.opens')} ${tieto.klo}` : t('common.closed')}
+                </span>
+              )
             )}
             {r.priceRange && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/45">
@@ -656,7 +765,7 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                     {open !== undefined && (
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/6 text-white/40'}`}>
                         {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
                       </span>
                     )}
@@ -726,43 +835,78 @@ const GRID_TINTS: Record<string, string> = {
   klubi: '175,130,255', karaoke: '255,107,107', tekno: '95,150,255', katto: '95,217,166',
 }
 
+// Etusivun kaava (omistaja 3.9.2026): kompakti laattaruudukko, oletuksena
+// 6 ensimmäistä kategoriaa (omistaja: pohjoismainen ja hampurilaiset pois
+// näkyvistä), loput avautuvat "Kaikki kategoriat ▾" -napista — 15 laatan
+// seinä vei mobiilissa viisi riviä pystytilaa.
+const NAKYVAT_LAATAT = 6
+
 function SubCatGrid({ restType, onSelect }: {
   restType: RestType
   onSelect: (id: string) => void
 }) {
   const { t } = useLanguage()
+  const [kaikkiAuki, setKaikkiAuki] = useState(false)
+  const kaikki = SUB_CATS[restType]
+  const nakyvat = kaikkiAuki ? kaikki : kaikki.slice(0, NAKYVAT_LAATAT)
+  const piilossa = kaikki.length - NAKYVAT_LAATAT
+  // Sarakemäärä elää laattamäärän mukaan, ettei ruudukkoon jää vajaita
+  // rivejä: 6 laattaa → 2×3, 4 laattaa → yksi rivi, isot avatut setit → 4.
+  const laattoja = nakyvat.length + (kaikkiAuki ? 1 : 0)
+  const sarakkeet = laattoja >= 9 || laattoja % 4 === 0 ? 4 : 3
+  const laatta = (cat: { id: string; tKey: TranslationKey; emoji: string }) => (
+    <button key={cat.id} onClick={() => onSelect(cat.id)}
+      className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-4 px-1 transition-transform active:scale-95"
+      style={{
+        background: `radial-gradient(120% 100% at 50% 0%, rgba(${GRID_TINTS[cat.id] ?? '120,130,200'},.16), rgba(255,255,255,.03) 70%)`,
+        border: '1px solid rgba(255,255,255,.07)',
+      }}>
+      <span className="text-[26px] leading-none">{cat.emoji}</span>
+      <span className="text-[11px] font-black text-white/85 text-center leading-tight">{t(cat.tKey)}</span>
+    </button>
+  )
   return (
     <section>
       <h2 className="font-black text-white text-[18px] mb-3" style={{ letterSpacing: '-0.02em' }}>
         {t('discover.grid_sub')}
       </h2>
-      <div className="grid grid-cols-3 gap-2">
-        {/* "Kaikki" — avaa selausnäkymän suodattimineen (koko lista, ei vain suosituimmat) */}
-        <button onClick={() => onSelect('kaikki')}
-          className="flex flex-col items-start gap-2 rounded-[16px] px-3.5 py-4 text-left transition-all active:scale-[.97]"
-          style={{
-            background: 'radial-gradient(130% 110% at 30% 0%, rgba(107,118,255,.22), rgba(255,255,255,.03) 70%)',
-            border: '1px solid rgba(107,118,255,.28)',
-          }}>
-          <span className="text-[24px] leading-none">🍽</span>
-          <span className="font-black text-[12.5px] leading-tight text-white/90" style={{ letterSpacing: '-0.01em' }}>
-            {t('common.all')}
-          </span>
-        </button>
-        {SUB_CATS[restType].map(cat => (
-          <button key={cat.id} onClick={() => onSelect(cat.id)}
-            className="flex flex-col items-start gap-2 rounded-[16px] px-3.5 py-4 text-left transition-all active:scale-[.97]"
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${sarakkeet}, minmax(0, 1fr))` }}>
+        {nakyvat.map(laatta)}
+        {/* Avattuna mukana myös "Kaikki"-laatta → selausnäkymä suodattimineen */}
+        {kaikkiAuki && (
+          <button onClick={() => onSelect('kaikki')}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-4 px-1 transition-transform active:scale-95"
             style={{
-              background: `radial-gradient(130% 110% at 30% 0%, rgba(${GRID_TINTS[cat.id] ?? '120,130,200'},.15), rgba(255,255,255,.03) 70%)`,
-              border: '1px solid rgba(255,255,255,.07)',
+              background: 'radial-gradient(120% 100% at 50% 0%, rgba(107,118,255,.22), rgba(255,255,255,.03) 70%)',
+              border: '1px solid rgba(107,118,255,.28)',
             }}>
-            <span className="text-[24px] leading-none">{cat.emoji}</span>
-            <span className="font-black text-[12.5px] leading-tight text-white/90" style={{ letterSpacing: '-0.01em' }}>
-              {t(cat.tKey)}
-            </span>
+            <span className="text-[26px] leading-none">🍽</span>
+            <span className="text-[11px] font-black text-white/85 text-center leading-tight">{t('common.all')}</span>
           </button>
-        ))}
+        )}
       </div>
+      {/* Sama avausnappi kuin etusivun "Kaikki aihepiirit ▾" */}
+      {!kaikkiAuki && piilossa > 0 && (
+        <div className="flex justify-center pt-3">
+          <button onClick={() => setKaikkiAuki(true)}
+            className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+            style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+            🍽 {t('restaurants.all_categories')}
+            <span className="text-white/40">▾</span>
+          </button>
+        </div>
+      )}
+      {/* Pienillä tyypeillä (baarit, kahvilat) kaikki laatat mahtuvat näkyviin,
+          mutta Kaikki-selaus tarvitaan silti */}
+      {!kaikkiAuki && piilossa <= 0 && (
+        <div className="flex justify-center pt-3">
+          <button onClick={() => onSelect('kaikki')}
+            className="flex items-center gap-2 px-5 py-3 rounded-full text-[13.5px] font-black text-white transition-all active:scale-95"
+            style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+            🍽 {t('common.show_all')}
+          </button>
+        </div>
+      )}
     </section>
   )
 }
@@ -771,21 +915,23 @@ function SubCatGrid({ restType, onSelect }: {
 
 function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestType) => void }) {
   const { t } = useLanguage()
+  // Sama pillerityyli kuin etusivun päivärivillä heron yläpuolella (omistaja
+  // 3.9.2026: "linja pysyy") — pyöreä, ei reunaviivaa, aktiivinen indigo-
+  // liukuvärillä. Mobiilissa ilman emojia ja hieman tiiviimpänä, jotta kaikki
+  // neljä mahtuvat riviin ilman sivuvieritystä; overflow-x jää varmistukseksi
+  // hyvin kapeille laitteille.
   return (
-    <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
+    <div className="flex gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1">
       {TYPE_TABS.map(tab => {
         const isActive = active === tab.id
         return (
           <button key={tab.id} onClick={() => onChange(tab.id)}
-            className="shrink-0 flex items-center gap-2 rounded-full px-4 py-2.5 transition-all active:scale-[.97]"
-            style={isActive
-              ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', border: '1px solid transparent', boxShadow: '0 6px 16px -6px rgba(91,101,230,.5)' }
-              : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }
-            }>
-            <span className="text-[16px] leading-none">{tab.emoji}</span>
-            <span className="font-black text-[13.5px]" style={{ letterSpacing: '-0.01em', color: isActive ? '#fff' : 'rgba(255,255,255,.55)' }}>
-              {t(tab.tKey)}
-            </span>
+            className={`shrink-0 flex items-center gap-2 rounded-full px-3 py-2 sm:px-4 sm:py-2.5 font-black text-[12px] sm:text-[13.5px] transition-all active:scale-[.97] ${
+              isActive ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
+            }`}
+            style={isActive ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,.4)', letterSpacing: '-0.01em' } : { letterSpacing: '-0.01em' }}>
+            <span className="hidden sm:inline text-[16px] leading-none">{tab.emoji}</span>
+            {t(tab.tKey)}
           </button>
         )
       })}
@@ -844,10 +990,12 @@ const AWARD_FALLBACK = 0.55
 
 // Kärkipoimintojen määrä oletusnäkymässä — loput löytyvät kategoria-selauksesta
 const TOP_PICKS = 60
-// Kuvan paino — nostaa kuvalliset tasapelissä, mutta ei ohita selvää
-// uskottavuuseroa. Wilson-asteikko on 0–1, joten paino on 0,05 eikä 0,25
-// kuten vanhalla 4–5 asteikolla.
-const IMG_WEIGHT = 0.05
+// Kuvan paino. Nostettu 0,05 → 0,15 (omistaja 3.9.2026: "haluan muutenkin
+// suosia paikkoja missä kuvat koska se ei tunnu keskeneräiseltä") — kuvallinen
+// paikka ohittaa nyt selvästi kuvattoman samassa laatuluokassa, muttei
+// romahduta järjestystä: Wilson-asteikolla 0,15 vastaa noin yhden
+// laatuportaan eroa.
+const IMG_WEIGHT = 0.15
 
 // Uskottavuuspiste yksin — EI sisällä syytä. Syylliset paikat järjestetään
 // erikseen `interleaveReasoned`illa, jotta perheet lomittuvat eivätkä kasaudu
@@ -1117,6 +1265,20 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // jos jokainen vertailu loisi oman Daten, lajittelu ei olisi vakaa.
   const sortToday = useMemo(() => new Date(), [])
 
+  // Helsinki-kello tilana: poimintarivi ja aukiolomerkit elävät kellon
+  // mukana. Päivitys 5 min välein — pitkään auki oleva välilehti ei jää
+  // näyttämään aamun rivejä illalla.
+  const [nyt, setNyt] = useState(() => helsinkiNow())
+  useEffect(() => {
+    const id = setInterval(() => setNyt(helsinkiNow()), 5 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
+  // Pöydät nyt -poiminnat lasketaan täällä (ei komponentissa), jotta hero
+  // voi väistää niitä — muuten sama paikka olisi rivin ykkösenä JA herona
+  // heti sen alla (mitattu: Grön kahdesti peräkkäin).
+  const poiminta = useMemo(() => poimiPoydat(restaurants, nyt), [restaurants, nyt])
+  const poimintaIdt = useMemo(() => new Set(poiminta.poiminnat.map((r) => r.id)), [poiminta])
+
   const heroRest = useMemo(() => {
     // Hero on sivun käyntikortti → AINA laadukas paikka + hyvä kuva. Vaaditaan
     // kuva ja todistettu laatu (isRatedAtLeast 4 = ≥4★ & ≥50 arvostelua tai
@@ -1129,7 +1291,10 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     const heroScore = (r: Restaurant) =>
       (r.reasons ? reasonsWeight(r.reasons, sortToday) : 0) + restaurantQualityScore(r)
     const quality = typePool
-      .filter(r => r.image && isRatedAtLeast(r, 4))
+      // Poimintaruudukossa jo näkyvät väistyvät herosta — ei samaa paikkaa
+      // kahdesti peräkkäin. Koskee vain Ruokapaikat-välilehteä, jolla
+      // poiminnat näytetään; muilla välilehdillä hero valitaan vapaasti.
+      .filter(r => r.image && isRatedAtLeast(r, 4) && !(restType === 'ruokapaikat' && poimintaIdt.has(r.id)))
       .sort((a, b) => heroScore(b) - heroScore(a))
     const top = quality.slice(0, 12)
     return (
@@ -1139,7 +1304,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       ?? typePool[0]
       ?? null
     )
-  }, [typePool, sortToday])
+  }, [typePool, sortToday, poimintaIdt, restType])
 
   const sortedPool = useMemo(() => {
     let filtered = [...subPool]
@@ -1208,6 +1373,40 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   }, [subPool, filterOpen, filterNearby, browseMinRating, browseByReviews, userPos, distMap, subCat, sortToday, heroRest, topOpenNow, topByReviews, topMinRating, topNearby])
 
   const groupedSortedPool = useMemo(() => groupByChain(sortedPool, distMap), [sortedPool, distMap])
+
+  // ── AVOINNA ENSIN. Klo 21 kuratoitu kärki oli punaista Suljettu-seinää:
+  // laatujärjestys ei tiennyt kellonajasta mitään. Vakaa ryhmittely (auki →
+  // tuntematon → kiinni) säilyttää kuratoinnin ryhmien sisällä: päivällä
+  // lähes kaikki on auki eikä mikään muutu, illalla auki olevat nousevat.
+  // Käyttäjän oma järjestysvalinta (lähimmät, eniten arvosteluja) ohittaa
+  // tämän — silloin järjestys on kirjaimellisesti se mitä pyydettiin.
+  // Kello luetaan kerran per data-lataus: sivu ei elä kesken selauksen.
+  const avoinRyhma = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const r of restaurants) {
+      const o = isOpenNow(r.openingHours)
+      m.set(r.id, o === true ? 0 : o === undefined ? 1 : 2)
+    }
+    return m
+  }, [restaurants])
+  const aikajarjestys = useCallback((items: RestItem[]) => {
+    return [...items].sort((a, b) => {
+      const ra = avoinRyhma.get('_isChain' in a ? a.representative.id : a.id) ?? 1
+      const rb = avoinRyhma.get('_isChain' in b ? b.representative.id : b.id) ?? 1
+      return ra - rb
+    })
+  }, [avoinRyhma])
+  // Suosituimmat: kärkijoukko (60) pysyy samana, järjestys sen SISÄLLÄ on
+  // aikatietoinen — kuratoitu valikoima ei köyhdy yöllä, se vain järjestyy.
+  const suosituimmatNaytto = useMemo(() => {
+    const karki = groupedSortedPool.slice(0, TOP_PICKS)
+    return topNearby || topByReviews ? karki : aikajarjestys(karki)
+  }, [groupedSortedPool, topNearby, topByReviews, aikajarjestys])
+  // Selaus: koko lista aikajärjestykseen ennen sivutusta.
+  const selausNaytto = useMemo(
+    () => (filterNearby || browseByReviews ? groupedSortedPool : aikajarjestys(groupedSortedPool)),
+    [groupedSortedPool, filterNearby, browseByReviews, aikajarjestys],
+  )
 
 
   const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setBrowseMinRating(null); setBrowseByReviews(false); setTopOpenNow(false); setTopByReviews(false); setTopMinRating(null); setTopNearby(false) }, [])
@@ -1278,6 +1477,19 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 <HeroCard r={heroRest} distance={distMap.get(heroRest.id)} onShowOnMap={onShowOnMap} />
               )}
 
+              {/* Kategoriat HETI heron alla — sama järjestys kuin etusivulla
+                  (hero → kategoriat → poiminnat), omistaja 3.9.2026. */}
+              <SubCatGrid restType={restType} onSelect={setSubCat} />
+
+              {/* Pöydät nyt — kellonaikaan sidottu, päivittäin vaihtuva
+                  valikoima. Vain oletusvälilehdellä: jakso poimii tyypit
+                  kellon mukaan (aamulla kahvilat, yöllä baarit), joten sama
+                  rivi Kahvilat- tai Baarit-välilehdellä olisi ristiriidassa
+                  välilehden sisällön kanssa. */}
+              {restType === 'ruokapaikat' && (
+                <PoydatNyt poiminta={poiminta} nyt={nyt} onOpen={setSelectedRest} />
+              )}
+
               {/* Kärkipoiminnat: ~60 parasta. Syylliset ensin, ks. lib/restaurant-reasons.ts. */}
               <section className="space-y-3">
                   <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
@@ -1301,8 +1513,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               {groupedSortedPool.length > 0 ? (
                 <>
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
-                    {groupedSortedPool
-                      .slice(0, TOP_PICKS).map(item =>
+                    {suosituimmatNaytto.map(item =>
                       '_isChain' in item
                         ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
                         : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} onOpen={setSelectedRest} />
@@ -1328,9 +1539,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               </section>
 
 
-              {/* Kategoriat vasta tässä: ne palvelevat kävijää joka tietää mitä
-                  hakee, eivät sitä joka ei tiedä. */}
-              <SubCatGrid restType={restType} onSelect={setSubCat} />
             </>
           )}
 
@@ -1364,7 +1572,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 <>
                   {/* Mobiilissa pystylista; leveällä 2-3 vierekkäin kuten ennen */}
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
-                    {groupedSortedPool.slice(0, visibleCount).map(item =>
+                    {selausNaytto.slice(0, visibleCount).map(item =>
                       '_isChain' in item
                         ? <ChainListCard key={item.key} chain={item} onClick={setSelectedChain} />
                         : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} onOpen={setSelectedRest} />

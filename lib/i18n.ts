@@ -909,6 +909,16 @@ const t = {
     'install.guide':               'Asennusohjeet',
     'hero.prev':                   'Edellinen nosto',
     'hero.next':                   'Seuraava nosto',
+    'poiminnat.title_aamu':        'Aamun pöydät',
+    'poiminnat.title_lounas':      'Lounaspöydät',
+    'poiminnat.title_paiva':       'Iltapäivän pöydät',
+    'poiminnat.title_ilta':        'Illan pöydät',
+    'poiminnat.title_myohainen':   'Vielä auki',
+    'poiminnat.subtitle':          'Avoinna nyt · valikoima vaihtuu päivittäin',
+    'hours.opens':                 'Avautuu',
+    'hours.closes':                'sulkeutuu',
+    'hours.closing_soon':          'Sulkeutuu pian',
+    'restaurants.all_categories':  'Kaikki kategoriat',
   },
 
   en: {
@@ -1820,6 +1830,16 @@ const t = {
     'install.guide':               'Install guide',
     'hero.prev':                   'Previous pick',
     'hero.next':                   'Next pick',
+    'poiminnat.title_aamu':        'Morning tables',
+    'poiminnat.title_lounas':      'Lunch tables',
+    'poiminnat.title_paiva':       'Afternoon tables',
+    'poiminnat.title_ilta':        'Tonight\'s tables',
+    'poiminnat.title_myohainen':   'Still open',
+    'poiminnat.subtitle':          'Open now · rotates daily',
+    'hours.opens':                 'Opens',
+    'hours.closes':                'closes',
+    'hours.closing_soon':          'Closing soon',
+    'restaurants.all_categories':  'All categories',
   },
 } as const
 

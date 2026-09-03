@@ -79,6 +79,7 @@ import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
 import { onRobotti } from '../lib/bot'
 import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/health-hysteresis'
 import { arvioiSitoutuminen, TYHJA_TILA } from '../lib/engagement'
+import { slotFor, poimiPoydat, aukioloTieto } from '../lib/poyta-poiminnat'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
@@ -3286,6 +3287,144 @@ for (const c of kwChecks) {
   const e = mkEvent({ id: `kw-${c.title}`, title: c.title, startTime: '2026-08-21T20:00:00+03:00', categories: c.cats ?? [], vibes: c.vibes })
   if (eventMatchesKeyword(e, c.kw) === c.expect) pass++
   else failures.push(`✗ keyword-suodatus: ${c.name}`)
+}
+
+// ── PÖYTÄPOIMINNAT (lib/poyta-poiminnat). Kellonaikaan sidotut päiväpoiminnat:
+// vain auki olevia, laatukynnys, deterministinen päiväkierto, monimuotoisuus.
+// Säännöt lukitaan tässä — ks. perustelut lib/poyta-poiminnat.ts.
+{
+  const mkRest = (o: Partial<Restaurant> & { id: string; name: string }): Restaurant => ({
+    description: '', cuisines: [], cuisineCategories: [], address: '', city: 'Helsinki',
+    image: 'https://esim.fi/kuva.webp', www: null, phone: null, type: 'ravintola',
+    openingHours: 'Mo-Su 11:00-23:00', googleRating: 4.5, reviewCount: 200, ...o,
+  })
+  const ilta = new Date(2026, 8, 4, 19, 0)
+  const perusPooli = Array.from({ length: 14 }, (_, i) =>
+    mkRest({ id: `r${i}`, name: `Ravintola ${i}`, cuisineCategories: [['pizza', 'sushi', 'nordisk'][i % 3]] }))
+
+  const slotCases: [number, number, string][] = [
+    [6, 0, 'aamu'], [10, 44, 'aamu'], [10, 45, 'lounas'], [13, 59, 'lounas'],
+    [14, 0, 'paiva'], [16, 29, 'paiva'], [16, 30, 'ilta'], [21, 59, 'ilta'],
+    [22, 0, 'myohainen'], [3, 0, 'myohainen'], [5, 59, 'myohainen'],
+  ]
+  const pCases: { name: string; ok: boolean }[] = [
+    ...slotCases.map(([h, m, odotus]) => ({
+      name: `slot ${h}:${String(m).padStart(2, '0')} → ${odotus}`,
+      ok: slotFor(new Date(2026, 8, 4, h, m)) === odotus,
+    })),
+    { name: 'suljettu paikka ei kelpaa poimintaan', ok: (() => {
+      const kiinni = mkRest({ id: 'kiinni', name: 'Lounaspaikka X', openingHours: 'Mo-Su 11:00-14:00' })
+      const p = poimiPoydat([...perusPooli, kiinni], ilta).poiminnat
+      return p.length > 0 && !p.some((r) => r.id === 'kiinni')
+    })() },
+    { name: 'kuvaton ei kelpaa (rivi on visuaalinen)', ok: (() => {
+      const kuvaton = mkRest({ id: 'kuvaton', name: 'Hieno mutta kuvaton', image: null, googleRating: 4.9, reviewCount: 900 })
+      return !poimiPoydat([...perusPooli, kuvaton], ilta).poiminnat.some((r) => r.id === 'kuvaton')
+    })() },
+    { name: 'heikko ilman syytä ei kelpaa (4,1 / 30 arv.)', ok: (() => {
+      const heikko = mkRest({ id: 'heikko', name: 'Keskinkertainen', googleRating: 4.1, reviewCount: 30 })
+      return !poimiPoydat([...perusPooli, heikko], ilta).poiminnat.some((r) => r.id === 'heikko')
+    })() },
+    { name: 'sama hetki → sama lista (deterministinen)', ok: (() => {
+      const a = poimiPoydat(perusPooli, ilta).poiminnat.map((r) => r.id).join(',')
+      const b = poimiPoydat(perusPooli, ilta).poiminnat.map((r) => r.id).join(',')
+      return a === b && a.length > 0
+    })() },
+    { name: 'eri päivä → järjestys elää (kierto)', ok: (() => {
+      const a = poimiPoydat(perusPooli, ilta).poiminnat.map((r) => r.id).join(',')
+      let erilaisia = 0
+      for (let d = 5; d < 12; d++) {
+        const b = poimiPoydat(perusPooli, new Date(2026, 8, d, 19, 0)).poiminnat.map((r) => r.id).join(',')
+        if (b !== a) erilaisia++
+      }
+      return erilaisia >= 2
+    })() },
+    { name: 'monimuotoisuus: kärkikuusikossa sama keittiö enintään 2×', ok: (() => {
+      const p = poimiPoydat(perusPooli, ilta).poiminnat.slice(0, 6)
+      const laskuri = new Map<string, number>()
+      p.forEach((r) => { const k = r.cuisineCategories[0] ?? r.type; laskuri.set(k, (laskuri.get(k) ?? 0) + 1) })
+      return p.length === 6 && [...laskuri.values()].every((n) => n <= 2)
+    })() },
+    { name: 'sama nimi (ketju) vain kerran', ok: (() => {
+      const ketju = ['a', 'b', 'c'].map((x, i) =>
+        mkRest({ id: `twin${i}`, name: 'Sama Ketju', googleRating: 4.9, reviewCount: 2000 }))
+      const p = poimiPoydat([...perusPooli, ...ketju], ilta).poiminnat
+      return p.filter((r) => r.name === 'Sama Ketju').length === 1
+    })() },
+    { name: 'aamulla kahvilat, ei baareja', ok: (() => {
+      const aamu = new Date(2026, 8, 4, 8, 30)
+      const kahvilat = Array.from({ length: 12 }, (_, i) =>
+        mkRest({ id: `k${i}`, name: `Kahvila ${i}`, type: 'kahvila', openingHours: 'Mo-Su 08:00-18:00', cuisineCategories: [`c${i}`] }))
+      const baari = mkRest({ id: 'baari', name: 'Aamubaari', type: 'baari', openingHours: '24/7', googleRating: 4.9, reviewCount: 3000 })
+      const p = poimiPoydat([...kahvilat, baari], aamu).poiminnat
+      return p.length >= 6 && p.every((r) => r.type === 'kahvila')
+    })() },
+    { name: 'aamuyöllä yön yli auki oleva baari kelpaa, päiväravintola ei', ok: (() => {
+      const yo = new Date(2026, 8, 5, 0, 30)
+      const baarit = Array.from({ length: 6 }, (_, i) =>
+        mkRest({ id: `yb${i}`, name: `Yöbaari ${i}`, type: 'baari', openingHours: 'Mo-Su 18:00-02:00', cuisineCategories: [`b${i}`] }))
+      const paiva = mkRest({ id: 'paiva', name: 'Päiväpaikka', openingHours: 'Mo-Su 11:00-15:00' })
+      const p = poimiPoydat([...baarit, paiva], yo).poiminnat
+      return p.length >= 4 && p.every((r) => r.id.startsWith('yb'))
+    })() },
+    // aukioloTieto — korttimerkin sisältö
+    { name: 'auki → sulkeutumisaika', ok: (() => {
+      const a = aukioloTieto('Mo-Su 11:00-23:00', ilta)
+      return a.tila === 'auki' && a.klo === '23:00' && !a.pian
+    })() },
+    { name: 'sulkeutuu ≤45 min → pian', ok: (() => {
+      const a = aukioloTieto('Mo-Su 11:00-23:00', new Date(2026, 8, 4, 22, 30))
+      return a.tila === 'auki' && a.pian === true
+    })() },
+    { name: 'kiinni, avautuu myöhemmin tänään → avautumisaika', ok: (() => {
+      const a = aukioloTieto('Mo-Su 11:00-14:00,17:00-22:00', new Date(2026, 8, 4, 15, 0))
+      return a.tila === 'kiinni' && a.klo === '17:00'
+    })() },
+    { name: 'kiinni loppupäivän → ei kelloa', ok: (() => {
+      const a = aukioloTieto('Mo-Su 11:00-14:00,17:00-22:00', new Date(2026, 8, 4, 22, 30))
+      return a.tila === 'kiinni' && a.klo === undefined
+    })() },
+    { name: 'yön yli: aamuyöllä auki, sulkeutuu 02:00', ok: (() => {
+      const a = aukioloTieto('Mo-Su 18:00-02:00', new Date(2026, 8, 5, 0, 30))
+      return a.tila === 'auki' && a.klo === '02:00' && !a.pian
+    })() },
+    { name: 'yön yli: 01:30 → sulkeutuu pian', ok: (() => {
+      const a = aukioloTieto('Mo-Su 18:00-02:00', new Date(2026, 8, 5, 1, 30))
+      return a.tila === 'auki' && a.pian === true
+    })() },
+    { name: 'keskiyön sulkeutuminen näkyy muodossa 24:00', ok: (() => {
+      const a = aukioloTieto('Mo-Su 11:00-24:00', new Date(2026, 8, 4, 20, 0))
+      return a.tila === 'auki' && a.klo === '24:00'
+    })() },
+    { name: 'yöllä baarit ennen Michelin-ravintolaa (ensisijainen tyyppi voittaa)', ok: (() => {
+      const yo = new Date(2026, 8, 4, 23, 0)
+      const baarit = Array.from({ length: 5 }, (_, i) =>
+        mkRest({ id: `nb${i}`, name: `Baari ${i}`, type: 'baari', openingHours: 'Mo-Su 16:00-03:00', cuisineCategories: [`nb${i}`] }))
+      const hieno = mkRest({ id: 'hieno', name: 'Hieno Sali', openingHours: 'Mo-Su 17:00-24:00',
+        googleRating: 4.8, reviewCount: 900,
+        reasons: [{ kind: 'michelin' as const, label: 'Michelin 2★', source: 'Michelin' }] })
+      const p = poimiPoydat([...baarit, hieno], yo).poiminnat
+      return p.length >= 5 && p.slice(0, 5).every((r) => r.type === 'baari')
+    })() },
+    { name: 'kohta sulkeutuva häviää pidempään auki olevalle (sakko > kierto)', ok: (() => {
+      const myohais = new Date(2026, 8, 4, 22, 50)
+      const kohta = mkRest({ id: 'kohta', name: 'Sulkeutuva', type: 'baari', openingHours: 'Mo-Su 16:00-23:15', cuisineCategories: ['a'] })
+      const pitka = mkRest({ id: 'pitka', name: 'Jatkaja', type: 'baari', openingHours: 'Mo-Su 16:00-02:00', cuisineCategories: ['b'] })
+      const muut = Array.from({ length: 4 }, (_, i) =>
+        mkRest({ id: `m${i}`, name: `Muu ${i}`, type: 'baari', openingHours: 'Mo-Su 16:00-02:00', cuisineCategories: [`m${i}`] }))
+      const p = poimiPoydat([kohta, pitka, ...muut], myohais).poiminnat
+      return p.findIndex((r) => r.id === 'pitka') < p.findIndex((r) => r.id === 'kohta')
+    })() },
+    { name: 'tuntemattomat aukiolot → tuntematon', ok: aukioloTieto(undefined, ilta).tila === 'tuntematon' },
+    { name: '24/7 → auki ilman kelloa', ok: (() => {
+      const a = aukioloTieto('24/7', ilta)
+      return a.tila === 'auki' && a.klo === undefined
+    })() },
+  ]
+  for (const c of pCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ pöytäpoiminnat: ${c.name}`)
+  }
 }
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.
