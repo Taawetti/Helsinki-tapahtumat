@@ -5,6 +5,7 @@ import { googleTimetableToOsm } from '@/lib/google-hours'
 import { googleCategoriesToCuisine } from '@/lib/cuisine'
 import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
 import { requireAdmin } from '@/lib/admin-auth'
+import { kotiutaKuva } from '@/lib/kuvavarasto'
 
 export const maxDuration = 300
 
@@ -258,7 +259,9 @@ export async function POST(req: NextRequest) {
         if (f.reviewCount != null) row.review_count = f.reviewCount
         if (f.priceLevel) row.price_level = f.priceLevel
         if (f.hoursOsm) { row.google_hours = f.hoursOsm; row.google_hours_updated = now }
-        if (f.mainImage) row.main_image = f.mainImage
+        // Kuva kotiutetaan HETI omaan varastoon — Googlen osoite lahoaa
+        // viikoissa (lib/kuvavarasto). Epäonnistuessa tuore lainalinkki varalle.
+        if (f.mainImage) row.main_image = (await kotiutaKuva(row.venue_key as string, f.mainImage)) ?? f.mainImage
         if (f.description) row.description = f.description
         // google_raw on re-rikastuksen done-merkki → kirjoitetaan AINA: raaka
         // Google-profiili kun paikka löytyi, muuten {} ("tarkistettu, ei dataa")

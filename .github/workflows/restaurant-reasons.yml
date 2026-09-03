@@ -71,6 +71,10 @@ jobs:
         continue-on-error: true
         env:
           DATAFORSEO_TOKEN: ${{ secrets.DATAFORSEO_TOKEN }}
+          # Kuvien kotiutus omaan varastoon (lib/kuvavarasto) — ilman näitä
+          # kuvat jäisivät lahoaviksi lainalinkeiksi.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npx tsx scripts/fetch-new-openings.ts
 
       # OSM:n uusien paikkojen Google-kortit (kuva, osoite, arvosana) Uutta
@@ -80,6 +84,8 @@ jobs:
         continue-on-error: true
         env:
           DATAFORSEO_TOKEN: ${{ secrets.DATAFORSEO_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npx tsx scripts/enrich-new-places.ts
 
       # Kirpputorit ja second hand -liikkeet OSM:stä /kirpputorit-sivulle.

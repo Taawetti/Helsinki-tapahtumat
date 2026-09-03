@@ -38,6 +38,7 @@ import type { ReasonFile, RestaurantReason } from '../lib/restaurant-reasons'
 import { googleTimetableToOsm } from '../lib/google-hours'
 import { googleCategoriesToCuisine } from '../lib/cuisine'
 import { lookupWithRetry } from '../lib/dataforseo'
+import { kotiutaKuva } from '../lib/kuvavarasto'
 
 const REASONS = join(process.cwd(), 'data', 'restaurant-reasons.json')
 const OUT = join(process.cwd(), 'data', 'new-openings.json')
@@ -235,7 +236,9 @@ async function main() {
         address: biz.address ?? w.street,
         lat: biz.lat,
         lon: biz.lon,
-        image: biz.image,
+        // Kuva heti omaan varastoon — lainalinkki lahoaisi viikoissa
+        // (lib/kuvavarasto). Epäonnistuessa lainalinkki kelpaa varalle.
+        image: biz.image ? (await kotiutaKuva(w.name.toLowerCase().trim(), biz.image)) ?? biz.image : null,
         www: biz.www,
         phone: biz.phone,
         category: biz.category,

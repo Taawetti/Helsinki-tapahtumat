@@ -27,6 +27,7 @@
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { lookupWithRetry, nameOverlap } from '../lib/dataforseo'
+import { kotiutaKuva } from '../lib/kuvavarasto'
 import type { ReasonFile, RestaurantReason } from '../lib/restaurant-reasons'
 
 const OUT = join(process.cwd(), 'data', 'new-places-enriched.json')
@@ -158,7 +159,8 @@ async function main() {
       cards[p.url!] = {
         name: p.venue!,
         title: biz.title ?? p.venue!,
-        image: biz.image,
+        // Kuva heti omaan varastoon (lib/kuvavarasto); epäonnistuessa lainalinkki.
+        image: biz.image ? (await kotiutaKuva(p.venue!.toLowerCase().trim(), biz.image)) ?? biz.image : null,
         address: biz.address ?? null,
         www: biz.www,
         phone: biz.phone,

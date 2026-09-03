@@ -4,6 +4,7 @@ import { fetchActivitiesCached } from '@/app/api/activities/route'
 import { googleTimetableToOsm } from '@/lib/google-hours'
 import { fetchEnrichedKeys } from '@/lib/venue-enrichment'
 import { requireAdmin } from '@/lib/admin-auth'
+import { kotiutaKuva } from '@/lib/kuvavarasto'
 
 export const maxDuration = 300
 
@@ -180,7 +181,9 @@ export async function POST(req: NextRequest) {
           google_raw: f.raw,
         }
         // Only write these when present, so a null can't wipe a prior value.
-        if (f.mainImage) row.main_image = f.mainImage
+        // Kuva kotiutetaan HETI omaan varastoon — Googlen osoite lahoaa
+        // viikoissa (lib/kuvavarasto). Epäonnistuessa tuore lainalinkki varalle.
+        if (f.mainImage) row.main_image = (await kotiutaKuva(row.venue_key as string, f.mainImage)) ?? f.mainImage
         if (f.description) row.description = f.description
         const { error } = await supabaseAdmin.from('venue_ratings').upsert(row, { onConflict: 'venue_key' })
         if (error) {
