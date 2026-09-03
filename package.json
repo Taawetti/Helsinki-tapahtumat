@@ -8,11 +8,12 @@
     "audit:compounds": "TZ=UTC tsx scripts/audit-compounds.ts",
     "build:vocab": "tsx scripts/build-vocab.ts",
     "find:broken": "tsx scripts/find-broken-sources.ts",
-    "prebuild": "TZ=UTC tsx scripts/test-categories.ts && TZ=UTC tsx scripts/audit-compounds.ts",
+    "prebuild": "TZ=UTC tsx scripts/test-categories.ts && TZ=UTC tsx scripts/audit-compounds.ts && tsx scripts/audit-pagination.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "audit:pagination": "tsx scripts/audit-pagination.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

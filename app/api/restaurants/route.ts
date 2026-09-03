@@ -639,6 +639,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
     const resp = await supabase
       .from('venue_ratings')
       .select(cols)
+      .order('venue_key') // deterministinen sivutus — ilman tätä rivi voi jäädä väliin sivurajalla
       .range(page * PAGE, (page + 1) * PAGE - 1)
     let rows = resp.data as unknown as Record<string, unknown>[] | null
     if (resp.error && cols === FULL_COLS) {
@@ -647,6 +648,7 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
       const retry = await supabase
         .from('venue_ratings')
         .select(cols)
+        .order('venue_key')
         .range(page * PAGE, (page + 1) * PAGE - 1)
       rows = retry.data as unknown as Record<string, unknown>[] | null
     }
