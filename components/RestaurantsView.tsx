@@ -43,12 +43,17 @@ const SUB_CATS: Record<RestType, { id: string; tKey: TranslationKey; emoji: stri
   // Kasvis POISTETTU 3.9.2026 (omistaja; mitattu: kategoriassa oli tasan
   // 1 ravintola) — lähi-itä nostettiin kärkeen sen tilalle (31 paikkaa).
   ruokapaikat: [
-    { id: 'awarded',        tKey: 'cuisine.awarded',        emoji: '🏆' },
+    // Suosituimmat ja Michelin ovat KATEGORIOITA (omistaja 3.9.2026):
+    // laskeutumissivun 60 kortin seinä muuttui laataksi, ja Michelin on oma
+    // hakuaikomuksensa (29 paikkaa: 6 tähteä, 3 Bib, 20 oppaassa — mitattu).
+    { id: 'suosituimmat',   tKey: 'restaurants.most_popular', emoji: '⭐' },
+    { id: 'michelin',       tKey: 'restaurants.cat_michelin', emoji: '🏵️' },
     { id: 'japanese',       tKey: 'cuisine.japanese',       emoji: '🍣' },
     { id: 'pizza',          tKey: 'cuisine.pizza',          emoji: '🍕' },
     { id: 'italian',        tKey: 'cuisine.italian',        emoji: '🍝' },
     { id: 'asian',          tKey: 'cuisine.asian',          emoji: '🍜' },
     { id: 'middle_eastern', tKey: 'cuisine.middle_eastern', emoji: '🧆' },
+    { id: 'awarded',        tKey: 'cuisine.awarded',        emoji: '🏆' },
     { id: 'nordisk',        tKey: 'cuisine.nordisk',        emoji: '🇫🇮' },
     { id: 'burger',         tKey: 'cuisine.burger',         emoji: '🍔' },
     { id: 'seafood',        tKey: 'cuisine.seafood',        emoji: '🐟' },
@@ -232,6 +237,10 @@ function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean 
   // ruokapaikat uses cuisine categories — no change needed
   if (restType === 'ruokapaikat') {
     if (sub === 'awarded') return !!r.featured
+    // Suosituimmat: koko pooli — kuratointi on järjestys + katkaisu (TOP_PICKS).
+    if (sub === 'suosituimmat') return true
+    // Michelin: oppaan paikat — tähdet, Bib Gourmand, Green tai valikoima.
+    if (sub === 'michelin') return !!(r.michelinStars || r.bibGourmand || r.greenMichelin || r.michelinRecommended)
     return r.cuisineCategories.includes(sub)
   }
 
@@ -826,6 +835,7 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
 
 // tint-hehkut per kategoria — sävyt vaihtelevat tarkoituksella
 const GRID_TINTS: Record<string, string> = {
+  suosituimmat: '251,191,36', michelin: '226,55,68',
   awarded: '232,192,106', nordisk: '95,150,255', japanese: '95,217,166', pizza: '255,107,107',
   italian: '175,130,255', asian: '95,217,166', burger: '232,192,106', veggie: '95,217,166',
   seafood: '95,150,255', steak: '255,107,107', indian: '232,150,106', mexican: '232,192,106',
@@ -939,39 +949,6 @@ function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestT
   )
 }
 
-// ── Alakategorian alleviivatabit — näkyvät vain pystylistassa ─────────────
-
-function RestSubTabs({ restType, active, onSelect }: {
-  restType: RestType
-  active: string
-  onSelect: (id: string) => void
-}) {
-  const { t } = useLanguage()
-  const items: { id: string; emoji: string; tKey: TranslationKey }[] = [
-    { id: 'all', emoji: '⭐', tKey: 'restaurants.most_popular' },
-    { id: 'kaikki', emoji: '', tKey: 'common.all' },
-    ...SUB_CATS[restType],
-  ]
-  return (
-    <div className="flex gap-5 overflow-x-auto scrollbar-none -mx-4 px-4 border-b border-white/6">
-      {items.map(cat => {
-        const isActive = active === cat.id
-        return (
-          <button key={cat.id} onClick={() => onSelect(cat.id)}
-            className="shrink-0 pb-2.5 text-[13.5px] font-black transition-colors"
-            style={{
-              color: isActive ? '#fff' : 'rgba(255,255,255,.4)',
-              borderBottom: isActive ? '2px solid #6b76ff' : '2px solid transparent',
-              letterSpacing: '-0.01em',
-            }}>
-            {cat.emoji ? `${cat.emoji} ` : ''}{t(cat.tKey)}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 // ── USKOTTAVUUS: LISTOJEN OLETUSJÄRJESTYS ───────────────────────────────────
 // "Jos joku on saanut 2000 arvostelua ja 4,6 arvosanan, se on parempi kuin
 // paikka jolla on 14 arvostelua ja 4,7." Juuri niin `credibilityScore` toimii:
@@ -1070,9 +1047,9 @@ function SortFilterRow({ open, nearby, byReviews, minRating, count, onOpen, onNe
   const { t } = useLanguage()
   const on  = { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff' }
   const off = { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.5)' }
-  const pill = 'shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all'
+  const pill = 'shrink-0 px-3 py-1.5 text-[12px] sm:px-4 sm:py-2 sm:text-sm rounded-full font-bold transition-all'
   return (
-    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
+    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap sm:overflow-x-auto scrollbar-none -mx-4 px-4">
       <button onClick={onOpen} className={pill} style={open ? on : off}>
         🟢 {t('idea.open_now')}
       </button>
@@ -1086,7 +1063,7 @@ function SortFilterRow({ open, nearby, byReviews, minRating, count, onOpen, onNe
           kirjaimellinen näkyvään arvosanaan — arvostelematon putoaa, koska
           sen tähtiä ei tiedetä. */}
       <label
-        className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
+        className="shrink-0 flex items-center gap-2 px-3 py-1.5 text-[12px] sm:px-4 sm:py-2 sm:text-sm rounded-full font-bold"
         style={{
           background: minRating !== null ? 'rgba(251,191,36,.1)' : 'rgba(255,255,255,.06)',
           border: `1px solid ${minRating !== null ? 'rgba(251,191,36,.35)' : 'transparent'}`,
@@ -1106,7 +1083,7 @@ function SortFilterRow({ open, nearby, byReviews, minRating, count, onOpen, onNe
             const v = Number(e.target.value)
             onMinRating(v <= 3.5 ? null : Math.round(v * 10) / 10)
           }}
-          className="w-24 accent-[#fbbf24]"
+          className="w-20 sm:w-24 accent-[#fbbf24]"
         />
       </label>
       {count !== null && (
@@ -1402,11 +1379,26 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     const karki = groupedSortedPool.slice(0, TOP_PICKS)
     return topNearby || topByReviews ? karki : aikajarjestys(karki)
   }, [groupedSortedPool, topNearby, topByReviews, aikajarjestys])
-  // Selaus: koko lista aikajärjestykseen ennen sivutusta.
-  const selausNaytto = useMemo(
-    () => (filterNearby || browseByReviews ? groupedSortedPool : aikajarjestys(groupedSortedPool)),
-    [groupedSortedPool, filterNearby, browseByReviews, aikajarjestys],
-  )
+  // Selaus: koko lista aikajärjestykseen ennen sivutusta. Poikkeukset:
+  //  - suosituimmat: kuratoitu kärki = sama 60 katkaisu kuin entisellä
+  //    laskeutumisosiolla, järjestys sen sisällä aikatietoinen
+  //  - michelin: oppaan arvojärjestys (tähdet → Bib → Green → valikoima)
+  //    säilytetään — avoinna ensin -ryhmittely rikkoisi hierarkian, ja
+  //    kortin merkki kertoo aukiolon muutenkin
+  const selausNaytto = useMemo(() => {
+    const pohja = subCat === 'suosituimmat' ? groupedSortedPool.slice(0, TOP_PICKS) : groupedSortedPool
+    if (subCat === 'michelin') {
+      const arvo = (item: RestItem) => {
+        const r = '_isChain' in item ? item.representative : item
+        if (r.michelinStars) return 3 - r.michelinStars
+        if (r.bibGourmand) return 4
+        if (r.greenMichelin) return 5
+        return 6
+      }
+      return [...pohja].sort((a, b) => arvo(a) - arvo(b))
+    }
+    return filterNearby || browseByReviews ? pohja : aikajarjestys(pohja)
+  }, [groupedSortedPool, filterNearby, browseByReviews, aikajarjestys, subCat])
 
 
   const clearFilter = useCallback(() => { setSubCat('all'); setFilterOpen(false); setFilterNearby(false); setBrowseMinRating(null); setBrowseByReviews(false); setTopOpenNow(false); setTopByReviews(false); setTopMinRating(null); setTopNearby(false) }, [])
@@ -1490,7 +1482,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 <PoydatNyt poiminta={poiminta} nyt={nyt} onOpen={setSelectedRest} />
               )}
 
-              {/* Kärkipoiminnat: ~60 parasta. Syylliset ensin, ks. lib/restaurant-reasons.ts. */}
+              {/* Kärkipoiminnat: ~60 parasta. RUOKAPAIKOILLA osio korvattiin
+                  Suosituimmat-KATEGORIALLA (omistaja 3.9.2026) ja näytetään
+                  vain varasääntönä kun poimintarivi on tyhjä (aamuyö, mikään
+                  ei auki) — laskeutumissivu ei saa jäädä pelkäksi heroksi.
+                  Muilla tyypeillä (ei poimintariviä) osio on entisellään. */}
+              {(restType !== 'ruokapaikat' || poiminta.poiminnat.length === 0) && (
               <section className="space-y-3">
                   <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
                     {'⭐ '}{t('restaurants.most_popular')} {(() => {
@@ -1537,7 +1534,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 </div>
               )}
               </section>
-
+              )}
 
             </>
           )}
@@ -1545,7 +1542,11 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
           {/* ═══ ALAKATEGORIAN PYSTYLISTA — alleviivatabit + yksipalstainen lista ═══ */}
           {subCat !== 'all' && (
             <>
-              <RestSubTabs restType={restType} active={subCat} onSelect={setSubCat} />
+              <button onClick={() => setSubCat('all')}
+                className="flex items-center gap-2 text-[13.5px] font-black text-white/50 hover:text-white transition-colors -mb-1"
+                style={{ letterSpacing: '-0.01em' }}>
+                ← {t('common.back')}
+              </button>
 
               <div className="flex items-center justify-between">
                 <h2 className="font-black text-white text-[19px]" style={{ letterSpacing: '-0.02em' }}>
@@ -1557,7 +1558,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                     const cat = SUB_CATS[restType].find(c => c.id === subCat)
                     return `${cat?.emoji ?? ''} ${cat ? t(cat.tKey) : ''}`
                   })()}
-                  <span className="text-white/30 text-[14px] font-bold"> · {groupedSortedPool.length} {t('restaurants.places')}</span>
+                  <span className="text-white/30 text-[14px] font-bold"> · {selausNaytto.length} {t('restaurants.places')}</span>
                 </h2>
               </div>
 
@@ -1568,7 +1569,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                 onByReviews={() => setBrowseByReviews(v => !v)} onMinRating={setBrowseMinRating}
               />
 
-              {groupedSortedPool.length > 0 ? (
+              {selausNaytto.length > 0 ? (
                 <>
                   {/* Mobiilissa pystylista; leveällä 2-3 vierekkäin kuten ennen */}
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
@@ -1578,12 +1579,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
                         : <RestListCard key={item.id} r={item} distance={distMap.get(item.id)} onShowOnMap={onShowOnMap} onOpen={setSelectedRest} />
                     )}
                   </div>
-                  {visibleCount < groupedSortedPool.length && (
+                  {visibleCount < selausNaytto.length && (
                     <button
                       onClick={() => setVisibleCount(v => v + 24)}
                       className="w-full py-3 rounded-2xl text-sm font-black text-white/50 hover:text-white/80 transition-all"
                       style={{ background: 'rgba(255,255,255,.05)' }}>
-                      {t('restaurants.load_more')} ({groupedSortedPool.length - visibleCount} {t('restaurants.places')})
+                      {t('restaurants.load_more')} ({selausNaytto.length - visibleCount} {t('restaurants.places')})
                     </button>
                   )}
                 </>

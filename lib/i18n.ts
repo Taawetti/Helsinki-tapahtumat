@@ -919,6 +919,8 @@ const t = {
     'hours.closes':                'sulkeutuu',
     'hours.closing_soon':          'Sulkeutuu pian',
     'restaurants.all_categories':  'Kaikki kategoriat',
+    'restaurants.tab_home':        'Etusivu',
+    'restaurants.cat_michelin':    'Michelin',
   },
 
   en: {
@@ -1840,6 +1842,8 @@ const t = {
     'hours.closes':                'closes',
     'hours.closing_soon':          'Closing soon',
     'restaurants.all_categories':  'All categories',
+    'restaurants.tab_home':        'Home',
+    'restaurants.cat_michelin':    'Michelin',
   },
 } as const
 
