@@ -3351,13 +3351,13 @@ for (const c of kwChecks) {
       const p = poimiPoydat([...perusPooli, ...ketju], ilta).poiminnat
       return p.filter((r) => r.name === 'Sama Ketju').length === 1
     })() },
-    { name: 'aamulla kahvilat, ei baareja', ok: (() => {
+    { name: 'poiminnat tulevat annetusta joukosta (tyyppirajaus kutsujalla)', ok: (() => {
       const aamu = new Date(2026, 8, 4, 8, 30)
       const kahvilat = Array.from({ length: 12 }, (_, i) =>
         mkRest({ id: `k${i}`, name: `Kahvila ${i}`, type: 'kahvila', openingHours: 'Mo-Su 08:00-18:00', cuisineCategories: [`c${i}`] }))
-      const baari = mkRest({ id: 'baari', name: 'Aamubaari', type: 'baari', openingHours: '24/7', googleRating: 4.9, reviewCount: 3000 })
-      const p = poimiPoydat([...kahvilat, baari], aamu).poiminnat
-      return p.length >= 6 && p.every((r) => r.type === 'kahvila')
+      const idt = new Set(kahvilat.map((r) => r.id))
+      const p = poimiPoydat(kahvilat, aamu).poiminnat
+      return p.length >= 6 && p.every((r) => idt.has(r.id))
     })() },
     { name: 'aamuyöllä yön yli auki oleva baari kelpaa, päiväravintola ei', ok: (() => {
       const yo = new Date(2026, 8, 5, 0, 30)
@@ -3396,15 +3396,11 @@ for (const c of kwChecks) {
       const a = aukioloTieto('Mo-Su 11:00-24:00', new Date(2026, 8, 4, 20, 0))
       return a.tila === 'auki' && a.klo === '24:00'
     })() },
-    { name: 'yöllä baarit ennen Michelin-ravintolaa (ensisijainen tyyppi voittaa)', ok: (() => {
-      const yo = new Date(2026, 8, 4, 23, 0)
-      const baarit = Array.from({ length: 5 }, (_, i) =>
-        mkRest({ id: `nb${i}`, name: `Baari ${i}`, type: 'baari', openingHours: 'Mo-Su 16:00-03:00', cuisineCategories: [`nb${i}`] }))
-      const hieno = mkRest({ id: 'hieno', name: 'Hieno Sali', openingHours: 'Mo-Su 17:00-24:00',
-        googleRating: 4.8, reviewCount: 900,
-        reasons: [{ kind: 'michelin' as const, label: 'Michelin 2★', source: 'Michelin' }] })
-      const p = poimiPoydat([...baarit, hieno], yo).poiminnat
-      return p.length >= 5 && p.slice(0, 5).every((r) => r.type === 'baari')
+    { name: 'alle neljän auki olevan pooli → rivi piiloutuu (yökerhot päivällä)', ok: (() => {
+      const paiva = new Date(2026, 8, 4, 13, 0)
+      const klubit = Array.from({ length: 8 }, (_, i) =>
+        mkRest({ id: `kl${i}`, name: `Klubi ${i}`, type: 'yokerho', openingHours: 'Mo-Su 22:00-04:00', cuisineCategories: [`kl${i}`] }))
+      return poimiPoydat(klubit, paiva).poiminnat.length === 0
     })() },
     { name: 'kohta sulkeutuva häviää pidempään auki olevalle (sakko > kierto)', ok: (() => {
       const myohais = new Date(2026, 8, 4, 22, 50)

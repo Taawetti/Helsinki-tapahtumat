@@ -41,19 +41,6 @@ export function slotFor(now: Date): PoimintaSlot {
   return 'myohainen'
 }
 
-/** Mitkä paikkatyypit kuuluvat kuhunkin jaksoon. `taytto` otetaan mukaan
- *  vasta jos ensisijaisista ei riitä — aamulla kahvilat, ei baareja. */
-const SLOT_TYPES: Record<PoimintaSlot, { ensisijaiset: Restaurant['type'][]; taytto: Restaurant['type'][] }> = {
-  aamu:      { ensisijaiset: ['kahvila'], taytto: ['ravintola'] },
-  lounas:    { ensisijaiset: ['ravintola'], taytto: ['kahvila'] },
-  paiva:     { ensisijaiset: ['kahvila', 'ravintola'], taytto: [] },
-  ilta:      { ensisijaiset: ['ravintola'], taytto: ['baari'] },
-  // Yöllä baarit ja klubit ensin: klo 23.30 kysymys on "missä ilta jatkuu",
-  // ei "mihin fine dining -pöytään ehtisi puoleksi tunniksi". Ravintolat
-  // täydentävät (yökeittiöt kuten Fat Tony's nousevat aukiolonsa ansiosta).
-  myohainen: { ensisijaiset: ['baari', 'yokerho'], taytto: ['ravintola'] },
-}
-
 /** Deterministinen 0–1-luku merkkijonosta (FNV-sekoitus + loppusekoitus).
  *  Sama syöte → sama luku kaikilla laitteilla; ei Math.randomia, jotta
  *  lista ei vaihdu sivulatausten välillä saman päivän sisällä. */
@@ -74,13 +61,16 @@ function paivaAvain(now: Date, slot: PoimintaSlot): string {
   return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}|${slot}`
 }
 
+/** Poimii kellonaikaan sopivat nostot ANNETUSTA joukosta. Tyyppirajaus on
+ *  kutsujan vastuulla: jokainen välilehti (ruokapaikat, kahvilat, baarit,
+ *  yökerhot) antaa oman poolinsa ja saa omat poimintansa (omistaja 3.9.2026:
+ *  "haluan kahvila-, baari- ja yökerhosivuille saman asian"). */
 export function poimiPoydat(
-  ravintolat: Restaurant[],
+  ehdokkaat: Restaurant[],
   now: Date,
 ): { slot: PoimintaSlot; poiminnat: Restaurant[] } {
   const slot = slotFor(now)
   const siemen = paivaAvain(now, slot)
-  const { ensisijaiset, taytto } = SLOT_TYPES[slot]
 
   const kelpaa = (r: Restaurant, kevennetty: boolean): boolean => {
     if (!r.image) return false
@@ -91,23 +81,15 @@ export function poimiPoydat(
       : (r.googleRating ?? 0) >= 4.3 && (r.reviewCount ?? 0) >= 80
   }
 
-  // Pooli: ensisijaiset tyypit tiukalla kynnyksellä; täydennys muista
-  // tyypeistä ja lopuksi kevennetyllä kynnyksellä, jos rivi jäisi vajaaksi
-  // (esim. arkiaamu — auki olevia laatukahviloita on rajallinen määrä).
-  const idt = new Set<string>()
-  const pool: Restaurant[] = []
-  const lisaa = (tyypit: Restaurant['type'][], kevennetty: boolean) => {
-    for (const r of ravintolat) {
-      if (!idt.has(r.id) && tyypit.includes(r.type) && kelpaa(r, kevennetty)) {
-        idt.add(r.id)
-        pool.push(r)
-      }
-    }
+  // Tiukka kynnys ensin; kevennetty vasta jos rivi jäisi vajaaksi (esim.
+  // arkiaamun kahvilat tai päiväsaikaan auki olevat baarit).
+  let pool = ehdokkaat.filter((r) => kelpaa(r, false))
+  if (pool.length < 6) {
+    const idt = new Set(pool.map((r) => r.id))
+    pool = [...pool, ...ehdokkaat.filter((r) => !idt.has(r.id) && kelpaa(r, true))]
   }
-  lisaa(ensisijaiset, false)
-  if (pool.length < POIMINTOJA + 4) lisaa(taytto, false)
-  if (pool.length < 6) lisaa([...ensisijaiset, ...taytto], true)
-  // Alle neljän rivi näyttäisi tyhjältä hyllyltä — parempi ei riviä lainkaan.
+  // Alle neljän rivi näyttäisi tyhjältä hyllyltä — parempi ei riviä lainkaan
+  // (näin yökerhorivi piiloutuu itsestään päiväsaikaan).
   if (pool.length < 4) return { slot, poiminnat: [] }
 
   // Pisteytys: syypaino + uskottavuus (Wilson) + pieni päiväkohtainen
@@ -128,11 +110,7 @@ export function poimiPoydat(
         (aukioloTieto(r.openingHours, now).pian ? 0.3 : 0),
     )
   }
-  // Jakson ensisijaiset tyypit AINA ennen täydennystyyppejä: aamurivin kärki
-  // on kahviloita ja yörivin baareja, vaikka täydennykseksi otetulla
-  // ravintolalla olisi kovempi syypaino.
-  const prio = (r: Restaurant) => (ensisijaiset.includes(r.type) ? 0 : 1)
-  const jarjestys = [...pool].sort((a, b) => prio(a) - prio(b) || piste.get(b.id)! - piste.get(a.id)!)
+  const jarjestys = [...pool].sort((a, b) => piste.get(b.id)! - piste.get(a.id)!)
 
   // Monimuotoisuus: sama keittiö enintään 2, sama nimi (ketju) kerran.
   const poiminnat: Restaurant[] = []

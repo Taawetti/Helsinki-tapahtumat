@@ -63,6 +63,7 @@ const SUB_CATS: Record<RestType, { id: string; tKey: TranslationKey; emoji: stri
     { id: 'african',        tKey: 'cuisine.african',        emoji: '🌍' },
   ],
   kahvilat: [
+    { id: 'suosituimmat', tKey: 'restaurants.most_popular',     emoji: '⭐' },
     { id: 'klassikot',    tKey: 'restaurants.sub_klassikot',    emoji: '🎩' },
     { id: 'ranskalaiset', tKey: 'restaurants.sub_ranskalaiset', emoji: '🥖' },
     { id: 'boheemit',     tKey: 'restaurants.sub_boheemit',     emoji: '📖' },
@@ -71,12 +72,14 @@ const SUB_CATS: Record<RestType, { id: string; tKey: TranslationKey; emoji: stri
     { id: 'brunssi',      tKey: 'restaurants.sub_brunssi',      emoji: '🥐' },
   ],
   baarit: [
+    { id: 'suosituimmat', tKey: 'restaurants.most_popular', emoji: '⭐' },
     { id: 'cocktail', tKey: 'restaurants.sub_cocktail', emoji: '🍸' },
     { id: 'olut',     tKey: 'restaurants.sub_olut',     emoji: '🍺' },
     { id: 'viini',    tKey: 'restaurants.sub_viini',    emoji: '🍷' },
     { id: 'urheilu',  tKey: 'restaurants.sub_urheilu',  emoji: '🏟' },
   ],
   yokerhot: [
+    { id: 'suosituimmat', tKey: 'restaurants.most_popular', emoji: '⭐' },
     { id: 'klubi',   tKey: 'restaurants.sub_klubi',   emoji: '🎉' },
     { id: 'karaoke', tKey: 'restaurants.sub_karaoke', emoji: '🎤' },
     { id: 'tekno',   tKey: 'restaurants.sub_tekno',   emoji: '🎧' },
@@ -233,6 +236,9 @@ const NAME_OVERRIDES: Record<string, RegExp> = {
 
 function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean {
   if (sub === 'all') return true
+  // Suosituimmat on kaikkien tyyppien kategoria: koko pooli, kuratointi on
+  // järjestys + katkaisu (TOP_PICKS) selausnäkymässä.
+  if (sub === 'suosituimmat') return true
 
   // ruokapaikat uses cuisine categories — no change needed
   if (restType === 'ruokapaikat') {
@@ -283,12 +289,39 @@ function matchesSubCat(r: Restaurant, restType: RestType, sub: string): boolean 
 // poiminnat" -idean ravintoloihin: kellonaikaan sopiva, auki oleva ja
 // päivittäin vaihtuva valikoima syineen. Valinta: lib/poyta-poiminnat.
 
-const SLOT_OTSIKKO: Record<PoimintaSlot, { tKey: TranslationKey; emoji: string }> = {
-  aamu:      { tKey: 'poiminnat.title_aamu',      emoji: '☕' },
-  lounas:    { tKey: 'poiminnat.title_lounas',    emoji: '🍽' },
-  paiva:     { tKey: 'poiminnat.title_paiva',     emoji: '🧁' },
-  ilta:      { tKey: 'poiminnat.title_ilta',      emoji: '🕯' },
-  myohainen: { tKey: 'poiminnat.title_myohainen', emoji: '🌙' },
+// Otsikot tyypeittäin JA jaksoittain — jokainen välilehti puhuu omista
+// paikoistaan (omistaja 3.9.2026: "kategoriaan sopivilla otsikoilla").
+const SLOT_OTSIKKO: Record<RestType, Record<PoimintaSlot, { tKey: TranslationKey; emoji: string }>> = {
+  ruokapaikat: {
+    aamu:      { tKey: 'poiminnat.title_aamu',      emoji: '☕' },
+    lounas:    { tKey: 'poiminnat.title_lounas',    emoji: '🍽' },
+    paiva:     { tKey: 'poiminnat.title_paiva',     emoji: '🧁' },
+    ilta:      { tKey: 'poiminnat.title_ilta',      emoji: '🕯' },
+    myohainen: { tKey: 'poiminnat.title_myohainen', emoji: '🌙' },
+  },
+  kahvilat: {
+    aamu:      { tKey: 'poiminnat.kahvilat_aamu',   emoji: '☕' },
+    lounas:    { tKey: 'poiminnat.kahvilat_lounas', emoji: '🥪' },
+    paiva:     { tKey: 'poiminnat.kahvilat_paiva',  emoji: '🧁' },
+    ilta:      { tKey: 'poiminnat.kahvilat_ilta',   emoji: '🕯' },
+    myohainen: { tKey: 'poiminnat.title_myohainen', emoji: '🌙' },
+  },
+  baarit: {
+    aamu:      { tKey: 'poiminnat.baarit_aamu',     emoji: '🍺' },
+    lounas:    { tKey: 'poiminnat.baarit_lounas',   emoji: '🍺' },
+    paiva:     { tKey: 'poiminnat.baarit_paiva',    emoji: '🍻' },
+    ilta:      { tKey: 'poiminnat.baarit_ilta',     emoji: '🍸' },
+    myohainen: { tKey: 'poiminnat.title_myohainen', emoji: '🌙' },
+  },
+  // Klubien päiväjaksot näkyvät vain jos jokin on oikeasti auki (harvinaista)
+  // — silloin neutraali "Avoinna nyt".
+  yokerhot: {
+    aamu:      { tKey: 'poiminnat.title_avoinna',    emoji: '🌃' },
+    lounas:    { tKey: 'poiminnat.title_avoinna',    emoji: '🌃' },
+    paiva:     { tKey: 'poiminnat.title_avoinna',    emoji: '🌃' },
+    ilta:      { tKey: 'poiminnat.yokerhot_ilta',    emoji: '🌃' },
+    myohainen: { tKey: 'poiminnat.yokerhot_myohainen', emoji: '🌙' },
+  },
 }
 
 function PoimintaKortti({ r, nyt, onOpen }: { r: Restaurant; nyt: Date; onOpen: (r: Restaurant) => void }) {
@@ -341,14 +374,15 @@ function PoimintaKortti({ r, nyt, onOpen }: { r: Restaurant; nyt: Date; onOpen: 
   )
 }
 
-function PoydatNyt({ poiminta, nyt, onOpen }: {
+function PoydatNyt({ poiminta, nyt, restType, onOpen }: {
   poiminta: { slot: PoimintaSlot; poiminnat: Restaurant[] }
   nyt: Date
+  restType: RestType
   onOpen: (r: Restaurant) => void
 }) {
   const { t } = useLanguage()
   if (poiminta.poiminnat.length === 0) return null
-  const otsikko = SLOT_OTSIKKO[poiminta.slot]
+  const otsikko = SLOT_OTSIKKO[restType][poiminta.slot]
   // Ruudukko kuten etusivun poiminnoissa — EI karusellia (omistaja 3.9.2026:
   // "en halua karusellia tähän, sitä ei ole muuallakaan sivustossa").
   return (
@@ -1252,8 +1286,9 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   }, [])
   // Pöydät nyt -poiminnat lasketaan täällä (ei komponentissa), jotta hero
   // voi väistää niitä — muuten sama paikka olisi rivin ykkösenä JA herona
-  // heti sen alla (mitattu: Grön kahdesti peräkkäin).
-  const poiminta = useMemo(() => poimiPoydat(restaurants, nyt), [restaurants, nyt])
+  // heti sen alla (mitattu: Grön kahdesti peräkkäin). Pooli on VÄLILEHDEN
+  // oma joukko: jokainen välilehti saa omat kellonaikapoimintansa.
+  const poiminta = useMemo(() => poimiPoydat(typePool, nyt), [typePool, nyt])
   const poimintaIdt = useMemo(() => new Set(poiminta.poiminnat.map((r) => r.id)), [poiminta])
 
   const heroRest = useMemo(() => {
@@ -1269,9 +1304,8 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
       (r.reasons ? reasonsWeight(r.reasons, sortToday) : 0) + restaurantQualityScore(r)
     const quality = typePool
       // Poimintaruudukossa jo näkyvät väistyvät herosta — ei samaa paikkaa
-      // kahdesti peräkkäin. Koskee vain Ruokapaikat-välilehteä, jolla
-      // poiminnat näytetään; muilla välilehdillä hero valitaan vapaasti.
-      .filter(r => r.image && isRatedAtLeast(r, 4) && !(restType === 'ruokapaikat' && poimintaIdt.has(r.id)))
+      // kahdesti peräkkäin (koskee nyt kaikkia välilehtiä).
+      .filter(r => r.image && isRatedAtLeast(r, 4) && !poimintaIdt.has(r.id))
       .sort((a, b) => heroScore(b) - heroScore(a))
     const top = quality.slice(0, 12)
     return (
@@ -1474,20 +1508,16 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
               <SubCatGrid restType={restType} onSelect={setSubCat} />
 
               {/* Pöydät nyt — kellonaikaan sidottu, päivittäin vaihtuva
-                  valikoima. Vain oletusvälilehdellä: jakso poimii tyypit
-                  kellon mukaan (aamulla kahvilat, yöllä baarit), joten sama
-                  rivi Kahvilat- tai Baarit-välilehdellä olisi ristiriidassa
-                  välilehden sisällön kanssa. */}
-              {restType === 'ruokapaikat' && (
-                <PoydatNyt poiminta={poiminta} nyt={nyt} onOpen={setSelectedRest} />
-              )}
+                  valikoima välilehden omista paikoista, omilla otsikoillaan
+                  (Illan pöydät / Illan kahvilat / Illan baarit / Yön klubit). */}
+              <PoydatNyt poiminta={poiminta} nyt={nyt} restType={restType} onOpen={setSelectedRest} />
 
-              {/* Kärkipoiminnat: ~60 parasta. RUOKAPAIKOILLA osio korvattiin
-                  Suosituimmat-KATEGORIALLA (omistaja 3.9.2026) ja näytetään
-                  vain varasääntönä kun poimintarivi on tyhjä (aamuyö, mikään
-                  ei auki) — laskeutumissivu ei saa jäädä pelkäksi heroksi.
-                  Muilla tyypeillä (ei poimintariviä) osio on entisellään. */}
-              {(restType !== 'ruokapaikat' || poiminta.poiminnat.length === 0) && (
+              {/* Kärkipoiminnat: ~60 parasta. Osio korvattiin KAIKILLA
+                  tyypeillä Suosituimmat-kategorialla (omistaja 3.9.2026) ja
+                  näytetään vain varasääntönä kun poimintarivi on tyhjä —
+                  laskeutumissivu ei saa jäädä pelkäksi heroksi (esim.
+                  yökerhot päiväsaikaan, kaikki kiinni → tämä näkyy). */}
+              {poiminta.poiminnat.length === 0 && (
               <section className="space-y-3">
                   <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
                     {'⭐ '}{t('restaurants.most_popular')} {(() => {
