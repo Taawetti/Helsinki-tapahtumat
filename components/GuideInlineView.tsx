@@ -8,6 +8,7 @@
 // Data /api/guides/[slug]:sta — jaettu lib/guide-data.ts SEO-sivujen kanssa.
 
 import { useEffect, useState } from 'react'
+import PlaceDetailPanel, { type PaikkaTieto } from '@/components/PlaceDetailPanel'
 import type { PubVisa } from '@/lib/pubivisat'
 import PosterCard from '@/components/PosterCard'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -113,18 +114,15 @@ function visaTime(iso: string, lang: Lang): string {
 }
 
 // ── Paikkakortti — PosterCardin geometria (3/4-juliste + nimi alla) ─────────
+//
+// KLIKKI AVAA AINA INFOPANEELIN (omistaja 3.9.2026): ennen kortti oli linkki
+// nettisivulle jos www oli, ja pelkkä div jos ei ollut — osa korteista hyppäsi
+// suoraan ulos sovelluksesta ja osa ei reagoinut mihinkään. Nyt jokainen
+// paikkakortti käyttäytyy kuten tapahtumakortit: aukeaa paneeli, jossa tiedot
+// ja linkit (nettisivu, kartta, reitti) ovat yhden askeleen päässä.
 
-function PlaceCard({ id, name, address, image, emoji, kicker, topBadge, bottomChip, href }: {
-  id: string
-  name: string
-  address?: string | null
-  image?: string | null
-  emoji: string
-  kicker: string          // julisteen yläteksti (PosterCardin categories[0]-vastine)
-  topBadge?: string | null
-  bottomChip?: string | null
-  href?: string | null
-}) {
+function PlaceCard({ paikka, onOpen }: { paikka: PaikkaTieto; onOpen: (p: PaikkaTieto) => void }) {
+  const { id, name, address, image, emoji, kicker, topBadge, bottomChip } = paikka
   const idx = hashIdx(id)
   const gradient = GRADIENTS[idx]
   const accent = ACCENTS[idx]
@@ -183,17 +181,11 @@ function PlaceCard({ id, name, address, image, emoji, kicker, topBadge, bottomCh
       </div>
     </>
   )
-  // Linkitön kortti EI saa kantaa hover/focus-luokkia: ne eivät voi laueta
-  // (ei fokusoitava elementti) ja lupaisivat klikattavuutta jota ei ole.
-  const base = 'group relative w-full text-left rounded-xl overflow-hidden bg-[#111] block'
-  const interactive = ' hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]'
-  return href ? (
-    <a href={/^https?:\/\//i.test(href) ? href : `https://${href}`} target="_blank" rel="noopener noreferrer"
-      className={base + interactive} style={{ textDecoration: 'none' }}>
+  return (
+    <button onClick={() => onOpen(paikka)}
+      className="group relative w-full text-left rounded-xl overflow-hidden bg-[#111] block hover:scale-[1.02] active:scale-[0.97] transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]">
       {inner}
-    </a>
-  ) : (
-    <div className={base}>{inner}</div>
+    </button>
   )
 }
 
@@ -229,6 +221,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
   const [error, setError] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [showMenu, setShowMenu] = useState(false)
+  const [valittu, setValittu] = useState<PaikkaTieto | null>(null)
   const { t, lang } = useLanguage()
   const meta = GUIDE_META[slug]
 
@@ -243,6 +236,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
       setData(null)
       setError(false)
       setShowMenu(false)
+      setValittu(null)
       fetch(`/api/guides/${slug}`)
         .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
         .then((d) => { if (alive) setData(d) })
@@ -330,11 +324,9 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
       {data && slug === 'saunat' && (
         <CardGrid>
           {(data.saunas ?? []).map((s) => (
-            <PlaceCard key={s.id} id={s.id} name={s.name} address={s.address}
-              image={s.image} emoji="🧖" kicker={t('cat.sauna')}
-              topBadge={s.newMonth ? `${t('uutta.new_in')} ${t(`uutta.month_${s.newMonth}` as TranslationKey)}` : null}
-              bottomChip={s.rating != null ? `★ ${s.rating.toFixed(1)}` : null}
-              href={s.www} />
+            <PlaceCard key={s.id} onOpen={setValittu} paikka={{ ...s, emoji: '🧖', kicker: t('cat.sauna'),
+              topBadge: s.newMonth ? `${t('uutta.new_in')} ${t(`uutta.month_${s.newMonth}` as TranslationKey)}` : null,
+              bottomChip: s.rating != null ? `★ ${s.rating.toFixed(1)}` : null }} />
           ))}
         </CardGrid>
       )}
@@ -345,10 +337,8 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
             <SectionHead sub={t('guides.sec_rooftops_sub')}>{t('guides.sec_rooftops')}</SectionHead>
             <CardGrid>
               {(data.rooftops ?? []).map((r) => (
-                <PlaceCard key={r.name} id={r.name} name={r.name} address={r.address}
-                  image={r.image} emoji="🍸" kicker={t('guides.kicker_rooftop')}
-                  bottomChip={r.rating != null ? `★ ${r.rating.toFixed(1)}` : null}
-                  href={r.www} />
+                <PlaceCard key={r.name} onOpen={setValittu} paikka={{ ...r, id: r.name, emoji: '🍸', kicker: t('guides.kicker_rooftop'),
+                  bottomChip: r.rating != null ? `★ ${r.rating.toFixed(1)}` : null }} />
               ))}
             </CardGrid>
           </div>
@@ -368,10 +358,8 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
           <SectionHead sub={t('guides.sec_quizzes_sub')}>{t('guides.sec_quizzes')}</SectionHead>
           <CardGrid>
             {(data.visas ?? []).map((v, i) => (
-              <PlaceCard key={`${v.name}-${i}`} id={`${v.name}-${i}`} name={v.name} address={v.address}
-                image={v.image} emoji="🧠" kicker={t('guides.kicker_quiz')}
-                topBadge={v.rating != null ? `★ ${v.rating.toFixed(1)}` : null}
-                bottomChip={visaTime(v.nextISO, lang)} href={v.www} />
+              <PlaceCard key={`${v.name}-${i}`} onOpen={setValittu} paikka={{ ...v, id: `${v.name}-${i}`, emoji: '🧠', kicker: t('guides.kicker_quiz'),
+                topBadge: v.rating != null ? `★ ${v.rating.toFixed(1)}` : null, bottomChip: visaTime(v.nextISO, lang) }} />
             ))}
           </CardGrid>
         </div>
@@ -391,8 +379,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
             <SectionHead sub={t('guides.sec_flea_shops_sub')}>{t('guides.sec_flea_shops')}</SectionHead>
             <CardGrid>
               {(data.shops ?? []).map((p) => (
-                <PlaceCard key={p.id} id={p.id} name={p.name} address={p.address}
-                  image={p.image} emoji="🛍" kicker="Second hand" href={p.www} />
+                <PlaceCard key={p.id} onOpen={setValittu} paikka={{ ...p, emoji: '🛍', kicker: 'Second hand' }} />
               ))}
             </CardGrid>
           </div>
@@ -419,10 +406,8 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
             <SectionHead sub={t('guides.sec_museums_sub')}>{t('guides.sec_museums')}</SectionHead>
             <CardGrid>
               {(data.museums ?? []).map((p) => (
-                <PlaceCard key={p.id} id={p.id} name={p.name} address={p.address}
-                  image={p.image} emoji="🏛" kicker={t('cat.museo')} topBadge={t('guides.free_badge')}
-                  bottomChip={p.rating != null ? `★ ${p.rating.toFixed(1)}` : null}
-                  href={p.www} />
+                <PlaceCard key={p.id} onOpen={setValittu} paikka={{ ...p, emoji: '🏛', kicker: t('cat.museo'), topBadge: t('guides.free_badge'),
+                  bottomChip: p.rating != null ? `★ ${p.rating.toFixed(1)}` : null }} />
               ))}
             </CardGrid>
           </div>
@@ -430,15 +415,16 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
             <SectionHead>{t('guides.sec_galleries')}</SectionHead>
             <CardGrid>
               {(data.galleries ?? []).map((p) => (
-                <PlaceCard key={p.id} id={p.id} name={p.name} address={p.address}
-                  image={p.image} emoji="🖼" kicker={t('cat.galleria')} topBadge={t('guides.free_badge')}
-                  bottomChip={p.rating != null ? `★ ${p.rating.toFixed(1)}` : null}
-                  href={p.www} />
+                <PlaceCard key={p.id} onOpen={setValittu} paikka={{ ...p, emoji: '🖼', kicker: t('cat.galleria'), topBadge: t('guides.free_badge'),
+                  bottomChip: p.rating != null ? `★ ${p.rating.toFixed(1)}` : null }} />
               ))}
             </CardGrid>
           </div>
         </>
       )}
+
+      {/* Paikan infopaneeli — sama kuori kuin tapahtumilla (PlaceDetailPanel) */}
+      <PlaceDetailPanel paikka={valittu} guideSlug={slug} onClose={() => setValittu(null)} />
 
       {/* Tapahtumaosioiden tyhjätila */}
       {data && (slug === 'jamit' || slug === 'terassit' || slug === 'kirpputorit') && (data.events ?? []).length === 0 && (

@@ -112,9 +112,8 @@ export default async function PubivisatSivu() {
         <h1 className="sr-only">Pubivisat Helsingissä — {visas.length} tietovisaa viikossa</h1>
         <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
         <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
-          Lähde: pubivisat.fi. Kuvat ja arvosanat Googlesta. Aikataulut voivat
-          muuttua ja kesätauot ovat yleisiä — tarkista baarin omalta sivulta
-          ennen lähtöä.
+          Aikataulut voivat muuttua ja kesätauot ovat yleisiä — tarkista
+          baarin omalta sivulta ennen lähtöä.
         </p>
       </section>
     </>
