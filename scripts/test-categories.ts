@@ -80,6 +80,7 @@ import { onRobotti } from '../lib/bot'
 import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/health-hysteresis'
 import { arvioiSitoutuminen, TYHJA_TILA } from '../lib/engagement'
 import { slotFor, poimiPoydat, aukioloTieto } from '../lib/poyta-poiminnat'
+import { karsiTapahtumaPerheet } from '../lib/tapahtumaperhe'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
@@ -3420,6 +3421,54 @@ for (const c of kwChecks) {
   for (const c of pCases) {
     if (c.ok) pass++
     else failures.push(`✗ pöytäpoiminnat: ${c.name}`)
+  }
+}
+
+// ── TAPAHTUMAPERHEET (lib/tapahtumaperhe). Sama tapahtuma monena rivinä eri
+// lähteistä (mitattu 4.9.2026: Nerdlesque Festival 4 rivinä) ei saa täyttää
+// heroa eikä poimintaruudukkoa. Testirivit ovat todellisesta datasta.
+{
+  const mkE = (id: string, title: string, startTime: string, venue: string): Event =>
+    mkEvent({ id, title, startTime, location: { name: venue, streetAddress: '', city: 'Helsinki' } })
+  const KORJAAMO = 'Kulttuuritehdas Korjaamo'
+  const nerd = [
+    mkE('korjaamo-16686', 'SOLD OUT: Helsinki Nerdlesque Festival', '2026-09-04T16:00:00+00:00', KORJAAMO),
+    mkE('stadissa-116651', 'Helsinki Nerdlesque Festival', '2026-09-04T20:00:00+03:00', KORJAAMO),
+    mkE('lippu-21740993', 'Helsinki Nerdlesque Festival K-18 - 2PV PE-LA', '2026-09-04T20:00:00+03:00', KORJAAMO),
+    mkE('lippu-21740878', 'Helsinki Nerdlesque Festival K-18 - 1PV PERJANTAI', '2026-09-04T20:00:00+03:00', KORJAAMO),
+  ]
+  const fCases: { name: string; ok: boolean }[] = [
+    { name: 'Nerdlesque 4 riviä → 1 (todellinen tapaus)', ok: karsiTapahtumaPerheet(nerd).length === 1 },
+    { name: 'ensimmäinen (paras pisteiltä) säilyy', ok: karsiTapahtumaPerheet(nerd)[0].id === 'korjaamo-16686' },
+    { name: 'saman paikan kaksi ERI konserttia eivät yhdisty', ok: (() => {
+      const a = mkE('a', 'HKO - Sibelius ja Nielsen', '2026-09-04T19:00:00+03:00', 'Musiikkitalo')
+      const b = mkE('b', 'HKO - Mahlerin ykkönen', '2026-09-04T21:00:00+03:00', 'Musiikkitalo')
+      return karsiTapahtumaPerheet([a, b]).length === 2
+    })() },
+    { name: 'sama otsikko eri paikassa ei yhdisty', ok: (() => {
+      const a = mkE('a', 'Helsinki Nerdlesque Festival', '2026-09-04T20:00:00+03:00', KORJAAMO)
+      const b = mkE('b', 'Helsinki Nerdlesque Festival', '2026-09-04T20:00:00+03:00', 'Savoy-teatteri')
+      return karsiTapahtumaPerheet([a, b]).length === 2
+    })() },
+    { name: 'sama otsikko eri päivänä ei yhdisty (pe- ja la-näytös)', ok: (() => {
+      const a = mkE('a', 'Helsinki Nerdlesque Festival', '2026-09-04T20:00:00+03:00', KORJAAMO)
+      const b = mkE('b', 'Helsinki Nerdlesque Festival', '2026-09-05T20:00:00+03:00', KORJAAMO)
+      return karsiTapahtumaPerheet([a, b]).length === 2
+    })() },
+    { name: 'aikavyöhykeraja: 23.30 UTC-rivi on Helsingissä jo seuraava päivä', ok: (() => {
+      const a = mkE('a', 'Iltaklubi', '2026-09-04T23:30:00+00:00', 'Baari X') // 5.9. klo 2.30 HKI
+      const b = mkE('b', 'Iltaklubi', '2026-09-04T20:00:00+03:00', 'Baari X') // 4.9. HKI
+      return karsiTapahtumaPerheet([a, b]).length === 2
+    })() },
+    { name: 'paikaton rivi ei yhdisty mihinkään', ok: (() => {
+      const a = mkEvent({ id: 'a', title: 'Sama nimi', startTime: '2026-09-04T20:00:00+03:00', location: null })
+      const b = mkEvent({ id: 'b', title: 'Sama nimi', startTime: '2026-09-04T20:00:00+03:00', location: null })
+      return karsiTapahtumaPerheet([a, b]).length === 2
+    })() },
+  ]
+  for (const c of fCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ tapahtumaperheet: ${c.name}`)
   }
 }
 

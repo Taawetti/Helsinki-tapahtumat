@@ -9,6 +9,7 @@ import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
+import { karsiTapahtumaPerheet, samaTapahtumaPerhe } from '@/lib/tapahtumaperhe'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
 import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled } from '@/lib/install'
@@ -785,8 +786,11 @@ export default function HomeClient({
         return sc >= 8 || new Date(e.startTime).getHours() >= 15
       })
       .sort((a, b) => nightlifeScore(b) - nightlifeScore(a))
-      .slice(0, 5)
-    return picks.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    // Sama tapahtuma monena rivinä eri lähteistä (lipputyypit, skrapet) ei
+    // saa täyttää viittä nostoa — mitattu 4.9.2026: Nerdlesque Festival oli
+    // herossa useasti. Perhekarsinta pistejärjestyksessä → paras edustaja jää.
+    const ainutkertaiset = karsiTapahtumaPerheet(picks).slice(0, 5)
+    return ainutkertaiset.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   }, [baseEvents])
 
   // "Parhaat poiminnat" -kärki etusivun ison ruudukon oletukseksi (korvaa
@@ -841,6 +845,10 @@ export default function HomeClient({
     for (const { e, tier } of ranked) {
       if (out.length >= TIER1_CAP) break
       if (tier === 2 && out.length >= FILL_CAP) break // kakkoskori ei täytä yli 18:n
+      // Perhekaksoset pois: sama tapahtuma eri lähteistä/lipputyypeistä ei
+      // toistu ruudukossa eikä duplikoi heron nostoa (id-vertailu ei riitä,
+      // koska rivit ovat eri id:illä — ks. lib/tapahtumaperhe).
+      if (out.some((p) => samaTapahtumaPerhe(p, e)) || heroGigs.some((h) => samaTapahtumaPerhe(h, e))) continue
       if (isQuiz(e)) {
         if (quizzes >= 2) { overflowQuiz.push(e); continue } // yli 2 visaa → loppuun
         quizzes++
