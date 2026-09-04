@@ -26,8 +26,10 @@ import { reasonsWeight } from './restaurant-reasons'
 
 export type PoimintaSlot = 'aamu' | 'lounas' | 'paiva' | 'ilta' | 'myohainen'
 
-/** Poimintoja enintään — ruudukko: 2 saraketta mobiilissa, 4 työpöydällä. */
-export const POIMINTOJA = 8
+/** Poimintoja enintään (omistaja 4.9.2026: 12 jos laadukkaita riittää —
+ *  laatukynnys ei jousta, joten vajaa rivi on ok). Ruudukko: 2 saraketta
+ *  mobiilissa, 4 työpöydällä → 12 = 3 täyttä riviä. */
+export const POIMINTOJA = 12
 
 /** Vuorokaudenjakso Helsinki-kellosta (Date jonka lokaaligetterit ovat
  *  Helsingin aikaa, ks. helsinkiNow). Rajat valittu ruokailurytmin mukaan:
