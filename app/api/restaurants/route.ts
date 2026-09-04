@@ -41,6 +41,15 @@ import deadImageData from '@/data/dead-images.json'
 import websiteImageData from '@/data/website-images.json'
 
 const DEAD_IMAGES = new Set<string>((deadImageData as { dead?: string[] }).dead ?? [])
+
+// OSM:n amenity-tagi on joskus väärin eikä korjaus kartalle asti ole meidän
+// käsissämme — nimipohjainen tyyppipakotus voittaa OSM:n. Lisätään rivi vain
+// kun omistaja on todennut tyypin vääräksi.
+const TYPE_OVERRIDES: Record<string, Restaurant['type']> = {
+  // OSM: bar → oikeasti ruokaravintola (omistaja 4.9.2026: "se on ravintola
+  // ja hyvä sellainen"); Googlen kategoria samaa mieltä ("Ravintola").
+  'basbas kulma': 'ravintola',
+}
 const WEBSITE_IMAGES: Record<string, string> =
   (websiteImageData as { byWww?: Record<string, string> }).byWww ?? {}
 
@@ -802,9 +811,13 @@ export async function GET(req: NextRequest) {
 
   // Apply Supabase enrichment: cuisine categories, Google ratings, sub-categories
   const restaurants_enriched = osmList.map(r => {
-    const enriched = enrichmentMap[r.name.toLowerCase().trim()]
-    if (!enriched) return r
+    const key = r.name.toLowerCase().trim()
+    const enriched = enrichmentMap[key]
+    const pakotettuTyyppi = TYPE_OVERRIDES[key]
+    if (!enriched && !pakotettuTyyppi) return r
     const updates: Partial<typeof r> = {}
+    if (pakotettuTyyppi) updates.type = pakotettuTyyppi
+    if (!enriched) return { ...r, ...updates }
     if (r.cuisineCategories.length === 0 && enriched.cuisineCategories) {
       updates.cuisineCategories = enriched.cuisineCategories
     }

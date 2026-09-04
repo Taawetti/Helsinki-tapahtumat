@@ -13,6 +13,29 @@ const VALID_SUBS: Record<string, string[]> = {
   kahvila: ['brunssi', 'paahtimo', 'erikois', 'ranskalaiset', 'klassikot', 'boheemit'],
 }
 
+/** Leiman hyväksymiseen vaadittava näyttö paikan nimestä — sama säännöstö
+ *  kuin scripts/korjaa-alakategoriat.ts -kertakorjauksessa. LLM:n arvaus ei
+ *  riitä (mitattu 4.9.2026: 144 "cocktail"-leimaa todisteella 17; erikois-
+ *  kahviloissa bubble tea -ketjuja). Leimat joilla ei ole tekstitodistetta
+ *  lainkaan (klassikot, boheemit) eivät synny LLM-ajosta enää ollenkaan —
+ *  ne elävät kertakorjauksen instituutiovahvistuksella (arvostelumassa). */
+const SUB_TODISTEET: Record<string, RegExp | null> = {
+  cocktail:     /cocktail|coctail|mixolog|drinkkibaari/i,
+  craft_beer:   /panimo|brewery|brewing|taproom|olutbaari|olutravintola|olutsali|oluthuone|bierhaus|biergarten|beer bar|beer house|brewpub|craft beer/i,
+  wine:         /viinibaari|wine bar|vinoteca|viinibistro|champagne/i,
+  sports:       /urheilubaari|sports? bar/i,
+  karaoke:      /karaoke/i,
+  brunssi:      /brunssi|brunch/i,
+  paahtimo:     /paahtimo|roaster|roastery|coffee roas/i,
+  erikois:      /specialty|speciality|espresso ?ba|single.?origin|pour.?over|aeropress|kahvibaari/i,
+  ranskalaiset: /patisserie|pâtisserie|boulangerie|konditoria|croissant|ranskalai|french caf/i,
+  klassikot:    null, // ei tekstitodistetta olemassa → LLM ei saa jakaa
+  boheemit:     null,
+  klubi:        /yökerho|nightclub|night ?club|klubi|live club|disco/i,
+  tekno:        /tekno|techno/i,
+  katto:        /kattobaari|kattoterassi|rooftop|roof ?top|sky ?(bar|room)/i,
+}
+
 const BATCH = 30
 
 interface ClassifyResult {
@@ -68,8 +91,16 @@ Rules:
     return parsed.map(r => ({
       venue_key: r.venue_key,
       sub_categories: (r.sub_categories ?? []).filter((s: string) => {
-        const type = venues.find(v => v.name.toLowerCase().trim() === r.venue_key)?.type ?? ''
-        return (VALID_SUBS[type] ?? []).includes(s)
+        const venue = venues.find(v => v.name.toLowerCase().trim() === r.venue_key)
+        const type = venue?.type ?? ''
+        if (!(VALID_SUBS[type] ?? []).includes(s)) return false
+        // Kuratoitu leima vaatii näytön paikan nimestä — pelkkä LLM:n arvaus
+        // ei kelpaa (ks. SUB_TODISTEET). null-todisteiset leimat (klassikot,
+        // boheemit) eivät synny tästä ajosta lainkaan.
+        const todiste = SUB_TODISTEET[s]
+        if (todiste === null) return false
+        if (todiste) return todiste.test(venue?.name ?? r.venue_key)
+        return true
       }),
     }))
   } catch {
