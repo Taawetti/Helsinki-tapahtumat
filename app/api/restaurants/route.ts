@@ -650,11 +650,25 @@ async function _fetchRestaurantEnrichment(): Promise<Record<string, RestaurantEn
         .select(cols)
         .order('venue_key')
         .range(page * PAGE, (page + 1) * PAGE - 1)
+      // LEGACY-haunkin virhe on OIKEA virhe (verkko, Supabase nurin) — heitto
+      // estää vajaan kartan päätymisen välimuistiin (ks. vartija alla).
+      if (retry.error) throw new Error(`venue_ratings-sivu ${page}: ${retry.error.message}`)
       rows = retry.data as unknown as Record<string, unknown>[] | null
+    } else if (resp.error) {
+      throw new Error(`venue_ratings-sivu ${page}: ${resp.error.message}`)
     }
     if (!rows || rows.length === 0) break
     allRows.push(...rows)
     if (rows.length < PAGE) break
+  }
+
+  // VAJAUSVARTIJA. Kanta on ~3 500 riviä; vajaa haku EI SAA päätyä
+  // unstable_cacheen — muuten kortit ovat tunnin ilman kategorioita, kuvia
+  // ja arvosanoja (mitattu 4.9.2026: kävijälle näkyi "Cocktail · 2 paikkaa"
+  // ja tyhjiä kahvilakategorioita). Heitto ohittaa välimuistin tallennuksen —
+  // sama kuvio kuin OSM-haun tyhjävartijassa yllä.
+  if (allRows.length < 2000) {
+    throw new Error(`venue_ratings-haku vajaa: ${allRows.length} riviä (odotus ~3500)`)
   }
 
   const map: Record<string, RestaurantEnrichment> = {}
@@ -757,7 +771,14 @@ export async function GET(req: NextRequest) {
 
   const [osmListRaw, enrichmentMap] = await Promise.all([
     fetchOSMCached(),
-    fetchCuisineEnrichmentCached(),
+    // Rikastuksen kaatuminen ei saa kaataa koko ravintolalistaa: tämä pyyntö
+    // palvellaan ilman rikastusta, ja koska heitto ohitti välimuistin,
+    // seuraava pyyntö hakee uudelleen — vika korjaantuu itsestään minuutissa
+    // eikä myrkytä tuntia (ks. vajausvartija _fetchRestaurantEnrichmentissä).
+    fetchCuisineEnrichmentCached().catch((e): Record<string, RestaurantEnrichment> => {
+      console.error('[restaurants] rikastus ohitettu tältä pyynnöltä:', e)
+      return {}
+    }),
   ])
 
   // Juuri avatut paikat, joita OSM ei vielä tunne, liitetään mukaan ENNEN
