@@ -864,10 +864,16 @@ export default function HomeClient({
   // Kategorian pystylista (koCat): ruudukon/aihepiirin napautus avaa tämän
   const koCatEvents = useMemo(() => {
     if (!koCat) return []
-    if (koCat === 'kaikki') return baseEvents                          // "Kaikki" — koko lista
-    if (koCat === 'ilmainen') return baseEvents.filter((e) => e.isFree)
+    // Ykköskori (oikeat keikat, klubit, kulttuuri) ennen kakkoskoria
+    // (kirjastojamit, kierrokset) — ryhmien sisällä aikajärjestys säilyy
+    // (vakaa sort). Omistaja 4.9.2026: kirjaston ukulelejamit ei saa olla
+    // Keikka-listan kärjessä ennen illan oikeita keikkoja.
+    const koriJarjestys = (lista: Event[]) =>
+      [...lista].sort((a, b) => (isPrimaryPick(a) ? 0 : 1) - (isPrimaryPick(b) ? 0 : 1))
+    if (koCat === 'kaikki') return koriJarjestys(baseEvents)           // "Kaikki" — koko lista
+    if (koCat === 'ilmainen') return koriJarjestys(baseEvents.filter((e) => e.isFree))
     if (!VIBES.some((v) => v.id === koCat)) return []
-    return baseEvents.filter((e) => getEventVibes(e).includes(koCat))
+    return koriJarjestys(baseEvents.filter((e) => getEventVibes(e).includes(koCat)))
   }, [koCat, baseEvents])
 
   // "Parhaat poiminnat" -otsikko elää aikavälin mukaan: Illan / Huomisen /
@@ -941,7 +947,7 @@ export default function HomeClient({
       {/* näkymätön tausta sulkee valikon ulkopuolelta klikattaessa */}
       <button className="fixed inset-0 z-40 cursor-default" aria-label={t('common.close')}
         onClick={() => setShowHoodMenu(false)} />
-      <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-60 max-h-80 overflow-y-auto rounded-2xl p-1.5"
+      <div className="absolute z-50 mt-2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-60 max-h-80 overflow-y-auto rounded-2xl p-1.5"
         style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
         {NEIGHBORHOODS.map((n) => (
           <button key={n.id} type="button"
@@ -1464,7 +1470,7 @@ export default function HomeClient({
                       <>
                         <button className="fixed inset-0 z-40 cursor-default" aria-label={t('common.close')}
                           onClick={() => setShowGuideMenu(false)} />
-                        <div className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 w-56 rounded-2xl p-1.5"
+                        <div className="absolute z-50 mt-2 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 w-56 rounded-2xl p-1.5"
                           style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
                           {/* Yökerhot EI kuulu tähän — se on jo etusivun
                               Yöelämä-kategoria ja Ravintolat-välilehden tyyppi

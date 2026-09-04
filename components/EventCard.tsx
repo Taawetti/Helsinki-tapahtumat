@@ -66,7 +66,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
   return (
     <button
       onClick={() => { recordClick(event); onClick(event) }}
-      className="group w-full text-left bg-[#111318] border border-white/8 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl hover:shadow-black/50 hover:-translate-y-1 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+      className="group w-full text-left bg-[#111318] border border-white/8 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl hover:shadow-black/50 hover:-translate-y-1 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]"
     >
       {/* Image */}
       <div className="relative h-44 w-full overflow-hidden bg-[#1a1f2e]">
@@ -93,7 +93,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
             </span>
           )}
           {tonight && (
-            <span className="text-white text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)' }}>
+            <span className="text-white text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
               {t('date.tonight')}
             </span>
           )}
@@ -125,7 +125,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
 
       {/* Content */}
       <div className="p-4 space-y-2">
-        <h3 className="font-semibold text-white text-sm leading-snug line-clamp-2 group-hover:text-purple-300 transition-colors">
+        <h3 className="font-semibold text-white text-sm leading-snug line-clamp-2 group-hover:text-[#c7caff] transition-colors">
           {event.title}
         </h3>
 
@@ -146,7 +146,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
                 )}
               </div>
             )}
-            <div className="flex items-center gap-1.5 text-purple-400 text-xs font-semibold">
+            <div className="flex items-center gap-1.5 text-[#a3abff] text-xs font-semibold">
               <Clock size={10} className="shrink-0" />
               <span>{formatTime(event.startTime, lang)}</span>
               {!event.isFree && event.price && (

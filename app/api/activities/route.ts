@@ -255,8 +255,11 @@ async function _fetchActivities(): Promise<Activity[]> {
     }
   }
 
-  console.error('[activities] All OSM mirrors failed')
-  return []
+  // HEITTO, EI tyhjää: tyhjä tulos tallentuisi unstable_cacheen VUOROKAUDEKSI
+  // (mitattu 4.9.2026: /api/activities palautti 46 tavua ja Opas-karttataso
+  // oli tyhjä koko päivän). Heitto ohittaa välimuistin ja GET palvelee tämän
+  // pyynnön tyhjänä — seuraava pyyntö yrittää uudelleen.
+  throw new Error('[activities] kaikki OSM-peilit epäonnistuivat')
 }
 
 export const fetchActivitiesCached = unstable_cache(_fetchActivities, ['activities-osm-v2'], {
@@ -264,8 +267,17 @@ export const fetchActivitiesCached = unstable_cache(_fetchActivities, ['activiti
   tags: ['activities'],
 })
 
+// OSM-haku voi kylmänä kestää yli oletusaikakatkaisun — funktio saa aikaa
+// eikä kuole kesken (kuollut haku näkyi tyhjänä Opas-tasona).
+export const maxDuration = 60
+
 export async function GET() {
-  const base = await fetchActivitiesCached()
+  // Heittävä haku ei saa kaataa reittiä: tämä pyyntö palvellaan tyhjänä
+  // (EI välimuistiin), seuraava yrittää uudelleen.
+  const base = await fetchActivitiesCached().catch((e): Activity[] => {
+    console.error('[activities] haku ohitettu tältä pyynnöltä:', e)
+    return []
+  })
   const today = new Date()
   const reasonFile = activityReasonData as unknown as ReasonFile
 
@@ -368,5 +380,11 @@ export async function GET() {
     activities,
     total: activities.length,
     categoryCount,
+  }, {
+    headers: {
+      // Sama reunavälimuisti kuin ravintola-API:ssa: Vercelin reuna palvelee
+      // millisekunneissa ja päivittää taustalla; selain saa käyttää kopiotaan.
+      'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+    },
   })
 }

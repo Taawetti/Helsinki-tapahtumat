@@ -76,6 +76,7 @@ import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/rest
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
+import { getEventVibes } from '../lib/event-classify'
 import { onRobotti } from '../lib/bot'
 import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/health-hysteresis'
 import { arvioiSitoutuminen, TYHJA_TILA } from '../lib/engagement'
@@ -3421,6 +3422,34 @@ for (const c of kwChecks) {
   for (const c of pCases) {
     if (c.ok) pass++
     else failures.push(`✗ pöytäpoiminnat: ${c.name}`)
+  }
+}
+
+// ── KEIKKA-KATEGORIAN LAATU (omistaja 4.9.2026): viinitasting ei ole keikka
+// vaikka järjestäjä leimaa sen musiikiksi, ja kirjaston harrastejamit eivät
+// kuulu ykköskoriin oikeiden keikkojen edelle. Rivit todellisesta datasta.
+{
+  // vibes: undefined → getEventVibes laskee luokittelun itse (mkEventin
+  // oletus 'keikka' ohittaisi juuri sen säännön jota tässä testataan)
+  const tasting = mkEvent({ id: 'wt', title: 'Merellinen Helsinki: Wine Tasting Vallisaaressa',
+    startTime: '2026-09-04T13:00:00+03:00', categories: ['musiikki', 'kulttuuritapahtumat', 'ruoka'],
+    vibes: undefined, location: { name: 'Vallisaari', streetAddress: '', city: 'Helsinki' } })
+  const jamit = mkEvent({ id: 'uj', title: 'Ukulelejamit',
+    startTime: '2026-09-04T17:00:00+03:00', categories: ['Tapiola', 'musiikki', 'kirjastot', 'kulttuuritapahtumat'],
+    vibes: undefined, location: { name: 'Tapiolan kirjasto', streetAddress: '', city: 'Espoo' } })
+  const keikkaEhta = mkEvent({ id: 'ke', title: 'Iltakeikka: Bändi X live', startTime: '2026-09-04T21:00:00+03:00',
+    categories: ['musiikki'], vibes: undefined, location: { name: 'Tavastia', streetAddress: '', city: 'Helsinki' } })
+  const kCases: { name: string; ok: boolean }[] = [
+    { name: 'wine tasting EI osu keikka-vibeen (musiikki-kategoriasta huolimatta)',
+      ok: !getEventVibes(tasting).includes('keikka') },
+    { name: 'kirjaston jamit EI ole ykköskoria (isPrimaryPick false)',
+      ok: isPrimaryPick(jamit) === false },
+    { name: 'oikea keikka on yhä ykköskoria',
+      ok: isPrimaryPick(keikkaEhta) === true },
+  ]
+  for (const c of kCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ keikkalaatu: ${c.name}`)
   }
 }
 

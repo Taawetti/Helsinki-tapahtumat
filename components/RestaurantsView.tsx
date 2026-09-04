@@ -533,9 +533,9 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
         )}
       </div>
       <div className="p-4 space-y-2">
-        <div className="flex items-start justify-between gap-2">
+        <div className="space-y-1.5">
           <h3 className="font-black text-white text-sm leading-tight">{r.name}</h3>
-          <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+          <div className="flex items-center gap-1 flex-wrap">
             {tieto.tila !== 'tuntematon' && (
               tieto.tila === 'auki' ? (
                 tieto.pian ? (

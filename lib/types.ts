@@ -134,7 +134,7 @@ const KIDS_EXCLUDE = ['vauva', 'taapero', 'lapsi', 'lapsille', 'lasten', 'leikki
 
 // Musiikkiin liittyvä joka EI ole keikka: yhteisötalojen avoimet ovet,
 // palvelukeskusten harrasteryhmät, yhteislaulut, päivätanssit, työpajat
-const NON_GIG_EXCLUDE = ['avoimet ovet', 'yhteislaul', 'päivätanssi', 'palvelukeskus', 'palvelutalo', 'yhteisötalo', 'seniorikeskus', 'harrasteryhm', 'työpaja', 'askartelu']
+const NON_GIG_EXCLUDE = ['avoimet ovet', 'yhteislaul', 'päivätanssi', 'palvelukeskus', 'palvelutalo', 'yhteisötalo', 'seniorikeskus', 'harrasteryhm', 'työpaja', 'askartelu', 'wine tasting', 'viininmaistelu', 'tasting', 'äänimalja', 'sound healing', 'äänikylpy']
 
 export const VIBES: Vibe[] = [
   // 'konsert' substringinä → osuu joulu-/kesä-/sinfoniakonsertti; '^live' vain

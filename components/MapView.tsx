@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Event, Restaurant, Activity, type ActivityCategory } from '@/lib/types'
 import { getBasemap } from '@/lib/basemap'
+import { isOutsideTargetAudience, onPerheTapahtuma, onSenioriTapahtuma } from '@/lib/audience'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 
@@ -176,6 +177,9 @@ const EVENT_SUBS = [
   { key: 'taide',    emoji: '🎨', label: 'Taide',        color: '#06b6d4', tKey: 'legend.art' as const },
   { key: 'urheilu',  emoji: '⚽', label: 'Urheilu',      color: '#3b82f6', tKey: 'legend.sport' as const },
   { key: 'ilmainen', emoji: '🎁', label: 'Ilmainen',     color: '#10b981', tKey: 'legend.free' as const },
+  // Perhetapahtumat näkyvät VAIN tästä valittuna — oletusnäkymä on 18–40-
+  // kohderyhmän (omistaja 4.9.2026: vauvatreffit kartalla laski profiilia).
+  { key: 'perhe',    emoji: '👨‍👩‍👧', label: 'Lapset & perhe', color: '#f59e0b', tKey: 'map.family' as const },
 ] as const
 
 // Tyyppinapit vastaavat Ravintolat-välilehden tyyppejä (design 6-kartta.png)
@@ -205,6 +209,32 @@ const REST_CUISINE_SUBS = [
   { key: 'middle_eastern',emoji: '🧆', label: 'Lähi-itä',        color: '#d97706', tKey: 'cuisine.middle_eastern' as const },
   { key: 'african',       emoji: '🌍', label: 'Afrikkalainen',    color: '#c67c52', tKey: 'cuisine.african' as const },
 ] as const
+
+// Kahviloiden, baarien ja yökerhojen alakategoriat (samat todistepohjaiset
+// leimat kuin Ravintolat-välilehdellä; avaimet = venue_ratings.sub_categories).
+const REST_TYPE_ALASUBIT: Record<string, readonly { key: string; emoji: string; tKey: TranslationKey }[]> = {
+  kahvila: [
+    { key: 'klassikot',    emoji: '🎩', tKey: 'restaurants.sub_klassikot' },
+    { key: 'ranskalaiset', emoji: '🥖', tKey: 'restaurants.sub_ranskalaiset' },
+    { key: 'boheemit',     emoji: '📖', tKey: 'restaurants.sub_boheemit' },
+    { key: 'erikois',      emoji: '☕', tKey: 'restaurants.sub_erikois' },
+    { key: 'paahtimo',     emoji: '🔥', tKey: 'restaurants.sub_paahtimo' },
+    { key: 'brunssi',      emoji: '🥐', tKey: 'restaurants.sub_brunssi' },
+  ],
+  baari: [
+    { key: 'cocktail',   emoji: '🍸', tKey: 'restaurants.sub_cocktail' },
+    { key: 'craft_beer', emoji: '🍺', tKey: 'restaurants.sub_olut' },
+    { key: 'wine',       emoji: '🍷', tKey: 'restaurants.sub_viini' },
+    { key: 'sports',     emoji: '🏟', tKey: 'restaurants.sub_urheilu' },
+    { key: 'karaoke',    emoji: '🎤', tKey: 'restaurants.sub_karaoke' },
+  ],
+  yokerho: [
+    { key: 'klubi',   emoji: '🎉', tKey: 'restaurants.sub_klubi' },
+    { key: 'karaoke', emoji: '🎤', tKey: 'restaurants.sub_karaoke' },
+    { key: 'tekno',   emoji: '🎧', tKey: 'restaurants.sub_tekno' },
+    { key: 'katto',   emoji: '🌃', tKey: 'restaurants.sub_katto' },
+  ],
+}
 
 const ACT_SUBS = [
   { key: 'sauna',      emoji: '🧖', label: 'Sauna',         color: '#f97316', tKey: 'cat.sauna' as const },
@@ -562,7 +592,16 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     if (!layers.events) return
     events.forEach((event) => {
       if (!event.location?.lat || !event.location?.lon) return
-      if (eventGroup && getEventGroup(event) !== eventGroup) return
+      // Kohderyhmä (omistaja 4.9.2026): seniorikohdennettu ei näy kartalla
+      // koskaan; lapsiperhetapahtumat näkyvät VAIN "Lapset & perhe" -katego-
+      // riassa; oletusnäkymä on 18–40-rajattu kuten poiminnat.
+      if (onSenioriTapahtuma(event)) return
+      if (eventGroup === 'perhe') {
+        if (!onPerheTapahtuma(event)) return
+      } else {
+        if (isOutsideTargetAudience(event)) return
+        if (eventGroup && getEventGroup(event) !== eventGroup) return
+      }
       if (!filterEventByDate(event, dateFilter, customDate)) return
       const { color, emoji } = eventColor(event)
       const icon = makePinIcon(color, emoji, false)
@@ -586,8 +625,10 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       if (!r.lat || !r.lon) return
       if (restType && r.type !== restType) return
       if (restCuisine) {
-        if (restCuisine === 'awarded' && !r.featured) return
-        if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return
+        if (restType === 'ravintola') {
+          if (restCuisine === 'awarded' && !r.featured) return
+          if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return
+        } else if (!(r.subCategories ?? []).includes(restCuisine)) return
       }
       const { color, emoji } = restaurantColor(r.type)
       const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
@@ -674,17 +715,21 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   }, [])
 
   // ── Counts ────────────────────────────────────────────────
-  const eventsOnMap     = events.filter(e =>
-    e.location?.lat &&
-    filterEventByDate(e, dateFilter, customDate) &&
-    (!eventGroup || getEventGroup(e) === eventGroup)
-  ).length
+  const eventsOnMap     = events.filter(e => {
+    if (!e.location?.lat || !filterEventByDate(e, dateFilter, customDate)) return false
+    if (onSenioriTapahtuma(e)) return false
+    if (eventGroup === 'perhe') return onPerheTapahtuma(e)
+    if (isOutsideTargetAudience(e)) return false
+    return !eventGroup || getEventGroup(e) === eventGroup
+  }).length
   const restsOnMap      = restaurants.filter(r => {
     if (!r.lat) return false
     if (restType && r.type !== restType) return false
     if (restCuisine) {
-      if (restCuisine === 'awarded' && !r.featured) return false
-      if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return false
+      if (restType === 'ravintola') {
+        if (restCuisine === 'awarded' && !r.featured) return false
+        if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return false
+      } else if (!(r.subCategories ?? []).includes(restCuisine)) return false
     }
     return true
   }).length
@@ -777,6 +822,20 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
               {REST_SUBS.map(sf => (
                 <MapMenuItem key={sf.key} on={restType === sf.key}
                   onClick={() => { setRestType(sf.key); setRestCuisine(null); setOpenMenu(null) }}>
+                  {sf.emoji} {t(sf.tKey)}
+                </MapMenuItem>
+              ))}
+            </MapMenu>
+          )}
+          {layers.restaurants && restType && REST_TYPE_ALASUBIT[restType] && (
+            <MapMenu id="typesub" open={openMenu} onToggle={setOpenMenu} active={!!restCuisine}
+              label={restCuisine
+                ? `${REST_TYPE_ALASUBIT[restType].find(sf => sf.key === restCuisine)?.emoji} ${t(REST_TYPE_ALASUBIT[restType].find(sf => sf.key === restCuisine)!.tKey)}`
+                : `↳ ${t('map.all')}`}>
+              <MapMenuItem on={!restCuisine} onClick={() => { setRestCuisine(null); setOpenMenu(null) }}>{t('map.all')}</MapMenuItem>
+              {REST_TYPE_ALASUBIT[restType].map(sf => (
+                <MapMenuItem key={sf.key} on={restCuisine === sf.key}
+                  onClick={() => { setRestCuisine(sf.key); setOpenMenu(null) }}>
                   {sf.emoji} {t(sf.tKey)}
                 </MapMenuItem>
               ))}

@@ -934,6 +934,7 @@ const t = {
     'poiminnat.title_avoinna':     'Avoinna nyt',
     'discover.all_vibes_short':    'Aihepiirit',
     'restaurants.reviews_header':  'Arvostelut',
+    'map.family':                  'Lapset & perhe',
   },
 
   en: {
@@ -1870,6 +1871,7 @@ const t = {
     'poiminnat.title_avoinna':     'Open now',
     'discover.all_vibes_short':    'Topics',
     'restaurants.reviews_header':  'Reviews',
+    'map.family':                  'Kids & family',
   },
 } as const
 

@@ -771,6 +771,9 @@ function newOpeningRestaurants(): Restaurant[] {
 
 // ── Route handler ─────────────────────────────────────────
 
+// Kylmä rakennus (OSM + rikastus) mitattiin 16 s — funktio ei saa kuolla kesken.
+export const maxDuration = 60
+
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.toLowerCase().trim() ?? ''
   const category = req.nextUrl.searchParams.get('category') ?? ''

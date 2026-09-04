@@ -105,6 +105,28 @@ export const TOUR_TITLE_REGEX = new RegExp(
  *  tapahtuman lapsille vaikka otsikossa ei lue mitään lapsista. */
 const OUT_OF_TARGET_VIBES = ['lapset']
 
+// Kartan "Lapset & perhe" -kategoria (omistaja 4.9.2026): perhetapahtumat
+// näkyvät VAIN kun kategoria on valittu, senioritapahtumat eivät koskaan.
+// Sama tekstipohja kuin isOutsideTargetAudiencessa (otsikko + lyhytkuvaus +
+// kategoriat + paikan nimi).
+const PERHE_REGEX = new RegExp(`${KIDS_TEENS}|${AGE_RANGE}`, 'i')
+const SENIORI_REGEX = new RegExp(SENIORS, 'i')
+
+function audienceHay(e: AudienceCheckable): string {
+  return [e.title, e.shortDescription ?? '', e.location?.name ?? '', ...e.categories].join(' ')
+}
+
+/** Lapsiperheille suunnattu tapahtuma (ei seniorisignaalia). */
+export function onPerheTapahtuma(e: AudienceCheckable): boolean {
+  const hay = audienceHay(e)
+  return PERHE_REGEX.test(hay) && !SENIORI_REGEX.test(hay)
+}
+
+/** Senioreille suunnattu tapahtuma — ei näytetä kartalla lainkaan. */
+export function onSenioriTapahtuma(e: AudienceCheckable): boolean {
+  return SENIORI_REGEX.test(audienceHay(e))
+}
+
 export const OUT_OF_TARGET_REGEX = new RegExp(
   `${KIDS_TEENS}|${AGE_RANGE}|${SENIORS}|${HOBBY_CIRCLES}|${COMMUNITY_VENUES}`,
   'i',
@@ -163,6 +185,10 @@ export const PRIMARY_PICK_VIBES = [
  *  festivaalit)? Kakkoskori täyttää vasta kun ykköskori ei riitä. */
 export function isPrimaryPick(e: Event): boolean {
   if (e.source === 'festivals') return true
+  // Kirjaston harrastetapahtuma ei ole ykköskoria, vaikka lavea 'musiikki'-
+  // kategoria osuisi keikka-vibeen (omistaja 4.9.2026: "Ukulelejamit ei ole
+  // niin hyvä tapahtuma että se nousee oikeiden keikkojen edelle").
+  if (e.categories.some((c) => /kirjasto/i.test(c)) || /kirjasto/i.test(e.location?.name ?? '')) return false
   const vibes = getEventVibes(e)
   return PRIMARY_PICK_VIBES.some((v) => vibes.includes(v))
 }
