@@ -1037,5 +1037,17 @@ export async function GET(req: NextRequest) {
     restaurants,
     total: restaurants.length,
     categoryCount,
+  }, {
+    headers: {
+      // NOPEUS (mitattu 4.9.2026): ilman tätä x-vercel-cache oli MISS joka
+      // pyynnöllä ja kylmä kutsu (deployn/tunnin jälkeen) kesti 16 s — se osui
+      // aina jollekulle käyttäjälle. s-maxage antaa Vercelin reunan palvella
+      // vastauksen millisekunneissa ja stale-while-revalidate päivittää sen
+      // taustalla, joten kylmä rakennus ei enää koskaan näy kävijälle.
+      // max-age=300 antaa selaimen käyttää jo ladattua kopiota — etusivun
+      // esilataus ja Ravintolat-välilehden haku eivät lataa 2,3 Mt kahdesti.
+      // Tuoreus ei heikkene: rikastus oli jo ennestään tunnin välimuistissa.
+      'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+    },
   })
 }
