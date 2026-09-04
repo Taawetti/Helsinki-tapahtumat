@@ -81,7 +81,7 @@ import { onRobotti } from '../lib/bot'
 import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/health-hysteresis'
 import { arvioiSitoutuminen, TYHJA_TILA } from '../lib/engagement'
 import { slotFor, poimiPoydat, aukioloTieto } from '../lib/poyta-poiminnat'
-import { karsiTapahtumaPerheet } from '../lib/tapahtumaperhe'
+import { karsiTapahtumaPerheet, karsiTapahtumaSarjat } from '../lib/tapahtumaperhe'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
@@ -3488,6 +3488,16 @@ for (const c of kwChecks) {
       const a = mkE('a', 'Iltaklubi', '2026-09-04T23:30:00+00:00', 'Baari X') // 5.9. klo 2.30 HKI
       const b = mkE('b', 'Iltaklubi', '2026-09-04T20:00:00+03:00', 'Baari X') // 4.9. HKI
       return karsiTapahtumaPerheet([a, b]).length === 2
+    })() },
+    { name: 'SARJA: saman esityksen to+pe-näytökset yhdistyvät poiminnoissa', ok: (() => {
+      const a = mkE('a', 'The Nordic Council: Häppy Hour – Helsinki Circus Festival', '2026-09-10T17:45:00+03:00', 'Stoa')
+      const b = mkE('b', 'The Nordic Council: Häppy Hour – Helsinki Circus Festival', '2026-09-11T17:45:00+03:00', 'Stoa')
+      return karsiTapahtumaSarjat([a, b]).length === 1 && karsiTapahtumaPerheet([a, b]).length === 2
+    })() },
+    { name: 'SARJA: eri esitys samassa paikassa ei yhdisty', ok: (() => {
+      const a = mkE('a', 'Häppy Hour – sirkusesitys', '2026-09-10T17:45:00+03:00', 'Stoa')
+      const b = mkE('b', 'Jukka Perko plays Charlie Parker', '2026-09-11T19:00:00+03:00', 'Stoa')
+      return karsiTapahtumaSarjat([a, b]).length === 2
     })() },
     { name: 'paikaton rivi ei yhdisty mihinkään', ok: (() => {
       const a = mkEvent({ id: 'a', title: 'Sama nimi', startTime: '2026-09-04T20:00:00+03:00', location: null })

@@ -5,7 +5,7 @@ import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'luci
 import type { Restaurant } from '@/lib/types'
 import type { TranslationKey } from '@/lib/i18n'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { isOpenNow, getTodayHours, helsinkiNow } from '@/lib/opening-hours'
+import { isOpenNow, getTodayHours, helsinkiNow, openIntervalsForDate } from '@/lib/opening-hours'
 import { poimiPoydat, aukioloTieto, type PoimintaSlot } from '@/lib/poyta-poiminnat'
 import { pickAttributes } from '@/lib/google-attributes'
 import { credibilityScore } from '@/lib/credibility'
@@ -1199,21 +1199,37 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     return m
   }, [userPos, restaurants])
 
-  const NIGHTCLUB_SUBS = ['klubi', 'tekno', 'karaoke', 'katto']
+  // Helsinki-kello tilana: poimintarivi ja aukiolomerkit elävät kellon
+  // mukana. Päivitys 5 min välein — pitkään auki oleva välilehti ei jää
+  // näyttämään aamun rivejä illalla.
+  const [nyt, setNyt] = useState(() => helsinkiNow())
+  useEffect(() => {
+    const id = setInterval(() => setNyt(helsinkiNow()), 5 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const typePool = useMemo(() => {
     const tab = TYPE_TABS.find(t => t.id === restType)!
     if (restType === 'yokerhot') {
-      // OSM nightclubs + bars enriched with nightclub subs + venues with obvious nightclub names
+      // Yökerhot: OSM:n yökerhot + klubi-/teknosignaalin paikat — MUTTA
+      // oikea klubi ei avaa iltapäivällä (omistaja 4.9.2026: listalla oli
+      // biljardipaikkoja ja baareja, joilla Googlen sivumaininta "Yökerho").
+      // Signaalipohjainen paikka kelpaa vain jos se avautuu tänään aikaisin-
+      // taan klo 20 (aukiolot tuntematon/kiinni tänään → signaalit riittävät,
+      // ettei vain viikonloppuisin auki oleva klubi putoa arkena). Karaoke-
+      // ja kattobaarit kuuluvat Baarit-välilehdelle, eivät tänne.
       return restaurants.filter(r => {
         if (r.type === 'yokerho') return true
-        if (r.subCategories && r.subCategories.some(s => NIGHTCLUB_SUBS.includes(s))) return true
-        const n = r.name.toLowerCase()
-        return /karaoke|nightclub|klubi\b|yökerho/.test(n)
+        const signaali =
+          (r.subCategories?.some(s => s === 'klubi' || s === 'tekno') ?? false) ||
+          /nightclub|yökerho|\bklubi\b/.test(r.name.toLowerCase())
+        if (!signaali) return false
+        const ikkunat = openIntervalsForDate(r.openingHours, nyt)
+        return !ikkunat || ikkunat.every(iv => iv.from >= 20)
       })
     }
     return tab.dbType ? restaurants.filter(r => r.type === tab.dbType) : restaurants
-  }, [restaurants, restType])
+  }, [restaurants, restType, nyt])
 
   const subPool = useMemo(() => {
     // 'all' (Suosituimmat-landing) ja 'kaikki' (selaa kaikki -näkymä) = koko tyyppipooli
@@ -1225,14 +1241,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   // jos jokainen vertailu loisi oman Daten, lajittelu ei olisi vakaa.
   const sortToday = useMemo(() => new Date(), [])
 
-  // Helsinki-kello tilana: poimintarivi ja aukiolomerkit elävät kellon
-  // mukana. Päivitys 5 min välein — pitkään auki oleva välilehti ei jää
-  // näyttämään aamun rivejä illalla.
-  const [nyt, setNyt] = useState(() => helsinkiNow())
-  useEffect(() => {
-    const id = setInterval(() => setNyt(helsinkiNow()), 5 * 60 * 1000)
-    return () => clearInterval(id)
-  }, [])
   // Pöydät nyt -poiminnat lasketaan täällä (ei komponentissa), jotta hero
   // voi väistää niitä — muuten sama paikka olisi rivin ykkösenä JA herona
   // heti sen alla (mitattu: Grön kahdesti peräkkäin). Pooli on VÄLILEHDEN
