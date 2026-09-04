@@ -933,6 +933,7 @@ const t = {
     'poiminnat.yokerhot_myohainen': 'Yön klubit',
     'poiminnat.title_avoinna':     'Avoinna nyt',
     'discover.all_vibes_short':    'Aihepiirit',
+    'restaurants.reviews_header':  'Arvostelut',
   },
 
   en: {
@@ -1868,6 +1869,7 @@ const t = {
     'poiminnat.yokerhot_myohainen': 'Late-night clubs',
     'poiminnat.title_avoinna':     'Open now',
     'discover.all_vibes_short':    'Topics',
+    'restaurants.reviews_header':  'Reviews',
   },
 } as const
 

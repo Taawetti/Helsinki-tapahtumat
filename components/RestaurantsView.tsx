@@ -11,6 +11,7 @@ import { pickAttributes } from '@/lib/google-attributes'
 import { credibilityScore } from '@/lib/credibility'
 import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaurant-reasons'
 import { ReasonBadge, relativeDate } from '@/components/ReasonBadge'
+import RestaurantDetailPanel from '@/components/RestaurantDetailPanel'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -207,17 +208,6 @@ function formatOpeningHoursHuman(raw: string, t: (key: TranslationKey) => string
       return s
     })
     .join(', ')
-}
-
-function reservationUrl(r: Restaurant): string {
-  const www = r.www ?? ''
-  if (/thefork|tableonline|opentable|quandoo|resy\.com/i.test(www)) {
-    return /^https?:\/\//i.test(www) ? www : 'https://' + www
-  }
-  if (r.type === 'ravintola') {
-    return `https://www.thefork.fi/haku/?searchText=${encodeURIComponent(r.name)}`
-  }
-  return ''
 }
 
 // Sub-category IDs differ between UI and Supabase for some baarit keys
@@ -1030,31 +1020,6 @@ function isRatedAtLeast(r: Restaurant, min: number): boolean {
   return (r.reviewCount ?? 0) >= 50 || award
 }
 
-// Rikas Google-profiili avattuun ravintolakorttiin (haetaan on-demand
-// /api/restaurant-google). Sama muoto kuin aktiviteeteilla + varauslinkki.
-type RestGoogleData = {
-  rating: number | null
-  reviewCount: number | null
-  ratingDistribution: Record<string, number> | null
-  priceLevel: string | null
-  attributes: Record<string, string[]> | null
-  phone: string | null
-  mapsUrl: string | null
-  bookOnlineUrl: string | null
-  popularTimes: Record<string, { hour: number; index: number }[]> | null
-  peopleAlsoSearch: { title: string; rating: number | null; reviewCount: number | null }[] | null
-  totalPhotos: number | null
-  isClaimed: boolean
-  // Ruokalista Googlen profiilista. `price` on jo tarkistettu palvelimella:
-  // järjetön hinta on pudotettu nulliksi mutta annos säilytetty (ks.
-  // app/api/restaurant-google/route.ts). menuTotal = koko listan pituus,
-  // menu = enintään 8 ensimmäistä.
-  menu: { title: string; price: string | null; description: string | null }[] | null
-  menuUrl: string | null
-  menuTotal: number
-}
-
-
 // Hoikka suodatinrivi — näkyy KAIKISSA näkymissä (kaikki + alakategoriat).
 // Korvaa entisen "Auta valitsemaan" -paneelin: samat suodattimet, mutta
 // suoraan ruudukkoon eikä erilliseen arvontapooliin.
@@ -1143,7 +1108,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
   const [filterNearby, setFilterNearby] = useState(false)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [selectedRest, setSelectedRest] = useState<Restaurant | null>(null)
-  const [restGoogle, setRestGoogle] = useState<RestGoogleData | null>(null)
   const [selectedChain, setSelectedChain] = useState<ChainGroup | null>(null)
   const [visibleCount, setVisibleCount] = useState(48)
   // Selausnäkymän tähtiraja — sama liukusäädin kuin Suosituimmissa.
@@ -1179,21 +1143,6 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- navigointiparametrin (jumpToId) synkkaus valintatilaan; data tulee propseista, ei cascadea
     if (r) setSelectedRest(r)
   }, [jumpToKey, restaurants])
-
-  // Rikas Google-profiili (attribuutit, tähtijakauma, varauslinkki) haetaan
-  // vasta kun kortti avataan — lista pysyy kevyenä. Sama malli kuin aktiviteeteilla.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- profiilin nollaus ennen uutta hakua, kun valinta sulkeutuu
-    if (!selectedRest) { setRestGoogle(null); return }
-    const key = selectedRest.name.toLowerCase().trim()
-    let cancelled = false
-    setRestGoogle(null)
-    fetch(`/api/restaurant-google?key=${encodeURIComponent(key)}`)
-      .then(r => r.json())
-      .then(d => { if (!cancelled) setRestGoogle(d.google ?? null) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [selectedRest])
 
 
   useEffect(() => {
@@ -1644,291 +1593,14 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
         />
       )}
 
-      {/* Detail modal */}
-      {selectedRest && (
-        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setSelectedRest(null)}>
-          <div className="w-full max-w-2xl mx-auto rounded-t-[28px] overflow-y-auto animate-sheet-up"
-            style={{ background: '#0f0f13', border: '1px solid rgba(255,255,255,.1)', maxHeight: '85vh', overscrollBehavior: 'contain' }}
-            onClick={e => e.stopPropagation()}>
-            {selectedRest.image && (
-              <div className="relative w-full" style={{ aspectRatio: '16/7' }}>
-                <img src={selectedRest.image} alt={selectedRest.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(15,15,19,.9) 0%,transparent 60%)' }} />
-              </div>
-            )}
-            <div className="p-5 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <h2 className="font-black text-white text-xl leading-tight">{selectedRest.name}</h2>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {(() => {
-                      const open = selectedRest.openingHours ? isOpenNow(selectedRest.openingHours) : undefined
-                      return open !== undefined ? (
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${open ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/10 text-red-400/60'}`}>
-                          {open ? `● ${t('common.open')}` : `○ ${t('common.closed')}`}
-                        </span>
-                      ) : null
-                    })()}
-                    {selectedRest.priceRange && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/45">
-                        {PRICE_LABELS[selectedRest.priceRange]}
-                      </span>
-                    )}
-                    {selectedRest.googleRating && (
-                      <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>
-                        ⭐ {selectedRest.googleRating.toFixed(1)}
-                        {selectedRest.reviewCount ? ` (${selectedRest.reviewCount > 999 ? `${(selectedRest.reviewCount/1000).toFixed(1)}${t('restaurants.thousand_suffix')}` : selectedRest.reviewCount})` : ''}
-                      </span>
-                    )}
-                    {selectedRest.michelinStars && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500/15 text-red-300">
-                        {'⭐'.repeat(selectedRest.michelinStars)} Michelin
-                      </span>
-                    )}
-                    {selectedRest.bibGourmand && !selectedRest.michelinStars && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300">
-                        😊 Bib Gourmand
-                      </span>
-                    )}
-                    {restGoogle?.isClaimed && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-500/12 text-sky-300/90">
-                        {t('restaurants.verified')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button onClick={() => setSelectedRest(null)} className="p-2 rounded-full text-white/40 hover:text-white shrink-0 ml-2"
-                  style={{ background: 'rgba(255,255,255,.08)' }}>
-                  <X size={16} />
-                </button>
-              </div>
-              {(() => {
-                // Esittely: kuratoitu/Google-teksti jos on; muuten vanha
-                // keittiörivi. Puuttuvaa ei korvata koostetulla täytteellä —
-                // pillerit yllä kertovat faktat jo.
-                const blurb = lang === 'en' && selectedRest.blurbEn ? selectedRest.blurbEn : selectedRest.blurb
-                if (blurb) return <p className="text-white/70 text-sm leading-relaxed">{blurb}</p>
-                return selectedRest.description ? <p className="text-white/50 text-sm">{selectedRest.description}</p> : null
-              })()}
-              {selectedRest.address && (
-                <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <MapPin size={13} /> {selectedRest.address}
-                </div>
-              )}
-              {selectedRest.openingHours && (() => {
-                const todayH = getTodayHours(selectedRest.openingHours)
-                const open = isOpenNow(selectedRest.openingHours)
-                return (
-                  <div className="space-y-0.5">
-                    {todayH && (
-                      <div className="flex items-center gap-2 text-sm font-semibold">
-                        <Clock size={13} className="shrink-0 text-white/30" />
-                        <span className={open ? 'text-emerald-400' : 'text-white/50'}>
-                          {t('date.today')} {todayH}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-white/25 text-xs">
-                      <Clock size={11} className="shrink-0 opacity-0" />
-                      <span>{formatOpeningHoursHuman(selectedRest.openingHours, t)}</span>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Tähtijakauma (google_raw:sta) — arvosanaluku näkyy jo
-                  yläpillereissä, tässä vain palkit. Arvot voivat olla
-                  validoimatonta JSONia → coercataan numeroiksi (ei NaN). */}
-              {(() => {
-                const dist = restGoogle?.ratingDistribution
-                if (!dist) return null
-                const num = (v: unknown) => (typeof v === 'number' && isFinite(v) ? v : 0)
-                const total = Object.values(dist).reduce((a, b) => a + num(b), 0)
-                if (total === 0) return null
-                return (
-                  <div className="rounded-2xl p-3 space-y-1" style={{ background: 'rgba(255,255,255,.04)' }}>
-                    {[5, 4, 3, 2, 1].map((star) => {
-                      const pct = Math.round((num(dist[String(star)]) / total) * 100)
-                      return (
-                        <div key={star} className="flex items-center gap-2">
-                          <span className="text-white/40 text-[10px] w-3 text-right">{star}</span>
-                          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.08)' }}>
-                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#e8c06a' }} />
-                          </div>
-                          <span className="text-white/30 text-[10px] w-8 text-right">{pct}%</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
-
-              {/* Ruuhka-ajat (popular_times) — tänään, "nyt" korostettuna.
-                  Viikonpäivä + tunti johdetaan HELSINGIN ajasta (venue-ajat ovat
-                  Helsinki-lokaalia), ei selaimen tz:sta — muuten ulkomailta
-                  selaava turisti näkisi väärän päivän/tunnin. */}
-              {(() => {
-                const pt = restGoogle?.popularTimes
-                if (!pt) return null
-                const DAY_SHORT = t('restaurants.weekday_short').split(', ')
-                const DAY_LABEL: Record<string, string> = {
-                  sunday: DAY_SHORT[0], monday: DAY_SHORT[1], tuesday: DAY_SHORT[2], wednesday: DAY_SHORT[3],
-                  thursday: DAY_SHORT[4], friday: DAY_SHORT[5], saturday: DAY_SHORT[6],
-                }
-                const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Helsinki', weekday: 'long', hour: 'numeric', hour12: false }).formatToParts(new Date())
-                const wd = (parts.find(p => p.type === 'weekday')?.value ?? '').toLowerCase()
-                let curHour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '-1', 10)
-                if (curHour === 24) curHour = 0   // hour12:false voi antaa 24 keskiyöllä
-                const today = pt[wd]
-                if (!today || today.length === 0) return null
-                const maxIdx = Math.max(...today.map(h => h.index))
-                if (maxIdx <= 0) return null       // kiinni / kaikki nollia → piilota (ei litteää tyhjää kaaviota)
-                const cur = today.find(h => h.hour === curHour)
-                const level = cur && cur.index > 0
-                  ? (cur.index >= 67 ? { t: t('restaurants.busy_high'), c: '#f0776a' } : cur.index >= 34 ? { t: t('restaurants.busy_medium'), c: '#e8c06a' } : { t: t('restaurants.busy_low'), c: '#8ee6a0' })
-                  : null
-                return (
-                  <div className="rounded-2xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,.04)' }}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">{t('restaurants.popular_times')} · {DAY_LABEL[wd] ?? ''}</span>
-                      {level && <span className="text-[11px] font-black" style={{ color: level.c }}>{t('restaurants.now_label')} {level.t}</span>}
-                    </div>
-                    <div className="flex items-end gap-[3px]" style={{ height: 34 }}>
-                      {today.map((h, i) => {
-                        const isNow = h.hour === curHour
-                        return (
-                          <div key={i} className="flex-1 rounded-t-[2px]" title={`${h.hour}:00`}
-                            style={{ height: `${Math.max(Math.round((h.index / maxIdx) * 100), 4)}%`, background: isNow ? '#6b76ff' : 'rgba(255,255,255,.18)' }} />
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Ominaisuudet (terassi, varattavissa, olut/viini, esteettömyys…) */}
-              {(() => {
-                // 12 eikä 10: arvojärjestyksen jälkeen kahteen viimeiseen mahtuu varaus-
-                // ja yleisötietoa, joka jäi aiemmin kokonaan pois. Pillit rivittyvät.
-                const tags = pickAttributes(restGoogle?.attributes ?? null, 12)
-                if (!tags.length) return null
-                return (
-                  <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {tags.map((tg, i) => (
-                      <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/60" style={{ background: 'rgba(255,255,255,.06)' }}>
-                        {tg.emoji} {t(tg.labelKey)}
-                      </span>
-                    ))}
-                  </div>
-                )
-              })()}
-
-              {/* Ruokalista — Googlen profiilista. Hinnat on tarkistettu
-                  palvelimella: järjetön hinta näkyy tyhjänä, ei väärin. */}
-              {restGoogle?.menu && restGoogle.menu.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">
-                    {t('restaurants.menu')}{restGoogle.menuTotal > restGoogle.menu.length ? ` · ${restGoogle.menu.length}/${restGoogle.menuTotal}` : ''}
-                  </span>
-                  <div className="space-y-1.5">
-                    {restGoogle.menu.map((m, i) => (
-                      <div key={i}>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className="text-white/85 text-[12px] font-bold">{m.title}</span>
-                          {m.price && (
-                            <span className="text-white/60 text-[11px] font-bold whitespace-nowrap">{m.price}</span>
-                          )}
-                        </div>
-                        {m.description && (
-                          <p className="text-white/40 text-[11px] leading-snug">{m.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {restGoogle.menuUrl && (
-                    <a href={restGoogle.menuUrl} target="_blank" rel="noopener noreferrer"
-                       className="inline-block text-[11px] font-bold text-[#6b76ff]">
-                      {t('restaurants.full_menu')}
-                    </a>
-                  )}
-                </div>
-              )}
-
-              {/* Vastaavat paikat (people_also_search) — nimi + arvosana */}
-              {restGoogle?.peopleAlsoSearch && restGoogle.peopleAlsoSearch.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-white/50 text-[11px] font-black uppercase tracking-wide">{t('restaurants.similar_places')}</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {restGoogle.peopleAlsoSearch.map((p, i) => (
-                      <span key={i} className="text-[11px] font-bold px-2 py-1 rounded-full text-white/55" style={{ background: 'rgba(255,255,255,.06)' }}>
-                        {p.title}{p.rating != null ? ` · ⭐${p.rating.toFixed(1)}` : ''}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-1 flex-wrap">
-                {selectedRest.www && (
-                  <a href={/^https?:\/\//i.test(selectedRest.www) ? selectedRest.www : 'https://' + selectedRest.www} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
-                    style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                    <Globe size={13} /> {t('common.website')}
-                  </a>
-                )}
-                {(() => {
-                  // Todellinen Google-varauslinkki voittaa heuristisen (TheFork-haku)
-                  const url = restGoogle?.bookOnlineUrl || reservationUrl(selectedRest)
-                  return url ? (
-                    <a href={url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-black"
-                      style={{ background: 'linear-gradient(150deg,#10b981,#059669)' }}>
-                      {t('restaurants.book_table')}
-                    </a>
-                  ) : null
-                })()}
-                {(() => {
-                  // Google-puhelin voittaa, mutta putoa OSM-numeroon (kuten aktiviteeteilla)
-                  const phone = restGoogle?.phone ?? selectedRest.phone
-                  return phone ? (
-                    <a href={`tel:${phone}`}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
-                      style={{ background: 'rgba(255,255,255,.08)' }}>
-                      <Phone size={13} /> {phone}
-                    </a>
-                  ) : null
-                })()}
-                {onShowOnMap && selectedRest.lat && selectedRest.lon && (
-                  <button onClick={() => { onShowOnMap(selectedRest.lat!, selectedRest.lon!, selectedRest.name); setSelectedRest(null) }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
-                    style={{ background: 'rgba(255,255,255,.08)' }}>
-                    <MapIcon size={13} /> {t('idea.on_map')}
-                  </button>
-                )}
-                {((selectedRest.lat && selectedRest.lon) || selectedRest.address) && (
-                  <a href={selectedRest.lat && selectedRest.lon
-                    ? `https://maps.google.com/maps?daddr=${selectedRest.lat},${selectedRest.lon}&travelmode=transit`
-                    : `https://maps.google.com/maps?daddr=${encodeURIComponent(selectedRest.address + ', Helsinki')}&travelmode=transit`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white/70 text-sm font-bold"
-                    style={{ background: 'rgba(255,255,255,.08)' }}>
-                    <Navigation size={13} /> {t('detail.directions')}
-                  </a>
-                )}
-              </div>
-
-              {/* Kuvamäärä + linkki Google Maps -LISTAUKSEEN (kuvat, arvostelut) */}
-              {restGoogle?.mapsUrl && (
-                <a href={restGoogle.mapsUrl} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-white/35 text-xs font-bold pt-0.5 hover:text-white/60">
-                  {restGoogle.totalPhotos != null && restGoogle.totalPhotos > 0 ? `${restGoogle.totalPhotos} ${t('restaurants.photos')} · ` : ''}{t('restaurants.view_on_google')}
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Ravintolapaneeli — tapahtumapaneelin kuori ja visuaalinen kieli
+          (pyyhkäisysulku, historiamerkintä; omistaja 4.9.2026). */}
+      <RestaurantDetailPanel
+        r={selectedRest}
+        tyyli={selectedRest ? getCuisineStyle(selectedRest) : undefined}
+        onClose={() => setSelectedRest(null)}
+        onShowOnMap={onShowOnMap}
+      />
     </main>
   )
 }
