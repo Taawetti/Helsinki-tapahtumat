@@ -17,6 +17,7 @@ import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { aukioloTieto } from '@/lib/poyta-poiminnat'
 import { pickAttributes } from '@/lib/google-attributes'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 
 const PRICE_LABELS = ['', '€', '€€', '€€€', '€€€€']
 
@@ -64,6 +65,9 @@ interface Props {
 
 export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
+  // Fokus paneeliin, Tab-loukku, palautus avaajaan (Escape sidottu alla).
+  // open = !!r: komponentti voi olla mountattuna r=null-tilassa.
+  useDialogiFokus(!!r, panelRef)
   const innerRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isManualClose = useRef(false)
@@ -209,6 +213,7 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
         ref={panelRef}
         role="dialog"
         aria-modal
+        tabIndex={-1}
         aria-label={r.name}
         className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl overflow-hidden md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:rounded-none md:w-full md:max-w-lg"
         style={{
@@ -275,7 +280,7 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
                     </span>
                   )
                 ) : (
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/40">
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/60">
                     ○ {tieto.klo ? `${t('hours.opens')} ${tieto.klo}` : t('common.closed')}
                   </span>
                 )
@@ -303,7 +308,7 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
                 <div className="min-w-0">
                   <p className={open ? 'text-emerald-400 font-semibold' : 'text-white/80'}>{t('date.today')} {tanaan}</p>
                   {r.openingHours && (
-                    <p className="text-white/35 text-xs mt-0.5 leading-relaxed">{viikkoAukiolot(r.openingHours, t)}</p>
+                    <p className="text-white/55 text-xs mt-0.5 leading-relaxed">{viikkoAukiolot(r.openingHours, t)}</p>
                   )}
                 </div>
               </div>

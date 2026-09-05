@@ -2,7 +2,7 @@
 
 import { ArrowRight } from 'lucide-react'
 import { Event, Collection } from '@/lib/types'
-import { formatDate, formatTime } from '@/lib/utils'
+import { formatDate, formatTime, tuntematonAika } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Props {
@@ -68,7 +68,7 @@ export default function CollectionRow({ collection, events, onEventClick, onSeeA
                 {event.title}
               </p>
               <p className="text-[#a3abff] text-[11px] font-medium">
-                {formatDate(event.startTime)} · {formatTime(event.startTime)}
+                {tuntematonAika(event.startTime) ? formatDate(event.startTime) : `${formatDate(event.startTime)} · ${formatTime(event.startTime)}`}
               </p>
               {event.location && (
                 <p className="text-white/35 text-[11px] truncate mt-0.5">{event.location.name}</p>

@@ -156,7 +156,7 @@ const t = {
     'restaurants.type_cafe':      '☕ Kahvilat',
     'restaurants.type_bar':       '🍺 Baarit',
     'restaurants.type_fastfood':  '🍔 Pikaruoka',
-    'restaurants.sort_default':   'Oletusjarjestys',
+    'restaurants.sort_default':   'Oletusjärjestys',
     'restaurants.sort_nearby':    'Lähimmät ensin',
     'restaurants.sort_reviews':   'Eniten arvosteluja',
     'restaurants.stars_all':      'kaikki',
@@ -347,7 +347,7 @@ const t = {
     'modal.dont_know_sub':   'Valitse kolmesta ehdotuksesta',
     'modal.date_title':      'Treffi-idea',
     'modal.date_sub':        'Valmis iltaohjelma kahdelle',
-    'modal.shuffle':         'Arvoi uudelleen',
+    'modal.shuffle':         'Arvo uudelleen',
     'suggest.dinner_first':  'Illallistaa ensin',
     'suggest.dinner_desc':   'Hyvä aloitus treffeille',
     'suggest.main_event':    'Pääohjelma',
@@ -803,7 +803,7 @@ const t = {
     'idea.reason_scene_rento':     'Rento ilta — valintasi mukaan',
     'idea.reason_scene_liikunta':  'Liikunnallista tekemistä — valintasi mukaan',
     'idea.reason_scene_kulttuuri': 'Kulttuuriasiaa — valintasi mukaan',
-    'search.act_nakopaikka':       'Näköpaikka',
+    'search.act_nakopaikka':       'Näköalapaikka',
     'search.act_markkina':         'Markkina',
     'search.act_muu':              'Muut',
     'guides.free_badge':           'MAKSUTON',
@@ -935,6 +935,9 @@ const t = {
     'discover.all_vibes_short':    'Aihepiirit',
     'restaurants.reviews_header':  'Arvostelut',
     'map.family':                  'Lapset & perhe',
+    'detail.sold_out':             'Loppuunmyyty',
+    'a11y.prev_month':             'Edellinen kuukausi',
+    'a11y.next_month':             'Seuraava kuukausi',
   },
 
   en: {
@@ -1872,6 +1875,9 @@ const t = {
     'discover.all_vibes_short':    'Topics',
     'restaurants.reviews_header':  'Reviews',
     'map.family':                  'Kids & family',
+    'detail.sold_out':             'Sold out',
+    'a11y.prev_month':             'Previous month',
+    'a11y.next_month':             'Next month',
   },
 } as const
 

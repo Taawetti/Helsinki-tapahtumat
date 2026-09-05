@@ -6,10 +6,11 @@ import { Fragment, useState, useCallback, useMemo, useEffect, useRef, useSyncExt
 import { Loader2, Heart, Bell, Plus, ChevronLeft, ChevronDown, Download } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
-import { haversineKm, getDateRange, formatTime } from '@/lib/utils'
+import { haversineKm, getDateRange, formatTime, tuntematonAika } from '@/lib/utils'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { karsiTapahtumaSarjat, samaTapahtumaSarja } from '@/lib/tapahtumaperhe'
+import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
 import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled } from '@/lib/install'
@@ -366,15 +367,9 @@ export default function HomeClient({
     window.scrollTo(0, 0)
   }, [mode])
 
-  // Ilta-painotus: illalla NOSTETAAN yökeikat kärkeen mutta EI rajata päivää —
-  // oletus pysyy 'today' (koko päivä näkyvissä). Aiempi 'tonight'-automaatti
-  // piilotti kaikki päiväsaikaan alkavat tapahtumat ja teki etusivusta tyhjän
-  // näköisen. useEffect (ei initializer) → ei SSR/hydraatioristiriitaa.
-  const [isEvening, setIsEvening] = useState(false)
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- kellonajan luku mountissa SSR-hydraatioristiriidan välttämiseksi (vrt. kommentti yllä)
-    if (new Date().getHours() >= 17) setIsEvening(true)
-  }, [])
+  // (Poistettu käyttämätön isEvening-tila 5.9.2026: sitä ei lukenut mikään,
+  // ja se luki LAITTEEN kelloa — jos iltapainotus palaa, tunti on luettava
+  // helsinkiNow():sta.)
 
 
   // ── Unified search: lazy-load activities + restaurants on first keystroke ──
@@ -672,7 +667,7 @@ export default function HomeClient({
   // Menneet piiloon: päättynyt tapahtuma ei kuulu millekään listalle.
   // Ilman endTimeä tapahtuma lasketaan käynnissä olevaksi 3 h alusta (sama
   // sääntö kuin "Nyt menossa"). nowTs asetetaan effectissä eikä
-  // initializerissa → ei SSR/hydraatioristiriitaa (vrt. isEvening).
+  // initializerissa → ei SSR/hydraatioristiriitaa.
   const [nowTs, setNowTs] = useState<number | null>(null)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- nowTs asetetaan mountissa SSR-hydraatioristiriidan välttämiseksi (vrt. kommentti yllä)
   useEffect(() => { setNowTs(Date.now()) }, [])
@@ -682,6 +677,9 @@ export default function HomeClient({
       const startTs = new Date(e.startTime).getTime()
       if (startTs > nowTs) return true
       if (e.endTime) return new Date(e.endTime).getTime() >= nowTs
+      // Ajaton tapahtuma (00.00-sentinel, esim. lippu.fi:n päivätarkkuus) on
+      // "koko päivän" — 3 h sääntö olisi piilottanut sen jo aamuyöllä.
+      if (tuntematonAika(e.startTime)) return helsinkiDateOf(e.startTime) >= helsinkiToday()
       return nowTs - startTs < 3 * 60 * 60 * 1000
     })
   }, [events, nowTs])
@@ -1138,12 +1136,17 @@ export default function HomeClient({
               {[...favorites]
                 .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
                 .map((e) => {
-                  const isToday = new Date(e.startTime).toDateString() === new Date().toDateString()
-                  const timeStr = new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
-                  const dateStr = isToday ? t('date.today') : new Date(e.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+                  const isToday = helsinkiDateOf(e.startTime) === helsinkiToday()
+                  const timeStr = tuntematonAika(e.startTime) ? '' : new Date(e.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' })
+                  const dateStr = isToday ? t('date.today') : new Date(e.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Helsinki' })
+                  // div+role, EI <button>: rivin sisällä on <a>-lippulinkki, ja
+                  // interaktiivinen elementti interaktiivisen sisällä on
+                  // kielletty (a11y-auditointi 5.9.2026).
                   return (
-                    <button key={e.id} onClick={() => avaa.venue(e)}
-                      className="w-full text-left rounded-2xl overflow-hidden flex gap-0 transition-all active:scale-[.99]"
+                    <div key={e.id} onClick={() => avaa.venue(e)}
+                      role="button" tabIndex={0}
+                      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); avaa.venue(e) } }}
+                      className="w-full text-left rounded-2xl overflow-hidden flex gap-0 transition-all active:scale-[.99] cursor-pointer"
                       style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
                       {e.image && (
                         <div className="relative shrink-0 w-28" style={{ aspectRatio: '3/4' }}>
@@ -1179,7 +1182,7 @@ export default function HomeClient({
                           </a>
                         )}
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
             </div>
@@ -1204,7 +1207,7 @@ export default function HomeClient({
               )
             })()}
             <p className="text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
-              {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Helsinki' })}
               {/* Tuoreusleima: tapahtumamäärä ja kellonaika. Lähdemäärä ja
                   /lahteet-linkki POISTETTU julkisesta näkymästä (omistaja
                   3.9.2026: käyttäjän ei kuulu nähdä lähteitä eikä niiden

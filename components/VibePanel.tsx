@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { VIBES } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
@@ -19,6 +20,9 @@ interface Props {
 
 export default function VibePanel({ open, active, onToggle, onClear, onClose, onShowAll }: Props) {
   const { t } = useLanguage()
+  const panelRef = useRef<HTMLDivElement>(null)
+  // Fokus paneeliin + Tab-loukku + palautus (Escape sidottu alla erikseen).
+  useDialogiFokus(open, panelRef)
 
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
@@ -50,8 +54,16 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose, on
         }}
       />
 
-      {/* Panel */}
+      {/* Panel. inert suljettuna: paneeli on aina DOM:issa (liukuanimaatio),
+          ja ilman inertiä sen ~17 nappia jäivät Tab-järjestykseen näkymättöminä
+          — pointerEvents:'none' ei estä näppäimistöfokusta. */}
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal={open || undefined}
+        aria-label={t('vibes.title')}
+        tabIndex={-1}
+        inert={!open}
         className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
         style={{
           background: '#111118',

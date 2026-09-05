@@ -84,26 +84,53 @@ const locale = (lang: DateLang = 'fi') => (lang === 'en' ? 'en-GB' : 'fi-FI')
 /** 'klo' vs 'at' — kellonajan edessä oleva sana. */
 export const atWord = (lang: DateLang = 'fi') => (lang === 'en' ? 'at' : 'klo')
 
+// timeZone pakollinen KAIKISSA tapahtuma-aikaleimojen muotoiluissa: palvelin
+// renderöi UTC:ssä (3 h pielessä) ja ulkomailla selaavan selain omassa
+// vyöhykkeessään — tapahtumat ovat aina Helsingissä.
+const HKI_TZ = 'Europe/Helsinki'
+
+/** ISO-aikaleiman Helsinki-kalenteripäivä (esim. '2026-09-05'). */
+function helsinkiPaiva(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: HKI_TZ }).format(d)
+}
+
 export function formatDate(isoString: string, lang: DateLang = 'fi'): string {
   const date = new Date(isoString)
   return date.toLocaleDateString(locale(lang), {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
+    timeZone: HKI_TZ,
   })
 }
 
 export function formatTime(isoString: string, lang: DateLang = 'fi'): string {
   const date = new Date(isoString)
-  return date.toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit', timeZone: HKI_TZ })
+}
+
+/** Skrapatut ajattomat tapahtumat tallentuvat muodossa 'T00:00:00(+03:00)' —
+ *  tasan keskiyö Helsinki-aikaa tarkoittaa "aikaa ei ilmoitettu", ei keskiyön
+ *  keikkaa (mitattu tuotannosta 5.9.2026: mm. lippu.fi ja venue-skrapet).
+ *  Näyttökerros piilottaa kellonajan; oikeasti klo 00.00 alkavia tapahtumia
+ *  ei lähdedatasta löytynyt. */
+export function tuntematonAika(iso: string): boolean {
+  if (!iso.includes('T')) return true
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: HKI_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  }).format(new Date(iso)) === '00:00:00'
 }
 
 export function formatDateRange(start: string, end: string | null, lang: DateLang = 'fi'): string {
   const at = atWord(lang)
+  if (tuntematonAika(start)) {
+    if (!end || helsinkiPaiva(new Date(start)) === helsinkiPaiva(new Date(end))) return formatDate(start, lang)
+    return `${formatDate(start, lang)} – ${formatDate(end, lang)}`
+  }
   if (!end) return `${formatDate(start, lang)} ${at} ${formatTime(start, lang)}`
   const startDate = new Date(start)
   const endDate = new Date(end)
-  const sameDay = startDate.toDateString() === endDate.toDateString()
+  const sameDay = helsinkiPaiva(startDate) === helsinkiPaiva(endDate)
   if (sameDay) {
     return `${formatDate(start, lang)} ${at} ${formatTime(start, lang)}–${formatTime(end, lang)}`
   }
@@ -118,8 +145,11 @@ export function truncate(text: string, max: number): string {
 export function isTonight(isoString: string): boolean {
   const date = new Date(isoString)
   const now = new Date()
-  const isToday = date.toDateString() === now.toDateString()
-  return isToday && date.getHours() >= 17
+  const isToday = helsinkiPaiva(date) === helsinkiPaiva(now)
+  const helsinkiTunti = Number(
+    new Intl.DateTimeFormat('en-GB', { timeZone: HKI_TZ, hour: '2-digit', hourCycle: 'h23' }).format(date),
+  )
+  return isToday && helsinkiTunti >= 17
 }
 
 // Appends affiliate tracking parameters to known ticket vendor URLs.
@@ -170,3 +200,42 @@ export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: numb
 export function fmtDistance(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
+
+// ── Tekstin puhdistus näyttöä varten ─────────────────────────────────────────
+
+/** Purkaa lähteiden HTML-entiteetit tekstiksi. Tapahtumalähteet (LinkedEvents,
+ *  skrapet) toimittavat otsikoita muodossa "Obi Blanche &#038; Kristina" ja
+ *  "Iikka Kivi &#8211; Protestinauru" — entiteetit näkyivät käyttäjälle
+ *  raakana (mitattu tuotannosta 5.9.2026). Puretaan tekstiksi; React ja
+ *  MapView'n esc() hoitavat escapetuksen renderöidessä, joten tämä ei avaa
+ *  XSS-reittiä. &amp; ensin, jotta tuplakoodattu "&amp;#8211;" purkautuu
+ *  kokonaan. */
+export function decodeHtmlEntities(s: string): string {
+  if (!s || !s.includes('&')) return s
+  return s
+    .replace(/&amp;/gi, '&')
+    .replace(/&#(\d+);/g, (koko, n) => {
+      const cp = parseInt(n, 10)
+      return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : koko
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (koko, n) => {
+      const cp = parseInt(n, 16)
+      return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : koko
+    })
+    .replace(/&quot;/gi, '"')
+    .replace(/&(?:apos|#39);/gi, "'")
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&ndash;/gi, '\u2013')
+    .replace(/&mdash;/gi, '\u2014')
+}
+
+/** Riisuu hinnasta johtavan "alk."/"From"-etuliitteen, kun hinta liitetään
+ *  "Liput alk." -tekstin perään — muuten syntyy "Liput alk. alk. 37 €"
+ *  (mitattu tuotannosta 4.9.2026, heron lippunappi). */
+export function stripPriceFromPrefix(price: string): string {
+  // 'alkaen' ennen 'alk\.?':a — muuten 'Alkaen' typistyisi 'aen':ksi.
+  return price.replace(/^\s*(?:alkaen|alk\.?|from)\s*/i, '').trim()
+}
+

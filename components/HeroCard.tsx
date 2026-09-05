@@ -2,7 +2,7 @@
 
 import { Clock, MapPin, ArrowRight, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
-import { formatDate, formatTime } from '@/lib/utils'
+import { formatDate, formatTime, tuntematonAika } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -43,6 +43,8 @@ export default function HeroCard({ event, onClick }: Props) {
         <div
           onClick={(e) => { e.stopPropagation(); toggle(event) }}
           role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggle(event) } }}
           aria-label={t('detail.save_fav')}
           style={{
             width: 36, height: 36, borderRadius: '50%',
@@ -73,7 +75,7 @@ export default function HeroCard({ event, onClick }: Props) {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-white/80 text-sm">
             <Clock size={13} />
-            <span>{formatDate(event.startTime)} · {formatTime(event.startTime)}</span>
+            <span>{tuntematonAika(event.startTime) ? formatDate(event.startTime) : `${formatDate(event.startTime)} · ${formatTime(event.startTime)}`}</span>
           </div>
           {event.location && (
             <div className="flex items-center gap-1.5 text-white/60 text-sm">

@@ -12,6 +12,7 @@ import { classifyEventCategory } from '@/lib/event-category'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VENUE_PAGES } from '@/lib/venue-pages'
+import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 
 interface Props {
   event: Event | null
@@ -23,6 +24,11 @@ interface Props {
 
 export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
+  // Fokus paneeliin, Tab-loukku, palautus avaajaan (Escape sidottu alla).
+  // HUOM: open on !!event eikä true — komponentti on AINA mountattuna
+  // (event voi olla null), joten true ajaisi effektin kerran refin ollessa
+  // vielä null eikä fokus siirtyisi koskaan.
+  useDialogiFokus(!!event, panelRef)
   const innerRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isManualClose = useRef(false)
@@ -255,6 +261,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
         ref={panelRef}
         role="dialog"
         aria-modal
+        tabIndex={-1}
         aria-label={event.title}
         className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl overflow-hidden md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:rounded-none md:w-full md:max-w-lg"
         style={{
@@ -323,6 +330,11 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
             <div className="flex items-start gap-3 text-sm">
               <Clock size={15} className="text-[#0072C6] mt-0.5 shrink-0" />
               <span className="text-white/80">{formatDateRange(event.startTime, event.endTime, lang)}</span>
+              {event.soldOut && (
+                <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/25">
+                  {t('detail.sold_out')}
+                </span>
+              )}
             </div>
             {event.location && (
               <div className="flex items-start gap-3 text-sm">
@@ -330,7 +342,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                 <div className="min-w-0">
                   {event.location.name && <p className="text-white/80 font-medium">{event.location.name}</p>}
                   {event.location.streetAddress && (
-                    <p className="text-white/40 text-xs mt-0.5">{event.location.streetAddress}, {event.location.city}</p>
+                    <p className="text-white/60 text-xs mt-0.5">{event.location.streetAddress}, {event.location.city}</p>
                   )}
                   {/* PAIKAN KAIKKI TAPAHTUMAT — footerin keikkapaikkalinkit
                       siirrettiin tänne, kontekstiin jossa niitä tarvitaan

@@ -164,3 +164,16 @@ body {
 }
 .dark-popup .leaflet-popup-tip { background: #13141f; }
 .dark-popup .leaflet-popup-close-button { color: rgba(255,255,255,0.4); }
+
+/* Liikeherkkyys (WCAG 2.3.3): käyttäjän pyytäessä vähennettyä liikettä
+   animaatiot ja siirtymät suoritetaan välittömästi — paneelit aukeavat
+   ilman liukua, shimmerit ja jatkuvat animaatiot pysähtyvät.
+   (Auditointi 5.9.2026: mikään animaatio ei kunnioittanut asetusta.) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -6,6 +6,7 @@ import { getBasemap } from '@/lib/basemap'
 import { isOutsideTargetAudience, onPerheTapahtuma, onSenioriTapahtuma } from '@/lib/audience'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
+import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 
 // Static imports are safe here: MapView is always loaded with { ssr: false }.
 // The webpack alias in next.config.ts forces both this ESM import and the CJS
@@ -126,9 +127,12 @@ function activityColor(category: string): { color: string; emoji: string } {
   }
 }
 
+// Palautusarvo interpoloidaan href="..."-attribuuttiin → myös escapoitava,
+// muuten OSM-datan lainausmerkki murtautuu attribuutista ulos (esim.
+// website-tagi 'https://x.fi" onmouseover="...').
 function safeUrl(url: string | null | undefined): string | null {
   if (!url) return null
-  return /^https?:\/\//i.test(url) ? url : null
+  return /^https?:\/\//i.test(url) ? esc(url) : null
 }
 
 function esc(s: string | null | undefined): string {
@@ -302,20 +306,22 @@ const DATE_PILLS: { key: DateFilterKey; tKey: TranslationKey }[] = [
   { key: 'month',    tKey: 'map.date_month' },
 ]
 
+// Vertailu HELSINKI-kalenteripäivinä ('YYYY-MM-DD' merkkijonoina) — laitteen
+// vuorokausirajoilla New Yorkissa "Tänään" oli kahden Helsinki-päivän sekoitus.
+function paivaPlus(paiva: string, n: number): string {
+  // Keskipäivä UTC → päiväsiirto on DST-turvallinen.
+  return new Date(Date.parse(`${paiva}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10)
+}
+
 function filterEventByDate(event: Event, filter: DateFilterKey, customDate: string): boolean {
-  const start = new Date(event.startTime)
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const add = (n: number) => new Date(today.getTime() + n * 86400000)
+  const d = helsinkiDateOf(event.startTime)
+  const tanaan = helsinkiToday()
   switch (filter) {
-    case 'today':    return start >= today && start < add(1)
-    case 'tomorrow': return start >= add(1) && start < add(2)
-    case 'week':     return start >= today && start < add(7)
-    case 'month':    return start >= today && start < add(30)
-    case 'custom': {
-      if (!customDate) return true
-      const cd = new Date(customDate + 'T00:00:00'); const cdn = new Date(cd.getTime() + 86400000)
-      return start >= cd && start < cdn
-    }
+    case 'today':    return d === tanaan
+    case 'tomorrow': return d === paivaPlus(tanaan, 1)
+    case 'week':     return d >= tanaan && d < paivaPlus(tanaan, 7)
+    case 'month':    return d >= tanaan && d < paivaPlus(tanaan, 30)
+    case 'custom':   return !customDate || d === customDate
   }
 }
 
@@ -553,7 +559,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       mapRef.current.flyTo([mapTarget.lat, mapTarget.lon], mapTarget.zoom ?? 16, { duration: 1.2, easeLinearity: 0.5 })
       L.popup({ className: 'dark-popup', closeButton: true })
         .setLatLng([mapTarget.lat, mapTarget.lon])
-        .setContent(`<p style="color:#fff;font-family:Inter,sans-serif;font-size:13px;font-weight:700;margin:0;padding:2px 0">📍 ${mapTarget.name}</p>`)
+        .setContent(`<p style="color:#fff;font-family:Inter,sans-serif;font-size:13px;font-weight:700;margin:0;padding:2px 0">📍 ${esc(mapTarget.name)}</p>`)
         .openOn(mapRef.current)
       onTargetConsumed?.()
     }, 350)
@@ -643,7 +649,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         ${r.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(r.address)}${r.city && r.city !== 'Helsinki' ? `, ${esc(r.city)}` : ''}</p>` : ''}
         ${dist !== null ? `<p style="font-size:11px;color:#aaa;margin:0 0 4px">📍 ${fmtDist(dist)} ${t('map.dist_away')}</p>` : ''}
         ${safeUrl(r.www) ? `<a href="${safeUrl(r.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
-        ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${safeUrl(r.www) ? '3px' : '0'} 0 0">${r.phone}</p>` : ''}
+        ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${safeUrl(r.www) ? '3px' : '0'} 0 0">${esc(r.phone)}</p>` : ''}
       </div>`
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const marker = L.marker([r.lat, r.lon] as any, { icon })
@@ -673,7 +679,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
         <p style="font-size:11px;color:${color};margin:0 0 3px;font-weight:600;text-transform:capitalize">${esc(actDesc)}</p>
         ${a.address ? `<p style="font-size:11px;color:#888;margin:0 0 3px">${esc(a.address)}</p>` : ''}
         ${a.fee === false ? `<p style="font-size:11px;color:#10b981;margin:0 0 3px;font-weight:600">${t('map.free_act')}</p>` : ''}
-        ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${a.openingHours.split(';')[0]}</p>` : ''}
+        ${a.openingHours ? `<p style="font-size:10px;color:#666;margin:0 0 3px">${esc(a.openingHours.split(';')[0])}</p>` : ''}
         ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
       </div>`
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -869,7 +875,7 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       </div>
 
       {/* ── Locate me ── */}
-      <button onClick={locateMe} disabled={locating}
+      <button onClick={locateMe} disabled={locating} aria-label={userPos ? t('common.update_loc') : t('common.locate_me')}
         className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 px-2 py-2 sm:px-3 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 text-white/60 hover:text-white text-xs font-bold transition-all shadow-lg disabled:opacity-60">
         {locating
           ? <span className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'rgba(107,118,255,.5)', borderTopColor: '#6b76ff' }} />
@@ -906,11 +912,13 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
               {/* Month navigation */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 8px 8px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                 <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month - 1); return { year: d.getFullYear(), month: d.getMonth() } })}
+                  aria-label={t('a11y.prev_month')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, padding: '0 10px', lineHeight: 1 }}>‹</button>
                 <span style={{ color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'Inter,sans-serif' }}>
                   {new Date(calMonth.year, calMonth.month).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { month: 'long', year: 'numeric' })}
                 </span>
                 <button onClick={() => setCalMonth(m => { const d = new Date(m.year, m.month + 1); return { year: d.getFullYear(), month: d.getMonth() } })}
+                  aria-label={t('a11y.next_month')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, padding: '0 10px', lineHeight: 1 }}>›</button>
               </div>
               {/* Weekday headers */}
@@ -927,12 +935,15 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                 {(() => {
                   const firstDow = (new Date(calMonth.year, calMonth.month, 1).getDay() + 6) % 7
                   const daysInMonth = new Date(calMonth.year, calMonth.month + 1, 0).getDate()
-                  const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime() })()
+                  // Tänään + tapahtumamäärät HELSINKI-päivinä (laitteen kello
+                  // näytti ulkomailla väärän "tänään"-korostuksen ja siirsi
+                  // aamuyön tapahtumat viereiselle päivälle).
+                  const hkiTanaan = helsinkiToday()
                   const evCounts: Record<number, number> = {}
                   events.forEach(ev => {
-                    const s = new Date(ev.startTime)
-                    if (s.getFullYear() === calMonth.year && s.getMonth() === calMonth.month)
-                      evCounts[s.getDate()] = (evCounts[s.getDate()] || 0) + 1
+                    const d = helsinkiDateOf(ev.startTime) // 'YYYY-MM-DD'
+                    if (d.slice(0, 4) === String(calMonth.year) && Number(d.slice(5, 7)) === calMonth.month + 1)
+                      evCounts[Number(d.slice(8, 10))] = (evCounts[Number(d.slice(8, 10))] || 0) + 1
                   })
                   const cells: (number | null)[] = []
                   for (let i = 0; i < firstDow; i++) cells.push(null)
@@ -940,9 +951,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                   return cells.map((day, idx) => {
                     if (day === null) return <div key={`e${idx}`} />
                     const dateStr = `${calMonth.year}-${String(calMonth.month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-                    const cellMs = new Date(calMonth.year, calMonth.month, day).getTime()
-                    const isPast = cellMs < todayMs
-                    const isToday = cellMs === todayMs
+                    const isPast = dateStr < hkiTanaan
+                    const isToday = dateStr === hkiTanaan
                     const isSel = dateFilter === 'custom' && customDate === dateStr
                     const dots = evCounts[day] || 0
                     return (
@@ -1001,9 +1011,9 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-white text-sm leading-snug">{previewEvent.title}</p>
                   <p className="text-xs mt-1 font-semibold" style={{ color: '#a3abff' }}>
-                    {new Date(previewEvent.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'numeric' })}
+                    {new Date(previewEvent.startTime).toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'Europe/Helsinki' })}
                     {' '}
-                    {new Date(previewEvent.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(previewEvent.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' })}
                     {previewEvent.isFree ? ' · ' + t('map.free_popup') : ''}
                   </p>
                   {previewEvent.location?.name && (

@@ -53,6 +53,10 @@ export default function SpontaaniCard({ events, onOpen }: Props) {
   return (
     <div
       onClick={() => onOpen(event)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(event) } }}
+      aria-label={event.title}
       className="relative rounded-2xl overflow-hidden cursor-pointer group border border-orange-500/20"
     >
       <div className="relative h-52">

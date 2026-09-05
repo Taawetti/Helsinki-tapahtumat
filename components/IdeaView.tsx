@@ -9,6 +9,7 @@ import type { TranslationKey } from '@/lib/i18n'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { isOpenNow } from '@/lib/opening-hours'
 import { helsinkiToday } from '@/lib/helsinki-time'
+import { stripPriceFromPrefix, tuntematonAika } from '@/lib/utils'
 import { addDays } from '@/lib/arvo-ilta'
 import { buildIdeaDeck, usefulWhy, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
@@ -16,6 +17,7 @@ import { getEventVibes } from '@/lib/event-classify'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { canBuyTickets } from '@/lib/tickets'
 import DatePicker from '@/components/DatePicker'
+import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 
 // Idea-sivu 8/2026: käsin kuratoitu 13 klassikkoa POISTETTU (asiakkaat huomasivat
 // toiston) — pakka on nyt tapahtumakeskeinen: tämän päivän tapahtumat
@@ -131,6 +133,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   // so the backdrop appears immediately (no gap between card-hide and backdrop)
   const [panelSlideIn, setPanelSlideIn] = useState(false)
   const panelCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const detailPanelRef = useRef<HTMLDivElement>(null)
 
   // Swipe state — use refs for synchronous drag tracking (useState closures would lose updates)
   const [dragX, setDragX] = useState(0)
@@ -186,6 +189,8 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     return () => cancelAnimationFrame(rafId)
   }, [detailSuggestion])
 
+  // Fokus paneeliin + Escape + Tab-loukku + palautus (auditointi 5.9.2026).
+  // Kutsutaan alla closePanel-määrittelyn jälkeen.
   // Close panel with slide-out animation, then unmount
   const closePanel = useCallback(() => {
     if (panelCloseTimer.current) clearTimeout(panelCloseTimer.current)
@@ -195,6 +200,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       setPanelSlideIn(false)
     }, 350)
   }, [])
+  useDialogiFokus(!!detailSuggestion, detailPanelRef, closePanel)
 
   // ── Build pools ──────────────────────────────────────
 
@@ -308,7 +314,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       isFree: s.event.isFree,
       buyable: canBuyTickets(s.event),
       price: s.event.price ?? undefined,
-      time: new Date(s.event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' }),
+      time: tuntematonAika(s.event.startTime) ? '' : new Date(s.event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' }),
       minutesUntil: s.minutesUntil,
       emoji: eventEmoji(s.event),
       eventRef: s.event,
@@ -705,7 +711,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               </h2>
               {current.time && (
                 <p className="text-white/60 text-sm font-bold">
-                  {dayLabel(ideaDate, todayIso, lang)} {current.time}{current.price ? ` · ${t('discover.tickets_from')} ${current.price}` : ''}
+                  {dayLabel(ideaDate, todayIso, lang)} {current.time}{current.price ? ` · ${t('discover.tickets_from')} ${stripPriceFromPrefix(current.price)}` : ''}
                 </p>
               )}
               {current.address && (
@@ -824,6 +830,11 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             translateY(100%) before the transition starts, eliminating the flash.
           */}
           <div
+            ref={detailPanelRef}
+            role="dialog"
+            aria-modal
+            tabIndex={-1}
+            aria-label={d.title}
             className="relative w-full max-w-lg mx-auto rounded-t-3xl overflow-hidden"
             style={{
               transform: panelSlideIn ? 'translateY(0)' : 'translateY(100%)',

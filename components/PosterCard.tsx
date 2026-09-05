@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Event } from '@/lib/types'
-import { formatTime, fmtDistance } from '@/lib/utils'
+import { formatTime, fmtDistance, tuntematonAika } from '@/lib/utils'
 import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
 import { hasOwnEventPage } from '@/lib/event-links'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -149,11 +149,13 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
         {/* Aikamerkki: muun kuin tämän päivän tapahtumalle näytetään myös päivä.
             Haku ja laajat listat sekoittavat eri päiviä, jolloin pelkkä
             "21:00" ei kerro milloin keikka on (omistaja 25.8.2026). */}
-        <div className="absolute bottom-2.5 right-2.5">
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white/90 bg-black/50 backdrop-blur-sm">
-            {dayPrefix}{formatTime(event.startTime, lang)}
-          </span>
-        </div>
+        {(dayPrefix || !tuntematonAika(event.startTime)) && (
+          <div className="absolute bottom-2.5 right-2.5">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white/90 bg-black/50 backdrop-blur-sm">
+              {tuntematonAika(event.startTime) ? dayPrefix.trim() : `${dayPrefix}${formatTime(event.startTime, lang)}`}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Info row — only show venue/price here to avoid title duplication on text posters */}

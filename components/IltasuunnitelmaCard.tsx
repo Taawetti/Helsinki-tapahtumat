@@ -75,7 +75,7 @@ export default function IltasuunnitelmaCard({ events, onEventClick }: Props) {
             >
               <div className="w-14 text-right shrink-0">
                 <p className="text-xs font-black" style={{ color: '#c084fc' }}>
-                  {new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' })}
                 </p>
               </div>
               <div className="flex-1 min-w-0">

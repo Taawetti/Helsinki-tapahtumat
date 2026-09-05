@@ -2,7 +2,7 @@
 
 import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
-import { formatDate, formatTime, truncate, isTonight, fmtDistance } from '@/lib/utils'
+import { formatDate, formatTime, truncate, isTonight, fmtDistance, tuntematonAika } from '@/lib/utils'
 import { recordClick } from '@/lib/preferences'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -103,6 +103,8 @@ export default function EventCard({ event, onClick, distance }: Props) {
         <div
           onClick={(e) => { e.stopPropagation(); toggle(event) }}
           role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggle(event) } }}
           aria-label={t('detail.save_fav')}
           style={{
             position: 'absolute', top: 8, right: 8, zIndex: 10,
@@ -147,10 +149,14 @@ export default function EventCard({ event, onClick, distance }: Props) {
               </div>
             )}
             <div className="flex items-center gap-1.5 text-[#a3abff] text-xs font-semibold">
-              <Clock size={10} className="shrink-0" />
-              <span>{formatTime(event.startTime, lang)}</span>
+              {!tuntematonAika(event.startTime) && (
+                <>
+                  <Clock size={10} className="shrink-0" />
+                  <span>{formatTime(event.startTime, lang)}</span>
+                </>
+              )}
               {!event.isFree && event.price && (
-                <span className="text-white/40 font-normal">· {event.price}</span>
+                <span className="text-white/40 font-normal">{tuntematonAika(event.startTime) ? event.price : `· ${event.price}`}</span>
               )}
             </div>
           </div>

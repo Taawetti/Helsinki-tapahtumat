@@ -2,8 +2,9 @@
 
 import { X, RefreshCw } from 'lucide-react'
 import { Event } from '@/lib/types'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import type { TranslationKey } from '@/lib/i18n'
 
 function eventScore(e: Event): number {
@@ -38,12 +39,16 @@ interface Props {
 export default function EiTiedaModal({ events, mode = 'general', onClose, onSelect }: Props) {
   const { t, lang } = useLanguage()
   const [refreshKey, setRefreshKey] = useState(0)
+  const modalRef = useRef<HTMLDivElement>(null)
+  // Dialogisemantiikka + Escape + fokusloukku (auditointi 5.9.2026).
+  useDialogiFokus(true, modalRef, onClose)
 
   if (events.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-8 text-center space-y-3"
+        <div ref={modalRef} role="dialog" aria-modal tabIndex={-1} aria-label={t('modal.no_events')}
+          className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-8 text-center space-y-3"
           style={{ background: '#111118', border: '1px solid rgba(255,255,255,0.08)' }}>
           <p className="text-4xl">🏙</p>
           <p className="text-white font-bold">{t('modal.no_events')}</p>
@@ -113,7 +118,8 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl overflow-hidden"
+      <div ref={modalRef} role="dialog" aria-modal tabIndex={-1} aria-label={title}
+        className="relative w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl overflow-hidden"
         style={{ background: '#111118', border: '1px solid rgba(255,255,255,0.08)' }}>
 
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/6">
@@ -129,7 +135,7 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
             >
               <RefreshCw size={14} />
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl border border-white/8 text-white/30 hover:text-white/70 transition-all">
+            <button onClick={onClose} aria-label={t('common.close')} className="p-2 rounded-xl border border-white/8 text-white/30 hover:text-white/70 transition-all">
               <X size={14} />
             </button>
           </div>
@@ -152,7 +158,7 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
                   <p className="text-white font-bold text-sm leading-tight line-clamp-1">{event.title}</p>
                   <p className="text-white/40 text-xs mt-0.5">
                     {event.location?.name && `${event.location.name} · `}
-                    {new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(event.startTime).toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' })}
                     {event.isFree ? ' · ' + t('common.free_ticket') : event.price ? ` · ${event.price}` : ''}
                   </p>
                   <p className="text-white/20 text-xs mt-0.5">{t(descKey)}</p>

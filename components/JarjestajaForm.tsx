@@ -1,7 +1,8 @@
 'use client'
 
 import { X, CheckCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { pienennaKuva } from '@/lib/image-resize'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VIBES } from '@/lib/types'
@@ -24,6 +25,9 @@ interface Props {
 }
 
 export default function JarjestajaForm({ onClose }: Props) {
+  const modalRef = useRef<HTMLDivElement>(null)
+  // Dialogisemantiikka + Escape + fokusloukku (auditointi 5.9.2026).
+  useDialogiFokus(true, modalRef, onClose)
   const { t } = useLanguage()
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -83,7 +87,8 @@ export default function JarjestajaForm({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-lg rounded-t-[26px] sm:rounded-2xl overflow-hidden flex flex-col animate-sheet-up"
+      <div ref={modalRef} role="dialog" aria-modal tabIndex={-1} aria-label={t('form.add_event')}
+        className="relative w-full sm:max-w-lg rounded-t-[26px] sm:rounded-2xl overflow-hidden flex flex-col animate-sheet-up"
         style={{ background: '#0e1117', border: '1px solid rgba(255,255,255,0.08)', maxHeight: '92dvh' }}>
 
         {/* Kahva */}
@@ -119,13 +124,13 @@ export default function JarjestajaForm({ onClose }: Props) {
         ) : (
           <form onSubmit={handleSubmit} noValidate className="px-5 pb-6 pt-2 space-y-3.5 overflow-y-auto">
             <div className="space-y-1.5">
-              <label className={labelClass}>{t('form.field_name')} <span style={{ color: '#6b76ff' }}>*</span></label>
-              <input value={form.nimi} onChange={set('nimi')} placeholder={t('form.field_name_ph')} className={inputClass} />
+              <label htmlFor="jf-nimi" className={labelClass}>{t('form.field_name')} <span style={{ color: '#6b76ff' }}>*</span></label>
+              <input id="jf-nimi" value={form.nimi} onChange={set('nimi')} placeholder={t('form.field_name_ph')} className={inputClass} />
             </div>
 
             <div className="space-y-1.5">
-              <label className={labelClass}>{t('form.field_date')} <span style={{ color: '#6b76ff' }}>*</span></label>
-              <input type="date" value={form.pvm} onChange={set('pvm')} className={`${inputClass} [color-scheme:dark]`} />
+              <label htmlFor="jf-pvm" className={labelClass}>{t('form.field_date')} <span style={{ color: '#6b76ff' }}>*</span></label>
+              <input id="jf-pvm" type="date" value={form.pvm} onChange={set('pvm')} className={`${inputClass} [color-scheme:dark]`} />
             </div>
 
             {/* Alkaa + päättyy rinnakkain. Päivämäärä nostettiin omalle
@@ -133,23 +138,23 @@ export default function JarjestajaForm({ onClose }: Props) {
                 modaaliin — type="time" tarvitsee ~95 px kellonaikavalitsimineen. */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className={labelClass}>{t('form.field_time_start')}</label>
-                <input type="time" value={form.aika} onChange={set('aika')} className={`${inputClass} [color-scheme:dark]`} />
+                <label htmlFor="jf-aika" className={labelClass}>{t('form.field_time_start')}</label>
+                <input id="jf-aika" type="time" value={form.aika} onChange={set('aika')} className={`${inputClass} [color-scheme:dark]`} />
               </div>
               <div className="space-y-1.5">
-                <label className={labelClass}>{t('form.field_time_end')}</label>
-                <input type="time" value={form.loppuu} onChange={set('loppuu')} className={`${inputClass} [color-scheme:dark]`} />
+                <label htmlFor="jf-loppuu" className={labelClass}>{t('form.field_time_end')}</label>
+                <input id="jf-loppuu" type="time" value={form.loppuu} onChange={set('loppuu')} className={`${inputClass} [color-scheme:dark]`} />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className={labelClass}>{t('form.field_venue')} <span style={{ color: '#6b76ff' }}>*</span></label>
-              <input value={form.paikka} onChange={set('paikka')} placeholder={t('form.field_venue_ph')} className={inputClass} />
+              <label htmlFor="jf-paikka" className={labelClass}>{t('form.field_venue')} <span style={{ color: '#6b76ff' }}>*</span></label>
+              <input id="jf-paikka" value={form.paikka} onChange={set('paikka')} placeholder={t('form.field_venue_ph')} className={inputClass} />
             </div>
 
             <div className="space-y-1.5">
-              <label className={labelClass}>{t('form.field_email')} <span style={{ color: '#6b76ff' }}>*</span></label>
-              <input type="email" value={form.email} onChange={set('email')} placeholder={t('form.field_email_ph')} className={inputClass} />
+              <label htmlFor="jf-email" className={labelClass}>{t('form.field_email')} <span style={{ color: '#6b76ff' }}>*</span></label>
+              <input id="jf-email" type="email" value={form.email} onChange={set('email')} placeholder={t('form.field_email_ph')} className={inputClass} />
             </div>
 
             <div className="border-t border-white/6 my-1" />
@@ -185,25 +190,25 @@ export default function JarjestajaForm({ onClose }: Props) {
             </div>
 
             <div className="space-y-1.5">
-              <label className={labelClass}>{t('form.field_price')}</label>
-              <input value={form.hinta} onChange={set('hinta')} placeholder={t('form.field_price_ph')} className={inputClass} />
+              <label htmlFor="jf-hinta" className={labelClass}>{t('form.field_price')}</label>
+              <input id="jf-hinta" value={form.hinta} onChange={set('hinta')} placeholder={t('form.field_price_ph')} className={inputClass} />
             </div>
 
             <div className="space-y-1.5">
-              <label className={`${labelClass} flex items-center gap-2`}>
+              <label htmlFor="jf-linkki" className={`${labelClass} flex items-center gap-2`}>
                 {t('form.field_link')}
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-[.06em] normal-case"
                   style={{ background: 'rgba(107,118,255,.15)', border: '1px solid rgba(107,118,255,.45)', color: '#a3abff' }}>
                   {t('form.link_recommended')}
                 </span>
               </label>
-              <input type="url" value={form.linkki} onChange={set('linkki')} placeholder="https://…" className={inputClass} />
+              <input id="jf-linkki" type="url" value={form.linkki} onChange={set('linkki')} placeholder="https://…" className={inputClass} />
               <p className="text-[11px] text-white/30 leading-snug">{t('form.link_help')}</p>
             </div>
 
             <div className="space-y-1.5">
-              <label className={labelClass}>{t('form.field_desc')}</label>
-              <textarea value={form.kuvaus} onChange={set('kuvaus')} placeholder={t('form.field_desc_ph')} rows={3}
+              <label htmlFor="jf-kuvaus" className={labelClass}>{t('form.field_desc')}</label>
+              <textarea id="jf-kuvaus" value={form.kuvaus} onChange={set('kuvaus')} placeholder={t('form.field_desc_ph')} rows={3}
                 className={`${inputClass} resize-none`} />
             </div>
 

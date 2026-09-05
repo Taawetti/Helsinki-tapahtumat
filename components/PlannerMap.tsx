@@ -14,6 +14,13 @@ interface MapItem {
   coords?: [number, number]
 }
 
+// Popup rakennetaan HTML-merkkijonona → AI-suunnittelijan tulokseen päätyvä
+// lähdedata (otsikot, paikannimet) on escapoitava ennen interpolointia.
+function esc(s: string | null | undefined): string {
+  if (!s) return ''
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 export default function PlannerMap({ items }: { items: MapItem[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const instanceRef  = useRef<LeafletMap | null>(null)
@@ -74,8 +81,8 @@ export default function PlannerMap({ items }: { items: MapItem[] }) {
 
         marker.addTo(map)
         marker.bindPopup(
-          `<strong style="font-size:13px;font-family:system-ui;">${item.title}</strong>` +
-          (item.location ? `<br><span style="color:#aaa;font-size:12px;">${item.location}</span>` : ''),
+          `<strong style="font-size:13px;font-family:system-ui;">${esc(item.title)}</strong>` +
+          (item.location ? `<br><span style="color:#aaa;font-size:12px;">${esc(item.location)}</span>` : ''),
           { maxWidth: 200 }
         )
       })

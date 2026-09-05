@@ -175,7 +175,7 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px' }}>
-        <button onClick={prev} style={{ padding: 6, borderRadius: 8, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+        <button onClick={prev} aria-label={t('a11y.prev_month')} style={{ padding: 6, borderRadius: 8, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
           onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
           onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
           <ChevronLeft size={16} />
@@ -183,7 +183,7 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
         <span style={{ fontSize: 14, fontWeight: 900, color: '#fff', letterSpacing: '0.02em' }}>
           {MONTHS[month]} {year}
         </span>
-        <button onClick={next} style={{ padding: 6, borderRadius: 8, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+        <button onClick={next} aria-label={t('a11y.next_month')} style={{ padding: 6, borderRadius: 8, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
           onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
           onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
           <ChevronRight size={16} />

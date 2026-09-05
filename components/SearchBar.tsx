@@ -57,6 +57,7 @@ export default function SearchBar({
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={t('search.placeholder')}
+        aria-label={t('search.placeholder')}
         className="w-full border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:border-[#6b76ff]/60 transition-all"
         style={{
           color: '#fff',

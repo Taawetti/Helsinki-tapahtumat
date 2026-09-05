@@ -16,6 +16,7 @@ import { X, MapPin, Clock, ExternalLink, Navigation, Share2, MessageCircle, Copy
 import { track } from '@/lib/track'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 
 export interface PaikkaTieto {
   id: string
@@ -67,6 +68,9 @@ interface Props {
 
 export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
+  // Fokus paneeliin, Tab-loukku, palautus avaajaan (Escape sidottu alla).
+  // open = !!paikka: komponentti voi olla mountattuna paikka=null-tilassa.
+  useDialogiFokus(!!paikka, panelRef)
   const innerRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isManualClose = useRef(false)
@@ -224,6 +228,7 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
         ref={panelRef}
         role="dialog"
         aria-modal
+        tabIndex={-1}
         aria-label={paikka.name}
         className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl overflow-hidden md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:rounded-none md:w-full md:max-w-lg"
         style={{

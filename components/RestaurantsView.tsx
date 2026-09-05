@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 import type { TranslationKey } from '@/lib/i18n'
@@ -12,6 +12,7 @@ import { credibilityScore } from '@/lib/credibility'
 import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaurant-reasons'
 import { ReasonBadge, relativeDate } from '@/components/ReasonBadge'
 import RestaurantDetailPanel from '@/components/RestaurantDetailPanel'
+import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -762,10 +763,14 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
 }) {
   const { t } = useLanguage()
+  const sheetRef = useRef<HTMLDivElement>(null)
+  // Dialogisemantiikka + Escape + fokusloukku (auditointi 5.9.2026).
+  useDialogiFokus(true, sheetRef, onClose)
   return (
     <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}>
-      <div className="w-full max-w-2xl mx-auto rounded-t-[28px] overflow-hidden animate-sheet-up flex flex-col"
+      <div ref={sheetRef} role="dialog" aria-modal tabIndex={-1} aria-label={chain.displayName}
+        className="w-full max-w-2xl mx-auto rounded-t-[28px] overflow-hidden animate-sheet-up flex flex-col"
         style={{ background: '#0f0f13', border: '1px solid rgba(255,255,255,.1)', maxHeight: '85vh' }}
         onClick={e => e.stopPropagation()}>
 
@@ -776,7 +781,7 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
             <h2 className="font-black text-white text-xl leading-tight">{chain.displayName}</h2>
             <p className="text-[13px] mt-1 font-bold" style={{ color: '#a3abff' }}>📍 {chain.locations.length} {t('restaurants.locations_in_helsinki')}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full text-white/40 hover:text-white shrink-0 ml-2"
+          <button onClick={onClose} aria-label={t('common.close')} className="p-2 rounded-full text-white/40 hover:text-white shrink-0 ml-2"
             style={{ background: 'rgba(255,255,255,.08)' }}>
             <X size={16} />
           </button>

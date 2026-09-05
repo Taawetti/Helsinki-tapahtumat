@@ -6,6 +6,8 @@ import type { Event } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { classifyEventCategory } from '@/lib/event-category'
+import { stripPriceFromPrefix, tuntematonAika } from '@/lib/utils'
+import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import type { TranslationKey } from '@/lib/i18n'
 
 // "✦ ILLAN NOSTOT" — pyyhkäistävä hero, enintään 5 nostoa.
@@ -122,8 +124,8 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
               willChange: 'transform',
             }}
           >
-            {events.map((e) => (
-              <HeroSlide key={e.id} e={e} lang={lang} t={t} />
+            {events.map((e, i) => (
+              <HeroSlide key={e.id} e={e} lang={lang} t={t} ensimmainen={i === 0} />
             ))}
           </div>
 
@@ -135,6 +137,8 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
             </span>
             <div
               role="button"
+              tabIndex={0}
+              onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); toggle(current) } }}
               aria-label={fav ? t('detail.remove_fav') : t('detail.save_fav')}
               className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
               style={{ background: 'rgba(10,10,12,.55)', border: '1px solid rgba(255,255,255,.15)', backdropFilter: 'blur(8px)' }}
@@ -192,24 +196,30 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
 
 // Yksi kortti raiteella. Erillinen komponentti, jotta raide pysyy luettavana —
 // sisältö on sama kuin ennen liukuraidetta (badge, kategoria, otsikko, CTA).
-function HeroSlide({ e, lang, t: tt }: {
+function HeroSlide({ e, lang, t: tt, ensimmainen }: {
   e: Event
   lang: string
   t: (k: TranslationKey) => string
+  /** Ensimmäinen slaidi on etusivun LCP-elementti: lazy viivytti sen
+   *  latausta ja koko sivun mitattua latauskokemusta (auditointi 5.9.2026). */
+  ensimmainen?: boolean
 }) {
   const start = new Date(e.startTime)
-  const time = start.toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+  const time = tuntematonAika(e.startTime)
+    ? ''
+    : start.toLocaleTimeString(lang === 'fi' ? 'fi-FI' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' })
   // Päivälabel tapahtuman OIKEASTA päivästä — päivävalitsin voi näyttää
-  // huomisen/viikonlopun keikkoja, jolloin "Tänään" olisi väärin
-  const isToday = start.toDateString() === new Date().toDateString()
+  // huomisen/viikonlopun keikkoja, jolloin "Tänään" olisi väärin.
+  // Vertailu Helsinki-päivinä: toDateString() eläisi selaimen vyöhykkeessä.
+  const isToday = helsinkiDateOf(e.startTime) === helsinkiToday()
   const dayLabel = isToday
     ? tt('date.today')
-    : start.toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'numeric' })
+    : start.toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'Europe/Helsinki' })
 
   const cta = e.isFree
     ? `${tt('common.free')} →`
     : e.price
-      ? `${tt('discover.tickets_from')} ${e.price} →`
+      ? `${tt('discover.tickets_from')} ${stripPriceFromPrefix(e.price)} →`
       : e.ticketUrl
         ? `${tt('discover.tickets')} →`
         : `${tt('discover.details')} →`
@@ -217,7 +227,7 @@ function HeroSlide({ e, lang, t: tt }: {
   return (
     <div className="relative h-full shrink-0 grow-0 basis-full">
       {e.image ? (
-        <img loading="lazy" src={e.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" />
+        <img loading={ensimmainen ? 'eager' : 'lazy'} fetchPriority={ensimmainen ? 'high' : undefined} src={e.image} alt="" draggable={false} className="absolute inset-0 w-full h-full object-cover" />
       ) : (
         <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 120% at 20% 0%, rgba(107,118,255,.25), transparent 60%), #101019' }} />
       )}
@@ -256,7 +266,7 @@ function HeroSlide({ e, lang, t: tt }: {
             {cta}
           </span>
           <span className="text-white/85 text-[14px] font-bold shrink-0">
-            {dayLabel} {time}
+            {time ? `${dayLabel} ${time}` : dayLabel}
           </span>
         </div>
       </div>
