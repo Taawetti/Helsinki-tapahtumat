@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { helsinkiToday } from '@/lib/helsinki-time'
 import { Event } from '@/lib/types'
 
 // ── Musiikkitalo (RSS feed, date parsed from URL slug) ───────────────────────
@@ -133,77 +134,37 @@ async function scrapeOoppera(): Promise<Event[]> {
 
 // ── Helsingin Kaupunginteatteri (HTML, show list) ─────────────────────────────
 
-async function scrapeHKT(): Promise<Event[]> {
-  const res = await fetch('https://hkt.fi/esitykset/', {
-    next: { revalidate: 3600, tags: ['events'] },
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-Tapahtumat/1.0)' },
-    signal: AbortSignal.timeout(8000),
-  })
-  if (!res.ok) return []
-
-  const html = await res.text()
-  const articles = html.match(/<article class="show--list-item">([\s\S]*?)<\/article>/g) ?? []
-
-  const today = new Date().toISOString().split('T')[0]
-
-  return articles.map((block): Event | null => {
-    const imgMatch = block.match(/src="(https:\/\/[^"]+\.(?:jpg|jpeg|png|webp))[^"]*"/)
-    const titleMatch = block.match(/<h2[^>]*>\s*<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/)
-    const ticketMatch = block.match(/href="(https:\/\/www\.lippu\.fi\/[^"]+)"/)
-
-    if (!titleMatch) return null
-    const [, showUrl, rawTitle] = titleMatch
-    const title = rawTitle.replace(/<[^>]+>/g, '').trim()
-    if (!title) return null
-
-    return {
-      id: `hkt-${Buffer.from(showUrl).toString('base64').slice(0, 16)}`,
-      title,
-      shortDescription: 'Helsingin Kaupunginteatteri',
-      description: '',
-      startTime: `${today}T19:00:00`,
-      startTimeApprox: true, // vain päivä tiedossa — klo 19 on oletus
-      endTime: null,
-      location: { name: 'Helsingin Kaupunginteatteri', streetAddress: 'Eläintarhantie 5', city: 'Helsinki' },
-      image: imgMatch?.[1] ?? null,
-      isFree: false,
-      price: null,
-      ticketUrl: ticketMatch?.[1] ?? showUrl,
-      infoUrl: showUrl,
-      categories: ['Teatteri', 'Kulttuuri'],
-      source: 'linked-events',
-    }
-  }).filter((e): e is Event => e !== null)
-}
+// HKT POISTETTU LÄHTEENÄ 5.9.2026 (auditointi): hkt.fi/esitykset on
+// OHJELMISTOSIVU (koko repertuaari), ei näytöskalenteri. Skrape keksi
+// jokaiselle näytelmälle esitysajan "tänään klo 19" joka ikinen päivä —
+// tuotannossa 18 tapahtumaa väärällä ajalla ja samalla id:llä
+// (base64(url).slice(0,16) katkesi ennen erottelevaa osaa). Samat näytelmät
+// tulevat sovellukseen lippu.fi:stä ja stadissasta OIKEILLA näytösajoilla
+// ("& Julia" näkyi kolmena korttina, joista vain kaksi oli oikein).
+// Jos HKT halutaan omana lähteenä takaisin, skrapattava näytelmäsivujen
+// näytöskalenteri tai lippu.fi:n erid-sivu — ei ohjelmistosivua.
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
-  const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
+  // Oletus HELSINKI-päivä: UTC-päivä on yöllä 00–03 eilinen (auditointi).
+  const start = searchParams.get('start') || helsinkiToday()
   const end = searchParams.get('end') || start
 
-  const [musiikkitaloRes, oopperaRes, hktRes] = await Promise.allSettled([
+  const [musiikkitaloRes, oopperaRes] = await Promise.allSettled([
     scrapeMusiikkitalo(),
     scrapeOoppera(),
-    scrapeHKT(),
   ])
 
   const startTs = new Date(start).getTime()
   const endTs = new Date(end).getTime() + 24 * 60 * 60 * 1000
-  const startDate = start
 
   let events: Event[] = [
     ...(musiikkitaloRes.status === 'fulfilled' ? musiikkitaloRes.value : []),
     ...(oopperaRes.status === 'fulfilled' ? oopperaRes.value : []),
-    // HKT shows are ongoing productions — include them if dateFilter covers current week
-    ...(hktRes.status === 'fulfilled' ? hktRes.value : []).filter(() => {
-      const diffDays = (new Date(end).getTime() - new Date(start).getTime()) / 86400000
-      return diffDays >= 1 || startDate <= new Date().toISOString().split('T')[0]
-    }),
   ]
 
   // Filter Musiikkitalo and Ooppera by date window
   events = events.filter((e) => {
-    if (e.id.startsWith('hkt-')) return true // HKT always passes (ongoing productions)
     const ts = new Date(e.startTime).getTime()
     return ts >= startTs - 7 * 86400000 && ts <= endTs + 60 * 86400000
   })

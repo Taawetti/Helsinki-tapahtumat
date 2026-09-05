@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { helsinkiOffset } from '@/lib/helsinki-time'
+import { helsinkiOffset, helsinkiToday } from '@/lib/helsinki-time'
 import { Event } from '@/lib/types'
 
 // Venue-sijaintitiedot — kovakoodattu, ei muutu
@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = req.nextUrl
-  const start = searchParams.get('start') || new Date().toISOString().slice(0, 10)
+  // Oletus HELSINKI-päivä: UTC-päivä on yöllä 00–03 eilinen (auditointi).
+  const start = searchParams.get('start') || helsinkiToday()
   const end = searchParams.get('end') || start
 
   // Haetaan tapahtumat pyydetyllä aikavälillä (+ 1 päivä buffer yöllisten tapahtumien takia)

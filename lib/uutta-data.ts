@@ -30,7 +30,10 @@ const fetchReviewCounts = unstable_cache(
         .select('venue_key, review_count')
         .order('venue_key')
         .range(page * PAGE, (page + 1) * PAGE - 1)
-      if (resp.error || !resp.data || resp.data.length === 0) break
+      // Virhe HEITTÄÄ: unstable_cache ei saa tallentaa vajaata/tyhjää
+      // karttaa tunniksi (kutsupaikan .catch(() => null) hoitaa pyynnön).
+      if (resp.error) throw new Error(`venue_ratings-sivu ${page}: ${resp.error.message}`)
+      if (!resp.data || resp.data.length === 0) break
       for (const row of resp.data as { venue_key: string; review_count: number | null }[]) {
         const key = row.venue_key.replace(/^act:/, '').toLowerCase().trim()
         if (typeof row.review_count === 'number') out.push([key, row.review_count])

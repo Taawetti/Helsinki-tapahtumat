@@ -53,8 +53,10 @@ export function isTicketShopUrl(url: string | null | undefined): boolean {
 
 /** Saako tapahtumalle näyttää "Osta liput"? Ilmainen tapahtuma ei koskaan
  *  (Kino Kivinokka -tapaus: maksuton rantaleffa lupasi lippukauppaa),
- *  muuten vain kun ticketUrl on oikea kauppa. */
-export function canBuyTickets(e: { ticketUrl?: string | null; isFree?: boolean }): boolean {
-  if (e.isFree) return false
+ *  loppuunmyyty ei koskaan (todettu 5.9.2026: Kansallisteatterin 5/29
+ *  esitystä loppuunmyytyjä ja CTA lupasi silti lippuja), muuten vain kun
+ *  ticketUrl on oikea kauppa. */
+export function canBuyTickets(e: { ticketUrl?: string | null; isFree?: boolean; soldOut?: boolean }): boolean {
+  if (e.isFree || e.soldOut) return false
   return isTicketShopUrl(e.ticketUrl)
 }

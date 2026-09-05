@@ -152,8 +152,10 @@ export async function GET(req: NextRequest) {
     if (r.status !== 'fulfilled' || !r.value.ok) continue
     try {
       const data = await r.value.json()
-      for (const raw of (data.data ?? []) as LEEvent[]) {
+      for (const raw of (data.data ?? []) as (LEEvent & { event_status?: string })[]) {
         if (seen.has(raw.id)) continue
+        // Perutut/lykätyt pois — sama sääntö kuin muissa LE-lähteissä.
+        if (raw.event_status === 'EventCancelled' || raw.event_status === 'EventPostponed') continue
         seen.add(raw.id)
         const e = normalize(raw)
         if (new Date(e.startTime).getTime() >= startTs - 86400000) events.push(e)

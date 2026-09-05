@@ -141,5 +141,9 @@ export async function GET(req: NextRequest) {
       totalPhotos: typeof g.total_photos === 'number' ? g.total_photos : null,
       isClaimed: g.is_claimed === true,
     },
+  }, {
+    // `export const revalidate` ei vaikuta pyyntöparametreja lukevaan
+    // reittiin — reunavälimuisti hoidetaan otsakkeella (auditointi 5.9.2026).
+    headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' },
   })
 }

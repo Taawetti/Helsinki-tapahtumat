@@ -98,6 +98,7 @@ export async function GET(req: NextRequest) {
         title: s.title,
         shortDescription: `Kansallisteatteri${s.stage ? ' · ' + s.stage : ''}`,
         description: s.soldOut ? 'Tämä esitys on loppuunmyyty.' : '',
+        soldOut: s.soldOut || undefined,
         startTime: `${s.date}T${s.time}:00`,
         endTime: null,
         location: {

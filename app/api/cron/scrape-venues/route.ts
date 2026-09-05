@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { helsinkiISO } from '@/lib/helsinki-time'
+
+/** 'YYYY-MM-DD' + tunnit + minuutit → ISO OIKEALLA Helsinki-offsetilla.
+ *  Kiinteä '+03:00' oli väärin talviajassa: 25.10. jälkeiset keikat
+ *  tallentuivat tunnin liian aikaisiksi (todettu tuotannosta 5.9.2026,
+ *  mm. Korjaamon Poetry Slam). helsinkiISO valitsee +03/+02 päivän mukaan. */
+function hkiAika(dateStr: string, hour: string, minute: string): string {
+  const [y, kk, pv] = dateStr.split('-').map(Number)
+  return helsinkiISO(y, kk, pv, Number(hour), Number(minute))
+}
 
 export const maxDuration = 120
 
@@ -139,7 +149,7 @@ async function scrapeOnTheRocks(): Promise<ScrapedEvent[]> {
     const hour = timeMatch ? timeMatch[1].padStart(2, '0') : '19'
     const minute = timeMatch ? timeMatch[2].padStart(2, '0') : '00'
 
-    const start_datetime = `${year}-${month}-${day}T${hour}:${minute}:00+03:00`
+    const start_datetime = hkiAika(`${year}-${month}-${day}`, hour, minute)
 
     // Suora tiketti-ostolinkki (parempi kuin event page -URL)
     const tikettiMatch = article.match(/class="btn[^"]*btn-tiketti[^"]*"[^>]*href="([^"]+)"/)
@@ -225,7 +235,13 @@ async function scrapeTavastiaPage(url: string): Promise<{
     // Tarkka aloitusaika — schema.org microdata
     const startMatch = html.match(/itemprop="startDate"[^>]*content="([^"]+)"/)
     if (!startMatch) return null
-    const start_datetime = startMatch[1]
+    // Vain SEINÄKELLOAIKA microdatasta; offset lasketaan päivän mukaan.
+    // Tavastian sivusto emittoi talvipäivillekin +03:00 (todettu 5.9.2026:
+    // Gloryhammer 28.10. content="2026-10-28T18:00:00+03:00" — väärä offset).
+    const wallM = startMatch[1].match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+    const start_datetime = wallM
+      ? hkiAika(`${wallM[1]}-${wallM[2]}-${wallM[3]}`, wallM[4], wallM[5])
+      : startMatch[1]
     // Hylätään epoch-fallback (buginen data)
     if (!start_datetime || start_datetime.startsWith('1970')) return null
 
@@ -412,7 +428,7 @@ async function scrapeKorjaamo(): Promise<ScrapedEvent[]> {
         venue_id: 'korjaamo',
         venue_name: 'Korjaamo',
         title,
-        start_datetime: `${date}T${hour}:${minute}:00+03:00`,
+        start_datetime: hkiAika(date, hour, minute),
         image_url: image,
         ticket_url: ev.link,
         price_info: priceInfo,
@@ -481,7 +497,7 @@ async function scrapeKaiku(): Promise<ScrapedEvent[]> {
       venue_id: 'kaiku',
       venue_name: 'Club Kaiku',
       title,
-      start_datetime: `${dateStr}T${hour}:${minute}:00+03:00`,
+      start_datetime: hkiAika(dateStr, hour, minute),
       image_url: null,
       ticket_url,
       price_info,
@@ -551,7 +567,7 @@ async function scrapeStoryville(): Promise<ScrapedEvent[]> {
       venue_id: 'storyville',
       venue_name: 'Storyville',
       title,
-      start_datetime: `${dateStr}T${hour}:00:00+03:00`,
+      start_datetime: hkiAika(dateStr, hour, '00'),
       image_url,
       ticket_url: eventUrl,
       price_info,
@@ -637,6 +653,39 @@ export async function GET(req: NextRequest) {
         { error: `Supabase upsert epäonnistui: ${error.message}` },
         { status: 500 }
       )
+    }
+  }
+
+  // Haamurivien synkka: venuen sivulta POISTETTU (esim. peruttu) tuleva
+  // keikka on poistettava myös Supabasesta — upsert ei koskaan poista
+  // mitään, joten peruttu tapahtuma jäi haamuna näkyviin lippulinkkeineen
+  // tapahtumapäivään asti (auditointi 5.9.2026). Kaksi varovaisuussääntöä:
+  // (1) poisto vain kun venuen skrape ONNISTUI ja palautti rivejä — tyhjä
+  //     tulos voi olla sivuston rakennemuutos, eikä katko saa tyhjentää
+  //     koko venueta;
+  // (2) poisto rajataan skrapen omaan horisonttiin (≤ ajon myöhäisin
+  //     start_datetime) — sen taakse skrape ei nähnyt, joten sieltä ei
+  //     voi päätellä poistumista.
+  const synkattavat: { venueIds: string[]; rows: ScrapedEvent[] }[] = []
+  if (otrResult.status === 'fulfilled' && otrResult.value.length > 0) synkattavat.push({ venueIds: ['otr'], rows: otrResult.value })
+  if (tavastiaResult.status === 'fulfilled' && tavastiaResult.value.length > 0) synkattavat.push({ venueIds: ['tavastia', 'semifinal'], rows: tavastiaResult.value })
+  if (korjaamoResult.status === 'fulfilled' && korjaamoResult.value.length > 0) synkattavat.push({ venueIds: ['korjaamo'], rows: korjaamoResult.value })
+  if (kaikuResult.status === 'fulfilled' && kaikuResult.value.length > 0) synkattavat.push({ venueIds: ['kaiku'], rows: kaikuResult.value })
+  if (storyvilleResult.status === 'fulfilled' && storyvilleResult.value.length > 0) synkattavat.push({ venueIds: ['storyville'], rows: storyvilleResult.value })
+  const nytISO = new Date().toISOString()
+  for (const { venueIds, rows } of synkattavat) {
+    const idt = rows.map((e) => e.id)
+    const horisontti = rows.map((e) => e.start_datetime).sort().at(-1)
+    if (!horisontti) continue
+    for (const vid of venueIds) {
+      const { error: syncError } = await supabaseAdmin
+        .from('scraped_events')
+        .delete()
+        .eq('venue_id', vid)
+        .gte('start_datetime', nytISO)
+        .lte('start_datetime', horisontti)
+        .not('id', 'in', `(${idt.map((i) => `"${i}"`).join(',')})`)
+      if (syncError) errors.push(`haamusynkka ${vid}: ${syncError.message}`)
     }
   }
 

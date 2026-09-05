@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 const BREVO_API = 'https://api.brevo.com/v3'
 
@@ -93,6 +94,11 @@ function safeLink(url: string | undefined): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  // Anonyymi 5 MB:n kuvalataus julkiseen buckettiin — ilman rajaa varasto
+  // täyttyisi roskasta (auditointi 5.9.2026). Aito järjestäjä lähettää 1–2.
+  if (!rateLimit(`submit:${clientIp(req)}`, 5, 60 * 60_000)) {
+    return NextResponse.json({ error: 'Liian monta ilmoitusta. Yritä tunnin päästä uudelleen.' }, { status: 429 })
+  }
   const body: EventSubmission = await req.json().catch(() => null)
 
   if (!body?.nimi || !body?.pvm || !body?.paikka || !body?.email) {
@@ -125,12 +131,12 @@ export async function POST(req: NextRequest) {
       <tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Paikka</td><td style="padding:6px 12px;">${escHtml(body.paikka)}</td></tr>
       ${body.hinta ? `<tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Hinta</td><td style="padding:6px 12px;">${escHtml(body.hinta)}</td></tr>` : ''}
       ${body.kategoria ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kategoria</td><td style="padding:6px 12px;">${escHtml(body.kategoria)}</td></tr>` : ''}
-      ${link ? `<tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Linkki</td><td style="padding:6px 12px;"><a href="${link}">${escHtml(body.linkki)}</a></td></tr>` : ''}
+      ${link ? `<tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Linkki</td><td style="padding:6px 12px;"><a href="${escHtml(link)}">${escHtml(body.linkki)}</a></td></tr>` : ''}
       ${body.kuvaus ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kuvaus</td><td style="padding:6px 12px;">${escHtml(body.kuvaus)}</td></tr>` : ''}
       <tr style="background:#f9f9f9;"><td style="padding:6px 12px;font-weight:bold;color:#666;">Järjestäjä</td><td style="padding:6px 12px;"><a href="mailto:${escHtml(body.email)}">${escHtml(body.email)}</a></td></tr>
-      ${kuvaUrl ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kuva</td><td style="padding:6px 12px;"><a href="${kuvaUrl}">${kuvaUrl}</a></td></tr>` : ''}
+      ${kuvaUrl ? `<tr><td style="padding:6px 12px;font-weight:bold;color:#666;">Kuva</td><td style="padding:6px 12px;"><a href="${escHtml(kuvaUrl)}">${escHtml(kuvaUrl)}</a></td></tr>` : ''}
     </table>
-    ${kuvaUrl ? `<p style="margin-top:16px;"><a href="${kuvaUrl}"><img src="${kuvaUrl}" alt="" style="max-width:420px;border-radius:8px;" /></a></p>` : ''}
+    ${kuvaUrl ? `<p style="margin-top:16px;"><a href="${escHtml(kuvaUrl)}"><img src="${escHtml(kuvaUrl)}" alt="" style="max-width:420px;border-radius:8px;" /></a></p>` : ''}
     <p style="font-family:sans-serif;font-size:12px;color:#999;margin-top:24px;">Lähetetty sivustolta ${SITE_HOST} — vastaa tähän viestiin, niin vastaus menee ilmoittajalle.</p>
   `
 

@@ -262,7 +262,13 @@ export const _fetchNewsUncached = async (): Promise<NewsItem[]> => {
   // hieman vanhemmat pidetään mukana diagnostiikkaa varten.
   const cutoff = Date.now() - 30 * 24 * 3_600_000
   merged.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-  return merged.filter(i => new Date(i.pubDate).getTime() > cutoff).slice(0, 130)
+  const tulos = merged.filter(i => new Date(i.pubDate).getTime() > cutoff).slice(0, 130)
+  // Myrkytysvartija: 30 pv ikkunassa on AINA kymmeniä juttuja — nolla
+  // tarkoittaa uutisputken täyskatkoa, eikä tyhjä saa tallentua tunniksi
+  // välimuistiin. Kaikki kutsupaikat catchaavat (uutisettomuus ei kaada
+  // listoja), ja seuraava pyyntö yrittää heti uudelleen.
+  if (tulos.length === 0) throw new Error('uutisputki palautti 0 juttua — todennäköinen katko')
+  return tulos
 }
 
 /** Tunnin välimuisti — sama kuin muillakin rikastuksilla. v9: avautumis-

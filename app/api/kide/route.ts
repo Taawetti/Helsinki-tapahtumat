@@ -89,7 +89,12 @@ function normalize(p: KideProduct): Event | null {
   const rawPlace = (p.place ?? '').trim()
   const venue = rawPlace && rawPlace !== EMPTY_PLACE ? rawPlace : (p.companyName ?? '').trim()
   const url = `https://kide.app/events/${id}`
-  const isFree = p.hasFreeInventoryItems === true
+  // hasFreeInventoryItems tarkoittaa "on VÄHINTÄÄN YKSI 0 € variantti" —
+  // esim. jäsenlippu tai katsojalippu — vaikka osallistuminen maksaa.
+  // Todennettu live-APIsta 5.9.2026: 10/155 Helsinki-tapahtumaa, joilla
+  // free-lippu JA minPrice > 0 (mm. fuksiaiset: fuksi 0 €, muut 5–8 €).
+  // Ilmainen vain kun halvin variantti on oikeasti 0 €.
+  const isFree = p.hasFreeInventoryItems === true && (p.minPrice?.eur ?? 0) === 0
 
   return {
     id: `kide-${id}`,

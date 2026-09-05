@@ -184,6 +184,10 @@ function freeSection(events: LinkedEvent[]): string {
 </td></tr>`
 }
 
+// Lähetys käy tilaajat läpi sarjassa — oletusaikakatkaisu voi katkaista
+// lähetyksen kesken listan (auditointi 5.9.2026).
+export const maxDuration = 60
+
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
   if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {

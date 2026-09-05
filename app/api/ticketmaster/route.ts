@@ -26,7 +26,7 @@ interface TMPriceRange {
 interface TMEvent {
   id: string
   name: string
-  dates?: { start?: { dateTime?: string; localDate?: string; localTime?: string } }
+  dates?: { start?: { dateTime?: string; localDate?: string; localTime?: string }; status?: { code?: string } }
   info?: string
   description?: string
   images?: TMImage[]
@@ -121,7 +121,14 @@ export async function GET(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ events: [], hasMore: false, total: 0 })
 
     const data = await res.json()
-    const raw: TMEvent[] = data._embedded?.events ?? []
+    const rawKaikki: TMEvent[] = data._embedded?.events ?? []
+    // Perutut/lykätyt pois — Discovery API palauttaa ne oletuksena mukana
+    // (status.code: cancelled/postponed). rescheduled säilyy: dates.start on
+    // jo uusi ajankohta. Sama sääntö kuin LinkedEvents-lähteissä.
+    const raw = rawKaikki.filter((e) => {
+      const code = e.dates?.status?.code
+      return code !== 'cancelled' && code !== 'postponed'
+    })
 
     // Deduplicate by base title + date — keep the entry with price info (most complete)
     const seen = new Map<string, TMEvent>()

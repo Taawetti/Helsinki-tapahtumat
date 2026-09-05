@@ -23,6 +23,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { SESSION_COOKIE as ADMIN_COOKIE } from '@/lib/admin-auth'
 import { onRobotti } from '@/lib/bot'
 import { helsinkiDateOf, helsinkiOffset } from '@/lib/helsinki-time'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 /** Sallitut tapahtumatyypit. Vapaa teksti kelpaisi kenelle tahansa roskan
  *  syöttäjälle ja tekisi raporteista lukukelvottomia. */
@@ -125,6 +126,10 @@ export async function POST(req: NextRequest) {
   // myöskään kävijätiivisteeseen eivätkä maajakaumaan. Ks. lib/bot.ts —
   // sivulatauskirjaus teki tästä pakollisen.
   if (onRobotti(req.headers.get('user-agent'))) return NextResponse.json({ ok: true })
+
+  // Analytiikan myrkytys- ja täyttösuoja: aito käyttö on kymmeniä kirjauksia
+  // per istunto, sadat minuuteissa on skripti (auditointi 5.9.2026).
+  if (!rateLimit(`track:${clientIp(req)}`, 300, 5 * 60_000)) return NextResponse.json({ ok: true })
 
   // OMISTAJAN OMAT KÄYNNIT POIS. Jos selaimessa on voimassa admin-istunto,
   // kirjauksia ei tallenneta lainkaan. Tämä on karsinnan tärkein taso: se

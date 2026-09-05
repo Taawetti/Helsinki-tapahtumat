@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isCompetitorUrl } from '@/lib/event-links'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
-import { helsinkiDateOf, normalizeHelsinkiTimestamp } from '@/lib/helsinki-time'
+import { helsinkiDateOf, normalizeHelsinkiTimestamp, helsinkiToday } from '@/lib/helsinki-time'
+import { decodeHtmlEntities } from '@/lib/utils'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { eventMatchesKeyword } from '@/lib/keyword-filter'
 
@@ -63,6 +64,15 @@ interface LinkedEventsEvent {
   offers?: LinkedEventsOffer[]
   keywords?: { '@id'?: string; name: { fi?: string; en?: string } }[]
   info_url?: { fi?: string; en?: string }
+  event_status?: string
+}
+
+/** Peruttu tai lykätty tapahtuma EI saa näkyä normaalina korttina
+ *  lippulinkkeineen (todennettu 5.9.2026: api.hel.fi palauttaa
+ *  EventCancelled-rivejä oletuskyselyllä ja ne renderöityivät sovelluksessa).
+ *  EventRescheduled säilyy — sen start_time on jo uusi ajankohta. */
+function onPeruttu(raw: { event_status?: string }): boolean {
+  return raw.event_status === 'EventCancelled' || raw.event_status === 'EventPostponed'
 }
 
 function normalize(raw: LinkedEventsEvent): Event {
@@ -119,7 +129,8 @@ function normalize(raw: LinkedEventsEvent): Event {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
-  const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
+  // Oletus HELSINKI-päivä: UTC-päivä on yöllä 00–03 eilinen (auditointi).
+  const start = searchParams.get('start') || helsinkiToday()
   const end = searchParams.get('end') || start
   const startAfter = searchParams.get('startAfter') || ''
   const page = searchParams.get('page') || '1'
@@ -226,6 +237,7 @@ export async function GET(req: NextRequest) {
     let leChunksOk = 0
     const collect = (rows: LinkedEventsEvent[]) => {
       for (const raw of rows) {
+        if (onPeruttu(raw)) continue
         if (!seenLeIds.has(raw.id)) { seenLeIds.add(raw.id); leRaw.push(raw) }
       }
     }
@@ -300,7 +312,11 @@ export async function GET(req: NextRequest) {
 
     // Normalize title for dedup: strip ticket tiers, years, punctuation variation
     function dedupKey(title: string, date: string): string {
-      const base = title
+      // Entiteettipurku ENNEN avainta: '& Julia' ja '&amp; Julia' ovat sama
+      // tapahtuma (tuotannossa 5.9.2026 sama musikaali näkyi 2–3 korttina eri
+      // lähteistä). Samoin 'SOLD OUT:' -etuliite ei saa erottaa avaimia.
+      const base = decodeHtmlEntities(title)
+        .replace(/^\s*(?:sold\s*out|loppuunmyyty|myyty\s*loppuun)\s*[:!]?\s*/i, '')
         .replace(/\s*\|.*$/, '')            // strip everything after | (ticket tier separators)
         .replace(/\s*[\|–\-]\s*(premium|legacy|standard|vip|gold|silver|early|late|general|suite|seat|ticket|standing|seated|presale|fan\s*club)[\w\s]*/gi, '')
         .replace(/\b20\d{2}\b/g, '')        // strip years
@@ -396,6 +412,9 @@ export async function GET(req: NextRequest) {
                 upgrades.infoUrl = e.infoUrl
               }
               if (e.price && !existing?.price) upgrades.price = e.price
+              // Loppuunmyyty-tieto unionina — dedup ei saa pyyhkiä sitä
+              // (aiemmin tieto eli vain kuvaustekstissä ja katosi mergessä).
+              if (e.soldOut && !existing?.soldOut) upgrades.soldOut = true
               // TODELLINEN kelloaika voittaa keksityn: säilyttäjä valittiin
               // lähdejärjestyksessä, ja aiempi lähde saattoi käyttää kiinteää
               // "T19:00"-oletusta. Ilman tätä "Loosen Jytädisko" jäisi klo 19
@@ -467,7 +486,17 @@ export async function GET(req: NextRequest) {
     // naive ISO-prefix compare would assign a 00:30 Helsinki event to the previous day.
     events = events.filter((e: Event) => {
       const d = helsinkiDateOf(e.startTime)
-      return d >= start && d <= end
+      if (d >= start && d <= end) return true
+      // Käynnissä oleva LYHYT monipäiväinen tapahtuma (esim. 2 pv katuruoka-
+      // festari) kuuluu ikkunaan myös jatkopäivinään — aiemmin se katosi
+      // "Tänään"-näkymästä aloituspäivän jälkeen vaikka oli yhä käynnissä
+      // (todettu 5.9.2026: Street Food Siesta Oulunkylä 5.–6.9.). Kesto
+      // rajataan 4 päivään, ettei kuukausien näyttely täytä joka päivää.
+      if (!e.endTime) return false
+      const loppu = helsinkiDateOf(e.endTime)
+      if (!(d <= end && loppu >= start)) return false
+      const kestoPv = (new Date(e.endTime).getTime() - new Date(e.startTime).getTime()) / 86400000
+      return kestoPv > 0 && kestoPv <= 4
     })
 
     if (startAfter) {
@@ -559,7 +588,29 @@ export async function GET(req: NextRequest) {
       events = events.filter((e: Event) => eventMatchesKeyword(e, keyword))
     }
 
-    return NextResponse.json({ events, hasMore, total, generatedAt: new Date().toISOString(), sources })
+    // Entiteettien purku KAIKKIEN lähteiden yhdistetylle listalle — otsikot
+    // kuten "Obi Blanche &#038; Kristina" näkyivät käyttäjälle raakana
+    // (mitattu 5.9.2026). Yksi purkupiste vastauksen reunalla kattaa myös
+    // skrapelähteet, ei vain LinkedEventsin.
+    events = events.map((e) => ({
+      ...e,
+      title: decodeHtmlEntities(e.title),
+      shortDescription: decodeHtmlEntities(e.shortDescription ?? ''),
+      description: decodeHtmlEntities(e.description ?? ''),
+      price: e.price ? decodeHtmlEntities(e.price) : e.price,
+      location: e.location ? { ...e.location, name: decodeHtmlEntities(e.location.name ?? '') } : e.location,
+      // http-kuva https-sivulla on sekasisältöä jonka selain estää — kulke-
+      // lähteen vanhat osoitteet päivitetään (palvelin vastaa https:llä).
+      image: e.image ? e.image.replace(/^http:\/\//, 'https://') : e.image,
+    }))
+    // Reunavälimuisti: ilman otsaketta Vercel antaa max-age=0:n eikä reuna
+    // koskaan osu (mitattu 5.9.2026: x-vercel-cache MISS, TTFB 3,7–6,7 s per
+    // käynti). 5 min tuoreus + SWR tunniksi → tyypillinen käynti ~0,2 s.
+    // Virhepolku (alla) EI saa otsaketta — 500 ei cachetu.
+    return NextResponse.json(
+      { events, hasMore, total, generatedAt: new Date().toISOString(), sources },
+      { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' } },
+    )
   } catch (err) {
     console.error('Events API error:', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

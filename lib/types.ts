@@ -32,6 +32,10 @@ export interface Event {
   // — muuten "Loosen Jytädisko" jäisi placeholder-aikaan 19:00 vaikka toinen
   // lähde tietää sen alkavan 23:30 (ja menettäisi yoelama-luokittelunsa).
   startTimeApprox?: boolean
+  // Lähde tietää esityksen loppuunmyydyksi (esim. Kansallisteatterin
+  // availability-sold-out-luokka). CTA:n on muututtava: "Osta liput" on
+  // katteeton lupaus loppuunmyydylle. Dedup säilyttää tiedon unionina.
+  soldOut?: boolean
   // LinkedEventsin vakaat yso-ontologiakoodit (esim. 'yso:p11185' = konsertit).
   // Kielestä riippumaton, törmäyksetön PÄÄsignaali luokittelulle (L0).
   // Vain LinkedEvents-pohjaisilla lähteillä; muut → tyhjä → tekstikerrokset.

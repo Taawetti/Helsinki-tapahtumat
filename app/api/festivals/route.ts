@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { helsinkiToday } from '@/lib/helsinki-time'
 import { Event } from '@/lib/types'
 import { supabase, isSupabaseConfigured, DbFestival } from '@/lib/supabase'
 import { FestivalDef, FESTIVALS_STATIC, fromDb } from '@/lib/festivals-data'
@@ -22,7 +23,8 @@ function festivalDayNumber(festivalStart: string, day: string): number {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
-  const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
+  // Oletus HELSINKI-päivä: UTC-päivä on yöllä 00–03 eilinen (auditointi).
+  const start = searchParams.get('start') || helsinkiToday()
   const end = searchParams.get('end') || start
   const keyword = searchParams.get('keyword')?.toLowerCase() || ''
 

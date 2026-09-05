@@ -17,7 +17,24 @@ export async function GET(req: NextRequest) {
   const date = searchParams.get('date') || ''
   const location = searchParams.get('location') || ''
   const isFree = searchParams.get('free') === '1'
-  const imageUrl = searchParams.get('img') || ''
+  // img vain omasta kuvavarastosta: parametri haetaan PALVELIMELLA, joten
+  // rajaamaton URL oli sekä SSRF-reitti että tapa tuottaa sivuston brändillä
+  // varustettuja jakokortteja mielivaltaisella kuvalla (auditointi 5.9.2026).
+  // Vieras osoite → kortti renderöityy siististi ilman kuvaa.
+  const imageUrl = (() => {
+    const raw = searchParams.get('img') || ''
+    if (!raw) return ''
+    try {
+      const u = new URL(raw)
+      if (u.protocol !== 'https:') return ''
+      const omaHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : ''
+      if (omaHost && u.hostname === omaHost) return raw
+      if (u.hostname === 'mitatanaan.fi' || u.hostname.endsWith('.mitatanaan.fi')) return raw
+      return ''
+    } catch {
+      return ''
+    }
+  })()
   // Yläreunan tunnusrivi on parametroitu, jotta englanninkielinen /en saa
   // englanninkielisen jakokortin. Oletus pitää kaikki vanhat kutsut ennallaan.
   const brand = searchParams.get('brand') || 'HELSINKI TAPAHTUMAT'

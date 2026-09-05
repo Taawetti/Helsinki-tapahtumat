@@ -18,16 +18,40 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  const { error } = await supabase
+  // .select() jotta osuneet rivit saadaan: 0 riviä EI ole onnistuminen —
+  // aiemmin katkennut/väärä token näytti 'Tilaus peruttu' vaikka tilaus jäi
+  // voimaan ja viestit jatkuivat (auditointi 5.9.2026).
+  const { data, error } = await supabase
     .from('newsletter_subscribers')
     .update({ active: false })
     .eq('unsubscribe_token', token)
     .eq('active', true)
+    .select('email')
 
   if (error) {
     return new NextResponse(errorPage('Virhe', 'Peruuttaminen epäonnistui. Yritä uudelleen tai ota yhteyttä.'), {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
       status: 500,
+    })
+  }
+
+  if (!data || data.length === 0) {
+    // Erotetaan kaksi tapausta: jo peruttu tilaus (sama linkki toistamiseen)
+    // vs. tuntematon token (katkennut/virheellinen linkki).
+    const { data: olemassa } = await supabase
+      .from('newsletter_subscribers')
+      .select('active')
+      .eq('unsubscribe_token', token)
+      .limit(1)
+    if (olemassa && olemassa.length > 0) {
+      // Tilaus on jo peruttu — sama lopputulos, näytetään onnistuminen.
+      return new NextResponse(successPage(), {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
+    }
+    return new NextResponse(errorPage('Linkki ei kelpaa', 'Peruutuslinkki on vanhentunut tai katkennut. Avaa linkki suoraan uutiskirjeestä tai ota yhteyttä.'), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      status: 404,
     })
   }
 

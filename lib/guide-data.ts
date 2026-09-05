@@ -4,6 +4,7 @@
 // tässä etusivun näkymässä" — oppaat avautuvat etusivulla kuten kaupungin-
 // osasuodatinkin, SEO-sivut säilyvät Googlelle. Logiikka on siirretty
 // sivuilta TÄNNE sellaisenaan, jotta molemmat pinnat näyttävät saman datan.
+import { decodeHtmlEntities } from '@/lib/utils'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 import { helsinkiDateRange } from '@/lib/helsinki-time'
 import { TERRACE_REGEX } from '@/lib/nightlife'
@@ -69,6 +70,14 @@ async function fetchGuideEvents(opts: {
       ),
     ),
   )
+  // Myrkytysvartija: LinkedEvents-katkossa tyhjä tulos EI saa päätyä
+  // välimuistiin (API-reitin CDN-otsake s-maxage=3600 cachettaisi tyhjän
+  // oppaan tunniksi). Heitto → /api/guides vastaa 502 (ei cacheteta) ja
+  // ISR-sivut säilyttävät edellisen onnistuneen versionsa.
+  const kaatuneet = perTerm.filter((t) => !t.ok)
+  if (kaatuneet.length > 0) {
+    throw new Error(`LinkedEvents-opashaku epäonnistui ${kaatuneet.length}/${perTerm.length} termillä: ${kaatuneet[0].reason ?? 'tuntematon syy'}`)
+  }
   const events: GuideEvent[] = []
   const seen = new Set<string>()
   const cutoff = new Date(start).getTime() - 24 * 60 * 60 * 1000
@@ -86,7 +95,7 @@ async function fetchGuideEvents(opts: {
       const isFree = offer?.is_free ?? false
       events.push({
         id: raw.id,
-        title: raw.name?.fi || raw.name?.en || 'Tapahtuma',
+        title: decodeHtmlEntities(raw.name?.fi || raw.name?.en || 'Tapahtuma'),
         startTime: raw.start_time,
         venue: raw.location?.name?.fi || raw.location?.name?.en || '',
         isFree,
@@ -344,6 +353,23 @@ export type GuideDataSlug = 'saunat' | 'terassit' | 'pubivisat' | 'kirpputorit' 
 // tyyppitarkistuksesta ja rikkoutua vasta selaimessa. Tyyppituonti katoaa
 // käännöksessä, joten kehäriippuvuutta ei synny.
 export type GuideDataPayload = GuidePayload
+
+/** SEO-sivujen build-vaiheen suoja: ulkoisen lähteen (OSM, LinkedEvents)
+ *  katko EI saa estää koko sovelluksen julkaisua (`next build` kaatuisi
+ *  prerenderin heittoon). Ajonaikana virhe sen sijaan HEITETÄÄN, jolloin
+ *  ISR-revalidointi epäonnistuu siististi ja Next jatkaa edellisen
+ *  onnistuneen sivun tarjoilua — tyhjä data ei koskaan korvaa hyvää. */
+export async function haeTaiBuildissaTyhja<T>(hae: () => Promise<T>, tyhja: T): Promise<T> {
+  try {
+    return await hae()
+  } catch (err) {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn('[guide] lähde alhaalla build-vaiheessa, sivu julkaistaan tyhjänä ja ISR täyttää sen:', err)
+      return tyhja
+    }
+    throw err
+  }
+}
 
 export async function buildGuidePayload(slug: GuideDataSlug, origin: string): Promise<GuidePayload> {
   switch (slug) {

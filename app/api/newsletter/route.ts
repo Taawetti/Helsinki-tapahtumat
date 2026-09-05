@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { supabaseAdmin as supabase } from '@/lib/supabase'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'Mitä tänään <newsletter@mitatanaan.fi>'
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 export async function POST(req: NextRequest) {
+  // Ilman rajaa kenen tahansa osoitteen saattoi tilata ja pommittaa
+  // tervetuloviesteillä (auditointi 5.9.2026). Aito käyttäjä tilaa kerran.
+  if (!rateLimit(`newsletter:${clientIp(req)}`, 3, 60 * 60_000)) {
+    return NextResponse.json({ error: 'Liian monta yritystä. Yritä myöhemmin uudelleen.' }, { status: 429 })
+  }
   const { email } = await req.json().catch(() => ({}))
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {

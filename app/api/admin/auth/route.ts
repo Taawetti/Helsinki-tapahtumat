@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE,
@@ -9,6 +10,10 @@ import {
 
 // POST /api/admin/auth — login
 export async function POST(req: NextRequest) {
+  // Salasanan arvailusuoja: 5 yritystä / 5 min / IP (auditointi 5.9.2026).
+  if (!rateLimit(`admin:${clientIp(req)}`, 5, 5 * 60_000)) {
+    return NextResponse.json({ error: 'Liian monta yritystä. Odota 5 minuuttia.' }, { status: 429 })
+  }
   const body = await req.json().catch(() => ({}))
   const password = body.password as string
 

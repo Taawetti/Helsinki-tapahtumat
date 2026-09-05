@@ -37,5 +37,9 @@ export async function GET(req: NextRequest) {
       phone: (g.phone ?? null) as string | null,
       url: (g.url ?? null) as string | null,
     },
+  }, {
+    // `export const revalidate` ei vaikuta pyyntöparametreja lukevaan
+    // reittiin — reunavälimuisti hoidetaan otsakkeella (auditointi 5.9.2026).
+    headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' },
   })
 }

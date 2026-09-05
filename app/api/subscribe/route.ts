@@ -51,7 +51,11 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabase.from('push_subscriptions').upsert(row, { onConflict: 'endpoint' })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // Sisäinen virheviesti lokiin, EI vastaukseen (vuoti taulunimiä ym.).
+    console.error('[subscribe] upsert:', error.message)
+    return NextResponse.json({ error: 'Tallennus epäonnistui' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }
 

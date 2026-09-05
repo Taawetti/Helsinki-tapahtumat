@@ -208,6 +208,11 @@ export async function fetchLinkedEventsAll<T extends LeRow>(
   const rows: T[] = []
   for (const row of pages.flatMap((p) => p.data ?? [])) {
     if (!row?.id || seen.has(row.id)) continue
+    // Perutut/lykätyt pois KESKITETYSTI — kaikki LinkedEvents-johdannaiset
+    // lähteet (helmet, espoo, museot, oppaat, uutiskirje...) kulkevat tästä.
+    // EventRescheduled säilyy: start_time on jo uusi ajankohta.
+    const status = (row as { event_status?: string }).event_status
+    if (status === 'EventCancelled' || status === 'EventPostponed') continue
     seen.add(row.id)
     rows.push(row)
   }

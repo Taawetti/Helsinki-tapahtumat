@@ -18,7 +18,16 @@ export async function GET() {
       .select('venue_key, google_rating, review_count, price_level, description')
       .order('venue_key')  // deterministinen sivutus — ilman tätä rivi voi jäädä väliin sivurajalla
       .range(page * PAGE, (page + 1) * PAGE - 1)
-    if (resp.error || !resp.data || resp.data.length === 0) break
+    if (resp.error) {
+      // Ajossa heitto → ISR-revalidointi epäonnistuu siististi ja edellinen
+      // onnistunut vastaus jää voimaan (tyhjä/vajaa EI tallennu tunniksi).
+      // Build-vaiheessa katko ei saa estää julkaisua → tyhjä, ISR täyttää.
+      if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        throw new Error(`venue_ratings-sivu ${page}: ${resp.error.message}`)
+      }
+      break
+    }
+    if (!resp.data || resp.data.length === 0) break
     data.push(...(resp.data as typeof data))
     if (resp.data.length < PAGE) break
   }

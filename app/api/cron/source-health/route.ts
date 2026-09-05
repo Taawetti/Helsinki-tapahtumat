@@ -18,22 +18,28 @@ export const maxDuration = 60
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'Mitä tänään <onboarding@resend.dev>'
-const ALERT_TO = process.env.ALERT_EMAIL || 'timo.heinamaki@broven.fi'
+// EI kovakoodattua osoitetta: repo on julkinen (sähköposti oli näkyvissä
+// kenelle tahansa — auditointi 5.9.2026). Ilman ALERT_EMAILia hälytys
+// ohitetaan ja lokitetaan.
+const ALERT_TO = process.env.ALERT_EMAIL || ''
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
   const headerOk = !!process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`
-  // Testilaukaisin: ?test=<CRON_SECRET> selaimessa (Bearer-headeria ei voi
-  // asettaa selaimesta). Lähettää "kanaria pystyssä" -vahvistuksen → näet heti
-  // toimiiko sähköpostiputki. Kertakäyttöinen omistajan itsetesti.
-  const testParam = req.nextUrl.searchParams.get('test')
-  const isSelfTest = !!process.env.CRON_SECRET && testParam === process.env.CRON_SECRET
-
-  if (!headerOk && !isSelfTest) {
+  // Aiempi ?test=<CRON_SECRET>-testilaukaisin poistettu (auditointi
+  // 5.9.2026): salaisuus URL-parametrina päätyy lokeihin ja selaimen
+  // historiaan. Itsetesti: curl -H "Authorization: Bearer $CRON_SECRET" …
+  if (!headerOk) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  // Itsetesti vaatii nyt Bearer-headerin + ?test=1 — salaisuus ei enää
+  // koskaan kulje URL:ssa.
+  const isSelfTest = req.nextUrl.searchParams.get('test') === '1'
 
   if (isSelfTest) {
+    if (!ALERT_TO) {
+      return NextResponse.json({ test: true, emailed: false, error: 'ALERT_EMAIL puuttuu' }, { status: 500 })
+    }
     if (!process.env.RESEND_API_KEY) {
       return NextResponse.json({ test: true, emailed: false, error: 'RESEND_API_KEY puuttuu' }, { status: 500 })
     }
@@ -153,7 +159,8 @@ export async function GET(req: NextRequest) {
     `Automaattinen kanaria: /api/cron/source-health`
 
   let emailed = false
-  if (process.env.RESEND_API_KEY) {
+  if (!ALERT_TO) console.error('source-health: ALERT_EMAIL puuttuu — hälytys vain lokiin')
+  if (process.env.RESEND_API_KEY && ALERT_TO) {
     try {
       await resend.emails.send({ from: FROM, to: ALERT_TO, subject, text })
       emailed = true

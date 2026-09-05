@@ -1,3 +1,4 @@
+import { decodeHtmlEntities } from '@/lib/utils'
 import { unstable_cache } from 'next/cache'
 import type { Event } from '@/lib/types'
 import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
@@ -26,7 +27,7 @@ function normalize(raw: LEEvent): Event {
   const offer = raw.offers?.[0]
   return {
     id: raw.id,
-    title: raw.name?.fi || raw.name?.en || raw.name?.sv || 'Nimetön tapahtuma',
+    title: decodeHtmlEntities(raw.name?.fi || raw.name?.en || raw.name?.sv || 'Nimetön tapahtuma'),
     shortDescription: raw.short_description?.fi || raw.short_description?.en || '',
     description: '',
     startTime: raw.start_time,
@@ -70,10 +71,18 @@ async function _fetchLinkedEventsQuick(start: string, end: string): Promise<{ ev
       next: { revalidate: 300, tags: ['events'] },
       signal: AbortSignal.timeout(8000),
     })
-    if (!res.ok) return { events: [], total: 0 }
+    // Heitto eikä tyhjä paluu: unstable_cache tallentaisi tyhjän siemenen
+    // 5 minuutiksi ja etusivu avautuisi ilman tapahtumia kaikille sinä
+    // aikana. Heitto ohittaa tallennuksen; ulkokääre catchaa per pyyntö.
+    if (!res.ok) throw new Error(`LinkedEvents ${res.status}`)
 
     const data = await res.json()
-    let events: Event[] = (data.data ?? []).map(normalize)
+    let events: Event[] = (data.data ?? [])
+      // Perutut/lykätyt pois — sama sääntö kuin events-reitissä ja
+      // lib/linked-events.ts:ssä (EventRescheduled säilyy).
+      .filter((raw: { event_status?: string }) =>
+        raw.event_status !== 'EventCancelled' && raw.event_status !== 'EventPostponed')
+      .map(normalize)
 
     // Same post-fetch filter as events route — LinkedEvents can return long-running events
     // (e.g. "Sep 23 – Dec 23") whose startTime falls outside the queried range.
@@ -83,23 +92,39 @@ async function _fetchLinkedEventsQuick(start: string, end: string): Promise<{ ev
     })
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
-    // Apply venue images — same logic as events route handler
-    const { venues: venueMap } = await fetchImagesCached()
-    for (const e of events) {
-      if (!e.image) {
-        const fallback = getEventImage(e.location?.name, e.categories, venueMap, {})
-        if (fallback) e.image = fallback
+    // Apply venue images — same logic as events route handler. Kuvien
+    // epäonnistuminen ei saa kaataa siementä: tapahtumat ilman kuvaa on
+    // parempi kuin ei tapahtumia.
+    try {
+      const { venues: venueMap } = await fetchImagesCached()
+      for (const e of events) {
+        if (!e.image) {
+          const fallback = getEventImage(e.location?.name, e.categories, venueMap, {})
+          if (fallback) e.image = fallback
+        }
       }
-    }
+    } catch { /* siemen kelpaa kuvittakin */ }
 
     return { events, total: events.length }
-  } catch {
-    return { events: [], total: 0 }
+  } catch (err) {
+    // Uudelleenheitto: unstable_cache EI saa tallentaa virhetulosta.
+    throw err instanceof Error ? err : new Error(String(err))
   }
 }
 
-export const fetchInitialEvents = unstable_cache(
+const cachedInitialEvents = unstable_cache(
   _fetchLinkedEventsQuick,
   ['initial-events-v3'], // v3: descending sort — bust caches with the old sparse shape
   { revalidate: 300, tags: ['events'] },
 )
+
+/** Ulkokääre: virhetilanteessa tyhjä siemen VAIN tälle pyynnölle —
+ *  seuraava pyyntö yrittää heti uudelleen (vrt. /api/restaurants-vartija). */
+export async function fetchInitialEvents(start: string, end: string): Promise<{ events: Event[]; total: number }> {
+  try {
+    return await cachedInitialEvents(start, end)
+  } catch (err) {
+    console.error('[initial-events] siemenhaku epäonnistui, palvellaan tyhjänä ilman välimuistitusta:', err)
+    return { events: [], total: 0 }
+  }
+}

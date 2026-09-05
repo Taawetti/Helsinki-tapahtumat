@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 import {
   batchItems, buildPrompt, parseResponse, sourceHash,
   type TranslatableEvent, type TranslatedFields,
@@ -66,6 +67,13 @@ async function callClaude(prompt: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  // Reitti kutsuu Claude-APIa pyytäjän antamalla sisällöllä — ilman rajaa
+  // anonyymi kutsuja kulutti maksullisia tokeneita ja kirjoitti roskaa
+  // välimuistitauluun rajatta (auditointi 5.9.2026). Sovelluksen oma
+  // klientti lähettää enintään muutaman erän per sivunäkymä.
+  if (!rateLimit(`translate:${clientIp(req)}`, 20, 10 * 60_000)) {
+    return NextResponse.json({ translations: {} }, { status: 429 })
+  }
   let lang = 'en'
   let items: TranslatableEvent[] = []
   try {

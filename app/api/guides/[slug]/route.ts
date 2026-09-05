@@ -11,7 +11,10 @@ import { buildGuidePayload, type GuideDataSlug } from '@/lib/guide-data'
 
 export const maxDuration = 30
 
-const CACHE = { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=600' }
+// SWR vuorokausi: 10 min ikkunalla yli 70 min hiljaiselon jälkeinen kävijä
+// blokkasi koko rakennuksen ajan (mitattu 5.9.2026: saunat kylmänä 20 s).
+// Vuorokauden SWR tarjoaa vanhan heti ja päivittää taustalla.
+const CACHE = { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=86400' }
 
 const SLUGS: GuideDataSlug[] = ['saunat', 'terassit', 'pubivisat', 'kirpputorit', 'jamit', 'ilmaiset-museot']
 

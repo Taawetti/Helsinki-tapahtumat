@@ -274,8 +274,10 @@ export const maxDuration = 60
 export async function GET() {
   // Heittävä haku ei saa kaataa reittiä: tämä pyyntö palvellaan tyhjänä
   // (EI välimuistiin), seuraava yrittää uudelleen.
+  let hakuEpaonnistui = false
   const base = await fetchActivitiesCached().catch((e): Activity[] => {
     console.error('[activities] haku ohitettu tältä pyynnöltä:', e)
+    hakuEpaonnistui = true
     return []
   })
   const today = new Date()
@@ -384,7 +386,12 @@ export async function GET() {
     headers: {
       // Sama reunavälimuisti kuin ravintola-API:ssa: Vercelin reuna palvelee
       // millisekunneissa ja päivittää taustalla; selain saa käyttää kopiotaan.
-      'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+      // OSM-katkon tyhjä varavastaus EI saa tarttua mihinkään välimuistiin
+      // (mitattu 5.9.2026: tyhjä 200 lähti max-age=300:lla ja selain piti
+      // tyhjää listaa 5 min vaikka data oli jo kunnossa).
+      'Cache-Control': hakuEpaonnistui
+        ? 'no-store'
+        : 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
     },
   })
 }
