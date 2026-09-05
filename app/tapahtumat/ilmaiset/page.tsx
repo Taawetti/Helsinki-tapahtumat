@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { curateForLanding } from '@/lib/seo-curation'
 import Link from 'next/link'
 import HomeShell from '@/components/HomeShell'
-import { helsinkiDateOf } from '@/lib/helsinki-time'
+import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -72,16 +73,16 @@ function formatDate(iso: string): string {
 }
 
 async function fetchFree(): Promise<PageEvent[]> {
-  const now = new Date()
-  const helsinkiNow = new Date(now.getTime() + 3 * 60 * 60 * 1000)
-  const today = helsinkiNow.toISOString().slice(0, 10)
+  // helsinkiToday() eikä kiinteä +3 h: kesäajan päätyttyä 25.10. kiinteä
+  // siirtymä laskisi "tänään" väärin aamuyöllä (auditointi 5.9.2026).
+  const today = helsinkiToday()
   // 7-day window fetched DAY BY DAY (one descending page per day): LinkedEvents
   // `start=` also matches months-old ongoing free exhibitions, which no single
   // multi-day query can avoid from the right end — free events alone start
   // ~30/day, so a shared page cap would drop either the near or far days.
   // Within one day the real starts sort newest-first, junk sinks below.
   const days = Array.from({ length: 7 }, (_, i) =>
-    new Date(helsinkiNow.getTime() + i * 86400000).toISOString().slice(0, 10)
+    new Date(Date.parse(`${today}T12:00:00Z`) + i * 86400000).toISOString().slice(0, 10)
   )
 
   try {
@@ -152,8 +153,8 @@ export default async function IlmaisetPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(eventListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(faqLd) }} />
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo, eikä sitä saa menettää. */}

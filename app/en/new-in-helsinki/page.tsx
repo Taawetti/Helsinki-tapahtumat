@@ -28,6 +28,7 @@ import { assembleNewInHelsinki } from '@/lib/uutta-data'
 import NewInHelsinkiView from '@/components/NewInHelsinkiView'
 import HomeShell from '@/components/HomeShell'
 import { getTranslation } from '@/lib/i18n'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -109,8 +110,8 @@ export default async function EnNewInHelsinkiPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
       {/* Sovellusnäkymä avataan Uutta-välilehteen — se on tämän sivun suora
           vastine sovelluksessa. Sivun oma sisältö jää alle hakukonearvoksi. */}
       <HomeShell initialMode="uutta" />

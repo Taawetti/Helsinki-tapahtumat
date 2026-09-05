@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     locale: 'en_GB',
     alternateLocale: ['fi_FI'],
     url: `${BASE}/en/download`,
-    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
   },
 }
 

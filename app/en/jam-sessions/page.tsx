@@ -21,7 +21,8 @@
 
 import type { Metadata } from 'next'
 import HomeShell from '@/components/HomeShell'
-import { buildGuidePayload } from '@/lib/guide-data'
+import { buildGuidePayload, haeTaiBuildissaTyhja } from '@/lib/guide-data'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
 }
 
 export default async function EnJamSessionsPage() {
-  const data = await buildGuidePayload('jamit', BASE)
+  const data = await haeTaiBuildissaTyhja(() => buildGuidePayload('jamit', BASE), {})
   const events = data.events ?? []
 
   const itemListLd = {
@@ -90,8 +91,8 @@ export default async function EnJamSessionsPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
 
       {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
       <HomeShell initialGuide="jamit" initialGuideData={{ events }} />

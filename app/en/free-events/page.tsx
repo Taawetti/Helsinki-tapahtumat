@@ -20,6 +20,7 @@ import Link from 'next/link'
 import EnGuidePage from '@/components/EnGuidePage'
 import HomeShell from '@/components/HomeShell'
 import { helsinkiDateOf } from '@/lib/helsinki-time'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 // Sama ISR-ikkuna kuin suomenkielisellä sivulla — sivu pysyy staattisena.
 export const revalidate = 3600
@@ -179,9 +180,9 @@ export default async function EnFreeEventsPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(eventListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(faqLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo. */}

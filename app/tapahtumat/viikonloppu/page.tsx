@@ -4,6 +4,7 @@ import Link from 'next/link'
 import HomeShell from '@/components/HomeShell'
 import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -176,7 +177,7 @@ export default async function ViikonloppuPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(eventListLd) }} />
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo, eikä sitä saa menettää. */}

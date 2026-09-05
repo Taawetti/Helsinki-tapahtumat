@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     url: `${BASE}/lataa`,
     // Ilman images-kenttää sivun oma openGraph korvaisi juurilayoutin ja
     // jakokuva katoaisi kokonaan.
-    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
   },
 }
 

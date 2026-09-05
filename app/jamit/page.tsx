@@ -5,7 +5,8 @@
 
 import type { Metadata } from 'next'
 import HomeShell from '@/components/HomeShell'
-import { buildGuidePayload } from '@/lib/guide-data'
+import { buildGuidePayload, haeTaiBuildissaTyhja } from '@/lib/guide-data'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
 
 export default async function JamitSivu() {
   // Sama paketti jonka sovelluksen opas saa (/api/guides/jamit).
-  const data = await buildGuidePayload('jamit', BASE)
+  const data = await haeTaiBuildissaTyhja(() => buildGuidePayload('jamit', BASE), {})
   const events = data.events ?? []
 
   const itemListLd = {
@@ -63,7 +64,7 @@ export default async function JamitSivu() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
 
       {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
       <HomeShell initialGuide="jamit" initialGuideData={{ events }} />

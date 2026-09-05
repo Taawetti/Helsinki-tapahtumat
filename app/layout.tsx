@@ -8,6 +8,7 @@ import Footer from '@/components/Footer'
 import GoogleTag from '@/components/GoogleTag'
 import ConsentBanner from '@/components/ConsentBanner'
 import PageView from '@/components/PageView'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -71,7 +72,7 @@ export const metadata: Metadata = {
     // Suunnittelijan valmis jakokuva (ohjeen tehtävä 4). Laskeutumissivut
     // määrittelevät yhä oman kuvansa /api/og:n kautta, joten niiden
     // sivukohtaiset otsikot säilyvät — tämä on juuren oletus.
-    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -79,7 +80,7 @@ export const metadata: Metadata = {
     description: 'Löydä parhaat tapahtumat Helsingissä tänään ja tulevinä päivinä.',
     // Ohjeen tehtävä 4: twitter-lohkosta puuttui images kokonaan, jolloin X ja
     // Slack eivät saaneet kuvaa summary_large_image -kortille.
-    images: ['/og-image.png'],
+    images: ['/og-image.jpg'],
   },
   keywords: [
     'mitä tänään', 'Helsinki tapahtumat', 'tapahtumat Helsinki', 'mitä tehdä Helsinki',
@@ -158,9 +159,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             osoitepalkin kanssa eikä kokoruutuna. Status-bar-style ja title
             sen sijaan tulevat metadatasta, joten niitä ei toisteta. */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppJsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(webAppJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(organizationJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(webSiteJsonLd) }} />
       </head>
       <body className="min-h-screen">
         {/* Google Ads -tagi mainoskampanjaa varten (omistaja 26.8.2026).

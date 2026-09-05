@@ -24,6 +24,7 @@ import EnGuidePage from '@/components/EnGuidePage'
 import HomeShell from '@/components/HomeShell'
 import { formatEventDate, helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -198,8 +199,8 @@ export default async function EnWeekendPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(eventListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo. */}

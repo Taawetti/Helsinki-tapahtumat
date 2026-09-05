@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { VENUE_PAGES, type VenuePage } from '@/lib/venue-pages'
 import { helsinkiDateRange, helsinkiOffset, formatEventDate } from '@/lib/helsinki-time'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -144,7 +145,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${venue.name} ohjelma & keikat | Mitä tänään Helsinki`,
     description: desc,
     alternates: { canonical: `${BASE}/ohjelma/${slug}` },
-    openGraph: { title: `${venue.name} — ohjelma`, description: desc, locale: 'fi_FI', type: 'website', url: `${BASE}/ohjelma/${slug}` },
+    openGraph: {
+      title: `${venue.name} — ohjelma`, description: desc, locale: 'fi_FI', type: 'website', url: `${BASE}/ohjelma/${slug}`,
+      // Ilman kuvaa jaettu linkki näkyi WhatsAppissa/Facebookissa pelkkänä
+      // tekstirivinä (sama korjaus kuin opassivuilla).
+      images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(`${venue.name} — ohjelma & keikat`)}`, width: 1200, height: 630 }],
+    },
   }
 }
 
@@ -229,9 +235,9 @@ export default async function OhjelmaSivu({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(venuePlaceLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(venuePlaceLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
       <main className="min-h-screen bg-gray-950 text-white">
         <div className="max-w-2xl mx-auto px-4 py-8">
           {/* Breadcrumb */}

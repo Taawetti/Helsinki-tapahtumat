@@ -9,8 +9,9 @@
 
 import type { Metadata } from 'next'
 import HomeShell from '@/components/HomeShell'
-import { buildGuidePayload } from '@/lib/guide-data'
+import { buildGuidePayload, haeTaiBuildissaTyhja } from '@/lib/guide-data'
 import { WEEKDAY_FI } from '@/lib/pubivisat'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 86400 // aikataulu muuttuu harvoin
 
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
 
 export default async function PubivisatSivu() {
   // Sama paketti jonka sovelluksen opas saa (/api/guides/pubivisat).
-  const data = await buildGuidePayload('pubivisat', BASE)
+  const data = await haeTaiBuildissaTyhja(() => buildGuidePayload('pubivisat', BASE), {})
   const visas = data.visas ?? []
 
   // Ryhmittely ma..su (JS-viikonpäivä 1..6, 0) FAQ-rakennedataa varten.
@@ -101,9 +102,9 @@ export default async function PubivisatSivu() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(faqLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
 
       {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
       <HomeShell initialGuide="pubivisat" initialGuideData={{ visas }} />

@@ -82,6 +82,7 @@ import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/he
 import { arvioiSitoutuminen, TYHJA_TILA } from '../lib/engagement'
 import { slotFor, poimiPoydat, aukioloTieto } from '../lib/poyta-poiminnat'
 import { karsiTapahtumaPerheet, karsiTapahtumaSarjat } from '../lib/tapahtumaperhe'
+import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, formatDateRange, tuntematonAika, isTonight } from '../lib/utils'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
@@ -3508,6 +3509,58 @@ for (const c of kwChecks) {
   for (const c of fCases) {
     if (c.ok) pass++
     else failures.push(`✗ tapahtumaperheet: ${c.name}`)
+  }
+}
+
+// ── TEKSTIN PUHDISTUS (lib/utils): entiteettien purku ja hinnan alk.-etuliite.
+// Mitattu tuotannosta 5.9.2026: "Obi Blanche &#038; Kristina" ja "Liput alk.
+// alk. 37 €" näkyivät käyttäjälle raakana.
+{
+  const dCases: { name: string; ok: boolean }[] = [
+    { name: 'numeerinen entiteetti &#038; → &', ok: decodeHtmlEntities('Obi Blanche &#038; Kristina') === 'Obi Blanche & Kristina' },
+    { name: '&#8211; → ajatusviiva', ok: decodeHtmlEntities('Iikka Kivi &#8211; Show') === 'Iikka Kivi \u2013 Show' },
+    { name: '&amp; → &', ok: decodeHtmlEntities('Romeo &amp; Julia') === 'Romeo & Julia' },
+    { name: 'tuplakoodattu &amp;#8211; purkautuu kokonaan', ok: decodeHtmlEntities('A &amp;#8211; B') === 'A \u2013 B' },
+    { name: 'heksaentiteetti &#x2013;', ok: decodeHtmlEntities('A &#x2013; B') === 'A \u2013 B' },
+    { name: 'kelvoton koodipiste ei kaada eikä muutu', ok: decodeHtmlEntities('x &#99999999; y') === 'x &#99999999; y' },
+    { name: 'entiteetitön teksti palautuu sellaisenaan', ok: decodeHtmlEntities('Tavallinen otsikko ääkkösin') === 'Tavallinen otsikko ääkkösin' },
+    { name: 'hinta "alk. 22.6 €" → "22.6 €" (ei tupla-alk.)', ok: stripPriceFromPrefix('alk. 22.6 €') === '22.6 €' },
+    { name: 'hinta "From 14 EUR" → "14 EUR"', ok: stripPriceFromPrefix('From 14 EUR') === '14 EUR' },
+    { name: 'pelkkä hinta säilyy', ok: stripPriceFromPrefix('32 €') === '32 €' },
+    { name: '"Alkaen 10 €" → "10 €"', ok: stripPriceFromPrefix('Alkaen 10 €') === '10 €' },
+  ]
+  for (const c of dCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ tekstin puhdistus: ${c.name}`)
+  }
+}
+
+// ── AIKAVYÖHYKE (lib/utils): kaikki tapahtuma-aikaleimat muotoillaan
+// Helsinki-ajassa riippumatta ajoympäristön vyöhykkeestä. Tämä ajo on TZ=UTC
+// (prebuild) — juuri se ympäristö, jossa /e/[id] näytti tuotannossa kellonajat
+// 3 h pielessä (mitattu 5.9.2026: LinkedEvents start 17:00Z näkyi "klo 17.00").
+{
+  const kesa = '2026-09-05T17:00:00Z'        // kesäaika: UTC+3 → 20.00
+  const talvi = '2026-12-05T17:00:00Z'       // talviaika: UTC+2 → 19.00
+  const keskiyo = '2026-09-05T22:30:00Z'     // 01.30 seuraavana päivänä Helsingissä
+  const tCases: { name: string; ok: boolean }[] = [
+    { name: 'formatTime kesäaika 17Z → 20.00', ok: formatTime(kesa) === '20.00' },
+    { name: 'formatTime talviaika 17Z → 19.00', ok: formatTime(talvi) === '19.00' },
+    { name: 'formatTime en 17Z → 20:00', ok: formatTime(kesa, 'en') === '20:00' },
+    { name: 'formatDate 22:30Z on Helsingissä JO 6.9.', ok: formatDate(keskiyo).includes('6.') },
+    { name: 'formatDateRange sameDay Helsinki-päivin: 20Z–22:30Z EI ole sama päivä', ok: formatDateRange('2026-09-05T20:00:00Z', keskiyo) === `${formatDate('2026-09-05T20:00:00Z')} – ${formatDate(keskiyo)}` },
+    { name: 'formatDateRange sama päivä → klo a–b', ok: formatDateRange('2026-09-05T14:00:00Z', '2026-09-05T17:00:00Z').includes('17.00–20.00') },
+    { name: 'isTonight: huomisen tapahtuma ei ole tänä iltana', ok: isTonight(new Date(Date.now() + 26 * 3600e3).toISOString()) === false },
+    { name: 'tuntematonAika: T00:00:00+03:00 = ei ilmoitettua aikaa', ok: tuntematonAika('2026-09-05T00:00:00+03:00') === true },
+    { name: 'tuntematonAika: pelkkä päivämäärä = ei aikaa', ok: tuntematonAika('2026-09-05') === true },
+    { name: 'tuntematonAika: 21Z (=00.00 Helsinki-kesäaikaa) tulkitaan ajattomaksi', ok: tuntematonAika('2026-09-04T21:00:00Z') === true },
+    { name: 'tuntematonAika: oikea kellonaika säilyy', ok: tuntematonAika('2026-09-05T17:00:00Z') === false },
+    { name: 'formatDateRange ajattomalle → pelkkä päivä ilman klo-osaa', ok: !formatDateRange('2026-09-05T00:00:00+03:00', null).includes('klo') },
+    { name: 'formatDateRange ajaton monipäiväinen → pvm–pvm', ok: formatDateRange('2026-09-05T00:00:00+03:00', '2026-09-07T00:00:00+03:00').includes('–') },
+  ]
+  for (const c of tCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ aikavyöhyke: ${c.name}`)
   }
 }
 

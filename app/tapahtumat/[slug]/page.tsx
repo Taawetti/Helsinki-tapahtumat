@@ -7,6 +7,7 @@ import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE, type Vibe, type Neighborho
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 import { helsinkiToday, formatEventDate } from '@/lib/helsinki-time'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -321,8 +322,8 @@ export default async function TapahtumaSivu({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
 
       {/* Sovellusnäkymä suodatin valmiiksi päällä — sama tila kuin jos käyttäjä
           painaisi tunnelma- tai kaupunginosasirua etusivulla. Päiväikkuna on

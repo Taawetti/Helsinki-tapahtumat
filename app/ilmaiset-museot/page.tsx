@@ -7,7 +7,8 @@
 
 import type { Metadata } from 'next'
 import HomeShell from '@/components/HomeShell'
-import { buildGuidePayload } from '@/lib/guide-data'
+import { buildGuidePayload, haeTaiBuildissaTyhja } from '@/lib/guide-data'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
 export default async function IlmaisetMuseotSivu() {
   // Datakompositio jaettu lib/guide-data.ts:ään (sama data in-app-oppaassa).
   // Sama paketti jonka sovelluksen opas saa (/api/guides/ilmaiset-museot).
-  const data = await buildGuidePayload('ilmaiset-museot', BASE)
+  const data = await haeTaiBuildissaTyhja(() => buildGuidePayload('ilmaiset-museot', BASE), {})
   const museums = data.museums ?? []
   const galleries = data.galleries ?? []
 
@@ -67,7 +68,7 @@ export default async function IlmaisetMuseotSivu() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
 
       {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
       <HomeShell initialGuide="ilmaiset-museot" initialGuideData={{ museums, galleries }} />

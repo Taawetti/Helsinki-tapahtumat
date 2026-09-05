@@ -25,7 +25,8 @@
 
 import type { Metadata } from 'next'
 import HomeShell from '@/components/HomeShell'
-import { buildSaunaRows } from '@/lib/guide-data'
+import { buildSaunaRows, haeTaiBuildissaTyhja } from '@/lib/guide-data'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 
@@ -55,7 +56,7 @@ export const metadata: Metadata = {
 export default async function SaunatSivu() {
   // Datakompositio jaettu lib/guide-data.ts:ään — sama data etusivun
   // in-app-oppaassa (/api/guides/saunat) ja tässä SEO-sivussa.
-  const saunas = await buildSaunaRows()
+  const saunas = await haeTaiBuildissaTyhja(() => buildSaunaRows(), [])
 
   const itemListLd = {
     '@context': 'https://schema.org',
@@ -87,8 +88,8 @@ export default async function SaunatSivu() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
 
       {/* Sovellusnäkymä, opas valmiiksi auki ja lista mukana palvelimelta. */}
       <HomeShell initialGuide="saunat" initialGuideData={{ saunas }} />

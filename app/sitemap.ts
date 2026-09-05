@@ -60,10 +60,12 @@ async function fetchUpcomingLinkedEventIds(): Promise<string[]> {
         })}`
         const res = await fetch(url, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) })
         if (!res.ok) return []
-        const data = (await res.json()) as { data?: { id: string; start_time?: string }[] }
+        const data = (await res.json()) as { data?: { id: string; start_time?: string; event_status?: string }[] }
         // Vain sinä päivänä ALKAVAT — käynnissä olevat vanhat rivit pois.
+        // Peruttuja/lykättyjä ei indeksoida (sama sääntö kuin events-reitissä).
         return (data.data ?? [])
           .filter((e) => e.start_time?.slice(0, 10) === day)
+          .filter((e) => e.event_status !== 'EventCancelled' && e.event_status !== 'EventPostponed')
           .map((e) => e.id)
           .filter(Boolean)
       } catch {
@@ -123,6 +125,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/en/flea-markets`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
     { url: `${BASE}/en/free-museums`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
     { url: `${BASE}/en/jam-sessions`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
+    // Sovelluksen asennussivut — indeksoitavia mutta puuttuivat kartasta.
+    { url: `${BASE}/lataa`,                  lastModified: now, changeFrequency: 'monthly' as const, priority: 0.5 },
+    { url: `${BASE}/en/download`,            lastModified: now, changeFrequency: 'monthly' as const, priority: 0.5 },
     // Aikaperusteinen SEO-laskeutumissivut — korkean hakuvolyymin termit
     { url: `${BASE}/tapahtumat/tanaan`,     lastModified: now, changeFrequency: 'hourly' as const, priority: 0.95 },
     { url: `${BASE}/tapahtumat/viikonloppu`, lastModified: now, changeFrequency: 'daily' as const,  priority: 0.92 },

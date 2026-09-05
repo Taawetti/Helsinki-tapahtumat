@@ -3,6 +3,7 @@ import Link from 'next/link'
 import HomeShell from '@/components/HomeShell'
 import { HELSINKI_NIGHTCLUBS, type CuratedVenue } from '@/lib/helsinki-nightclubs'
 import { supabase } from '@/lib/supabase'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 86400 // curated list changes rarely
 
@@ -111,8 +112,8 @@ export default async function YokerhotSivu() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo, eikä sitä saa menettää. */}

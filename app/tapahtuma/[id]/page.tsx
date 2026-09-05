@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { supabase, DbFestival } from '@/lib/supabase'
 import { FestivalDef, FESTIVALS_STATIC, fromDb } from '@/lib/festivals-data'
 import ShareButton from '@/components/ShareButton'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -36,22 +37,25 @@ export async function generateStaticParams() {
   return [...ids].map(id => ({ id }))
 }
 
+// Festivaalipäivät ovat pelkkiä päivämääriä ('2026-06-12') → new Date tulkitsee
+// ne UTC-keskiyöksi, joten myös muotoilu ja getDate-luennat kiinnitetään
+// UTC:hen — muutoin länsipuolen vyöhykkeellä päivä liukuisi yhdellä taakse.
 function formatDateRange(start: string, end: string): string {
   const s = new Date(start)
   const e = new Date(end)
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' }
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }
   if (start === end) return s.toLocaleDateString('fi-FI', opts)
-  if (s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()) {
-    return `${s.getDate()}–${e.toLocaleDateString('fi-FI', opts)}`
+  if (s.getUTCFullYear() === e.getUTCFullYear() && s.getUTCMonth() === e.getUTCMonth()) {
+    return `${s.getUTCDate()}–${e.toLocaleDateString('fi-FI', opts)}`
   }
-  return `${s.toLocaleDateString('fi-FI', { day: 'numeric', month: 'long' })} – ${e.toLocaleDateString('fi-FI', opts)}`
+  return `${s.toLocaleDateString('fi-FI', { day: 'numeric', month: 'long', timeZone: 'UTC' })} – ${e.toLocaleDateString('fi-FI', opts)}`
 }
 
 function formatDateShort(start: string, end: string): string {
   const s = new Date(start)
   const e = new Date(end)
-  if (start === end) return s.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric', year: 'numeric' })
-  return `${s.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric' })}–${e.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric', year: 'numeric' })}`
+  if (start === end) return s.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'UTC' })
+  return `${s.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric', timeZone: 'UTC' })}–${e.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'UTC' })}`
 }
 
 type Props = { params: Promise<{ id: string }> }
@@ -144,8 +148,8 @@ export default async function FestivalPage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
       <main className="min-h-screen bg-gray-950 text-white">
         <div className="max-w-2xl mx-auto px-4 py-8">
           <Link href="/" className="text-blue-400 hover:text-blue-300 text-sm mb-6 inline-block">

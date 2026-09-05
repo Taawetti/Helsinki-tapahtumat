@@ -3,6 +3,24 @@ import path from 'path'
 
 const nextConfig: NextConfig = {
 
+  // Suojausotsakkeet (auditointi 5.9.2026: tuotannosta puuttuivat kokonaan —
+  // mm. /admin/login oli upotettavissa vieraaseen kehykseen eli
+  // kaappausalttiina). CSP puuttuu tarkoituksella: se vaatii inline-
+  // skriptien inventaarion eikä sitä lisätä sokkona.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), payment=()' },
+        ],
+      },
+    ]
+  },
+
   // Lähelle osuvat kirjoitusasut oikeaan osoitteeseen. Mitattu 26.8.2026:
   // omistaja osui kahdesti peräkkäin muotoihin /sauna ja /tapahtumat/tanaa ja
   // sai Next.js:n oletusvirhesivun, jossa ei ollut yhtään linkkiä takaisin.

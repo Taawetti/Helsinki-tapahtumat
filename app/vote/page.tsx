@@ -23,11 +23,11 @@ const GRADIENTS = [
 ]
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' })
 }
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long' })
+  return new Date(iso).toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Helsinki' })
 }
 
 function VoteContent() {

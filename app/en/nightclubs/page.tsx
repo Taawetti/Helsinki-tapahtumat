@@ -21,6 +21,7 @@ import { HELSINKI_NIGHTCLUBS, type CuratedVenue } from '@/lib/helsinki-nightclub
 import { supabase } from '@/lib/supabase'
 import EnGuidePage from '@/components/EnGuidePage'
 import HomeShell from '@/components/HomeShell'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 export const revalidate = 86400 // curated list changes rarely — sama kuin /yokerhot
 
@@ -140,8 +141,8 @@ export default async function EnNightclubsPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo. */}

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import ShareButton from '@/components/ShareButton'
 import { supabase, DbFestival } from '@/lib/supabase'
 import { FESTIVALS_STATIC, fromDb, FestivalDef } from '@/lib/festivals-data'
+import { jsonLdHtml } from '@/lib/json-ld'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
@@ -75,7 +76,8 @@ async function fetchLinkedEvent(id: string): Promise<EventPageData | null> {
       description: desc,
       startTime: e.start_time,
       endTime: e.end_time || null,
-      image: e.images?.[0]?.url ?? null,
+      // http → https: sekasisältö estyisi selaimessa (kulke-lähde).
+      image: (e.images?.[0]?.url ?? null)?.replace(/^http:\/\//, 'https://') ?? null,
       isFree,
       price: isFree ? null : (offer?.price?.fi || null),
       ticketUrl: offer?.info_url?.fi || offer?.info_url?.en || null,
@@ -116,7 +118,7 @@ async function fetchTicketmasterEvent(tmId: string): Promise<EventPageData | nul
     if (!res.ok) return null
     const e: TMEvent = await res.json()
     const venue = e._embedded?.venues?.[0]
-    const image = e.images?.find((i) => i.ratio === '16_9' && (i.width ?? 0) >= 640)?.url ?? e.images?.[0]?.url ?? null
+    const image = (e.images?.find((i) => i.ratio === '16_9' && (i.width ?? 0) >= 640)?.url ?? e.images?.[0]?.url ?? null)?.replace(/^http:\/\//, 'https://') ?? null
     const startISO = e.dates?.start?.dateTime
       ?? (e.dates?.start?.localDate ? `${e.dates.start.localDate}T${e.dates.start.localTime ?? '19:00:00'}` : null)
     if (!startISO) return null
@@ -172,7 +174,7 @@ async function fetchFestivalEvent(id: string): Promise<EventPageData | null> {
     description: fest.description || '',
     startTime,
     endTime: null,
-    image: fest.image,
+    image: fest.image?.replace(/^http:\/\//, 'https://') ?? fest.image,
     isFree: fest.isFree,
     price: null,
     ticketUrl: fest.ticketUrl || null,
@@ -197,14 +199,21 @@ const getEventData = cache(async (id: string): Promise<EventPageData | null> => 
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// timeZone pakollinen: Vercel renderöi UTC:ssä, ilman sitä joka kellonaika
+// näkyi 3 h liian aikaisin ja keskiyön tapahtumilla päiväkin oli väärä
+// (mitattu tuotannosta 5.9.2026: LinkedEvents start 17:00Z näkyi "klo 17.00",
+// oikea Helsinki-aika 20.00).
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fi-FI', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    timeZone: 'Europe/Helsinki',
   })
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('fi-FI', {
+    hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki',
+  })
 }
 
 // ── Metadata ────────────────────────────────────────────────────────────────
@@ -214,16 +223,23 @@ type Props = { params: Promise<{ id: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const event = await getEventData(id)
-  if (!event) return { title: 'Tapahtuma ei löydy' }
+  if (!event) return { title: 'Tapahtumaa ei löydy' }
 
-  const startDate = new Date(event.startTime).toLocaleDateString('fi-FI')
+  const startDate = new Date(event.startTime).toLocaleDateString('fi-FI', { timeZone: 'Europe/Helsinki' })
   const title = `${event.title} – ${startDate}`
-  const desc = event.shortDescription || event.description.slice(0, 160) || `${event.title} – ${event.venue} – Helsinki`
-  const pageUrl = `${BASE}/e/${encodeURIComponent(id)}`
+  const desc = event.shortDescription || event.description.slice(0, 160)
+    || [event.title, event.venue, 'Helsinki'].filter(Boolean).join(' – ')
+  // params-id on jo prosenttikoodattu → dekoodaus ensin, muuten ':' päätyy
+  // muotoon %253A ja canonical/JSON-LD-url eroavat oikeasta osoitteesta.
+  const pageUrl = `${BASE}/e/${encodeURIComponent(decodeURIComponent(id))}`
 
   return {
     title,
     description: desc,
+    // Mennyt tapahtuma ei kuulu hakemistoon — sivu jäi aiemmin 200:ksi ja
+    // indeksoitavaksi ikuisesti (auditointi 5.9.2026). Sivu pysyy avattavana
+    // (vanha jaettu linkki toimii), mutta Google ohjataan pois.
+    ...(event.isPast ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: pageUrl },
     openGraph: {
       title: event.title,
@@ -249,7 +265,7 @@ export default async function EventPage({ params }: Props) {
   const event = await getEventData(id)
   if (!event) notFound()
 
-  const pageUrl = `${BASE}/e/${encodeURIComponent(id)}`
+  const pageUrl = `${BASE}/e/${encodeURIComponent(decodeURIComponent(id))}`
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -287,7 +303,9 @@ export default async function EventPage({ params }: Props) {
               return m ? { price: Number(m[0]), priceCurrency: 'EUR' } : {}
             })(),
             ...(event.ticketUrl ? { url: event.ticketUrl } : {}),
-            availability: event.isPast ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
+            // availability vain tulevalle: mennyt ei ole "loppuunmyyty" —
+            // se on ohi, eikä väärä saatavuustieto kuulu dataan.
+            ...(event.isPast ? {} : { availability: 'https://schema.org/InStock' }),
           },
         }),
     organizer: { '@type': 'Organization', name: event.venue || 'Helsinki tapahtumat' },
@@ -306,8 +324,8 @@ export default async function EventPage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
       <main className="min-h-screen bg-gray-950 text-white">
         <div className="max-w-2xl mx-auto px-4 py-8">
           <Link href="/" className="text-blue-400 hover:text-blue-300 text-sm mb-6 inline-block">
