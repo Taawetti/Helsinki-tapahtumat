@@ -893,6 +893,45 @@ export default function HomeClient({
     return out
   }, [baseEvents, heroGigs])
 
+  // "⏰ Seuraavaksi" — puhdas aikajärjestys (omistaja 6.9.2026): "kello on
+  // 19.30, mihin ehdin vielä?". Kaksi lohkoa: seuraavaksi ALKAVAT alkamis-
+  // järjestyksessä (näkymän lupaus, siksi ensin) ja NYT KÄYNNISSÄ olevat.
+  // Ajattomat (koko päivän) rivit käynnissä-lohkon hännille — ne eivät "ala".
+  // Pubivisarykelmiä EI karsita: tämä näkymä lupaa aikajärjestystä, ei
+  // kuratointia (poiminnat hoitavat sen).
+  const seuraavaksiJako = useMemo(() => {
+    if (koCat !== 'seuraavaksi' || !nowTs) return null
+    const alkavat: Event[] = []
+    const kaynnissa: Event[] = []
+    for (const e of baseEvents) {
+      if (tuntematonAika(e.startTime)) { kaynnissa.push(e); continue }
+      if (new Date(e.startTime).getTime() > nowTs) alkavat.push(e)
+      else kaynnissa.push(e)
+    }
+    alkavat.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    kaynnissa.sort((a, b) => {
+      const ta = tuntematonAika(a.startTime) ? 1 : 0
+      const tb = tuntematonAika(b.startTime) ? 1 : 0
+      if (ta !== tb) return ta - tb
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    })
+    return { alkavat, kaynnissa }
+  }, [koCat, baseEvents, nowTs])
+
+  /** "25 min päästä" / "2h 10min päästä" — yli vuorokauden päähän pelkkä päivä. */
+  const alkaaTeksti = useCallback((e: Event): string | undefined => {
+    if (!nowTs) return undefined
+    const min = Math.round((new Date(e.startTime).getTime() - nowTs) / 60000)
+    if (min <= 0) return undefined
+    if (min < 60) return `${min} ${t('spontaani.min_away')}`
+    if (min < 24 * 60) {
+      const h = Math.floor(min / 60)
+      const m = min % 60
+      return `${h}h${m > 0 ? ` ${m}min` : ''} ${t('spontaani.away')}`
+    }
+    return undefined // päivämerkintä hoituu kortin päiväprefiksillä muissa ikkunoissa
+  }, [nowTs, t])
+
   // Kategorian pystylista (koCat): ruudukon/aihepiirin napautus avaa tämän
   const koCatEvents = useMemo(() => {
     if (!koCat) return []
@@ -902,11 +941,12 @@ export default function HomeClient({
     // Keikka-listan kärjessä ennen illan oikeita keikkoja.
     const koriJarjestys = (lista: Event[]) =>
       [...lista].sort((a, b) => (isPrimaryPick(a) ? 0 : 1) - (isPrimaryPick(b) ? 0 : 1))
+    if (koCat === 'seuraavaksi') return seuraavaksiJako ? [...seuraavaksiJako.alkavat, ...seuraavaksiJako.kaynnissa] : []
     if (koCat === 'kaikki') return koriJarjestys(baseEvents)           // "Kaikki" — koko lista
     if (koCat === 'ilmainen') return koriJarjestys(baseEvents.filter((e) => e.isFree))
     if (!VIBES.some((v) => v.id === koCat)) return []
     return koriJarjestys(baseEvents.filter((e) => getEventVibes(e).includes(koCat)))
-  }, [koCat, baseEvents])
+  }, [koCat, baseEvents, seuraavaksiJako])
 
   // Tyhjä kategorialista → "Ei tapahtumia valitulla päivällä" + TULEVAT
   // kuukauden ikkunasta (omistaja 6.9.2026: tyhjä sivu ei kerro mitään —
@@ -932,7 +972,7 @@ export default function HomeClient({
           return !!e.endTime && new Date(e.endTime).getTime() >= nyt
         })
         if (koCat === 'ilmainen') evs = evs.filter((e) => e.isFree)
-        else if (koCat !== 'kaikki') evs = evs.filter((e) => getEventVibes(e).includes(koCat))
+        else if (koCat !== 'kaikki' && koCat !== 'seuraavaksi') evs = evs.filter((e) => getEventVibes(e).includes(koCat))
         evs.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
         setKoCatTulevat(evs.slice(0, 24))
       })
@@ -1411,7 +1451,9 @@ export default function HomeClient({
                   ← {t('common.back')}
                 </button>
                 <h2 className="font-black text-white text-[19px] leading-none" style={{ letterSpacing: '-0.02em' }}>
-                  {koCat === 'kaikki'
+                  {koCat === 'seuraavaksi'
+                    ? `⏰ ${t('next.pill')}`
+                    : koCat === 'kaikki'
                     ? `📋 ${t('discover.all_events')}`
                     : koCat === 'ilmainen'
                     ? `🎁 ${t('discover.free_events')}`
@@ -1456,6 +1498,41 @@ export default function HomeClient({
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                         {koCatTulevat.map((e) => (
                           <PosterCard key={e.id} event={e} onClick={avaa.grid}
+                            distance={geo.coords && e.location?.lat && e.location?.lon
+                              ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
+                              : undefined} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : koCat === 'seuraavaksi' && seuraavaksiJako ? (
+                /* Aikajärjestysnäkymä: ALKAVAT ensin (näkymän lupaus), sitten
+                   käynnissä olevat. Kellonajan perässä "25 min päästä". */
+                <div className="space-y-6">
+                  {seuraavaksiJako.alkavat.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="font-black text-white text-[16px]" style={{ letterSpacing: '-0.01em' }}>
+                        {t('next.upcoming')}
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
+                        {seuraavaksiJako.alkavat.map((e) => (
+                          <EventCard key={e.id} event={e} onClick={avaa.grid} aikaLisa={alkaaTeksti(e)}
+                            distance={geo.coords && e.location?.lat && e.location?.lon
+                              ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
+                              : undefined} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {seuraavaksiJako.kaynnissa.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="font-black text-white/70 text-[16px]" style={{ letterSpacing: '-0.01em' }}>
+                        {t('next.ongoing')}
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
+                        {seuraavaksiJako.kaynnissa.map((e) => (
+                          <EventCard key={e.id} event={e} onClick={avaa.grid}
                             distance={geo.coords && e.location?.lat && e.location?.lon
                               ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
                               : undefined} />
@@ -1597,6 +1674,10 @@ export default function HomeClient({
               )}
 
 
+              {/* ⏰ Seuraavaksi-banneri — MÄÄRÄNPÄÄ, ei valikko: siksi oma
+                  koko leveyden muoto eikä pilleri ▾-valikkorivissä (omistaja
+                  6.9.2026: pilleririvistä oppii "näistä aukeaa valikko", ja
+                  suoraan näkymään vievä nappi rikkoi sen). */}
               {/* Parhaat poiminnat — iso ruudukko (korvaa vaakakarusellit). Otsikko
                   elää aikavälin mukaan; sisältö kuratoitu (kuvalliset/keikat/festarit). */}
               {!loading && bestPicks.length > 0 && (
@@ -1606,6 +1687,13 @@ export default function HomeClient({
                       {picksHeading}
                     </h2>
                     <span className="text-[14px]" style={{ color: '#a3abff' }}>✦</span>
+                    {/* Seuraavaksi — pieni linkki otsikon oikealla (omistaja
+                        6.9.2026): ei saa sekoittua ▾-valikkopillereihin. */}
+                    <button onClick={() => { setShowHoodMenu(false); setShowGuideMenu(false); setKoCat('seuraavaksi'); window.scrollTo(0, 0) }}
+                      className="ml-auto shrink-0 text-[13px] font-black transition-colors hover:brightness-125"
+                      style={{ color: '#a3abff' }}>
+                      ⏰ {t('next.pill')} →
+                    </button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
                     {bestPicks.map((e) => (

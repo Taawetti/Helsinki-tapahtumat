@@ -13,6 +13,8 @@ interface Props {
   event: Event
   onClick: (event: Event) => void
   distance?: number  // km, pre-calculated by parent
+  /** Kellonajan perään näytettävä lisä ("25 min päästä") — Seuraavaksi-lista. */
+  aikaLisa?: string
 }
 
 const GRADIENT_COLORS = [
@@ -55,7 +57,7 @@ function handleShare(e: React.MouseEvent, event: Event) {
   }
 }
 
-export default function EventCard({ event, onClick, distance }: Props) {
+export default function EventCard({ event, onClick, distance, aikaLisa }: Props) {
   const gradient = hashGradient(event.id)
   const tonight = isTonight(event.startTime)
   const { toggle, isFavorite } = useFavorites()
@@ -152,7 +154,7 @@ export default function EventCard({ event, onClick, distance }: Props) {
               {!tuntematonAika(event.startTime) && (
                 <>
                   <Clock size={10} className="shrink-0" />
-                  <span>{formatTime(event.startTime, lang)}</span>
+                  <span>{formatTime(event.startTime, lang)}{aikaLisa ? ` · ${aikaLisa}` : ''}</span>
                 </>
               )}
               {!event.isFree && event.price && (

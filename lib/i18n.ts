@@ -939,6 +939,12 @@ const t = {
     'a11y.prev_month':             'Edellinen kuukausi',
     'a11y.next_month':             'Seuraava kuukausi',
     'discover.upcoming_title':     'Tulevat tapahtumat',
+    'next.pill':                   'Seuraavaksi',
+    'next.upcoming':               'Alkaa seuraavaksi',
+    'next.ongoing':                'Nyt käynnissä',
+    'card.ongoing':                'Käynnissä',
+    'next.banner_title':           'Mihin ehdin vielä?',
+    'next.banner_sub':             'tapahtumat alkamisjärjestyksessä',
   },
 
   en: {
@@ -1880,6 +1886,12 @@ const t = {
     'a11y.prev_month':             'Previous month',
     'a11y.next_month':             'Next month',
     'discover.upcoming_title':     'Upcoming events',
+    'next.pill':                   'Up next',
+    'next.upcoming':               'Starting next',
+    'next.ongoing':                'Happening now',
+    'card.ongoing':                'Ongoing',
+    'next.banner_title':           'What can I still make?',
+    'next.banner_sub':             'events in starting order',
   },
 } as const
 

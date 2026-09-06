@@ -53,8 +53,12 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
   const emoji = catTag.emoji
   const hasImage = !!event.image
   const { t, lang } = useLanguage()
-  // "ti 26.8. " kun tapahtuma ei ole tänään; tyhjä kun on.
+  // "ti 26.8. " kun tapahtuma ei ole tänään; tyhjä kun on. Käynnissä oleva
+  // monipäiväinen (alkoi ennen tätä päivää, on yhä listalla) saa "Käynnissä"-
+  // merkin — eilinen päiväys näytti bugilta (omistaja 6.9.2026: Konstrundan
+  // 5.–6.9. näkyi sunnuntaina merkillä "la 5.9.").
   const evDate = helsinkiDateOf(event.startTime)
+  const kaynnissa = !!evDate && evDate < helsinkiToday()
   const dayPrefix = evDate && evDate !== helsinkiToday()
     ? `${new Date(`${evDate}T12:00:00Z`).toLocaleDateString(lang === 'en' ? 'en-GB' : 'fi-FI', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' })} `
     : ''
@@ -152,7 +156,7 @@ export default function PosterCard({ event, onClick, large, distance }: Props) {
         {(dayPrefix || !tuntematonAika(event.startTime)) && (
           <div className="absolute bottom-2.5 right-2.5">
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white/90 bg-black/50 backdrop-blur-sm">
-              {tuntematonAika(event.startTime) ? dayPrefix.trim() : `${dayPrefix}${formatTime(event.startTime, lang)}`}
+              {kaynnissa ? t('card.ongoing') : tuntematonAika(event.startTime) ? dayPrefix.trim() : `${dayPrefix}${formatTime(event.startTime, lang)}`}
             </span>
           </div>
         )}
