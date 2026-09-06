@@ -79,6 +79,10 @@ export function isOpenAt(hours: string | null | undefined, at: Date): boolean | 
  *  null = suljettu koko päivän tai parsimaton. */
 export function openIntervalsForDate(hours: string | null | undefined, day: Date): { from: number; to: number }[] | null {
   if (!hours) return null
+  // Invalid Date jumittaisi opening_hours-kirjaston getOpenIntervals-kutsun
+  // synkroniseen ikuissilmukkaan (mitattu 6.9.2026: suunnitelma ilman päivää
+  // jäädytti välilehden) — try/catch ei auta koska mikään ei heitä.
+  if (Number.isNaN(day.getTime())) return null
   if (hours.trim() === '24/7') return [{ from: 0, to: 24 }]
   const oh = parse(hours)
   if (!oh) return null

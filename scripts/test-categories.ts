@@ -3608,6 +3608,65 @@ for (const c of kwChecks) {
     askeleet: [{ id: 'k1', tyyppi: 'ravintola', nimi: 'Lounasravintola', rooli: 'ruoka',
       aukiolot: 'Mo-Fr 11:00-14:00' }],
   }, NYT)
+  // Regressio (omistaja 6.9.2026): ILMAN aloitusaikaa oletuskursori 18:00
+  // tuotti "et ehdi" -varoituksen käsin asetetulle 17:00-askeleelle (jolla
+  // ei ole edellistä) ja valui myös seuraavaan ankkuriin.
+  const eiAloitusta = sovitaAjat({
+    otsikko: '', paiva: '2026-09-12', askeleet: [
+      { id: 'b1', tyyppi: 'ravintola', nimi: 'Ruokapaikka', rooli: 'ruoka',
+        lat: 60.168, lon: 24.94, kasinKlo: '17:00', aukiolot: 'Mo-Su 11:00-22:00' },
+      { id: 'b2', tyyppi: 'tapahtuma', nimi: 'Festivaali', rooli: 'ohjelma',
+        lat: 60.171, lon: 24.95, ankkuriISO: '2026-09-12T19:15:00+03:00' },
+    ],
+  }, NYT)
+  // Aito konflikti varoittaa yhä: ruokailu 19:00 + 1,5 h ei ehdi 20:00 ankkuriin.
+  const aitoKonflikti = sovitaAjat({
+    otsikko: '', paiva: '2026-09-12', askeleet: [
+      { id: 'c1', tyyppi: 'ravintola', nimi: 'Ruokapaikka', rooli: 'ruoka',
+        lat: 60.168, lon: 24.94, kasinKlo: '19:00', aukiolot: 'Mo-Su 11:00-22:00' },
+      { id: 'c2', tyyppi: 'tapahtuma', nimi: 'Keikka', rooli: 'ohjelma',
+        lat: 60.171, lon: 24.95, ankkuriISO: '2026-09-12T20:00:00+03:00' },
+    ],
+  }, NYT)
+  // Aloitusaika myöhemmin kuin käsiaika: ensimmäinen askel ei silti varoita
+  // (edellistä ei ole — käyttäjän kaksi aikaa näkyvät vierekkäin).
+  // Jäätymisregressio: päivätön suunnitelma + aukiolollinen auto-askel
+  // jumitti aukiolokirjaston ikuissilmukkaan (löytyi tarkistuksessa 6.9.2026).
+  // Pelkkä paluu on jo puoli testiä; NYT on lauantai-aamu 10:00 → seuraava
+  // vartti+30min = 10:30 → clamp 11:00.
+  const paivaton = sovitaAjat({
+    otsikko: '', paiva: '', askeleet: [
+      { id: 'e1', tyyppi: 'ravintola', nimi: 'Ruokapaikka', rooli: 'ruoka', aukiolot: 'Mo-Su 11:00-22:00' },
+    ],
+  }, NYT)
+  // Piilotettu kiinni: paikka sulkee 15:00 mutta kursori on 18:00 —
+  // max(clamp, kursori) nosti ajan sulkeutumisen yli ilman varoitusta.
+  const kiinniPiilo = sovitaAjat({
+    otsikko: '', paiva: '2026-09-12', alkuKlo: '18:00', askeleet: [
+      { id: 'f1', tyyppi: 'ravintola', nimi: 'Lounas', rooli: 'ruoka', aukiolot: 'Mo-Su 11:00-15:00' },
+    ],
+  }, NYT)
+  // Kursorin eteneminen NÄYTETYSTÄ ajasta (mutaatiotestaus paljasti että
+  // vanha max-kursori läpäisi kaikki aiemmat testit): haamukursori ei saa
+  // vuotaa käsiajan yli seuraaviin askeliin.
+  const nakyvaKetju = sovitaAjat({
+    otsikko: '', paiva: '2026-09-12', alkuKlo: '18:00', askeleet: [
+      { id: 'g1', tyyppi: 'ravintola', nimi: 'Ruokapaikka', rooli: 'ruoka', kasinKlo: '17:00', aukiolot: 'Mo-Su 11:00-22:00' },
+      { id: 'g2', tyyppi: 'tapahtuma', nimi: 'Keikka', rooli: 'ohjelma', ankkuriISO: '2026-09-12T19:00:00+03:00' },
+    ],
+  }, NYT)
+  const nakyvaEhdotus = sovitaAjat({
+    otsikko: '', paiva: '2026-09-12', alkuKlo: '19:00', askeleet: [
+      { id: 'h1', tyyppi: 'ravintola', nimi: 'Ruokapaikka', rooli: 'ruoka', kasinKlo: '17:00', aukiolot: 'Mo-Su 11:00-22:00' },
+      { id: 'h2', tyyppi: 'ravintola', nimi: 'Baari', rooli: 'drinkit', aukiolot: 'Mo-Su 16:00-02:00' },
+    ],
+  }, NYT)
+  const alkuMyohemmin = sovitaAjat({
+    otsikko: '', paiva: '2026-09-12', alkuKlo: '18:00', askeleet: [
+      { id: 'd1', tyyppi: 'ravintola', nimi: 'Ruokapaikka', rooli: 'ruoka',
+        lat: 60.168, lon: 24.94, kasinKlo: '17:00', aukiolot: 'Mo-Su 11:00-22:00' },
+    ],
+  }, NYT)
   const sCases: { name: string; ok: boolean }[] = [
     { name: 'klo-muunnokset: 18:30 ↔ 18.5', ok: kloTunneiksi('18:30') === 18.5 && tunnitKloksi(18.5) === '18:30' },
     { name: 'järjestys säilyy (ei uudelleenjärjestystä)', ok: sov.map(x => x.askel.id).join() === 'a1,a2,a3' },
@@ -3617,6 +3676,22 @@ for (const c of kwChecks) {
     { name: 'baari ankkurin jälkeen (ohjelma 2 h + siirtymä)', ok: (kloTunneiksi(sov[2].klo) ?? 0) >= 21 },
     { name: 'liian myöhäinen aloitus → ankkurille ei-ehdi', ok: kiireinen[1].varoitus === 'ei-ehdi' },
     { name: 'lauantaina kiinni oleva lounaspaikka → kiinni-varoitus', ok: kiinni[0].varoitus === 'kiinni' },
+    { name: 'ilman aloitusaikaa: käsin 17:00 EI saa varoitusta (ei edellistä)',
+      ok: eiAloitusta[0].klo === '17:00' && !eiAloitusta[0].varoitus },
+    { name: 'ilman aloitusaikaa: ehdittävä ankkuri EI varoita (haamu-18:00 poissa)',
+      ok: eiAloitusta[1].klo === '19:15' && !eiAloitusta[1].varoitus },
+    { name: 'aito konflikti varoittaa yhä (19:00 + ruokailu ei ehdi 20:00 ankkuriin)',
+      ok: aitoKonflikti[1].varoitus === 'ei-ehdi' },
+    { name: 'aloitus 18:00 + käsin 17:00: ensimmäinen askel ei varoita',
+      ok: !alkuMyohemmin[0].varoitus },
+    { name: 'päivätön suunnitelma palaa eikä jäädy (Invalid Date -vartija)',
+      ok: paivaton.length === 1 && paivaton[0].klo === '11:00' && !paivaton[0].varoitus },
+    { name: 'paikka ehti kiinni ennen kursoria → kiinni-varoitus (max ei piilota)',
+      ok: kiinniPiilo[0].varoitus === 'kiinni' },
+    { name: 'haamukursori ei vuoda käsiajan yli ankkuriin (17+1,5+0,25 ≤ 19)',
+      ok: nakyvaKetju[1].klo === '19:00' && !nakyvaKetju[1].varoitus },
+    { name: 'auto-ehdotus lasketaan näkyvästä käsiajasta (17:00 → 18:45)',
+      ok: nakyvaEhdotus[1].klo === '18:45' },
   ]
   for (const c of sCases) {
     if (c.ok) pass++

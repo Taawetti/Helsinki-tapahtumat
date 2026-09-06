@@ -146,25 +146,36 @@ export interface SovitettuAskel {
  *  aika: edellisen loppu + kävely + 15 min puskuri, aukioloihin sovitettuna. */
 export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
   if (s.askeleet.length === 0) return []
-  const paivaDate = new Date(`${s.paiva}T12:00:00`)
   const kello = helsinkiClock(nyt)
-  const tanaan = kello.date === s.paiva
+  // Päivätön suunnitelma (esim. ensimmäinen lisäys oli ravintola, jolla ei
+  // ole päivämäärää) sovitetaan tälle päivälle. Ilman vartijaa syntyi
+  // Invalid Date, joka jumitti aukiolokirjaston ikuissilmukkaan (6.9.2026).
+  const kaytettyPaiva = /^\d{4}-\d{2}-\d{2}$/.test(s.paiva) ? s.paiva : kello.date
+  const paivaDate = new Date(`${kaytettyPaiva}T12:00:00`)
+  const tanaan = kello.date === kaytettyPaiva
 
-  // Aloituskursori: käyttäjän valinta → ensimmäinen ankkuri → oletus.
+  // Aloituskursori: käyttäjän valinta → ensimmäisen askeleen OMA kiinnitetty
+  // aika → oletus. Aiempi versio hyppäsi suoraan oletukseen (18:00) vaikka
+  // käyttäjä oli asettanut ensimmäiselle askeleelle ajan käsin — haamu-
+  // lähtöaika tuotti vääriä "et ehdi" -varoituksia koko ketjuun (omistajan
+  // havainto 6.9.2026: käsin 17:00 sai varoituksen "edellisestä" jota ei ole).
   let kursori: number
   const alkuKasin = s.alkuKlo ? kloTunneiksi(s.alkuKlo) : null
+  const eka = s.askeleet[0]
+  const ekaKiinnitetty = eka.kasinKlo
+    ? kloTunneiksi(eka.kasinKlo)
+    : eka.ankkuriISO && !tuntematonAika(eka.ankkuriISO)
+      ? ankkuriTunti(eka.ankkuriISO)
+      : null
   if (alkuKasin !== null) {
     kursori = alkuKasin
+  } else if (ekaKiinnitetty !== null) {
+    kursori = ekaKiinnitetty
+  } else if (tanaan) {
+    // Tänään: seuraava tasavartti + puoli tuntia valmistautumiseen.
+    kursori = Math.ceil((kello.hour + 0.5) * 4) / 4
   } else {
-    const ekaAnkkuri = s.askeleet.find((a) => a.ankkuriISO && !tuntematonAika(a.ankkuriISO))
-    if (ekaAnkkuri && s.askeleet[0] === ekaAnkkuri) {
-      kursori = ankkuriTunti(ekaAnkkuri.ankkuriISO!)
-    } else if (tanaan) {
-      // Tänään: seuraava tasavartti + puoli tuntia valmistautumiseen.
-      kursori = Math.ceil((kello.hour + 0.5) * 4) / 4
-    } else {
-      kursori = 18
-    }
+    kursori = 18
   }
 
   const tulos: SovitettuAskel[] = []
@@ -188,11 +199,13 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
 
     if (kasin !== null) {
       klo = kasin
-      if (kursori > klo + 0.05) varoitus = 'ei-ehdi'
+      // "Et ehdi edellisestä" vain jos edellinen on olemassa — ensimmäisen
+      // askeleen aika on määritelmällisesti saavutettavissa.
+      if (edellinen && kursori > klo + 0.05) varoitus = 'ei-ehdi'
       else if (askel.aukiolot && isOpenAt(askel.aukiolot, kelloksi(paivaDate, klo)) === false) varoitus = 'kiinni'
     } else if (ankkuri !== null) {
       klo = ankkuri
-      if (kursori > klo + 0.05) varoitus = 'ei-ehdi'
+      if (edellinen && kursori > klo + 0.05) varoitus = 'ei-ehdi'
     } else {
       const sovitettu = askel.aukiolot
         ? clampToOpenHour(askel.aukiolot, paivaDate, kursori, Math.min(roolinKesto(askel.rooli), 1))
@@ -202,6 +215,9 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
         varoitus = 'kiinni'
       } else {
         klo = Math.max(sovitettu, kursori)
+        // clampToOpenHour voi palauttaa kursoria AIEMMAN ikkunan alun (paikka
+        // ehti kiinni) — max nostaisi ajan sulkeutumisen yli ilman varoitusta.
+        if (askel.aukiolot && isOpenAt(askel.aukiolot, kelloksi(paivaDate, klo)) === false) varoitus = 'kiinni'
       }
     }
 
@@ -209,7 +225,9 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
     if (!varoitus && klo > ARC_END_CAP_H) varoitus = 'myohaan'
 
     tulos.push({ askel, klo: tunnitKloksi(klo), kavelyMin, varoitus })
-    kursori = Math.max(kursori, klo) + roolinKesto(askel.rooli)
+    // Jatko lasketaan ajasta jonka käyttäjä NÄKEE — kiinnitetty aika on
+    // totuus, ei piilokursori (automaattiaskeleilla klo >= kursori, sama tulos).
+    kursori = klo + roolinKesto(askel.rooli)
     edellinen = askel
   }
   return tulos
