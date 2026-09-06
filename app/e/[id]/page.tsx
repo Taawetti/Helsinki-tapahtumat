@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { onMaksunkeruuUrl } from '@/lib/event-links'
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -80,7 +81,10 @@ async function fetchLinkedEvent(id: string): Promise<EventPageData | null> {
       image: (e.images?.[0]?.url ?? null)?.replace(/^http:\/\//, 'https://') ?? null,
       isFree,
       price: isFree ? null : (offer?.price?.fi || null),
-      ticketUrl: offer?.info_url?.fi || offer?.info_url?.en || null,
+      ticketUrl: (() => {
+        const u = offer?.info_url?.fi || offer?.info_url?.en || null
+        return onMaksunkeruuUrl(u) ? null : u
+      })(),
       infoUrl: e.info_url?.fi || e.info_url?.en || null,
       categories: (e.keywords || []).map((k) => k.name?.fi || k.name?.en || '').filter(Boolean).slice(0, 5),
       venue: loc?.name?.fi || loc?.name?.en || '',

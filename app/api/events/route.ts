@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isCompetitorUrl } from '@/lib/event-links'
+import { isCompetitorUrl, onMaksunkeruuUrl } from '@/lib/event-links'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
 import { helsinkiDateOf, normalizeHelsinkiTimestamp, helsinkiToday } from '@/lib/helsinki-time'
@@ -602,6 +602,9 @@ export async function GET(req: NextRequest) {
       // http-kuva https-sivulla on sekasisältöä jonka selain estää — kulke-
       // lähteen vanhat osoitteet päivitetään (palvelin vastaa https:llä).
       image: e.image ? e.image.replace(/^http:\/\//, 'https://') : e.image,
+      // Maksunkeruulinkki ei ole sivu: pois ticketUrlista, jolloin CTA:t
+      // putoavat infoUrliin (ks. lib/event-links.ts onMaksunkeruuUrl).
+      ticketUrl: onMaksunkeruuUrl(e.ticketUrl) ? null : e.ticketUrl,
     }))
     // Reunavälimuisti: ilman otsaketta Vercel antaa max-age=0:n eikä reuna
     // koskaan osu (mitattu 5.9.2026: x-vercel-cache MISS, TTFB 3,7–6,7 s per

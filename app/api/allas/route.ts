@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
-import { helsinkiISO } from '@/lib/helsinki-time'
+import { helsinkiISO, helsinkiToday } from '@/lib/helsinki-time'
 
 // Kiinteä '+03:00' oli tunnin väärässä loka–maaliskuussa (EET = +02:00).
 // helsinkiISO lukee offsetin kohdepäivältä.
@@ -21,34 +21,18 @@ interface AlEvent {
   }
 }
 
-// Static Allas Live 2026 lineup — WP API only has 2025 season data
-// Source: allaspool.fi/allas-live/ + kohokohdat.fi/helsinki/festivaalit-helsinki/
-const ALLAS_LIVE_STATIC: { title: string; date: string }[] = [
-  { title: 'Allas Live: Erika Vikman',                            date: '2026-06-19' },
-  { title: 'Allas Live: Ismo Alanko',                             date: '2026-06-26' },
-  { title: 'Allas Live: Olavi Uusivirta',                         date: '2026-06-27' },
-  { title: 'Allas Live: Gregory Porter',                          date: '2026-06-30' },
-  { title: 'Allas Live: Charlie Puth',                            date: '2026-07-01' },
-  { title: 'Allas Live: Käärijä',                                 date: '2026-07-03' },
-  { title: 'Allas Live: J. Karjalainen',                          date: '2026-07-09' },
-  { title: 'Allas Live: Arppa',                                   date: '2026-07-10' },
-  { title: 'Allas Live: Jenni Vartiainen',                        date: '2026-07-11' },
-  { title: 'Allas Live: Alvaro Soler',                            date: '2026-07-23' },
-  { title: 'Allas Live: Antti Autio & Maustetytöt',               date: '2026-07-24' },
-  { title: 'Allas Live: Vesala',                                  date: '2026-07-31' },
-  { title: 'Allas Live: Ares',                                    date: '2026-08-01' },
-  { title: 'Allas Live: The Ark',                                 date: '2026-08-05' },
-  { title: 'Allas Live: Haloo Helsinki!',                         date: '2026-08-07' },
-  { title: 'Allas Live: Charon',                                  date: '2026-08-14' },
-  { title: 'Allas Live: Emmylou Harris',                          date: '2026-08-24' },
-  { title: 'Allas Live: Airbourne',                               date: '2026-08-31' },
-  { title: 'Allas Live: Carnival by the Sea – Poets of the Fall', date: '2026-09-06' },
-  { title: 'Allas Live: Pepe Willberg',                           date: '2026-09-10' },
-  { title: 'Allas Live: Pyhimys',                                 date: '2026-09-11' },
-  { title: 'Allas Live: Karri Koira',                             date: '2026-09-18' },
-  { title: 'Allas Live: Melo',                                    date: '2026-09-19' },
-]
-
+// KOVAKOODATTU 2026-KAUSILISTA POISTETTU 6.9.2026 (omistajan havainto):
+// listassa Poets of the Fall oli merkitty päivälle 6.9., mutta oikea
+// konsertti oli PERJANTAINA 4.9. (Finnair Shop: "Allas Live Poets Of The
+// Fall 4.9.2026 SOLD OUT") — sovellus näytti haamukeikkaa "tänä iltana"
+// kaksi päivää oikean, jo pidetyn keikan jälkeen. Lisäksi kaikki listan
+// loput keikat (Pepe Willberg, Pyhimys, Karri Koira, Melo) tulivat jo
+// stadissa-lähteestä oikeilla ajoilla → staattiset rivit olivat pelkkiä
+// duplikaatteja eri otsikolla. Käsin ylläpidetty tapahtumalista on
+// täsmälleen sitä keksittyä dataa jota tämä sovellus ei saa näyttää.
+// WP-API-polku alla jää: se palvelee taas kun Allas julkaisee uuden
+// kauden datan (nyt APIssa on vain 2025). Allas Liven 2026-keikat
+// tulevat stadissa- ja Ticketmaster-lähteistä.
 function parseDate(yyyymmdd: string): string | null {
   if (!yyyymmdd || yyyymmdd.length !== 8) return null
   const y = yyyymmdd.slice(0, 4)
@@ -59,7 +43,8 @@ function parseDate(yyyymmdd: string): string | null {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
-  const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
+  // Oletus HELSINKI-päivä: UTC-päivä on yöllä 00–03 eilinen.
+  const start = searchParams.get('start') || helsinkiToday()
   const end = searchParams.get('end') || start
   const keyword = searchParams.get('keyword')?.toLowerCase() || ''
 
@@ -156,40 +141,8 @@ export async function GET(req: NextRequest) {
       }
     }
   } catch {
-    // WP API unavailable — fall through to static list
-  }
-
-  // Static 2026 events — supplement WP API (which only has 2025 data)
-  for (const s of ALLAS_LIVE_STATIC) {
-    const ts = new Date(s.date).getTime()
-    if (ts < startTs || ts > endTs) continue
-    if (!s.title) continue
-    if (seenDates.has(s.date)) continue
-
-    seenDates.add(s.date)
-    events.push({
-      id: `allas-static-${s.date.replace(/-/g, '')}`,
-      title: s.title,
-      shortDescription: 'Allas Sea Pool — Helsinki',
-      description: '',
-      startTime: hkiISO(s.date, 19, 0),
-      startTimeApprox: true, // vain päivä skrapattu — klo 19 on oletus
-      endTime: null,
-      location: {
-        name: 'Allas Sea Pool',
-        streetAddress: 'Katajanokanlaituri 2a',
-        city: 'Helsinki',
-        lat: 60.1674,
-        lon: 24.9565,
-      },
-      image: null,
-      isFree: false,
-      price: null,
-      ticketUrl: 'https://www.allaspool.fi/allas-live/',
-      infoUrl: 'https://www.allaspool.fi/allas-live/',
-      categories: ['Musiikki', 'Keikka', 'Live-musiikki'],
-      source: 'linked-events',
-    })
+    // WP API alhaalla — palautetaan tyhjä; Allas Liven keikat tulevat joka
+    // tapauksessa stadissa- ja Ticketmaster-lähteistä.
   }
 
   return NextResponse.json({ events })

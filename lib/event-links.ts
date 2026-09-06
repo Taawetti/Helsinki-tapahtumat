@@ -44,20 +44,36 @@ export function hasOwnEventPage(e: { id: string }): boolean {
   return /^[a-z_]+:[a-z0-9]+$/i.test(id)
 }
 
+/** Pelkkä maksunkeruulinkki (MobilePay-lippaan pay-in-QR-sivu) ei ole
+ *  tapahtuman infosivu eikä lippukauppa — "Lue lisää" ei saa pudottaa
+ *  käyttäjää suoraan "Lähetä rahaa lippaaseen" -näkymään (todettu
+ *  tuotannosta 6.9.2026: LinkedEvents-järjestäjä oli laittanut offerin
+ *  urliksi qr.mobilepay.fi-lippaan; hintateksti "10 € (Mobile Pay)" kertoo
+ *  maksutavan jo valmiiksi). */
+export function onMaksunkeruuUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  try {
+    const h = new URL(url).hostname.toLowerCase().replace(/^www\./, '')
+    return h === 'qr.mobilepay.fi'
+  } catch {
+    return false
+  }
+}
+
 /** Osoite jonka jakaminen ohjaa takaisin palveluun — ei koskaan kilpailijalle. */
 export function shareUrlFor(
   e: { id: string; infoUrl?: string | null; ticketUrl?: string | null },
   base: string,
 ): string {
   if (hasOwnEventPage(e)) return `${base}/e/${encodeURIComponent(e.id)}`
-  const external = [e.infoUrl, e.ticketUrl].find((u) => u && !isCompetitorUrl(u))
+  const external = [e.infoUrl, e.ticketUrl].find((u) => u && !isCompetitorUrl(u) && !onMaksunkeruuUrl(u))
   return external ?? base
 }
 
 /** Tapahtuman ulkoinen linkki, tai null jos ainoa tiedossa oleva veisi
  *  kilpailijalle. Kutsuja näyttää silloin paikan oman sivun tai hakunapin. */
 export function externalUrlFor(e: { infoUrl?: string | null; ticketUrl?: string | null }): string | null {
-  return [e.ticketUrl, e.infoUrl].find((u) => u && !isCompetitorUrl(u)) ?? null
+  return [e.ticketUrl, e.infoUrl].find((u) => u && !isCompetitorUrl(u) && !onMaksunkeruuUrl(u)) ?? null
 }
 
 /** Viimeinen oljenkorsi kun tapahtumasta ei tiedetä linkkiä eikä paikan

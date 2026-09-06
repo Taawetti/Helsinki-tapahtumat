@@ -85,7 +85,7 @@ import { karsiTapahtumaPerheet, karsiTapahtumaSarjat } from '../lib/tapahtumaper
 import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, formatDateRange, tuntematonAika, isTonight } from '../lib/utils'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
-import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor } from '../lib/event-links'
+import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor, onMaksunkeruuUrl } from '../lib/event-links'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
 import venueSiteFile from '../data/venue-sites.json'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
@@ -3561,6 +3561,25 @@ for (const c of kwChecks) {
   for (const c of tCases) {
     if (c.ok) pass++
     else failures.push(`✗ aikavyöhyke: ${c.name}`)
+  }
+}
+
+// ── MAKSUNKERUULINKIT (lib/event-links): "Lue lisää" ei saa pudottaa
+// käyttäjää MobilePay-lippaan "Lähetä rahaa" -näkymään (mitattu tuotannosta
+// 6.9.2026: LinkedEvents-offerin url oli qr.mobilepay.fi-lipas).
+{
+  const mp = 'https://qr.mobilepay.fi/box/3699dc2d/pay-in?amount=1000'
+  const mCases: { name: string; ok: boolean }[] = [
+    { name: 'qr.mobilepay.fi tunnistetaan maksunkeruuksi', ok: onMaksunkeruuUrl(mp) === true },
+    { name: 'tavallinen lippukauppa ei ole maksunkeruuta', ok: onMaksunkeruuUrl('https://www.lippu.fi/x') === false },
+    { name: 'null/tyhjä ei kaada', ok: onMaksunkeruuUrl(null) === false && onMaksunkeruuUrl('') === false },
+    { name: 'kelvoton URL ei kaada', ok: onMaksunkeruuUrl('ei-url') === false },
+    { name: 'externalUrlFor ohittaa maksulinkin → infoUrl', ok: externalUrlFor({ ticketUrl: mp, infoUrl: 'https://www.instagram.com/kuumcollective/' }) === 'https://www.instagram.com/kuumcollective/' },
+    { name: 'externalUrlFor: pelkkä maksulinkki → null (varapolku)', ok: externalUrlFor({ ticketUrl: mp, infoUrl: null }) === null },
+  ]
+  for (const c of mCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ maksunkeruu: ${c.name}`)
   }
 }
 
