@@ -11,13 +11,14 @@
 // arvosana metakortissa, jaa-osio, CTA (nettisivu tai haku — ei umpikujaa),
 // Kartta + Reittiohjeet.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { X, MapPin, Clock, ExternalLink, Navigation, Share2, MessageCircle, Copy, Check, Globe, Search, Phone, Star } from 'lucide-react'
 import { track } from '@/lib/track'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
+import { tilaaSuunnitelma, onSuunnitelmassa, poistaViitteella, lisaaPaikka } from '@/lib/suunnitelma'
 
 export interface PaikkaTieto {
   id: string
@@ -100,6 +101,14 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   // Selaimen paluuele: keskitetty paluupino (hooks/useTaaksepain) — vanha
   // per-paneeli pushState/popstate-lohko poistettu 6.9.2026.
   useTaaksepain(!!paikka, handleClose)
+  // "Lisää suunnitelmaan" -tila: peilaa suunnitelmavarastoa.
+  const suunnitelmassa = useSyncExternalStore(tilaaSuunnitelma, () => paikka?.id ? onSuunnitelmassa(paikka?.id) : false, () => false)
+  const suunnitelmaKlik = () => {
+    if (!paikka) return
+    if (suunnitelmassa) poistaViitteella(paikka?.id!)
+    else if (!lisaaPaikka(paikka, guideSlug)) alert(t('plan.full'))
+  }
+
 
   // Alasvetosulku — sama logiikka kuin EventDetailPanelissa.
   useEffect(() => {
@@ -336,6 +345,15 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
 
           {/* CTA + Kartta/Reittiohjeet — sama asettelu kuin tapahtumissa */}
           <div className="flex flex-col gap-2.5 pt-1">
+            {/* Lisää suunnitelmaan — Suunnitelma-välilehden keräilynappi. */}
+            <button onClick={suunnitelmaKlik}
+              className="w-full py-3 rounded-xl font-black text-[13.5px] transition-all active:scale-[.99]"
+              style={suunnitelmassa
+                ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.4)', color: '#a3abff' }
+                : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.85)' }}>
+              {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
+            </button>
+
             <a href={ctaHref} target="_blank" rel="noopener noreferrer"
               onClick={() => {
                 let domain = ''

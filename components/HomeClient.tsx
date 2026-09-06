@@ -24,6 +24,7 @@ import { getCategoryScores } from '@/lib/preferences'
 import EventCard from '@/components/EventCard'
 import HeroSwiper from '@/components/HeroSwiper'
 import EventDetailPanel from '@/components/EventDetailPanel'
+import SuunnitelmaView from '@/components/SuunnitelmaView'
 import SearchBar from '@/components/SearchBar'
 import PosterCard from '@/components/PosterCard'
 import InstallBanner from '@/components/InstallBanner'
@@ -153,7 +154,7 @@ function isAlkaaPian(e: Event): boolean {
   return ms > 0 && ms < 3 * 60 * 60 * 1000
 }
 
-type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta'
+type AppMode = 'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta' | 'suunnitelma'
 type ListStyle = 'feed' | 'grid'
 
 interface PreloadedDateRange {
@@ -327,11 +328,11 @@ export default function HomeClient({
     return {
       grid: tee('grid'), picks: tee('picks'), search: tee('search'), hero: tee('hero'),
       map: tee('map'), idea: tee('idea'), guide: tee('guide'), venue: tee('venue'),
-      eitieda: tee('eitieda'),
+      eitieda: tee('eitieda'), plan: tee('plan'),
     }
   }, [])
   const [showFilters, setShowFilters] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta'>('discover')
+  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta' | 'suunnitelma'>('discover')
   const [customDate, setCustomDate] = useState('')
   const [customDateEnd, setCustomDateEnd] = useState('')
   const [showEiTieda, setShowEiTieda] = useState(false)
@@ -653,6 +654,7 @@ export default function HomeClient({
     else if (tab === 'favorites') setMode('favorites')
     else if (tab === 'restaurants') setMode('restaurants')
     else if (tab === 'uutta') setMode('uutta')
+    else if (tab === 'suunnitelma') setMode('suunnitelma')
   }, [])
 
   // Kartta/Suosikit avataan yläpalkin pyöreistä napeista TAI discover-näkymän
@@ -1147,11 +1149,11 @@ export default function HomeClient({
           </button>
 
           <div className="flex gap-0.5 bg-white/5 rounded-xl p-1">
-            {(['discover', 'idea', 'restaurants', 'uutta'] as AppMode[]).map((m) => (
+            {(['discover', 'idea', 'restaurants', 'uutta', 'suunnitelma'] as AppMode[]).map((m) => (
               <button key={m} onClick={() => handleTab(m as typeof mobileTab)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
                 style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
-                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : `🆕 ${t('nav.uutta')}`}
+                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : m === 'uutta' ? `🆕 ${t('nav.uutta')}` : `🗓 ${t('nav.suunnitelma')}`}
               </button>
             ))}
           </div>
@@ -1901,15 +1903,19 @@ export default function HomeClient({
       {/* ══ UUTTA HELSINGISSÄ ══ */}
       {mode === 'uutta' && <UuttaView />}
 
+      {/* ══ SUUNNITELMA ══ */}
+      {mode === 'suunnitelma' && <SuunnitelmaView onAvaaTapahtuma={avaa.plan} />}
+
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
         style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-4 h-full">
+        <div className="grid grid-cols-5 h-full">
           {([
             { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
             { tab: 'idea' as const,          emoji: '🎲', labelKey: 'nav.idea'        },
             { tab: 'restaurants' as const,   emoji: '🍽', labelKey: 'nav.restaurants' },
             { tab: 'uutta' as const,         emoji: '🆕', labelKey: 'nav.uutta'       },
+            { tab: 'suunnitelma' as const,   emoji: '🗓', labelKey: 'nav.suunnitelma' },
           ] as const).map(({ tab, emoji, labelKey }) => {
             const isActive = mobileTab === tab
             return (

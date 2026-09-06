@@ -84,11 +84,16 @@ export async function GET(req: NextRequest) {
         {/* Blue accent line */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#6b76ff', display: 'flex' }} />
 
-        {/* Content */}
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', padding: '56px 64px' }}>
+        {/* Content — MITTAKAAVA: WhatsApp/iMessage kutistaa kortin ~320 px
+            leveäksi, eli kaikki näkyy ~27 % koossa. Alkuperäiset koot (otsikko
+            52 px, logo 44 px, alarivi 18 px) olivat pikkukortissa lukukelvottomia
+            ja kuva näytti tyhjältä mustalta laatalta (omistaja 6.9.2026).
+            Siksi typografia on mitoitettu ISOKSI: sen pitää toimia peukalon
+            kokoisena, ei työpöydällä. */}
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', padding: '48px 56px' }}>
 
           {/* Top: logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {/* TUNNUS: toimitettu kuvake-PNG sellaisenaan, ei piirrettyä
                 polkua. KUVAKE-OHJE.md VERSIO 3 kieltää vektoripolun erikseen —
                 se oli juuri se virhe joka teki tuotannon kuvakkeesta väärän
@@ -104,23 +109,23 @@ export async function GET(req: NextRequest) {
                 pyöristää sen laitteella itse. */}
             <img
               src={`${req.nextUrl.origin}/icon-192.png`}
-              width={44} height={44}
-              style={{ borderRadius: '10px' }}
+              width={68} height={68}
+              style={{ borderRadius: '15px' }}
               alt=""
             />
-            <span style={{ color: 'rgba(255,255,255,0.88)', fontSize: '19px', fontWeight: 800, letterSpacing: '-0.01em' }}>Mitä tänään</span>
-            <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: '15px' }}>·</span>
-            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '15px', fontWeight: 600, letterSpacing: '0.05em' }}>{brand}</span>
+            <span style={{ color: 'rgba(255,255,255,0.92)', fontSize: '30px', fontWeight: 800, letterSpacing: '-0.01em' }}>Mitä tänään</span>
+            <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: '24px' }}>·</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '23px', fontWeight: 600, letterSpacing: '0.05em' }}>{brand}</span>
           </div>
 
           {/* Middle: title */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, justifyContent: 'center' }}>
             {isFree && (
               <div style={{ display: 'flex' }}>
-                <span style={{ background: '#10b981', color: 'white', fontSize: '14px', fontWeight: 700, padding: '4px 14px', borderRadius: '999px', letterSpacing: '0.05em' }}>MAKSUTON</span>
+                <span style={{ background: '#10b981', color: 'white', fontSize: '22px', fontWeight: 700, padding: '6px 20px', borderRadius: '999px', letterSpacing: '0.05em' }}>MAKSUTON</span>
               </div>
             )}
-            <div style={{ fontSize: title.length > 60 ? '42px' : '52px', fontWeight: 800, color: 'white', lineHeight: 1.1, maxWidth: '900px' }}>
+            <div style={{ fontSize: title.length > 80 ? '52px' : title.length > 45 ? '64px' : '80px', fontWeight: 800, color: 'white', lineHeight: 1.08, letterSpacing: '-0.02em', maxWidth: '1060px' }}>
               {title}
             </div>
           </div>
@@ -128,18 +133,18 @@ export async function GET(req: NextRequest) {
           {/* Bottom: meta */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             {date && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b76ff', fontSize: '20px', fontWeight: 600 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8b94ff', fontSize: '31px', fontWeight: 700 }}>
                 <span>📅</span>
                 <span>{date}</span>
               </div>
             )}
             {location && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.5)', fontSize: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.6)', fontSize: '29px', fontWeight: 600 }}>
                 <span>📍</span>
                 <span>{location}</span>
               </div>
             )}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.3)', fontSize: '16px' }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.35)', fontSize: '24px' }}>
               <span>{SITE_HOST}</span>
             </div>
           </div>

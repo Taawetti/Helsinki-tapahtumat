@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart, Globe, Search } from 'lucide-react'
 import { Event } from '@/lib/types'
@@ -14,6 +14,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { VENUE_PAGES } from '@/lib/venue-pages'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
+import { tilaaSuunnitelma, onSuunnitelmassa, poistaViitteella, lisaaTapahtuma } from '@/lib/suunnitelma'
 
 interface Props {
   event: Event | null
@@ -75,6 +76,14 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   // pushState/popstate-lohko poistettu 6.9.2026, jottei kerrosten
   // päällekkäisyys tuota tuplapaluita.
   useTaaksepain(!!event, handleClose)
+  // "Lisää suunnitelmaan" -tila: peilaa suunnitelmavarastoa.
+  const suunnitelmassa = useSyncExternalStore(tilaaSuunnitelma, () => event?.id ? onSuunnitelmassa(event?.id) : false, () => false)
+  const suunnitelmaKlik = () => {
+    if (!event) return
+    if (suunnitelmassa) poistaViitteella(event?.id!)
+    else if (!lisaaTapahtuma(event)) alert(t('plan.full'))
+  }
+
 
   // Swipe-down-to-close: listen for touch on the outer panel.
   // Uses direct DOM listeners (passive:false) so preventDefault() works on iOS.
@@ -417,6 +426,14 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
               ei jää umpikujaksi (näillä tapahtumilla on mitatusti kuvaus vain
               31 %:lla ja kuva 11 %:lla, joten paneelissa ei ole muuta luettavaa). */}
           <div className="flex flex-col gap-2.5 pt-1">
+            {/* Lisää suunnitelmaan — Suunnitelma-välilehden keräilynappi. */}
+            <button onClick={suunnitelmaKlik}
+              className="w-full py-3 rounded-xl font-black text-[13.5px] transition-all active:scale-[.99]"
+              style={suunnitelmassa
+                ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.4)', color: '#a3abff' }
+                : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.85)' }}>
+              {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
+            </button>
             {(() => {
               const external = externalUrlFor(event)
               const href = external ?? venueSite ?? searchUrlFor(event)

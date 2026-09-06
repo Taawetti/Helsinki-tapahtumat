@@ -9,7 +9,7 @@
 // Rikas Google-profiili (tähtijakauma, ruuhka-ajat, ominaisuudet, ruokalista,
 // varauslinkki) haetaan täällä on-demand — lista pysyy kevyenä.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { X, MapPin, Clock, ExternalLink, Navigation, Globe, Phone, Map as MapIcon } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 import type { TranslationKey } from '@/lib/i18n'
@@ -19,6 +19,7 @@ import { pickAttributes } from '@/lib/google-attributes'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
+import { tilaaSuunnitelma, onSuunnitelmassa, poistaViitteella, lisaaRavintola } from '@/lib/suunnitelma'
 
 const PRICE_LABELS = ['', '€', '€€', '€€€', '€€€€']
 
@@ -110,6 +111,14 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
   // Selaimen paluuele: keskitetty paluupino (hooks/useTaaksepain) — vanha
   // per-paneeli pushState/popstate-lohko poistettu 6.9.2026.
   useTaaksepain(!!r, handleClose)
+  // "Lisää suunnitelmaan" -tila: peilaa suunnitelmavarastoa.
+  const suunnitelmassa = useSyncExternalStore(tilaaSuunnitelma, () => r?.id ? onSuunnitelmassa(r?.id) : false, () => false)
+  const suunnitelmaKlik = () => {
+    if (!r) return
+    if (suunnitelmassa) poistaViitteella(r?.id!)
+    else if (!lisaaRavintola(r, tyyli)) alert(t('plan.full'))
+  }
+
 
   // Alasvetosulku — sama logiikka kuin EventDetailPanelissa.
   useEffect(() => {
@@ -443,6 +452,14 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
               virtaan. Varaaminen = Nettisivu (ravintolan oma varaus) tai
               puhelinnumero metakortissa — suomalainen tapa. */}
           <div className="flex flex-col gap-2.5 pt-1">
+            {/* Lisää suunnitelmaan — Suunnitelma-välilehden keräilynappi. */}
+            <button onClick={suunnitelmaKlik}
+              className="w-full py-3 rounded-xl font-black text-[13.5px] transition-all active:scale-[.99]"
+              style={suunnitelmassa
+                ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.4)', color: '#a3abff' }
+                : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.85)' }}>
+              {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
+            </button>
             {www && (
               <a href={www} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"

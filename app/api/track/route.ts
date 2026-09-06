@@ -46,6 +46,7 @@ const SALLITUT = new Set([
   'map_open',        // kartta avattiin
   'install',         // sovellus asennettiin
   'newsletter',      // uutiskirje tilattiin
+  'share',           // suunnitelma tms. jaettiin
 ])
 
 const MAX_ERA = 20

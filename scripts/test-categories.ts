@@ -86,6 +86,7 @@ import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, forma
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor, onMaksunkeruuUrl } from '../lib/event-links'
+import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, type Suunnitelma } from '../lib/suunnitelma'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
 import venueSiteFile from '../data/venue-sites.json'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
@@ -3580,6 +3581,64 @@ for (const c of kwChecks) {
   for (const c of mCases) {
     if (c.ok) pass++
     else failures.push(`✗ maksunkeruu: ${c.name}`)
+  }
+}
+
+// ── SUUNNITELMAN AIKASOVITIN (lib/suunnitelma): käyttäjän järjestys on
+// laki, ankkurit kiinteitä, aukiolot ja kävelyajat varoittavat.
+{
+  const NYT = new Date('2026-09-06T10:00:00+03:00')
+  const pohja: Suunnitelma = {
+    otsikko: 'Testi-ilta',
+    paiva: '2026-09-12', // tuleva lauantai — "tänään"-logiikka ei rajoita
+    alkuKlo: '17:00',
+    askeleet: [
+      { id: 'a1', tyyppi: 'ravintola', nimi: 'Ruokapaikka', rooli: 'ruoka',
+        lat: 60.168, lon: 24.94, aukiolot: 'Mo-Su 11:00-22:00' },
+      { id: 'a2', tyyppi: 'tapahtuma', nimi: 'Keikka', rooli: 'ohjelma',
+        lat: 60.171, lon: 24.95, ankkuriISO: '2026-09-12T19:00:00+03:00' },
+      { id: 'a3', tyyppi: 'ravintola', nimi: 'Baari', rooli: 'drinkit',
+        lat: 60.172, lon: 24.951, aukiolot: 'Mo-Su 16:00-02:00' },
+    ],
+  }
+  const sov = sovitaAjat(pohja, NYT)
+  const kiireinen = sovitaAjat({ ...pohja, alkuKlo: '18:45' }, NYT)
+  const kiinni = sovitaAjat({
+    ...pohja,
+    askeleet: [{ id: 'k1', tyyppi: 'ravintola', nimi: 'Lounasravintola', rooli: 'ruoka',
+      aukiolot: 'Mo-Fr 11:00-14:00' }],
+  }, NYT)
+  const sCases: { name: string; ok: boolean }[] = [
+    { name: 'klo-muunnokset: 18:30 ↔ 18.5', ok: kloTunneiksi('18:30') === 18.5 && tunnitKloksi(18.5) === '18:30' },
+    { name: 'järjestys säilyy (ei uudelleenjärjestystä)', ok: sov.map(x => x.askel.id).join() === 'a1,a2,a3' },
+    { name: 'ensimmäinen askel alkaa valitusta ajasta', ok: sov[0].klo === '17:00' },
+    { name: 'ankkuri pysyy tapahtuman oikeassa ajassa', ok: sov[1].klo === '19:00' },
+    { name: 'väljällä aikataululla ei varoituksia', ok: sov.every(x => !x.varoitus) },
+    { name: 'baari ankkurin jälkeen (ohjelma 2 h + siirtymä)', ok: (kloTunneiksi(sov[2].klo) ?? 0) >= 21 },
+    { name: 'liian myöhäinen aloitus → ankkurille ei-ehdi', ok: kiireinen[1].varoitus === 'ei-ehdi' },
+    { name: 'lauantaina kiinni oleva lounaspaikka → kiinni-varoitus', ok: kiinni[0].varoitus === 'kiinni' },
+  ]
+  for (const c of sCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ suunnitelma: ${c.name}`)
+  }
+
+  // Reittiohjelinkki: järjestys säilyy, koordinaatittomat ohitetaan,
+  // yhdellä pisteellä lähtö jää pois (Maps käyttää omaa sijaintia).
+  const reitti = reittiohjeUrl(pohja.askeleet)
+  const yksi = reittiohjeUrl([pohja.askeleet[0]])
+  const rCases: { name: string; ok: boolean }[] = [
+    { name: 'reitti: origin=eka, destination=vika, välipiste keskellä',
+      ok: !!reitti && reitti.includes('origin=60.168%2C24.94') && reitti.includes('destination=60.172%2C24.951')
+        && reitti.includes('waypoints=60.171%2C24.95') && reitti.includes('travelmode=walking') },
+    { name: 'reitti: yksi piste → vain destination', ok: !!yksi && yksi.includes('destination=') && !yksi.includes('origin=') },
+    { name: 'reitti: ilman koordinaatteja null', ok: reittiohjeUrl([{ }]) === null },
+    { name: 'reitti: koordinaatiton askel ohitetaan',
+      ok: reittiohjeUrl([pohja.askeleet[0], { }, pohja.askeleet[2]])?.includes('destination=60.172%2C24.951') === true },
+  ]
+  for (const c of rCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ suunnitelma: ${c.name}`)
   }
 }
 
