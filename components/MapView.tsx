@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Event, Restaurant, Activity, type ActivityCategory } from '@/lib/types'
 import { getBasemap } from '@/lib/basemap'
 import { isOutsideTargetAudience, onPerheTapahtuma, onSenioriTapahtuma } from '@/lib/audience'
+import { getEventVibes } from '@/lib/event-classify'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
@@ -90,16 +91,19 @@ function fmtDist(km: number): string {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
+// Väri + emoji pinnin PÄÄRYHMÄSTÄ (getEventGroup — keskitetty luokitin).
+// Ilmainen värittyy vihreäksi vain jos mikään sisältöryhmä ei osu ensin.
 function eventColor(event: Event): { color: string; emoji: string } {
-  const text = [event.title, event.shortDescription, ...event.categories].join(' ').toLowerCase()
-  if (event.isFree) return { color: '#10b981', emoji: '🎁' }
-  if (/keikka|konsertti|live|bändi|musiikki/.test(text)) return { color: '#a855f7', emoji: '🎸' }
-  if (/yökerho|nightclub|bileet|disko|rave|klubi|dj/.test(text)) return { color: '#ec4899', emoji: '🌙' }
-  if (/baari|pub|bar|olut|beer|viini/.test(text)) return { color: '#f59e0b', emoji: '🍺' }
-  if (/teatteri|tanssi|näytelmä|ooppera|baletti/.test(text)) return { color: '#ef4444', emoji: '🎭' }
-  if (/taide|galleria|näyttely|museo/.test(text)) return { color: '#06b6d4', emoji: '🎨' }
-  if (/urheilu|jalkapallo|jääkiekko|ottelu/.test(text)) return { color: '#3b82f6', emoji: '⚽' }
-  return { color: '#0072C6', emoji: '📍' }
+  switch (getEventGroup(event)) {
+    case 'keikka':   return { color: '#a855f7', emoji: '🎸' }
+    case 'yoelama':  return { color: '#ec4899', emoji: '🌙' }
+    case 'baari':    return { color: '#f59e0b', emoji: '🍺' }
+    case 'teatteri': return { color: '#ef4444', emoji: '🎭' }
+    case 'taide':    return { color: '#06b6d4', emoji: '🎨' }
+    case 'urheilu':  return { color: '#3b82f6', emoji: '⚽' }
+    case 'ilmainen': return { color: '#10b981', emoji: '🎁' }
+    default:         return { color: '#0072C6', emoji: '📍' }
+  }
 }
 
 // Ravintolapinnien pohjaväri = design-tokenin sininen #5f96ff; tyyppi näkyy emojista
@@ -329,16 +333,26 @@ function filterEventByDate(event: Event, filter: DateFilterKey, customDate: stri
   }
 }
 
+// Pinnin VÄRIN pääryhmä — keskitetystä luokittimesta (sama kuin listan
+// kategoriat), tärkeysjärjestys määrää värin kun kategorioita on monta.
+// SUODATUS EI käytä tätä: se tarkistaa koko vibes-joukon (alla), koska
+// aiempi oma regex-kaskadi antoi vain yhden ryhmän ja esim. "Baari"-
+// suodatin palautti aina 0 — baaritapahtumat luokittuivat ilmainen/keikka-
+// ryhmiin ennen kuin baari-sääntöön päästiin (omistajan havainto 6.9.2026).
 function getEventGroup(event: Event): string {
-  const text = [event.title, event.shortDescription, ...event.categories].join(' ').toLowerCase()
+  const vibes = getEventVibes(event)
+  for (const g of ['keikka', 'yoelama', 'baari', 'teatteri', 'taide', 'urheilu'] as const) {
+    if (vibes.includes(g)) return g
+  }
   if (event.isFree) return 'ilmainen'
-  if (/keikka|konsertti|live|bändi|musiikki/.test(text)) return 'keikka'
-  if (/yökerho|nightclub|bileet|disko|rave|klubi|dj/.test(text)) return 'yoelama'
-  if (/baari|pub|bar|olut|beer|viini/.test(text)) return 'baari'
-  if (/teatteri|tanssi|näytelmä|ooppera|baletti/.test(text)) return 'teatteri'
-  if (/taide|galleria|näyttely|museo/.test(text)) return 'taide'
-  if (/urheilu|jalkapallo|jääkiekko|ottelu/.test(text)) return 'urheilu'
   return 'muu'
+}
+
+/** Osuuko tapahtuma kartan kategoriasuodattimeen — INKLUSIIVINEN kuten
+ *  listan kategoriat: tapahtuma voi kuulua moneen ryhmään. */
+function osuuRyhmaan(event: Event, ryhma: string): boolean {
+  if (ryhma === 'ilmainen') return !!event.isFree
+  return getEventVibes(event).includes(ryhma)
 }
 
 // ── Legend data ───────────────────────────────────────────
@@ -613,7 +627,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         if (!onPerheTapahtuma(event)) return
       } else {
         if (isOutsideTargetAudience(event)) return
-        if (eventGroup && getEventGroup(event) !== eventGroup) return
+        if (eventGroup && !osuuRyhmaan(event, eventGroup)) return
       }
       if (!filterEventByDate(event, dateFilter, customDate)) return
       const { color, emoji } = eventColor(event)
@@ -735,7 +749,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     if (onSenioriTapahtuma(e)) return false
     if (eventGroup === 'perhe') return onPerheTapahtuma(e)
     if (isOutsideTargetAudience(e)) return false
-    return !eventGroup || getEventGroup(e) === eventGroup
+    return !eventGroup || osuuRyhmaan(e, eventGroup)
   }).length
   const restsOnMap      = restaurants.filter(r => {
     if (!r.lat) return false

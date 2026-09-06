@@ -113,15 +113,41 @@ export async function GET(req: NextRequest) {
   })
   if (keyword) params.set('keyword', keyword)
 
+  // Veikkaus Arenan venueId-täydennyshaku geohaun RINNALLE. TM:ssä on
+  // kolme "Veikkaus Arena" -tietuetta, joista kahdella geo on 0,0 (toisessa
+  // kaupunkikin "Helinski") — latlong+radius ei koskaan osu niihin, ja
+  // niihin kiinnitetty tapahtuma katoaa hiljaa. Todennäköisesti juuri näin
+  // "Yle 100 areenalla" (la 5.9.2026, kaupungin suurin halli, myynti
+  // TM:ssä) jäi sovelluksesta kokonaan pois (omistaja oli itse paikalla
+  // eikä löytänyt sitä — havainto 6.9.2026). venueId-lista kattaa kaikki
+  // kolme tietuetta; pilkkuerottelu + päiväikkuna todennettu TM:n APIa
+  // vasten. Tulokset yhdistetään id:llä ennen dedupia.
+  const VEIKKAUS_ARENA_IDS = 'Z198xZ8KZAe1,Z7r9jZak5G,Z698xZ8KZadkl'
+  const venueParams = new URLSearchParams({
+    apikey: TM_KEY,
+    venueId: VEIKKAUS_ARENA_IDS,
+    startDateTime: `${start}T00:00:00Z`,
+    endDateTime: `${end}T23:59:59Z`,
+    size: '200',
+    sort: 'date,asc',
+  })
+
   try {
-    const res = await fetch(
-      `https://app.ticketmaster.com/discovery/v2/events.json?${params}`,
-      { next: { revalidate: 600, tags: ['events'] } }
-    )
+    const [res, venueRes] = await Promise.all([
+      fetch(`https://app.ticketmaster.com/discovery/v2/events.json?${params}`,
+        { next: { revalidate: 600, tags: ['events'] } }),
+      fetch(`https://app.ticketmaster.com/discovery/v2/events.json?${venueParams}`,
+        { next: { revalidate: 600, tags: ['events'] } }),
+    ])
     if (!res.ok) return NextResponse.json({ events: [], hasMore: false, total: 0 })
 
     const data = await res.json()
-    const rawKaikki: TMEvent[] = data._embedded?.events ?? []
+    // Venue-haun kaatuminen ei kaada geohakua — täydennys on parasta-yritystä.
+    const venueData = venueRes.ok ? await venueRes.json().catch(() => null) : null
+    const geoRaw: TMEvent[] = data._embedded?.events ?? []
+    const venueRaw: TMEvent[] = venueData?._embedded?.events ?? []
+    const idt = new Set(geoRaw.map((e) => e.id))
+    const rawKaikki: TMEvent[] = [...geoRaw, ...venueRaw.filter((e) => !idt.has(e.id))]
     // Perutut/lykätyt pois — Discovery API palauttaa ne oletuksena mukana
     // (status.code: cancelled/postponed). rescheduled säilyy: dates.start on
     // jo uusi ajankohta. Sama sääntö kuin LinkedEvents-lähteissä.

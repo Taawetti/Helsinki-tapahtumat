@@ -1,0 +1,392 @@
+{
+ "vanha helsingintie 19": {
+  "lat": 60.2492008,
+  "lon": 25.0097676,
+  "name": "Bistro Palo"
+ },
+ "rullakkokatu 3": {
+  "lat": 60.219645,
+  "lon": 24.927114,
+  "name": "Ravintola Skiffer"
+ },
+ "traverssikuja 3": {
+  "lat": 60.1941217,
+  "lon": 24.9453028,
+  "name": "Super Bario"
+ },
+ "aleksis kiven katu 40": {
+  "lat": 60.1901277,
+  "lon": 24.9499651,
+  "name": "Pikku Eden"
+ },
+ "arkadiankatu 23": {
+  "lat": 60.1715193,
+  "lon": 24.9249466,
+  "name": "Third Place Pasta Bar"
+ },
+ "sallinkatu 3": {
+  "lat": 60.185622,
+  "lon": 24.9223301,
+  "name": "The Dubliner"
+ },
+ "albertinkatu 36": {
+  "lat": 60.1647183,
+  "lon": 24.9324784,
+  "name": "Lazy Fox, torstai"
+ },
+ "linnankoskenkatu 12": {
+  "lat": 60.1850816,
+  "lon": 24.9172295,
+  "name": "Janoinen Lohi"
+ },
+ "mäkelänkatu 15": {
+  "lat": 60.1926831,
+  "lon": 24.9612232,
+  "name": "Bar Femton, tiistai"
+ },
+ "malminkatu 22": {
+  "lat": 60.1670563,
+  "lon": 24.9294159,
+  "name": "Wanha Kettu"
+ },
+ "koskelantie 9": {
+  "lat": 60.2087611,
+  "lon": 24.9476386,
+  "name": "Old Sophie, tiistai"
+ },
+ "eerikinkatu 43": {
+  "lat": 60.1639791,
+  "lon": 24.9248842,
+  "name": "Ravintola Kannas"
+ },
+ "konalantie 2": {
+  "lat": 60.2252331,
+  "lon": 24.8542504,
+  "name": "Karkelon tähti"
+ },
+ "pohjolankatu 2": {
+  "lat": 60.2139896,
+  "lon": 24.9439086,
+  "name": "Päätön kana, la"
+ },
+ "mannerheimintie 64": {
+  "lat": 60.1825523,
+  "lon": 24.9255278,
+  "name": "Bar Fellows"
+ },
+ "eerikinkatu 14": {
+  "lat": 60.1668202,
+  "lon": 24.9345968,
+  "name": "Olutravintola Leijuva Lahna"
+ },
+ "hämeentie 10": {
+  "lat": 60.1811751,
+  "lon": 24.9530572,
+  "name": "Street Bar Kallio (torstai)"
+ },
+ "kontulankaari 1 b": {
+  "lat": 60.236037,
+  "lon": 25.0823785,
+  "name": "Kontulan Himabaari"
+ },
+ "kankaretie 11a": {
+  "lat": 60.2572873,
+  "lon": 25.078695,
+  "name": "Pääty pubi"
+ },
+ "jakomäenkuja 4": {
+  "lat": 60.261145,
+  "lon": 25.0760622,
+  "name": "Pohjanpoika (Jakomäki)"
+ },
+ "haapaniemenkatu 4": {
+  "lat": 60.1814389,
+  "lon": 24.9578151,
+  "name": "Sir Oliver"
+ },
+ "pajamäentie 14": {
+  "lat": 60.2181635,
+  "lon": 24.8546194,
+  "name": "Wanha Paja"
+ },
+ "erottaja 15": {
+  "lat": 60.1658598,
+  "lon": 24.9441676,
+  "name": "Rymy-Eetu"
+ },
+ "itämerenkatu 2 b": {
+  "lat": 60.1633743,
+  "lon": 24.9134251,
+  "name": "Danielin kahvila"
+ },
+ "capellanranta 4": {
+  "lat": 60.1885734,
+  "lon": 24.9838451,
+  "name": "Olutravintola Jano Verkkosaari"
+ },
+ "lönnrotinkatu 25": {
+  "lat": 60.1647048,
+  "lon": 24.9334065,
+  "name": "Rock Club Boothill"
+ },
+ "hiihtomäentie 36": {
+  "lat": 60.2037414,
+  "lon": 25.0326712,
+  "name": "Ski Hill Street Bar (sunnuntai)"
+ },
+ "helsinginkatu 1": {
+  "lat": 60.1865586,
+  "lon": 24.9590827,
+  "name": "Lepakkomies"
+ },
+ "malmin kauppatie 18": {
+  "lat": 60.251826,
+  "lon": 25.010735,
+  "name": "Malmin Mestari, maanantai"
+ },
+ "hämeentie 35": {
+  "lat": 60.1883984,
+  "lon": 24.9637954,
+  "name": "All Star Sports Bar  Grill, pe"
+ },
+ "viipurinkatu 18": {
+  "lat": 60.1910316,
+  "lon": 24.9418945,
+  "name": "MoDe"
+ },
+ "porthaninkatu 9": {
+  "lat": 60.1827038,
+  "lon": 24.9525708,
+  "name": "Majava Baari Helsinki"
+ },
+ "kaarlenkatu 10": {
+  "lat": 60.1859291,
+  "lon": 24.9512266,
+  "name": "Virkavapaa Baari"
+ },
+ "miina sillanpään katu 10": {
+  "lat": 60.1795401,
+  "lon": 24.9549637,
+  "name": "Yamy Bar"
+ },
+ "vaasankatu 7": {
+  "lat": 60.1884269,
+  "lon": 24.9597168,
+  "name": "Kalaravintola Hilpeä Hauki"
+ },
+ "intiankatu 18": {
+  "lat": 60.2073068,
+  "lon": 24.9686915,
+  "name": "Bar Oljenkorsi"
+ },
+ "helsinginkatu 11": {
+  "lat": 60.1874919,
+  "lon": 24.9566065,
+  "name": "Kallion pääkonttori"
+ },
+ "hiihtomäentie 14": {
+  "lat": 60.1950272,
+  "lon": 25.0298796,
+  "name": "Treffipub Tietovisa"
+ },
+ "mechelininkatu 25": {
+  "lat": 60.1744831,
+  "lon": 24.9192425,
+  "name": "Laiska Karhu, torstai"
+ },
+ "torivoudintie 1": {
+  "lat": 60.2299698,
+  "lon": 24.9681784,
+  "name": "Ogelis Bar"
+ },
+ "castréninkatu 3": {
+  "lat": 60.1840577,
+  "lon": 24.9454935,
+  "name": "Toveri"
+ },
+ "rahakamarinportti 3": {
+  "lat": 60.2014999,
+  "lon": 24.9215402,
+  "name": "Mestarikilta"
+ },
+ "välimerenkatu 20": {
+  "lat": 60.1581977,
+  "lon": 24.9138916,
+  "name": "Barley  Bait Jätkäsaari"
+ },
+ "hietaniemenkatu 7": {
+  "lat": 60.1701371,
+  "lon": 24.9230601,
+  "name": "Pub Pete"
+ },
+ "vilhonkatu 4": {
+  "lat": 60.1718742,
+  "lon": 24.9473273,
+  "name": "Oluthuone Kaisla, sunnuntai"
+ },
+ "aleksis kivenkatu 48": {
+  "lat": 60.1910877,
+  "lon": 24.9477535,
+  "name": "Alppilan Kultainen Kulaus"
+ },
+ "pääskylänrinne 3": {
+  "lat": 60.1876902,
+  "lon": 24.9657013,
+  "name": "Ravintola Sörkan Ruusu"
+ },
+ "sitratori 3": {
+  "lat": 60.2395634,
+  "lon": 24.876305,
+  "name": "Kannel-Krouvi"
+ },
+ "turunlinnantie 8": {
+  "lat": 60.2114304,
+  "lon": 25.0810442,
+  "name": "Ravintola Black Bird"
+ },
+ "vallilantie 19": {
+  "lat": 60.1921078,
+  "lon": 24.959055,
+  "name": "Pikku-Vallila, keskiviikko"
+ },
+ "helsinginkatu 15": {
+  "lat": 60.1873715,
+  "lon": 24.95496,
+  "name": "Tenkka"
+ },
+ "porthaninkatu 4": {
+  "lat": 60.1819765,
+  "lon": 24.9508101,
+  "name": "Onda, torstai"
+ },
+ "hämeentie 81-83": {
+  "lat": 60.1957781,
+  "lon": 24.9632157,
+  "name": "Ravintola Hermannin Kukko"
+ },
+ "keskuskatu 4": {
+  "lat": 60.1692962,
+  "lon": 24.9426021,
+  "name": "Gastropub Stone`s"
+ },
+ "snellmaninkatu 17": {
+  "lat": 60.1723868,
+  "lon": 24.9535144,
+  "name": "Marian Helmessä Tietokirja.fi-visa"
+ },
+ "kastelholmantie 2": {
+  "lat": 60.2135825,
+  "lon": 25.080715,
+  "name": "Puotinkrouvin tietovisa"
+ },
+ "kalevankatu 3": {
+  "lat": 60.1678641,
+  "lon": 24.9392464,
+  "name": "Ølhus København"
+ },
+ "aurinkoranta 8": {
+  "lat": 60.2014905,
+  "lon": 25.1496051,
+  "name": "Olutravintola Solmu"
+ },
+ "kylänvanhimmantie 29": {
+  "lat": 60.2282865,
+  "lon": 24.9635821,
+  "name": "Trivia"
+ },
+ "osmontie 5": {
+  "lat": 60.2106492,
+  "lon": 24.950218,
+  "name": "Käpygrilli"
+ },
+ "pallaksentie 4": {
+  "lat": 60.238645,
+  "lon": 25.110219,
+  "name": "Ravintola Il Treno"
+ },
+ "mannerheimintie 98": {
+  "lat": 60.1882573,
+  "lon": 24.9178482,
+  "name": "Sportbar Töölö"
+ },
+ "gyldenintie 6": {
+  "lat": 60.1602854,
+  "lon": 24.877163,
+  "name": "Casa Mare"
+ },
+ "viipurinkatu 14": {
+  "lat": 60.1909555,
+  "lon": 24.94281,
+  "name": "Pub Paussi, sunnuntai"
+ },
+ "kiviparintie 2": {
+  "lat": 60.2241485,
+  "lon": 25.0731173,
+  "name": "Gastropub Jyvänen Myllypuro"
+ },
+ "mannerheimintie 53": {
+  "lat": 60.1900168,
+  "lon": 24.9173765,
+  "name": "Ravintola Mexi"
+ },
+ "iso-roobertinkatu 13": {
+  "lat": 60.163333,
+  "lon": 24.9414103,
+  "name": "Stage Rock Bar"
+ },
+ "kalevankatu 51": {
+  "lat": 60.1642276,
+  "lon": 24.9281894,
+  "name": "Kalevan Krouvin tietovisa"
+ },
+ "pursimiehenkatu 16": {
+  "lat": 60.159192,
+  "lon": 24.9374752,
+  "name": "Kukko-visa"
+ },
+ "mannerheimintie 58": {
+  "lat": 60.1822688,
+  "lon": 24.9266693,
+  "name": "Pub 99"
+ },
+ "kustaankatu 4 a": {
+  "lat": 60.1888357,
+  "lon": 24.9558316,
+  "name": "Musavisa"
+ },
+ "pursimiehenkatu 27": {
+  "lat": 60.1588937,
+  "lon": 24.9353347,
+  "name": "Huvipursi"
+ },
+ "keinulaudankuja 4": {
+  "lat": 60.2364584,
+  "lon": 25.0849721,
+  "name": "Pub Kontula"
+ },
+ "gyldenintie 2": {
+  "lat": 60.1585194,
+  "lon": 24.8763861,
+  "name": "Bistro Piratti"
+ },
+ "olavinkatu 3": {
+  "lat": 60.1703885,
+  "lon": 24.9337228,
+  "name": "Ravintola Väentupa"
+ },
+ "konalantie 6-8": {
+  "lat": 60.226495,
+  "lon": 24.8534237,
+  "name": "Pub Pikku Henkan YleisVisa"
+ },
+ "pakilantie 11": {
+  "lat": 60.2404737,
+  "lon": 24.9276778,
+  "name": "Barts"
+ },
+ "maistraatinportti 3": {
+  "lat": 60.1987513,
+  "lon": 24.9255029,
+  "name": "Bar Böle"
+ }
+}

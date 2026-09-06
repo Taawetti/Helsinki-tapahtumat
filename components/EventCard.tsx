@@ -3,6 +3,7 @@
 import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { formatDate, formatTime, truncate, isTonight, fmtDistance, tuntematonAika } from '@/lib/utils'
+import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { recordClick } from '@/lib/preferences'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -121,9 +122,10 @@ export default function EventCard({ event, onClick, distance, aikaLisa }: Props)
           <Heart size={15} fill={fav ? 'currentColor' : 'none'} />
         </div>
 
-        {/* Date chip bottom */}
+        {/* Date chip bottom — tänään "Tänään" eikä "su 6. syyskuuta"
+            (omistaja 6.9.2026: linjassa muun sovelluksen kanssa) */}
         <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">
-          {formatDate(event.startTime, lang)}
+          {helsinkiDateOf(event.startTime) === helsinkiToday() ? t('date.today') : formatDate(event.startTime, lang)}
         </div>
       </div>
 

@@ -140,6 +140,10 @@ export interface PlaceEnrichment {
   image: string | null
   rating: number | null
   www: string | null
+  /** Koordinaatit karttapinnejä varten — pubivisa- ym. tapahtumilta ne
+   *  puuttuvat lähteestä, mutta ravintoladata tuntee samat baarit. */
+  lat: number | null
+  lon: number | null
 }
 
 export const normName = (s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ')
@@ -159,6 +163,8 @@ interface RestaurantLite {
   image?: string | null
   googleRating?: number | null
   www?: string | null
+  lat?: number | null
+  lon?: number | null
 }
 
 /** Rakentaa nimi → rikastus -kartan ravintoladatasta. Palauttaa hakufunktion,
@@ -170,17 +176,28 @@ export async function buildPlaceEnricher(origin: string): Promise<(name: string,
     if (r.ok) rows = ((await r.json()) as { restaurants?: RestaurantLite[] }).restaurants ?? []
   } catch { /* rikastus on lisä, ei ehto — opas toimii ilmankin */ }
 
+  // Kanoninen nimimuoto MOLEMMIN puolin: lähteet kirjoittavat saman baarin
+  // eri asuissa ("Pääty pubi" vs "Pääty Pub", "Ravintola Black Bird" vs
+  // "Black Bird", "Majava Baari Helsinki" vs "Majava Baari", sulkulisät).
+  // Mitattu 6.9.2026: pelkkä normName osui 1/14 pubivisabaariin, kanoninen
+  // muoto moninkertaistaa osumat. Törmäykset (kaksi eri paikkaa samalla
+  // kanonisella nimellä) ratkeavat alla osoitevaatimuksella.
+  const kanoninen = (s: string) => normName(s)
+    .replace(/\s*\(.*?\)\s*$/, '')
+    .replace(/^ravintola\s+/, '')
+    .replace(/\s+helsinki$/, '')
+    .replace(/pubi$/, 'pub')
   const byName = new Map<string, RestaurantLite[]>()
   for (const row of rows) {
     if (!row?.name) continue
-    const k = normName(row.name)
+    const k = kanoninen(row.name)
     const list = byName.get(k)
     if (list) list.push(row)
     else byName.set(k, [row])
   }
 
   return (name: string, address?: string | null): PlaceEnrichment | null => {
-    const candidates = byName.get(normName(name))
+    const candidates = byName.get(kanoninen(name))
     if (!candidates || candidates.length === 0) return null
     let hit: RestaurantLite | undefined
     if (candidates.length === 1) {
@@ -196,6 +213,8 @@ export async function buildPlaceEnricher(origin: string): Promise<(name: string,
       image: hit.image ?? null,
       rating: typeof hit.googleRating === 'number' ? hit.googleRating : null,
       www: hit.www ?? null,
+      lat: typeof hit.lat === 'number' ? hit.lat : null,
+      lon: typeof hit.lon === 'number' ? hit.lon : null,
     }
   }
 }

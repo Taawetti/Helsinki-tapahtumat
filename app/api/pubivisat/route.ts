@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
 import { PubVisa, fetchVisas, PUBIVISAT_SOURCE_URL } from '@/lib/pubivisat'
-import { helsinkiISO } from '@/lib/helsinki-time'
+import { helsinkiISO, helsinkiToday } from '@/lib/helsinki-time'
+import { buildPlaceEnricher } from '@/lib/guide-data'
+import koordData from '@/data/pubivisa-koordinaatit.json'
 
-function generateOccurrences(visa: PubVisa, startDate: Date, endDate: Date, index: number): Event[] {
+// Geokoodatut varakoordinaatit osoitteen katuosalla avainnettuna —
+// generoitu scripts/geokoodaa-pubivisat.ts:llä (Nominatim, pk-seuturajaus).
+// Ravintoladatan nimi+osoite-match on ensisijainen (tuoreempi), tämä kattaa
+// baarit joita ravintoladatassa ei ole (mitattu 6.9.2026: 4/14 → 13/14).
+const KOORDIT = koordData as Record<string, { lat: number; lon: number; name: string }>
+function katuAvain(osoite: string): string {
+  return osoite.toLowerCase().split(',')[0].trim().replace(/\s+/g, ' ')
+}
+
+function generateOccurrences(visa: PubVisa, startDate: Date, endDate: Date, index: number, koord: { lat: number; lon: number } | null): Event[] {
   const events: Event[] = []
   const cursor = new Date(startDate)
   cursor.setHours(0, 0, 0, 0)
@@ -33,6 +44,11 @@ function generateOccurrences(visa: PubVisa, startDate: Date, endDate: Date, inde
           name: visa.name,
           streetAddress,
           city: 'Helsinki',
+          // Koordinaatit ravintoladatasta (nimi+osoite-match): ilman niitä
+          // pubivisat eivät näy kartalla lainkaan — kartan Baari-suodatin
+          // näytti tyhjää vaikka listalla oli 15 baaritapahtumaa (omistajan
+          // havainto 6.9.2026).
+          ...(koord ? { lat: koord.lat, lon: koord.lon } : {}),
         },
         image: null,
         isFree: true,
@@ -50,18 +66,32 @@ function generateOccurrences(visa: PubVisa, startDate: Date, endDate: Date, inde
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
-  const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
+  // Oletus HELSINKI-päivä: UTC-päivä on yöllä 00–03 eilinen.
+  const start = searchParams.get('start') || helsinkiToday()
   const end = searchParams.get('end') || start
 
   try {
-    const visas = await fetchVisas()
+    const [visas, enrich] = await Promise.all([
+      fetchVisas(),
+      // Koordinaatti-/kuvarikastus ravintoladatasta. Rikastajan sisäinen
+      // try/catch takaa: jos /api/restaurants ei vastaa, visat palautuvat
+      // silti (ilman koordinaatteja) eikä lähde kaadu.
+      buildPlaceEnricher(req.nextUrl.origin),
+    ])
     const startDate = new Date(start)
     const endDate = new Date(end)
     endDate.setHours(23, 59, 59, 999)
 
-    const events: Event[] = visas.flatMap((v, i) =>
-      generateOccurrences(v, startDate, endDate, i)
-    )
+    const events: Event[] = visas.flatMap((v, i) => {
+      const e = enrich(v.name, v.address)
+      const vara = KOORDIT[katuAvain(v.address)]
+      const koord = e && e.lat != null && e.lon != null
+        ? { lat: e.lat, lon: e.lon }
+        : vara
+        ? { lat: vara.lat, lon: vara.lon }
+        : null
+      return generateOccurrences(v, startDate, endDate, i, koord)
+    })
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
     return NextResponse.json({ events, total: events.length, source: 'pubivisat' })
