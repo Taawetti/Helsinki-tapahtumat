@@ -1904,7 +1904,7 @@ export default function HomeClient({
       {mode === 'uutta' && <UuttaView />}
 
       {/* ══ SUUNNITELMA ══ */}
-      {mode === 'suunnitelma' && <SuunnitelmaView onAvaaTapahtuma={avaa.plan} />}
+      {mode === 'suunnitelma' && <SuunnitelmaView onAvaaTapahtuma={avaa.plan} onSiirryOsioon={handleTab} />}
 
       {/* ── MOBILE NAV ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"

@@ -262,7 +262,7 @@ export function JaettuKartta({ askeleet }: { askeleet: JaettuAskelDTO[] }) {
   return (
     <div className="space-y-2">
       <div className="rounded-2xl overflow-hidden border border-white/10" style={{ height: 260 }}>
-        <PlannerMap items={itemit} />
+        <PlannerMap items={itemit} korkeus={260} />
       </div>
       {reittiUrl && (
         <a href={reittiUrl} target="_blank" rel="noopener noreferrer"

@@ -185,3 +185,14 @@ body {
 html, body {
   touch-action: manipulation;
 }
+
+/* Suunnitelman tyhjän tilan haamuesimerkki: askeleet nousevat porrastetusti.
+   Kunnioittaa prefers-reduced-motionia. */
+@keyframes askelEsiin {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-askel-esiin { animation: askelEsiin 0.5s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-askel-esiin { animation: none; }
+}

@@ -41,7 +41,11 @@ const VAROITUS_AVAIN: Record<VaroitusSyy, string> = {
   mennyt: 'plan.warn_mennyt',
 }
 
-export default function SuunnitelmaView({ onAvaaTapahtuma }: { onAvaaTapahtuma?: (e: Event) => void }) {
+export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
+  onAvaaTapahtuma?: (e: Event) => void
+  /** Tyhjän tilan selauspolut: vie käyttäjän Tapahtumat- tai Ravintolat-osioon. */
+  onSiirryOsioon?: (osio: 'discover' | 'restaurants') => void
+}) {
   const { t } = useLanguage()
   const suunnitelma = useSyncExternalStore(tilaaSuunnitelma, lueSuunnitelma, lueSuunnitelmaServer)
   const [jakoTila, setJakoTila] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
@@ -165,11 +169,7 @@ export default function SuunnitelmaView({ onAvaaTapahtuma }: { onAvaaTapahtuma?:
       </h1>
 
       {sovitetut.length === 0 ? (
-        <div className="flex flex-col items-center py-20 text-center gap-3">
-          <span className="text-5xl">🗓</span>
-          <p className="text-white font-black text-lg">{t('plan.empty_title')}</p>
-          <p className="text-white/40 text-sm max-w-sm leading-relaxed">{t('plan.empty_sub')}</p>
-        </div>
+        <TyhjaTila onSiirry={onSiirryOsioon} />
       ) : (
         <>
           {/* Otsikko + päivä + aloitusaika */}
@@ -296,7 +296,7 @@ export default function SuunnitelmaView({ onAvaaTapahtuma }: { onAvaaTapahtuma?:
           {karttaItemit.length > 0 && (
             <div className="space-y-2">
               <div className="rounded-2xl overflow-hidden border border-white/10" style={{ height: 260 }}>
-                <PlannerMap items={karttaItemit} />
+                <PlannerMap items={karttaItemit} korkeus={260} />
               </div>
               {reittiUrl && (
                 <a href={reittiUrl} target="_blank" rel="noopener noreferrer"
@@ -364,6 +364,108 @@ export default function SuunnitelmaView({ onAvaaTapahtuma }: { onAvaaTapahtuma?:
         onClose={() => setAvattuPaikka(null)}
       />
     </main>
+  )
+}
+
+// ── Tyhjä tila: haamuesimerkki oikealla aikajanaulkoasulla ─────────────────────
+// Tyhjä tila on ominaisuuden ensivaikutelma: sen pitää NÄYTTÄÄ mitä käyttäjä
+// on rakentamassa (esimerkki samalla visuaalisella kielellä kuin oikea
+// aikajana), myydä koukku (ajat + jako) ja tarjota suora polku alkuun —
+// pelkkä ohjeteksti oli umpikuja (omistaja 6.9.2026). Esimerkin askeleet
+// ovat napautettavia: illallinen/drinkit → Ravintolat, keikka → Tapahtumat.
+const ESIMERKKI_PISTEET = [
+  { klo: '18:00', emoji: '🍽', nimi: 'plan.ex_food', osio: 'restaurants', kavely: null, lat: 60.1675, lon: 24.9455 },
+  { klo: '20:00', emoji: '🎟', nimi: 'plan.ex_event', osio: 'discover', kavely: 8, lat: 60.1662, lon: 24.9388 },
+  { klo: '22:30', emoji: '🍸', nimi: 'plan.ex_drinks', osio: 'restaurants', kavely: 5, lat: 60.1648, lon: 24.9490 },
+] as const
+
+function TyhjaTila({ onSiirry }: { onSiirry?: (osio: 'discover' | 'restaurants') => void }) {
+  const { t } = useLanguage()
+  // Vakaa viite: PlannerMapin effekti purkaa ja rakentaa kartan aina kun
+  // items-viite vaihtuu — ilman memoa joka renderöinti tekisi sen ja
+  // fitBounds jäisi kesken (kartta rajautui väärin, 6.9.2026).
+  const karttaItemit = useMemo(() => ESIMERKKI_PISTEET.map((e) => ({
+    title: e.klo, location: '', coords: [e.lat, e.lon] as [number, number],
+  })), [])
+
+  // Yksi ensisijainen nappi riittää: esimerkin askeleet vievät jo ravintoloihin
+  // (1 ja 3) ja tapahtumiin (2) — kolmas rinnakkainen kutsu oli melua.
+  const cta = (
+    <div className="space-y-2.5 text-center md:text-left">
+      <button onClick={() => onSiirry?.('discover')}
+        className="px-6 py-3 rounded-xl font-black text-white text-[14px] transition-all active:scale-95"
+        style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 20px -6px rgba(91,101,230,.6)' }}>
+        🎟 {t('plan.empty_browse_events')}
+      </button>
+    </div>
+  )
+  return (
+    // Työpöydällä kaksi palstaa (teksti + CTA vasemmalla H1:n linjassa,
+    // esimerkki "tuotekuvana" oikealla) — keskitetty kapea palsta näytti
+    // venytetyltä mobiililta (kritiikkipaneeli 6.9.2026).
+    <div className="max-w-md md:max-w-3xl mx-auto pt-2 pb-2 md:grid md:grid-cols-[1fr_1.1fr] md:gap-10 md:items-center">
+      <div className="md:space-y-7">
+        <div className="text-center md:text-left space-y-2.5">
+          <p className="text-white font-black text-[20px] md:text-[24px]" style={{ letterSpacing: '-0.01em' }}>{t('plan.empty_title')}</p>
+          <p className="text-white/45 text-[13.5px] md:text-[14px] leading-relaxed">{t('plan.empty_sub')}</p>
+        </div>
+        <div className="hidden md:flex justify-start animate-askel-esiin" style={{ animationDelay: '460ms' }}>{cta}</div>
+      </div>
+
+      {/* Haamuesimerkki — katkoviivakehys ja himmeä indigopohja erottavat
+          sen oikeasta sisällöstä, ESIMERKKI-merkki sanoo sen ääneen. */}
+      <div className="mt-5 md:mt-0 rounded-3xl p-4 pt-3"
+        style={{ border: '1px dashed rgba(107,118,255,.4)', background: 'rgba(107,118,255,.06)' }}>
+        <p className="text-[10px] font-black uppercase tracking-[.16em] mb-2.5" style={{ color: '#a3abff' }}>
+          {t('plan.empty_example')}
+        </p>
+        <div className="relative">
+          <div className="absolute left-[13px] top-6 bottom-6 w-px" style={{ background: 'rgba(255,255,255,.12)' }} />
+          <div className="space-y-2">
+            {ESIMERKKI_PISTEET.map((e, i) => (
+              <div key={e.nimi} className="animate-askel-esiin" style={{ animationDelay: `${i * 140}ms` }}>
+                {e.kavely !== null && (
+                  <div className="flex items-center gap-3 py-0.5">
+                    <span className="w-7 shrink-0" />
+                    <span className="text-white/25 text-[11px] font-bold">🚶 {e.kavely} min {t('plan.walk')}</span>
+                  </div>
+                )}
+                <div className="flex gap-3 items-center">
+                  <span className="shrink-0 w-7 flex justify-center">
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-white"
+                      style={{ background: '#6b76ff', border: '2px solid rgba(255,255,255,.28)', boxShadow: '0 2px 10px rgba(0,0,0,.4)' }}>
+                      {i + 1}
+                    </span>
+                  </span>
+                  <button onClick={() => onSiirry?.(e.osio)}
+                    className="min-w-0 flex-1 text-left flex gap-3 items-center rounded-2xl p-3 transition-all active:scale-[.98] hover:border-white/20"
+                    style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+                    <span className="shrink-0 w-[46px] text-center text-[#a3abff] font-black text-[14px]">{e.klo}</span>
+                    <span className="min-w-0 flex-1 font-bold text-white/85 text-[14px]">
+                      {e.emoji} {t(e.nimi as Parameters<typeof t>[0])}
+                    </span>
+                    <span className="shrink-0 text-white/30 text-[16px] font-bold pr-1" aria-hidden>›</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Sama kartta kuin oikeassa suunnitelmassa — pinnien numerot
+            vastaavat aikajanaa. Koriste (pointer-events-none): esimerkin
+            kartta ei saa kaapata vieritystä eikä zoomia. */}
+        <div className="mt-3 rounded-xl overflow-hidden border border-white/10 pointer-events-none select-none" style={{ height: 150 }} aria-hidden>
+          <PlannerMap items={karttaItemit} korkeus={150} />
+        </div>
+        {/* Ainoa rivi joka kertoo esimerkin olevan napautettava — täysi
+            aksenttiväri ja 13 px, ettei se huku. */}
+        <p className="text-center text-[13px] font-bold mt-3" style={{ color: '#a3abff' }}>
+          {t('plan.empty_hint')}
+        </p>
+      </div>
+
+      <div className="mt-5 flex justify-center md:hidden animate-askel-esiin" style={{ animationDelay: '460ms' }}>{cta}</div>
+    </div>
   )
 }
 

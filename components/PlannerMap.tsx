@@ -21,7 +21,7 @@ function esc(s: string | null | undefined): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-export default function PlannerMap({ items }: { items: MapItem[] }) {
+export default function PlannerMap({ items, korkeus = 360 }: { items: MapItem[]; korkeus?: number }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const instanceRef  = useRef<LeafletMap | null>(null)
 
@@ -87,16 +87,28 @@ export default function PlannerMap({ items }: { items: MapItem[] }) {
         )
       })
 
+      const sovita = () => {
+        if (latLngs.length > 1) map.fitBounds(latLngs, { padding: [30, 30] })
+        else map.setView(latLngs[0], 15)
+      }
       if (latLngs.length > 1) {
         L.polyline(latLngs, {
           color:     'rgba(107,118,255,.5)',
           weight:    2,
           dashArray: '6, 6',
         }).addTo(map)
-        map.fitBounds(latLngs, { padding: [44, 44] })
-      } else {
-        map.setView(latLngs[0], 15)
       }
+      sovita()
+      // Kontti voi saada lopullisen kokonsa vasta alustuksen jälkeen
+      // (dynaaminen lataus, animoituva asettelu) — silloin fitBounds on
+      // laskettu väärällä koolla ja pinnit jäävät näkymän ulkopuolelle.
+      // Mitataan uudelleen kun asettelu on asettunut.
+      setTimeout(() => {
+        if (!cancelled && instanceRef.current === map) {
+          map.invalidateSize()
+          sovita()
+        }
+      }, 400)
     })
 
     return () => {
@@ -113,7 +125,7 @@ export default function PlannerMap({ items }: { items: MapItem[] }) {
   if (geocodedCount === 0) {
     return (
       <div style={{
-        height: 360, borderRadius: 12,
+        height: korkeus, borderRadius: 12,
         background: 'rgba(107,118,255,.04)',
         border: '1px solid rgba(107,118,255,.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -129,7 +141,7 @@ export default function PlannerMap({ items }: { items: MapItem[] }) {
     <div>
       <div
         ref={containerRef}
-        style={{ width: '100%', height: 360, borderRadius: 12, overflow: 'hidden' }}
+        style={{ width: '100%', height: korkeus, borderRadius: 12, overflow: 'hidden' }}
       />
       {geocodedCount < items.length && (
         <p style={{ textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,.2)', margin: '5px 0 0' }}>
