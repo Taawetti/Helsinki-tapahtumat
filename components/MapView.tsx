@@ -659,7 +659,16 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
           if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return
         } else if (!(r.subCategories ?? []).includes(restCuisine)) return
       }
-      const { color, emoji } = restaurantColor(r.type)
+      const { color, emoji: tyyppiEmoji } = restaurantColor(r.type)
+      // Pinnin kuvake seuraa VALITTUA suodatinta (omistaja 6.9.2026:
+      // Olutbaarit-valinnalla pinnissä 🍺, ei tyypin yleinen 🍸) — sama
+      // emoji kuin valikkorivissä, jotta valinta ja kartta puhuvat samaa.
+      const aliSub = restCuisine
+        ? (restType === 'ravintola'
+            ? REST_CUISINE_SUBS.find((sf) => sf.key === restCuisine)
+            : REST_TYPE_ALASUBIT[restType ?? '']?.find((sf) => sf.key === restCuisine))
+        : undefined
+      const emoji = aliSub?.emoji ?? tyyppiEmoji
       const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
       const icon = makePinIcon(color, emoji, true)
       // Suomeksi r.description sellaisenaan; englanniksi käännetty keittiökategoria
