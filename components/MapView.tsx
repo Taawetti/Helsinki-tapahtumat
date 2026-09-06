@@ -49,6 +49,10 @@ export interface MapTarget {
 
 interface Props {
   events: Event[]
+  /** Tapahtumahaku kesken (HomeClientin useEvents) — kartta näyttää
+   *  lataustilan, jottei tyhjä kartta näytä "ei tapahtumia" (omistaja
+   *  6.9.2026: kuukausi-ikkunan kylmä haku kestää, käyttäjä ehtii lähteä). */
+  eventsLoading?: boolean
   onEventClick: (event: Event) => void
   mapTarget?: MapTarget | null
   onTargetConsumed?: () => void
@@ -404,7 +408,7 @@ function MapMenuItem({ on, onClick, children }: { on: boolean; onClick: () => vo
   )
 }
 
-export default function MapView({ events, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate }: Props) {
+export default function MapView({ events, eventsLoading, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate }: Props) {
   const { t, lang } = useLanguage()
   // Mobiilivalikoista auki enintään yksi kerrallaan; kartan/taustan napautus sulkee.
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -458,6 +462,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
   // Pinnin napautus avaa pohjaan liukuvan esikatselukortin (EI Leaflet-popupia
   // + infopaneelia päällekkäin kuten ennen — tuplaus oli mobiilissa bugi).
   const [previewEvent, setPreviewEvent] = useState<Event | null>(null)
+  // Kartalla näkyvien tapahtumapinnien määrä — ohjaa lataus-/tyhjätilaviestiä.
+  const [eventMarkerCount, setEventMarkerCount] = useState(0)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userMarkerRef      = useRef<any>(null)
@@ -595,7 +601,8 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
     // Esikatselukortti suljetaan kun suodattimet vaihtuvat, jottei kortti
     // jää näyttämään pinniä joka poistui kartalta.
     setPreviewEvent(null)
-    if (!layers.events) return
+    if (!layers.events) { setEventMarkerCount(0); return }
+    let lisatty = 0
     events.forEach((event) => {
       if (!event.location?.lat || !event.location?.lon) return
       // Kohderyhmä (omistaja 4.9.2026): seniorikohdennettu ei näy kartalla
@@ -618,7 +625,9 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       // esikatselukortti, josta on selkeä CTA varsinaisiin tietoihin.
       marker.on('click', () => setPreviewEvent(event))
       cluster.addLayer(marker)
+      lisatty++
     })
+    setEventMarkerCount(lisatty)
   }, [mapReady, events, layers.events, eventGroup, dateFilter, customDate])
 
   // ── Restaurant markers ────────────────────────────────────
@@ -884,10 +893,25 @@ export default function MapView({ events, onEventClick, mapTarget, onTargetConsu
       </button>
 
       {/* ── Loading indicators ── */}
-      {(restsLoading || activitiesLoading) && (
+      {/* Tyhjä tila KESKELLÄ (vain kun haku on VALMIS ja osumia ei ole):
+          kartta ei koskaan näytä pelkkää tyhjää josta voisi luulla ettei
+          tapahtumia ole (omistaja 6.9.2026). Lataustila näytetään hillitysti
+          oikean alakulman pillerissä (alla) — keskitetty latausviesti oli
+          omistajan mielestä liian voimakas. pointer-events-none: karttaa voi
+          liikutella viestin läpi. */}
+      {layers.events && eventMarkerCount === 0 && !eventsLoading && (
+        <div className="absolute inset-x-0 z-[1000] flex justify-center pointer-events-none" style={{ top: '42%' }}>
+          <div className="flex flex-col items-center gap-0.5 px-5 py-3.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/12 shadow-2xl text-center">
+            <span className="text-white/85 text-[13px] font-bold">{t('discover.no_filter_match')}</span>
+            <span className="text-white/40 text-[11.5px] font-semibold">{t('map.empty_hint')}</span>
+          </div>
+        </div>
+      )}
+
+      {(restsLoading || activitiesLoading || (eventsLoading && layers.events)) && (
         <div className="absolute bottom-16 right-3 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
           <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white/70 animate-spin" />
-          {restsLoading ? t('map.loading_rests') : t('map.loading_acts')}
+          {restsLoading ? t('map.loading_rests') : activitiesLoading ? t('map.loading_acts') : `${t('discover.loading_events')}…`}
         </div>
       )}
 

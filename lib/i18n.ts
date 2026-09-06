@@ -945,6 +945,7 @@ const t = {
     'card.ongoing':                'Käynnissä',
     'next.banner_title':           'Mihin ehdin vielä?',
     'next.banner_sub':             'tapahtumat alkamisjärjestyksessä',
+    'map.empty_hint':              'Kokeile toista päivää tai kategoriaa',
   },
 
   en: {
@@ -1892,6 +1893,7 @@ const t = {
     'card.ongoing':                'Ongoing',
     'next.banner_title':           'What can I still make?',
     'next.banner_sub':             'events in starting order',
+    'map.empty_hint':              'Try another day or category',
   },
 } as const
 

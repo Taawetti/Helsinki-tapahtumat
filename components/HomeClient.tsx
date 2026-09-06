@@ -1866,7 +1866,7 @@ export default function HomeClient({
                 listaan pääsee yhdellä napautuksella, ei vain ‹-napilla. */}
             <ListMapToggle view="map" onList={goBack} />
           </div>
-          <MapView events={filteredEvents} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}
+          <MapView events={filteredEvents} eventsLoading={loading || fetchingFull} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}
             initialDateFilter={
               // Listan päivävalinta tulee mukaan karttaan: kartta näyttää
               // samat tapahtumat. MapViewn pillerit eivät tunne tonight/
