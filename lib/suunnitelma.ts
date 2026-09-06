@@ -23,6 +23,7 @@ import { DUR_H, TRAVEL_BUFFER_H, ARC_END_CAP_H } from './group-scheduler'
 import { helsinkiClock } from './arvo-ilta'
 import { tuntematonAika } from './utils'
 import { externalUrlFor } from './event-links'
+import { track } from './track'
 
 export type AskelRooli = 'tekeminen' | 'ruoka' | 'drinkit' | 'ohjelma'
 
@@ -290,6 +291,9 @@ function lisaaAskel(askel: Omit<SuunnitelmaAskel, 'id'>, paivaEhdotus?: string):
     paiva: vanha.paiva || paivaEhdotus || '',
     askeleet: [...vanha.askeleet, { ...askel, id: uusiId() }],
   }))
+  // Kaikki keräilynapit kulkevat tästä — yksi mittari kattaa tapahtumat,
+  // ravintolat ja opaskohteet (meta kertoo tyypin).
+  track('plan_add', { label: askel.nimi, meta: askel.tyyppi })
   return true
 }
 

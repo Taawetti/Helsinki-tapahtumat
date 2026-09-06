@@ -326,6 +326,7 @@ export function JaettuToiminnot({ token, otsikko, paiva, alkuKlo, askeleet }: {
       })),
     })
     setKopioitu(true)
+    track('plan_copy', { label: otsikko || 'nimetön', meta: `${askeleet.length} askelta` })
     setTimeout(() => router.push('/'), 900)
   }
 

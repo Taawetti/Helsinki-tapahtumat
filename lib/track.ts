@@ -24,7 +24,7 @@ export type TrackKind =
   | 'pageview' | 'engaged' | 'returning'
   | 'event_open' | 'ticket_click' | 'external_click' | 'favorite_add'
   | 'section' | 'guide_open' | 'category' | 'search'
-  | 'map_open' | 'install' | 'newsletter' | 'share'
+  | 'map_open' | 'install' | 'newsletter' | 'share' | 'plan_add' | 'plan_copy'
 
 interface TrackData {
   /** Mistä pinnasta tapahtuma tuli: grid, picks, search, hero, map, idea, venue. */

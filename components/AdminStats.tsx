@@ -96,6 +96,32 @@ const NIMET: Record<string, string> = {
   map_open: 'Kartta avattu',
   install: 'Sovellus asennettu',
   newsletter: 'Uutiskirje tilattu',
+  share: 'Suunnitelma jaettu',
+  plan_add: 'Suunnitelmaan lisätty askel',
+  plan_copy: 'Jaettu suunnitelma kopioitu',
+}
+
+// Yhden rivin selite jokaiseen laatikkoon: MISTÄ luku syntyy (omistajan
+// pyyntö 6.9.2026). Lähde: track()-kutsupaikat — pidä ajan tasalla kun
+// mittauspisteitä lisätään.
+const SELITTEET: Record<string, string> = {
+  pageview: 'Sivun avaus — kirjautuu heti, myös pelkkä lukeminen ilman klikkauksia.',
+  engaged: 'Kerran käynnissä, kun käyttö ylittää kynnyksen (esim. toinen tapahtuma-avaus tai siirtymä lipunmyyjälle).',
+  returning: 'Kävijä, jonka tunniste on nähty aiemminkin tässä kuussa — kerran käynnissä.',
+  event_open: 'Tapahtumakortin avaus mistä tahansa: ruudukko, poiminnat, hero, haku, kartta, Idea, opas, paikan lista.',
+  ticket_click: 'Siirtymä lipunmyyjän sivulle tapahtumakortista — lähin asia ostoon.',
+  external_click: 'Muu klikkaus ulos: Lue lisää -linkit, paikkojen omat sivut, reittiohjeet.',
+  favorite_add: 'Tapahtuma tallennettu suosikiksi (sydän).',
+  section: 'Osion vaihto navigaatiosta (Tapahtumat, Idea, Ravintolat, Uutta, Suunnitelma).',
+  guide_open: 'Opas avattu (saunat, kirpputorit, jamit, museot…).',
+  category: 'Kategorialaatan valinta etusivulla.',
+  search: 'Haku — vain vähintään 3 merkin haut, kirjataan kun kirjoittaminen loppuu.',
+  map_open: 'Karttanäkymän avaus.',
+  install: 'Sovellus asennettu kotivalikkoon (latausnappi, banneri tai lataussivu).',
+  newsletter: 'Uutiskirjeen tilaus lähetetty.',
+  share: 'Suunnitelman "Jaa"-nappi: jakolinkki luotu palvelimelle.',
+  plan_add: '"Lisää suunnitelmaan" -napin painallus tapahtuma-, ravintola- tai paikkakortissa.',
+  plan_copy: 'Jaetun linkin vastaanottaja painoi "Tee tästä oma suunnitelma".',
 }
 
 function Palkit({ otsikko, rivit, selite }: { otsikko: string; rivit: Rivi[]; selite?: string }) {
@@ -264,13 +290,18 @@ export default function AdminStats() {
             )}
           </div>
 
+          {/* Suunnitelmalaatikot näkyvät nollinakin — muuten uuden ominaisuuden
+              käyttöä ei huomaisi ennen kuin dataa jo on. */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-            {Object.entries(data.maarat)
+            {Object.entries({ plan_add: 0, share: 0, plan_copy: 0, ...data.maarat })
               .sort((a, b) => b[1] - a[1])
               .map(([k, v]) => (
                 <div key={k} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,.04)' }}>
                   <div className="text-2xl font-black text-white tabular-nums">{v}</div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">{NIMET[k] ?? k}</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5 font-bold">{NIMET[k] ?? k}</div>
+                  {SELITTEET[k] && (
+                    <div className="text-[10.5px] text-gray-600 mt-1 leading-snug">{SELITTEET[k]}</div>
+                  )}
                 </div>
               ))}
           </div>
