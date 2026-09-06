@@ -291,6 +291,11 @@ export default function HomeClient({
   const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [activeVibes, setActiveVibes] = useState<string[]>(initialVibes ?? [])
   const [keyword, setKeyword] = useState('')
+  // 90 pv hakuikkuna aukeaa vasta 2 merkistä: yksi merkki osuu lähes
+  // kaikkeen (mitattu 6.9.2026: "k" = 4875/4975 tapahtumaa) eikä kukaan
+  // hae yhdellä kirjaimella — kylmä 90 pv haku maksaa 25 s ja 5,3 Mt.
+  // Alle kynnyksen hakusana suodattaa valittua päiväikkunaa normaalisti.
+  const hakuIkkuna = keyword.trim().length >= 2
 
   // Haku mitataan VASTA kun kirjoittaminen loppuu. Jokaisen näppäimen
   // kirjaaminen tuottaisi roskaa ("k", "ke", "kei", "keik"…) ja kymmenkertaisen
@@ -348,6 +353,13 @@ export default function HomeClient({
   // Koti: avoinna oleva kategoria (ruudukko/aihepiirit) — null = etusivu
   const [koCat, setKoCat] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  // Hakuruudukon renderöintiraja: ilman rajaa lyhyt hakusana mounttasi
+  // tuhansia PosterCardeja kerralla (mitattu 6.9.2026: "ke" = 2685 korttia,
+  // ~70 000 DOM-solmua "k":lla) ja jokainen näppäinpainallus diffasi koko
+  // ruudukon — se oli haun jumin pääsyy. Sentinel kasvattaa rajaa
+  // vieritettäessä; tuloslaskuri näyttää silti koko osumamäärän.
+  const NAYTTO_ERA = 40
+  const [nayttoRaja, setNayttoRaja] = useState(NAYTTO_ERA)
   // Kategorian avaus/vaihto vie aina listan alkuun — muuten näkymä jää
   // etusivun scrollikohtaan ja lista aukeaa "puolesta välistä"
   useEffect(() => {
@@ -378,7 +390,7 @@ export default function HomeClient({
   const searchDataLoaded = useRef(false)
 
   useEffect(() => {
-    if (!keyword || searchDataLoaded.current) return
+    if (!hakuIkkuna || searchDataLoaded.current) return
     searchDataLoaded.current = true
     fetch('/api/activities').then(r => r.json()).then(d => setAllActivities(d?.activities ?? [])).catch(() => {})
     fetch('/api/restaurants').then(r => r.json()).then(d => setAllRestaurants(d?.restaurants ?? [])).catch(() => {})
@@ -425,7 +437,7 @@ export default function HomeClient({
     // eteenpäin, jotta artistin kaikki tulevat keikat löytyvät. Muuttaa VAIN
     // haun aikaikkunan — käyttäjän oma päivävalinta säilyy tilassa ja palaa
     // voimaan heti kun hakukenttä tyhjennetään.
-    dateFilter: mode === 'map' ? 'month' : mode === 'idea' ? 'today' : keyword ? 'search' : dateFilter,
+    dateFilter: mode === 'map' ? 'month' : mode === 'idea' ? 'today' : hakuIkkuna ? 'search' : dateFilter,
     customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
     nearbyCoords: null,
   })
@@ -500,17 +512,8 @@ export default function HomeClient({
     setDateFilter(start ? 'range' : 'today')
   }, [])
 
-  // Infinite scroll — trigger loadMore when sentinel scrolls into view
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting && hasMore && !loading) loadMore() },
-      { rootMargin: '200px' }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [hasMore, loading, loadMore])
+  // (Infinite scroll -observer siirretty discoverEvents-määrittelyn jälkeen:
+  // se kasvattaa nyt myös renderöintirajaa, joka riippuu osumamäärästä.)
 
   const handleVibeToggle = useCallback((id: string) => {
     if (id === 'kaikki') {
@@ -761,6 +764,31 @@ export default function HomeClient({
     () => [...filteredEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
     [filteredEvents]
   )
+
+  // Renderöintiraja alkuun aina kun suodatus vaihtuu — muuten uusi haku
+  // perisi edellisen vierityksen kasvattaman rajan.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- raja nollataan suodattimien vaihtuessa
+    setNayttoRaja(NAYTTO_ERA)
+  }, [keyword, activeVibes, activeCategories, priceFilter, hoodFilter])
+
+  // Infinite scroll: sentinel kasvattaa ENSIN renderöintirajaa (osumia on jo
+  // muistissa enemmän kuin ruudulla) ja hakee palvelimelta lisää vasta kun
+  // kaikki ladatut ovat näkyvissä.
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        if (nayttoRaja < discoverEvents.length) setNayttoRaja((r) => r + NAYTTO_ERA)
+        else if (hasMore && !loading) loadMore()
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loading, loadMore, nayttoRaja, discoverEvents.length])
 
   // Base events for the picks grid — date/keyword filtered but NOT vibe/category filtered
   // so rows always show content even when a specific vibe is active
@@ -1228,7 +1256,7 @@ export default function HomeClient({
               joten korostettu "Tänään" antaisi väärän kuvan siitä mitä
               tuloksissa näkyy (omistaja 25.8.2026). Valinta säilyy tilassa ja
               palaa näkyviin kun hakukenttä tyhjennetään. */}
-          {!keyword && (
+          {!hakuIkkuna && (
           <div className="flex items-center gap-2">
           {/* MOBIILI: vaakavieritys pois (omistaja 31.8.2026: "tänään, sitten
               valikko vieressä mistä saa muut vaihtoehdot, ja kartta esillä").
@@ -1595,7 +1623,7 @@ export default function HomeClient({
                 </div>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
-                {discoverEvents.map(e => (
+                {discoverEvents.slice(0, nayttoRaja).map(e => (
                   <PosterCard key={e.id} event={e} onClick={avaa.search}
                     distance={geo.coords && e.location?.lat && e.location?.lon
                       ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
@@ -1634,7 +1662,7 @@ export default function HomeClient({
               activeVibes={activeVibes}
               activeCategories={activeCategories}
               priceFilter={priceFilter}
-              dateFilter={keyword ? 'search' : dateFilter}
+              dateFilter={hakuIkkuna ? 'search' : dateFilter}
               onClear={clearFilters}
               onDateChange={(d) => { setDateFilter(d); setCustomDate('') }}
             />

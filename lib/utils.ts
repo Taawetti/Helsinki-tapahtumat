@@ -89,24 +89,44 @@ export const atWord = (lang: DateLang = 'fi') => (lang === 'en' ? 'at' : 'klo')
 // vyöhykkeessään — tapahtumat ovat aina Helsingissä.
 const HKI_TZ = 'Europe/Helsinki'
 
+// Intl.DateTimeFormat-olion RAKENTAMINEN on kallista (~0,1 ms/kpl), ja näitä
+// kutsutaan hakuruudukossa tuhansia kertoja per näppäinpainallus — mitattu
+// 6.9.2026: 2685 kortin tuntematonAika-tarkistukset 208 ms + formatTime
+// 105 ms pelkkää formatterin rakentamista. Kierrätys moduulitasolla pudottaa
+// tämän murto-osaan. Formatterit ovat tilattomia → jako on turvallista.
+const HKI_PAIVA_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: HKI_TZ })
+const HKI_KELLO_FMT = new Intl.DateTimeFormat('en-GB', {
+  timeZone: HKI_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+})
+const HKI_TUNTI_FMT = new Intl.DateTimeFormat('en-GB', { timeZone: HKI_TZ, hour: '2-digit', hourCycle: 'h23' })
+const fmtVarasto = new Map<string, Intl.DateTimeFormat>()
+function kierratettyFmt(loc: string, opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const k = `${loc}|${JSON.stringify(opts)}`
+  let f = fmtVarasto.get(k)
+  if (!f) {
+    f = new Intl.DateTimeFormat(loc, opts)
+    fmtVarasto.set(k, f)
+  }
+  return f
+}
+
 /** ISO-aikaleiman Helsinki-kalenteripäivä (esim. '2026-09-05'). */
 function helsinkiPaiva(d: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: HKI_TZ }).format(d)
+  return HKI_PAIVA_FMT.format(d)
 }
 
 export function formatDate(isoString: string, lang: DateLang = 'fi'): string {
-  const date = new Date(isoString)
-  return date.toLocaleDateString(locale(lang), {
+  return kierratettyFmt(locale(lang), {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
     timeZone: HKI_TZ,
-  })
+  }).format(new Date(isoString))
 }
 
 export function formatTime(isoString: string, lang: DateLang = 'fi'): string {
-  const date = new Date(isoString)
-  return date.toLocaleTimeString(locale(lang), { hour: '2-digit', minute: '2-digit', timeZone: HKI_TZ })
+  return kierratettyFmt(locale(lang), { hour: '2-digit', minute: '2-digit', timeZone: HKI_TZ })
+    .format(new Date(isoString))
 }
 
 /** Skrapatut ajattomat tapahtumat tallentuvat muodossa 'T00:00:00(+03:00)' —
@@ -116,9 +136,7 @@ export function formatTime(isoString: string, lang: DateLang = 'fi'): string {
  *  ei lähdedatasta löytynyt. */
 export function tuntematonAika(iso: string): boolean {
   if (!iso.includes('T')) return true
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: HKI_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-  }).format(new Date(iso)) === '00:00:00'
+  return HKI_KELLO_FMT.format(new Date(iso)) === '00:00:00'
 }
 
 export function formatDateRange(start: string, end: string | null, lang: DateLang = 'fi'): string {
@@ -146,9 +164,7 @@ export function isTonight(isoString: string): boolean {
   const date = new Date(isoString)
   const now = new Date()
   const isToday = helsinkiPaiva(date) === helsinkiPaiva(now)
-  const helsinkiTunti = Number(
-    new Intl.DateTimeFormat('en-GB', { timeZone: HKI_TZ, hour: '2-digit', hourCycle: 'h23' }).format(date),
-  )
+  const helsinkiTunti = Number(HKI_TUNTI_FMT.format(date))
   return isToday && helsinkiTunti >= 17
 }
 
