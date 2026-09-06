@@ -177,3 +177,11 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Tuplanapautus-zoomaus pois (omistaja 6.9.2026): touch-action: manipulation
+   säilyttää vierityksen ja nipistyksen käsittelyn elementeillä joilla on omat
+   eleet (Leaflet-kartta asettaa omansa), mutta poistaa tuplanapautuksen
+   zoomin ja sen 300 ms viiveen napautuksista. */
+html, body {
+  touch-action: manipulation;
+}

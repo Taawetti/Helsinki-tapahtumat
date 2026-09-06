@@ -19,6 +19,14 @@ export const viewport: Viewport = {
   themeColor: '#0a0a0c',
   width: 'device-width',
   initialScale: 1,
+  // Nipistyszoomaus pois (omistaja 6.9.2026: zoomaus sekoittaa käytön —
+  // sovellusmainen käyttöliittymä, ei dokumentti). Vaikutukset laitteittain:
+  // Android + asennettu PWA kunnioittavat; iOS-Safari sallii nipistyksen
+  // saavutettavuussyistä silti, MUTTA maximumScale: 1 estää iOS:n ärsyttävän
+  // automaattizoomin tekstikenttään fokusoitaessa (hakukenttä on 14 px).
+  // Kartan oma nipistyszoom (Leaflet) toimii omilla käsittelijöillään.
+  maximumScale: 1,
+  userScalable: false,
 }
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
