@@ -309,6 +309,32 @@ export default function HomeClient({
     const t = setTimeout(() => track('search', { label: kw.slice(0, 60) }), 1200)
     return () => clearTimeout(t)
   }, [keyword])
+
+  // Taustalta paluun tuoreutus: iOS palauttaa kotivalikkosovelluksen nukkuvan
+  // istunnon muistista ILMAN sivulatausta, joten sekä sovelluskoodi että
+  // tapahtumadata voivat olla päiviä vanhoja (omistajan havainto 6.9.2026:
+  // alapalkin korjaus ei näkynyt asennetussa sovelluksessa). Yli 6 h tauon
+  // jälkeen ladataan puhtaalta pöydältä — suunnitelma ja suosikit säilyvät
+  // localStoragessa, ja niin pitkän tauon jälkeen sisältökin on vanhentunut.
+  useEffect(() => {
+    const RAJA_MS = 6 * 60 * 60 * 1000
+    let piilotettu = 0
+    const tarkista = () => {
+      if (piilotettu && Date.now() - piilotettu > RAJA_MS) window.location.reload()
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') piilotettu = Date.now()
+      else tarkista()
+    }
+    // pageshow persisted kattaa bfcache-palautuksen selaimessa
+    const onPageshow = (e: PageTransitionEvent) => { if (e.persisted) tarkista() }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pageshow', onPageshow)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pageshow', onPageshow)
+    }
+  }, [])
   const [listStyle, setListStyle] = useState<ListStyle>('feed')
   const [priceFilter, setPriceFilter] = useState<PriceFilter>(initialPriceFilter ?? 'all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
