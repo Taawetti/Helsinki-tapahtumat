@@ -13,6 +13,7 @@ import { primaryReason, interleaveReasoned, reasonsWeight } from '@/lib/restaura
 import { ReasonBadge, relativeDate } from '@/components/ReasonBadge'
 import RestaurantDetailPanel from '@/components/RestaurantDetailPanel'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 
 // ── Chain grouping types ──────────────────────────────────
 
@@ -766,6 +767,7 @@ function ChainDetailSheet({ chain, distMap, onClose, onShowOnMap }: {
   const sheetRef = useRef<HTMLDivElement>(null)
   // Dialogisemantiikka + Escape + fokusloukku (auditointi 5.9.2026).
   useDialogiFokus(true, sheetRef, onClose)
+  useTaaksepain(true, onClose)
   return (
     <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}>

@@ -18,6 +18,7 @@ import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { canBuyTickets } from '@/lib/tickets'
 import DatePicker from '@/components/DatePicker'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 
 // Idea-sivu 8/2026: käsin kuratoitu 13 klassikkoa POISTETTU (asiakkaat huomasivat
 // toiston) — pakka on nyt tapahtumakeskeinen: tämän päivän tapahtumat
@@ -201,6 +202,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     }, 350)
   }, [])
   useDialogiFokus(!!detailSuggestion, detailPanelRef, closePanel)
+  useTaaksepain(!!detailSuggestion, closePanel)
 
   // ── Build pools ──────────────────────────────────────
 

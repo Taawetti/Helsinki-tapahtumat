@@ -5,6 +5,7 @@ import { Event } from '@/lib/types'
 import { useState, useRef } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 import type { TranslationKey } from '@/lib/i18n'
 
 function eventScore(e: Event): number {
@@ -42,6 +43,7 @@ export default function EiTiedaModal({ events, mode = 'general', onClose, onSele
   const modalRef = useRef<HTMLDivElement>(null)
   // Dialogisemantiikka + Escape + fokusloukku (auditointi 5.9.2026).
   useDialogiFokus(true, modalRef, onClose)
+  useTaaksepain(true, onClose)
 
   if (events.length === 0) {
     return (

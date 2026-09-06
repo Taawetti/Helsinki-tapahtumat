@@ -3,6 +3,7 @@
 import { X, CheckCircle } from 'lucide-react'
 import { useState, useRef } from 'react'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { pienennaKuva } from '@/lib/image-resize'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VIBES } from '@/lib/types'
@@ -28,6 +29,7 @@ export default function JarjestajaForm({ onClose }: Props) {
   const modalRef = useRef<HTMLDivElement>(null)
   // Dialogisemantiikka + Escape + fokusloukku (auditointi 5.9.2026).
   useDialogiFokus(true, modalRef, onClose)
+  useTaaksepain(true, onClose)
   const { t } = useLanguage()
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)

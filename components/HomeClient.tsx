@@ -11,6 +11,7 @@ import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/ni
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { karsiTapahtumaSarjat, samaTapahtumaSarja } from '@/lib/tapahtumaperhe'
 import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
 import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled } from '@/lib/install'
@@ -670,6 +671,16 @@ export default function HomeClient({
     setMode(pageBack)
     setMobileTab(pageBack as typeof mobileTab)
   }, [pageBack])
+
+  // Selaimen paluuele / Androidin paluunappi kuorii näkymiä yksi kerrallaan
+  // (hooks/useTaaksepain): välilehti → kartta → opas/kategoria → haku.
+  // Suodattimet (päivä, aihepiiri, hinta) EIVÄT ole paluuaskelia — vain
+  // "ruudulta tuntuvat" tilat. Paneelit ja modaalit rekisteröityvät itse.
+  useTaaksepain(mobileTab !== 'discover', () => { setMode('discover'); setMobileTab('discover'); setKoCat(null) })
+  useTaaksepain(mode === 'map', goBack)
+  useTaaksepain(!!guideView, () => setGuideView(null))
+  useTaaksepain(!!koCat, () => setKoCat(null))
+  useTaaksepain(hakuIkkuna, () => setKeyword(''))
 
   // Menneet piiloon: päättynyt tapahtuma ei kuulu millekään listalle.
   // Ilman endTimeä tapahtuma lasketaan käynnissä olevaksi 3 h alusta (sama

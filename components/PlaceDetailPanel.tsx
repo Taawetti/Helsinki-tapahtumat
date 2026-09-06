@@ -17,6 +17,7 @@ import { track } from '@/lib/track'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 
 export interface PaikkaTieto {
   id: string
@@ -73,7 +74,6 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   useDialogiFokus(!!paikka, panelRef)
   const innerRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isManualClose = useRef(false)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
   const [copied, setCopied] = useState(false)
@@ -97,26 +97,9 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paikka])
 
-  // Historiamerkintä: pyyhkäisy taakse sulkee paneelin, ei koko sovellusta.
-  useEffect(() => {
-    if (!paikka) return
-    isManualClose.current = false
-    history.pushState({ mitaTanaan: 'panel' }, '')
-    const onPop = () => {
-      if (isManualClose.current) { isManualClose.current = false; return }
-      isManualClose.current = true
-      setSlideIn(false)
-      if (closeTimer.current) clearTimeout(closeTimer.current)
-      closeTimer.current = setTimeout(() => onCloseRef.current(), 350)
-    }
-    window.addEventListener('popstate', onPop)
-    return () => {
-      window.removeEventListener('popstate', onPop)
-      if (!isManualClose.current) history.back()
-      isManualClose.current = false
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paikka?.id])
+  // Selaimen paluuele: keskitetty paluupino (hooks/useTaaksepain) — vanha
+  // per-paneeli pushState/popstate-lohko poistettu 6.9.2026.
+  useTaaksepain(!!paikka, handleClose)
 
   // Alasvetosulku — sama logiikka kuin EventDetailPanelissa.
   useEffect(() => {
@@ -153,9 +136,8 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
       if (curDelta > CLOSE_THRESHOLD) {
         panel.style.transition = EASE_OUT
         panel.style.transform = 'translateY(100%)'
-        isManualClose.current = true
         if (closeTimer.current) clearTimeout(closeTimer.current)
-        closeTimer.current = setTimeout(() => { history.back(); onCloseRef.current() }, 260)
+        closeTimer.current = setTimeout(() => onCloseRef.current(), 260)
       } else {
         panel.style.transition = SPRING
         panel.style.transform = 'translateY(0)'
@@ -174,12 +156,10 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current) }, [])
 
   function handleClose() {
-    isManualClose.current = true
     setSlideIn(false)
     if (closeTimer.current) clearTimeout(closeTimer.current)
     closeTimer.current = setTimeout(() => {
-      history.back()
-      onClose()
+      onClose() // paluupino kuittaa historiamerkinnän
     }, 350)
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { VIBES } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
@@ -23,6 +24,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose, on
   const panelRef = useRef<HTMLDivElement>(null)
   // Fokus paneeliin + Tab-loukku + palautus (Escape sidottu alla erikseen).
   useDialogiFokus(open, panelRef)
+  useTaaksepain(open, onClose)
 
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'

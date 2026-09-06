@@ -13,6 +13,7 @@ import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { VENUE_PAGES } from '@/lib/venue-pages'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 
 interface Props {
   event: Event | null
@@ -31,7 +32,6 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   useDialogiFokus(!!event, panelRef)
   const innerRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isManualClose = useRef(false)
   // Stable ref so touch handler never captures a stale onClose
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
@@ -70,31 +70,11 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event])
 
-  // Push a browser history entry when the panel opens so that the native
-  // swipe-back gesture fires popstate instead of leaving the app entirely.
-  useEffect(() => {
-    if (!event) return
-    isManualClose.current = false
-    history.pushState({ mitaTanaan: 'panel' }, '')
-
-    const onPop = () => {
-      if (isManualClose.current) { isManualClose.current = false; return }
-      // Swipe-back: browser already went back — just animate and close
-      isManualClose.current = true
-      setSlideIn(false)
-      if (closeTimer.current) clearTimeout(closeTimer.current)
-      closeTimer.current = setTimeout(onClose, 350)
-    }
-    window.addEventListener('popstate', onPop)
-    return () => {
-      window.removeEventListener('popstate', onPop)
-      // If the panel was closed externally (parent set event=null directly),
-      // remove the history entry we pushed so it doesn't leave a ghost entry.
-      if (!isManualClose.current) history.back()
-      isManualClose.current = false
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [event?.id])
+  // Selaimen paluuele: keskitetty paluupino (hooks/useTaaksepain) työntää
+  // historiamerkinnän ja kutsuu handleClosea eleestä — vanha per-paneeli
+  // pushState/popstate-lohko poistettu 6.9.2026, jottei kerrosten
+  // päällekkäisyys tuota tuplapaluita.
+  useTaaksepain(!!event, handleClose)
 
   // Swipe-down-to-close: listen for touch on the outer panel.
   // Uses direct DOM listeners (passive:false) so preventDefault() works on iOS.
@@ -143,13 +123,11 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
 
       if (curDelta >= CLOSE_THRESHOLD) {
         // Past threshold — animate off-screen and close
-        isManualClose.current = true
         panel.style.transition = EASE_OUT
         panel.style.transform = 'translateY(110%)'
         if (closeTimer.current) clearTimeout(closeTimer.current)
         closeTimer.current = setTimeout(() => {
-          history.back()
-          onCloseRef.current()
+          onCloseRef.current() // paluupino kuittaa historiamerkinnän
         }, 260)
       } else {
         // Below threshold — snap back
@@ -192,11 +170,9 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
 
   function handleClose() {
     if (closeTimer.current) clearTimeout(closeTimer.current)
-    isManualClose.current = true
     setSlideIn(false)
     closeTimer.current = setTimeout(() => {
-      history.back() // removes the pushState entry (fires popstate async, but listener is gone by then)
-      onClose()
+      onClose() // paluupino kuittaa historiamerkinnän kun event tyhjenee
     }, 350)
   }
 
@@ -358,7 +334,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                     })
                     return venuePage ? (
                       <Link href={`/ohjelma/${venuePage.slug}`}
-                        onClick={() => { isManualClose.current = true; onClose() }}
+                        onClick={onClose}
                         className="inline-flex items-center gap-1 text-[#4da6e8] hover:text-[#7dc0f2] text-xs font-semibold mt-1.5 transition-colors">
                         📅 {t('detail.venue_events')} →
                       </Link>
