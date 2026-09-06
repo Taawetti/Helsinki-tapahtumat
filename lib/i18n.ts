@@ -938,6 +938,7 @@ const t = {
     'detail.sold_out':             'Loppuunmyyty',
     'a11y.prev_month':             'Edellinen kuukausi',
     'a11y.next_month':             'Seuraava kuukausi',
+    'discover.upcoming_title':     'Tulevat tapahtumat',
   },
 
   en: {
@@ -1878,6 +1879,7 @@ const t = {
     'detail.sold_out':             'Sold out',
     'a11y.prev_month':             'Previous month',
     'a11y.next_month':             'Next month',
+    'discover.upcoming_title':     'Upcoming events',
   },
 } as const
 

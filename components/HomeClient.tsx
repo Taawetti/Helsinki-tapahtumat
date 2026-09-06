@@ -399,13 +399,17 @@ export default function HomeClient({
 
 
   // "Paikan kaikki tapahtumat" — käytetään sekä tapahtumakortista että haun
-  // keikkapaikkariviltä. KAIKKI TULEVAT, EI PÄIVÄSUODATINTA: kuukausi on
-  // pisin ikkuna jonka lähteet hakevat, ja muut suodattimet nollataan.
+  // keikkapaikkariviltä. KAIKKI TULEVAT: hakusana avaa 90 pv hakuikkunan
+  // (useEvents: hakuIkkuna → 'search'), joten erillistä ikkunanvaihtoa EI
+  // tehdä. Aiempi setDateFilter('month') ei vaikuttanut venue-näkymään
+  // lainkaan (hakusana ohitti sen) mutta JÄI PÄÄLLE hakukentän tyhjennyksen
+  // jälkeen: kategoria näytti kuukauden tapahtumia ja mobiilivalikko väitti
+  // "Tänään" (omistajan havainto 6.9.2026). Käyttäjän oma päivävalinta
+  // säilyy nyt koskemattomana.
   const showVenueEvents = useCallback((name: string) => {
     setSelectedEvent(null)
     setHoodFilter(null)
     setKeyword(name)
-    setDateFilter('month')
     setActiveVibes([])
     setActiveCategories([])
     setPriceFilter('all')
@@ -904,6 +908,38 @@ export default function HomeClient({
     return koriJarjestys(baseEvents.filter((e) => getEventVibes(e).includes(koCat)))
   }, [koCat, baseEvents])
 
+  // Tyhjä kategorialista → "Ei tapahtumia valitulla päivällä" + TULEVAT
+  // kuukauden ikkunasta (omistaja 6.9.2026: tyhjä sivu ei kerro mitään —
+  // näytetään mitä on tulossa). null = haku kesken / ei tarvita.
+  const [koCatTulevat, setKoCatTulevat] = useState<Event[] | null>(null)
+  useEffect(() => {
+    if (!koCat || loading || fetchingFull || koCatEvents.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- nollaus kun täydennystä ei tarvita
+      setKoCatTulevat(null)
+      return
+    }
+    let peruttu = false
+    const { start, end } = getDateRange('month')
+    // Sama osoite kuin kuukausi-ikkunan normaalihaku → osuu reunavälimuistiin.
+    fetch(`/api/events?start=${start}&end=${end}&page=1&municipality=${municipality}`)
+      .then((r) => r.json())
+      .then((d: { events?: Event[] }) => {
+        if (peruttu) return
+        const nyt = Date.now()
+        let evs = (d.events ?? []).filter((e) => {
+          const alku = new Date(e.startTime).getTime()
+          if (alku > nyt) return true
+          return !!e.endTime && new Date(e.endTime).getTime() >= nyt
+        })
+        if (koCat === 'ilmainen') evs = evs.filter((e) => e.isFree)
+        else if (koCat !== 'kaikki') evs = evs.filter((e) => getEventVibes(e).includes(koCat))
+        evs.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+        setKoCatTulevat(evs.slice(0, 24))
+      })
+      .catch(() => { if (!peruttu) setKoCatTulevat([]) })
+    return () => { peruttu = true }
+  }, [koCat, koCatEvents.length, loading, fetchingFull, municipality])
+
   // "Parhaat poiminnat" -otsikko elää aikavälin mukaan: Illan / Huomisen /
   // Viikon / Viikonlopun / oma väli "25.–27.7. parhaat poiminnat".
   const picksHeading = (() => {
@@ -1279,6 +1315,9 @@ export default function HomeClient({
               customLabel={customDate
                 ? '📅 ' + new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
                   + (customDateEnd ? '–' + new Date(customDateEnd + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' }) : '')
+                // Ikkuna jota valikko ei tunne (esim. month) EI saa pudota
+                // "Tänään"-tekstiin — valikko valehteli näin 6.9.2026 asti.
+                : dateFilter === 'month' ? '📅 ' + t('date.month')
                 : null}
               onPick={(d) => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
             />
@@ -1397,10 +1436,33 @@ export default function HomeClient({
                   </div>
                 </div>
               ) : koCatEvents.length === 0 ? (
-                <div className="flex flex-col items-center py-16 text-center gap-3">
-                  <span className="text-4xl">🫥</span>
-                  <p className="text-white/40 font-bold">{t('discover.no_filter_match')}</p>
-                  <p className="text-white/20 text-sm">{t('discover.quiet_sub')}</p>
+                <div className="space-y-6">
+                  <div className="flex flex-col items-center pt-12 pb-2 text-center gap-3">
+                    <span className="text-4xl">🫥</span>
+                    <p className="text-white/40 font-bold">{t('discover.no_filter_match')}</p>
+                    <p className="text-white/20 text-sm">{t('discover.quiet_sub')}</p>
+                  </div>
+                  {/* Tulevat samasta kategoriasta — PosterCard näyttää
+                      päivämerkin, joten "milloin" näkyy suoraan kortista. */}
+                  {koCatTulevat === null ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 size={18} className="animate-spin text-white/30" />
+                    </div>
+                  ) : koCatTulevat.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="font-black text-white text-[16px]" style={{ letterSpacing: '-0.01em' }}>
+                        {t('discover.upcoming_title')}
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
+                        {koCatTulevat.map((e) => (
+                          <PosterCard key={e.id} event={e} onClick={avaa.grid}
+                            distance={geo.coords && e.location?.lat && e.location?.lon
+                              ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
+                              : undefined} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Responsiivinen ruudukko: 2 mobiili · 3 tabletti · 4 desktop */
