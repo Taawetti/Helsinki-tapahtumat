@@ -41,6 +41,10 @@ export interface SuunnitelmaAskel {
   ankkuriISO?: string
   /** Käyttäjän käsin asettama kellonaika "HH:MM" — voittaa ehdotuksen. */
   kasinKlo?: string
+  /** Käyttäjä kuittasi askeleen varoituksen pois ("tiedän kyllä, menen
+   *  ratikalla") — varoitus lasketaan yhä mutta UI ei näytä sitä.
+   *  Nollautuu kun askeleen aikaa muutetaan. */
+  varoitusKuitattu?: boolean
   /** OSM opening_hours aukiolotarkistuksiin (ravintolat, opaskohteet). */
   aukiolot?: string | null
   rooli: AskelRooli
@@ -398,6 +402,15 @@ export function lisaaPaikka(p: PaikkaTieto & { description?: string | null }, gu
   })
 }
 
+/** Piilottaa askeleen varoituksen — käyttäjä tietää paremmin (esim. kulkee
+ *  ratikalla, jota sovitin ei mallinna). */
+export function kuittaaVaroitus(id: string): void {
+  paivita((s) => ({
+    ...s,
+    askeleet: s.askeleet.map((a) => (a.id === id ? { ...a, varoitusKuitattu: true } : a)),
+  }))
+}
+
 export function poistaAskel(id: string): void {
   paivita((s) => ({ ...s, askeleet: s.askeleet.filter((a) => a.id !== id) }))
 }
@@ -432,18 +445,30 @@ export function asetaOtsikko(otsikko: string): void {
 }
 
 export function asetaPaiva(paiva: string): void {
-  paivita((s) => ({ ...s, paiva }))
+  // Päivän vaihto muuttaa aukiolot ja koko ketjun → kuittaukset eivät päde.
+  paivita((s) => ({ ...s, paiva, askeleet: s.askeleet.map((a) => ({ ...a, varoitusKuitattu: undefined })) }))
 }
 
 export function asetaAlkuKlo(klo: string | undefined): void {
-  paivita((s) => ({ ...s, alkuKlo: klo }))
+  // Koko ketjun ajat lasketaan uusiksi → vanhat kuittaukset eivät päde.
+  paivita((s) => ({ ...s, alkuKlo: klo, askeleet: s.askeleet.map((a) => ({ ...a, varoitusKuitattu: undefined })) }))
 }
 
 export function asetaKasinKlo(id: string, klo: string | undefined): void {
-  paivita((s) => ({
-    ...s,
-    askeleet: s.askeleet.map((a) => (a.id === id ? { ...a, kasinKlo: klo } : a)),
-  }))
+  paivita((s) => {
+    // Ajan muutos nollaa varoituskuittauksen sekä TÄLTÄ askeleelta että
+    // SEURAAVALTA: "et ehdi" istuu askelparilla, ja kumman tahansa pään
+    // aikamuutos voi tehdä vanhasta "tiedän kyllä" -kuittauksesta vanhentuneen.
+    const i = s.askeleet.findIndex((a) => a.id === id)
+    return {
+      ...s,
+      askeleet: s.askeleet.map((a, j) => (j === i
+        ? { ...a, kasinKlo: klo, varoitusKuitattu: undefined }
+        : j === i + 1
+          ? { ...a, varoitusKuitattu: undefined }
+          : a)),
+    }
+  })
 }
 
 export function tyhjennaSuunnitelma(): void {

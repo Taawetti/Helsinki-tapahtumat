@@ -20,7 +20,7 @@ import { Loader2, X, ChevronUp, ChevronDown, Share2, AlertTriangle, GripVertical
 import { useLanguage } from '@/contexts/LanguageContext'
 import {
   lueSuunnitelma, lueSuunnitelmaServer, tilaaSuunnitelma, sovitaAjat,
-  poistaAskel, siirraAskelta, siirraIndeksiin, asetaOtsikko, asetaPaiva,
+  poistaAskel, siirraAskelta, siirraIndeksiin, asetaOtsikko, asetaPaiva, kuittaaVaroitus,
   asetaAlkuKlo, asetaKasinKlo, tyhjennaSuunnitelma, ROOLI_META,
   reittiohjeUrl, type VaroitusSyy, type SuunnitelmaAskel, type AskelData,
 } from '@/lib/suunnitelma'
@@ -260,9 +260,16 @@ export default function SuunnitelmaView({ onAvaaTapahtuma }: { onAvaaTapahtuma?:
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); avaaAskel(r.askel) } }}>
                       <p className="text-white font-bold text-[14px] leading-snug">{ROOLI_META[r.askel.rooli].emoji} {r.askel.nimi}</p>
                       {r.askel.osoite && <p className="text-white/35 text-[12px] truncate">{r.askel.osoite}</p>}
-                      {r.varoitus && (
+                      {r.varoitus && !r.askel.varoitusKuitattu && (
                         <p className="flex items-center gap-1 text-[12px] font-bold mt-0.5" style={{ color: '#ff9f43' }}>
                           <AlertTriangle size={12} /> {t(VAROITUS_AVAIN[r.varoitus] as Parameters<typeof t>[0])}
+                          {/* Kuittaus: käyttäjä tietää paremmin (esim. kulkee ratikalla,
+                              jota sovitin ei mallinna) — varoituksen saa pois häiritsemästä. */}
+                          <button onClick={(e) => { e.stopPropagation(); kuittaaVaroitus(r.askel.id) }}
+                            aria-label={t('common.close')}
+                            className="ml-1 p-0.5 rounded text-white/35 hover:text-white">
+                            <X size={12} />
+                          </button>
                         </p>
                       )}
                       {infoAuki === r.askel.id && <AskelInfo askel={r.askel} />}

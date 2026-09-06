@@ -1923,7 +1923,11 @@ export default function HomeClient({
                 className="relative flex flex-col items-center justify-center gap-0.5 transition-all"
                 style={{ color: isActive ? '#6b76ff' : 'rgba(255,255,255,0.4)' }}>
                 <span className="text-lg leading-none" style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(91,101,230,.5))' } : {}}>{emoji}</span>
-                <span className="text-[10px] font-bold whitespace-nowrap">{t(labelKey)}</span>
+                {/* Skaalautuva koko: 5 suomenkielistä sanaa on ahdas rivi, ja
+                    iPhonen näytön zoomaus / Safarin sivuzoomi kutistaa loogista
+                    leveyttä — kiinteä 10px leikkasi "Suunnitelma"-sanan
+                    (omistajan havainto 6.9.2026). clamp pitää tekstin lokerossaan. */}
+                <span className="font-bold whitespace-nowrap" style={{ fontSize: 'clamp(8px, 2.7vw, 10px)' }}>{t(labelKey)}</span>
               </button>
             )
           })}
