@@ -39,6 +39,78 @@ export async function GET(req: NextRequest) {
   // englanninkielisen jakokortin. Oletus pitää kaikki vanhat kutsut ennallaan.
   const brand = searchParams.get('brand') || 'HELSINKI TAPAHTUMAT'
 
+  // Suunnitelmajaon oma kortti: WhatsApp kutistaa kuvan ~320 px leveäksi,
+  // joten tunnusrivin pitää olla ISO ja kortilla oma tunnistettava motiivi
+  // (aikajanan numeropallot + kisko — sama kieli kuin tuotteessa).
+  // Geneerinen malli alla jää tapahtuma- ja laskeutumissivuille ennalleen.
+  if (searchParams.get('malli') === 'suunnitelma') {
+    const pallo = (nro: string) => (
+      <div style={{
+        width: '58px', height: '58px', borderRadius: '50%', background: '#6b76ff',
+        border: '3px solid rgba(255,255,255,.3)', color: 'white', fontSize: '26px',
+        fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 4px 18px rgba(0,0,0,.5)',
+      }}>{nro}</div>
+    )
+    const palkki = (leveys: number) => (
+      <div style={{ width: `${leveys}px`, height: '18px', borderRadius: '9px', background: 'rgba(255,255,255,.16)', display: 'flex' }} />
+    )
+    const viiva = (
+      <div style={{ width: '0px', height: '52px', borderLeft: '3px dashed rgba(163,171,255,.4)', marginLeft: '28px', display: 'flex' }} />
+    )
+    return new ImageResponse(
+      (
+        <div style={{
+          width: '1200px', height: '630px', display: 'flex', background: '#080b10',
+          fontFamily: 'system-ui, sans-serif', position: 'relative', overflow: 'hidden',
+        }}>
+          {/* Indigohehku — sama brändikieli kuin jaetun sivun kutsukortissa */}
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex',
+            background: 'radial-gradient(95% 90% at 15% 5%, rgba(107,118,255,.45) 0%, rgba(107,118,255,.14) 42%, rgba(8,11,16,0) 72%)',
+          }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: '#6b76ff', display: 'flex' }} />
+
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, padding: '54px 0 54px 60px', position: 'relative' }}>
+            {/* Tunnusrivi ISOLLA + SUUNNITELMA-pilleri */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <img src={`${req.nextUrl.origin}/icon-192.png`} width={92} height={92} style={{ borderRadius: '21px' }} alt="" />
+              <span style={{ color: 'white', fontSize: '46px', fontWeight: 800, letterSpacing: '-0.01em' }}>Mitä tänään?</span>
+              <span style={{
+                background: 'rgba(107,118,255,.18)', border: '2px solid rgba(107,118,255,.55)',
+                color: '#b6bcff', fontSize: '25px', fontWeight: 800, letterSpacing: '0.14em',
+                padding: '10px 22px', borderRadius: '999px',
+              }}>SUUNNITELMA</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', maxWidth: '740px' }}>
+              <div style={{
+                fontSize: title.length > 40 ? '60px' : '84px', fontWeight: 800, color: 'white',
+                lineHeight: 1.06, letterSpacing: '-0.02em',
+              }}>{title}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {date ? <div style={{ display: 'flex', color: '#a3abff', fontSize: '35px', fontWeight: 700 }}>{date}</div> : null}
+                {location ? <div style={{ display: 'flex', color: 'rgba(255,255,255,.6)', fontSize: '31px', fontWeight: 600 }}>{location}</div> : null}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', color: 'rgba(255,255,255,.4)', fontSize: '27px', fontWeight: 600 }}>{SITE_HOST}</div>
+          </div>
+
+          {/* Aikajanamotiivi oikealla — abstrakti suunnitelma */}
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '360px', padding: '0 70px 0 10px', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>{pallo('1')}{palkki(180)}</div>
+            {viiva}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>{pallo('2')}{palkki(130)}</div>
+            {viiva}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>{pallo('3')}{palkki(160)}</div>
+          </div>
+        </div>
+      ),
+      { width: 1200, height: 630 }
+    )
+  }
+
   return new ImageResponse(
     (
       <div

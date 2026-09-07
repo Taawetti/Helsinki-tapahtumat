@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!rivi) return { title: 'Suunnitelmaa ei löydy', robots: { index: false } }
   const otsikko = rivi.otsikko || 'Suunnitelma'
   const kuvaus = `${paivaTeksti(rivi.paiva)} · ${rivi.askeleet.length} pysähdystä — Mitä tänään`
-  const og = `${BASE}/api/og?brand=SUUNNITELMA&title=${encodeURIComponent(otsikko)}&date=${encodeURIComponent(paivaTeksti(rivi.paiva))}&location=${encodeURIComponent(`${rivi.askeleet.length} pysähdystä`)}`
+  const og = `${BASE}/api/og?malli=suunnitelma&title=${encodeURIComponent(otsikko)}&date=${encodeURIComponent(paivaTeksti(rivi.paiva))}&location=${encodeURIComponent(`${rivi.askeleet.length} pysähdystä`)}`
   return {
     title: otsikko,
     description: kuvaus,
