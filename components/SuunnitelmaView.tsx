@@ -22,8 +22,11 @@ import {
   lueSuunnitelma, lueSuunnitelmaServer, tilaaSuunnitelma, sovitaAjat,
   poistaAskel, siirraAskelta, siirraIndeksiin, asetaOtsikko, asetaPaiva, kuittaaVaroitus,
   asetaAlkuKlo, asetaKasinKlo, tyhjennaSuunnitelma, ROOLI_META,
-  reittiohjeUrl, type VaroitusSyy, type SuunnitelmaAskel, type AskelData,
+  reittiohjeUrl, asetaKulkutapa, roolinKesto, kloTunneiksi, tunnitKloksi,
+  KULKUTAPA_META, type VaroitusSyy, type SuunnitelmaAskel, type AskelData,
 } from '@/lib/suunnitelma'
+import KulkutapaValitsin from '@/components/KulkutapaValitsin'
+import { walkMinutesBetween } from '@/lib/group'
 import type { Event } from '@/lib/types'
 import RestaurantDetailPanel from '@/components/RestaurantDetailPanel'
 import PlaceDetailPanel from '@/components/PlaceDetailPanel'
@@ -52,6 +55,8 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
   const [jakoLinkki, setJakoLinkki] = useState<string | null>(null)
   /** Auki oleva aikavalitsin: askeleen id tai 'alku' (aloitusaika). */
   const [aikaAuki, setAikaAuki] = useState<string | null>(null)
+  /** Auki oleva kulkutapavalitsin: askeleen id, jonka siirtymää muokataan. */
+  const [kulkutapaAuki, setKulkutapaAuki] = useState<string | null>(null)
   /** VARAtila: suppea infolevitys (askeleen id) niille askeleille, joilta
    *  puuttuu täysi lähdeolio (vanha varasto, jaetusta kopioitu pohja). */
   const [infoAuki, setInfoAuki] = useState<string | null>(null)
@@ -131,7 +136,7 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
           // jaetulla sivulla, ja API:n siivoaAskel pudottaisi sen joka tapauksessa.
           askeleet: sovitetut.map((r) => {
             const { data: _pois, ...askel } = r.askel
-            return { ...askel, klo: r.klo, kavelyMin: r.kavelyMin }
+            return { ...askel, klo: r.klo, kavelyMin: r.kavelyMin, kulkutapa: askel.kulkutapa }
           }),
         }),
       })
@@ -211,7 +216,20 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
                 <div key={r.askel.id}>
                   {viivaYlle && <div className="h-0.5 rounded-full my-1" style={{ background: '#6b76ff' }} />}
                   {r.kavelyMin !== undefined && !raahaus && (
-                    <p className="text-white/25 text-[11px] font-bold pl-14 py-0.5">🚶 {r.kavelyMin} min {t('plan.walk')}</p>
+                    /* Siirtymä on napautettava: valitsin hakee oikeat ajat
+                       (kävely/julkiset/pyörä) Digitransitista ja valinta
+                       lasketaan aikatauluun. Pilleripinta + reunus + nuoli
+                       kertovat painettavuuden — pelkkä harmaa teksti ei
+                       kutsunut painamaan (omistaja 7.9.2026). */
+                    <div className="pl-14 py-1">
+                      <button onClick={() => setKulkutapaAuki(r.askel.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white/70 hover:text-white transition-all active:scale-95"
+                        style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.13)' }}>
+                        <span>{KULKUTAPA_META[r.askel.kulkutapa ?? 'kavely'].emoji} {r.kavelyMin} min{' '}
+                        {t(KULKUTAPA_META[r.askel.kulkutapa ?? 'kavely'].riviAvain as Parameters<typeof t>[0])}</span>
+                        <ChevronDown size={12} className="text-white/45" />
+                      </button>
+                    </div>
                   )}
                   <div data-askel-id={r.askel.id}
                     className="flex gap-2 rounded-2xl p-3 items-start"
@@ -349,6 +367,31 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
           onSulje={() => setAikaAuki(null)}
         />
       )}
+
+      {/* Siirtymän kulkutapavalitsin */}
+      {(() => {
+        if (!kulkutapaAuki) return null
+        const i = sovitetut.findIndex((r) => r.askel.id === kulkutapaAuki)
+        const nyt = sovitetut[i]
+        const edellinen = i > 0 ? sovitetut[i - 1] : null
+        if (!nyt || !edellinen || edellinen.askel.lat == null || edellinen.askel.lon == null
+          || nyt.askel.lat == null || nyt.askel.lon == null) return null
+        // Julkisten lähtöhetki: edellisen askeleen loppu (alku + roolin kesto).
+        const lahtoTunti = (kloTunneiksi(edellinen.klo) ?? 18) + roolinKesto(edellinen.askel.rooli)
+        return (
+          <KulkutapaValitsin
+            otsikko={`${edellinen.askel.nimi} → ${nyt.askel.nimi}`}
+            mista={{ lat: edellinen.askel.lat, lon: edellinen.askel.lon }}
+            minne={{ lat: nyt.askel.lat, lon: nyt.askel.lon }}
+            paiva={/^\d{4}-\d{2}-\d{2}$/.test(suunnitelma.paiva) ? suunnitelma.paiva : undefined}
+            lahtoKlo={tunnitKloksi(lahtoTunti)}
+            valittu={nyt.askel.kulkutapa}
+            kavelyArvioMin={walkMinutesBetween(edellinen.askel, nyt.askel)}
+            onValitse={(tapa, min) => { asetaKulkutapa(kulkutapaAuki, tapa, min); setKulkutapaAuki(null) }}
+            onSulje={() => setKulkutapaAuki(null)}
+          />
+        )
+      })()}
 
       {/* Askeleen napautuksesta avautuvat OIKEAT infopaneelit — samat
           komponentit kuin Ravintolat- ja opasnäkymissä. Tapahtuma avataan

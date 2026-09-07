@@ -61,8 +61,11 @@ export default async function JaettuSuunnitelmaSivu({ params }: Props) {
   const rivi = await hae(token)
   if (!rivi) notFound()
 
-  // Kutsukortin tunnusluvut snapshotista.
+  // Kutsukortin tunnusluvut snapshotista. Siirtymäpilleri sanoo "kävelyä"
+  // vain jos KAIKKI siirtymät ovat kävellen — muuten neutraali "siirtymiä"
+  // (28 min julkisilla ei ole 28 min kävelyä).
   const kavelyYht = rivi.askeleet.reduce((sum, a) => sum + (a.kavelyMin ?? 0), 0)
+  const kaikkiKavellen = rivi.askeleet.every((a) => !a.kulkutapa || a.kulkutapa === 'kavely')
   const ajat = rivi.askeleet.map((a) => a.klo).filter(Boolean) as string[]
   const alkaa = rivi.alku_klo || ajat[0]
 
@@ -107,7 +110,7 @@ export default async function JaettuSuunnitelmaSivu({ params }: Props) {
             {kavelyYht > 0 && (
               <span className="px-3 py-1.5 rounded-full text-[12px] font-bold text-white/75"
                 style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.1)' }}>
-                🚶 {kavelyYht} min kävelyä
+                {kaikkiKavellen ? '🚶' : '🧭'} {kavelyYht} min {kaikkiKavellen ? 'kävelyä' : 'siirtymiä'}
               </span>
             )}
             {ajat.length >= 2 && (

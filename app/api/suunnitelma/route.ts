@@ -19,6 +19,7 @@ interface JaettuAskel {
   klo?: string
   kavelyMin?: number
   rooli?: string
+  kulkutapa?: string
   ankkuriISO?: string
   loppuISO?: string
   kuvaus?: string
@@ -55,6 +56,8 @@ function siivoaAskel(raaka: unknown): JaettuAskel | null {
     klo: teksti(a.klo, 5),
     kavelyMin: luku(a.kavelyMin),
     rooli: teksti(a.rooli, 20),
+    // Siirtymän kulkutapa — vain tunnetut arvot.
+    kulkutapa: ['kavely', 'julkinen', 'pyora'].includes(String(a.kulkutapa)) ? String(a.kulkutapa) : undefined,
     ankkuriISO: teksti(a.ankkuriISO, 40),
     loppuISO: teksti(a.loppuISO, 40),
     kuvaus: teksti(a.kuvaus, 5000),

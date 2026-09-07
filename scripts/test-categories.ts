@@ -3661,6 +3661,17 @@ for (const c of kwChecks) {
       { id: 'h2', tyyppi: 'ravintola', nimi: 'Baari', rooli: 'drinkit', aukiolot: 'Mo-Su 16:00-02:00' },
     ],
   }, NYT)
+  // Kulkutapavalinta: Digitransitista haettu kesto (siirtymaMin) korvaa
+  // kävelyarvion — Malmi→keskusta kävellen ~150 min, julkisilla 28 min.
+  const kulkutavalla = sovitaAjat({
+    otsikko: '', paiva: '2026-09-12', alkuKlo: '18:00', askeleet: [
+      { id: 'k1', tyyppi: 'ravintola', nimi: 'Malmin ruokapaikka', rooli: 'ruoka',
+        lat: 60.2505, lon: 25.0150, aukiolot: 'Mo-Su 11:00-22:00' },
+      { id: 'k2', tyyppi: 'ravintola', nimi: 'Keskustan baari', rooli: 'drinkit',
+        lat: 60.1694, lon: 24.9450, aukiolot: 'Mo-Su 16:00-02:00',
+        kulkutapa: 'julkinen', siirtymaMin: 28 },
+    ],
+  }, NYT)
   const alkuMyohemmin = sovitaAjat({
     otsikko: '', paiva: '2026-09-12', alkuKlo: '18:00', askeleet: [
       { id: 'd1', tyyppi: 'ravintola', nimi: 'Ruokapaikka', rooli: 'ruoka',
@@ -3692,6 +3703,8 @@ for (const c of kwChecks) {
       ok: nakyvaKetju[1].klo === '19:00' && !nakyvaKetju[1].varoitus },
     { name: 'auto-ehdotus lasketaan näkyvästä käsiajasta (17:00 → 18:45)',
       ok: nakyvaEhdotus[1].klo === '18:45' },
+    { name: 'kulkutapavalinta korvaa kävelyarvion (julkiset 28 min → 20:13)',
+      ok: kulkutavalla[1].kavelyMin === 28 && kulkutavalla[1].klo === '20:13' },
   ]
   for (const c of sCases) {
     if (c.ok) pass++

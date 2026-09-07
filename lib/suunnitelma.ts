@@ -26,6 +26,13 @@ import { externalUrlFor } from './event-links'
 import { track } from './track'
 
 export type AskelRooli = 'tekeminen' | 'ruoka' | 'drinkit' | 'ohjelma'
+export type Kulkutapa = 'kavely' | 'julkinen' | 'pyora'
+
+export const KULKUTAPA_META: Record<Kulkutapa, { emoji: string; riviAvain: string }> = {
+  kavely: { emoji: '🚶', riviAvain: 'plan.walk' },
+  julkinen: { emoji: '🚇', riviAvain: 'plan.by_julkinen' },
+  pyora: { emoji: '🚴', riviAvain: 'plan.by_pyora' },
+}
 
 export interface SuunnitelmaAskel {
   id: string
@@ -45,6 +52,12 @@ export interface SuunnitelmaAskel {
    *  ratikalla") — varoitus lasketaan yhä mutta UI ei näytä sitä.
    *  Nollautuu kun askeleen aikaa muutetaan. */
   varoitusKuitattu?: boolean
+  /** Siirtymän kulkutapa EDELLISESTÄ askeleesta tähän. Puuttuva = kävely
+   *  omalla arviolla (walkMinutesBetween). Valinta hakee oikeat ajat
+   *  Digitransitista (/api/matka) ja tallettaa keston siirtymaMin-kenttään. */
+  kulkutapa?: Kulkutapa
+  /** Valitun kulkutavan kesto minuutteina (Digitransit-reititys). */
+  siirtymaMin?: number
   /** OSM opening_hours aukiolotarkistuksiin (ravintolat, opaskohteet). */
   aukiolot?: string | null
   rooli: AskelRooli
@@ -186,10 +199,11 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
   let edellinen: SuunnitelmaAskel | null = null
 
   for (const askel of s.askeleet) {
-    // Siirtymä edellisestä: kävely + puskuri (sama kortteli → pieni tauko).
+    // Siirtymä edellisestä: valittu kulkutapa (Digitransit-kesto) tai
+    // kävelyarvio + puskuri (sama kortteli → pieni tauko).
     let kavelyMin: number | undefined
     if (edellinen) {
-      kavelyMin = walkMinutesBetween(edellinen, askel)
+      kavelyMin = askel.siirtymaMin ?? walkMinutesBetween(edellinen, askel)
       kursori += (kavelyMin !== undefined ? kavelyMin / 60 : 0) + TRAVEL_BUFFER_H
     }
 
@@ -402,6 +416,23 @@ export function lisaaPaikka(p: PaikkaTieto & { description?: string | null }, gu
   })
 }
 
+/** Asettaa siirtymän kulkutavan ja keston (tai palauttaa kävelyarvion kun
+ *  tapa on undefined). Nollaa askeleen varoituskuittauksen — aika muuttuu. */
+export function asetaKulkutapa(id: string, tapa: Kulkutapa | undefined, min?: number): void {
+  paivita((s) => ({
+    ...s,
+    askeleet: s.askeleet.map((a) => (a.id === id
+      ? { ...a, kulkutapa: tapa, siirtymaMin: tapa ? min : undefined, varoitusKuitattu: undefined }
+      : a)),
+  }))
+}
+
+/** Siirtymävalinnat ja kuittaukset kuuluvat askelPAREILLE — kun järjestys
+ *  muuttuu tai askel poistuu, parit vaihtuvat eikä vanha valinta päde. */
+function nollaaSiirtymat(askeleet: SuunnitelmaAskel[]): SuunnitelmaAskel[] {
+  return askeleet.map((a) => ({ ...a, kulkutapa: undefined, siirtymaMin: undefined, varoitusKuitattu: undefined }))
+}
+
 /** Piilottaa askeleen varoituksen — käyttäjä tietää paremmin (esim. kulkee
  *  ratikalla, jota sovitin ei mallinna). */
 export function kuittaaVaroitus(id: string): void {
@@ -412,7 +443,7 @@ export function kuittaaVaroitus(id: string): void {
 }
 
 export function poistaAskel(id: string): void {
-  paivita((s) => ({ ...s, askeleet: s.askeleet.filter((a) => a.id !== id) }))
+  paivita((s) => ({ ...s, askeleet: nollaaSiirtymat(s.askeleet.filter((a) => a.id !== id)) }))
 }
 
 /** Siirtää askeleen suoraan annettuun kohtaan — raahausjärjestely. */
@@ -425,7 +456,7 @@ export function siirraIndeksiin(id: string, uusiIndeksi: number): void {
     const uudet = [...s.askeleet]
     const [askel] = uudet.splice(i, 1)
     uudet.splice(kohde, 0, askel)
-    return { ...s, askeleet: uudet }
+    return { ...s, askeleet: nollaaSiirtymat(uudet) }
   })
 }
 
@@ -436,7 +467,7 @@ export function siirraAskelta(id: string, suunta: -1 | 1): void {
     if (i === -1 || j < 0 || j >= s.askeleet.length) return s
     const uudet = [...s.askeleet]
     ;[uudet[i], uudet[j]] = [uudet[j], uudet[i]]
-    return { ...s, askeleet: uudet }
+    return { ...s, askeleet: nollaaSiirtymat(uudet) }
   })
 }
 

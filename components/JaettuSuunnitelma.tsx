@@ -7,7 +7,7 @@ import { useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Navigation, X } from 'lucide-react'
-import { korvaaSuunnitelma, reittiohjeUrl, tunnitKloksi, type SuunnitelmaAskel, type AskelRooli } from '@/lib/suunnitelma'
+import { korvaaSuunnitelma, reittiohjeUrl, tunnitKloksi, KULKUTAPA_META, type SuunnitelmaAskel, type AskelRooli, type Kulkutapa } from '@/lib/suunnitelma'
 import { openIntervalsForDate } from '@/lib/opening-hours'
 import { formatDateRange } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -27,6 +27,7 @@ export interface JaettuAskelDTO {
   klo?: string
   kavelyMin?: number
   rooli?: string
+  kulkutapa?: string
   ankkuriISO?: string
   loppuISO?: string
   kuvaus?: string
@@ -191,6 +192,7 @@ function JaettuAskelPaneeli({ askel, paiva, onClose }: { askel: JaettuAskelDTO |
  *  järjestyksessä) — kortin ② on siis aina kartan ②. Koordinaatiton
  *  askel saa numerottoman pisteen. */
 export function JaettuAskeleet({ askeleet, paiva }: { askeleet: JaettuAskelDTO[]; paiva?: string | null }) {
+  const { t } = useLanguage()
   const [valittu, setValittu] = useState<JaettuAskelDTO | null>(null)
   let pinNro = 0
   const nrot = askeleet.map((a) => (a.lat != null && a.lon != null ? ++pinNro : null))
@@ -204,7 +206,10 @@ export function JaettuAskeleet({ askeleet, paiva }: { askeleet: JaettuAskelDTO[]
             {a.kavelyMin !== undefined && a.kavelyMin !== null && (
               <div className="flex items-center gap-3 py-0.5">
                 <span className="w-7 shrink-0" />
-                <span className="text-white/30 text-[11px] font-bold">🚶 {a.kavelyMin} min kävely</span>
+                <span className="text-white/30 text-[11px] font-bold">
+                  {KULKUTAPA_META[(a.kulkutapa as Kulkutapa) ?? 'kavely']?.emoji ?? '🚶'} {a.kavelyMin} min{' '}
+                  {t(KULKUTAPA_META[(a.kulkutapa as Kulkutapa) ?? 'kavely']?.riviAvain as Parameters<typeof t>[0] ?? 'plan.walk')}
+                </span>
               </div>
             )}
             <div className="flex gap-3 items-stretch">
@@ -313,6 +318,8 @@ export function JaettuToiminnot({ token, otsikko, paiva, alkuKlo, askeleet }: {
         rooli: roolit.includes(a.rooli as AskelRooli) ? (a.rooli as AskelRooli) : 'tekeminen',
         // Koko tilannekuva mukaan: kopioitu suunnitelma säilyttää infokortit,
         // aukiolovaroitukset ja uudelleenjaossa samat tiedot.
+        kulkutapa: ['kavely', 'julkinen', 'pyora'].includes(a.kulkutapa ?? '') ? (a.kulkutapa as Kulkutapa) : undefined,
+        siirtymaMin: a.kulkutapa ? a.kavelyMin : undefined,
         aukiolot: a.aukiolot ?? null,
         loppuISO: a.loppuISO,
         kuvaus: a.kuvaus,

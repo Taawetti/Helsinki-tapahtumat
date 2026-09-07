@@ -985,6 +985,16 @@ const t = {
     'plan.ex_drinks':              'Drinkit baarissa',
     'plan.empty_browse_events':    'Selaa tapahtumia',
     'plan.empty_hint':             'Valitse askel esimerkistä ja ala koota omaasi',
+    'plan.mode_title':             'Miten siirryt tänne?',
+    'plan.by_julkinen':            'julkisilla',
+    'plan.by_pyora':               'pyörällä',
+    'plan.mode_kavely':            'Kävellen',
+    'plan.mode_julkinen':          'Julkisilla',
+    'plan.mode_pyora':             'Pyörällä',
+    'plan.mode_auto':              'Autolla — katso reitti Google Mapsista',
+    'plan.mode_ei_reittia':        'ei reittiä',
+    'plan.mode_virhe':             'Aikoja ei saatu haettua — kävelyarvio on käytössä.',
+    'plan.mode_lahde':             'Ajat: HSL Reittiopas (Digitransit)',
   },
 
   en: {
@@ -1972,6 +1982,16 @@ const t = {
     'plan.ex_drinks':              'Drinks at a bar',
     'plan.empty_browse_events':    'Browse events',
     'plan.empty_hint':             'Pick a step in the example to start your own',
+    'plan.mode_title':             'How will you get here?',
+    'plan.by_julkinen':            'by transit',
+    'plan.by_pyora':               'by bike',
+    'plan.mode_kavely':            'Walking',
+    'plan.mode_julkinen':          'Public transport',
+    'plan.mode_pyora':             'By bike',
+    'plan.mode_auto':              'By car — check the route on Google Maps',
+    'plan.mode_ei_reittia':        'no route',
+    'plan.mode_virhe':             'Could not fetch times — the walking estimate is used.',
+    'plan.mode_lahde':             'Times: HSL Journey Planner (Digitransit)',
   },
 } as const
 
