@@ -298,6 +298,9 @@ export interface Restaurant {
 export type ActivityCategory =
   | 'sauna'
   | 'kirpputori'
+  // Karttavain: pubivisapaikat tulevat data/pubivisa-koordinaatit.json:sta,
+  // ei OSM:stä (kuten kirpputori). Opas /pubivisat käyttää elävää listaa.
+  | 'pubivisa'
   | 'museo'
   | 'nahtavyys'
   | 'galleria'

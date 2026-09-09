@@ -995,6 +995,15 @@ const t = {
     'plan.mode_ei_reittia':        'ei reittiä',
     'plan.mode_virhe':             'Aikoja ei saatu haettua — kävelyarvio on käytössä.',
     'plan.mode_lahde':             'Ajat: HSL Reittiopas (Digitransit)',
+    'map.events_kirpputorit':      'Kirppistapahtumat',
+    'map.events_terassit':         'Terassitapahtumat',
+    'map.events_jamit':            'Jamit & open mic',
+    'map.layer_places':            'Paikat',
+    'map.layer_all_events':        'Kaikki tapahtumat',
+    'map.empty_day_upcoming':      'Ei tapahtumia valittuna päivänä — kartalla tulevat',
+    'map.visa_today':              'Pubivisa tänään',
+    'map.events_pubivisat':        'Visaillat',
+    'map.empty_today_upcoming':    'Ei tapahtumia tänään — kartalla tulevat',
   },
 
   en: {
@@ -1992,6 +2001,15 @@ const t = {
     'plan.mode_ei_reittia':        'no route',
     'plan.mode_virhe':             'Could not fetch times — the walking estimate is used.',
     'plan.mode_lahde':             'Times: HSL Journey Planner (Digitransit)',
+    'map.events_kirpputorit':      'Flea market events',
+    'map.events_terassit':         'Terrace events',
+    'map.events_jamit':            'Jams & open mic',
+    'map.layer_places':            'Places',
+    'map.layer_all_events':        'All events',
+    'map.empty_day_upcoming':      'No events on the selected day — showing upcoming',
+    'map.visa_today':              'Pub quiz today',
+    'map.events_pubivisat':        'Quiz nights',
+    'map.empty_today_upcoming':    'No events today — showing upcoming',
   },
 } as const
 

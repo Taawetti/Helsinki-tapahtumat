@@ -44,10 +44,58 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 // ~250 KB opening_hours library (restaurants/activities/ideas) and the views
 // themselves stay out of the initial bundle.
 const RestaurantsView = dynamic(() => import('@/components/RestaurantsView'), { ssr: false })
+import { SUB_TO_DB } from '@/lib/restaurant-subcats'
 const IdeaView = dynamic(() => import('@/components/IdeaView'), { ssr: false })
 // Uutta Helsingissä välilehtenä — sama sisältö kuin /uutta-helsingissa-sivulla,
 // mutta navigointi pysyy näkyvissä (omistajan linjaus)
 const UuttaView = dynamic(() => import('@/components/UuttaView'), { ssr: false })
+
+// ── KARTAN OSIOKONTEKSTI (omistaja 8.9.2026) ───────────────────────────────
+// Kartta avautuu siihen mitä käyttäjä oli katsomassa: ravintolaosiosta
+// ravintolataso valintoineen, oppaasta oppaan kohteet, tapahtumista
+// aihepiirivalinta. Ennen tätä MapViewn tasot olivat kovakoodatut
+// (events: true, muut false), joten kartta näytti aina tapahtumia.
+//
+// Kartta on VAIN NÄKYMÄ: siemenet menevät yhteen suuntaan, eikä kartalla
+// tehty valinta muuta listaa (omistajan linjaus).
+
+/** MapViewn EVENT_SUBS-avaimet. Listan aihepiiri näytetään kartan omassa
+ *  pillerissä vain jos kartta tuntee sen; muuten kartalle annetaan valmiiksi
+ *  suodatettu tapahtumalista. */
+const KARTAN_RYHMAT: readonly string[] = ['keikka', 'yoelama', 'baari', 'teatteri', 'taide', 'urheilu', 'ilmainen', 'perhe']
+
+/** VIBES-id → kartan ryhmä silloin kun nimet eroavat. */
+const VIBE_KARTAN_RYHMAKSI: Record<string, string> = { lapset: 'perhe' }
+
+/** RestaurantsView'n välilehti → kartan REST_SUBS-avain (sama kuin
+ *  TYPE_TABS.dbType, RestaurantsView.tsx:36-41). */
+const REST_VALILEHTI_KARTALLE: Record<string, string> = {
+  ruokapaikat: 'ravintola', kahvilat: 'kahvila', baarit: 'baari', yokerhot: 'yokerho',
+}
+
+/** Nämä eivät ole alaluokkia vaan näkymiä (Suosituimmat-landing / selaa
+ *  kaikki), joten niistä ei tule kartalle alasuodatinta. */
+const REST_EI_ALALUOKKA: readonly string[] = ['all', 'kaikki', 'suosituimmat']
+
+/** Opas → kartan taso ja kategoria. Saunat, kirpputorit ja museot ovat
+ *  kartalla samaa dataa kuin oppaassa (lib/guide-data → /api/activities +
+ *  data/secondhand.json). Terassit ovat ravintoladatan kattoterasseja
+ *  (9 paikkaa, subCategories ['katto'], type 'baari').
+ *  Pubivisoista ja jamit-oppaasta EI ole karttavastinetta: visapaikoille ei
+ *  ole kerrosta ja jamit on pelkkiä tapahtumia — niistä kartta avautuu
+ *  tapahtumatasolle kuten ennenkin. */
+const OPAS_KARTALLE: Record<string, { layers: { events: boolean; restaurants: boolean; activities: boolean }; actCat?: string; restType?: string; restCuisine?: string }> = {
+  saunat:            { layers: { events: false, restaurants: false, activities: true }, actCat: 'sauna' },
+  kirpputorit:       { layers: { events: false, restaurants: false, activities: true }, actCat: 'kirpputori' },
+  'ilmaiset-museot': { layers: { events: false, restaurants: false, activities: true }, actCat: 'museo' },
+  terassit:          { layers: { events: false, restaurants: true,  activities: false }, restType: 'baari', restCuisine: 'katto' },
+  // Pubivisapaikat ovat kartalla omana opaskategoriana (MapView PUBIVISAT,
+  // data/pubivisa-koordinaatit.json) — elävällä listalla ei ole koordinaatteja.
+  pubivisat:         { layers: { events: false, restaurants: false, activities: true }, actCat: 'pubivisa' },
+  // Jamit on pelkkiä TAPAHTUMIA (oppaassa ei ole paikkoja): kartalle jää
+  // tapahtumataso, ja kartta hakee jamit-oppaan tapahtumat itse (opasSlug).
+  jamit:             { layers: { events: true,  restaurants: false, activities: false } },
+}
 
 interface EmptyStateProps {
   keyword: string
@@ -447,6 +495,14 @@ export default function HomeClient({
     window.scrollTo(0, 0)
   }, [])
 
+
+  // Ravintolaosion valinta talteen, jotta kartta voi avautua samaan tilaan.
+  // RestaurantsView raportoi tämän ylös (onSuodatinMuutos) — tila on siellä
+  // sisäistä, eikä sitä nosteta kokonaan tänne turhaan.
+  // Oppaan tapahtuma-id:t kartalle. GuideInlineView raportoi ne kun lista on
+  // ladattu; kartta näyttää täsmälleen samat tapahtumat (id-liitos), koska
+  // pelkkä sanaportti osuu liian laajasti (terassiportti myös "puisto"/"ranta").
+  const [restSuodatin, setRestSuodatin] = useState<{ restType: string; subCat: string }>({ restType: 'ruokapaikat', subCat: 'all' })
 
   const [jumpToRestaurant, setJumpToRestaurant] = useState<{ id: string } | undefined>()
 
@@ -986,6 +1042,75 @@ export default function HomeClient({
     if (!VIBES.some((v) => v.id === koCat)) return []
     return koriJarjestys(baseEvents.filter((e) => getEventVibes(e).includes(koCat)))
   }, [koCat, baseEvents, seuraavaksiJako])
+
+  // ── Kartan osiokonteksti ────────────────────────────────────────────────
+  // pageBack kertoo mistä osiosta kartta avattiin (openOverlayMode).
+  // Syvälinkki (mapTarget) osoittaa yhteen pisteeseen ja sytyttää oman
+  // tasonsa MapViewssa, joten se ohittaa osiokontekstin.
+  const karttaKonteksti = useMemo((): {
+    initialLayers?: { events: boolean; restaurants: boolean; activities: boolean }
+    initialEventGroup?: string | null
+    initialRestType?: string | null
+    initialRestCuisine?: string | null
+    initialActCat?: string | null
+  } => {
+    if (mapTarget) return {}
+
+    if (pageBack === 'restaurants') {
+      return {
+        initialLayers: { events: false, restaurants: true, activities: false },
+        initialRestType: REST_VALILEHTI_KARTALLE[restSuodatin.restType] ?? 'ravintola',
+        // Listan UI-avain → kartan/datan avain (olut→craft_beer jne.), muuten
+        // kartan pilleri ja suodatin eivät osuisi mihinkään.
+        initialRestCuisine: REST_EI_ALALUOKKA.includes(restSuodatin.subCat)
+          ? null
+          : (SUB_TO_DB[restSuodatin.subCat] ?? restSuodatin.subCat),
+      }
+    }
+
+    // Opas avautuu discoverin sisällä, eikä openOverlayMode tyhjennä sitä —
+    // siksi vaaditaan myös että kartta avattiin discoverista, jottei vanha
+    // opasvalinta ohjaa karttaa Uutta-osiosta tultaessa.
+    const opas = pageBack === 'discover' && guideView ? OPAS_KARTALLE[guideView] : undefined
+    if (opas) {
+      return {
+        initialLayers: opas.layers,
+        initialActCat: opas.actCat ?? null,
+        initialRestType: opas.restType ?? null,
+        initialRestCuisine: opas.restCuisine ?? null,
+      }
+    }
+
+    // Tapahtumaosio: näytetään listan aihepiiri kartan omassa pillerissä,
+    // jotta käyttäjä näkee millä suodattimella katsoo ja voi vaihtaa sitä.
+    // activeVibes tulee laskeutumissivuilta (esim. /yokerhot → yoelama),
+    // koCat käyttäjän omasta valinnasta. Hintasuodatin 'free' vastaa kartan
+    // ilmainen-ryhmää.
+    const valinta = (koCat && koCat !== 'kaikki' && koCat !== 'seuraavaksi' ? koCat : null)
+      ?? activeVibes[0]
+      ?? (priceFilter === 'free' ? 'ilmainen' : null)
+    const ryhma = valinta ? (VIBE_KARTAN_RYHMAKSI[valinta] ?? valinta) : null
+    return ryhma && KARTAN_RYHMAT.includes(ryhma) ? { initialEventGroup: ryhma } : {}
+  }, [mapTarget, pageBack, guideView, restSuodatin, koCat, activeVibes, priceFilter])
+
+  // Kartalle menevä tapahtumadata. Kun listan aihepiiriä EI voi ilmaista
+  // kartan suodattimella (standup, museo, työpaja, festivaali, underground,
+  // "Seuraavaksi"), kartta saa valmiiksi suodatetun listan — muuten se
+  // näyttäisi kaikki tapahtumat vaikka lista näyttää yhtä aihepiiriä.
+  // Kartan tuntemilla ryhmillä annetaan suodattamaton lista ja kartta
+  // suodattaa itse, jotta käyttäjä voi vaihtaa ryhmää kartalla ilman että
+  // pinnit loppuvat.
+  // Tapahtumatason nimike kun se on rajattu oppaan tapahtumiin.
+  /** Mistä oppaasta kartalle tullaan — kartta hakee aiheen sisällön itse. */
+  const karttaOpasSlug = !mapTarget && pageBack === 'discover' && guideView ? guideView : undefined
+
+  const karttaTapahtumat = useMemo(() => {
+    if (mapTarget) return filteredEvents
+    if (!koCat) return filteredEvents
+    const ryhma = VIBE_KARTAN_RYHMAKSI[koCat] ?? koCat
+    if (KARTAN_RYHMAT.includes(ryhma)) return filteredEvents
+    return koCatEvents
+  }, [mapTarget, koCat, filteredEvents, koCatEvents])
 
   // Tyhjä kategorialista → "Ei tapahtumia valitulla päivällä" + TULEVAT
   // kuukauden ikkunasta (omistaja 6.9.2026: tyhjä sivu ei kerro mitään —
@@ -1905,15 +2030,23 @@ export default function HomeClient({
                 listaan pääsee yhdellä napautuksella, ei vain ‹-napilla. */}
             <ListMapToggle view="map" onList={goBack} />
           </div>
-          <MapView events={filteredEvents} eventsLoading={loading || fetchingFull} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)}
+          <MapView events={karttaTapahtumat} eventsLoading={loading || fetchingFull} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)} {...karttaKonteksti} opasSlug={karttaOpasSlug}
             initialDateFilter={
               // Listan päivävalinta tulee mukaan karttaan: kartta näyttää
-              // samat tapahtumat. MapViewn pillerit eivät tunne tonight/
-              // weekend/range — lähin vastine valitaan. Syvälinkki
-              // (mapTarget) avaa kuukauden, jotta kohdepinni varmasti näkyy.
+              // samat tapahtumat. Kartta tuntee nyt myös tonight ja weekend
+              // (8.9.2026), joten ne välitetään sellaisenaan — aiemmin ne
+              // litistyivät today/week-ikkunoihin ja illan rajaus katosi.
+              // 'range' ja 'search' eivät ole kartan käsitteitä → custom /
+              // kuukausi. Syvälinkki (mapTarget) avaa kuukauden, jotta
+              // kohdepinni varmasti näkyy.
               mapTarget ? 'month'
+              // Jamit-opas näyttää 30 päivän ikkunan, joten kartalle sama —
+              // muuten listan "Tänään" rajaisi kartan lähes tyhjäksi.
+              : guideView === 'jamit' ? 'month'
+              : dateFilter === 'tonight' ? 'tonight'
               : dateFilter === 'tomorrow' ? 'tomorrow'
-              : dateFilter === 'week' || dateFilter === 'weekend' ? 'week'
+              : dateFilter === 'weekend' ? 'weekend'
+              : dateFilter === 'week' ? 'week'
               : dateFilter === 'month' ? 'month'
               : dateFilter === 'custom' || dateFilter === 'range' ? 'custom'
               : 'today'
@@ -1923,7 +2056,7 @@ export default function HomeClient({
       )}
 
       {/* ══ RESTAURANTS ══ */}
-      {mode === 'restaurants' && <RestaurantsView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'restaurant')} jumpToId={jumpToRestaurant?.id} jumpToKey={jumpToRestaurant} />}
+      {mode === 'restaurants' && <RestaurantsView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'restaurant')} jumpToId={jumpToRestaurant?.id} jumpToKey={jumpToRestaurant} onSuodatinMuutos={setRestSuodatin} alkuValinta={restSuodatin} />}
 
       {/* ══ ACTIVITIES ══ */}
       {/* ══ UUTTA HELSINGISSÄ ══ */}

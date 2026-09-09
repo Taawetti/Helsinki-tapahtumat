@@ -33,6 +33,12 @@ export interface GuideEvent {
   isFree: boolean
   price?: string | null
   image?: string | null
+  /** Sijainti. Haku pyytää jo `include=location`, joten koordinaatit ovat
+   *  saatavilla — ne pudotettiin ennen, minkä vuoksi oppaan tapahtumia ei
+   *  voinut näyttää kartalla lainkaan (omistaja 9.9.2026). */
+  street?: string
+  lat?: number
+  lon?: number
 }
 
 interface LEEvent {
@@ -41,7 +47,7 @@ interface LEEvent {
   short_description?: { fi?: string; en?: string }
   start_time: string
   images?: { url: string }[]
-  location?: { name?: { fi?: string; en?: string } }
+  location?: { name?: { fi?: string; en?: string }; street_address?: { fi?: string; en?: string }; position?: { coordinates?: number[] } }
   offers?: { is_free: boolean; price?: { fi?: string } }[]
   keywords?: { name: { fi?: string; en?: string } }[]
 }
@@ -98,6 +104,10 @@ async function fetchGuideEvents(opts: {
         title: decodeHtmlEntities(raw.name?.fi || raw.name?.en || 'Tapahtuma'),
         startTime: raw.start_time,
         venue: raw.location?.name?.fi || raw.location?.name?.en || '',
+        street: raw.location?.street_address?.fi || raw.location?.street_address?.en || '',
+        // LinkedEvents antaa GeoJSON-järjestyksessä [lon, lat].
+        lat: raw.location?.position?.coordinates?.[1],
+        lon: raw.location?.position?.coordinates?.[0],
         isFree,
         ...(opts.withMedia
           ? { price: isFree ? null : (offer?.price?.fi || null), image: raw.images?.[0]?.url || null }

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { MapPin, Globe, Phone, Navigation, Map as MapIcon, X, Clock } from 'lucide-react'
 import type { Restaurant } from '@/lib/types'
 import type { TranslationKey } from '@/lib/i18n'
+import { SUB_TO_DB } from '@/lib/restaurant-subcats'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { isOpenNow, getTodayHours, helsinkiNow, openIntervalsForDate } from '@/lib/opening-hours'
 import { poimiPoydat, aukioloTieto, type PoimintaSlot } from '@/lib/poyta-poiminnat'
@@ -213,11 +214,7 @@ function formatOpeningHoursHuman(raw: string, t: (key: TranslationKey) => string
 }
 
 // Sub-category IDs differ between UI and Supabase for some baarit keys
-const SUB_TO_DB: Record<string, string> = {
-  olut: 'craft_beer',
-  viini: 'wine',
-  urheilu: 'sports',
-}
+
 
 // Name-based overrides that are always definitive regardless of subCategories
 const NAME_OVERRIDES: Record<string, RegExp> = {
@@ -1101,16 +1098,32 @@ function SortFilterRow({ open, nearby, byReviews, minRating, count, onOpen, onNe
 
 // ── Main view ─────────────────────────────────────────────
 
-export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey }: {
+export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey, onSuodatinMuutos, alkuValinta }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
   jumpToId?: string
   jumpToKey?: object
+  /** Kertoo valinnan ylös, jotta kartta voi avautua samaan tilaan (osion
+   *  konteksti, omistaja 8.9.2026). Tämä on VAIN raportointi ylöspäin —
+   *  kartalla tehty muutos ei valu takaisin tänne. */
+  onSuodatinMuutos?: (valinta: { restType: RestType; subCat: string }) => void
+  /** Valinta johon näkymä palautuu. Tarpeen koska tämä komponentti
+   *  PURKAUTUU kun kartta tai suosikit avataan (HomeClient renderöi sen
+   *  ehdollisesti) — ilman siementä paluu kartalta nollasi välilehden
+   *  takaisin Ruokapaikkoihin. */
+  alkuValinta?: { restType: string; subCat: string }
 }) {
   const { t, lang } = useLanguage()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
-  const [restType, setRestType] = useState<RestType>('ruokapaikat')
-  const [subCat, setSubCat] = useState<string>('all')
+  const [restType, setRestType] = useState<RestType>(
+    (TYPE_TABS.some((v) => v.id === alkuValinta?.restType) ? alkuValinta!.restType : 'ruokapaikat') as RestType,
+  )
+  const [subCat, setSubCat] = useState<string>(alkuValinta?.subCat ?? 'all')
+  const suodatinIlmoitus = useRef(onSuodatinMuutos)
+  suodatinIlmoitus.current = onSuodatinMuutos
+  useEffect(() => {
+    suodatinIlmoitus.current?.({ restType, subCat })
+  }, [restType, subCat])
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterNearby, setFilterNearby] = useState(false)
   const [userPos, setUserPos] = useState<[number, number] | null>(null)

@@ -87,6 +87,7 @@ import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor, onMaksunkeruuUrl } from '../lib/event-links'
 import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, type Suunnitelma } from '../lib/suunnitelma'
+import { osuuPaivaan, viikonlopunPaivat, paivaPlus } from '../lib/map-date-filter'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
 import venueSiteFile from '../data/venue-sites.json'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
@@ -3727,6 +3728,44 @@ for (const c of kwChecks) {
   for (const c of rCases) {
     if (c.ok) pass++
     else failures.push(`✗ suunnitelma: ${c.name}`)
+  }
+}
+
+// ── KARTAN PÄIVÄSUODATIN (lib/map-date-filter): kartalla on samat
+// päivävalinnat kuin listan päivärivillä (omistaja 8.9.2026). Viikonlopussa
+// on reunatapaus: SUNNUNTAINA viikonloppu on edellinen lauantai + tänään.
+{
+  // Helsinki-ajan ISO-leimat: kesäaika +03:00
+  const klo = (paiva: string, h: number) => `${paiva}T${String(h).padStart(2, '0')}:00:00+03:00`
+  const dCases: { name: string; ok: boolean }[] = [
+    // Viikonlopun rajat joka viikonpäivälle (2026-09-08 = tiistai)
+    { name: 'viikonloppu: tiistaista tulevaan la–su', ok: viikonlopunPaivat('2026-09-08').join() === '2026-09-12,2026-09-13' },
+    { name: 'viikonloppu: perjantaista huomiseen la–su', ok: viikonlopunPaivat('2026-09-11').join() === '2026-09-12,2026-09-13' },
+    { name: 'viikonloppu: lauantaina tänään + huomenna', ok: viikonlopunPaivat('2026-09-12').join() === '2026-09-12,2026-09-13' },
+    { name: 'viikonloppu: SUNNUNTAINA eilinen la + tänään (ei seuraava viikko)',
+      ok: viikonlopunPaivat('2026-09-13').join() === '2026-09-12,2026-09-13' },
+    { name: 'viikonloppu: maanantaina seuraava la–su', ok: viikonlopunPaivat('2026-09-14').join() === '2026-09-19,2026-09-20' },
+    // Illan rajaus klo 17 kuten listalla
+    { name: 'illalla: klo 19 tänään osuu', ok: osuuPaivaan(klo('2026-09-08', 19), 'tonight', '', '2026-09-08') === true },
+    { name: 'illalla: klo 17 tänään osuu (raja mukaan)', ok: osuuPaivaan(klo('2026-09-08', 17), 'tonight', '', '2026-09-08') === true },
+    { name: 'illalla: klo 12 tänään EI osu', ok: osuuPaivaan(klo('2026-09-08', 12), 'tonight', '', '2026-09-08') === false },
+    { name: 'illalla: huomisen ilta EI osu', ok: osuuPaivaan(klo('2026-09-09', 20), 'tonight', '', '2026-09-08') === false },
+    // Muut valinnat
+    { name: 'tänään: vain tämä päivä', ok: osuuPaivaan(klo('2026-09-08', 9), 'today', '', '2026-09-08') === true
+      && osuuPaivaan(klo('2026-09-09', 9), 'today', '', '2026-09-08') === false },
+    { name: 'huomenna: vain seuraava päivä', ok: osuuPaivaan(klo('2026-09-09', 9), 'tomorrow', '', '2026-09-08') === true
+      && osuuPaivaan(klo('2026-09-08', 9), 'tomorrow', '', '2026-09-08') === false },
+    { name: 'viikko: 7 päivän ikkuna, 8. päivä ei osu', ok: osuuPaivaan(klo('2026-09-14', 9), 'week', '', '2026-09-08') === true
+      && osuuPaivaan(klo('2026-09-15', 9), 'week', '', '2026-09-08') === false },
+    { name: 'viikonloppu-suodatin: lauantain tapahtuma osuu tiistaina',
+      ok: osuuPaivaan(klo('2026-09-12', 20), 'weekend', '', '2026-09-08') === true },
+    { name: 'viikonloppu-suodatin: perjantai EI osu', ok: osuuPaivaan(klo('2026-09-11', 20), 'weekend', '', '2026-09-08') === false },
+    { name: 'oma päivä: tyhjä valinta päästää kaiken läpi', ok: osuuPaivaan(klo('2026-10-01', 9), 'custom', '', '2026-09-08') === true },
+    { name: 'paivaPlus DST-turvallinen kuukauden yli', ok: paivaPlus('2026-09-30', 1) === '2026-10-01' },
+  ]
+  for (const c of dCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ karttapäivä: ${c.name}`)
   }
 }
 

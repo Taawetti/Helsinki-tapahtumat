@@ -58,6 +58,8 @@ function osmDescription(tags: Record<string, string>, cat: ActivityCategory): st
     // kirpputori ei tule OSM:stä vaan data/secondhand.json:sta (MapView
     // yhdistää sen karttakerrokseen) — tyyppi vaatii silti rivin tähän.
     kirpputori: 'Kirpputori',
+    // pubivisa: sama tilanne, lähde data/pubivisa-koordinaatit.json
+    pubivisa: 'Pubivisa',
     sauna:      'Julkinen sauna',
     museo:      'Museo',
     nahtavyys:  'Nähtävyys',

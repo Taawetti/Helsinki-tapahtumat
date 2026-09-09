@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Event, Restaurant, Activity, type ActivityCategory } from '@/lib/types'
 import { getBasemap } from '@/lib/basemap'
 import { isOutsideTargetAudience, onPerheTapahtuma, onSenioriTapahtuma } from '@/lib/audience'
 import { getEventVibes } from '@/lib/event-classify'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
-import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
+import { helsinkiDateOf, helsinkiISO, helsinkiToday } from '@/lib/helsinki-time'
+import { osuuPaivaan, paivaPlus, type DateFilterKey } from '@/lib/map-date-filter'
 
 // Static imports are safe here: MapView is always loaded with { ssr: false }.
 // The webpack alias in next.config.ts forces both this ESM import and the CJS
@@ -16,6 +17,7 @@ import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import * as L from 'leaflet'
 import 'leaflet.markercluster'
 import secondhandData from '@/data/secondhand.json'
+import pubivisaKoordinaatit from '@/data/pubivisa-koordinaatit.json'
 
 // ── Kirpputorit karttakerrokseen ──────────────────────────
 // /api/activities (OSM) ei tunne kirpputoreja, mutta /kirpputorit-oppaan
@@ -38,15 +40,59 @@ const KIRPPUTORIT: Activity[] = ((secondhandData as { shops?: { name?: string; l
     image: null,
   }))
 
+/** Osoiteavain kuten scripts/geokoodaa-pubivisat.ts: "Mäkelänkatu 45, 00550
+ *  Helsinki" → "mäkelänkatu 45". Elävän visalistan rivit liitetään tällä
+ *  geokoodattuihin sijainteihin. */
+function katuAvain(osoite: string): string {
+  return osoite.toLowerCase().split(',')[0].trim().replace(/\s+/g, ' ')
+}
+
+const VISA_SIJAINNIT = new Map<string, { lat: number; lon: number; name: string }>(
+  Object.entries(pubivisaKoordinaatit as Record<string, { lat?: number; lon?: number; name?: string }>)
+    .filter(([, v]) => typeof v.lat === 'number' && typeof v.lon === 'number')
+    .map(([k, v]) => [k, { lat: v.lat!, lon: v.lon!, name: v.name ?? '' }]),
+)
+
+/** Oppaan tapahtumarivi (lib/guide-data GuideEvent) — kantaa koordinaattinsa. */
+type OpasTapahtumaRivi = {
+  id: string; title: string; startTime: string; venue: string
+  isFree?: boolean; price?: string | null; image?: string | null
+  street?: string; lat?: number; lon?: number
+}
+
+/** Oppaan rivi kartan Event-muotoon. Sama muunnos kuin oppaan korteissa
+ *  (GuideInlineView toEvent), tässä omana kopiona jottei koko opasnäkymää
+ *  tarvitse importata karttaan. */
+function opasRiviTapahtumaksi(e: OpasTapahtumaRivi): Event {
+  return {
+    id: e.id,
+    title: e.title,
+    shortDescription: '',
+    description: '',
+    startTime: e.startTime,
+    endTime: null,
+    location: e.venue || e.lat != null
+      ? { name: e.venue, streetAddress: e.street ?? '', city: 'Helsinki', lat: e.lat, lon: e.lon }
+      : null,
+    image: e.image ?? null,
+    isFree: e.isFree ?? false,
+    price: e.price ?? null,
+    ticketUrl: null,
+    infoUrl: null,
+    categories: [],
+    source: 'guide',
+  } as Event
+}
+
+/** Visarivi oppaan datasta: viikoittain toistuva visailta. */
+type VisaRivi = { name: string; address: string; weekday: number; hour: number; minute: number }
+
 // ── Types ─────────────────────────────────────────────────
 
-export interface MapTarget {
-  lat: number
-  lon: number
-  name: string
-  zoom?: number
-  type?: 'event' | 'restaurant' | 'activity'
-}
+/** Syvälinkki yhteen pisteeseen: kartta lentää tähän ja avaa nimipopupin. */
+type MapTarget = { lat: number; lon: number; name: string; zoom?: number; type?: 'event' | 'restaurant' | 'activity' }
+
+type Layers = { events: boolean; restaurants: boolean; activities: boolean }
 
 interface Props {
   events: Event[]
@@ -58,14 +104,33 @@ interface Props {
   mapTarget?: MapTarget | null
   onTargetConsumed?: () => void
   /** Discover-näkymän Lista⇄Kartta-kytkin tuo listan päiväsuodattimen
-      mukanaan — kartta näyttää SAMAT tapahtumat kuin lista, ei omaa
-      oletusvalintaansa. Koskee vain mountausta (kartta umounttuu
-      moodivaihdoksissa, joten alkuarvo on aina tuore). */
+   *  mukanaan — kartta näyttää SAMAT tapahtumat kuin lista, ei omaa
+   *  oletusvalintaansa. Koskee vain mountausta (kartta unmounttuu
+   *  moodivaihdoksissa, joten alkuarvo on aina tuore). */
   initialDateFilter?: DateFilterKey
   initialCustomDate?: string
+  /** OSION KONTEKSTI: kartta avautuu siihen mitä käyttäjä oli katsomassa —
+   *  ravintolaosiosta ravintolataso valintoineen, oppaasta oppaan kohteet,
+   *  tapahtumista aihepiirivalinta (omistaja 8.9.2026). Yksisuuntainen
+   *  siemen: kartalla tehty muutos ei valu takaisin listaan. */
+  initialLayers?: Partial<Layers>
+  initialEventGroup?: string | null
+  initialRestType?: string | null
+  initialRestCuisine?: string | null
+  initialActCat?: string | null
+  /** Mistä oppaasta kartalle tultiin. Kartta hakee aiheen sisällön itse
+   *  (/api/guides/[slug]), joten sama toimii myös kun aihe valitaan kartan
+   *  Opas-valikosta ilman että opasta on avattu (omistaja 9.9.2026). */
+  opasSlug?: string
 }
 
-type Layers = { events: boolean; restaurants: boolean; activities: boolean }
+/** Opasaiheet joilla on aikaan sidottua sisältöä. Avain = kartan
+ *  kategoria-avain (ACT_SUBS), arvo = oppaan slug ja onko aiheella myös
+ *  paikkanäkymä (vain kirpputoreilla). */
+const AIKA_AIHEET: Record<string, { slug: string; pari: boolean }> = {
+  kirpputori: { slug: 'kirpputorit', pari: true },
+  pubivisa:   { slug: 'pubivisat',   pari: false },
+}
 
 // ── Constants ─────────────────────────────────────────────
 
@@ -93,17 +158,13 @@ function fmtDist(km: number): string {
 
 // Väri + emoji pinnin PÄÄRYHMÄSTÄ (getEventGroup — keskitetty luokitin).
 // Ilmainen värittyy vihreäksi vain jos mikään sisältöryhmä ei osu ensin.
+// Haetaan EVENT_SUBSista, jotta pinni ja valikkorivi eivät voi ajautua eri
+// väreihin — ennen tässä oli oma switch, joka jäi jälkeen kun kategorioita
+// lisättiin (uusi kategoria näkyi valikossa mutta pinni oli 📍 muu).
 function eventColor(event: Event): { color: string; emoji: string } {
-  switch (getEventGroup(event)) {
-    case 'keikka':   return { color: '#a855f7', emoji: '🎸' }
-    case 'yoelama':  return { color: '#ec4899', emoji: '🌙' }
-    case 'baari':    return { color: '#f59e0b', emoji: '🍺' }
-    case 'teatteri': return { color: '#ef4444', emoji: '🎭' }
-    case 'taide':    return { color: '#06b6d4', emoji: '🎨' }
-    case 'urheilu':  return { color: '#3b82f6', emoji: '⚽' }
-    case 'ilmainen': return { color: '#10b981', emoji: '🎁' }
-    default:         return { color: '#0072C6', emoji: '📍' }
-  }
+  const ryhma = getEventGroup(event)
+  const sub = EVENT_SUBS.find((s) => s.key === ryhma)
+  return sub ? { color: sub.color, emoji: sub.emoji } : { color: '#0072C6', emoji: '📍' }
 }
 
 // Ravintolapinnien pohjaväri = design-tokenin sininen #5f96ff; tyyppi näkyy emojista
@@ -181,17 +242,29 @@ function makePinIcon(color: string, emoji: string, round = false) {
 
 // ── Sub-filter definitions ────────────────────────────────
 
+// Kartan kategoriat = LISTAN aihepiirit (lib/types VIBES) + ilmainen.
+// Avaimet, emojit, käännösavaimet ja järjestys ovat samat kuin
+// aihepiiripaneelissa (VibePanel: Ilmaiseksi ensin, sitten VIBES) — omistaja
+// 8.9.2026: kartalla pitää olla samat vaihtoehdot kuin listapuolella.
+// Avain on VIBES-id, joten osuuRyhmaan (getEventVibes) suodattaa ne kaikki
+// ilman erikoistapauksia; 'lapset' on ainoa poikkeus, koska sillä on oma
+// kohderyhmäkäsittely (onPerheTapahtuma).
 const EVENT_SUBS = [
-  { key: 'keikka',   emoji: '🎸', label: 'Keikka',      color: '#a855f7', tKey: 'legend.concert' as const },
-  { key: 'yoelama',  emoji: '🌙', label: 'Yöelämä',     color: '#ec4899', tKey: 'legend.nightlife' as const },
-  { key: 'baari',    emoji: '🍺', label: 'Baari',        color: '#f59e0b', tKey: 'legend.bar' as const },
-  { key: 'teatteri', emoji: '🎭', label: 'Teatteri',     color: '#ef4444', tKey: 'legend.theatre' as const },
-  { key: 'taide',    emoji: '🎨', label: 'Taide',        color: '#06b6d4', tKey: 'legend.art' as const },
-  { key: 'urheilu',  emoji: '⚽', label: 'Urheilu',      color: '#3b82f6', tKey: 'legend.sport' as const },
-  { key: 'ilmainen', emoji: '🎁', label: 'Ilmainen',     color: '#10b981', tKey: 'legend.free' as const },
-  // Perhetapahtumat näkyvät VAIN tästä valittuna — oletusnäkymä on 18–40-
-  // kohderyhmän (omistaja 4.9.2026: vauvatreffit kartalla laski profiilia).
-  { key: 'perhe',    emoji: '👨‍👩‍👧', label: 'Lapset & perhe', color: '#f59e0b', tKey: 'map.family' as const },
+  { key: 'ilmainen',    emoji: '🎁', label: 'Ilmaiseksi',            color: '#10b981', tKey: 'legend.free' as const },
+  { key: 'keikka',      emoji: '🎸', label: 'Keikka',                color: '#a855f7', tKey: 'vibe.keikka' as const },
+  { key: 'yoelama',     emoji: '🌙', label: 'Yöelämä',               color: '#ec4899', tKey: 'vibe.yoelama' as const },
+  { key: 'baari',       emoji: '🍺', label: 'Baari / Pub',           color: '#f59e0b', tKey: 'vibe.baari' as const },
+  { key: 'urheilu',     emoji: '⚽', label: 'Urheilu',               color: '#3b82f6', tKey: 'vibe.urheilu' as const },
+  { key: 'standup',     emoji: '😂', label: 'Stand up',              color: '#fb7185', tKey: 'vibe.standup' as const },
+  { key: 'museo',       emoji: '🏛', label: 'Museo',                  color: '#0ea5e9', tKey: 'vibe.museo' as const },
+  // Lapsiperhetapahtumat näkyvät VAIN tästä valittuna — oletusnäkymä on
+  // 18–40-kohderyhmän (omistaja 4.9.2026: vauvatreffit kartalla laski profiilia).
+  { key: 'lapset',      emoji: '👨‍👩‍👧', label: 'Lapset & Perhe',   color: '#fb923c', tKey: 'vibe.lapset' as const },
+  { key: 'tyopaja',     emoji: '🛠', label: 'Harrastukset & Kurssit', color: '#14b8a6', tKey: 'vibe.tyopaja' as const },
+  { key: 'teatteri',    emoji: '🎭', label: 'Teatteri & Tanssi',      color: '#ef4444', tKey: 'vibe.teatteri' as const },
+  { key: 'taide',       emoji: '🎨', label: 'Taide',                  color: '#06b6d4', tKey: 'vibe.taide' as const },
+  { key: 'festivaali',  emoji: '🎪', label: 'Festivaali',             color: '#d946ef', tKey: 'vibe.festivaali' as const },
+  { key: 'underground', emoji: '🔦', label: 'Underground',            color: '#7e22ce', tKey: 'vibe.underground' as const },
 ] as const
 
 // Tyyppinapit vastaavat Ravintolat-välilehden tyyppejä (design 6-kartta.png)
@@ -204,6 +277,9 @@ const REST_SUBS = [
 ] as const
 
 const REST_CUISINE_SUBS = [
+  // Michelin on listan kategoria (RestaurantsView SUB_CATS) — kartalta
+  // puuttui. Ei ole cuisineCategory vaan oma lippujoukko, ks. suodatin alla.
+  { key: 'michelin',      emoji: '🏵️', tKey: 'restaurants.cat_michelin' as const },
   { key: 'awarded',       emoji: '🏆', label: 'Palkitut',       color: '#f59e0b', tKey: 'cuisine.awarded' as const },
   { key: 'nordisk',       emoji: '🇫🇮', label: 'Pohjoismainen', color: '#3b82f6', tKey: 'cuisine.nordisk' as const },
   { key: 'japanese',      emoji: '🍣', label: 'Japanilainen',   color: '#ef4444', tKey: 'cuisine.japanese' as const },
@@ -239,6 +315,11 @@ const REST_TYPE_ALASUBIT: Record<string, readonly { key: string; emoji: string; 
     { key: 'wine',       emoji: '🍷', tKey: 'restaurants.sub_viini' },
     { key: 'sports',     emoji: '🏟', tKey: 'restaurants.sub_urheilu' },
     { key: 'karaoke',    emoji: '🎤', tKey: 'restaurants.sub_karaoke' },
+    // Kattoterassit ovat dataltaan baareja (9 paikkaa, subCategories ['katto']),
+    // joten rivi kuuluu tänne — ilman sitä /terassit-opasta ei voi kääntää
+    // kartan suodattimeksi. Nimike on kattoterassi eikä sub_katto
+    // ("Kattoklubit"), joka on yökerhojen sanasto.
+    { key: 'katto',      emoji: '🌇', tKey: 'guides.kicker_rooftop' },
   ],
   yokerho: [
     { key: 'klubi',   emoji: '🎉', tKey: 'restaurants.sub_klubi' },
@@ -257,6 +338,15 @@ const ACT_SUBS = [
   { key: 'puisto',     emoji: '🌿', label: 'Puisto',        color: '#22c55e', tKey: 'cat.puisto' as const },
   { key: 'uimaranta',  emoji: '🏊', label: 'Uimaranta',     color: '#14b8a6', tKey: 'cat.uimaranta' as const },
   { key: 'nakopaikka', emoji: '🔭', label: 'Näköalapaikka', color: '#f59e0b', tKey: 'cat.nakopaikka' as const },
+  // Nämä kaksi ovat ActivityCategory-tyypissä ja datassa (mitattu 8.9.2026:
+  // urheilu 531, markkina 11 kohdetta) mutta puuttuivat valikosta, joten ne
+  // näkyivät vain "Kaikki"-tilassa.
+  { key: 'urheilu',    emoji: '🏟', label: 'Urheilupaikka', color: '#3b82f6', tKey: 'cat.urheilu' as const },
+  { key: 'markkina',   emoji: '🧺', label: 'Markkinat',     color: '#eab308', tKey: 'cat.markkina' as const },
+  // Pubivisat ovat AINA tapahtumia (omistaja 9.9.2026), joten tämä rivi on
+  // aihevalinta: sen valinta vaihtaa kartan visailtoihin päivärivin kanssa
+  // eikä näytä paikkoja (ks. AIKA_AIHEET).
+  { key: 'pubivisa',   emoji: '🧠', label: 'Pubivisat',     color: '#8b5cf6', tKey: 'guides.pubivisat_title' as const },
 ] as const
 
 // ── Popup-kuvausten käännösavaimet ────────────────────────
@@ -270,6 +360,7 @@ const ACT_SUBS = [
 const ACT_CAT_KEYS: Record<ActivityCategory, TranslationKey> = {
   sauna:      'cat.sauna',
   kirpputori: 'cat.kirpputori',
+  pubivisa:   'guides.pubivisat_title',
   museo:      'cat.museo',
   nahtavyys:  'cat.nahtavyys',
   galleria:   'cat.galleria',
@@ -305,33 +396,18 @@ const CUISINE_KEYS: Record<string, TranslationKey> = {
   french:         'cuisine.french',
 }
 
-type DateFilterKey = 'today' | 'tomorrow' | 'week' | 'month' | 'custom'
 
+// Päivävalinnat = listan päivärivi (HomeClient) + kuukausi, joka on kartan
+// oma laajempi selausikkuna. "Illalla" ja "Viikonloppu" puuttuivat aiemmin,
+// jolloin listan illan rajaus katosi kartalle siirryttäessä (omistaja 8.9.2026).
 const DATE_PILLS: { key: DateFilterKey; tKey: TranslationKey }[] = [
   { key: 'today',    tKey: 'date.today' },
+  { key: 'tonight',  tKey: 'date.tonight' },
   { key: 'tomorrow', tKey: 'map.date_tomorrow' },
+  { key: 'weekend',  tKey: 'date.weekend' },
   { key: 'week',     tKey: 'map.date_week' },
   { key: 'month',    tKey: 'map.date_month' },
 ]
-
-// Vertailu HELSINKI-kalenteripäivinä ('YYYY-MM-DD' merkkijonoina) — laitteen
-// vuorokausirajoilla New Yorkissa "Tänään" oli kahden Helsinki-päivän sekoitus.
-function paivaPlus(paiva: string, n: number): string {
-  // Keskipäivä UTC → päiväsiirto on DST-turvallinen.
-  return new Date(Date.parse(`${paiva}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10)
-}
-
-function filterEventByDate(event: Event, filter: DateFilterKey, customDate: string): boolean {
-  const d = helsinkiDateOf(event.startTime)
-  const tanaan = helsinkiToday()
-  switch (filter) {
-    case 'today':    return d === tanaan
-    case 'tomorrow': return d === paivaPlus(tanaan, 1)
-    case 'week':     return d >= tanaan && d < paivaPlus(tanaan, 7)
-    case 'month':    return d >= tanaan && d < paivaPlus(tanaan, 30)
-    case 'custom':   return !customDate || d === customDate
-  }
-}
 
 // Pinnin VÄRIN pääryhmä — keskitetystä luokittimesta (sama kuin listan
 // kategoriat), tärkeysjärjestys määrää värin kun kategorioita on monta.
@@ -341,7 +417,11 @@ function filterEventByDate(event: Event, filter: DateFilterKey, customDate: stri
 // ryhmiin ennen kuin baari-sääntöön päästiin (omistajan havainto 6.9.2026).
 function getEventGroup(event: Event): string {
   const vibes = getEventVibes(event)
-  for (const g of ['keikka', 'yoelama', 'baari', 'teatteri', 'taide', 'urheilu'] as const) {
+  // Kuusi ensimmäistä olivat tässä jo ennen kategorioiden yhtenäistämistä —
+  // järjestys pidetään, jotta vanhojen pinnien värit eivät muutu. Uudet
+  // tulevat perään, joten ne osuvat vain kun mikään aiempi ei osu.
+  for (const g of ['keikka', 'yoelama', 'baari', 'teatteri', 'taide', 'urheilu',
+                   'standup', 'festivaali', 'museo', 'tyopaja', 'underground', 'lapset'] as const) {
     if (vibes.includes(g)) return g
   }
   if (event.isFree) return 'ilmainen'
@@ -357,14 +437,14 @@ function osuuRyhmaan(event: Event, ryhma: string): boolean {
 
 // ── Legend data ───────────────────────────────────────────
 
-const LEGEND_EVENT = [
-  { color: '#a855f7', label: 'Keikka' },
-  { color: '#ec4899', label: 'Yöelämä' },
-  { color: '#f59e0b', label: 'Baari' },
-  { color: '#ef4444', label: 'Teatteri' },
-  { color: '#06b6d4', label: 'Taide' },
-  { color: '#10b981', label: 'Ilmainen' },
-]
+// Selite: kategoriat samasta lähteestä kuin valikko ja pinnit. Näytetään
+// pääryhmät (getEventGroupin kaskadin kärki + ilmainen) — koko 13 kategorian
+// lista ei mahdu selitteeseen, ja valikko kertoo loput.
+const LEGEND_AVAIMET = ['keikka', 'yoelama', 'baari', 'teatteri', 'taide', 'ilmainen'] as const
+const LEGEND_EVENT = LEGEND_AVAIMET.map((k) => {
+  const sub = EVENT_SUBS.find((s) => s.key === k)!
+  return { color: sub.color, label: sub.label }
+})
 // Pinnit ovat nyt tasoväreissä (design-tokenit): ravintolat sininen,
 // tekeminen vihreä — legenda kuvaa tasot, tyyppi näkyy pinnin emojista
 const LEGEND_REST = [
@@ -372,6 +452,11 @@ const LEGEND_REST = [
 ]
 const LEGEND_ACT = [
   { color: '#5fd9a6', label: 'Tekemistä' },
+]
+// Visailloissa jokainen pinni on samaa lajia (🧠 violetti), joten yleinen
+// tapahtumalegenda selittäisi värejä joita kartalla ei ole yhtään.
+const LEGENDA_VISAT = [
+  { color: '#8b5cf6', label: 'Pubivisat' },
 ]
 
 // ── Component ─────────────────────────────────────────────
@@ -422,7 +507,20 @@ function MapMenuItem({ on, onClick, children }: { on: boolean; onClick: () => vo
   )
 }
 
-export default function MapView({ events, eventsLoading, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate }: Props) {
+/** Tasonappi — yksi tyyli kaikille (tavalliset tasot ja opaslaatikot). */
+function LayerNappi({ on, bg, onClick, children }: { on: boolean; bg: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-1.5 rounded-full text-xs font-black transition-all shrink-0 whitespace-nowrap px-3 py-1.5 border ${
+        on ? 'text-white border-transparent' : 'text-white/45 border-white/10'
+      }`}
+      style={on ? { background: bg } : { background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)' }}>
+      {children}
+    </button>
+  )
+}
+
+export default function MapView({ events, eventsLoading, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate, initialLayers, initialEventGroup, initialRestType, initialRestCuisine, initialActCat, opasSlug }: Props) {
   const { t, lang } = useLanguage()
   // Mobiilivalikoista auki enintään yksi kerrallaan; kartan/taustan napautus sulkee.
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -437,6 +535,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     'Ravintola':  'legend.restaurant',
     'Ravintolat': 'nav.restaurants',
     'Tekemistä':  'nav.activities',
+    'Pubivisat':  'guides.pubivisat_title',
     'Kahvila':    'legend.cafe',
     'Pikaruoka':  'legend.fastfood',
     'Sauna':      'legend.sauna',
@@ -451,7 +550,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null)
   const [mapReady, setMapReady] = useState(false)
-  const [layers, setLayers] = useState<Layers>({ events: true, restaurants: false, activities: false })
+  const [layers, setLayers] = useState<Layers>({ events: true, restaurants: false, activities: false, ...initialLayers })
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [restsLoading, setRestsLoading] = useState(false)
@@ -461,10 +560,25 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   const [userPos, setUserPos] = useState<[number, number] | null>(null)
   const [locating, setLocating] = useState(false)
 
-  const [eventGroup,   setEventGroup]   = useState<string | null>(null)
-  const [restType,     setRestType]     = useState<string | null>(null)
-  const [restCuisine,  setRestCuisine]  = useState<string | null>(null)
-  const [actCat,       setActCat]       = useState<string | null>(null)
+  // ── OPASAIHEET (omistaja 9.9.2026) ────────────────────────
+  // Opas-valikko on AIHEVALINTA, ja aihe ratkaisee mitä kartalla näkyy:
+  //   kirpputorit → paikat TAI kirppistapahtumat (ainoa jolla on pari)
+  //   pubivisat   → aina visaillat (viikoittain toistuvia, ei paikkanäkymää)
+  //   jamit       → aina tapahtumia (oppaassa ei ole paikkoja)
+  //   muut        → paikkoja kuten ennen
+  /** Kirpputorien pari: kumpi puoli näkyy. */
+  const [kirppisMoodi, setKirppisMoodi] = useState<'paikat' | 'tapahtumat'>('paikat')
+  /** Saapumisoppaan rajaus purettu käyttäjän toimesta ("Kaikki"). Koskee
+   *  vain slug-pohjaisia aiheita (jamit); kategoriapohjaiset (kirpputori,
+   *  pubivisa) puretaan Opas-valikon "Kaikki"-rivillä. */
+  const [aiheHylatty, setAiheHylatty] = useState(false)
+  const [opasSisalto, setOpasSisalto] = useState<Record<string, { tapahtumat: Event[]; visat: VisaRivi[] }>>({})
+  const haetutAiheet = useRef<Set<string>>(new Set())
+
+  const [eventGroup,   setEventGroup]   = useState<string | null>(initialEventGroup ?? null)
+  const [restType,     setRestType]     = useState<string | null>(initialRestType ?? null)
+  const [restCuisine,  setRestCuisine]  = useState<string | null>(initialRestCuisine ?? null)
+  const [actCat,       setActCat]       = useState<string | null>(initialActCat ?? null)
 
   const [dateFilter,  setDateFilter]  = useState<DateFilterKey>(initialDateFilter ?? 'today')
   const [customDate,  setCustomDate]  = useState(initialCustomDate ?? '')
@@ -552,6 +666,23 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     }
   }, [])
 
+  /** Valittu opasaihe: kartan kategoriasta, tai saapumisoppaasta silloin kun
+   *  oppaalla ei ole karttakategoriaa (jamit). */
+  const opasAihe = useMemo<{ slug: string; pari: boolean } | null>(() => {
+    if (actCat && AIKA_AIHEET[actCat]) return AIKA_AIHEET[actCat]
+    if (!aiheHylatty && opasSlug === 'jamit') return { slug: 'jamit', pari: false }
+    return null
+  }, [actCat, opasSlug, aiheHylatty])
+
+  /** Näytetäänkö aiheen TAPAHTUMAT paikkojen sijaan. Parittomat aiheet
+   *  (pubivisat, jamit) ovat aina tapahtumia. */
+  const aiheTapahtumina = !!opasAihe && (!opasAihe.pari || kirppisMoodi === 'tapahtumat')
+
+  /** Aiheen sisältö on vielä matkalla. Aihe ei kulje eventsLoading-lipun
+   *  kautta (oma /api/guides-haku), joten ilman tätä "ei osumia" -viesti
+   *  välähtäisi ennen kuin visaillat ehtivät kartalle. */
+  const aiheLatautuu = aiheTapahtumina && !opasSisalto[opasAihe?.slug ?? '']
+
   // ── Sync cluster layers to layer toggle state ─────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
@@ -561,10 +692,12 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       if (on && !map.hasLayer(cluster)) map.addLayer(cluster)
       else if (!on && map.hasLayer(cluster)) map.removeLayer(cluster)
     }
-    sync(eventClusterRef.current, layers.events)
+    // Aihetilassa tapahtumaklusteri on kartalla vaikka tapahtumataso olisi
+    // pois: aihe (visaillat, jamit, kirppistapahtumat) ON tapahtumanäkymä.
+    sync(eventClusterRef.current, layers.events || aiheTapahtumina)
     sync(restClusterRef.current,  layers.restaurants)
     sync(actClusterRef.current,   layers.activities)
-  }, [mapReady, layers])
+  }, [mapReady, layers, aiheTapahtumina])
 
   // ── Fly to mapTarget when map ready ──────────────────────
   useEffect(() => {
@@ -607,6 +740,88 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       .catch(() => {}).finally(() => setActivitiesLoading(false))
   }, [layers.activities, activities.length, activitiesLoading])
 
+  // Aiheen sisältö haetaan vasta kun sitä tarvitaan, kerran per aihe.
+  useEffect(() => {
+    const slug = aiheTapahtumina ? opasAihe?.slug : undefined
+    if (!slug || haetutAiheet.current.has(slug)) return
+    haetutAiheet.current.add(slug)
+    let elossa = true
+    fetch(`/api/guides/${slug}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: { events?: OpasTapahtumaRivi[]; visas?: VisaRivi[] }) => {
+        if (!elossa) return
+        setOpasSisalto((edelliset) => ({
+          ...edelliset,
+          [slug]: { tapahtumat: (d.events ?? []).map(opasRiviTapahtumaksi), visat: d.visas ?? [] },
+        }))
+      })
+      .catch(() => { haetutAiheet.current.delete(slug) })
+    return () => { elossa = false }
+  }, [aiheTapahtumina, opasAihe])
+
+  // ── Pubivisat tapahtumina ─────────────────────────────────
+  // Visa toistuu viikoittain, joten generoidaan sen SEURAAVA esiintymä
+  // tästä päivästä eteenpäin ja annetaan tavallisen päiväsuodattimen
+  // ratkaista mitkä näkyvät. Näin "pubivisat tänään" toimii samalla
+  // päivärivillä kuin muut tapahtumat, ilman omaa erikoislogiikkaa.
+  const visaTapahtumat = useMemo<Event[]>(() => {
+    const opasVisat = opasAihe?.slug === 'pubivisat' ? opasSisalto['pubivisat']?.visat : undefined
+    if (!opasVisat?.length) return []
+    const tanaan = helsinkiToday()
+    const tanaanVp = ((new Date(`${tanaan}T12:00:00Z`).getUTCDay() + 6) % 7) + 1   // 1 = ma
+    return opasVisat.flatMap((v, i) => {
+      const sijainti = VISA_SIJAINNIT.get(katuAvain(v.address))
+      if (!sijainti) return []
+      const lisays = (v.weekday - tanaanVp + 7) % 7
+      const paiva = paivaPlus(tanaan, lisays)
+      const [y, kk, pp] = paiva.split('-').map(Number)
+      return [{
+        id: `visa-${i}`,
+        title: v.name,
+        shortDescription: '',
+        description: '',
+        startTime: helsinkiISO(y, kk, pp, v.hour, v.minute),
+        endTime: null,
+        location: { name: v.name, streetAddress: v.address, city: 'Helsinki', lat: sijainti.lat, lon: sijainti.lon },
+        image: null,
+        isFree: true,
+        price: null,
+        ticketUrl: null,
+        // Lähde omana vakiona: lib/pubivisat sisältää skraperin, jota ei pidä
+        // vetää klienttinippuun pelkän osoitteen takia (= PUBIVISAT_SOURCE_URL).
+        infoUrl: 'https://pubivisat.fi/helsinki',
+        categories: [],
+        source: 'pubivisat',
+      } as Event]
+    })
+  }, [opasAihe, opasSisalto])
+
+  /** Kartalla näkyvät tapahtumat: valitun opasaiheen joukko vai koko lista. */
+  const tapahtumaLahde = aiheTapahtumina
+    ? (opasAihe?.slug === 'pubivisat' ? visaTapahtumat : (opasSisalto[opasAihe?.slug ?? '']?.tapahtumat ?? []))
+    : events
+  /** Aiheen joukossa kohderyhmärajausta ei sovelleta: käyttäjä on pyytänyt
+   *  juuri tämän aiheen ja opaslista näyttää siitä kaiken. Seniorikohdennettu
+   *  jää yhä pois (omistajan linjaus 4.9.2026). */
+  const rajattu = aiheTapahtumina
+
+  /** Kirpputorien pari: paikat ⇄ kirppistapahtumat. Kategoria pysyy
+   *  valittuna kummassakin, joten Opas-valikko on yhä käytettävissä. */
+  const vaihdaKirppis = useCallback((mihin: 'paikat' | 'tapahtumat') => {
+    setKirppisMoodi(mihin)
+    setOpenMenu(null)
+  }, [])
+
+  /** Valitulle päivälle osuvat — ja jos niitä ei ole, TULEVAT (omistajan
+   *  valinta 9.9.2026: kartta ei jää tyhjäksi vaan näyttää seuraavat, ja
+   *  banneri kertoo miksi). Koskee vain oppaan rajattua joukkoa; koko
+   *  kartalla päivävalinta on käyttäjän oma rajaus jota ei ohiteta. */
+  const paivanTapahtumat = useMemo(
+    () => tapahtumaLahde.filter((e) => osuuPaivaan(e.startTime, dateFilter, customDate)),
+    [tapahtumaLahde, dateFilter, customDate],
+  )
+  const naytaTulevat = rajattu && paivanTapahtumat.length === 0 && tapahtumaLahde.length > 0
+
   // ── Event markers ─────────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !eventClusterRef.current) return
@@ -615,22 +830,36 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     // Esikatselukortti suljetaan kun suodattimet vaihtuvat, jottei kortti
     // jää näyttämään pinniä joka poistui kartalta.
     setPreviewEvent(null)
-    if (!layers.events) { setEventMarkerCount(0); return }
+    // Aihetilassa (visaillat, jamit, kirppistapahtumat) tapahtumat piirtyvät
+    // vaikka tapahtumataso olisi pois — aihe ON tapahtumanäkymä.
+    if (!layers.events && !aiheTapahtumina) { setEventMarkerCount(0); return }
     let lisatty = 0
-    events.forEach((event) => {
+    tapahtumaLahde.forEach((event) => {
       if (!event.location?.lat || !event.location?.lon) return
       // Kohderyhmä (omistaja 4.9.2026): seniorikohdennettu ei näy kartalla
-      // koskaan; lapsiperhetapahtumat näkyvät VAIN "Lapset & perhe" -katego-
-      // riassa; oletusnäkymä on 18–40-rajattu kuten poiminnat.
+      // koskaan; lapsiperhetapahtumat näkyvät VAIN "Lapset & Perhe" -katego-
+      // riassa; OLETUSNÄKYMÄ on 18–40-rajattu kuten poiminnat.
+      //
+      // VALITTU KATEGORIA näyttää kaiken siitä kategoriasta — sama sääntö
+      // kuin listalla, jonka koodi sanoo sen ääneen (HomeClient: "Kategoriat,
+      // haku ja koCat-listat näyttävät ne edelleen"). Ilman tätä kartan uudet
+      // kategoriat (esim. Harrastukset & Kurssit) olisivat lähes tyhjiä,
+      // koska juuri ne tapahtumat ovat kohderyhmärajauksen ulkopuolella.
       if (onSenioriTapahtuma(event)) return
-      if (eventGroup === 'perhe') {
+      if (eventGroup === 'lapset') {
         if (!onPerheTapahtuma(event)) return
-      } else {
-        if (isOutsideTargetAudience(event)) return
-        if (eventGroup && !osuuRyhmaan(event, eventGroup)) return
+      } else if (eventGroup) {
+        if (!osuuRyhmaan(event, eventGroup)) return
+      } else if (!rajattu && isOutsideTargetAudience(event)) {
+        return
       }
-      if (!filterEventByDate(event, dateFilter, customDate)) return
-      const { color, emoji } = eventColor(event)
+      // Tyhjä päivä oppaan joukossa → näytetään TULEVAT (banneri kertoo miksi).
+      if (!naytaTulevat && !osuuPaivaan(event.startTime, dateFilter, customDate)) return
+      // Pubivisat ovat generoituja tapahtumia eivätkä osu luokittimeen —
+      // annetaan niille visakategorian oma kuvake ja väri.
+      const { color, emoji } = event.id.startsWith('visa-')
+        ? { color: '#8b5cf6', emoji: '🧠' }
+        : eventColor(event)
       const icon = makePinIcon(color, emoji, false)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const marker = L.marker([event.location.lat, event.location.lon] as any, { icon })
@@ -642,7 +871,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       lisatty++
     })
     setEventMarkerCount(lisatty)
-  }, [mapReady, events, layers.events, eventGroup, dateFilter, customDate])
+  }, [mapReady, tapahtumaLahde, rajattu, naytaTulevat, layers.events, aiheTapahtumina, eventGroup, dateFilter, customDate])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {
@@ -656,7 +885,10 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       if (restCuisine) {
         if (restType === 'ravintola') {
           if (restCuisine === 'awarded' && !r.featured) return
-          if (restCuisine !== 'awarded' && !r.cuisineCategories.includes(restCuisine)) return
+          // Sama ehto kuin listalla (RestaurantsView: tähdet, Bib Gourmand,
+          // Green tai valikoima) — michelin ei ole keittiötyyppi.
+          else if (restCuisine === 'michelin' && !(r.michelinStars || r.bibGourmand || r.greenMichelin || r.michelinRecommended)) return
+          else if (restCuisine !== 'awarded' && restCuisine !== 'michelin' && !r.cuisineCategories.includes(restCuisine)) return
         } else if (!(r.subCategories ?? []).includes(restCuisine)) return
       }
       const { color, emoji: tyyppiEmoji } = restaurantColor(r.type)
@@ -695,7 +927,8 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     if (!mapReady || !mapRef.current || !actClusterRef.current) return
     const cluster = actClusterRef.current
     cluster.clearLayers()
-    if (!layers.activities) return
+    // Aihetilassa paikat väistyvät: käyttäjä katsoo aiheen tapahtumia.
+    if (!layers.activities || aiheTapahtumina) return
     activities.forEach((a) => {
       if (!a.lat || !a.lon) return
       if (actCat && a.category !== actCat) return
@@ -719,7 +952,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
       cluster.addLayer(marker)
     })
-  }, [mapReady, activities, layers.activities, actCat, t, lang])
+  }, [mapReady, activities, layers.activities, aiheTapahtumina, actCat, t, lang])
 
   // ── User position marker ──────────────────────────────────
   useEffect(() => {
@@ -753,13 +986,9 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   }, [])
 
   // ── Counts ────────────────────────────────────────────────
-  const eventsOnMap     = events.filter(e => {
-    if (!e.location?.lat || !filterEventByDate(e, dateFilter, customDate)) return false
-    if (onSenioriTapahtuma(e)) return false
-    if (eventGroup === 'perhe') return onPerheTapahtuma(e)
-    if (isOutsideTargetAudience(e)) return false
-    return !eventGroup || osuuRyhmaan(e, eventGroup)
-  }).length
+  // Tapahtumien luku tulee SUORAAN markkeriefektistä (eventMarkerCount):
+  // rinnakkainen suodatinkopio ehti eriytyä piirretystä joukosta, ja laskuri
+  // joka ei vastaa pinnejä on pahempi kuin ei laskuria.
   const restsOnMap      = restaurants.filter(r => {
     if (!r.lat) return false
     if (restType && r.type !== restType) return false
@@ -773,16 +1002,21 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   }).length
   const activitiesOnMap = activities.filter(a => a.lat && (!actCat || a.category === actCat)).length
 
+  // Aihetilassa (visaillat, jamit, kirppistapahtumat) tapahtumat lasketaan
+  // vaikka tapahtumataso on pois, ja paikat jätetään laskematta koska niitä
+  // ei myöskään piirretä — muuten "113 kohdetta" lukisi tyhjän paikkatason
+  // päällä.
   const countParts = [
-    layers.events      && eventsOnMap     > 0 && `${eventsOnMap} ${t('map.events_count')}`,
+    (layers.events || aiheTapahtumina) && eventMarkerCount > 0 && `${eventMarkerCount} ${t('map.events_count')}`,
     layers.restaurants && restsOnMap      > 0 && `${restsOnMap} ${t('map.rests_count')}`,
-    layers.activities  && activitiesOnMap > 0 && `${activitiesOnMap} ${t('map.acts_count')}`,
+    layers.activities && !aiheTapahtumina && activitiesOnMap > 0 && `${activitiesOnMap} ${t('map.acts_count')}`,
   ].filter(Boolean).join(' · ')
 
+  const tapahtumaLegenda = opasAihe?.slug === 'pubivisat' && !layers.events ? LEGENDA_VISAT : LEGEND_EVENT
   const activeLegend = [
-    ...(layers.events      ? LEGEND_EVENT : []),
-    ...(layers.restaurants ? LEGEND_REST  : []),
-    ...(layers.activities  ? LEGEND_ACT   : []),
+    ...(layers.events || aiheTapahtumina ? tapahtumaLegenda : []),
+    ...(layers.restaurants ? LEGEND_REST : []),
+    ...(layers.activities && !aiheTapahtumina ? LEGEND_ACT : []),
   ]
 
   return (
@@ -812,19 +1046,30 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         {openMenu && <div className="fixed inset-0 z-[-1]" onClick={() => setOpenMenu(null)} />}
         <div className="flex gap-1.5">
           {LAYER_META.map(opt => (
-            <button key={opt.key} onClick={() => { toggleLayer(opt.key); setOpenMenu(null) }}
-              className={`flex items-center gap-1.5 rounded-full text-xs font-black transition-all shrink-0 whitespace-nowrap px-3 py-1.5 border ${
-                layers[opt.key] ? 'text-white border-transparent' : 'text-white/45 border-white/10'
-              }`}
-              style={layers[opt.key] ? { background: opt.bg } : { background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)' }}>
+            <LayerNappi key={opt.key} on={layers[opt.key]} bg={opt.bg}
+              onClick={() => { toggleLayer(opt.key); setOpenMenu(null) }}>
               {opt.key === 'events' ? t('map.layer_events') : opt.key === 'restaurants' ? t('map.layer_restaurants') : t('map.layer_guide')}
-            </button>
+            </LayerNappi>
           ))}
         </div>
+        {/* KIRPPUTORIEN PARI: ainoa opasaihe jolla on sekä paikkoja että
+            tapahtumia (omistaja 9.9.2026). Näkyy heti kun kirpputori on
+            valittu — myös silloin kun aihe valitaan kartan Opas-valikosta,
+            ei vain oppaasta tultaessa. */}
+        {opasAihe?.pari && (
+          <div className="flex gap-1.5">
+            <LayerNappi on={kirppisMoodi === 'paikat'} bg={LAYER_META[2].bg} onClick={() => vaihdaKirppis('paikat')}>
+              🛍 {t('map.layer_places')}
+            </LayerNappi>
+            <LayerNappi on={kirppisMoodi === 'tapahtumat'} bg={LAYER_META[0].bg} onClick={() => vaihdaKirppis('tapahtumat')}>
+              🎟 {t('map.events_kirpputorit')}
+            </LayerNappi>
+          </div>
+        )}
         {/* flex-wrap, EI overflow-x-auto: vaakavieritysrajaus leikkaisi myös
             pystysuunnassa ja pudotusvalikko jäisi piiloon (mitattu 31.8.). */}
         <div className="flex flex-wrap gap-1.5">
-          {layers.events && (
+          {(layers.events || aiheTapahtumina) && (
             <MapMenu id="date" open={openMenu} onToggle={setOpenMenu} active={dateFilter !== 'today' || !!customDate}
               label={dateFilter === 'custom' && customDate
                 ? '📅 ' + new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
@@ -841,10 +1086,12 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
               </MapMenuItem>
             </MapMenu>
           )}
-          {layers.events && (
+          {(layers.events || aiheTapahtumina) && (
             <MapMenu id="egroup" open={openMenu} onToggle={setOpenMenu} active={!!eventGroup}
               label={eventGroup ? `${EVENT_SUBS.find(sf => sf.key === eventGroup)?.emoji} ${t(EVENT_SUBS.find(sf => sf.key === eventGroup)!.tKey)}` : `🎟 ${t('map.all')}`}>
-              <MapMenuItem on={!eventGroup} onClick={() => { setEventGroup(null); setOpenMenu(null) }}>{t('map.all')}</MapMenuItem>
+              {/* "Kaikki" purkaa myös saapumisoppaan rajauksen (jamit), jolle ei
+                  ole omaa karttakategoriaa — muuten siitä ei pääsisi pois. */}
+              <MapMenuItem on={!eventGroup} onClick={() => { setEventGroup(null); setAiheHylatty(true); setOpenMenu(null) }}>{t('map.all')}</MapMenuItem>
               {EVENT_SUBS.map(sf => (
                 <MapMenuItem key={sf.key} on={eventGroup === sf.key}
                   onClick={() => { setEventGroup(sf.key); setOpenMenu(null) }}>
@@ -897,7 +1144,14 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
               <MapMenuItem on={!actCat} onClick={() => { setActCat(null); setOpenMenu(null) }}>{t('map.all')}</MapMenuItem>
               {ACT_SUBS.map(sf => (
                 <MapMenuItem key={sf.key} on={actCat === sf.key}
-                  onClick={() => { setActCat(sf.key); setOpenMenu(null) }}>
+                  onClick={() => {
+                    setActCat(sf.key)
+                    // Aikaan sidottu aihe (kirpputori, pubivisa) ottaa kartan
+                    // haltuun: yleinen tapahtumataso pois, jottei kaupungin
+                    // muut tapahtumat sekoitu aiheen pinneihin.
+                    if (AIKA_AIHEET[sf.key]) { setLayers((l) => ({ ...l, events: false })); setKirppisMoodi('paikat') }
+                    setOpenMenu(null)
+                  }}>
                   {sf.emoji} {t(sf.tKey)}
                 </MapMenuItem>
               ))}
@@ -922,7 +1176,18 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
           oikean alakulman pillerissä (alla) — keskitetty latausviesti oli
           omistajan mielestä liian voimakas. pointer-events-none: karttaa voi
           liikutella viestin läpi. */}
-      {layers.events && eventMarkerCount === 0 && !eventsLoading && (
+      {/* Valitulla päivällä ei ollut mitään, mutta joukossa on tulevia →
+          kartalla näkyvät ne, ja banneri kertoo miksi (omistajan valinta
+          9.9.2026: kartta ei jää tyhjäksi). Banneri on ylhäällä suodatinrivien
+          alla, ei keskellä, koska pinnit ovat näkyvissä. */}
+      {(layers.events || aiheTapahtumina) && naytaTulevat && !eventsLoading && !aiheLatautuu && (
+        <div className="absolute inset-x-0 z-[1000] flex justify-center pointer-events-none" style={{ top: 96 }}>
+          <div className="px-4 py-2 rounded-full bg-black/85 backdrop-blur-md border border-white/12 shadow-2xl">
+            <span className="text-white/85 text-[12px] font-bold">ℹ {dateFilter === 'today' && !customDate ? t('map.empty_today_upcoming') : t('map.empty_day_upcoming')}</span>
+          </div>
+        </div>
+      )}
+      {(layers.events || aiheTapahtumina) && !naytaTulevat && eventMarkerCount === 0 && !eventsLoading && !aiheLatautuu && (
         <div className="absolute inset-x-0 z-[1000] flex justify-center pointer-events-none" style={{ top: '42%' }}>
           <div className="flex flex-col items-center gap-0.5 px-5 py-3.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/12 shadow-2xl text-center">
             <span className="text-white/85 text-[13px] font-bold">{t('discover.no_filter_match')}</span>
@@ -931,7 +1196,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         </div>
       )}
 
-      {(restsLoading || activitiesLoading || (eventsLoading && layers.events)) && (
+      {(restsLoading || activitiesLoading || aiheLatautuu || (eventsLoading && layers.events)) && (
         <div className="absolute bottom-16 right-3 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
           <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white/70 animate-spin" />
           {restsLoading ? t('map.loading_rests') : activitiesLoading ? t('map.loading_acts') : `${t('discover.loading_events')}…`}
@@ -953,7 +1218,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       {/* ── Minikalenteri — YHTEINEN mobiilivalikolle ja työpöydän 📅-napille.
           Oma lohko eikä suodatinstackin sisällä: stack on mobiilissa piilossa,
           mutta kalenterin pitää aueta myös mobiilivalikon Valitse päivä -rivistä. ── */}
-      {calOpen && layers.events && (
+      {calOpen && (layers.events || aiheTapahtumina) && (
         <div className="absolute z-[1003] left-1/2 -translate-x-1/2" style={{ top: 96, width: 282 }}>
           <div style={{ background: '#0d0d10', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.9)' }}>
               {/* Month navigation */}

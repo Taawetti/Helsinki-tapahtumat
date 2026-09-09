@@ -93,7 +93,9 @@ function toEvent(e: GuideEvent): Event {
     description: '',
     startTime: e.startTime,
     endTime: null,
-    location: e.venue ? { name: e.venue, streetAddress: '', city: 'Helsinki' } : null,
+    location: e.venue || e.lat != null
+      ? { name: e.venue, streetAddress: e.street ?? '', city: 'Helsinki', lat: e.lat, lon: e.lon }
+      : null,
     image: e.image ?? null,
     isFree: e.isFree,
     price: e.price ?? null,
