@@ -3,6 +3,9 @@
 // 2-3 h and flips the calendar date between 00:00-03:00 Helsinki time.
 
 const HKI_DATE_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Helsinki' })
+const HKI_HOUR_FMT = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/Helsinki', hour: '2-digit', hourCycle: 'h23',
+})
 
 /** Today's date in Helsinki as YYYY-MM-DD, regardless of server TZ. */
 export function helsinkiToday(): string {
@@ -25,6 +28,15 @@ export function helsinkiNow(): Date {
  *  serialized as 21:30Z belongs to the NEXT Helsinki day, not the UTC day. */
 export function helsinkiDateOf(iso: string): string {
   return HKI_DATE_FMT.format(new Date(iso))
+}
+
+/** Helsinki-kellonaikatunti (0–23) aikaleimasta. Suosituspintojen kelloraja
+ *  (hero, iltapushi) EI saa lukea katsojan laitteen vyöhykettä: mitattu
+ *  9.9.2026, 31 vrk:n korpus — laitevyöhykkeellä Europe/London hero antaa
+ *  123 nostoa 154:n sijaan ja America/New_Yorkissa vain 53, koska illan
+ *  tapahtumat siirtyvät väärälle puolelle klo 15 -rajaa. */
+export function helsinkiHourOf(iso: string): number {
+  return Number(HKI_HOUR_FMT.format(new Date(iso)))
 }
 
 /** Helsinki date range from today forward, as YYYY-MM-DD strings. */

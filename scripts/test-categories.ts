@@ -75,7 +75,9 @@ import { credibilityScore } from '../lib/credibility'
 import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/restaurant-news-match'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
-import { isOutsideTargetAudience, isPrimaryPick } from '../lib/audience'
+import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti } from '../lib/audience'
+import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello } from '../lib/picks'
+import { ohjelmatyyppi } from '../lib/event-classify'
 import { getEventVibes } from '../lib/event-classify'
 import { onRobotti } from '../lib/bot'
 import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/health-hysteresis'
@@ -92,7 +94,7 @@ import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
 import venueSiteFile from '../data/venue-sites.json'
 import { closedOnArcDay, subtypeOf } from '../lib/group-scheduler'
 import { walkMinutesBetween } from '../lib/group'
-import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO } from '../lib/helsinki-time'
+import { normalizeHelsinkiTimestamp, helsinkiDateOf, helsinkiOffset, helsinkiISO, helsinkiHourOf } from '../lib/helsinki-time'
 import { buildDeck } from '../lib/candidate'
 import { venueHoursOverride } from '../lib/venue-hours-overrides'
 import { pickWeeklyDigest } from '../lib/weekly-digest'
@@ -3766,6 +3768,135 @@ for (const c of kwChecks) {
   for (const c of dCases) {
     if (c.ok) pass++
     else failures.push(`✗ karttapäivä: ${c.name}`)
+  }
+}
+
+// ── SUOSITUSPINTOJEN PORTTI (lib/picks) — omistajan bugi 9.9.2026:
+// "tällainen harraste bänditapahtuma/äänitysperusteet tapahtuma kirjastossa
+// ei saa nousta hero kortiksi. tämä on paha virhe".
+//
+// Juurisyy oli mekanismi, ei yksi sana: hero päästi tapahtuman sisään
+// avainsanapisteellä (nightlifeScore >= 3), joten jokainen osamerkkijono-ansa
+// oli hero-bugi. Kaikki alla olevat negatiiviset tapaukset LÄPÄISIVÄT
+// hero-portin ennen korjausta (mitattu 4208 tuotantotapahtumasta 9.9.2026:
+// 13/126 nostoa oli kohderyhmän kakkoskoria).
+{
+  type T = Parameters<typeof kaistaA>[0]
+  // location vain nimellä: portti lukee pelkän paikan nimen, joten
+  // osoitekentät jäävät pois eikä testi väitä niistä mitään.
+  type Syote = Omit<Partial<T>, 'location'> & { title: string; location?: { name: string } }
+  const ev = (o: Syote): T => ({
+    id: o.id ?? 'x', title: o.title, shortDescription: o.shortDescription ?? '',
+    description: '', startTime: o.startTime ?? '2026-09-09T20:00:00+03:00',
+    location: o.location ?? { name: 'Tavastia' }, categories: o.categories ?? [],
+    ysoIds: o.ysoIds, image: o.image === undefined ? 'kuva.jpg' : o.image,
+    source: o.source ?? 'linked-events', isFree: false,
+  } as T)
+
+  // Omistajan tapaus sellaisena kuin se on tuotannon datassa
+  const oodi = ev({
+    id: 'helsinki:agqd2johpi', title: 'Äänityksen perusteet Bändi- ja laulustudiossa',
+    shortDescription: 'Tervetuloa tutustumaan äänityksen perusteisiin.',
+    location: { name: 'Keskustakirjasto Oodi' },
+    categories: ['osallistuminen', 'musiikki', 'opastus'],
+    ysoIds: ['yso:p10727', 'yso:p1808', 'yso:p2149'],
+    startTime: '2026-09-09T17:00:00+03:00',
+  })
+  // Kirjaston AITO konsertti — tämä ei saa kadota korjauksen mukana
+  const kirjastoKonsertti = ev({
+    title: 'TANGO, TAIPUISA TANGO! -konsertti', location: { name: 'Paloheinän kirjasto' },
+    categories: ['konsertit', 'kulttuuritapahtumat'], startTime: '2026-09-16T18:00:00+03:00',
+  })
+  const pChecks: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'OMISTAJAN BUGI: kirjaston äänitysopastus ei pääse kummallekaan kaistalle',
+      ok: kaistaA(oodi) === false && kaistaB(oodi) === false, got: `A=${kaistaA(oodi)} B=${kaistaB(oodi)}` },
+    { name: 'OMISTAJAN BUGI: ei myöskään valittuihin nostoihin',
+      ok: valitseHero([oodi], 5).length === 0 },
+    { name: 'OMISTAJAN BUGI: nightlifeScore ei anna enää keikkapisteitä studion nimestä',
+      ok: nightlifeScore(oodi) < 3, got: String(nightlifeScore(oodi)) },
+    { name: 'kirjaston AITO konsertti pääsee kaista A:lta (kategoria konsertit)',
+      ok: kaistaA(kirjastoKonsertti) === true },
+    { name: 'kirjaston harrasteohjelma EI pääse: sama paikka, kategoria vain musiikki',
+      ok: kaistaA(ev({ title: 'Ukulelejamit', location: { name: 'Oulunkylän kirjasto' }, categories: ['musiikki'] })) === false
+        && kaistaB(ev({ title: 'Ukulelejamit', location: { name: 'Oulunkylän kirjasto' }, categories: ['musiikki'] })) === false },
+
+    // Rakenteinen ohjelmatyyppi
+    { name: 'ohjelmatyyppi: kategoria konsertit → keikka', ok: ohjelmatyyppi(ev({ title: 'x', categories: ['konsertit'], location: { name: '-' } })).includes('keikka') },
+    { name: 'ohjelmatyyppi: yso-koodi p11185 → keikka', ok: ohjelmatyyppi(ev({ title: 'x', ysoIds: ['yso:p11185'], location: { name: '-' } })).includes('keikka') },
+    { name: 'ohjelmatyyppi: paikka Tavastia → keikka', ok: ohjelmatyyppi(ev({ title: 'x', location: { name: 'Tavastia' } })).includes('keikka') },
+    { name: 'ohjelmatyyppi: festivals-lähde → festivaali', ok: ohjelmatyyppi(ev({ title: 'x', source: 'festivals', location: { name: '-' } })).includes('festivaali') },
+    { name: 'ohjelmatyyppi: LAVEA musiikki-kategoria EI ole ohjelmatyyppi (587 riviä, 31 % kohderyhmän ulkopuolella)',
+      ok: ohjelmatyyppi(ev({ title: 'x', categories: ['musiikki'], location: { name: '-' } })).length === 0 },
+    { name: 'ohjelmatyyppi: osallistuminen/opastus EI ole ohjelmatyyppi',
+      ok: ohjelmatyyppi(ev({ title: 'x', categories: ['osallistuminen', 'opastus'], location: { name: '-' } })).length === 0 },
+    { name: 'ohjelmatyyppi: museopaikka ei tuota ohjelmatyyppiä', ok: ohjelmatyyppi(ev({ title: 'x', location: { name: 'Kiasma' } })).length === 0 },
+
+    // Peruutukset — repossa ei ollut yhtään peruutustarkistusta
+    { name: 'peruttu keikka ei nouse nostoksi', ok: valitseHero([ev({ title: 'Peruttu: Glen Hansard', categories: ['konsertit'] })], 5).length === 0 },
+    { name: 'peruutus tunnistuu myös englanniksi ja ruotsiksi',
+      ok: onPeruttu(ev({ title: 'Kvadrat / Neliö – EVENT CANCELLED. NEW EVENT ON APRIL 18, 2027' })) === true
+        && onPeruttu(ev({ title: 'KULT: Antigoni (PERUTTU)' })) === true
+        && onPeruttu(ev({ title: 'PERUUTETTU / CANCELED! The Narrator (GER)' })) === true },
+    { name: 'peruutuskuvio ei osu tavalliseen keikkaan', ok: onPeruttu(ev({ title: 'Aknestik 40-vuotisjuhlakiertue' })) === false },
+
+    // Kelloraja: 8 pisteen oikotie poistettu
+    { name: 'festivaalisana päiväsaikaan EI ole illan nosto (BabyKino klo 13)',
+      ok: iltakello(ev({ title: 'Karhupuisto Film Festival presents - BabyKino', startTime: '2026-09-09T13:00:00+03:00' })) === false },
+    { name: 'kuratoitu festivals-taulun päivärivi saa olla päivällä',
+      ok: iltakello(ev({ title: 'Design Week (päivä 7/10)', source: 'festivals', startTime: '2026-09-09T10:00:00+03:00' })) === true },
+    { name: 'kelloraja klo 15 on mukaan lukeva', ok: iltakello(ev({ title: 'x', startTime: '2026-09-09T15:00:00+03:00' })) === true },
+
+    // Visat ja kuvattomuus
+    { name: 'tietovisa ei nouse nostoksi vaikka kuva ja ilta olisivat kunnossa',
+      ok: valitseHero([ev({ title: 'Tietovisa – Oluthuone Kaisla', categories: ['konsertit'] })], 5).length === 0 },
+    { name: 'kuvaton nosto kelpaa VIIMEISENÄ keinona (hero ei saa jäädä tyhjäksi)',
+      ok: valitseHero([ev({ title: 'THE MOUNTAIN GOATS (US)', categories: ['konsertit'], image: null })], 5).length === 1 },
+    { name: 'kuvallinen voittaa kuvattoman kun molempia on',
+      ok: valitseHero([ev({ id: 'a', title: 'Kuvaton keikka', categories: ['konsertit'], image: null }),
+                       ev({ id: 'b', title: 'Kuvallinen keikka', categories: ['konsertit'] })], 1)[0].id === 'b' },
+
+    // Osallistumisformaatti — täsmänimet, ei osamerkkijonoja
+    { name: 'osallistumisformaatti: luennot-kategoria tunnistuu', ok: onOsallistumisformaatti(ev({ title: 'x', categories: ['luennot'] })) === true },
+    { name: 'osallistumisformaatti: lukupiirin avainsanatunnus tunnistuu', ok: onOsallistumisformaatti(ev({ title: 'x', ysoIds: ['helsinki:agjffvmzeu'] })) === true },
+    { name: 'osallistumisformaatti: keskustelu EI ole veto (veisi GMC Sessions -jazzkonsertin)',
+      ok: onOsallistumisformaatti(ev({ title: 'x', categories: ['keskustelu'] })) === false },
+    { name: 'osallistumisformaatti: osallistuminen EI ole veto (664 riviä, mukana livekeikkoja)',
+      ok: onOsallistumisformaatti(ev({ title: 'x', categories: ['osallistuminen'], ysoIds: ['yso:p10727'] })) === false },
+    { name: 'luento kaista B:llä putoaa (Antiikin Kreikan klassikot nousi heroon sanasta komedian)',
+      ok: kaistaB(ev({ title: 'Antiikin Kreikan klassikot VI: Antiikin draaman ajattelu', location: { name: 'Stoa' }, categories: ['luennot'], startTime: '2026-09-24T18:00:00+03:00' })) === false },
+
+    // Sanasto: nightlifeScore on lajitteluavain, mutta sen pitää olla oikein
+    { name: 'sanasto: bändisoittimia ei ole keikka', ok: nightlifeScore(ev({ title: 'Bändisoittimia nuorille' })) < 7 },
+    { name: 'sanasto: bändin taivutusmuodot ovat yhä keikka',
+      ok: nightlifeScore(ev({ title: 'Illan bändiksi vaihtui katubändinä tunnettu kokoonpano' })) === 7
+        && nightlifeScore(ev({ title: 'Klassikkobändit lavalla' })) === 7 },
+    { name: 'sanasto: merilehmä Hydrodamalis gigas ei ole keikka',
+      ok: nightlifeScore(ev({ title: 'Elolliset', shortDescription: 'Hydrodamalis gigas ja muut kadonneet' })) < 7 },
+    { name: 'sanasto: gigejä on yhä keikka', ok: nightlifeScore(ev({ title: 'Gigejä Kalliossa' })) === 7 },
+    { name: 'sanasto: travellers ei ole rave', ok: nightlifeScore(ev({ title: 'Travellers Club', shortDescription: 'travels' })) !== 6 },
+    { name: 'sanasto: discord-liittymislinkki ei ole disco',
+      ok: nightlifeScore(ev({ title: 'Mangapiiri', shortDescription: 'Liity discord.gg-palvelimelle' })) !== 6 },
+    { name: 'sanasto: discovery ei ole disco', ok: nightlifeScore(ev({ title: 'Discovery Day' })) !== 6 },
+    { name: 'sanasto: aito disco pisteytyy yhä', ok: nightlifeScore(ev({ title: 'Discolauantai: Dj Miska' })) === 6 },
+    { name: 'sanasto: luennot-monikko saa luentosakon (114 riviä jäi ilman)',
+      ok: nightlifeScore(ev({ title: 'Kulttuuriluennot', categories: ['luennot'] })) < 0 },
+
+    // Kohderyhmä: senioriaukko ja kulissikierros
+    { name: 'kohderyhmä: senioreille-allatiivi tunnistuu (Sirkuskurssi senioreille nousi heroon)',
+      ok: isOutsideTargetAudience({ title: 'Sirkuskurssi senioreille, Ryhmä 2 – Seikkailun mestarit', categories: ['sirkustaide'], location: { name: 'Stoa' } }) === true },
+    { name: 'kohderyhmä: seniori-perusmuoto toimii yhä',
+      ok: isOutsideTargetAudience({ title: 'Senioreiden lautapelituokio', categories: [] }) === true },
+    { name: 'kohderyhmä: kulissikierros on opastettu kierros',
+      ok: isOutsideTargetAudience({ title: 'Esteetön Kulissikierros', categories: [], location: { name: 'Helsingin Kaupunginteatteri' } }) === true },
+
+    // Aikavyöhyke
+    { name: 'helsinkiHourOf: kesäaika (UTC+3)', ok: helsinkiHourOf('2026-09-09T14:00:00Z') === 17 },
+    { name: 'helsinkiHourOf: talviaika (UTC+2)', ok: helsinkiHourOf('2026-12-09T14:00:00Z') === 16 },
+    { name: 'helsinkiHourOf: keskiyön yli menevä leima kuuluu Helsinki-tuntiin', ok: helsinkiHourOf('2026-09-09T21:30:00Z') === 0 },
+  ]
+  for (const c of pChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ suositusportti: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

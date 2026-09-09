@@ -7,10 +7,11 @@ import { Loader2, Heart, Bell, Plus, ChevronLeft, ChevronDown, Download } from '
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime, tuntematonAika } from '@/lib/utils'
-import { nightlifeScore, COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
+import { COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
+import { valitseHero, onVisa } from '@/lib/picks'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
-import { karsiTapahtumaSarjat, samaTapahtumaSarja } from '@/lib/tapahtumaperhe'
-import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
+import { samaTapahtumaSarja } from '@/lib/tapahtumaperhe'
+import { helsinkiDateOf, helsinkiHourOf, helsinkiToday } from '@/lib/helsinki-time'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
@@ -896,27 +897,14 @@ export default function HomeClient({
     [upcomingEvents]
   )
 
-  // "✦ ILLAN NOSTOT" — pyyhkäisyheron 5 nostoa: parhaat pisteet ensin,
-  // näytöllä aikajärjestyksessä
-  const heroGigs = useMemo(() => {
-    // "ILLAN keikat": aamukymmenen työpaja ei kuulu tähän vaikka pisteet
-    // riittäisivät — ilta alkaa aikaisintaan klo 15 (festivaalit saavat
-    // olla päivälläkin, ne ovat kokopäiväisiä).
-    const picks = baseEvents
-      .filter((e) => {
-        // Kohderyhmärajaus (18–40): lastenkonsertti keikka-vibellä ei kuulu heroon
-        if (isOutsideTargetAudience(e)) return false
-        const sc = nightlifeScore(e)
-        if (sc < 3 || !e.image) return false
-        return sc >= 8 || new Date(e.startTime).getHours() >= 15
-      })
-      .sort((a, b) => nightlifeScore(b) - nightlifeScore(a))
-    // Sama tapahtuma monena rivinä eri lähteistä (lipputyypit, skrapet) ei
-    // saa täyttää viittä nostoa — mitattu 4.9.2026: Nerdlesque Festival oli
-    // herossa useasti. Perhekarsinta pistejärjestyksessä → paras edustaja jää.
-    const ainutkertaiset = karsiTapahtumaSarjat(picks).slice(0, 5)
-    return ainutkertaiset.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-  }, [baseEvents])
+  // "✦ ILLAN NOSTOT" — pyyhkäisyheron 5 nostoa. Portti on lib/picksissä,
+  // koska iltapushi käyttää TÄSMÄLLEEN samaa: tässä komponentissa toistettu
+  // portti oli ajautunut erilleen pushin portista, ja hero päästi tapahtuman
+  // sisään pelkällä avainsanapisteellä (omistajan bugi 9.9.2026:
+  // kirjaston äänitysopastus "Äänityksen perusteet Bändi- ja laulustudiossa"
+  // sai keikkapisteet studion nimestä). Sisäänpääsy on nyt rakenteinen ja
+  // nightlifeScore on enää lajitteluavain — ks. lib/picks.
+  const heroGigs = useMemo(() => valitseHero(baseEvents, 5), [baseEvents])
 
   // "Parhaat poiminnat" -kärki etusivun ison ruudukon oletukseksi (korvaa
   // vanhat vaakakarusellit). Kuratointi lokaalisti kiinnostavaksi: kuvalliset,
@@ -924,8 +912,6 @@ export default function HomeClient({
   // ja rajattu max 2:een; heron 5 nostoa pois ettei sama toistu. Cap ~18.
   const bestPicks = useMemo(() => {
     const heroIds = new Set(heroGigs.map((e) => e.id))
-    const QUIZ = /tietovisa|pubivisa|musavisa|\bvisa\b|tietokilpailu|quiz/i
-    const isQuiz = (e: Event) => QUIZ.test(`${e.title} ${e.categories.join(' ')}`)
     const score = (e: Event): number => {
       const vibes = getEventVibes(e)
       let s = 0
@@ -937,13 +923,17 @@ export default function HomeClient({
       if (vibes.includes('urheilu')) s += 2
       if (e.isFree) s += 1
       if ((e.shortDescription || e.description || '').length > 60) s += 1
-      if (isQuiz(e)) s -= 8                                                   // pubivisat alas
+      if (onVisa(e)) s -= 8                                                   // pubivisat alas
       // Yhteisötalojen/leikkipuistojen päiväohjelma: kuvapankkikuva antoi
       // +6 ja ne valtasivat "parhaat poiminnat" (mitattu 24.8.) — sakko
       // syö kuvaedun. Iltatapahtuma saa pienen edun: otsikko lupaa "Illan
       // parhaat".
       if (COMMUNITY_DAYTIME_REGEX.test(`${e.title} ${e.shortDescription ?? ''} ${e.categories.join(' ')}`)) s -= 6
-      if (new Date(e.startTime).getHours() >= 17) s += 2
+      // Helsinki-tunti, EI katsojan laitteen vyöhyke: /en-yleisö on
+      // matkailijoita, ja laitevyöhykkeellä iltabonus osuisi väärille
+      // tapahtumille (mitattu heron portilla: Europe/London 123 nostoa
+      // 154:n sijaan, America/New_York 53).
+      if (helsinkiHourOf(e.startTime) >= 17) s += 2
       return s
     }
     const ranked = baseEvents
@@ -976,7 +966,7 @@ export default function HomeClient({
       // Sarjasääntö (ei päivärajausta): viikkonäkymässä saman esityksen
       // to+pe-näytökset eivät vie kahta korttia.
       if (out.some((p) => samaTapahtumaSarja(p, e)) || heroGigs.some((h) => samaTapahtumaSarja(h, e))) continue
-      if (isQuiz(e)) {
+      if (onVisa(e)) {
         if (quizzes >= 2) { overflowQuiz.push(e); continue } // yli 2 visaa → loppuun
         quizzes++
       }

@@ -258,3 +258,85 @@ export function getEventVibes(e: Event): string[] {
     return []
   }
 }
+
+// ── Rakenteinen ohjelmatyyppi (suosituspintojen sisäänpääsyehto) ────────────
+//
+// LÄHTEEN kertoma tapahtumatyyppi: yso-koodi, yksikäyttöinen paikka tai
+// täsmällinen kategorianimi. EI otsikkoa eikä kuvausta — tämä on se ero
+// jonka vuoksi funktio on olemassa.
+//
+// Miksi: 9.9.2026 etusivun hero ("✦ ILLAN NOSTOT") näytti Keskustakirjasto
+// Oodin ilmaista äänitysopastusta ("Äänityksen perusteet Bändi- ja
+// laulustudiossa", helsinki:agqd2johpi). Syy oli nightlifeScoren keikkaporras
+// /…|bändi|…/, joka osui STUDION nimeen ja antoi 7 pistettä. Hero päästi
+// tapahtuman sisään pelkällä avainsanapisteellä, joten jokainen uusi
+// yhdyssana-ansa oli hero-bugi. Nyt sisäänpääsy vaatii rakenteisen signaalin
+// (lib/picks kaista A) ja nightlifeScore on enää LAJITTELUAVAIN.
+//
+// Yso-koodit ja paikkasäännöt luetaan YSO_TO_VIBE- ja VENUE_RULES-tauluista
+// (yksi totuus: uusi koodi vaikuttaa molempiin). Kategorianimille on oma
+// taulu, koska luokittelijan SOURCE_CAT_VIBES ohjaa kategoriavälilehtiä —
+// sen laajentaminen muuttaisi koko sovelluksen luokittelua, ei vain
+// suosituspintaa.
+export type ProgramType = 'keikka' | 'yoelama' | 'teatteri' | 'standup' | 'urheilu' | 'festivaali'
+
+const PROGRAM_TYPES: readonly string[] = ['keikka', 'yoelama', 'teatteri', 'standup', 'urheilu', 'festivaali']
+
+// TÄSMÄNIMI (c.toLowerCase().trim() === avain), ei osamerkkijono: täsmänimi ei
+// voi osua yhdyssanan sisään. Mitattu 9.9.2026, 4208 tuotantotapahtumaa
+// (rivejä / osuus jolla isOutsideTargetAudience on true):
+//   keikka 192/1 % · konsertti 89/3 % · konsertit 47/9 % · live-musiikki 69/0 %
+//   keikat ja konsertit 11/0 % · klubi 160/1 % · yöelämä 168/1 %
+//   teatteri 162/13 % · teatteritaide 145/23 % · stand-up 8/0 % · urheilu 18/11 %
+//   jääkiekko 8/0 % · festivaali 29/0 % · festivaalit 8/38 % · sirkustaide 3/0 %
+//   ooppera 2/0 % · näytelmät 2/0 % · elävä musiikki 4/50 %
+// POIS JÄTETYT samasta mittauksesta — juuri nämä päästäisivät kirjaston
+// harrasteohjelman takaisin heroon:
+//   osallistuminen 664/66 % · opastus 290/70 % · kirjastot 233/44 %
+//   keskustelu 447/43 % · kulttuuritapahtumat 628/41 % · tanssi 98/42 %
+//   musiikki 587/31 % (tämä antaa kirjaston ukuleleryhmälle keikkasignaalin)
+//   elokuvat 68/34 % · baari 422 (lähteen liimaama aihetunniste) ·
+//   tietovisa 413 (visat eivät ole nostoja)
+// ÄLÄ lisää nimeä ilman samaa mittausta (scripts/audit-compounds.ts osio 3c).
+const PROGRAM_CAT = new Map<string, ProgramType>([
+  ['keikka', 'keikka'], ['keikat ja konsertit', 'keikka'], ['konsertti', 'keikka'],
+  ['konsertit', 'keikka'], ['live-musiikki', 'keikka'], ['elävä musiikki', 'keikka'],
+  ['klubi', 'yoelama'], ['yöelämä', 'yoelama'],
+  ['teatteri', 'teatteri'], ['teatteritaide', 'teatteri'], ['ooppera', 'teatteri'],
+  ['näytelmät', 'teatteri'], ['sirkustaide', 'teatteri'],
+  ['stand-up', 'standup'],
+  ['urheilu', 'urheilu'], ['jääkiekko', 'urheilu'],
+  ['festivaali', 'festivaali'], ['festivaalit', 'festivaali'],
+])
+
+/** Lähteen kertoma ohjelmatyyppi. Tyhjä = lähde ei kerro tyyppiä (silloin
+ *  suosituspinta nojaa ykköskoriin, ks. lib/picks kaista B). */
+export function ohjelmatyyppi(e: Event): ProgramType[] {
+  const out = new Set<ProgramType>()
+  const lisaa = (v: string) => { if (PROGRAM_TYPES.includes(v)) out.add(v as ProgramType) }
+
+  for (const id of e.ysoIds ?? []) YSO_TO_VIBE.get(id)?.forEach(lisaa)
+
+  // Sama paikkasääntöjen luku kuin luokittelijan L1 (notSub-poikkeukset
+  // mukaan lukien); museo- ja taide-vibet karsiutuvat itsestään, koska ne
+  // eivät ole ohjelmatyyppejä.
+  const venue = (e.location?.name ?? '').toLowerCase().trim()
+  if (venue) {
+    for (const rule of VENUE_RULES) {
+      if (rule.notSub?.some((s) => venue.includes(s))) continue
+      if (rule.sub?.some((s) => venue.includes(s)) || rule.exact?.some((s) => venue === s)) {
+        rule.vibes.forEach(lisaa)
+      }
+    }
+  }
+
+  for (const c of e.categories ?? []) {
+    const v = PROGRAM_CAT.get(String(c).toLowerCase().trim())
+    if (v) out.add(v)
+  }
+
+  // Kuratoitu festivaalitaulu on itsessään rakenteinen signaali.
+  if (e.source === 'festivals') out.add('festivaali')
+
+  return [...out]
+}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendToSubscribers } from '@/lib/webpush'
 import { supabaseAdmin } from '@/lib/supabase'
 import { Event } from '@/lib/types'
-import { nightlifeScore } from '@/lib/nightlife'
+import { valitseHero } from '@/lib/picks'
 import { helsinkiToday } from '@/lib/helsinki-time'
 
 // Evening nightlife digest — Thu/Fri/Sat evenings (see vercel.json).
@@ -55,12 +55,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: `events fetch failed: ${(err as Error).message}` }, { status: 502 })
   }
 
-  const ranked = tonight
-    .map((e) => ({ e, score: nightlifeScore(e) }))
-    .filter((x) => x.score >= 3)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map((x) => x.e)
+  // SAMA PORTTI KUIN HEROSSA (lib/picks). Ennen tätä iltapushin ainoa portti
+  // oli nightlifeScore >= 3: ei kohderyhmärajausta, ei sarjakarsintaa, ei
+  // visa- eikä peruutusvetoa — eli VÄHEMMÄN portteja kuin herolla, vaikka
+  // pushi menee suoraan käyttäjän lukitusnäytölle. Nykydatalla top5 ei
+  // vuotanut vain siksi että ajastus klo 18 + startAfter-leikkuri karsii
+  // päiväohjelman; vika oli latentti (mitattu 9.9.2026: portin läpäisi 838
+  // riviä, joista 12 kohderyhmän ulkopuolelta).
+  // Kolmas parametri false = kuvaa ei vaadita, pushi on tekstinotifikaatio.
+  const ranked = valitseHero(tonight, 5, false)
 
   if (ranked.length === 0) {
     return NextResponse.json({ sent: 0, reason: 'no nightlife events tonight' })

@@ -113,6 +113,7 @@
     "museo.keywords|museo|taidemuseon": "yhdyssanan perusosa: X·museo on aito museo",
     "museo.keywords|museo|tietokonemuseo": "yhdyssanan perusosa: X·museo on aito museo",
     "museo.keywords|perinne|joikuperinne": "yhdyssanan perusosa: joiku·perinne on aitoa perinnettä",
+    "nl-1|luenno|kulttuuriluennot": "yhdyssanan perusosa: X·luennot ON luento, joten luentosakko (-1 p) kuuluu sille. Kuvio laajennettiin 9.9.2026 muotoon /luenno|luento/, koska LinkedEventsin oikea kategorianimi on monikko \"luennot\" (astevaihtelu t→nn) eikä vanha /luento/ osunut siihen — 114 luentoriviä jäi ilman sakkoa, mm. \"Antiikin Kreikan klassikot VI\" joka sai 4 pistettä sanasta \"komedian\".",
     "nl-1|luento|kirjallisuusluento": "X-luento(sarja) on aito luento",
     "nl-1|luento|musiikkiluentosarja": "X-luento(sarja) on aito luento",
     "nl-1|luento|musiikkiluentosarjassa": "X-luento(sarja) on aito luento",

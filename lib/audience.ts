@@ -28,6 +28,9 @@ interface AudienceCheckable {
   shortDescription?: string | null
   categories: string[]
   location?: { name?: string | null } | null
+  /** LinkedEventsin avainsanatunnukset. Rakenteinen signaali, jota mikään
+   *  sanamuoto ei voi huijata — ks. onOsallistumisformaatti. */
+  ysoIds?: string[]
   /** Luokittelijan antamat tunnelmat. Tekstisäännöt eivät näe näitä: lapsille
    *  luokiteltu tapahtuma, jonka otsikossa ei lue mitään lapsista, läpäisi
    *  aiemmin tämän tarkistuksen kokonaan (mitattu 27.8.2026). */
@@ -55,8 +58,15 @@ const AGE_RANGE =
   '\\balle\\s*(?:1[0-2]|[2-9])\\s*[- ]?v\\b|alle kouluikäis|' +
   '\\b(?:19|20)\\d{2}\\s*(?:[–—-]\\s*(?:19|20)\\d{2}\\s*)?syntyne'
 
+// '\bseniori' EI osu sanaan 'senioreille' (allatiivissa vartalo katkeaa
+// ennen i:tä), joten vartalo on 'senior'. Mitattu 9.9.2026, 4208 tuotanto-
+// tapahtumaa: 48 riviä / 17 otsikkoa pääsi kohderyhmäportin läpi pelkästään
+// tästä — mm. 'Sirkuskurssi senioreille, Ryhmä 2' @Stoa, joka nousi HEROON
+// kahtena päivänä, sekä HopeaCine-seniorinäytökset ja Enter ry:n
+// digiopastukset. Kävin kaikki 17 läpi: jokainen on aidosti senioreille
+// suunnattu, eli laajennus ei tuo yhtään väärää osumaa.
 const SENIORS =
-  '\\bseniori|eläkeläis|ikäihmis|ikäänty|seniorikeskus|palvelukeskus|palvelutalo|muistisair|digituki|digituen|digineuvo'
+  '\\bsenior|eläkeläis|ikäihmis|ikäänty|seniorikeskus|palvelukeskus|palvelutalo|muistisair|digituki|digituen|digineuvo'
 
 const HOBBY_CIRCLES =
   '\\bneule|neulon|neulomaan|virkkau|virkkaa|ompelukerho|ompeluseura|ompelupaja|ompeluohjaus|' +
@@ -96,7 +106,7 @@ const COMMUNITY_VENUES = '\\byhteisötalo|\\basukastalo|\\bkerhohuone'
 //    "opastettu"; irrallaan se veisi molemmat mukanaan.
 export const TOUR_TITLE_REGEX = new RegExp(
   'opastet\\w*\\s+\\w*(?:kierros|kävely|retki)|opastuskierros|opaskierros|yleisökierros|' +
-  'kaupunkikierros|kävelykierros|museokierros|kiertokävely|kaupunkikävely|arkkitehtuurikävely|' +
+  'kaupunkikierros|kävelykierros|museokierros|kulissikierros|kiertokävely|kaupunkikävely|arkkitehtuurikävely|' +
   'sightseeing|guided\\s+(?:tour|walk)|walking\\s+tour|city\\s+tour|turistikierros',
   'i',
 )
@@ -191,4 +201,60 @@ export function isPrimaryPick(e: Event): boolean {
   if (e.categories.some((c) => /kirjasto/i.test(c)) || /kirjasto/i.test(e.location?.name ?? '')) return false
   const vibes = getEventVibes(e)
   return PRIMARY_PICK_VIBES.some((v) => vibes.includes(v))
+}
+
+// ── Osallistumis- ja puheformaatti (VAIN suosituspintojen portti) ───────────
+//
+// Kurssi, opastus, luento, lukupiiri, kielikahvila. TÄSMÄNIMI kategoriassa tai
+// LinkedEventsin avainsanatunnus — ei osamerkkijonoja, joten yhdyssana-ansa
+// on rakenteellisesti mahdoton.
+//
+// TÄTÄ EI KUTSUTA isOutsideTargetAudiencen sisältä: nämä tapahtumat kuuluvat
+// kategorioihin, hakuun, kartalle ja Parhaisiin poimintoihin aivan kuten
+// ennenkin. Rajaus koskee vain heroa ja iltapushia (lib/picks).
+//
+// Mitattu 9.9.2026, 4208 tuotantotapahtumaa. Rakenneportin (lib/picks kaista
+// A/B) jälkeen hero-allas on 577 riviä, ja tästä vedosta leikkaa altaasta
+// enää:
+//   'luennot' + yso:p15875 → 10 riviä / 4 otsikkoa, kaikki aitoja luentoja
+//   ('Antiikin Kreikan klassikot VI' nousi HEROON, koska sana 'komedian'
+//   antoi sille 4 pistettä; 'Oopperan historia 3', kaksi työväenopiston
+//   luentoa). Nämä pääsevät kaista B:ltä, koska luennon aihe tuottaa
+//   taide-/teatterivibejä.
+// Loput nimet ja tunnukset leikkaavat NYT nolla riviä — rakenneportti hoitaa
+// ne jo. Ne ovat silti tässä yhdistelmätapausten varalta (tapahtuma jolla on
+// SEKÄ ohjelmatyyppi ETTÄ kurssiformaatti), ja täsmänimen ylläpitokustannus
+// on nolla.
+//
+// MITATUSTI POIS JÄTETYT:
+//   'keskustelu' (447 riviä) — leikkaisi altaasta 3 riviä joista kaksi on
+//     aitoja: 'MMK - GMC Sessions: Widenius, Murtola & Mugu' @Itäkeskuksen
+//     kirjasto (kategoria 'konsertit', oikea jazzkonsertti) ja 'Kirjailijat
+//     lavalla' @Suomen Kansallisteatteri.
+//   yso:p14004 (301 riviä) — leikkaisi saman GMC Sessions -konsertin.
+//   kulke:732 'Työpajat' (109 riviä) — leikkaisi 'Salsaa Vuotalon aulassa'
+//     ja 'WelcomeDay – Naapurustotapahtuma Kanneltalolla'. Sama asia
+//     kategorianimenä ('työpajat') on tarkempi: se leikkaa nolla aitoa.
+//   'osallistuminen' / yso:p10727 — osallistavuusleima, ei formaatti
+//     (664 riviä, mm. livekeikkoja ja Midnight Run).
+const FORMAT_CATS = new Set([
+  'luennot', 'luento', 'opastus', 'kurssit', 'työpajat', 'lukupiirit',
+  'kielikahvilat', 'kädentaidot', 'käsityöt', 'digitaidot', 'digineuvonta',
+  'askartelu', 'ompelu',
+])
+const FORMAT_IDS = new Set([
+  'yso:p15875',          // esitelmät/luennot
+  'yso:p2149',           // opastus, neuvonta
+  'yso:p9270',           // ryhmätoiminta
+  'yso:p4923',           // käsityöt
+  'yso:p8630',           // ompelu
+  'yso:p37943',          // digiopastus
+  'helsinki:agjffvmzeu', // lukupiirit
+  'helsinki:aflfbatker', // digituki
+])
+
+/** Kurssi-, opastus- tai puheformaatti lähteen RAKENTEISEN datan mukaan. */
+export function onOsallistumisformaatti(e: AudienceCheckable): boolean {
+  if (e.categories.some((c) => FORMAT_CATS.has(String(c).toLowerCase().trim()))) return true
+  return (e.ysoIds ?? []).some((id) => FORMAT_IDS.has(id))
 }

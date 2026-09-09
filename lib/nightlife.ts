@@ -4,8 +4,17 @@ import { Event } from './types'
 // and the /terassit SEO page.
 export const TERRACE_REGEX = /terassi|ulkoilma|outdoor|puisto|esplanadi|kasarmitori|allas|ranta|ulkoilta|kesäohjelma/
 
-// Keyword-tiered nightlife relevance score. Shared by the home feed
-// (hero + "Illan parhaat" carousel) and the evening push digest.
+// Keyword-tiered nightlife relevance score.
+//
+// TÄRKEÄ ROOLIMUUTOS 9.9.2026: tämä EI OLE ENÄÄ PORTTI vaan LAJITTELUAVAIN.
+// Hero ja iltapushi päästivät tapahtuman sisään pelkällä avainsanapisteellä
+// (nightlifeScore >= 3), joten jokainen osamerkkijono-ansa oli suoraan
+// hero-bugi: kirjaston äänitysopastus "Äänityksen perusteet Bändi- ja
+// laulustudiossa" sai 7 pistettä studion nimestä ja nousi etusivun ylimmäksi
+// kortiksi. Sisäänpääsy ratkaistaan nyt rakenteisesti (lib/picks +
+// lib/event-classify ohjelmatyyppi); nämä pisteet päättävät enää
+// JÄRJESTYKSEN. Alla olevat kuviokorjaukset eivät siis estä nostoja, ne
+// estävät väärän järjestyksen.
 /**
  * Päiväsaikainen yhteisöohjelma: leikkipuistot, yhteisö-/asukastalot,
  * palvelukeskukset, omatoimi- ja askarteluryhmät. Laadukkaita kuvia,
@@ -30,13 +39,29 @@ export const COMMUNITY_DAYTIME_REGEX =
 // koska viinibaari/olutbaari/kellaribaari OVAT baareja.
 export const NIGHTLIFE_TIERS: { pisteet: number; kuvio: RegExp }[] = [
   { pisteet: -2, kuvio: COMMUNITY_DAYTIME_REGEX },
-  { pisteet: -1, kuvio: /näyttely|museo|luento|seminaari|workshop|työpaja/ },
+  { pisteet: -1, kuvio: /näyttely|museo|luenno|luento|seminaari|workshop|työpaja/ },
   { pisteet: 8,  kuvio: /festivaali|festival|festarit/ },
-  { pisteet: 7,  kuvio: /keikka|konsertti|live[\s-]?musiikki|bändi|gig/ },
+  // bändi[a-zåäö]{0,4}(?![a-zåäö0-9-]): PERIAATE, EI SANALISTA. Suomen
+  // taivutuspääte on enintään 4 merkkiä, yhdyssanan jatko-osa vähintään 5.
+  // Tarkistin korpuksen KAIKKI bändi-tokenit (9.9.2026): osuu bändi/bändin/
+  // bändiin/bändiä/bändiksi/klassikkobändit/katubändinä (kaikki oikeita),
+  // EI osu 'bändisoittimia' (8 riviä) eikä 'bändi-' — juuri se
+  // koordinaatioyhdyssana ("Bändi- ja laulustudiossa") nosti kirjaston
+  // äänitysopastuksen heroon. Sanaraja \b EI olisi auttanut, koska
+  // väliviivan takia 'bändi-' on oma tokeninsa.
+  // gig: JavaScriptin \b on ASCII-pohjainen eikä kestä ä:tä ('gigejä'),
+  // siksi lookaround. Mitattu: vanha /gig/ osui 16 riviin ja KAIKKI olivat
+  // väärin (merilehmän lajinimi 'Hydrodamalis gigas' 14, 'digigurun' 2).
+  { pisteet: 7,  kuvio: /keikka|konsertti|live[\s-]?musiikki|bändi[a-zåäö]{0,4}(?![a-zåäö0-9-])|(?<![a-zåäö0-9])gig(s|it|ejä|ille|in|inä)?(?![a-zåäö0-9])/ },
   // (?<!käsit)yökerho: "käsitYÖKERHO" sai 6 pistettä yökerhona (löytyi
   // yhdyssana-auditoinnissa 2.9.2026) — sama ansa oli jo korjattu yoelama-
   // VIBEN avainsanoista ('^yökerho'), mutta tämä regex jäi silloin väliin.
-  { pisteet: 6,  kuvio: /klubi|dj[\s-]?set|(?<!käsit)yökerho|disco|rave|after[\s-]?party/ },
+  // disco(?!rd|very): kirjaston mangapiirin discord.gg-liittymislinkki antoi
+  // yöelämäpisteet; 'very' suojaa sanan 'discovery'. Mitattu: 12 → 11 riviä,
+  // ja kaikki 11 ovat aitoja discoja (OSAKUNTADISCO, Discolauantai, HOT
+  // DISCO, Avaruusdisco). rave: vanha kuvio osui 4 riviin joista kaikki
+  // olivat travel/travels/travellers/disgrave.
+  { pisteet: 6,  kuvio: /klubi|dj[\s-]?set|(?<!käsit)yökerho|disco(?!rd|very)|(?<![a-zåäö0-9])rave(t|ja|ssa|en|a)?(?![a-zåäö0-9])|after[\s-]?party/ },
   { pisteet: 5,  kuvio: /jääkiekko|jalkapallo|ottelu|urheilu|koripallo/ },
   // tragi-/draamakomedia on teatteria, ei stand-upia (sama rajaus kuin
   // standup-VIBEN '^komedia'-avainsanassa).
