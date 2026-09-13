@@ -15,7 +15,7 @@ import { helsinkiDateOf, helsinkiHourOf, helsinkiToday } from '@/lib/helsinki-ti
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
-import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled } from '@/lib/install'
+import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled, merkitseAsennusKirjatuksi } from '@/lib/install'
 import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
@@ -2136,7 +2136,12 @@ function InstallHeaderButton() {
     if (prompt) {
       await prompt.prompt()
       const { outcome } = await prompt.userChoice
-      if (outcome === 'accepted') track('install', { surface: 'header' })
+      if (outcome === 'accepted') {
+        // Merkintä estää saman asennuksen kirjautumisen toiseen kertaan
+        // kun sovellus käynnistetään ensimmäisen kerran kotivalikosta.
+        merkitseAsennusKirjatuksi()
+        track('install', { surface: 'header' })
+      }
       return
     }
     router.push(lang === 'en' ? '/en/download' : '/lataa')

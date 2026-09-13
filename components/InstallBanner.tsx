@@ -28,6 +28,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import {
   subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled,
   detectPlatform, isInAppBrowser, isBannerDismissed, dismissBanner,
+  merkitseAsennusKirjatuksi,
 } from '@/lib/install'
 import { track } from '@/lib/track'
 
@@ -58,7 +59,12 @@ export default function InstallBanner() {
     if (!prompt) return
     await prompt.prompt()
     const { outcome } = await prompt.userChoice
-    if (outcome === 'accepted') track('install', { surface: 'banner' })
+    if (outcome === 'accepted') {
+      // Merkintä estää saman asennuksen kirjautumisen toiseen kertaan
+      // kun sovellus käynnistetään ensimmäisen kerran kotivalikosta.
+      merkitseAsennusKirjatuksi()
+      track('install', { surface: 'banner' })
+    }
     setDismissed(true)
   }
 

@@ -117,7 +117,7 @@ const SELITTEET: Record<string, string> = {
   category: 'Kategorialaatan valinta etusivulla.',
   search: 'Haku — vain vähintään 3 merkin haut, kirjataan kun kirjoittaminen loppuu.',
   map_open: 'Karttanäkymän avaus.',
-  install: 'Sovellus asennettu kotivalikkoon (latausnappi, banneri tai lataussivu).',
+  install: 'Sovellus asennettu kotivalikkoon. Lasketaan kahdella tavalla: selaimen asennuskehote hyväksyttiin (Android ja työpöytä-Chrome), TAI sovellus avattiin kotivalikon kuvakkeesta ensimmäistä kertaa tällä laitteella. Jälkimmäinen on ainoa tapa nähdä iPhone-asennukset — Apple ei kerro asennushetkeä, joten iPhone-asennus näkyy vasta kun sovellus avataan kotivalikosta.',
   newsletter: 'Uutiskirjeen tilaus lähetetty.',
   share: 'Suunnitelman "Jaa"-nappi: jakolinkki luotu palvelimelle.',
   plan_add: '"Lisää suunnitelmaan" -napin painallus tapahtuma-, ravintola- tai paikkakortissa.',

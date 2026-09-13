@@ -77,6 +77,7 @@ import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti } from '../lib/audience'
 import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello } from '../lib/picks'
+import { kirjattavaAsennusPinta } from '../lib/install'
 import { ohjelmatyyppi } from '../lib/event-classify'
 import { getEventVibes } from '../lib/event-classify'
 import { onRobotti } from '../lib/bot'
@@ -3897,6 +3898,35 @@ for (const c of kwChecks) {
   for (const c of pChecks) {
     if (c.ok) pass++
     else failures.push(`✗ suositusportti: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── ASENNUKSEN KIRJAUS (lib/install) ────────────────────────────────────────
+// Omistajan kaveri asensi sovelluksen iPhonelle 13.9.2026 eikä luku noussut.
+// Syy ei ollut rikki mennyt mittari vaan sokea mittari: Apple ei laukaise
+// beforeinstallpromptia, ja KAIKKI kirjaus oli sen takana. Kannassa oli 9
+// asennusriviä, joista jokainen Chromiumin kehotteesta.
+{
+  const aChecks: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'asennus: iPhonen standalone-käynnistys kirjataan',
+      ok: kirjattavaAsennusPinta(true, false, 'ios') === 'standalone_ios',
+      got: String(kirjattavaAsennusPinta(true, false, 'ios')) },
+    { name: 'asennus: Androidin standalone-käynnistys kirjataan',
+      ok: kirjattavaAsennusPinta(true, false, 'android') === 'standalone_android' },
+    { name: 'asennus: työpöydän standalone-käynnistys kirjataan',
+      ok: kirjattavaAsennusPinta(true, false, 'desktop') === 'standalone_desktop' },
+    // Tämä on se testi joka estää mittarin muuttumisen avausten laskuriksi.
+    { name: 'asennus: jo kirjattu laite EI kirjaudu uudestaan',
+      ok: kirjattavaAsennusPinta(true, true, 'ios') === null },
+    // Ja tämä estää sen että jokainen selainkäynti laskettaisiin asennukseksi.
+    { name: 'asennus: tavallinen selainkäynti EI ole asennus',
+      ok: kirjattavaAsennusPinta(false, false, 'ios') === null },
+    { name: 'asennus: selainkäynti ei kirjaudu vaikka lippua ei olisi',
+      ok: kirjattavaAsennusPinta(false, true, 'android') === null },
+  ]
+  for (const c of aChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ asennus: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

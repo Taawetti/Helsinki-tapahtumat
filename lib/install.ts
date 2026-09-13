@@ -79,6 +79,52 @@ export function isInAppBrowser(): boolean {
   return /WhatsApp|Instagram|FBAN|FBAV|FB_IAB|Line\/|Snapchat|TikTok|; wv\)/i.test(ua)
 }
 
+// ── Asennuksen kirjaus ────────────────────────────────────────────────────
+// Apple EI tarjoa asennus-APIa: iPhonella ei tule beforeinstallprompt- eikä
+// appinstalled-tapahtumaa, joten sitä HETKEÄ jolloin sivu lisätään
+// kotivalikkoon ei voi havaita millään tavalla. Mitattu 13.9.2026 (omistajan
+// kaveri asensi sovelluksen iPhonelle eikä luku noussut): kannan 9
+// asennusrivistä KAIKKI olivat Chromiumin kehotteesta (banner 8, header 1)
+// eikä yhtäkään iPhonelta — mittari ei ollut rikki, se oli sokea.
+//
+// Ainoa havaittava jälki iOS-asennuksesta on KÄYNNISTYS: standalone-tilassa
+// avattu sivu on avattu kotivalikon kuvakkeesta (isInstalled tunnisti tämän
+// jo, mutta tietoa käytettiin vain bannerin piilottamiseen). Kirjataan kerran
+// laitetta kohden, jotta luku pysyy asennusten lukuna eikä muutu avausten
+// luvuksi.
+//
+// HUOM kaksi tietoista rajoitusta:
+//  - iPhone-asennus näkyy vasta kun sovellus AVATAAN kotivalikosta
+//  - selainmuistin tyhjennys tai uudelleenasennus voi tuottaa saman laitteen
+//    uudestaan; luku on "asennuksia" eikä "asentaneita laitteita"
+const KIRJATTU_AVAIN = 'install-counted-v1'
+
+export function asennusJoKirjattu(): boolean {
+  try { return localStorage.getItem(KIRJATTU_AVAIN) === '1' } catch { return false }
+}
+
+/** Merkitään kirjatuksi MYÖS kehotteen hyväksyessä, jottei Android laskisi
+ *  samaa asennusta kahdesti (kehote + ensimmäinen käynnistys). Selaimen ja
+ *  asennetun sovelluksen muisti on siellä sama origin. */
+export function merkitseAsennusKirjatuksi(): void {
+  try { localStorage.setItem(KIRJATTU_AVAIN, '1') } catch { /* privaattitila */ }
+}
+
+/** Päätöslogiikka puhtaana: mikä pinta kirjataan, vai ei mitään. Erillään
+ *  selaimen APIsta, jotta kaikki kolme haaraa saa testin. */
+export function kirjattavaAsennusPinta(
+  standalone: boolean, joKirjattu: boolean, alusta: Platform,
+): string | null {
+  if (!standalone || joKirjattu) return null
+  return `standalone_${alusta}`
+}
+
+/** Selainkääre: kirjattava pinta tälle laitteelle, tai null. */
+export function kirjattavaAsennus(): string | null {
+  if (typeof window === 'undefined') return null
+  return kirjattavaAsennusPinta(isInstalled(), asennusJoKirjattu(), detectPlatform())
+}
+
 // ── Bannerin hiljennys ────────────────────────────────────────────────────
 // ✕ hiljentää saapumisbannerin 14 päiväksi. Aiemmin sessionStorage → banneri
 // palasi JOKA istunnossa, mikä ärsyttää vakiokävijää joka on jo päättänyt

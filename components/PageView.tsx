@@ -17,6 +17,7 @@
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { track } from '@/lib/track'
+import { kirjattavaAsennus, merkitseAsennusKirjatuksi } from '@/lib/install'
 
 export default function PageView() {
   const pathname = usePathname()
@@ -33,6 +34,18 @@ export default function PageView() {
     // sivupolku riittää kertomaan mitä avattiin.
     track('pageview', { label: pathname })
   }, [pathname])
+
+  // Asennus käynnistyksestä. Juurilayout on oikea paikka, koska asennettu
+  // sovellus voi käynnistyä mille tahansa sivulle — eikä iOS-asennusta voi
+  // havaita mitenkään muuten (ks. lib/install.ts).
+  useEffect(() => {
+    const pinta = kirjattavaAsennus()
+    if (!pinta) return
+    // Merkintä ENNEN lähetystä: jos lähetys epäonnistuu, sama laite ei jää
+    // yrittämään joka sivunavauksella.
+    merkitseAsennusKirjatuksi()
+    track('install', { surface: pinta })
+  }, [])
 
   return null
 }
