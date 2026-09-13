@@ -47,6 +47,10 @@ const SALLITUT = new Set([
   'install',         // sovellus asennettiin
   'newsletter',      // uutiskirje tilattiin
   'share', 'plan_add', 'plan_copy',           // suunnitelma tms. jaettiin
+  // Sovelluksen SISÄINEN siirtymä paikan tapahtumiin. Tämä korvasi 13.9.2026
+  // Google-hakunapin, joka kirjautui external_clickinä — ilman omaa tyyppiä
+  // korvaajan käyttö jäisi kokonaan näkymättömiin.
+  'venue_events',
 ])
 
 const MAX_ERA = 20

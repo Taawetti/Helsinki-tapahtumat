@@ -9,6 +9,7 @@ import { NEIGHBORHOODS } from '@/lib/types'
 import { isOpenNow } from '@/lib/opening-hours'
 import { helsinkiDateOf } from '@/lib/helsinki-time'
 import { venueHoursOverride } from '@/lib/venue-hours-overrides'
+import { lyhytkuvaus } from '@/lib/event-text'
 import { seedRand } from '@/lib/seed-rand'
 
 export type CandidateType = 'event' | 'restaurant' | 'activity'
@@ -205,7 +206,12 @@ function activityToCandidate(a: Activity, rating?: { rating: number; reviewCount
 // ── Event → Candidate ─────────────────────────────────────────────────────
 function eventPasses(e: Event): boolean {
   // Visuaalinen pakka: vaadi kuva + edes vähän kuvausta (ei tyhjiä rivejä).
-  return !!e.image && (e.shortDescription || e.description || '').trim().length > 20
+  // lyhytkuvaus() EIKÄ raaka shortDescription: skraperin '@ <paikka>'
+  // -placeholder on yli 20 merkkiä ja läpäisi tämän portin, jolloin pakkaan
+  // pääsi 12 korttia joiden "miksi"-tekstinä luki pelkkä paikan nimi
+  // (mitattu 3 496 tapahtumasta 13.9.2026). Järjestys lyhyt-ennen-pitkää on
+  // SAMA kuin ennen: "miksi" on yhden rivin teaser, ei koko kuvaus.
+  return !!e.image && (lyhytkuvaus(e) || e.description || '').trim().length > 20
 }
 function eventToCandidate(e: Event): Candidate {
   const vibes = e.vibes ?? []
@@ -225,7 +231,7 @@ function eventToCandidate(e: Event): Candidate {
     type: 'event',
     role: 'program',
     title: e.title,
-    why: trimWhy(e.shortDescription || e.description),
+    why: trimWhy(lyhytkuvaus(e) || e.description),
     emoji: vibes.includes('keikka') ? '🎸' : vibes.includes('festivaali') ? '🎪' : vibes.includes('teatteri') ? '🎭' : '🎫',
     image: e.image,
     address: e.location?.streetAddress || e.location?.name || undefined,

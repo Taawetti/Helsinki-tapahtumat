@@ -23,6 +23,7 @@ import { DUR_H, TRAVEL_BUFFER_H, ARC_END_CAP_H } from './group-scheduler'
 import { helsinkiClock } from './arvo-ilta'
 import { tuntematonAika } from './utils'
 import { externalUrlFor } from './event-links'
+import { naytettavaKuvaus } from './event-text'
 import { track } from './track'
 
 export type AskelRooli = 'tekeminen' | 'ruoka' | 'drinkit' | 'ohjelma'
@@ -362,7 +363,10 @@ export function lisaaTapahtuma(e: Event): boolean {
     kuva: e.image,
     ankkuriISO: e.startTime,
     rooli: 'ohjelma',
-    kuvaus: riisuHtml(e.description || e.shortDescription || '').slice(0, 4000) || undefined,
+    // naytettavaKuvaus: skraperin '@ <paikka>' -placeholder ei ole kuvaus eikä
+    // sitä saa tallentaa askeleeseen — se näkyisi sekä omassa suunnitelmassa
+    // että KAVERILLE JAETUSSA suunnitelmassa (JaettuSuunnitelma).
+    kuvaus: riisuHtml(naytettavaKuvaus(e) ?? '').slice(0, 4000) || undefined,
     // Sama portti kuin korteissa: ei kilpailijalle, ei maksunkeruusivulle.
     linkki: externalUrlFor(e),
     paikkaNimi: e.location?.name || undefined,

@@ -342,6 +342,13 @@ export default function HomeClient({
   const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [activeVibes, setActiveVibes] = useState<string[]>(initialVibes ?? [])
   const [keyword, setKeyword] = useState('')
+  /** Koodista asetettu hakusana (paikan tapahtumat), ei käyttäjän
+   *  näppäimistöltä — ks. hakumittauksen efekti alla. Talletetaan ARVO eikä
+   *  pelkkä lippu: jos hakusanaksi asetetaan se mikä siellä jo on, React ei
+   *  muuta tilaa eikä efekti aja, ja pelkkä lippu jäisi päälle syömään
+   *  käyttäjän SEURAAVAN oikean haun. Näin käy tavallisella polulla, jossa
+   *  käyttäjä kirjoittaa paikan nimen ja napauttaa hakuehdotusten paikkariviä. */
+  const ohjelmallinenHaku = useRef<string | null>(null)
   // 90 pv hakuikkuna aukeaa vasta 2 merkistä: yksi merkki osuu lähes
   // kaikkeen (mitattu 6.9.2026: "k" = 4875/4975 tapahtumaa) eikä kukaan
   // hae yhdellä kirjaimella — kylmä 90 pv haku maksaa 25 s ja 5,3 Mt.
@@ -352,9 +359,18 @@ export default function HomeClient({
   // kirjaaminen tuottaisi roskaa ("k", "ke", "kei", "keik"…) ja kymmenkertaisen
   // datamäärän. Alle kolmen merkin hakuja ei kirjata lainkaan — ne eivät kerro
   // mitään siitä mitä ihmiset etsivät.
+  //
+  // OHJELMALLINEN HAKU EI OLE HAKU. showVenueEvents asettaa hakusanaksi paikan
+  // nimen, jotta lista rajautuu — käyttäjä ei kirjoittanut mitään. Ennen
+  // 13.9.2026 nämä kirjautuivat "Haku"-mittariin paikannimin, ja kun
+  // "Paikan kaikki tapahtumat" nousi infokortin päänapiksi, niitä olisi tullut
+  // selvästi enemmän. Mittari kertoo nyt vain siitä mitä ihmiset oikeasti
+  // hakevat; siirtymällä on oma tyyppinsä (venue_events).
   useEffect(() => {
+    const ohjelmallinen = ohjelmallinenHaku.current
+    ohjelmallinenHaku.current = null
     const kw = keyword.trim()
-    if (kw.length < 3) return
+    if (kw === ohjelmallinen || kw.length < 3) return
     const t = setTimeout(() => track('search', { label: kw.slice(0, 60) }), 1200)
     return () => clearTimeout(t)
   }, [keyword])
@@ -484,6 +500,7 @@ export default function HomeClient({
   // "Tänään" (omistajan havainto 6.9.2026). Käyttäjän oma päivävalinta
   // säilyy nyt koskemattomana.
   const showVenueEvents = useCallback((name: string) => {
+    ohjelmallinenHaku.current = name.trim()
     setSelectedEvent(null)
     setHoodFilter(null)
     setKeyword(name)

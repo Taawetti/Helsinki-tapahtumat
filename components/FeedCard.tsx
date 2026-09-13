@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { MapPin, Clock, Share2, ArrowUpRight, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
+import { lyhytkuvaus } from '@/lib/event-text'
 import { formatDate, formatTime } from '@/lib/utils'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -37,6 +38,7 @@ export default function FeedCard({ event, onClick, index }: Props) {
   const { toggle, isFavorite } = useFavorites()
   const { t } = useLanguage()
   const fav = isFavorite(event.id)
+  const kuvaus = lyhytkuvaus(event)
 
   return (
     <Link
@@ -102,9 +104,10 @@ export default function FeedCard({ event, onClick, index }: Props) {
               {event.title}
             </h3>
 
-            {event.shortDescription && (
+            {/* '@ Paikka' -placeholder ei ole kuvaus, ks. lib/event-text. */}
+            {kuvaus && (
               <p className="text-white/45 text-sm mt-1.5 line-clamp-2 leading-relaxed">
-                {event.shortDescription}
+                {kuvaus}
               </p>
             )}
           </div>

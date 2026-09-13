@@ -2,6 +2,7 @@
 
 import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
+import { lyhytkuvaus } from '@/lib/event-text'
 import { formatDate, formatTime, truncate, isTonight, fmtDistance, tuntematonAika } from '@/lib/utils'
 import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { recordClick } from '@/lib/preferences'
@@ -65,6 +66,7 @@ export default function EventCard({ event, onClick, distance, aikaLisa }: Props)
   const { t, lang } = useLanguage()
   const fav = isFavorite(event.id)
   const typeBadge = getTypeBadge(event.categories)
+  const kuvaus = lyhytkuvaus(event)
 
   return (
     <button
@@ -135,9 +137,11 @@ export default function EventCard({ event, onClick, distance, aikaLisa }: Props)
           {event.title}
         </h3>
 
-        {event.shortDescription && (
+        {/* Skraperin '@ Paikka' -placeholder EI ole kuvaus — se toisti paikan
+            nimen joka lukee jo kortissa (ks. lib/event-text). */}
+        {kuvaus && (
           <p className="text-white/45 text-xs leading-relaxed line-clamp-2">
-            {truncate(event.shortDescription, 110)}
+            {truncate(kuvaus, 110)}
           </p>
         )}
 

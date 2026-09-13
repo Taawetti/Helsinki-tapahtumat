@@ -88,7 +88,9 @@ import { karsiTapahtumaPerheet, karsiTapahtumaSarjat } from '../lib/tapahtumaper
 import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, formatDateRange, tuntematonAika, isTonight } from '../lib/utils'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
-import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, searchUrlFor, onMaksunkeruuUrl } from '../lib/event-links'
+import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, ctaKohde, onMaksunkeruuUrl } from '../lib/event-links'
+import { onPaikkaPlaceholder, naytettavaKuvaus, lyhytkuvaus } from '../lib/event-text'
+import { arvioiPudotus, type Kuolinsyy } from './fetch-venue-sites'
 import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, type Suunnitelma } from '../lib/suunnitelma'
 import { osuuPaivaan, viikonlopunPaivat, paivaPlus } from '../lib/map-date-filter'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
@@ -1665,18 +1667,22 @@ for (const c of arcChecks) {
     { name: 'jako: järjestäjän linkki kelpaa kun omaa sivua ei ole', ok: shareUrlFor({ id: 'venue-1', infoUrl: 'https://tavastiaklubi.fi/keikka' }, B) === 'https://tavastiaklubi.fi/keikka' },
     { name: 'jako: kilpailija ohitetaan, lippulinkki käytetään', ok: shareUrlFor({ id: 'stadissa-2', infoUrl: 'https://stadissa.fi/x', ticketUrl: 'https://www.lippu.fi/y' }, B) === 'https://www.lippu.fi/y' },
   ]
-  // CTA-linkki: kilpailijan osoite ei kelpaa ulkoiseksi linkiksi, ja
-  // hakuvara vie hakukoneeseen tapahtuman nimellä + paikalla.
+  // CTA-linkki: kilpailijan osoite ei kelpaa ulkoiseksi linkiksi, ja kun
+  // linkkiä ei ole, kaskadi päätyy sovelluksen omaan toimintoon — EI enää
+  // Google-hakuun (omistaja 13.9.2026: haku tarjosi ensimmäisenä juuri niitä
+  // kilpailijoita jotka isCompetitorUrl estää).
   const ctaCases: { name: string; ok: boolean }[] = [
     { name: 'CTA: lippulinkki voittaa infoUrlin', ok: externalUrlFor({ ticketUrl: 'https://lippu.fi/x', infoUrl: 'https://tavastiaklubi.fi' }) === 'https://lippu.fi/x' },
     { name: 'CTA: pelkkä kilpailija → null (nappi korvataan)', ok: externalUrlFor({ infoUrl: 'https://www.stadissa.fi/tapahtumat/1' }) === null },
     { name: 'CTA: kilpailija ohitetaan, järjestäjä kelpaa', ok: externalUrlFor({ ticketUrl: 'https://stadissa.fi/x', infoUrl: 'https://kiasma.fi' }) === 'https://kiasma.fi' },
     { name: 'CTA: ei linkkejä → null', ok: externalUrlFor({}) === null },
-    { name: 'haku: nimi + paikka + Helsinki mukana', ok: (() => {
-      const u = searchUrlFor({ title: 'Pingistä (pöytätennis)', location: { name: 'Töölön seniorikeskus' } })
-      return u.startsWith('https://www.google.com/search?q=') && decodeURIComponent(u).includes('Pingistä (pöytätennis) Töölön seniorikeskus Helsinki')
-    })() },
-    { name: 'haku: toimii ilman paikkaa', ok: decodeURIComponent(searchUrlFor({ title: 'Keikka', location: null })).includes('Keikka Helsinki') },
+    // Kaskadin järjestys ja se ETTEI Google-hakua enää ole.
+    { name: 'kaskadi: ulkoinen linkki voittaa', ok: ctaKohde('https://tavastiaklubi.fi', 'https://paikka.fi', true) === 'ulkoinen' },
+    { name: 'kaskadi: ilman ulkoista → paikan sivu', ok: ctaKohde(null, 'https://galleria.fi', true) === 'paikan_sivu' },
+    { name: 'kaskadi: ilman kumpaakaan → paikan tapahtumat (sovelluksen sisällä)',
+      ok: ctaKohde(null, null, true) === 'paikan_tapahtumat' },
+    { name: 'kaskadi: ilman paikkaakin → EI NAPPIA (ei hakukonetta)',
+      ok: ctaKohde(null, null, false) === 'ei_nappia' },
   ]
   for (const c of ctaCases) {
     if (c.ok) pass++
@@ -3898,6 +3904,99 @@ for (const c of kwChecks) {
   for (const c of pChecks) {
     if (c.ok) pass++
     else failures.push(`✗ suositusportti: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── KUVAUSTEKSTI (lib/event-text) ───────────────────────────────────────────
+// Stadissa-skraperi kirjoittaa '@ <paikka>' luokittelijan syötteeksi, koska
+// listaussivulla ei ole kuvausta. Kortissa ja paneelissa se näkyi tekstinä
+// joka toistaa paikan nimen (omistajan havainto 13.9.2026). Mitattu 3 496
+// tuotantotapahtumasta: täsmäsääntö osuu 220:een, kaikki stadissa-rivejä.
+{
+  const kChecks: { name: string; ok: boolean }[] = [
+    { name: 'kuvaus: pelkkä paikkaplaceholder ei ole kuvaus',
+      ok: naytettavaKuvaus({ shortDescription: '@ Galleria Pirkko-Liisa Topelius', description: '',
+        location: { name: 'Galleria Pirkko-Liisa Topelius' } }) === null },
+    { name: 'kuvaus: oikea kuvaus voittaa aina',
+      ok: naytettavaKuvaus({ shortDescription: '@ Oodi', description: 'Näyttely kertoo...',
+        location: { name: 'Oodi' } }) === 'Näyttely kertoo...' },
+    { name: 'kuvaus: aito lyhytkuvaus säilyy',
+      ok: naytettavaKuvaus({ shortDescription: 'Kolmen taiteilijan yhteisnäyttely', description: '',
+        location: { name: 'Oodi' } }) === 'Kolmen taiteilijan yhteisnäyttely' },
+    // TARKKUUSANSA: löysä @-alkusääntö olisi vienyt Kansallisteatterin rivit,
+    // joissa näyttämön nimi on aitoa lisätietoa (mitattu: 2 riviä).
+    { name: 'kuvaus: @-alkuinen joka kertoo ENEMMÄN kuin paikan nimi säilyy',
+      ok: naytettavaKuvaus({ shortDescription: '@ Taivassali, Kansallisteatteri', description: '',
+        location: { name: 'Kansallisteatteri' } }) === '@ Taivassali, Kansallisteatteri' },
+    { name: 'kuvaus: tyhjästä ei tule kuvausta',
+      ok: naytettavaKuvaus({ shortDescription: '', description: '', location: { name: 'X' } }) === null },
+    { name: 'placeholder: tunnistus vaatii paikan nimen',
+      ok: onPaikkaPlaceholder('@ Jokin', null) === false },
+    { name: 'placeholder: täsmäys on tarkka eikä alkuosuma',
+      ok: onPaikkaPlaceholder('@ Oodi ja jotain muuta', 'Oodi') === false },
+    // KORTTIEN JA PANEELIN ERO. Ensimmäinen versio käytti korteissa
+    // naytettavaKuvausta, jolloin 2 624 kortin lyhyt teaser olisi vaihtunut
+    // pitkäksi RAAKAKSI kuvaukseksi — kortit eivät riisu HTML:ää, joten
+    // niissä olisi näkynyt <p>-tageja. Nämä kaksi testiä lukitsevat eron.
+    { name: 'lyhytkuvaus EI putoa pitkään kuvaukseen (kortit näyttävät teaserin)',
+      ok: lyhytkuvaus({ shortDescription: '', description: '<p>Pitkä kuvaus…</p>', location: { name: 'X' } }) === null },
+    { name: 'lyhytkuvaus säilyttää teaserin vaikka pitkä kuvaus olisi',
+      ok: lyhytkuvaus({ shortDescription: 'Lyhyt teaser', description: '<p>Pitkä…</p>', location: { name: 'X' } }) === 'Lyhyt teaser' },
+    { name: 'naytettavaKuvaus SEN SIJAAN suosii pitkää (paneeli riisuu HTML:n)',
+      ok: naytettavaKuvaus({ shortDescription: 'Lyhyt teaser', description: '<p>Pitkä…</p>', location: { name: 'X' } }) === '<p>Pitkä…</p>' },
+  ]
+  for (const c of kChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ kuvausteksti: ${c.name}`)
+  }
+}
+
+// ── KUOLLEIDEN OSOITTEIDEN VARTIJAT (scripts/fetch-venue-sites) ─────────────
+// data/venue-sites.json generoidaan viikoittain ja committoidaan automaat-
+// tisesti. Jos elossaolotarkistus erehtyy, satojen paikkojen linkit katoavat
+// ilman että kukaan huomaa — siksi molemmat vartijat ovat testien alla.
+// Luvut ovat mitattuja (13.9.2026, 1932 avainta), eivät arvattuja.
+{
+  const sivut = (n: number, url: string, alku = 0): Record<string, string> =>
+    Object.fromEntries(Array.from({ length: n }, (_, i) => [`paikka${alku + i}`, url]))
+  const aChecks: { name: string; ok: boolean; got?: string }[] = []
+
+  // A) OIKEA SIIVOUS: 149 kuollutta 1932:sta, joista 40 samalta isännältä
+  //    mutta KAIKKI 404 (hel.fi uudisti sivustonsa). Pitää mennä läpi.
+  {
+    const sites = { ...sivut(40, 'https://www.hel.fi/vanha'), ...sivut(109, 'https://muu.fi/x', 40), ...sivut(1783, 'https://elossa.fi/y', 200) }
+    const kuolleet = new Map<string, Kuolinsyy>([['https://www.hel.fi/vanha', 'http'], ['https://muu.fi/x', 'http']])
+    const p = arvioiPudotus(sites, kuolleet)
+    aChecks.push({ name: 'vartija: aito 404-siivous menee läpi', ok: p.esto === null && p.poistuvat.length === 149, got: `esto=${p.esto} n=${p.poistuvat.length}` })
+  }
+  // B) ISÄNNÄN KATKO: sama määrä, mutta yhteys ei muodostu -> EI saa pudottaa.
+  {
+    const sites = { ...sivut(40, 'https://www.hel.fi/vanha'), ...sivut(1892, 'https://elossa.fi/y', 40) }
+    const kuolleet = new Map<string, Kuolinsyy>([['https://www.hel.fi/vanha', 'yhteys']])
+    const p = arvioiPudotus(sites, kuolleet)
+    aChecks.push({ name: 'vartija: isännän katko estää pudotuksen', ok: p.esto !== null, got: String(p.esto) })
+  }
+  // C) LIIAN ISO OSUUS: yli 15 % avaimista -> EI saa pudottaa, vaikka 404.
+  {
+    const sites = { ...sivut(300, 'https://www.hel.fi/vanha'), ...sivut(1500, 'https://elossa.fi/y', 300) }
+    const kuolleet = new Map<string, Kuolinsyy>([['https://www.hel.fi/vanha', 'http']])
+    const p = arvioiPudotus(sites, kuolleet)
+    aChecks.push({ name: 'vartija: yli 15 % avaimista estää pudotuksen', ok: p.esto !== null, got: String(p.esto) })
+  }
+  // D) Osuus lasketaan AVAIMISTA eikä osoitteista (juuri tämä oli vika).
+  {
+    const sites = { ...sivut(300, 'https://www.hel.fi/a'), ...sivut(1500, 'https://elossa.fi/y', 300) }
+    const kuolleet = new Map<string, Kuolinsyy>([['https://www.hel.fi/a', 'http']])
+    const p = arvioiPudotus(sites, kuolleet)
+    // 1 uniikki osoite 2:sta = 50 %, mutta AVAIMISTA 300/1800 = 16,7 % -> estyy
+    aChecks.push({ name: 'vartija: osuus avaimista, ei osoitteista', ok: p.esto?.includes('17 %') === true || p.esto?.includes('avainta') === true, got: String(p.esto) })
+  }
+  // E) Tyhjä tapaus ei kaadu.
+  aChecks.push({ name: 'vartija: ei kuolleita -> ei estoa', ok: arvioiPudotus({ a: 'https://x.fi' }, new Map()).esto === null })
+
+  for (const c of aChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ vartija: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

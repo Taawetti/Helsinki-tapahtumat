@@ -76,11 +76,33 @@ export function externalUrlFor(e: { infoUrl?: string | null; ticketUrl?: string 
   return [e.ticketUrl, e.infoUrl].find((u) => u && !isCompetitorUrl(u) && !onMaksunkeruuUrl(u)) ?? null
 }
 
-/** Viimeinen oljenkorsi kun tapahtumasta ei tiedetä linkkiä eikä paikan
- *  sivua: haku tapahtuman nimellä ja paikalla. Ei lupaa mitään, mutta vie
- *  eteenpäin — ja järjestäjän oma sivu on hakutuloksissa käytännössä aina
- *  kilpailijan listausta ylempänä. */
-export function searchUrlFor(e: { title: string; location?: { name?: string | null } | null }): string {
-  const q = [e.title, e.location?.name, 'Helsinki'].filter(Boolean).join(' ')
-  return `https://www.google.com/search?q=${encodeURIComponent(q)}`
+/** Mihin infopaneelin päätoiminto vie.
+ *
+ *  GOOGLE-HAKU POISTETTU 13.9.2026. Se oli tässä viimeisenä oljenkortena
+ *  perusteluna että "järjestäjän oma sivu on hakutuloksissa käytännössä aina
+ *  kilpailijan listausta ylempänä". Omistaja osoitti sen vääräksi: haulla
+ *  "Pirjo Hassinen - Travel Galleria Pirkko-Liisa Topelius Helsinki" tulokset
+ *  1 ja 2 olivat HS Menokone ja Stadissa.fi — molemmat juuri ne kalenterit
+ *  jotka isCompetitorUrl estää. Nappi siis kiersi oman sääntönsä takaoven
+ *  kautta, ja mitattuna se oli suosittu: 52 uloslinkkiklikistä 12 (23 %) meni
+ *  google.comiin.
+ *
+ *  Tilalle EI tullut tyhjää vaan sovelluksen oma toiminto: paikan kaikki
+ *  tapahtumat. Se on näille tapahtumille aidosti hyödyllinen — mitattu
+ *  3 496 tapahtumasta: tyhjistä korteista 64 % on paikassa jossa on muitakin
+ *  tapahtumia — ja käyttäjä jää palveluun sen sijaan että hänet lähetettäisiin
+ *  hakuun joka tarjoaa kilpailijaa.
+ *
+ *  Viimeinen vaihtoehto on EI NAPPIA. Paneelissa on silti aika, paikka,
+ *  Kartta, Reittiohjeet ja Lisää suunnitelmaan — kortti ei jää umpikujaksi. */
+export type CtaKohde = 'ulkoinen' | 'paikan_sivu' | 'paikan_tapahtumat' | 'ei_nappia'
+
+export function ctaKohde(
+  ulkoinen: string | null,
+  paikanSivu: string | null,
+  paikanTapahtumatSaatavilla: boolean,
+): CtaKohde {
+  if (ulkoinen) return 'ulkoinen'
+  if (paikanSivu) return 'paikan_sivu'
+  return paikanTapahtumatSaatavilla ? 'paikan_tapahtumat' : 'ei_nappia'
 }

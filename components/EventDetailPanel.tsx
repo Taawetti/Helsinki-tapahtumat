@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react'
 import Link from 'next/link'
-import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart, Globe, Search } from 'lucide-react'
+import { X, MapPin, Clock, ExternalLink, Ticket, Navigation, Share2, MessageCircle, Copy, Check, Heart, Globe, CalendarDays } from 'lucide-react'
 import { Event } from '@/lib/types'
 import { track } from '@/lib/track'
 import { affiliateUrl, formatDate, formatDateRange, formatTime } from '@/lib/utils'
 import { canBuyTickets } from '@/lib/tickets'
-import { shareUrlFor, externalUrlFor, searchUrlFor } from '@/lib/event-links'
+import { shareUrlFor, externalUrlFor, ctaKohde } from '@/lib/event-links'
+import { naytettavaKuvaus } from '@/lib/event-text'
 import { classifyEventCategory } from '@/lib/event-category'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -203,6 +204,15 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
       : `https://maps.google.com/maps?daddr=${encodeURIComponent(mapsQuery)}&travelmode=transit`
     : null
 
+  // CTA-KASKADI lasketaan kerran, koska sekä paikkalohkon pikkulinkki että
+  // alalaidan päänappi tarvitsevat saman tiedon: sama toiminto ei saa näkyä
+  // paneelissa kahdesti.
+  const ulkoinenUrl = externalUrlFor(event)
+  const paikanNimi = event.location?.name?.trim() ?? ''
+  const paikanTapahtumatSaatavilla = !!paikanNimi && !!onShowVenueEvents
+  const ctaTyyppi = ctaKohde(ulkoinenUrl, venueSite, paikanTapahtumatSaatavilla)
+  const naytaKuvaus = naytettavaKuvaus(event)
+
   const shareText = buildShareText(event)
   // Jakolinkki: oma tapahtumasivu kun /e/[id] osaa sen ratkaista, muuten
   // ulkoinen linkki — mutta EI KOSKAAN kilpailevaan tapahtumakalenteriin
@@ -347,7 +357,10 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                         className="inline-flex items-center gap-1 text-[#4da6e8] hover:text-[#7dc0f2] text-xs font-semibold mt-1.5 transition-colors">
                         📅 {t('detail.venue_events')} →
                       </Link>
-                    ) : onShowVenueEvents ? (
+                    ) : onShowVenueEvents && ctaTyyppi !== 'paikan_tapahtumat' ? (
+                      /* Piilossa kun ALALAIDAN päänappi tekee jo täsmälleen
+                         saman — muuten sama toiminto näkyisi paneelissa
+                         kahdesti (pikkulinkki + iso nappi). */
                       <button onClick={() => onShowVenueEvents(ln)}
                         className="inline-flex items-center gap-1 text-[#4da6e8] hover:text-[#7dc0f2] text-xs font-semibold mt-1.5 transition-colors">
                         📅 {t('detail.venue_events')} →
@@ -366,9 +379,9 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
           </div>
 
           {/* Description */}
-          {(event.description || event.shortDescription) && (
+          {naytaKuvaus && (
             <p className="text-white/60 text-sm leading-relaxed whitespace-pre-line">
-              {(event.description || event.shortDescription)
+              {naytaKuvaus
                 .replace(/<br\s*\/?>/gi, '\n')
                 .replace(/<\/p>/gi, '\n')
                 .replace(/<[^>]+>/g, '')
@@ -434,14 +447,27 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                 : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.85)' }}>
               {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
             </button>
-            {(() => {
-              const external = externalUrlFor(event)
-              const href = external ?? venueSite ?? searchUrlFor(event)
+            {ctaTyyppi === 'paikan_tapahtumat' && (
+              /* Kun tapahtumasta ei tiedetä linkkiä eikä paikan sivua, päänappi
+                 on SOVELLUKSEN OMA toiminto eikä hakukone (ks. lib/event-links
+                 ctaKohde). onShowVenueEvents sulkee paneelin itse. */
+              <button
+                onClick={() => {
+                  track('venue_events', { surface: 'detail', eventId: event.id, label: paikanNimi })
+                  onShowVenueEvents?.(paikanNimi)
+                }}
+                className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
+              >
+                <CalendarDays size={15} />
+                <span className="truncate">{t('detail.venue_events')}</span>
+              </button>
+            )}
+            {(ctaTyyppi === 'ulkoinen' || ctaTyyppi === 'paikan_sivu') && (() => {
+              const external = ctaTyyppi === 'ulkoinen' ? ulkoinenUrl : null
+              const href = external ?? venueSite!
               const label = external
                 ? (canBuyTickets(event) ? t('detail.buy_tickets') : t('detail.read_more'))
-                : venueSite
-                ? `${event.location?.name ?? t('detail.venue_site')} →`
-                : t('detail.search_more')
+                : `${paikanNimi || t('detail.venue_site')} →`
               return (
                 /* TÄRKEIN MITATTAVA. Erotellaan oikea lippukauppa (ticket_click)
                    muusta uloslinkistä (external_click): vain lippukauppaklikki on
@@ -468,7 +494,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                   }}
                   className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
                 >
-                  {external ? <Ticket size={15} /> : venueSite ? <Globe size={15} /> : <Search size={15} />}
+                  {external ? <Ticket size={15} /> : <Globe size={15} />}
                   <span className="truncate">{label}</span>
                   <ExternalLink size={13} className="opacity-70 shrink-0" />
                 </a>

@@ -20,7 +20,14 @@
 import type { TrackKind } from './track'
 
 /** Teot jotka tekevät käynnistä sitoutuneen yksinään. */
-const ARVOTEOT: TrackKind[] = ['ticket_click', 'install', 'favorite_add', 'external_click']
+// 'venue_events' on mukana koska se KORVASI external_clickin: infokortin
+// päänappi kirjasi ennen 13.9.2026 external_clickin myös silloin kun kohde oli
+// pelkkä Google-haku. Jos sitä ei olisi tässä, yhden tapahtuma-avauksen +
+// päänapin klikin käynti lakkaisi olemasta sitoutunut 303 tapahtumalla
+// 3 496:sta (8,7 %) — ja Ads-konversio NEXT_PUBLIC_ADS_CONV_ENGAGED jäisi
+// ampumatta. Sisäinen siirtymä paikan ohjelmaan on vähintään yhtä vahva
+// aikomussignaali kuin poistunut hakuklikki.
+const ARVOTEOT: TrackKind[] = ['ticket_click', 'install', 'favorite_add', 'external_click', 'venue_events']
 /** Monesko tapahtuma-avaus tekee käynnistä sitoutuneen. */
 const AVAUSKYNNYS = 2
 

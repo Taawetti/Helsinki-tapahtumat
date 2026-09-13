@@ -12,7 +12,7 @@
 // Kartta + Reittiohjeet.
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { X, MapPin, Clock, ExternalLink, Navigation, Share2, MessageCircle, Copy, Check, Globe, Search, Phone, Star } from 'lucide-react'
+import { X, MapPin, Clock, ExternalLink, Navigation, Share2, MessageCircle, Copy, Check, Globe, Phone, Star } from 'lucide-react'
 import { track } from '@/lib/track'
 import { isOpenNow, getTodayHours } from '@/lib/opening-hours'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -187,10 +187,11 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
 
   const shareText = `${paikka.name}${paikka.address ? `\n📍 ${paikka.address}` : ''}\n\n${t('share.found_in')}`
   const shareUrl = `https://mitatanaan.fi/${guideSlug}`
-  // CTA kuten tapahtumissa: nettisivu jos tiedossa, muuten haku nimellä —
-  // paneeli ei koskaan jää umpikujaksi.
-  const ctaHref = www ?? `https://www.google.com/search?q=${encodeURIComponent(`${paikka.name} Helsinki`)}`
-  const ctaLabel = www ? t('common.website') : t('detail.search_more')
+  // CTA kuten tapahtumissa: nettisivu JOS tiedossa, muuten ei nappia.
+  // Google-hakuvara poistettu 13.9.2026 (ks. lib/event-links ctaKohde):
+  // mitattuna 12 uloslinkkiklikistä puolet tuli tästä paneelista, ja haku
+  // tarjoaa ensimmäisenä juuri niitä kalenterikilpailijoita jotka muualla
+  // estetään. Paneeliin jäävät silti Kartta ja Reittiohjeet.
 
   async function handleNativeShare() {
     if (navigator.share) {
@@ -354,17 +355,19 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
               {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
             </button>
 
-            <a href={ctaHref} target="_blank" rel="noopener noreferrer"
-              onClick={() => {
-                let domain = ''
-                try { domain = new URL(ctaHref).hostname.replace(/^www\./, '') } catch { /* ei osoite */ }
-                track('external_click', { surface: 'guide', label: paikka.name, meta: domain })
-              }}
-              className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors">
-              {www ? <Globe size={15} /> : <Search size={15} />}
-              <span className="truncate">{ctaLabel}</span>
-              <ExternalLink size={13} className="opacity-70 shrink-0" />
-            </a>
+            {www && (
+              <a href={www} target="_blank" rel="noopener noreferrer"
+                onClick={() => {
+                  let domain = ''
+                  try { domain = new URL(www).hostname.replace(/^www\./, '') } catch { /* ei osoite */ }
+                  track('external_click', { surface: 'guide', label: paikka.name, meta: domain })
+                }}
+                className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors">
+                <Globe size={15} />
+                <span className="truncate">{t('common.website')}</span>
+                <ExternalLink size={13} className="opacity-70 shrink-0" />
+              </a>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/8 text-white/60 font-medium text-sm py-3 rounded-xl border border-white/8 transition-colors">
