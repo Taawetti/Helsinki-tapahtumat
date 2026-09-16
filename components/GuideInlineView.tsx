@@ -94,13 +94,15 @@ function toEvent(e: GuideEvent): Event {
     startTime: e.startTime,
     endTime: null,
     location: e.venue || e.lat != null
-      ? { name: e.venue, streetAddress: e.street ?? '', city: 'Helsinki', lat: e.lat, lon: e.lon }
+      ? { name: e.venue, streetAddress: e.street ?? '', city: e.city ?? 'Helsinki', lat: e.lat, lon: e.lon }
       : null,
     image: e.image ?? null,
     isFree: e.isFree,
     price: e.price ?? null,
     ticketUrl: null,
-    infoUrl: null,
+    // Oppaan tapahtuman oma linkki (openmicfinland.fi:n tapahtumasivu) —
+    // ilman läpivientiä paneelin päänappi putosi paikan tapahtumiin.
+    infoUrl: e.infoUrl ?? null,
     categories: [],
     source: 'linked-events',
   }

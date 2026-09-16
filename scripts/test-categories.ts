@@ -91,6 +91,8 @@ import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/g
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, ctaKohde, onMaksunkeruuUrl } from '../lib/event-links'
 import { onPaikkaPlaceholder, naytettavaKuvaus, lyhytkuvaus } from '../lib/event-text'
 import { arvioiPudotus, type Kuolinsyy } from './fetch-venue-sites'
+import { mapOpenmicEvent, koordAvain, katuosoite, poistaPaikkaHanta, type OpenmicRaw } from '../lib/openmic'
+import { yhdistaJamit } from '../lib/guide-data'
 import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, type Suunnitelma } from '../lib/suunnitelma'
 import { osuuPaivaan, viikonlopunPaivat, paivaPlus } from '../lib/map-date-filter'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
@@ -3997,6 +3999,72 @@ for (const c of kwChecks) {
   for (const c of aChecks) {
     if (c.ok) pass++
     else failures.push(`✗ vartija: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── OPEN MIC FINLAND -MUUNNOS (lib/openmic) ──────────────────────────────────
+// Rajapinnan rivi → Event. Puhdas funktio, joten jokainen kenttäsääntö saa
+// testin: pk-rajaus, UTC-aika, id, kategoriakäännös, hinta, linkki, kuva,
+// lyhytkuvaus ja koordinaattitaulu. Lähde lisätty 16.9.2026.
+{
+  const pohja: OpenmicRaw = {
+    id: 651, title: 'O&#8217;Malley&#8217;s Torni Irish Jams', url: 'https://www.openmicfinland.fi/event/omalleys/2026-09-16/',
+    description: '<p><strong>Irish session</strong> joka tiistai.<br />Tuo oma soitin.</p>',
+    utc_start_date: '2026-09-16 16:00:00', utc_end_date: '2026-09-16 19:00:00',
+    cost: 'Free', image: false, website: 'https://fb.me/e/xyz',
+    venue: { venue: 'O&#8217;Malley&#8217;s Torni', address: 'Yrjönkatu 26, Helsinki', city: 'Helsinki', zip: '00100', geo_lat: null, geo_lng: null },
+    categories: [{ name: 'Music Jams' }],
+  }
+  const koordit = { 'yrjönkatu 26|helsinki': { lat: 60.1678, lon: 24.9386, name: 'O’Malley’s Torni' } }
+  const e = mapOpenmicEvent(pohja, koordit)!
+  const oChecks: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'openmic: Helsinki-tapahtuma muuntuu', ok: !!e },
+    { name: 'openmic: Tampere karsiutuu (pk-seutu vain)', ok: mapOpenmicEvent({ ...pohja, venue: { ...pohja.venue as object, city: 'Tampere' } }) === null },
+    { name: 'openmic: Espoo kuuluu mukaan', ok: mapOpenmicEvent({ ...pohja, venue: { ...pohja.venue as object, city: 'Espoo' } }) !== null },
+    { name: 'openmic: aika UTC-kentästä ISO:na', ok: e.startTime === '2026-09-16T16:00:00Z' && e.endTime === '2026-09-16T19:00:00Z', got: e.startTime },
+    { name: 'openmic: id = openmic-<id>-<pvm>', ok: e.id === 'openmic-651-20260916', got: e.id },
+    { name: 'openmic: HTML-entiteetit puretaan otsikosta ja paikasta', ok: e.title === 'O’Malley’s Torni Irish Jams' && e.location?.name === 'O’Malley’s Torni', got: e.title },
+    { name: 'openmic: Music Jams → open mic + jamit + elävä musiikki', ok: ['open mic', 'jamit', 'elävä musiikki'].every((k) => e.categories.includes(k)), got: e.categories.join(',') },
+    { name: 'openmic: Comedy → stand-up', ok: (mapOpenmicEvent({ ...pohja, categories: [{ name: 'Comedy' }] })?.categories ?? []).includes('stand-up') },
+    { name: 'openmic: tuntematon kategoria saa silti open mic', ok: (mapOpenmicEvent({ ...pohja, categories: [{ name: 'Jotain uutta' }] })?.categories ?? []).includes('open mic') },
+    { name: 'openmic: "Free" → ilmainen, ei hintaa', ok: e.isFree === true && e.price === null },
+    { name: 'openmic: hinta säilyy kun ei ilmainen', ok: (() => { const x = mapOpenmicEvent({ ...pohja, cost: '5 €' })!; return x.isFree === false && x.price === '5 €' })() },
+    { name: 'openmic: Lue lisää → heidän tapahtumasivu, EI fb.me', ok: e.infoUrl === pohja.url && !e.infoUrl?.includes('fb.me'), got: String(e.infoUrl) },
+    { name: 'openmic: image:false → null', ok: e.image === null },
+    { name: 'openmic: kuva-URL säilyy', ok: mapOpenmicEvent({ ...pohja, image: { url: 'https://x/y.jpg' } })?.image === 'https://x/y.jpg' },
+    { name: 'openmic: lyhytkuvaus on puhdasta tekstiä ilman HTML:ää', ok: e.shortDescription === 'Irish session joka tiistai. Tuo oma soitin.', got: e.shortDescription },
+    { name: 'openmic: ilman kuvausta lyhytkuvaus on TYHJÄ (ei paikan nimeä)', ok: mapOpenmicEvent({ ...pohja, description: '' })?.shortDescription === '' },
+    { name: 'openmic: koordinaatit taulusta katu+kaupunki-avaimella', ok: e.location?.lat === 60.1678 && e.location?.lon === 24.9386, got: `${e.location?.lat},${e.location?.lon}` },
+    { name: 'openmic: ilman taulua ei koordinaatteja (ei arvausta)', ok: mapOpenmicEvent(pohja)?.location?.lat === undefined },
+    { name: 'openmic: katuosoite ilman kaupunkia ja postinumeroa', ok: katuosoite('Yrjönkatu 26, 00100 Helsinki') === 'Yrjönkatu 26' && e.location?.streetAddress === 'Yrjönkatu 26' },
+    { name: 'openmic: koordAvain erottaa kaupungit', ok: koordAvain('Kirkkokatu 1', 'Helsinki') !== koordAvain('Kirkkokatu 1', 'Espoo') },
+    { name: 'openmic: tyhjä venue-taulukko ei kaadu (rajapinta antaa [] kun paikkaa ei ole)', ok: mapOpenmicEvent({ ...pohja, venue: [] }) === null },
+    { name: 'openmic: source = openmic', ok: e.source === 'openmic' },
+    // Otsikon "@ Kaupunki" -häntä: pois kun kaupunki/paikka, muuten säilyy.
+    { name: 'openmic: "@ Helsinki" poistuu otsikosta', ok: mapOpenmicEvent({ ...pohja, title: 'Storyville Jam Night @ Helsinki' })?.title === 'Storyville Jam Night' },
+    { name: 'openmic: "@ <paikan nimi>" poistuu otsikosta', ok: poistaPaikkaHanta('Mojo Jam Club @ Boothill Rock Club', ['Helsinki', 'Boothill Rock Club']) === 'Mojo Jam Club' },
+    { name: 'openmic: muu @-häntä SÄILYY (voi olla osa nimeä)', ok: poistaPaikkaHanta('Jamit @ Yö', ['Helsinki', 'Semifinal']) === 'Jamit @ Yö' },
+    { name: 'openmic: otsikko ilman @ pysyy ennallaan', ok: poistaPaikkaHanta('Big Band Jam', ['Helsinki']) === 'Big Band Jam' },
+    // Oppaan yhdistys: sama ilta eri nimillä yhdistyy paikka+minuutti-avaimella,
+    // eri ilta samassa paikassa EI yhdisty.
+    { name: 'jamit-yhdistys: "Big band -jamit" + "Big Band Jam" samassa paikassa samalla minuutilla → 1 rivi', ok: (() => {
+      const le = [{ id: 'kulke:68634', title: 'Big band -jamit', startTime: '2026-10-06T15:00:00Z', venue: 'Maunula-talo', isFree: true }]
+      const om = [{ id: 'openmic-1-20261006', title: 'Big Band Jam', startTime: '2026-10-06T15:00:00Z', venue: 'Maunula talo', isFree: true }]
+      const y = yhdistaJamit(le, om); return y.length === 1 && y[0].id === 'kulke:68634'
+    })() },
+    { name: 'jamit-yhdistys: eri ilta samassa paikassa säilyy erillisenä', ok: yhdistaJamit(
+      [{ id: 'a', title: 'Big band -jamit', startTime: '2026-10-06T15:00:00Z', venue: 'Maunula-talo', isFree: true }],
+      [{ id: 'b', title: 'Big Band Jam', startTime: '2026-10-13T15:00:00Z', venue: 'Maunula talo', isFree: true }]).length === 2 },
+    { name: 'jamit-yhdistys: sama otsikko+päivä yhdistyy vaikka paikkanimi puuttuisi', ok: yhdistaJamit(
+      [{ id: 'a', title: 'Storyville Jam Night', startTime: '2026-09-17T17:00:00Z', venue: '', isFree: true }],
+      [{ id: 'b', title: 'Storyville Jam Night @ Helsinki', startTime: '2026-09-17T17:30:00Z', venue: 'Storyville', isFree: true }]).length === 1 },
+    { name: 'jamit-yhdistys: aikajärjestys säilyy', ok: (() => { const y = yhdistaJamit(
+      [{ id: 'a', title: 'X', startTime: '2026-09-20T17:00:00Z', venue: 'A', isFree: true }],
+      [{ id: 'b', title: 'Y', startTime: '2026-09-18T17:00:00Z', venue: 'B', isFree: true }]); return y[0].id === 'b' })() },
+  ]
+  for (const c of oChecks) {
+    if (c.ok) pass++
+    else failures.push(`✗ openmic: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

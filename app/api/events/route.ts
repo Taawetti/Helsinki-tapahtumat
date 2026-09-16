@@ -33,6 +33,10 @@ const EXTERNAL_SOURCES = [
   'flyingdutchman', 'juttutupa', 'lepakkomies', 'glivelab', 'kulttuuritalo',
   'postbar', 'korjaamo', 'malmitalo', 'vuotalo', 'savoy', 'nauramaan', 'siltanen',
   'apollo', 'maxine', 'tanssintalo',
+  // openmicfinland.fi VIIMEISENÄ: sama jami voi tulla myös paikan omasta
+  // skraperista (Semifinal, Lepakkomies), ja dedupissa aiempi lähde voittaa —
+  // paikan oma ilmoitus on tarkempi kuin valtakunnallinen kalenteri.
+  'openmic',
 ] as const
 
 interface LinkedEventsImage {
@@ -328,6 +332,15 @@ export async function GET(req: NextRequest) {
       return `${base}|${date}`
     }
 
+    /** Paikka + alkuminuutti. Käytetään VAIN openmic-lähteen karsintaan:
+     *  yleisenä dedup-avaimena se yhdistäisi ison talon rinnakkaiset salit. */
+    function paikkaAikaAvain(e: Event): string {
+      const paikka = (e.location?.name ?? '').toLowerCase().replace(/[^\wäöå]+/g, ' ').trim()
+      if (!paikka) return ''
+      const t = new Date(e.startTime).getTime()
+      return Number.isNaN(t) ? '' : `${paikka}|${Math.floor(t / 60000)}`
+    }
+
     // LinkedEventsin OMAT duplikaatit pois: sama toistuva tapahtuma tulee
     // syötteestä monena instanssina (esim. "Omatoiminen omahoitopiste" ×4,
     // sama ohjelma klo 10 ja 14). Sama normalisoitu otsikko + Helsinki-päivä
@@ -378,7 +391,20 @@ export async function GET(req: NextRequest) {
             startTime: normalizeHelsinkiTimestamp(e.startTime) ?? e.startTime,
             endTime: normalizeHelsinkiTimestamp(e.endTime),
           }))
+          // OPENMIC ON VIIMEINEN LÄHDE, joten kaikki muut ovat jo listassa.
+          // Sen sarjanimi on geneerinen ("Storyville Jam Night"), eikä täsmää
+          // paikan oman ilmoituksen otsikkoon ("Juho 'Kihara' Pitkänen Jam"),
+          // vaikka kyse on samasta illasta (mitattu 17.9.2026). Paikka +
+          // alkuminuutti täsmää, ja paikan oma rivi on tarkempi → openmic-rivi
+          // pudotetaan. Sääntö on rajattu tähän lähteeseen tarkoituksella.
+          const paikkaAika = name === 'openmic'
+            ? new Set(events.map(paikkaAikaAvain).filter(Boolean))
+            : null
           for (const e of incoming) {
+            if (paikkaAika) {
+              const pa = paikkaAikaAvain(e)
+              if (pa && paikkaAika.has(pa)) continue
+            }
             // PER-TAPAHTUMA-ERISTYS: yksi jäsentymätön aikaleima heittää
             // helsinkiDateOf:ssa RangeErrorin. Ilman tätä koko lähteen loput
             // tapahtumat menetettäisiin JA lähde merkittäisiin kuolleeksi,

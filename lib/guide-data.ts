@@ -7,6 +7,8 @@
 import { decodeHtmlEntities } from '@/lib/utils'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 import { helsinkiDateRange } from '@/lib/helsinki-time'
+import { haeOpenmicTapahtumat, type Koordinaatit } from '@/lib/openmic'
+import OPENMIC_KOORDIT from '@/data/openmic-koordinaatit.json'
 import { TERRACE_REGEX } from '@/lib/nightlife'
 import { fetchActivitiesCached } from '@/app/api/activities/route'
 import { fetchRestaurantNews } from '@/lib/restaurant-news'
@@ -39,6 +41,13 @@ export interface GuideEvent {
   street?: string
   lat?: number
   lon?: number
+  /** Kaupunki paikkariville. Puuttuessa Helsinki — openmicin Espoon ja
+   *  Vantaan jamit eivät saa näkyä helsinkiläisinä. */
+  city?: string
+  /** Tapahtuman oma linkki infopaneelin "Lue lisää"-napille. Ilman tätä
+   *  oppaan kortti kadotti linkin kokonaan: GuideInlineView.toEvent rakensi
+   *  Eventin infoUrl: null (mitattu 16.9.2026, openmic-kortti ilman nappia). */
+  infoUrl?: string | null
 }
 
 interface LEEvent {
@@ -125,8 +134,73 @@ export const fetchTerraceEvents = () =>
 // withMedia myös näille: LinkedEventsissä on kuva mitatusti 24/24 jamit- ja
 // kirppistapahtumalla, mutta ilman lippua kuva karsiutui hakuvaiheessa ja
 // kortit jäivät kuvattomiksi (mitattu 25.8.2026).
-export const fetchJamitEvents = () =>
+const fetchJamitEventsLE = () =>
   fetchGuideEvents({ terms: ['jamit', 'open mic', 'open stage', 'jam session'], days: 30, gate: JAMIT_REGEX, limit: 30, withMedia: true })
+
+/** Jamit-opas = LinkedEvents + openmicfinland.fi. Mitattu 16.9.2026:
+ *  LinkedEvents antoi 16 tapahtumaa / 30 pv (kirjastoja, yhteisötaloja),
+ *  openmicfinland 50 pk-seudun jamia joista 49 puuttui oppaasta kokonaan
+ *  (Storyville, Semifinal, O'Malley's, Lazy Fox, Sörkan Ruusu…).
+ *
+ *  Openmic-rivit haetaan kirjastosta (lib/openmic) samalla paikkarikastuksella
+ *  (kuva, koordinaatit) kuin tapahtumavirrassa — ja koska ne ovat lähteen
+ *  puolesta jameja, niitä EI ajeta JAMIT_REGEXin
+ *  läpi (se ei tunnista "Storyville Jam Night" -muotoa). Lähteen kaatuminen
+ *  ei kaada opasta: silloin palautuu pelkkä LinkedEvents-osa. */
+export async function fetchJamitEvents(origin?: string): Promise<GuideEvent[]> {
+  const [le, om] = await Promise.all([
+    fetchJamitEventsLE(),
+    origin ? fetchOpenmicGuideEvents(origin) : Promise.resolve([] as GuideEvent[]),
+  ])
+  return yhdistaJamit(le, om)
+}
+
+const siisti = (s: string) => s.toLowerCase().replace(/\s*@.*$/, '').replace(/[^a-zåäö0-9]+/g, ' ').trim()
+
+/** Sama jami kahdesta lähteestä yhdeksi riviksi. LinkedEvents voittaa (kuva,
+ *  vakiintunut id jolle /e/[id] ratkeaa). Puhdas funktio testejä varten.
+ *
+ *  KAKSI AVAINTA, koska lähteet nimeävät saman illan eri tavoin: LinkedEvents
+ *  "Big band -jamit", openmicfinland "Big Band Jam" (Maunula-talo 6.10.,
+ *  mitattu 16.9.2026) — otsikkoavain ei voi täsmätä. Paikka + tarkka
+ *  alkuminuutti täsmää: kaksi eri jamia samassa paikassa samalla minuutilla
+ *  ei ole todellinen tapaus. Paikan nimi siistitään samoin ("Maunula-talo"
+ *  vs "Maunula talo"). */
+export function yhdistaJamit(le: GuideEvent[], om: GuideEvent[]): GuideEvent[] {
+  const otsikkoAvain = (e: GuideEvent) => `${siisti(e.title)}|${e.startTime.slice(0, 10)}`
+  const paikkaAvain = (e: GuideEvent) => `${siisti(e.venue)}|${new Date(e.startTime).getTime()}`
+  const nahty = new Set(le.flatMap((e) => [otsikkoAvain(e), paikkaAvain(e)]))
+  const events = [...le, ...om.filter((e) => !nahty.has(otsikkoAvain(e)) && !nahty.has(paikkaAvain(e)))]
+  events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  return events
+}
+
+async function fetchOpenmicGuideEvents(origin: string): Promise<GuideEvent[]> {
+  try {
+    const { start, end } = helsinkiDateRange(30)
+    // SUORA kirjastokutsu, ei HTTP omaan API:in: /jamit esirenderöidään
+    // buildissa BASE-osoitteella, jossa reittiä ei buildin aikana ole.
+    // Rikastaja (kuvat, koordinaatit ravintoladatasta) saa puuttua.
+    const enrich = await buildPlaceEnricher(origin)
+    const events = await haeOpenmicTapahtumat(start, end, OPENMIC_KOORDIT as Koordinaatit, enrich)
+    return events.map((e) => ({
+      id: e.id,
+      title: e.title,
+      startTime: e.startTime,
+      venue: e.location?.name ?? '',
+      isFree: e.isFree,
+      price: e.price ?? null,
+      image: e.image ?? null,
+      street: e.location?.streetAddress || undefined,
+      lat: e.location?.lat,
+      lon: e.location?.lon,
+      city: e.location?.city || undefined,
+      infoUrl: e.infoUrl ?? null,
+    }))
+  } catch {
+    return []   // lähde on lisä, ei ehto
+  }
+}
 
 export const fetchKirppisEvents = () =>
   fetchGuideEvents({ terms: ['kirpputori', 'kirppis', 'vintage'], days: 30, gate: KIRPPIS_REGEX, limit: 20, withMedia: true })
@@ -446,7 +520,7 @@ export async function buildGuidePayload(slug: GuideDataSlug, origin: string): Pr
       return { shops: mapSecondhandShops(), events: await fetchKirppisEvents() }
 
     case 'jamit':
-      return { events: await fetchJamitEvents() }
+      return { events: await fetchJamitEvents(origin) }
 
     case 'ilmaiset-museot':
       return await buildFreeMuseums()

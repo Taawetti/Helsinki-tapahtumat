@@ -1,0 +1,112 @@
+{
+ "yrjönkatu 26|helsinki": {
+  "lat": 60.167803,
+  "lon": 24.9386414,
+  "name": "O’Malley’s Torni"
+ },
+ "pohjolankatu 3|helsinki": {
+  "lat": 60.2135313,
+  "lon": 24.9450612,
+  "name": "Käpylän Kylätalo"
+ },
+ "lönnrotinkatu 25|helsinki": {
+  "lat": 60.1646087,
+  "lon": 24.9332065,
+  "name": "Boothill Rock Club"
+ },
+ "museokatu 8|helsinki": {
+  "lat": 60.1739021,
+  "lon": 24.9319482,
+  "name": "Storyville"
+ },
+ "yläkartanontie 28|espoo": {
+  "lat": 60.1416405,
+  "lon": 24.6689715,
+  "name": "Bestis Karaoke & Nightlife"
+ },
+ "albertinkatu 36|helsinki": {
+  "lat": 60.1647183,
+  "lon": 24.9324784,
+  "name": "Lazy Fox"
+ },
+ "merenkäynti 3|espoo": {
+  "lat": 60.1538508,
+  "lon": 24.6355607,
+  "name": "Pub Nousuvesi"
+ },
+ "pääskylänrinne 3|helsinki": {
+  "lat": 60.1876902,
+  "lon": 24.9657013,
+  "name": "Ravintola Sörkan Ruusu"
+ },
+ "espoonlahdenkatu 7|espoo": {
+  "lat": 60.1502335,
+  "lon": 24.6561076,
+  "name": "Satamabaari Lippulaiva"
+ },
+ "urho kekkosen katu 4–6|helsinki": {
+  "lat": 60.1685036,
+  "lon": 24.9329693,
+  "name": "Semifinal"
+ },
+ "töölönkatu 51|helsinki": {
+  "lat": 60.1840455,
+  "lon": 24.9206131,
+  "name": "Kulttuuritehdas Korjaamo"
+ },
+ "osmontie 5|helsinki": {
+  "lat": 60.2106492,
+  "lon": 24.950218,
+  "name": "Ravintola Kapygrilli"
+ },
+ "vantaankoskentie 69|vantaa": {
+  "lat": 60.3132457,
+  "lon": 24.8465854,
+  "name": "Kaupunkikulttuurikeskus Mosaikki"
+ },
+ "kontulankaari 1 b 20|helsinki": {
+  "lat": 60.2455171,
+  "lon": 25.0788324,
+  "name": "Bar Mr. Melody"
+ },
+ "koskelantie 9|helsinki": {
+  "lat": 60.2089285,
+  "lon": 24.9488428,
+  "name": "Ravintola Sophie"
+ },
+ "lyypekinkuja 9|helsinki": {
+  "lat": 60.2083044,
+  "lon": 25.0808439,
+  "name": "Bar Itän Tähti"
+ },
+ "hitsaajankatu 22|helsinki": {
+  "lat": 60.1928337,
+  "lon": 25.0341625,
+  "name": "Satama Bar & Bistro Herttoniemi"
+ },
+ "tallberginkatu 1|helsinki": {
+  "lat": 60.1618537,
+  "lon": 24.9057582,
+  "name": "Kaapelitehdan Kahvibaari"
+ },
+ "gunnel nymanin katu 5|helsinki": {
+  "lat": 60.2075971,
+  "lon": 24.9791617,
+  "name": "Ravintola Olotila"
+ },
+ "laajaniityntie 3|vantaa": {
+  "lat": 60.2771136,
+  "lon": 24.8518626,
+  "name": "Bar nro.1"
+ },
+ "salomonkatu 1|helsinki": {
+  "lat": 60.1707064,
+  "lon": 24.9350429,
+  "name": "John Scott’s Arkadia"
+ },
+ "metsäpurontie 4|helsinki": {
+  "lat": 60.2311143,
+  "lon": 24.9329375,
+  "name": "Maunula talo"
+ }
+}
