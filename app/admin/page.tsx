@@ -111,7 +111,7 @@ function recurringFromDb(row: Record<string, unknown>): RecurringEvent {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type Tab = 'festivals' | 'recurring' | 'sources' | 'stats'
+type Tab = 'festivals' | 'recurring' | 'sources' | 'automation' | 'stats'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -382,7 +382,7 @@ export default function AdminPage() {
       {/* Tabs. overflow-x-auto + nowrap: neljä välilehteä mahtuu kapeallekin
           ruudulle scrollattavaksi sen sijaan että ne puristuisivat/rivittyisivät. */}
       <div className="border-b border-white/8 px-4 sm:px-6 flex gap-1 overflow-x-auto">
-        {(['festivals', 'recurring', 'sources', 'stats'] as Tab[]).map(t => (
+        {(['festivals', 'recurring', 'sources', 'automation', 'stats'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -392,12 +392,88 @@ export default function AdminPage() {
                 : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            {t === 'festivals' ? 'Festivaalit' : t === 'recurring' ? 'Toistuvat tapahtumat' : t === 'sources' ? 'Lähteet' : 'Kävijätiedot'}
+            {t === 'festivals' ? 'Festivaalit' : t === 'recurring' ? 'Toistuvat tapahtumat' : t === 'sources' ? 'Lähteet' : t === 'automation' ? 'Automaatiot' : 'Kävijätiedot'}
           </button>
         ))}
       </div>
 
-      {tab === 'festivals' ? <FestivalsTab /> : tab === 'recurring' ? <RecurringTab /> : tab === 'sources' ? <SourcesTab /> : <AdminStats />}
+      {tab === 'festivals' ? <FestivalsTab /> : tab === 'recurring' ? <RecurringTab /> : tab === 'sources' ? <SourcesTab /> : tab === 'automation' ? <AutomaatiotTab /> : <AdminStats />}
+    </div>
+  )
+}
+
+// ── Automaatiot (GitHub Actions) ─────────────────────────────────────────────
+// Omistaja 23.9.2026: CI:n ja viikkoajojen kaatumiset tulivat sähköpostiin
+// joka pushista eikä missään näkynyt mistä on kyse. Tämä välilehti näyttää
+// jokaisen automaation viimeisen ajon, kaatuneen askeleen ja peräkkäisten
+// kaatumisten määrän — ja selittää mitä kukin automaatio tekee.
+interface AutomaatioTila {
+  nimi: string; tiedosto: string; tila: 'ok' | 'virhe' | 'kesken' | 'peruttu'; aika: string; commit: string
+  otsikko: string; url: string; askel: string | null; perakkain: number; viimeinenOk: string | null
+}
+const AUTOMAATIO_SELITTEET: Record<string, string> = {
+  'CI': 'Ajetaan jokaisen pushin jälkeen: tyyppitarkistus, lint ja kategoriatestit. Vercel julkaisee tästä riippumatta — punainen ei tarkoita että sivusto on rikki, vaan että koodin laatutarkistus löysi jotain.',
+  'Ravintoloiden ja tekemisen syyt': 'Maanantaisin 08:30: Michelin, 50 parasta, Time Out, MyHelsinki, uudet avaukset (Valviran lupadata), tekemisen syyt ja openmic-koordinaatit. Jos punainen, ravintola- ja tekemiskärjen syyt eivät päivity — vanha data jää voimaan.',
+  'Maanantain korjausagentti': 'Maanantaisin 09:00: etsii hiljaa rikkinäiset tapahtumalähteet ja avaa korjausehdotuksen pull requestina.',
+  'Scrape Raflaamo': 'Päivittäin: Raflaamon ravintolatiedot.',
+}
+const AUTOMAATIO_TILA = {
+  ok:      { teksti: 'OK',      luokka: 'bg-green-500/10 text-green-400' },
+  virhe:   { teksti: 'KAATUI',  luokka: 'bg-red-500/10 text-red-400' },
+  kesken:  { teksti: 'KESKEN',  luokka: 'bg-yellow-500/10 text-yellow-300' },
+  peruttu: { teksti: 'PERUTTU', luokka: 'bg-gray-500/10 text-gray-400' },
+}
+const aikaFi = (iso: string) => new Date(iso).toLocaleString('fi-FI', { timeZone: 'Europe/Helsinki', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+function AutomaatiotTab() {
+  const [ajot, setAjot] = useState<AutomaatioTila[] | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let elossa = true
+    fetch('/api/admin/actions')
+      .then(async (r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+      .then((d: { ajot: AutomaatioTila[] }) => { if (elossa) setAjot(d.ajot) })
+      .catch((e) => { if (elossa) setError('Haku epäonnistui: ' + (e as Error).message) })
+    return () => { elossa = false }
+  }, [])
+  const rikki = (ajot ?? []).filter((a) => a.tila === 'virhe')
+  return (
+    <div className="p-4 sm:p-6 max-w-3xl">
+      <div className="mb-4">
+        <h2 className="font-bold text-lg">Automaatiot</h2>
+        <p className="text-gray-400 text-sm">
+          GitHub Actions -ajot työnkulkua kohden. {ajot && (rikki.length ? `${rikki.length} kaatunut.` : 'Kaikki kunnossa.')}
+          {' '}Sähköposti-ilmoitukset saa pois GitHubista: Settings → Notifications → Actions.
+        </p>
+      </div>
+      {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+      {!ajot && !error && <p className="text-gray-500 text-sm">Haetaan…</p>}
+      <div className="space-y-3">
+        {(ajot ?? []).map((a) => {
+          const t = AUTOMAATIO_TILA[a.tila]
+          return (
+            <div key={a.nimi} className={`rounded-xl border p-4 ${a.tila === 'virhe' ? 'border-red-500/30 bg-red-500/5' : 'border-white/10 bg-white/[0.03]'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.luokka}`}>{t.teksti}</span>
+                    <span className="font-semibold">{a.nimi}</span>
+                    <span className="text-gray-500 text-xs">{a.tiedosto}</span>
+                  </div>
+                  <p className="text-gray-400 text-sm mt-1.5">{AUTOMAATIO_SELITTEET[a.nimi] ?? 'Ei selitettä — lisää AUTOMAATIO_SELITTEET-tauluun.'}</p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Viimeinen ajo {aikaFi(a.aika)} · {a.commit} · {a.otsikko}
+                    {a.tila === 'virhe' && a.askel && <> · <span className="text-red-300">kaatui askeleessa: {a.askel}</span></>}
+                    {a.tila === 'virhe' && a.perakkain > 1 && <> · <span className="text-red-300">{a.perakkain} kaatumista peräkkäin</span></>}
+                    {a.tila === 'virhe' && <> · viimeinen onnistunut {a.viimeinenOk ? aikaFi(a.viimeinenOk) : 'ei 100 viimeisen ajon joukossa'}</>}
+                  </p>
+                </div>
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-300 hover:text-purple-200 whitespace-nowrap shrink-0">Avaa loki →</a>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
