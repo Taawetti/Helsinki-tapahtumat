@@ -8,7 +8,7 @@ import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime, tuntematonAika } from '@/lib/utils'
 import { COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
-import { valitseHero, onVisa } from '@/lib/picks'
+import { valitseHero, onVisa, onSuuriPaikka } from '@/lib/picks'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { samaTapahtumaSarja } from '@/lib/tapahtumaperhe'
 import { helsinkiDateOf, helsinkiHourOf, helsinkiToday } from '@/lib/helsinki-time'
@@ -935,6 +935,7 @@ export default function HomeClient({
       if (e.image) s += 6                                                     // kuvalliset kärkeen
       if (e.source === 'festivals' || vibes.includes('festivaali')) s += 5    // festarit
       if (vibes.includes('keikka')) s += 4                                    // keikat
+      if (onSuuriPaikka(e)) s += 3                                            // isot keikkapaikat (lib/picks SUURET_PAIKAT)
       if (vibes.includes('yoelama') || vibes.includes('underground')) s += 3  // klubit / underground
       if (vibes.includes('teatteri') || vibes.includes('taide') || vibes.includes('standup')) s += 2
       if (vibes.includes('urheilu')) s += 2

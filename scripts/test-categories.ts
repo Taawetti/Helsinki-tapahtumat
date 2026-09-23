@@ -76,7 +76,8 @@ import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/rest
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti } from '../lib/audience'
-import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello } from '../lib/picks'
+import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello, onSuuriPaikka, heroJarjestys } from '../lib/picks'
+import { mapAspEvent, onAllasLiveKeikka } from '../lib/allas'
 import { kirjattavaAsennusPinta } from '../lib/install'
 import { ohjelmatyyppi } from '../lib/event-classify'
 import { getEventVibes } from '../lib/event-classify'
@@ -3897,6 +3898,26 @@ for (const c of kwChecks) {
       ok: isOutsideTargetAudience({ title: 'Senioreiden lautapelituokio', categories: [] }) === true },
     { name: 'kohderyhmä: kulissikierros on opastettu kierros',
       ok: isOutsideTargetAudience({ title: 'Esteetön Kulissikierros', categories: [], location: { name: 'Helsingin Kaupunginteatteri' } }) === true },
+
+    // Isot keikkapaikat (omistaja 23.9.2026): Allas Live ohittaa klubikeikan
+    // hero-järjestyksessä, muu järjestys ennallaan.
+    { name: 'suuri paikka: Allas Sea Pool tunnistuu', ok: onSuuriPaikka(mkEvent({ id: 'sp1', title: 'X', startTime: '2026-09-18T19:00:00+03:00', location: { name: 'Allas Sea Pool', streetAddress: '', city: 'Helsinki' } })) === true },
+    { name: 'suuri paikka: klubi ei ole', ok: onSuuriPaikka(mkEvent({ id: 'sp2', title: 'X', startTime: '2026-09-18T19:00:00+03:00', location: { name: 'Bar Loose', streetAddress: '', city: 'Helsinki' } })) === false },
+    { name: 'hero-järjestys: Allas ennen Tavastiaa samoilla pisteillä', ok: heroJarjestys(
+        mkEvent({ id: 'sp3', title: 'Karri Koira konsertti', startTime: '2026-09-18T19:00:00+03:00', location: { name: 'Allas Sea Pool', streetAddress: '', city: 'Helsinki' } }),
+        mkEvent({ id: 'sp4', title: 'Bändi konsertti', startTime: '2026-09-18T21:00:00+03:00', location: { name: 'Tavastia', streetAddress: '', city: 'Helsinki' } })) < 0 },
+    // Allas-lähteen muunnos (lib/allas): uusi asp_event-tyyppi.
+    { name: 'allas: subtitle on otsikko, päivä end_datesta, kategoria konsertit', ok: (() => {
+        const ev = mapAspEvent({ id: 6293, title: { rendered: 'Allas Live 18.9.' }, link: 'https://www.allaspool.fi/asp_event/allas-live-26-7/',
+          featured_media: 1, acf: { title: 'Allas Live', subtitle: 'Karri Koira', end_date: '20260918', description: 'Pe 18.9. | Sisäpiha',
+          link: { url: 'https://www.allaslive.fi/all-events/karri-koira-tickets-ae1572139', title: 'Lue lisää' } } }, 'https://x/kuva.jpg')
+        return !!ev && ev.title === 'Karri Koira' && ev.startTime.startsWith('2026-09-18T19:00') && ev.startTimeApprox === true
+          && ev.categories.includes('konsertit') && ev.image === 'https://x/kuva.jpg' && ev.infoUrl?.includes('allaslive.fi') === true && ev.ticketUrl === null
+          && ohjelmatyyppi(ev).includes('keikka') && kaistaA(ev) === true
+      })() },
+    { name: 'allas: englanninkielinen kaksoisrivi karsitaan', ok: onAllasLiveKeikka({ id: 1, title: { rendered: 'Allas Live 18.9.' }, link: 'https://www.allaspool.fi/en/asp_event/x/', acf: { title: 'Allas Live' } }) === false },
+    { name: 'allas: jäsenilta ei ole keikka', ok: onAllasLiveKeikka({ id: 2, title: { rendered: 'Jäsenilta 30.9.' }, link: 'https://www.allaspool.fi/asp_event/j/', acf: { title: 'Jäsenilta' } }) === false },
+    { name: 'allas: kelvoton päivä → null', ok: mapAspEvent({ id: 3, title: { rendered: 'Allas Live' }, link: 'x', acf: { title: 'Allas Live', end_date: '18.9.' } }, null) === null },
 
     // Aikavyöhyke
     { name: 'helsinkiHourOf: kesäaika (UTC+3)', ok: helsinkiHourOf('2026-09-09T14:00:00Z') === 17 },

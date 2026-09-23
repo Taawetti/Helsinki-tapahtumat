@@ -94,8 +94,24 @@ export const kaistaB = (e: Event, vaadiKuva = true): boolean =>
 /** Järjestys nostojen SISÄLLÄ: paras iltasignaali ensin, tasapelissä
  *  myöhempi alkuaika (klo 21 keikka on illan nosto ennen klo 15 esitystä).
  *  Tässä nightlifeScore on oikeassa roolissaan — lajitteluavaimena. */
+/** Kaupungin isot keikkapaikat (omistaja 23.9.2026: "tällaiset isot keikat
+ *  pitäisi näkyä ensimmäisinä"). Sovelluksella ei ole muuta signaalia siitä,
+ *  että Karri Koira Altaalla on isompi juttu kuin tuntematon bändi klubilla —
+ *  keikkapisteet ovat samat. Tämä on TOIMITUKSELLINEN lista, ei data: pidä
+ *  se lyhyenä ja vain paikkoina joissa ei järjestetä pieniä iltoja. */
+export const SUURET_PAIKAT = [
+  'allas sea pool', 'allas live', 'allas pool',
+  'veikkaus arena', 'helsingin jäähalli', 'jäähalli', 'olympiastadion', 'bolt arena',
+  'suvilahti', 'kaisaniemen puisto', 'kulttuuritalo',
+]
+export function onSuuriPaikka(e: Event): boolean {
+  const n = (e.location?.name ?? '').toLowerCase()
+  return !!n && SUURET_PAIKAT.some((p) => n.includes(p))
+}
+
 export function heroJarjestys(a: Event, b: Event): number {
-  return nightlifeScore(b) - nightlifeScore(a) ||
+  return Number(onSuuriPaikka(b)) - Number(onSuuriPaikka(a)) ||
+    nightlifeScore(b) - nightlifeScore(a) ||
     new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
 }
 
