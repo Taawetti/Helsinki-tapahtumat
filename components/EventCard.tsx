@@ -2,6 +2,7 @@
 
 import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
+import { getEventVibes } from '@/lib/event-classify'
 import { lyhytkuvaus } from '@/lib/event-text'
 import { formatDate, formatTime, truncate, isTonight, fmtDistance, tuntematonAika } from '@/lib/utils'
 import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
@@ -38,10 +39,18 @@ function hashGradient(id: string): string {
 
 type TypeBadge = { tKey: TranslationKey; emoji: string; bg: string; text: string }
 
-function getTypeBadge(categories: string[]): TypeBadge | null {
+function getTypeBadge(categories: string[], vibes: string[] = []): TypeBadge | null {
   const cats = categories.map((c) => c.toLowerCase())
   const has = (...kws: string[]) => kws.some((kw) => cats.some((c) => c.includes(kw)))
+  // Lähteen OMA festivaalikategoria voittaa aina.
   if (has('festivaali'))                          return { tKey: 'legend.festival', emoji: '🎪', bg: 'rgba(245,158,11,0.18)', text: '#fbbf24' }
+  // Stand up ENNEN teatteria ja ennen VIBESTÄ päätellyä festivaalia: lippu.fi:n
+  // kategoria "Kulttuuri ja teatteri" merkitsi Helsinki Comedy Festivalin
+  // stand up -näytökset teatteriksi (mitattu 23.9.2026), ja festivaalin
+  // sisällä jokaisen näytöksen merkki "Festivaali" ei kerro mitään —
+  // "Stand up" kertoo mitä lavalla tapahtuu.
+  if (vibes.includes('standup') || has('stand up', 'stand-up', 'standup')) return { tKey: 'legend.standup', emoji: '🎤', bg: 'rgba(236,72,153,0.18)', text: '#f9a8d4' }
+  if (vibes.includes('festivaali'))               return { tKey: 'legend.festival', emoji: '🎪', bg: 'rgba(245,158,11,0.18)', text: '#fbbf24' }
   if (has('teatteri', 'ooppera', 'baletti'))      return { tKey: 'legend.theatre',  emoji: '🎭', bg: 'rgba(139,92,246,0.18)', text: '#a78bfa' }
   if (has('jalkapallo', 'ottelu', 'jääkiekko'))   return { tKey: 'legend.match',    emoji: '⚽', bg: 'rgba(16,185,129,0.18)', text: '#34d399' }
   if (has('urheilu'))                             return { tKey: 'legend.sport',    emoji: '🏅', bg: 'rgba(16,185,129,0.18)', text: '#34d399' }
@@ -65,7 +74,7 @@ export default function EventCard({ event, onClick, distance, aikaLisa }: Props)
   const { toggle, isFavorite } = useFavorites()
   const { t, lang } = useLanguage()
   const fav = isFavorite(event.id)
-  const typeBadge = getTypeBadge(event.categories)
+  const typeBadge = getTypeBadge(event.categories, getEventVibes(event))
   const kuvaus = lyhytkuvaus(event)
 
   return (

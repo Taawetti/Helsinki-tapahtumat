@@ -78,6 +78,7 @@ import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti } from '../lib/audience'
 import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello, onSuuriPaikka, heroJarjestys } from '../lib/picks'
 import { mapAspEvent, onAllasLiveKeikka } from '../lib/allas'
+import { samaTapahtumaSarja, ryhmitaSarjat, sarjaEtuliite } from '../lib/tapahtumaperhe'
 import { kirjattavaAsennusPinta } from '../lib/install'
 import { ohjelmatyyppi } from '../lib/event-classify'
 import { getEventVibes } from '../lib/event-classify'
@@ -3918,6 +3919,36 @@ for (const c of kwChecks) {
     { name: 'allas: englanninkielinen kaksoisrivi karsitaan', ok: onAllasLiveKeikka({ id: 1, title: { rendered: 'Allas Live 18.9.' }, link: 'https://www.allaspool.fi/en/asp_event/x/', acf: { title: 'Allas Live' } }) === false },
     { name: 'allas: jäsenilta ei ole keikka', ok: onAllasLiveKeikka({ id: 2, title: { rendered: 'Jäsenilta 30.9.' }, link: 'https://www.allaspool.fi/asp_event/j/', acf: { title: 'Jäsenilta' } }) === false },
     { name: 'allas: kelvoton päivä → null', ok: mapAspEvent({ id: 3, title: { rendered: 'Allas Live' }, link: 'x', acf: { title: 'Allas Live', end_date: '18.9.' } }, null) === null },
+
+    // Festivaalisarja eri paikoissa (HCF 2026, 23.9.2026): sama etuliite +
+    // sama kuva → sama sarja paikasta riippumatta → hero max 1 paikka.
+    { name: 'sarja: HCF eri paikoissa samalla kuvalla on sama sarja', ok: samaTapahtumaSarja(
+        mkEvent({ id: 'h1', title: 'HCF 2026 - APOLLO STAND UP K-18', startTime: '2026-09-23T18:00:00+03:00', image: 'https://x/hcf.jpg', location: { name: 'Apollo Live Club', streetAddress: '', city: 'Helsinki' } }),
+        mkEvent({ id: 'h2', title: 'HCF 2026 - PAASITORNI STAND UP K-18', startTime: '2026-09-23T19:00:00+03:00', image: 'https://x/hcf.jpg', location: { name: 'Paasitornin juhlasali', streetAddress: '', city: 'Helsinki' } })) === true },
+    // TARKKUUSANSA: sama etuliite ilman yhteistä sisältöä EI ole sarja —
+    // "Tietovisa – X" toistuu 15×/pv eri paikkojen omina iltoina.
+    { name: 'sarja: tietovisat eri paikoissa EIVÄT ole sarja', ok: samaTapahtumaSarja(
+        mkEvent({ id: 'v1', title: 'Tietovisa – Kaisla', startTime: '2026-09-23T18:00:00+03:00', image: null, description: 'Viikoittainen tietovisa Kaislassa.', location: { name: 'Kaisla', streetAddress: '', city: 'Helsinki' } }),
+        mkEvent({ id: 'v2', title: 'Tietovisa – Oluthuone', startTime: '2026-09-23T19:00:00+03:00', image: null, description: 'Viikoittainen tietovisa Oluthuoneessa.', location: { name: 'Oluthuone', streetAddress: '', city: 'Helsinki' } })) === false },
+    // OIKEA vakioteksti pubivisat-lähteestä — 15 eri baaria, ei kuvia. Tämä
+    // ryhmittyi ensimmäisessä versiossa (mitattu 23.9.2026).
+    { name: 'sarja: pubivisojen yhteinen vakioteksti EI ryhmitä', ok: ryhmitaSarjat(['Kaisla', 'Oluthuone', 'Danielin kahvila'].map((n, i) =>
+        mkEvent({ id: `pv${i}`, title: `Tietovisa – ${n}`, startTime: `2026-09-23T${18 + i}:00:00+03:00`, image: null, description: 'Viikoittainen tietovisa. Lähde: pubivisat.fi', location: { name: n, streetAddress: '', city: 'Helsinki' } }))).length === 3 },
+    { name: 'sarja: ryhmitaSarjat niputtaa 3 HCF:ää yhdeksi ja jättää Einin', ok: (() => {
+        const hcf = (i: number, paikka: string) => mkEvent({ id: `h${i}`, title: `HCF 2026 - ${paikka.toUpperCase()} STAND UP K-18`, startTime: `2026-09-23T${18 + i}:00:00+03:00`, image: 'https://x/hcf.jpg', location: { name: paikka, streetAddress: '', city: 'Helsinki' } })
+        const eini = mkEvent({ id: 'e', title: 'Eini', startTime: '2026-09-23T19:00:00+03:00', image: 'https://x/eini.jpg', location: { name: 'Tavastia', streetAddress: '', city: 'Helsinki' } })
+        const out = ryhmitaSarjat([hcf(0, 'Astoria'), eini, hcf(1, 'Apollo'), hcf(2, 'Balder')])
+        return out.length === 2 && 'tyyppi' in out[0] && out[0].tapahtumat.length === 3 && out[0].nimi === 'HCF 2026' && !('tyyppi' in out[1]) && out[1].id === 'e'
+      })() },
+    { name: 'sarja: alle 3 näytöstä ei ryhmity', ok: ryhmitaSarjat([
+        mkEvent({ id: 'a', title: 'HCF 2026 - A', startTime: '2026-09-23T18:00:00+03:00', image: 'https://x/h.jpg' }),
+        mkEvent({ id: 'b', title: 'HCF 2026 - B', startTime: '2026-09-23T19:00:00+03:00', image: 'https://x/h.jpg' })]).length === 2 },
+    { name: 'sarja: eri päivien näytökset eivät ryhmity yhteen', ok: ryhmitaSarjat([
+        mkEvent({ id: 'a', title: 'HCF 2026 - A', startTime: '2026-09-23T18:00:00+03:00', image: 'https://x/h.jpg' }),
+        mkEvent({ id: 'b', title: 'HCF 2026 - B', startTime: '2026-09-24T19:00:00+03:00', image: 'https://x/h.jpg' }),
+        mkEvent({ id: 'c', title: 'HCF 2026 - C', startTime: '2026-09-24T20:00:00+03:00', image: 'https://x/h.jpg' })]).length === 3 },
+    { name: 'sarjaetuliite: "Eini" ilman erotinta → null', ok: sarjaEtuliite('Eini') === null },
+    { name: 'sarjaetuliite: "K-18" ei ole etuliite', ok: sarjaEtuliite('K-18 - Jotain') === null },
 
     // Aikavyöhyke
     { name: 'helsinkiHourOf: kesäaika (UTC+3)', ok: helsinkiHourOf('2026-09-09T14:00:00Z') === 17 },

@@ -10,7 +10,8 @@ import { haversineKm, getDateRange, formatTime, tuntematonAika } from '@/lib/uti
 import { COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
 import { valitseHero, onVisa, onSuuriPaikka } from '@/lib/picks'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
-import { samaTapahtumaSarja } from '@/lib/tapahtumaperhe'
+import { samaTapahtumaSarja, ryhmitaSarjat, type Sarjaryhma } from '@/lib/tapahtumaperhe'
+import SarjaKortti from '@/components/SarjaKortti'
 import { helsinkiDateOf, helsinkiHourOf, helsinkiToday } from '@/lib/helsinki-time'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
@@ -453,6 +454,15 @@ export default function HomeClient({
   // vieritettäessä; tuloslaskuri näyttää silti koko osumamäärän.
   const NAYTTO_ERA = 40
   const [nayttoRaja, setNayttoRaja] = useState(NAYTTO_ERA)
+  /** Avattu festivaalisarja (SarjaKortti): ruudukko näyttää sen näytökset
+   *  yksittäin. Oma tila eikä hakusana — hakusana vaihtaisi 90 pv pikahakuun,
+   *  jossa lippu.fi-lähdettä ei ole (HCF: 0 tulosta, mitattu 23.9.2026). */
+  const [avattuSarja, setAvattuSarja] = useState<Sarjaryhma | null>(null)
+  const avaaSarja = useCallback((r: Sarjaryhma) => { setAvattuSarja(r); window.scrollTo({ top: 0, behavior: 'smooth' }) }, [])
+  // Sarja sulkeutuu kun päivä, kategoria tai hakusana vaihtuu — muuten vanha
+  // lista jäisi näkyviin väärän valinnan alle.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- nollaus valinnan vaihtuessa; ei kaskadia (yksi setState, riippuu vain syötteistä)
+  useEffect(() => { setAvattuSarja(null) }, [dateFilter, customDate, koCat, keyword])
   // Kategorian avaus/vaihto vie aina listan alkuun — muuten näkymä jää
   // etusivun scrollikohtaan ja lista aukeaa "puolesta välistä"
   useEffect(() => {
@@ -1716,11 +1726,25 @@ export default function HomeClient({
               ) : (
                 /* Responsiivinen ruudukko: 2 mobiili · 3 tabletti · 4 desktop */
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
-                  {koCatEvents.map((e) => (
-                    <EventCard key={e.id} event={e} onClick={avaa.grid}
-                      distance={geo.coords && e.location?.lat && e.location?.lon
-                        ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
-                        : undefined} />
+                  {/* Festivaalisarja eri paikoissa (HCF 2026: 11 näytöstä/pv) yhtenä
+                      korttina — ei hakusanan ollessa päällä, koska silloin käyttäjä
+                      on jo sarjan sisällä ja haluaa nähdä näytökset. */}
+                  {avattuSarja && (
+                    <div className="col-span-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3 border border-[#f59e0b]/40 bg-[#f59e0b]/10">
+                      <p className="text-white font-black text-[14px]">🎪 {avattuSarja.nimi} <span className="text-white/50 font-semibold">· {avattuSarja.tapahtumat.length} {t('series.shows')}</span></p>
+                      <button type="button" onClick={() => setAvattuSarja(null)} aria-label={t('common.close')}
+                        className="text-white/60 hover:text-white text-sm font-bold px-2 py-1 rounded-lg hover:bg-white/10">✕</button>
+                    </div>
+                  )}
+                  {(avattuSarja ? avattuSarja.tapahtumat : keyword ? koCatEvents : ryhmitaSarjat(koCatEvents)).map((r) => (
+                    'tyyppi' in r ? (
+                      <SarjaKortti key={r.avain} ryhma={r} onOpen={avaaSarja} />
+                    ) : (
+                      <EventCard key={r.id} event={r} onClick={avaa.grid}
+                        distance={geo.coords && r.location?.lat && r.location?.lon
+                          ? haversineKm(geo.coords.lat, geo.coords.lon, r.location.lat, r.location.lon)
+                          : undefined} />
+                    )
                   ))}
                 </div>
               )}
@@ -1868,12 +1892,23 @@ export default function HomeClient({
                     </button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
-                    {bestPicks.map((e) => (
-                      <EventCard key={e.id} event={e} onClick={avaa.picks}
-                        distance={geo.coords && e.location?.lat && e.location?.lon
-                          ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
+                    {avattuSarja && (
+                      <div className="col-span-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3 border border-[#f59e0b]/40 bg-[#f59e0b]/10">
+                        <p className="text-white font-black text-[14px]">🎪 {avattuSarja.nimi} <span className="text-white/50 font-semibold">· {avattuSarja.tapahtumat.length} {t('series.shows')}</span></p>
+                        <button type="button" onClick={() => setAvattuSarja(null)} aria-label={t('common.close')}
+                          className="text-white/60 hover:text-white text-sm font-bold px-2 py-1 rounded-lg hover:bg-white/10">✕</button>
+                      </div>
+                    )}
+                    {(avattuSarja ? avattuSarja.tapahtumat : ryhmitaSarjat(bestPicks)).map((r) => (
+                        'tyyppi' in r ? (
+                          <SarjaKortti key={r.avain} ryhma={r} onOpen={avaaSarja} />
+                        ) : (
+                          <EventCard key={r.id} event={r} onClick={avaa.picks}
+                        distance={geo.coords && r.location?.lat && r.location?.lon
+                          ? haversineKm(geo.coords.lat, geo.coords.lon, r.location.lat, r.location.lon)
                           : undefined} />
-                    ))}
+                        )
+                      ))}
                   </div>
                 </section>
               )}

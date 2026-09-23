@@ -1004,6 +1004,11 @@ const t = {
     'map.visa_today':              'Pubivisa tänään',
     'map.events_pubivisat':        'Visaillat',
     'map.empty_today_upcoming':    'Ei tapahtumia tänään — kartalla tulevat',
+    'legend.standup':              'Stand up',
+    'series.shows_today':          'näytöstä tänään',
+    'series.shows':                'näytöstä',
+    'series.venues_more':          '+{n} muuta',
+    'series.open':                 'Näytä kaikki näytökset →',
   },
 
   en: {
@@ -2010,6 +2015,11 @@ const t = {
     'map.visa_today':              'Pub quiz today',
     'map.events_pubivisat':        'Quiz nights',
     'map.empty_today_upcoming':    'No events today — showing upcoming',
+    'legend.standup':              'Stand-up',
+    'series.shows_today':          'shows today',
+    'series.shows':                'shows',
+    'series.venues_more':          '+{n} more',
+    'series.open':                 'Show all performances →',
   },
 } as const
 
