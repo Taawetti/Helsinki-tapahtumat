@@ -24,9 +24,17 @@ name: Ravintoloiden ja tekemisen syyt
 
 on:
   schedule:
-    # Maanantai 05:00 UTC = 08:00 Helsingissä. Ennen korjausagenttia (06:00),
+    # Maanantai 05:30 UTC = 08:30 Helsingissä. Ennen korjausagenttia (06:00),
     # jotta kaksi jobia ei kirjoita samaan repoon yhtä aikaa.
-    - cron: '0 5 * * 1'
+    #
+    # EI 05:00: Valvira/avoindata.suomi.fi kirjoittaa alkoholilupatiedostot
+    # uusiksi juuri maanantaina n. 04:59–05:01 UTC (CKAN last_modified:
+    # voimassa 04:58:57, päättyneet 05:00:55, mitattu 21.9.2026). Ajo joka
+    # alkoi 05:00 haki päättyneiden tiedostoa kesken kirjoituksen → 403 kolme
+    # kertaa peräkkäin → "Uudet avaukset: 0 < 20" → koko ajo kaatui — neljä
+    # maanantaita peräkkäin (31.8.–21.9.), eikä yksikään lähde ollut oikeasti
+    # rikki. Paikallisesti sama haku meni läpi, koska se ei osunut ikkunaan.
+    - cron: '30 5 * * 1'
   workflow_dispatch:
 
 permissions:

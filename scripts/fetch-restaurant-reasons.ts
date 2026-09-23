@@ -464,10 +464,33 @@ function historyKey(name: string): string {
  *  saman luvan tekninen jatko. Kuukausi riittää: uusimiset ovat vuosien päässä. */
 const HISTORY_GAP_DAYS = 30
 
+/** Lupatiedostot haetaan KESTÄVÄSTI: avoindata.suomi.fi kirjoittaa ne
+ *  uusiksi maanantaiaamuna ja palauttaa kirjoituksen ajan 403/404 (mitattu
+ *  21.9.2026: ikkuna n. 2 min; get():n 3 yritystä ~12 s eivät kata sitä).
+ *  Tässä odotetaan minuutti kerrallaan enintään viisi kertaa — maksaa aikaa
+ *  vain kun lähde oikeasti pettää, ja 30 min jobiaikaraja riittää. */
+async function readAlluRowsKestava(url: string, nimi: string): Promise<AlluRow[]> {
+  const YRITYKSET = 5
+  const TAUKO_MS = 60_000
+  let viimeinen = ''
+  for (let i = 1; i <= YRITYKSET; i++) {
+    try {
+      return await readAlluRows(url)
+    } catch (e) {
+      viimeinen = (e as Error).message
+      if (i < YRITYKSET) {
+        console.warn(`    ${nimi}: ${viimeinen.slice(0, 60)} — odotetaan ${TAUKO_MS / 1000} s (${i}/${YRITYKSET})`)
+        await new Promise((r) => setTimeout(r, TAUKO_MS))
+      }
+    }
+  }
+  throw new Error(viimeinen)
+}
+
 async function fetchNewOpenings(): Promise<Raw[]> {
   const [current, ended] = await Promise.all([
-    readAlluRows(ALLU_XLSX),
-    readAlluRows(ALLU_ENDED_XLSX).catch((e) => {
+    readAlluRowsKestava(ALLU_XLSX, 'voimassa olevat luvat'),
+    readAlluRowsKestava(ALLU_ENDED_XLSX, 'päättyneet luvat').catch((e) => {
       // Historia on turvallisuustarkistus. Ilman sitä EI julkaista uutuuksia,
       // koska silloin luvan uusiminen näyttäisi avaukselta.
       throw new Error(`päättyneiden lupien tiedosto: ${(e as Error).message}`)
