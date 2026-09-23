@@ -125,7 +125,7 @@ function visaTime(iso: string, lang: Lang): string {
 // paikkakortti käyttäytyy kuten tapahtumakortit: aukeaa paneeli, jossa tiedot
 // ja linkit (nettisivu, kartta, reitti) ovat yhden askeleen päässä.
 
-function PlaceCard({ paikka, onOpen }: { paikka: PaikkaTieto; onOpen: (p: PaikkaTieto) => void }) {
+export function PlaceCard({ paikka, onOpen }: { paikka: PaikkaTieto; onOpen: (p: PaikkaTieto) => void }) {
   const { id, name, address, image, emoji, kicker, topBadge, bottomChip } = paikka
   const idx = hashIdx(id)
   const gradient = GRADIENTS[idx]
@@ -193,11 +193,11 @@ function PlaceCard({ paikka, onOpen }: { paikka: PaikkaTieto; onOpen: (p: Paikka
   )
 }
 
-function CardGrid({ children }: { children: React.ReactNode }) {
+export function CardGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">{children}</div>
 }
 
-function SectionHead({ children, sub }: { children: React.ReactNode; sub?: string }) {
+export function SectionHead({ children, sub }: { children: React.ReactNode; sub?: string }) {
   return (
     <div className="mb-3">
       <h3 className="text-[15px] font-black tracking-[.06em] uppercase text-white/70">{children}</h3>

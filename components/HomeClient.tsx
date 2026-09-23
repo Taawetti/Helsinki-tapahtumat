@@ -12,6 +12,7 @@ import { valitseHero, onVisa, onSuuriPaikka } from '@/lib/picks'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { samaTapahtumaSarja, ryhmitaSarjat, type Sarjaryhma } from '@/lib/tapahtumaperhe'
 import SarjaKortti from '@/components/SarjaKortti'
+import MuseoOsio from '@/components/MuseoOsio'
 import { helsinkiDateOf, helsinkiHourOf, helsinkiToday } from '@/lib/helsinki-time'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
@@ -1748,6 +1749,9 @@ export default function HomeClient({
                   ))}
                 </div>
               )}
+              {/* Museo on ainoa peruskategoria jossa PAIKAT kuuluvat tapahtumien
+                  perään (omistaja 23.9.2026) — ks. components/MuseoOsio. */}
+              {koCat === 'museo' && !keyword && <MuseoOsio />}
             </section>
           )}
 

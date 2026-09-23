@@ -1009,6 +1009,8 @@ const t = {
     'series.shows':                'näytöstä',
     'series.venues_more':          '+{n} muuta',
     'series.open':                 'Näytä kaikki näytökset →',
+    'cat.museums_title':           'Museot',
+    'cat.museums_sub':             'Helsingin museot — aukioloajat, arviot ja sijainti. Napauta museota nähdäksesi lisätiedot.',
   },
 
   en: {
@@ -2020,6 +2022,8 @@ const t = {
     'series.shows':                'shows',
     'series.venues_more':          '+{n} more',
     'series.open':                 'Show all performances →',
+    'cat.museums_title':           'Museums',
+    'cat.museums_sub':             'Helsinki\'s museums — opening hours, ratings and location. Tap a museum for details.',
   },
 } as const
 
