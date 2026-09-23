@@ -34,6 +34,10 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # claude-code-action tunnistautuu GitHubiin OIDC-tokenilla — ilman tätä
+  # se kaatuu heti "Could not fetch an OIDC token" (kaatui 4 maanantaita
+  # peräkkäin 31.8.–21.9.2026, ennen kuin agentti ehti tehdä mitään).
+  id-token: write
 
 concurrency:
   group: monday-source-repair
