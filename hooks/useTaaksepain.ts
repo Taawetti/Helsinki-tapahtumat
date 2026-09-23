@@ -34,13 +34,13 @@ interface Kerros {
   elossa: boolean
 }
 
-let pino: Kerros[] = []
-let peili: number[] = []
+const pino: Kerros[] = []
+const peili: number[] = []
 let seuraavaId = 1
 let kuuntelijaAsennettu = false
 
 type Toimi = { tyyppi: 'push'; id: number } | { tyyppi: 'back' }
-let jono: Toimi[] = []
+const jono: Toimi[] = []
 let odottaaOmaaPop = false
 
 function aja(): void {
@@ -105,7 +105,9 @@ function kuittaa(kerros: Kerros): void {
  *  toimii vain ehdollisesti mountatuille (unmount = sulku). */
 export function useTaaksepain(auki: boolean, sulje: () => void): void {
   const suljeRef = useRef(sulje)
-  suljeRef.current = sulje
+  // Kirjoitus efektissä (React 19: ei ref-kirjoituksia renderissä). Arvoa
+  // luetaan vasta paluueleen käsittelijässä, joten efektin ajoitus riittää.
+  useEffect(() => { suljeRef.current = sulje })
   const kerrosRef = useRef<Kerros | null>(null)
 
   useEffect(() => {

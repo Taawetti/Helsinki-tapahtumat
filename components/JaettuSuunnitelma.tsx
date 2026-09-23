@@ -4,6 +4,7 @@
 // tekijän oma poistonappi (poistoavain selaimen localStoragessa).
 
 import { useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Navigation, X } from 'lucide-react'
@@ -357,9 +358,9 @@ export function JaettuToiminnot({ token, otsikko, paiva, alkuKlo, askeleet }: {
         style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 20px -6px rgba(91,101,230,.6)' }}>
         {kopioitu ? `✓ ${t('plan.copied')}` : `🗓 ${t('plan.copy_template')}`}
       </button>
-      <a href="/" className="px-4 py-3 rounded-xl font-bold text-white/60 hover:text-white text-[13px] border border-white/10 transition-colors">
+      <Link href="/" className="px-4 py-3 rounded-xl font-bold text-white/60 hover:text-white text-[13px] border border-white/10 transition-colors">
         {t('plan.open_app')}
-      </a>
+      </Link>
       {poistoAvain && (
         <button onClick={poista}
           className="px-4 py-3 rounded-xl font-bold text-[13px] border transition-colors"

@@ -81,7 +81,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   const suunnitelmassa = useSyncExternalStore(tilaaSuunnitelma, () => event?.id ? onSuunnitelmassa(event?.id) : false, () => false)
   const suunnitelmaKlik = () => {
     if (!event) return
-    if (suunnitelmassa) poistaViitteella(event?.id!)
+    if (suunnitelmassa) poistaViitteella(event.id)
     else if (!lisaaTapahtuma(event)) alert(t('plan.full'))
   }
 

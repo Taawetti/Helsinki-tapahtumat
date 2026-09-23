@@ -1120,7 +1120,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey, onSu
   )
   const [subCat, setSubCat] = useState<string>(alkuValinta?.subCat ?? 'all')
   const suodatinIlmoitus = useRef(onSuodatinMuutos)
-  suodatinIlmoitus.current = onSuodatinMuutos
+  useEffect(() => { suodatinIlmoitus.current = onSuodatinMuutos })
   useEffect(() => {
     suodatinIlmoitus.current?.({ restType, subCat })
   }, [restType, subCat])

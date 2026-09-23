@@ -80,10 +80,16 @@ export default function AikaValitsin({ otsikko, arvo, onValmis, onAuto, onSulje 
   useTaaksepain(true, onSulje)
 
   const [alkuH, alkuM] = arvo.split(/[:.]/)
-  const tunti = useRef(TUNNIT.includes(alkuH) ? alkuH : '18')
+  const alkuTunti = TUNNIT.includes(alkuH) ? alkuH : '18'
   // Pyöristys lähimpään 5 minuuttiin rullan askeliin.
   const minLahin = String(Math.min(55, Math.round(Number(alkuM ?? 0) / 5) * 5)).padStart(2, '0')
-  const minuutti = useRef(MINUUTIT.includes(minLahin) ? minLahin : '00')
+  const alkuMinuutti = MINUUTIT.includes(minLahin) ? minLahin : '00'
+  // Valinta refissä (ei tilaa): rullan vieritys ei saa renderöidä dialogia
+  // uudelleen. Rulla saa ALKUARVON propsina — ref.currentia ei lueta
+  // renderissä (React 19: refs during render), ja Rulla käyttää arvoa vain
+  // alkuvieritykseen mountissa.
+  const tunti = useRef(alkuTunti)
+  const minuutti = useRef(alkuMinuutti)
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
@@ -93,9 +99,9 @@ export default function AikaValitsin({ otsikko, arvo, onValmis, onAuto, onSulje 
         style={{ background: '#111118', border: '1px solid rgba(255,255,255,.1)' }}>
         <p className="text-white/45 text-[12px] font-black uppercase tracking-[.1em] mb-3 text-center">{otsikko}</p>
         <div className="flex items-stretch gap-1 max-w-[220px] mx-auto">
-          <Rulla arvot={TUNNIT} valittu={tunti.current} onValinta={(v) => { tunti.current = v }} />
+          <Rulla arvot={TUNNIT} valittu={alkuTunti} onValinta={(v) => { tunti.current = v }} />
           <span className="self-center font-black text-white/40 text-[20px] pb-1">:</span>
-          <Rulla arvot={MINUUTIT} valittu={minuutti.current} onValinta={(v) => { minuutti.current = v }} />
+          <Rulla arvot={MINUUTIT} valittu={alkuMinuutti} onValinta={(v) => { minuutti.current = v }} />
         </div>
         <div className="flex flex-col gap-2 mt-5">
           <button onClick={() => onValmis(`${tunti.current}:${minuutti.current}`)}

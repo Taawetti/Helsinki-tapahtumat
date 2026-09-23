@@ -79,13 +79,15 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   onCloseRef.current = onClose
   const [copied, setCopied] = useState(false)
   const [slideIn, setSlideIn] = useState(false)
-  const [imgOk, setImgOk] = useState(true)
+  // Kuvavirhe muistetaan PAIKAN id:llä — vaihtuva paikka nollaa tilan
+  // itsestään, eikä efektin tarvitse kutsua setStatea.
+  const [kuvaEpaonnistui, setKuvaEpaonnistui] = useState<string | null>(null)
+  const imgOk = kuvaEpaonnistui !== paikka?.id
   const { t } = useLanguage()
 
   // Slide-in — double-rAF kuten EventDetailPanelissa (iOS-välähdyksen esto).
   useEffect(() => {
     if (!paikka) return
-    setImgOk(true)
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setSlideIn(true)))
     return () => cancelAnimationFrame(id)
   }, [paikka])
@@ -105,7 +107,7 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   const suunnitelmassa = useSyncExternalStore(tilaaSuunnitelma, () => paikka?.id ? onSuunnitelmassa(paikka?.id) : false, () => false)
   const suunnitelmaKlik = () => {
     if (!paikka) return
-    if (suunnitelmassa) poistaViitteella(paikka?.id!)
+    if (suunnitelmassa) poistaViitteella(paikka.id)
     else if (!lisaaPaikka(paikka, guideSlug)) alert(t('plan.full'))
   }
 
@@ -236,7 +238,7 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
         <div className="relative h-60 w-full bg-[#1a1f2e] shrink-0">
           {paikka.image && imgOk ? (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={paikka.image} alt={paikka.name} onError={() => setImgOk(false)}
+            <img src={paikka.image} alt={paikka.name} onError={() => setKuvaEpaonnistui(paikka.id)}
               className="absolute inset-0 w-full h-full object-cover" />
           ) : (
             <>

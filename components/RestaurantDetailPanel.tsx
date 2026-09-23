@@ -75,19 +75,24 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
   const [slideIn, setSlideIn] = useState(false)
-  const [imgOk, setImgOk] = useState(true)
-  const [google, setGoogle] = useState<RestGoogleData | null>(null)
+  // Kuvavirhe ja Google-profiili muistetaan RAVINTOLAN avaimella — vaihtuva
+  // ravintola nollaa molemmat itsestään, eikä efektien tarvitse kutsua
+  // setStatea synkronisesti (React 19: set-state-in-effect).
+  const [kuvaEpaonnistui, setKuvaEpaonnistui] = useState<string | null>(null)
+  const imgOk = kuvaEpaonnistui !== r?.id
+  const [googleTila, setGoogleTila] = useState<{ key: string; data: RestGoogleData | null } | null>(null)
+  const googleKey = r ? r.name.toLowerCase().trim() : ''
+  const google = googleTila && googleTila.key === googleKey ? googleTila.data : null
   const { t, lang } = useLanguage()
 
   // Rikas profiili vasta kun paneeli avataan — sama malli kuin aiemmin.
   useEffect(() => {
-    if (!r) { setGoogle(null); return }
+    if (!r) return
     const key = r.name.toLowerCase().trim()
     let cancelled = false
-    setGoogle(null)
     fetch(`/api/restaurant-google?key=${encodeURIComponent(key)}`)
       .then((res) => res.json())
-      .then((d) => { if (!cancelled) setGoogle(d.google ?? null) })
+      .then((d) => { if (!cancelled) setGoogleTila({ key, data: d.google ?? null }) })
       .catch(() => {})
     return () => { cancelled = true }
   }, [r])
@@ -95,7 +100,6 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
   // Slide-in — double-rAF kuten EventDetailPanelissa (iOS-välähdyksen esto).
   useEffect(() => {
     if (!r) return
-    setImgOk(true)
     const id = requestAnimationFrame(() => requestAnimationFrame(() => setSlideIn(true)))
     return () => cancelAnimationFrame(id)
   }, [r])
@@ -115,7 +119,7 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
   const suunnitelmassa = useSyncExternalStore(tilaaSuunnitelma, () => r?.id ? onSuunnitelmassa(r?.id) : false, () => false)
   const suunnitelmaKlik = () => {
     if (!r) return
-    if (suunnitelmassa) poistaViitteella(r?.id!)
+    if (suunnitelmassa) poistaViitteella(r.id)
     else if (!lisaaRavintola(r, tyyli)) alert(t('plan.full'))
   }
 
@@ -220,7 +224,7 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
         <div className="relative h-60 w-full bg-[#1a1f2e] shrink-0">
           {r.image && imgOk ? (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={r.image} alt={r.name} onError={() => setImgOk(false)}
+            <img src={r.image} alt={r.name} onError={() => setKuvaEpaonnistui(r.id)}
               className="absolute inset-0 w-full h-full object-cover" />
           ) : (
             <>

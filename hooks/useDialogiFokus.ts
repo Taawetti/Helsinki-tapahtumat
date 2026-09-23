@@ -23,7 +23,10 @@ export function useDialogiFokus(
   // onClose refiin: paneelit luovat uuden sulkijan joka renderillä, eikä
   // effektin saa antaa purkautua (ja palauttaa fokusta!) kesken avoinnaolon.
   const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  // Kirjoitus efektissä, ei renderissä: React 19:n sääntö (refs during
+  // render) — arvo on käytössä vasta tapahtumankäsittelijöissä, joten
+  // efektin ajoitus riittää.
+  useEffect(() => { onCloseRef.current = onClose })
 
   useEffect(() => {
     if (!open) return

@@ -591,7 +591,6 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   // + infopaneelia päällekkäin kuten ennen — tuplaus oli mobiilissa bugi).
   const [previewEvent, setPreviewEvent] = useState<Event | null>(null)
   // Kartalla näkyvien tapahtumapinnien määrä — ohjaa lataus-/tyhjätilaviestiä.
-  const [eventMarkerCount, setEventMarkerCount] = useState(0)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userMarkerRef      = useRef<any>(null)
@@ -822,6 +821,33 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   )
   const naytaTulevat = rajattu && paivanTapahtumat.length === 0 && tapahtumaLahde.length > 0
 
+  /** Kartalle piirrettävät tapahtumat — YKSI predikaatti sekä markkereille
+   *  että laskurille, jotta ne eivät voi eriytyä (rinnakkainen suodatinkopio
+   *  ehti kerran eriytyä, ks. laskurin kommentti). Johdettu arvo, ei tila:
+   *  markkeriefekti ei enää kutsu setStatea.
+   *
+   *  Kohderyhmä (omistaja 4.9.2026): seniorikohdennettu ei näy kartalla
+   *  koskaan; lapsiperhetapahtumat näkyvät VAIN "Lapset & Perhe" -kategoriassa;
+   *  OLETUSNÄKYMÄ on 18–40-rajattu kuten poiminnat. VALITTU KATEGORIA näyttää
+   *  kaiken siitä kategoriasta — sama sääntö kuin listalla (HomeClient:
+   *  "Kategoriat, haku ja koCat-listat näyttävät ne edelleen"); ilman tätä
+   *  kartan uudet kategoriat olisivat lähes tyhjiä. Tyhjä päivä oppaan
+   *  joukossa → näytetään TULEVAT (banneri kertoo miksi). */
+  const naytettavatTapahtumat = useMemo(() => tapahtumaLahde.filter((event) => {
+    if (!event.location?.lat || !event.location?.lon) return false
+    if (onSenioriTapahtuma(event)) return false
+    if (eventGroup === 'lapset') {
+      if (!onPerheTapahtuma(event)) return false
+    } else if (eventGroup) {
+      if (!osuuRyhmaan(event, eventGroup)) return false
+    } else if (!rajattu && isOutsideTargetAudience(event)) {
+      return false
+    }
+    if (!naytaTulevat && !osuuPaivaan(event.startTime, dateFilter, customDate)) return false
+    return true
+  }), [tapahtumaLahde, rajattu, naytaTulevat, eventGroup, dateFilter, customDate])
+  const eventMarkerCount = (layers.events || aiheTapahtumina) ? naytettavatTapahtumat.length : 0
+
   // ── Event markers ─────────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !eventClusterRef.current) return
@@ -832,29 +858,12 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     setPreviewEvent(null)
     // Aihetilassa (visaillat, jamit, kirppistapahtumat) tapahtumat piirtyvät
     // vaikka tapahtumataso olisi pois — aihe ON tapahtumanäkymä.
-    if (!layers.events && !aiheTapahtumina) { setEventMarkerCount(0); return }
-    let lisatty = 0
-    tapahtumaLahde.forEach((event) => {
-      if (!event.location?.lat || !event.location?.lon) return
-      // Kohderyhmä (omistaja 4.9.2026): seniorikohdennettu ei näy kartalla
-      // koskaan; lapsiperhetapahtumat näkyvät VAIN "Lapset & Perhe" -katego-
-      // riassa; OLETUSNÄKYMÄ on 18–40-rajattu kuten poiminnat.
-      //
-      // VALITTU KATEGORIA näyttää kaiken siitä kategoriasta — sama sääntö
-      // kuin listalla, jonka koodi sanoo sen ääneen (HomeClient: "Kategoriat,
-      // haku ja koCat-listat näyttävät ne edelleen"). Ilman tätä kartan uudet
-      // kategoriat (esim. Harrastukset & Kurssit) olisivat lähes tyhjiä,
-      // koska juuri ne tapahtumat ovat kohderyhmärajauksen ulkopuolella.
-      if (onSenioriTapahtuma(event)) return
-      if (eventGroup === 'lapset') {
-        if (!onPerheTapahtuma(event)) return
-      } else if (eventGroup) {
-        if (!osuuRyhmaan(event, eventGroup)) return
-      } else if (!rajattu && isOutsideTargetAudience(event)) {
-        return
-      }
-      // Tyhjä päivä oppaan joukossa → näytetään TULEVAT (banneri kertoo miksi).
-      if (!naytaTulevat && !osuuPaivaan(event.startTime, dateFilter, customDate)) return
+    if (!layers.events && !aiheTapahtumina) return
+    naytettavatTapahtumat.forEach((event) => {
+      // Predikaatti takaa koordinaatit; luetaan paikallisiin muuttujiin,
+      // koska TS ei näe suodatuksen kavennusta silmukan sisällä.
+      const lat = event.location?.lat, lon = event.location?.lon
+      if (lat == null || lon == null) return
       // Pubivisat ovat generoituja tapahtumia eivätkä osu luokittimeen —
       // annetaan niille visakategorian oma kuvake ja väri.
       const { color, emoji } = event.id.startsWith('visa-')
@@ -862,16 +871,14 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         : eventColor(event)
       const icon = makePinIcon(color, emoji, false)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const marker = L.marker([event.location.lat, event.location.lon] as any, { icon })
+      const marker = L.marker([lat, lon] as any, { icon })
       // Pinnin klikkaus avasi aiemmin SEKÄ Leaflet-popupin että koko
       // infopaneelin päällekkäin — mobiilissa sekava tuplaus. Nyt vain
       // esikatselukortti, josta on selkeä CTA varsinaisiin tietoihin.
       marker.on('click', () => setPreviewEvent(event))
       cluster.addLayer(marker)
-      lisatty++
     })
-    setEventMarkerCount(lisatty)
-  }, [mapReady, tapahtumaLahde, rajattu, naytaTulevat, layers.events, aiheTapahtumina, eventGroup, dateFilter, customDate])
+  }, [mapReady, naytettavatTapahtumat, layers.events, aiheTapahtumina])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {

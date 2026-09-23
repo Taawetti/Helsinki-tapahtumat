@@ -3,6 +3,7 @@
 // ei mätäne vaikka alkuperäiset tapahtumat vanhenevat. Ei indeksointiin —
 // jaettu suunnitelma on puolijulkinen (linkin tietävät näkevät).
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase'
 import { JaettuKartta, JaettuToiminnot, JaettuAskeleet, type JaettuAskelDTO } from '@/components/JaettuSuunnitelma'
@@ -131,7 +132,7 @@ export default async function JaettuSuunnitelmaSivu({ params }: Props) {
         <JaettuToiminnot token={rivi.token} otsikko={rivi.otsikko} paiva={rivi.paiva} alkuKlo={rivi.alku_klo} askeleet={rivi.askeleet} />
 
         <p className="text-center text-white/30 text-[11.5px] font-bold pt-2 pb-4">
-          Suunnitelma on koottu <a href="/" className="underline decoration-white/20 hover:text-white/60">Mitä tänään</a> -sovelluksella · mitatanaan.fi
+          Suunnitelma on koottu <Link href="/" className="underline decoration-white/20 hover:text-white/60">Mitä tänään</Link> -sovelluksella · mitatanaan.fi
         </p>
       </div>
     </main>
