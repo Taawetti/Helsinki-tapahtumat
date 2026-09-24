@@ -15,6 +15,10 @@ export interface CuratedVenue {
 
 export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
 
+  // Keikkapaikat (Tavastia, Semifinal, G Livelab, Bar Loose, On The Rocks,
+  // Molly Malone's) ovat baareja, eivät yökerhoja (omistaja 24.9.2026) —
+  // ks. lib/venue-type-overrides.
+
   // ── Tekno & electronic ─────────────────────────────────────────
   {
     id: 'curated-kaiku',
@@ -78,10 +82,10 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
   },
   {
     id: 'curated-tavastia',
-    name: 'Tavastia',
+    name: 'Tavastia Klubi', // OSM:n nimi — muuten tulee tuplana (curated + osm)
     address: 'Urho Kekkosen katu 4-6',
     lat: 60.1686, lon: 24.9498,
-    type: 'yokerho',
+    type: 'baari',
     subCategories: ['klubi'],
     www: 'https://tavastiaklubi.fi',
   },
@@ -90,7 +94,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     name: 'Semifinal',
     address: 'Urho Kekkosen katu 4-6',
     lat: 60.1686, lon: 24.9498,
-    type: 'yokerho',
+    type: 'baari',
     subCategories: ['klubi'],
   },
   {
@@ -98,7 +102,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     name: 'On The Rocks',
     address: 'Mikonkatu 15',
     lat: 60.1688, lon: 24.9442,
-    type: 'yokerho',
+    type: 'baari',
     subCategories: ['klubi'],
     www: 'https://rocks.fi',
   },
@@ -107,7 +111,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     name: 'Bar Loose',
     address: 'Annankatu 21',
     lat: 60.1660, lon: 24.9433,
-    type: 'yokerho',
+    type: 'baari',
     subCategories: ['klubi'],
     www: 'https://barloose.com',
   },
@@ -116,7 +120,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     name: "Molly Malone's",
     address: 'Kaisaniemenkatu 1 C',
     lat: 60.1708, lon: 24.9442,
-    type: 'yokerho',
+    type: 'baari',
     subCategories: ['klubi'],
     www: 'https://mollymalones.fi',
   },
@@ -149,7 +153,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     name: 'G Livelab',
     address: 'Yrjönkatu 3',
     lat: 60.1667, lon: 24.9500,
-    type: 'yokerho',
+    type: 'baari',
     subCategories: ['klubi'],
     www: 'https://glivelab.fi',
   },

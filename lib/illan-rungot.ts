@@ -26,6 +26,7 @@ import { helsinkiClock } from './arvo-ilta'
 import { tuntematonAika } from './utils'
 import { track } from './track'
 import { tapahtumaAskel, ravintolaAskel, korvaaSuunnitelma, tunnitKloksi, type SuunnitelmaAskel } from './suunnitelma'
+import { onKeikkapaikka } from './venue-type-overrides'
 
 export interface Runko {
   id: 'dinner_gig' | 'gig_bar' | 'culture' | 'party' | 'standup' | 'sport' | 'late_dinner' | 'bar_hop' | 'club_night'
@@ -107,6 +108,8 @@ function lahinAuki(
   let parasM = Infinity
   for (const r of paikat) {
     if (r.type !== tyyppi || poissa.has(r.id)) continue
+    // Lipullinen keikkapaikka ei ole baari- eikä yökerhoaskel ilman keikkaa.
+    if (tyyppi !== 'ravintola' && onKeikkapaikka(r.name)) continue
     if (r.lat == null || r.lon == null) continue
     if ((r.googleRating ?? 0) < k.arvosana || (r.reviewCount ?? 0) < k.arvosteluja) continue
     // Hintataso tunnetaan vain osalle — puuttuva ei pudota.

@@ -97,6 +97,8 @@ import { mapOpenmicEvent, koordAvain, katuosoite, poistaPaikkaHanta, type Openmi
 import { yhdistaJamit } from '../lib/guide-data'
 import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypille, type Suunnitelma } from '../lib/suunnitelma'
 import { rakennaRungot, seuraavaRunko, rungonTapahtumat } from '../lib/illan-rungot'
+import { pakotettuTyyppi, onKeikkapaikka } from '../lib/venue-type-overrides'
+import { HELSINKI_NIGHTCLUBS } from '../lib/helsinki-nightclubs'
 import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
 import { onEstettyPaikka } from '../lib/venue-blocklist'
 import { haeKahdessaVaiheessa, tapahtumaHakuParams, ESILADATTAVAT, lammitettavatParams } from '../lib/events-fetch'
@@ -3855,6 +3857,20 @@ for (const c of kwChecks) {
         const s3 = s2 && seuraavaRunko(evs, [r1], NYT, 'dinner_gig', s2.ohita, new Set(rungonTapahtumat(s2.runko)))
         const id = (x: { runko: { askeleet: { viiteId?: string }[] } } | null) => x?.runko.askeleet[1]?.viiteId
         return id(s1) === 'keikka2' && id(s2) === 'keikka' && id(s3) === 'keikka2' // kolmas kierros palaa alkuun, ei nykyiseen
+      })() },
+    { name: 'keikkapaikat eivät ole yökerhoja: Tavastia (Klubi), Semifinal, G Livelab, Apollo Live Club → baari; Hercules ei pakoteta', ok:
+        ['Tavastia Klubi', 'Tavastia', 'Semifinal', 'G Livelab', 'Apollo Live Club', ' TAVASTIA KLUBI '].every((n) => pakotettuTyyppi(n) === 'baari') && pakotettuTyyppi('Hercules') === undefined },
+    { name: 'kuratoitu klubilista: yksikään keikkapaikka ei ole yökerho-tyyppiä, eikä listalla ole OSM:n kanssa tuplaavaa "Tavastia"-nimeä', ok:
+        HELSINKI_NIGHTCLUBS.every((v) => (pakotettuTyyppi(v.name) ?? v.type) === v.type || v.type === 'baari')
+        && HELSINKI_NIGHTCLUBS.filter((v) => /tavastia|semifinal|livelab|bar loose|on the rocks|molly/i.test(v.name)).every((v) => v.type === 'baari')
+        && !HELSINKI_NIGHTCLUBS.some((v) => v.name === 'Tavastia') },
+    { name: 'paikkaillat: lipullinen keikkapaikka (Tavastia Klubi) ei kelpaa baariksi eikä yökerhoksi vaikka olisi lähin ja auki', ok: (() => {
+        const nyt = new Date('2026-09-06T22:30:00+03:00')
+        const tavastia = mkRest({ id: 'tav', name: 'Tavastia Klubi', type: 'baari', openingHours: 'Mo-Su 16:00-04:00', lat: 60.1700, lon: 24.9390, reviewCount: 2997, googleRating: 4.4 })
+        const klubi = mkRest({ id: 'tavy', name: 'Tavastia', type: 'yokerho', openingHours: 'Mo-Su 16:00-04:00', lat: 60.1700, lon: 24.9390, reviewCount: 2997, googleRating: 4.4 })
+        const rungot = rakennaRungot([], [tavastia, klubi, b1, r1], nyt)
+        return onKeikkapaikka(' Tavastia Klubi ') && !onKeikkapaikka('Hercules')
+          && rungot.every((x) => x.askeleet.every((a) => a.viiteId !== 'tav' && a.viiteId !== 'tavy'))
       })() },
     { name: 'vaihda iltaa: päivästä ei saa iltaa → null (ei ikuista silmukkaa)', ok: seuraavaRunko([], [], NYT, null, new Set(), new Set()) === null },
     { name: 'vaihda iltaa: paikatkin vaihtuvat kun voi (kulttuuri-ilta b1:llä ennen r1:n toistoa), sitten tapahtumat ohittaen, sitten alusta', ok: (() => {
