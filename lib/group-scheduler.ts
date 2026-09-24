@@ -39,6 +39,11 @@ export const TRAVEL_BUFFER_H = 0.25
 
 // Kaari päättyy viimeistään tähän (hyväksytty "yön raja").
 export const ARC_END_CAP_H = 23.5
+// Drinkkiaskel (baari, yökerho) saa alkaa myöhemmin: baarit ja klubit ovat
+// auki aamuyöhön, ja "keikka → jatkot" tai "myöhäinen illallinen → baari"
+// alkaa luontevasti puolenyön jälkeen (omistaja 24.9.2026). Aukiolo
+// tarkistetaan erikseen — tämä on vain "myöhään"-varoituksen raja.
+export const DRINKS_END_CAP_H = 25.5 // 01:30
 
 // Oletuskellonajat rooleittain kun kortilla ei ole todellista aikaa.
 const DEFAULT_HOUR: Record<GroupWhen, Record<CandidateRole, number>> = {

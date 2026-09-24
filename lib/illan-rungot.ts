@@ -20,7 +20,7 @@ import { getEventVibes } from './event-classify'
 import { isOutsideTargetAudience } from './audience'
 import { onVisa, onPeruttu } from './picks'
 import { haversineMeters, walkMinutesBetween } from './group'
-import { DUR_H, TRAVEL_BUFFER_H } from './group-scheduler'
+import { DUR_H, TRAVEL_BUFFER_H, ARC_END_CAP_H, DRINKS_END_CAP_H } from './group-scheduler'
 import { isOpenAt } from './opening-hours'
 import { helsinkiClock } from './arvo-ilta'
 import { tuntematonAika } from './utils'
@@ -28,7 +28,7 @@ import { track } from './track'
 import { tapahtumaAskel, ravintolaAskel, korvaaSuunnitelma, tunnitKloksi, type SuunnitelmaAskel } from './suunnitelma'
 
 export interface Runko {
-  id: 'dinner_gig' | 'gig_bar' | 'culture' | 'party' | 'standup' | 'sport'
+  id: 'dinner_gig' | 'gig_bar' | 'culture' | 'party' | 'standup' | 'sport' | 'late_dinner' | 'bar_hop' | 'club_night'
   emoji: string
   otsikkoAvain: TranslationKey
   /** YYYY-MM-DD (Helsinki) — rungon päivä. */
@@ -41,11 +41,21 @@ const MAX_ETAISYYS_M = 2000
  *  paikalta vaaditaan enemmän (ja vähintään €€) — "Illallinen ja keikka"
  *  ei saa tarkoittaa lähintä kebabia (mitattu 24.9.2026: Vuo Kebab ja
  *  Pizzeria oli lähin 4,3+/150+ -paikka). */
-const KYNNYS: Record<'ravintola' | 'baari', { arvosana: number; arvosteluja: number; hinta: number }> = {
+const KYNNYS: Record<'ravintola' | 'baari' | 'yokerho', { arvosana: number; arvosteluja: number; hinta: number }> = {
   ravintola: { arvosana: 4.4, arvosteluja: 250, hinta: 2 },
   baari: { arvosana: 4.3, arvosteluja: 150, hinta: 1 },
+  // Yökerhojen arvosanat ovat rakenteellisesti matalampia (jonot, hinnat).
+  yokerho: { arvosana: 4.0, arvosteluja: 100, hinta: 1 },
 }
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x))
+/** Paikkailtojen ankkuri kun tapahtumaa ei ole: Helsingin keskusta. */
+const KESKUSTA = { lat: 60.1695, lon: 24.9384 }
+/** Valmistautumisaika: tapahtumaan pääsee lähtemällä heti (20 min), mutta
+ *  ENNEN tapahtumaa tulevaan ravintolaan/baariin pitää ehtiä ensin (45 min).
+ *  Omistaja 24.9.2026 klo 20.23: "voisi ehdottaa vielä tänään jotain tulevaa
+ *  tapahtumaa mikä alkaa esim. 21.00, sitten baari". */
+const VALMISTAUTUMINEN_H = 1 / 3
+const VALMISTAUTUMINEN_ENNEN_H = 0.75
 
 type Laji = 'keikka' | 'kulttuuri' | 'standup' | 'bileet' | 'urheilu'
 
@@ -74,14 +84,25 @@ function kelloksi(paiva: string, h: number): Date {
 /** Lähin laatukynnyksen ylittävä paikka, joka on auki annettuun aikaan. */
 function lahinAuki(
   paikat: Restaurant[],
-  tyyppi: 'ravintola' | 'baari',
+  tyyppi: 'ravintola' | 'baari' | 'yokerho',
   kohde: { lat?: number; lon?: number },
   paiva: string,
   klo: number,
-  poissa: Set<string>,
+  poissa: ReadonlySet<string>,
+  /** Paikan on oltava auki vielä tämänkin verran myöhemmin (h). Oletus 1 h
+   *  = sovittimen clampToOpenHour-vaatimus (min(roolin kesto, 1)); myöhäinen
+   *  illallinen vaatii 1¼ h — paikka joka sulkee puolen tunnin päästä ei
+   *  kelpaa. */
+  aukiViela = 1,
+  /** Tosi kun paikkaan KÄVELLÄÄN edellisestä askeleesta (kohde): saapumis-
+   *  aika = klo + kävely, kuten sovitin laskee. Ennen tapahtumaa tulevassa
+   *  askeleessa klo on jo paikan oma alkuaika (kävely tulee sen jälkeen). */
+  kavelyMukaan = false,
 ): Restaurant | null {
   if (kohde.lat == null || kohde.lon == null) return null
   const k = KYNNYS[tyyppi]
+  // Sovittimen "myöhään"-raja: ravintola 23.30, baari/yökerho 01.30.
+  const katto = tyyppi === 'ravintola' ? ARC_END_CAP_H : DRINKS_END_CAP_H
   let paras: Restaurant | null = null
   let parasM = Infinity
   for (const r of paikat) {
@@ -90,11 +111,17 @@ function lahinAuki(
     if ((r.googleRating ?? 0) < k.arvosana || (r.reviewCount ?? 0) < k.arvosteluja) continue
     // Hintataso tunnetaan vain osalle — puuttuva ei pudota.
     if (r.priceRange !== undefined && r.priceRange < k.hinta) continue
-    // Aukiolo TIEDETTÄVÄ ja auki: tuntematon ei kelpaa runkoon (käsin
-    // lisätessä käyttäjä näkee varoituksen, runko luvataan valmiina).
-    if (isOpenAt(r.openingHours, kelloksi(paiva, klo)) !== true) continue
     const m = haversineMeters(kohde.lat, kohde.lon, r.lat, r.lon)
     if (m > MAX_ETAISYYS_M || m >= parasM) continue
+    // Mitattu 24.9.2026: "John Scott's 23.30 → Pub Peräkammari" sai heti
+    // "kiinni"-varoituksen, koska baarin aukiolo tarkistettiin lähtöajalla
+    // eikä saapumisajalla (kävely 20 min).
+    const saapuu = klo + (kavelyMukaan ? (walkMinutesBetween(kohde, r) ?? 0) / 60 : 0)
+    if (saapuu > katto) continue
+    // Aukiolo TIEDETTÄVÄ ja auki: tuntematon ei kelpaa runkoon (käsin
+    // lisätessä käyttäjä näkee varoituksen, runko luvataan valmiina).
+    if (isOpenAt(r.openingHours, kelloksi(paiva, saapuu)) !== true) continue
+    if (aukiViela > 0 && isOpenAt(r.openingHours, kelloksi(paiva, saapuu + aukiViela)) !== true) continue
     paras = r
     parasM = m
   }
@@ -117,18 +144,22 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
   const kello = helsinkiClock(nyt)
   const paiva = kello.date
   const ohita = opts.ohita ?? new Set<string>()
-  // Vähintään 45 min valmistautumisaikaa; vain tämän päivän tapahtumat.
-  const raja = kello.hour + 0.75
+  // Tapahtumaan ehtii 20 minuutissa; ravintolaan/baariin ENNEN tapahtumaa
+  // vasta 45 minuutissa. Vain tämän päivän tapahtumat.
+  const rajaTapahtuma = kello.hour + VALMISTAUTUMINEN_H
+  const raja = kello.hour + VALMISTAUTUMINEN_ENNEN_H
   const ehdokkaat = events
     .filter((e) => !ohita.has(e.id))
     .filter((e) => !tuntematonAika(e.startTime) && !onVisa(e) && !onPeruttu(e) && !isOutsideTargetAudience(e))
     .filter((e) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Helsinki' }).format(new Date(e.startTime)) === paiva)
-    .filter((e) => tunti(e) >= raja && e.location?.lat != null && e.location?.lon != null)
+    .filter((e) => tunti(e) >= rajaTapahtuma && e.location?.lat != null && e.location?.lon != null)
     // Kuvalliset ensin — runko näkyy kortteina; sitten aikajärjestys.
     .sort((a, b) => Number(!!b.image) - Number(!!a.image) || tunti(a) - tunti(b))
 
   const kaytetytTapahtumat = new Set<string>()
-  const kaytetytPaikat = new Set<string>()
+  // Ohituslista koskee myös paikkoja: "Vaihda iltaa" antaa uuden ravintolan
+  // ja baarin, ei pelkkää uutta tapahtumaa.
+  const kaytetytPaikat = new Set<string>(ohita)
   const ota = (l: Laji, minTunti = 0, ehto: (e: Event) => boolean = () => true): Event | null => {
     const e = ehdokkaat.find((x) => !kaytetytTapahtumat.has(x.id) && laji(x) === l && tunti(x) >= minTunti && ehto(x)) ?? null
     if (e) kaytetytTapahtumat.add(e.id)
@@ -143,9 +174,10 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
     if (e) kaytetytTapahtumat.add(e.id)
     return e
   }
-  // Tapahtuman JÄLKEEN tuleva baari ei saa alkaa yli sovittimen yökaton
-  // (ARC_END_CAP_H 23.5 → 'myohaan'-varoitus): tapahtuma + 2¼ h ≤ 23.5.
-  const jatkotEhtii = (e: Event) => tunti(e) + 2.25 <= 23.5
+  // Tapahtuman JÄLKEEN tuleva baari ei saa alkaa yli sovittimen drinkki-
+  // yökaton (DRINKS_END_CAP_H 01.30 → 'myohaan'-varoitus): tapahtuma + 2¼ h.
+  // Kävely tarkistetaan vasta baarin kanssa (lahinAuki kavelyMukaan).
+  const jatkotEhtii = (e: Event) => tunti(e) + 2.25 <= DRINKS_END_CAP_H
   // ENNEN tapahtumaa tuleva askel on ehdittävä: sen alun pitää olla vielä
   // edessä (≥ raja) ja ruokailun/drinkkien KESTON + KÄVELYN + puskurin pitää
   // mahtua ennen tapahtumaa — täsmälleen sama kaava kuin lib/suunnitelma
@@ -193,7 +225,7 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
     return ennen ? { ...ravintolaAskel(r), oletusKlo: tunnitKloksi(klo) } : ravintolaAskel(r)
   }
   const baari = (kohde: Event, klo: number, ennen: boolean) => {
-    const r = lahinAuki(restaurants, 'baari', kohde.location!, paiva, klo, kaytetytPaikat)
+    const r = lahinAuki(restaurants, 'baari', kohde.location!, paiva, klo, kaytetytPaikat, 1, !ennen)
     if (!r) return null
     kaytetytPaikat.add(r.id)
     return ennen ? { ...ravintolaAskel(r), oletusKlo: tunnitKloksi(klo) } : ravintolaAskel(r)
@@ -252,12 +284,54 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
     }
   }
 
+  // PAIKKAILLAT: kun tänään ei ole enää yhtään tapahtumaa johon ehtii
+  // (omistaja 24.9.2026 klo 20.23: "jos ei ole mitään tulevaa tapahtumaa, se
+  // voisi ehdottaa vaikka joku ruokapaikka joka on myöhään auki ja baari.
+  // kolme erilaista"). Ankkuri keskusta, jokainen ilta eri paikoista.
+  if (rungot.length === 0) {
+    // Seuraava tasavartti + puoli tuntia — sama kuin sovittimen tämän päivän
+    // aloituskursori, joten kortin ajat vastaavat aikajanaa.
+    const alku = Math.ceil((kello.hour + 0.5) * 4) / 4
+    const askel = (r: Restaurant, klo: number) => ({ ...ravintolaAskel(r), oletusKlo: tunnitKloksi(klo) })
+    // A. Myöhäinen illallinen (auki vielä 1¼ h) → baari.
+    {
+      const r = lahinAuki(restaurants, 'ravintola', KESKUSTA, paiva, alku, kaytetytPaikat, 1.25)
+      if (r) {
+        kaytetytPaikat.add(r.id)
+        const b = lahinAuki(restaurants, 'baari', r, paiva, alku + DUR_H.food + TRAVEL_BUFFER_H, kaytetytPaikat, 1, true)
+        if (b) { kaytetytPaikat.add(b.id); rungot.push({ id: 'late_dinner', emoji: '🍽', otsikkoAvain: 'plan.tpl_late_dinner', paiva, askeleet: [askel(r, alku), ravintolaAskel(b)] }) }
+        else kaytetytPaikat.delete(r.id)
+      }
+    }
+    // B. Baarikierros: kaksi eri baaria lähekkäin.
+    {
+      const b1 = lahinAuki(restaurants, 'baari', KESKUSTA, paiva, alku, kaytetytPaikat, 1)
+      if (b1) {
+        kaytetytPaikat.add(b1.id)
+        const b2 = lahinAuki(restaurants, 'baari', b1, paiva, alku + DUR_H.drinks + TRAVEL_BUFFER_H, kaytetytPaikat, 1, true)
+        if (b2) { kaytetytPaikat.add(b2.id); rungot.push({ id: 'bar_hop', emoji: '🍸', otsikkoAvain: 'plan.tpl_bar_hop', paiva, askeleet: [askel(b1, alku), ravintolaAskel(b2)] }) }
+        else kaytetytPaikat.delete(b1.id)
+      }
+    }
+    // C. Baari → yökerho (auki kun baarista lähdetään).
+    {
+      const b = lahinAuki(restaurants, 'baari', KESKUSTA, paiva, alku, kaytetytPaikat, 1)
+      if (b) {
+        kaytetytPaikat.add(b.id)
+        const y = lahinAuki(restaurants, 'yokerho', b, paiva, alku + DUR_H.drinks + TRAVEL_BUFFER_H, kaytetytPaikat, 1, true)
+        if (y) { kaytetytPaikat.add(y.id); rungot.push({ id: 'club_night', emoji: '🪩', otsikkoAvain: 'plan.tpl_club_night', paiva, askeleet: [askel(b, alku), ravintolaAskel(y)] }) }
+        else kaytetytPaikat.delete(b.id)
+      }
+    }
+  }
+
   return rungot.slice(0, 3)
 }
 
-/** Rungon tapahtuma-id:t — "Vaihda iltaa" ohittaa nämä seuraavalla kerralla. */
+/** Rungon kohteiden id:t (tapahtumat JA paikat) — "Vaihda iltaa" ohittaa
+ *  nämä seuraavalla kerralla, jotta myös ravintola ja baari vaihtuvat. */
 export function rungonTapahtumat(runko: Runko): string[] {
-  return runko.askeleet.flatMap((a) => (a.tyyppi === 'tapahtuma' && a.viiteId ? [a.viiteId] : []))
+  return runko.askeleet.flatMap((a) => (a.viiteId ? [a.viiteId] : []))
 }
 
 /** Ottaa rungon suunnitelman pohjaksi (korvaa suunnitelman). */
@@ -281,13 +355,19 @@ export function seuraavaRunko(
   nykyinen: Runko['id'] | null, ohita: ReadonlySet<string>, nykyisenTapahtumat: ReadonlySet<string>,
 ): { runko: Runko; ohita: Set<string> } | null {
   const valitse = (lista: Runko[]) => lista.find((r) => r.id === nykyinen) ?? lista[0] ?? null
-  let r = valitse(rakennaRungot(events, restaurants, nyt, { ohita }))
-  let uusiOhita = new Set(ohita)
-  if (!r) {
-    uusiOhita = new Set(nykyisenTapahtumat)
-    r = valitse(rakennaRungot(events, restaurants, nyt, { ohita: uusiOhita }))
-    if (!r) return null
+  const tapahtumaIdt = new Set(events.map((e) => e.id))
+  const vainTapahtumat = (s: ReadonlySet<string>) => new Set([...s].filter((id) => tapahtumaIdt.has(id)))
+  // Kolme yritystä löysentäen: 1) kaikki ehdotetut (tapahtumat JA paikat)
+  // poissa → aidosti uusi ilta; 2) vain ehdotetut tapahtumat poissa (paikat
+  // saavat toistua — pieni ravintolakanta ei saa tyhjentää kiertoa);
+  // 3) vain nykyisen illan tapahtumat poissa → kierto alkaa alusta.
+  const yritykset: ReadonlySet<string>[] = [ohita, vainTapahtumat(ohita), vainTapahtumat(nykyisenTapahtumat)]
+  for (const o of yritykset) {
+    const r = valitse(rakennaRungot(events, restaurants, nyt, { ohita: o }))
+    if (!r) continue
+    const uusiOhita = new Set(o)
+    for (const id of rungonTapahtumat(r)) uusiOhita.add(id)
+    return { runko: r, ohita: uusiOhita }
   }
-  for (const id of rungonTapahtumat(r)) uusiOhita.add(id)
-  return { runko: r, ohita: uusiOhita }
+  return null
 }

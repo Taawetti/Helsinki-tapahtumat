@@ -101,7 +101,11 @@ export function openIntervalsForDate(hours: string | null | undefined, day: Date
       // Yön yli menevä sulkeutuminen (02:00) — myös kuun vaihteessa: jos
       // loppu on alun jälkeen tai sama, se on seuraavan päivän puolella.
       if (t <= f) t += 24
-      return { from: f, to: Math.min(t, 26) }
+      // Yläraja 06:00 (30): aiempi 02:00-katkaisu väitti klo 05 asti auki
+      // olevaa baaria (Pub Peräkammari, Gate A21 04:30) suljetuksi 01.20 →
+      // suunnitelman "kiinni"-varoitus ja jaetun kortin väärä sulkemisaika
+      // (mitattu 24.9.2026). Seuraavan päivän aamu ei enää ole "tämä ilta".
+      return { from: f, to: Math.min(t, 30) }
     })
   } catch {
     return null

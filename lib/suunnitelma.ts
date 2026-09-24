@@ -19,7 +19,7 @@ import type { Restaurant, Event } from './types'
 import type { PaikkaTieto } from '../components/PlaceDetailPanel'
 import { walkMinutesBetween } from './group'
 import { clampToOpenHour, isOpenAt } from './opening-hours'
-import { DUR_H, TRAVEL_BUFFER_H, ARC_END_CAP_H } from './group-scheduler'
+import { DUR_H, TRAVEL_BUFFER_H, ARC_END_CAP_H, DRINKS_END_CAP_H } from './group-scheduler'
 import { helsinkiClock } from './arvo-ilta'
 import { tuntematonAika } from './utils'
 import { externalUrlFor } from './event-links'
@@ -258,7 +258,10 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
     if (!varoitus && tanaan && klo + 0.05 < kello.hour) varoitus = 'mennyt'
     // Yökerhon oma oletus 00.30 on tarkoituksella myöhään — siitä ei varoiteta.
     const omaMyohainenOletus = oletusKaytossa && edellinen === null && Math.abs(klo - kursori) < 0.01
-    if (!varoitus && klo > ARC_END_CAP_H && !omaMyohainenOletus) varoitus = 'myohaan'
+    // Drinkkiaskel (baari/yökerho) saa alkaa 01.30 asti — jatkoille "myöhään"
+    // ei ole varoitus, "kiinni" on. Muut askeleet 23.30.
+    const katto = askel.rooli === 'drinkit' ? DRINKS_END_CAP_H : ARC_END_CAP_H
+    if (!varoitus && klo > katto && !omaMyohainenOletus) varoitus = 'myohaan'
 
     tulos.push({ askel, klo: tunnitKloksi(klo), kavelyMin, varoitus })
     // Jatko lasketaan ajasta jonka käyttäjä NÄKEE — kiinnitetty aika on

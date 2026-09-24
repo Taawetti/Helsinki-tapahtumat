@@ -3842,7 +3842,8 @@ for (const c of kwChecks) {
     { name: 'vaihda iltaa: ohituslista pudottaa jo ehdotetun keikan → toinen keikka', ok: (() => {
         const keikka2 = mkEvent({ ...keikka, id: 'keikka2', title: 'Toinen keikka', startTime: '2026-09-06T20:00:00+03:00' })
         const eka = rakennaRungot([keikka, keikka2, teatteri], [r1, b1], NYT).find((r) => r.id === 'dinner_gig')
-        const toka = rakennaRungot([keikka, keikka2, teatteri], [r1, b1], NYT, { ohita: new Set(rungonTapahtumat(eka!)) }).find((r) => r.id === 'dinner_gig')
+        // Ohitetaan vain tapahtuma (paikkojen ohitus testataan seuraavaRunko-kierrossa).
+        const toka = rakennaRungot([keikka, keikka2, teatteri], [r1, b1], NYT, { ohita: new Set(['keikka2']) }).find((r) => r.id === 'dinner_gig')
         // aikajärjestys: 20:00 keikka2 ensin, ohitettuna toiseksi tulee 21:00 keikka
         return !!eka && !!toka && eka.askeleet[1].viiteId === 'keikka2' && toka.askeleet[1].viiteId === 'keikka'
       })() },
@@ -3856,6 +3857,19 @@ for (const c of kwChecks) {
         return id(s1) === 'keikka2' && id(s2) === 'keikka' && id(s3) === 'keikka2' // kolmas kierros palaa alkuun, ei nykyiseen
       })() },
     { name: 'vaihda iltaa: päivästä ei saa iltaa → null (ei ikuista silmukkaa)', ok: seuraavaRunko([], [], NYT, null, new Set(), new Set()) === null },
+    { name: 'vaihda iltaa: paikatkin vaihtuvat kun voi (kulttuuri-ilta b1:llä ennen r1:n toistoa), sitten tapahtumat ohittaen, sitten alusta', ok: (() => {
+        const keikka2 = mkEvent({ ...keikka, id: 'keikka2', title: 'Toinen keikka', startTime: '2026-09-06T20:00:00+03:00' })
+        const evs = [keikka, keikka2, teatteri]
+        let tila: { runko: { id: string; askeleet: { viiteId?: string }[] }; ohita: Set<string> } | null = null
+        const kierros: string[] = []
+        for (let i = 0; i < 4; i++) {
+          tila = seuraavaRunko(evs, [r1, b1], NYT, tila?.runko.id as 'dinner_gig' | null ?? null, tila?.ohita ?? new Set(), new Set(tila ? rungonTapahtumat(tila.runko as Parameters<typeof rungonTapahtumat>[0]) : []))
+          if (!tila) return false
+          kierros.push(tila.runko.id + ':' + tila.runko.askeleet.map((a) => a.viiteId).join('+'))
+        }
+        // 1) illallinen r1 + keikka2, 2) kaikki eri: teatteri + b1, 3) vain tapahtumat ohittaen: r1 + keikka, 4) alusta: r1 + keikka2
+        return kierros.join(' | ') === 'dinner_gig:r1+keikka2 | culture:teatteri+b1 | dinner_gig:r1+keikka | dinner_gig:r1+keikka2'
+      })() },
     { name: 'illallinen ehdittävä: klo 17.45 keikka 19.00 EI kelpaa (illallinen ei ehdi), 21.00 kelpaa eikä varoita', ok: (() => {
         const ilta = new Date('2026-09-06T17:45:00+03:00')
         // fixture-keikka on klo 21 → tehdään erikseen 19.00 (ei ehdi) ja 21.00 (ehtii)
@@ -3885,10 +3899,61 @@ for (const c of kwChecks) {
         const jatkot = r.find((x) => x.id === 'gig_bar')
         return !r.some((x) => x.id === 'dinner_gig') && !!jatkot && jatkot.askeleet[0].viiteId === 'keikka' && jatkot.askeleet[1].nimi === 'Kulmabaari'
       })() },
-    { name: 'keikka ja jatkot: keikka klo 22 → baari alkaisi 00.15 yli yökaton → ei runkoa', ok: (() => {
+    { name: 'keikka ja jatkot: keikka klo 22 → baari 00.15 kelpaa (drinkkikatto 01.30) eikä sovitin varoita', ok: (() => {
         const k22 = mkEvent({ ...keikka, id: 'k22', startTime: '2026-09-06T22:00:00+03:00' })
-        return rakennaRungot([k22], [r1, b1], new Date('2026-09-06T19:30:00+03:00')).length === 0
+        const nyt = new Date('2026-09-06T19:30:00+03:00')
+        const r = rakennaRungot([k22], [r1, b1], nyt).find((x) => x.id === 'gig_bar')
+        if (!r || r.askeleet[1]?.viiteId !== 'b1') return false
+        const sov = sovitaAjat({ otsikko: '', paiva: r.paiva, askeleet: r.askeleet.map((a, i) => ({ ...a, id: `p${i}` })) }, nyt)
+        return sov.length === 2 && sov[1].klo >= '00:15' && sov[1].klo <= '00:30' && sov.every((s) => !s.varoitus)
       })() },
+    { name: 'keikka ja jatkot: keikka klo 23.30 → baari alkaisi 01.45 yli drinkkikaton → ei tapahtumarunkoa', ok: (() => {
+        const k2330 = mkEvent({ ...keikka, id: 'k2330', startTime: '2026-09-06T23:30:00+03:00' })
+        return rakennaRungot([k2330], [r1, b1], new Date('2026-09-06T19:30:00+03:00')).every((x) => x.id !== 'gig_bar' && x.id !== 'dinner_gig')
+      })() },
+    { name: 'sovitin: ravintola 23.45 varoittaa "myöhään"; jatkobaari 01.30 ei (drinkkikatto), sitä seuraava 02.45 varoittaa', ok: (() => {
+        const askel = (id: string, rooli: 'ruoka' | 'drinkit', kasinKlo?: string) => ({ id, tyyppi: 'ravintola' as const, nimi: id, rooli, lat: 60.168, lon: 24.94, kasinKlo })
+        const v = sovitaAjat({ otsikko: '', paiva: '2026-09-12', askeleet: [askel('r', 'ruoka', '23:45'), askel('b1', 'drinkit'), askel('b2', 'drinkit')] }, NYT)
+        // 23.45 + 1,5 h + puskuri = 01.30 (raja, ei varoitusta); + 1 h + puskuri = 02.45 → myöhään
+        return v[0].varoitus === 'myohaan' && v[1].klo === '01:30' && v[1].varoitus === undefined && v[2].klo === '02:45' && v[2].varoitus === 'myohaan'
+      })() },
+    { name: 'aukiolot: yön yli 05 asti auki oleva baari on auki 01.20 sovittimelle ja jaetulle kortille (ei katkaista 02.00:aan)', ok: (() => {
+        const askel = { id: 'b', tyyppi: 'ravintola' as const, nimi: 'b', rooli: 'drinkit' as const, lat: 60.168, lon: 24.94, aukiolot: 'Mo-Su 14:00-05:00', kasinKlo: '23:45' }
+        const v = sovitaAjat({ otsikko: '', paiva: '2026-09-12', askeleet: [askel, { ...askel, id: 'b2', kasinKlo: undefined }] }, NYT)
+        return v[1].klo === '01:00' && v[1].varoitus === undefined
+      })() },
+    { name: 'paikkaillat: toisen askeleen aukiolo tarkistetaan SAAPUMISAJALLA (kävely mukana), ei lähtöajalla', ok: (() => {
+        // klo 22.30 → baari 23.15 → lähtö 00.30; bKauko on 1,9 km (kävely 30 min) → saapuu 01.00,
+        // pitää olla auki 02.00 asti: 01.45 sulkeva EI kelpaa, 03.00 sulkeva kelpaa.
+        const nyt = new Date('2026-09-06T22:30:00+03:00')
+        const bKauko = (h: string) => mkRest({ id: 'bkauko', name: 'Kauko', type: 'baari', openingHours: h, lat: 60.1715, lon: 24.9803, reviewCount: 300, googleRating: 4.5 })
+        const ilman = rakennaRungot([], [b1, bKauko('Mo-Su 16:00-01:45')], nyt).find((x) => x.id === 'bar_hop')
+        const kanssa = rakennaRungot([], [b1, bKauko('Mo-Su 16:00-03:00')], nyt).find((x) => x.id === 'bar_hop')
+        return !ilman && !!kanssa && kanssa.askeleet[1].viiteId === 'bkauko'
+      })() },
+    { name: 'klo 20.23: keikka 21.00 + baari kelpaa (20 min valmistautumisaika tapahtumaan)', ok: (() => {
+        const r = rakennaRungot([keikka], [r1, b1], new Date('2026-09-06T20:23:00+03:00'))
+        return r.length === 1 && r[0].id === 'gig_bar' && r[0].askeleet[1].nimi === 'Kulmabaari'
+      })() },
+    { name: 'ei tapahtumia: kolme erilaista paikkailtaa (myöhäinen illallinen+baari, baarikierros, baari+yökerho) eri paikoista', ok: (() => {
+        const myohRav = mkRest({ id: 'myoh', name: 'Yöravintola', openingHours: 'Mo-Su 17:00-02:00', lat: 60.1700, lon: 24.9380 })
+        const b2 = mkRest({ id: 'b2', name: 'Toinen baari', type: 'baari', openingHours: 'Mo-Su 16:00-03:00', lat: 60.1690, lon: 24.9400, reviewCount: 300, googleRating: 4.5 })
+        const b3 = mkRest({ id: 'b3', name: 'Kolmas baari', type: 'baari', openingHours: 'Mo-Su 16:00-03:00', lat: 60.1680, lon: 24.9370, reviewCount: 300, googleRating: 4.5 })
+        const b4 = mkRest({ id: 'b4', name: 'Neljäs baari', type: 'baari', openingHours: 'Mo-Su 16:00-03:00', lat: 60.1710, lon: 24.9420, reviewCount: 300, googleRating: 4.5 })
+        const klubi = mkRest({ id: 'kl', name: 'Klubi', type: 'yokerho', openingHours: 'Mo-Su 22:00-04:00', lat: 60.1685, lon: 24.9390, reviewCount: 120, googleRating: 4.1 })
+        const r = rakennaRungot([], [r1, myohRav, b1, b2, b3, b4, klubi], new Date('2026-09-06T22:00:00+03:00'))
+        const ids = r.map((x) => x.id).join(',')
+        const kaikkiPaikat = r.flatMap((x) => x.askeleet.map((a) => a.viiteId))
+        return ids === 'late_dinner,bar_hop,club_night'
+          && r[0].askeleet[0].nimi === 'Yöravintola' && r[0].askeleet[0].oletusKlo === '22:30' // r1 sulkee 23 → ei kelpaa
+          && r[2].askeleet[1].nimi === 'Klubi'
+          && new Set(kaikkiPaikat).size === kaikkiPaikat.length // ei samaa paikkaa kahdesti
+      })() },
+    { name: 'paikkaillat vain kun tapahtumia ei ole (tapahtumailta voittaa)', ok: (() => {
+        const r = rakennaRungot([keikka], [r1, b1], new Date('2026-09-06T19:00:00+03:00'))
+        return r.every((x) => !['late_dinner', 'bar_hop', 'club_night'].includes(x.id))
+      })() },
+    { name: 'ei tapahtumia eikä auki olevia paikkoja → tyhjä (ei täytettä)', ok: rakennaRungot([], [r1], new Date('2026-09-06T23:30:00+03:00')).length === 0 },
     { name: 'kulttuuri-ilta hyväksyy keikka+teatteri-yhdistelmän kun illallinen ei ehdi', ok: (() => {
         const decorado = mkEvent({ ...keikka, id: 'deco', title: 'Decorado – Rakkautta & Anarkiaa', startTime: '2026-09-06T20:45:00+03:00', vibes: ['teatteri', 'keikka'] })
         const r = rakennaRungot([decorado], [r1, b1], new Date('2026-09-06T19:00:00+03:00'))
