@@ -2142,8 +2142,11 @@ export default function HomeClient({
       {mode === 'map' && (
         <main className="px-2 pt-2 pb-0">
           <div className="flex items-center gap-3 px-2 pb-2">
+            {/* Paluunuoli VAIN työpöydällä (omistaja 24.9.2026): mobiilissa se on
+                turha — alanavi ja paluuele (useTaaksepain) hoitavat paluun, ja
+                nuoli työnsi koko leveyden Lista⇄Kartta-kytkimen ruudun yli. */}
             <button onClick={goBack} aria-label={t('common.back')}
-              className="shrink-0 w-11 h-11 md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
+              className="hidden md:flex shrink-0 w-[34px] h-[34px] rounded-full items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
               <ChevronLeft size={18} className="text-white" />
             </button>
             {/* Sama Lista⇄Kartta-kytkin kuin discover-näkymässä — takaisin
@@ -2384,7 +2387,7 @@ function ListMapToggle({ view, onList, onMap }: {
   // Mobiilissa koko leveyden segmenttikytkin (2 × 42 px, HANDOFF-mobiili §2),
   // työpöydällä kompakti pilleri kuten ennen.
   return (
-    <div className="flex w-full md:w-auto shrink-0 rounded-full p-[3px] md:p-0.5 border border-white/10" style={{ background: 'rgba(255,255,255,0.05)' }}>
+    <div className="flex w-full min-w-0 md:w-auto md:shrink-0 rounded-full p-[3px] md:p-0.5 border border-white/10" style={{ background: 'rgba(255,255,255,0.05)' }}>
       {([['list', '📋', 'map.toggle_list'], ['map', '🗺', 'map.toggle_map']] as const).map(([v, emoji, key]) => (
         <button key={v}
           onClick={v === 'list' ? onList : onMap}
