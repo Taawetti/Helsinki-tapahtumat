@@ -1036,6 +1036,7 @@ const t = {
     'discover.grid_title_tonight': 'Tapahtumat illalla',
     'discover.fetching_all':       'Haetaan kaikista lähteistä…',
     'discover.fetching_short':     'Haetaan…',
+    'hood.ita-helsinki.vibe':      'Itäkeskus · Vuosaari · Herttoniemi',
   },
 
   en: {
@@ -2074,6 +2075,7 @@ const t = {
     'discover.grid_title_tonight': 'Events tonight',
     'discover.fetching_all':       'Fetching all sources…',
     'discover.fetching_short':     'Loading…',
+    'hood.ita-helsinki.vibe':      'Itäkeskus · Vuosaari · Herttoniemi',
   },
 } as const
 

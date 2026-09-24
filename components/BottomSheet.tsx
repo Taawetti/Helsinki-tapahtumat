@@ -120,7 +120,8 @@ export default function BottomSheet({ open, onClose, title, subtitle, ariaLabel,
 
 export interface SheetRivi {
   id: string
-  emoji: string
+  /** Valinnainen — kaupunginosalista on pelkkiä nimiä (omistaja 24.9.2026). */
+  emoji?: string
   title: string
   sub?: string
   onClick: () => void
@@ -140,7 +141,7 @@ export function ListSheet({ open, onClose, title, rivit }: { open: boolean; onCl
             className="w-full text-left flex items-center gap-3.5 min-h-[60px] px-3 py-2.5 rounded-[14px] text-white transition-colors active:bg-white/6"
             style={r.active ? { background: 'rgba(107,118,255,.12)' } : undefined}
           >
-            <span className="text-[24px] leading-none w-8 text-center shrink-0">{r.emoji}</span>
+            {r.emoji && <span className="text-[24px] leading-none w-8 text-center shrink-0">{r.emoji}</span>}
             <span className="min-w-0 flex flex-col gap-0.5">
               <span className="text-[16px] font-extrabold" style={{ letterSpacing: '-0.01em', color: r.active ? '#c7caff' : '#fff' }}>{r.title}</span>
               {r.sub && <span className="text-[13px] font-medium truncate" style={{ color: 'rgba(255,255,255,.5)' }}>{r.sub}</span>}

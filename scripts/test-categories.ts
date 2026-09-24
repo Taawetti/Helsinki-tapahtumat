@@ -111,6 +111,7 @@ import { venueHoursOverride } from '../lib/venue-hours-overrides'
 import { pickWeeklyDigest } from '../lib/weekly-digest'
 import type { Candidate, CandidateRole } from '../lib/candidate'
 import type { Event, Restaurant } from '../lib/types'
+import { NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE, NEIGHBORHOOD_ELATIVE } from '../lib/types'
 
 type Case = {
   name: string
@@ -3898,6 +3899,24 @@ for (const c of kwChecks) {
   for (const c of jCases) {
     if (c.ok) pass++
     else failures.push(`✗ poimintajärjestys: ${c.name}`)
+  }
+}
+
+// ── KAUPUNGINOSAT: Itä-Helsinki-rajaus ja taivutusmuodot (omistaja 24.9.2026)
+{
+  const ita = NEIGHBORHOODS.find((n) => n.id === 'ita-helsinki')
+  const sisalla = (bbox: string, lon: number, lat: number) => { const [w, s, e, n] = bbox.split(',').map(Number); return lon >= w && lon <= e && lat >= s && lat <= n }
+  const kCases: { name: string; ok: boolean }[] = [
+    { name: 'Itä-Helsinki on listalla ja Helsingin alla', ok: !!ita && ita.municipality === 'helsinki' },
+    { name: 'Itä-Helsinki: Stoa (Itäkeskus) ja Vuotalo (Vuosaari) rajauksen sisällä', ok: !!ita && sisalla(ita.bbox, 25.083, 60.211) && sisalla(ita.bbox, 25.144, 60.207) },
+    { name: 'Itä-Helsinki: Malmitalo ja Pihlajamäki (Koillinen) rajauksen ULKOPUOLELLA', ok: !!ita && !sisalla(ita.bbox, 25.012, 60.250) && !sisalla(ita.bbox, 25.010, 60.239) },
+    { name: 'Itä-Helsinki ei leikkaa kantakaupungin rajauksia', ok: !!ita && NEIGHBORHOODS.filter((n) => n.id !== 'ita-helsinki' && n.municipality === 'helsinki').every((n) => Number(n.bbox.split(',')[2]) < Number(ita.bbox.split(',')[0])) },
+    { name: 'jokaisella kaupunginosalla inessiivi ja elatiivi', ok: NEIGHBORHOODS.every((n) => !!NEIGHBORHOOD_INESSIVE[n.id] && !!NEIGHBORHOOD_ELATIVE[n.id]) },
+    { name: 'elatiivi: Töölöstä, Itä-Helsingistä (ei "Töölösta"/"Itä-Helsinkista")', ok: NEIGHBORHOOD_ELATIVE.toolo === 'Töölöstä' && NEIGHBORHOOD_ELATIVE['ita-helsinki'] === 'Itä-Helsingistä' },
+  ]
+  for (const c of kCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ kaupunginosat: ${c.name}`)
   }
 }
 

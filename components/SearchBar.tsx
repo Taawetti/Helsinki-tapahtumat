@@ -85,7 +85,7 @@ export default function SearchBar({
 
       {/* Local hits dropdown — activities & restaurants */}
       {focused && value && hasLocalHits && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#131820] border border-white/10 rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 md:right-auto md:w-[380px] mt-2 bg-[#131820] border border-white/10 rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
           {/* TAPAHTUMAPAIKAT ENSIN — paikan nimen kirjoittanut haluaa
               todennäköisimmin paikan ohjelman, ei ravintolakorttia. */}
           {venueHits.length > 0 && (
@@ -153,7 +153,7 @@ export default function SearchBar({
 
       {/* Suggestions dropdown — shown when input is empty */}
       {focused && !value && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#131820] border border-white/10 rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 md:right-auto md:w-[380px] mt-2 bg-[#131820] border border-white/10 rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
           <p className="text-white/30 text-[11px] font-semibold uppercase tracking-widest px-4 pt-3 pb-1">
             {t('search.popular')}
           </p>

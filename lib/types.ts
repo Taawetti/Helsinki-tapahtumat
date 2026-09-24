@@ -75,9 +75,23 @@ export const NEIGHBORHOOD_INESSIVE: Record<string, string> = {
   vallila:     'Vallilassa',
   kruununhaka: 'Kruununhaassa',
   hermanni:    'Hermannissa',
+  // Suuralue, ei yksittäinen kaupunginosa (omistaja 24.9.2026: "pitää lisätä
+  // myös Itä-Helsinki, siellä on varmasti tapahtumia"). Mitattu 24.9.: 514
+  // tapahtumaa / 30 pv rajauksen sisällä (Stoa, Vuotalo, Itäkeskuksen,
+  // Vuosaaren, Myllypuron ja Kontulan kirjastot) — enemmän kuin Kalliossa.
+  'ita-helsinki': 'Itä-Helsingissä',
   tapiola:     'Tapiolassa',
   leppavaara:  'Leppävaarassa',
   tikkurila:   'Tikkurilassa',
+}
+
+// Elatiivimuodot ("menot Kalliosta") laskeutumissivujen kuvausteksteihin.
+// Pelkkä name + 'sta' antoi "Töölösta" ja "Itä-Helsinkista".
+export const NEIGHBORHOOD_ELATIVE: Record<string, string> = {
+  kallio: 'Kalliosta', punavuori: 'Punavuoresta', keskusta: 'Keskustasta', kamppi: 'Kampista',
+  sornainen: 'Sörnäisistä', hakaniemi: 'Hakaniemestä', toolo: 'Töölöstä', vallila: 'Vallilasta',
+  kruununhaka: 'Kruununhaasta', hermanni: 'Hermannista', 'ita-helsinki': 'Itä-Helsingistä',
+  tapiola: 'Tapiolasta', leppavaara: 'Leppävaarasta', tikkurila: 'Tikkurilasta',
 }
 
 export interface Neighborhood {
@@ -104,6 +118,11 @@ export const NEIGHBORHOODS: Neighborhood[] = [
   { id: 'vallila',     name: 'Vallila',      vibe: 'foodie · craft beer · uusi',     vibeKey: 'hood.vallila.vibe',     emoji: '🍔', color: 'from-lime-900/80 to-green-800/60',       bbox: '24.950,60.192,24.986,60.212', municipality: 'helsinki' },
   { id: 'kruununhaka', name: 'Kruununhaka',  vibe: 'cozy · viinikellari · historia', vibeKey: 'hood.kruununhaka.vibe', emoji: '🏛', color: 'from-rose-900/80 to-red-800/60',         bbox: '24.944,60.168,24.974,60.182', municipality: 'helsinki' },
   { id: 'hermanni',    name: 'Hermanni',     vibe: 'nouseva · brewpub · loft',       vibeKey: 'hood.hermanni.vibe',    emoji: '🔥', color: 'from-red-900/80 to-orange-800/60',       bbox: '24.958,60.193,24.992,60.214', municipality: 'helsinki' },
+  // Itäinen + kaakkoinen suurpiiri: Kulosaari, Herttoniemi, Roihuvuori, Laajasalo,
+  // Itäkeskus, Myllypuro, Kontula, Mellunmäki, Vuosaari. Pohjoisraja 60.245 jättää
+  // Malmin (60.25) ja Pihlajamäen (lon 25.01) ulos — ne ovat Koillis-Helsinkiä.
+  // vibe on paikannimiä, ei olettamaa sisällöstä (omistaja 24.9.2026).
+  { id: 'ita-helsinki', name: 'Itä-Helsinki', vibe: 'Itäkeskus · Vuosaari · Herttoniemi', vibeKey: 'hood.ita-helsinki.vibe', emoji: '🌊', color: 'from-sky-900/80 to-blue-800/60', bbox: '25.020,60.150,25.210,60.245', municipality: 'helsinki' },
   // Espoo
   { id: 'tapiola',     name: 'Tapiola',      vibe: 'kulttuuri · Espoo-keskus',       vibeKey: 'hood.tapiola.vibe',     emoji: '🎭', color: 'from-cyan-900/80 to-sky-800/60',         bbox: '24.790,60.168,24.828,60.192', municipality: 'espoo' },
   { id: 'leppavaara',  name: 'Leppävaara',   vibe: 'ravintolat · shoppailu',         vibeKey: 'hood.leppavaara.vibe',  emoji: '🛍', color: 'from-slate-800/80 to-zinc-700/60',       bbox: '24.795,60.215,24.840,60.240', municipality: 'espoo' },

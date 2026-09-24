@@ -3,7 +3,7 @@ import { curateForLanding } from '@/lib/seo-curation'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import HomeShell from '@/components/HomeShell'
-import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE, type Vibe, type Neighborhood } from '@/lib/types'
+import { VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE, NEIGHBORHOOD_ELATIVE, type Vibe, type Neighborhood } from '@/lib/types'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 import { helsinkiToday, formatEventDate } from '@/lib/helsinki-time'
@@ -232,7 +232,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const n = NEIGHBORHOODS.find((nb) => nb.id === slug)
   if (n) {
     const locative = NEIGHBORHOOD_INESSIVE[slug] || `${n.name}ssa`
-    const desc = `Kaikki tapahtumat ${locative} – ${n.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${n.name}sta.`
+    const desc = `Kaikki tapahtumat ${locative} – ${n.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${NEIGHBORHOOD_ELATIVE[n.id] ?? n.name + 'sta'}.`
     return {
       title: `Tapahtumat ${locative} | Mitä tänään`,
       description: desc,
@@ -318,7 +318,7 @@ export default async function TapahtumaSivu({ params }: Props) {
 
   const staticDesc = vibe
     ? VIBE_DESCRIPTIONS[vibe.id]
-    : `Kaikki tapahtumat ${NEIGHBORHOOD_INESSIVE[slug] || neighborhood!.name + 'ssa'} — ${neighborhood!.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${neighborhood!.name}sta.`
+    : `Kaikki tapahtumat ${NEIGHBORHOOD_INESSIVE[slug] || neighborhood!.name + 'ssa'} — ${neighborhood!.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${NEIGHBORHOOD_ELATIVE[slug] ?? neighborhood!.name + 'sta'}.`
 
   return (
     <>

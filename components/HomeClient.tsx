@@ -1246,10 +1246,11 @@ export default function HomeClient({
           <button key={n.id} type="button"
             onClick={() => { setHoodFilter(n.id); setShowHoodMenu(false); window.scrollTo(0, 0) }}
             className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold text-white/75 hover:text-white hover:bg-white/6 transition-colors">
-            <span className="text-base leading-none">{n.emoji}</span>
+            {/* Pelkkä nimi: emoji ja "baarit · keikat · indie" -kuvaus poistettu
+                (omistaja 24.9.2026: kuvat ja olettamat pois — ei voi tietää mitä
+                kaupunginosassa on tekemistä). */}
             <span className="min-w-0">
               {t('discover.events_in')} {lang === 'en' ? n.name : (NEIGHBORHOOD_INESSIVE[n.id] ?? n.name)}
-              <span className="block text-[10.5px] font-medium text-white/35 truncate">{t(n.vibeKey)}</span>
             </span>
           </button>
         ))}
@@ -1317,7 +1318,11 @@ export default function HomeClient({
         </div>
 
         {/* ── Desktop header: single row ── */}
-        <div className="hidden md:flex max-w-6xl mx-auto px-4 py-3 items-center gap-3">
+        {/* max-w-7xl (ei 6xl): mitattu 24.9.2026 — 1152 px rivillä hakukenttä jäi
+            124 px:iin (1024 px:ssä 74 px) eikä kirjoitettua tekstiä nähnyt. Emojit
+            välilehdissä vasta xl:stä (säästää ~130 px kapeilla), hakukentällä
+            vähimmäisleveys ja tulosvalikko omassa 380 px leveydessään. */}
+        <div className="hidden md:flex max-w-7xl mx-auto px-4 py-3 items-center gap-3">
           <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="shrink-0 flex items-center gap-2">
             <Logo size={15} className="shrink-0" />
           </button>
@@ -1327,12 +1332,13 @@ export default function HomeClient({
               <button key={m} onClick={() => handleTab(m as typeof mobileTab)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === m ? 'text-white' : 'text-white/35 hover:text-white/65'}`}
                 style={mode === m ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
-                {m === 'discover' ? `🏠 ${t('nav.home')}` : m === 'idea' ? `🎲 ${t('nav.idea')}` : m === 'restaurants' ? `🍽 ${t('nav.restaurants')}` : m === 'uutta' ? `🆕 ${t('nav.uutta')}` : `🗓 ${t('nav.suunnitelma')}`}
+                <span className="hidden xl:inline">{m === 'discover' ? '🏠' : m === 'idea' ? '🎲' : m === 'restaurants' ? '🍽' : m === 'uutta' ? '🆕' : '🗓'} </span>
+                {m === 'discover' ? t('nav.home') : m === 'idea' ? t('nav.idea') : m === 'restaurants' ? t('nav.restaurants') : m === 'uutta' ? t('nav.uutta') : t('nav.suunnitelma')}
               </button>
             ))}
           </div>
 
-          <div className="flex-1 max-w-md">
+          <div className="flex-1 min-w-[200px] max-w-lg">
             <SearchBar
             value={keyword}
             onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null); setGuideView(null) } }}
@@ -1381,15 +1387,15 @@ export default function HomeClient({
           <button onClick={() => setShowJarjestajaForm((p) => !p)}
             title={t('form.add_event_cta')}
             aria-label={t('form.add_event_cta')}
-            className={`relative shrink-0 flex items-center gap-1.5 p-2 lg:pl-2.5 lg:pr-3 rounded-xl border text-[12.5px] font-bold transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/55 bg-white/4 hover:text-white/85'}`}>
+            className={`relative shrink-0 flex items-center gap-1.5 p-2 xl:pl-2.5 xl:pr-3 rounded-xl border text-[12.5px] font-bold transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/55 bg-white/4 hover:text-white/85'}`}>
             <Plus size={15} strokeWidth={2.5} />
-            {/* Teksti vasta lg:stä ylöspäin. Mitattu 768 px:llä: teksti kasvatti
-                yläpalkin 877 px:iin eli koko sivu sai vaakavierityksen ja juuri
-                tämä nappi leikkautui ruudun ulkopuolelle — päinvastainen
-                lopputulos kuin haluttiin. Rivi on nowrap eikä shrink-0-nappi
-                anna periksi, joten teksti piilotetaan kapealla ja tilalle jää
-                sisällön tekstillinen painike (alempana, lg:hidden). */}
-            <span className="hidden lg:inline whitespace-nowrap">{t('form.add_event_cta')}</span>
+            {/* Teksti vasta xl:stä (1280 px) ylöspäin. Mitattu 768 px:llä (25.8.):
+                teksti kasvatti yläpalkin 877 px:iin ja sivu sai vaakavierityksen;
+                mitattu 1024 px:llä (24.9.2026): lg-teksti + 200 px hakukenttä
+                vuotivat yhä yli. Rivi on nowrap eikä shrink-0-nappi anna periksi,
+                joten teksti piilotetaan kapealla ja tilalle jää sisällön
+                tekstillinen painike (alempana, xl:hidden). */}
+            <span className="hidden xl:inline whitespace-nowrap">{t('form.add_event_cta')}</span>
           </button>
         </div>
 
@@ -2105,14 +2111,14 @@ export default function HomeClient({
               ja viisi painiketta (203 px), joten vapaata on 40 px kun teksti
               vaatisi ~90 px. Omistajan vaatimus 25.8.2026: "jos ei mahdu niin
               asetella selkeästi että lisää tapahtuma" — tässä se on tekstinä.
-              Yläpalkin nappi näyttää tekstin vasta lg:stä ylöspäin, joten tämä
-              on näkyvissä siihen asti — mutta VAIN md–lg (iPad pystyssä):
+              Yläpalkin nappi näyttää tekstin vasta xl:stä ylöspäin, joten tämä
+              on näkyvissä siihen asti — mutta VAIN md–xl (iPad, kapea läppäri):
               alle 768 px sama toiminto on ⋯-valikon tekstirivinä "Lisää
               tapahtuma" (HANDOFF-mobiili §1, 24.9.2026), eikä samaa
               kontrollia näytetä kahdesti. */}
           <button
             onClick={() => setShowJarjestajaForm(true)}
-            className="hidden md:flex lg:hidden w-full items-center justify-center gap-2 py-3.5 rounded-2xl text-[13.5px] font-black text-white/70 border transition-all active:scale-[.99]"
+            className="hidden md:flex xl:hidden w-full items-center justify-center gap-2 py-3.5 rounded-2xl text-[13.5px] font-black text-white/70 border transition-all active:scale-[.99]"
             style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.09)' }}
           >
             <Plus size={16} strokeWidth={2.5} />
@@ -2254,7 +2260,8 @@ export default function HomeClient({
         ]} />
       <ListSheet open={sheet === 'hoods'} onClose={() => setSheet(null)} title={t('discover.neighborhoods')}
         rivit={NEIGHBORHOODS.map((n) => ({
-          id: n.id, emoji: n.emoji, title: n.name, sub: t(n.vibeKey), active: hoodFilter === n.id,
+          // Vain nimi (omistaja 24.9.2026: ei kuvia eikä olettamia sisällöstä).
+          id: n.id, title: n.name, active: hoodFilter === n.id,
           onClick: () => { setSheet(null); setHoodFilter(n.id); window.scrollTo(0, 0) },
         }))} />
       <ListSheet open={sheet === 'guides'} onClose={() => setSheet(null)} title={t('discover.guides')}

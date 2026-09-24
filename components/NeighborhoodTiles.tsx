@@ -79,7 +79,6 @@ export default function NeighborhoodTiles({ activeMunicipality, activeNeighborho
                 <p className={`text-sm font-black leading-tight ${isActive ? 'text-purple-300' : 'text-white'}`}>
                   {n.name}
                 </p>
-                <p className="text-white/30 text-[10px] font-medium truncate mt-0.5">{n.vibe}</p>
               </div>
 
               {isActive && (
