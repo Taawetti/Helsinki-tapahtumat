@@ -99,6 +99,7 @@ import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypill
 import { rakennaRungot } from '../lib/illan-rungot'
 import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
 import { onEstettyPaikka } from '../lib/venue-blocklist'
+import { haeKahdessaVaiheessa, tapahtumaHakuParams, ESILADATTAVAT, lammitettavatParams } from '../lib/events-fetch'
 import { osuuPaivaan, viikonlopunPaivat, paivaPlus } from '../lib/map-date-filter'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
 import venueSiteFile from '../data/venue-sites.json'
@@ -4305,10 +4306,74 @@ for (const c of kwChecks) {
   }
 }
 
+// ── KAKSIVAIHEINEN HAKU RINNAKKAIN + ARMONAIKA (lib/events-fetch, omistaja
+// 24.9.2026: "Stand up · 3" → "· 19" sekuntien päästä). Asynkroninen lohko:
+// promise-ohjaus käsin, ajastin stubattu — yhteenveto odottaa tätä.
+const odotettavat: Promise<void>[] = []
+odotettavat.push((async () => {
+  type V = { id: number }
+  const viive = <T,>() => { let r!: (v: T) => void; let j!: (e: unknown) => void; const p = new Promise<T>((res, rej) => { r = res; j = rej }); return { p, r, j } }
+  const aja = async (skenaario: (h: { pika: ReturnType<typeof viive<V>>; taysi: ReturnType<typeof viive<V>>; aika: ReturnType<typeof viive<void>>; peru: () => void }) => Promise<void>) => {
+    const pika = viive<V>(), taysi = viive<V>(), aika = viive<void>()
+    let peruttu = false
+    const kutsut: string[] = []
+    const lopputulos = haeKahdessaVaiheessa<V>({
+      pika: () => pika.p, taysi: () => taysi.p,
+      odota: () => aika.p,
+      peruttu: () => peruttu,
+      naytaPika: (d) => kutsut.push(`pika:${d.id}`),
+      naytaTaysi: (d) => kutsut.push(`taysi:${d.id}`),
+      taysiEpaonnistui: () => kutsut.push('taysiEpaonnistui'),
+      epaonnistui: () => kutsut.push('epaonnistui'),
+    })
+    await skenaario({ pika, taysi, aika, peru: () => { peruttu = true } })
+    return { tulos: await lopputulos, kutsut: kutsut.join(',') }
+  }
+  const tick = () => new Promise<void>((r) => setTimeout(r, 0))
+  const A = await aja(async (h) => { h.taysi.r({ id: 2 }); await tick(); h.pika.r({ id: 1 }) })
+  const B = await aja(async (h) => { h.aika.r(); await tick(); h.pika.r({ id: 1 }); await tick(); h.taysi.r({ id: 2 }) })
+  const C = await aja(async (h) => { h.aika.r(); await tick(); h.pika.j(new Error('pika kaatui')); await tick(); h.taysi.r({ id: 2 }) })
+  const D = await aja(async (h) => { h.aika.r(); await tick(); h.pika.r({ id: 1 }); await tick(); h.taysi.j(new Error('taysi kaatui')) })
+  const E = await aja(async (h) => { h.aika.r(); await tick(); h.pika.j(new Error('a')); await tick(); h.taysi.j(new Error('b')) })
+  const F = await aja(async (h) => { h.aika.r(); await tick(); h.peru(); h.pika.r({ id: 1 }); await tick(); h.taysi.r({ id: 2 }) })
+  const G = await aja(async (h) => { h.taysi.j(new Error('taysi kaatui heti')); await tick(); h.pika.r({ id: 1 }) })
+  const tonight = tapahtumaHakuParams({ dateFilter: 'tonight', page: 1, municipality: 'helsinki' })
+  const hCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'täysi ehtii armonajassa → pikatulosta ei näytetä', ok: A.tulos === 'taysi-heti' && A.kutsut === 'taysi:2', got: `${A.tulos} ${A.kutsut}` },
+    { name: 'armonaika kului → pika väliaikana, täysi korvaa', ok: B.tulos === 'pika-sitten-taysi' && B.kutsut === 'pika:1,taysi:2', got: `${B.tulos} ${B.kutsut}` },
+    { name: 'pika kaatui → täysi näytetään kun saapuu', ok: C.tulos === 'vain-taysi' && C.kutsut === 'taysi:2', got: `${C.tulos} ${C.kutsut}` },
+    { name: 'täysi kaatui → pika jää, "haku kesken" loppuu', ok: D.tulos === 'vain-pika' && D.kutsut === 'pika:1,taysiEpaonnistui', got: `${D.tulos} ${D.kutsut}` },
+    { name: 'molemmat kaatuivat → virhetila', ok: E.tulos === 'epaonnistui' && E.kutsut === 'epaonnistui', got: `${E.tulos} ${E.kutsut}` },
+    { name: 'peruttu kesken → mitään ei sovelleta', ok: F.tulos === 'peruttu' && F.kutsut === '', got: `${F.tulos} ${F.kutsut}` },
+    { name: 'täysi kaatui ennen armonaikaa → pika näytetään eikä jäädä odottamaan', ok: G.tulos === 'vain-pika' && G.kutsut === 'pika:1,taysiEpaonnistui', got: `${G.tulos} ${G.kutsut}` },
+    { name: 'hakuavain: Illalla sisältää startAfter-parametrin municipalityn jälkeen (esilataus = haku)',
+      ok: [...tonight.keys()].join(',') === 'start,end,page,municipality,startAfter' && tonight.get('startAfter')!.includes('T17:00'), got: [...tonight.keys()].join(',') },
+    { name: 'hakuavain: Tänään ilman startAfteria, sama avain kahdesti', ok: tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).toString() === tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).toString() && !tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).has('startAfter') },
+    { name: 'esiladattavat: Illalla, Huomenna, Viikonloppu — ei viikkoa (1,8 MB)', ok: ESILADATTAVAT.join(',') === 'tonight,tomorrow,weekend' },
+    { name: 'lämmitys: 5 eri ikkunaa, Illalla startAfterilla, avaimet = selaimen haun avaimet',
+      ok: (() => {
+        const l = lammitettavatParams()
+        const avaimet = l.map((x) => x.params.toString())
+        return l.length === 5 && new Set(avaimet).size === 5
+          && avaimet.includes(tapahtumaHakuParams({ dateFilter: 'tonight', page: 1, municipality: 'helsinki' }).toString())
+          && avaimet.includes(tapahtumaHakuParams({ dateFilter: 'week', page: 1, municipality: 'helsinki' }).toString())
+          && l.every((x) => x.params.get('municipality') === 'helsinki' && x.params.get('page') === '1')
+      })() },
+  ]
+  for (const c of hCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ kaksivaihehaku: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+})())
+
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.
-const total = pass + failures.length
-console.log(`Kategoria- + kanaria- + kaaritestit: ${pass}/${total} ok`)
-if (failures.length) {
-  console.error('\n' + failures.join('\n\n'))
-  process.exit(1)
-}
+// Yhteenveto odottaa asynkroniset lohkot (kaksivaihehaku) — muuten ne eivät
+// ehtisi laskuriin ja hiljainen kaatuminen näkyisi "ok":na.
+Promise.all(odotettavat).then(() => {
+  const total = pass + failures.length
+  console.log(`Kategoria- + kanaria- + kaaritestit: ${pass}/${total} ok`)
+  if (failures.length) {
+    console.error('\n' + failures.join('\n\n'))
+    process.exit(1)
+  }
+}, (e) => { console.error('asynkroninen testilohko kaatui:', e); process.exit(1) })

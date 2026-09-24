@@ -570,7 +570,7 @@ export default function HomeClient({
   const [pushEnabled, setPushEnabled] = useState(false)
   const geo = useGeolocation() // korttien etäisyyslaskuun (jos sijainti jo sallittu)
 
-  const { events: rawEvents, loading, fetchingFull, error, hasMore, total, generatedAt, sources, loadMore } = useEvents({
+  const { events: rawEvents, loading, fetchingFull, osittainen, error, hasMore, total, generatedAt, sources, loadMore } = useEvents({
     // Idea-näkymä on aina "tänään" — ei riipu Discoverin päivävalinnasta (muuten
     // esim. "Huomenna" tyhjentäisi Idea-deckin tapahtumat). Ei muuta tallennettua
     // dateFilteriä, joten Discoveriin palatessa käyttäjän valinta säilyy.
@@ -1507,9 +1507,11 @@ export default function HomeClient({
                 {/* Numeerinen kuukausi: "torstai 24. syyskuuta · 233 tapahtumaa tänään"
                     ei mahtunut 390 px:iin (mitattu 24.9.2026). */}
                 {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'numeric', timeZone: 'Europe/Helsinki' })}
-                {!loading && baseEvents.length > 0 && !keyword
-                  ? ` · ${baseEvents.length} ${dateFilter === 'today' || dateFilter === 'tonight' ? t('discover.events_today') : t('discover.events_count')}`
-                  : ''}
+                {osittainen && !keyword
+                  ? ` · ${t('discover.fetching_short')}`
+                  : !loading && baseEvents.length > 0 && !keyword
+                    ? ` · ${baseEvents.length} ${dateFilter === 'today' || dateFilter === 'tonight' ? t('discover.events_today') : t('discover.events_count')}`
+                    : ''}
               </span>
             </p>
             <p className="hidden md:block text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
@@ -1665,7 +1667,11 @@ export default function HomeClient({
                     ? `🎁 ${t('discover.free_events')}`
                     : `${VIBES.find(v => v.id === koCat)?.emoji ?? ''} ${(() => { const vb = VIBES.find(v => v.id === koCat); return vb ? t(vb.tKey as TranslationKey) : '' })()}`}
                 </h2>
-                {!((loading || fetchingFull) && koCatEvents.length === 0) && (
+                {/* Haku kesken (pikatulos näkyvissä): EI lukumäärää kuin valmiina —
+                    "· 3" muuttui "· 19":ksi sekuntien päästä (omistaja 24.9.2026). */}
+                {osittainen && koCatEvents.length > 0 ? (
+                  <HakuKesken />
+                ) : !((loading || fetchingFull) && koCatEvents.length === 0) && (
                   <span className="text-white/30 text-[13px] font-bold">· {koCatEvents.length}</span>
                 )}
               </div>
@@ -1770,6 +1776,7 @@ export default function HomeClient({
                           : undefined} />
                     )
                   ))}
+                  {osittainen && !avattuSarja && <KorttiSkeletonit n={4} />}
                 </div>
               )}
               {/* Museo on ainoa peruskategoria jossa PAIKAT kuuluvat tapahtumien
@@ -1944,6 +1951,7 @@ export default function HomeClient({
                       {picksHeading}
                     </h2>
                     <span className="text-[14px]" style={{ color: '#a3abff' }}>✦</span>
+                    {osittainen && <HakuKesken />}
                     {/* Seuraavaksi — pieni linkki otsikon oikealla (omistaja
                         6.9.2026): ei saa sekoittua ▾-valikkopillereihin.
                         Mobiilissa 44 px napautusalue (HANDOFF-mobiili §2). */}
@@ -1971,15 +1979,16 @@ export default function HomeClient({
                           : undefined} />
                         )
                       ))}
+                    {osittainen && !avattuSarja && <KorttiSkeletonit n={4} />}
                   </div>
                 </section>
               )}
 
-              {/* Phase 2 spinner */}
+              {/* Vaihe 2 kesken: sama sanamuoto kuin listojen otsikoissa */}
               {fetchingFull && baseEvents.length > 0 && (
                 <div className="flex items-center justify-center gap-2 py-3">
                   <Loader2 size={14} className="animate-spin text-white/30" />
-                  <span className="text-white/30 text-[13px]">{t('discover.loading_more')}</span>
+                  <span className="text-white/30 text-[13px]">{t('discover.fetching_all')}</span>
                 </div>
               )}
 
@@ -1995,7 +2004,9 @@ export default function HomeClient({
                   ? (NEIGHBORHOODS.find((n) => n.id === hoodFilter)?.name ?? '')
                   : (NEIGHBORHOOD_INESSIVE[hoodFilter] ?? '')}
               </h2>
-              {!loading && !fetchingFull && (
+              {osittainen && discoverEvents.length > 0 ? (
+                <HakuKesken />
+              ) : !loading && !fetchingFull && (
                 <span className="text-[13px] font-bold text-white/35">{discoverEvents.length}</span>
               )}
               <div className="relative">
@@ -2048,6 +2059,7 @@ export default function HomeClient({
                       ? haversineKm(geo.coords.lat, geo.coords.lon, e.location.lat, e.location.lon)
                       : undefined} />
                 ))}
+                {osittainen && discoverEvents.length > 0 && <KorttiSkeletonit n={4} />}
               </div>
               <div ref={sentinelRef} className="h-1" />
               {(loading || fetchingFull) && <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-white/30" /></div>}
@@ -2330,6 +2342,33 @@ function InstallHeaderButton() {
 // pillereinä, ja aktiivinen chip vieritetään näkyviin (mobiiliChipitRef) —
 // se oli alkuperäisen pilleririvin ongelma ("Viikonloppu jäi ruudun
 // ulkopuolelle").
+
+// ── Haku kesken -merkinnät ──────────────────────────────────────────────────
+// Pikatulos (LinkedEvents, 1. päivä) näkyy väliaikana ennen täyttä hakua (46
+// lähdettä). Ilman näitä käyttäjä luki "· 3" lopullisena, ehti selata pois ja
+// lista hyppäsi "· 19":ään sekuntien päästä (omistaja 24.9.2026). Sama
+// sanamuoto ja skeleton joka listalla, jotta tila tunnistetaan kaikkialla.
+function HakuKesken() {
+  const { t } = useLanguage()
+  // Lyhyt sana: otsikkorivillä ("← Takaisin · 🎸 Keikka · …") pitkä teksti
+  // rivittyi 390 px:ssä kahdelle riville (mitattu 24.9.2026).
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[12px] font-bold whitespace-nowrap" style={{ color: '#a3abff' }} aria-live="polite">
+      <Loader2 size={12} className="animate-spin" />
+      {t('discover.fetching_short')}
+    </span>
+  )
+}
+
+function KorttiSkeletonit({ n }: { n: number }) {
+  return (
+    <>
+      {Array.from({ length: n }, (_, i) => (
+        <div key={i} className="rounded-2xl skeleton-shimmer" style={{ aspectRatio: '3/4' }} aria-hidden />
+      ))}
+    </>
+  )
+}
 
 // ── Lista⇄Kartta-kytkin ─────────────────────────────────────────────────────
 // Kartta on saman suodatetun listan näkymätila, ei erillinen piilossa oleva

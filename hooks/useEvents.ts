@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Event, DateFilter, SourceStatus, CATEGORIES } from '@/lib/types'
 import { getDateRange, haversineKm } from '@/lib/utils'
+import { haeKahdessaVaiheessa, tapahtumaHakuParams, ESILADATTAVAT } from '@/lib/events-fetch'
 import { getCategoryScores, virtualStartTime } from '@/lib/preferences'
 import type { GeoCoords } from './useGeolocation'
 
-interface CacheEntry { events: Event[]; hasMore: boolean; total: number; ts: number; generatedAt?: string; sources?: SourceStatus[] }
+/** seed = palvelimen esirenderöimä LinkedEvents-siemen (HomeClient
+ *  preloadEventsCache): OSITTAINEN data, ei koskaan lopullinen. Käsitellään
+ *  kuin pikatulos — näytetään vain jos täysi haku ei ehdi armonajassa. */
+interface CacheEntry { events: Event[]; hasMore: boolean; total: number; ts: number; generatedAt?: string; sources?: SourceStatus[]; seed?: boolean }
+type EventsResponse = { events: Event[]; hasMore: boolean; total: number; generatedAt?: string; sources?: SourceStatus[] }
 const eventsCache = new Map<string, CacheEntry>()
 const CACHE_TTL = 5 * 60 * 1000
 // v4: aikaleimojen normalisointi (naiivi → Helsinki-offset). v3-entryissä on
@@ -41,7 +46,7 @@ export function preloadEventsCache(key: string, events: Event[], total: number, 
       }
     }
   } catch {}
-  eventsCache.set(key, { events, hasMore: false, total, ts: ts ?? Date.now() })
+  eventsCache.set(key, { events, hasMore: false, total, ts: ts ?? Date.now(), seed: true })
 }
 
 interface UseEventsOptions {
@@ -59,6 +64,8 @@ interface UseEventsResult {
   events: Event[]
   loading: boolean
   fetchingFull: boolean
+  /** Näkyvä lista on osittainen (pikatulos/siemen) ja täysi haku kesken. */
+  osittainen: boolean
   error: string | null
   hasMore: boolean
   total: number
@@ -80,6 +87,39 @@ function persist(key: string, entry: CacheEntry): void {
   } catch { /* privaattitila tai kiintiö täynnä */ }
 }
 
+// ── Naapuri-ikkunoiden esilataus ─────────────────────────────────────────────
+// Kun etusivun Tänään-haku on valmis, haetaan hiljaa Illalla, Huomenna ja
+// Viikonloppu välimuistiin (lib/events-fetch ESILADATTAVAT, yhteensä < 1 MB).
+// Päivächipin napautus osuu silloin tuoreeseen välimuistiin ja lista ilmestyy
+// heti täytenä — ilman tätä kylmä täysi haku kesti mitatusti 8–15 s
+// (omistaja 24.9.2026: "Stand up · 3" → "· 19" vasta sekuntien päästä).
+// Kerran istunnossa, vain oletushaulle (ei bbox/kategoria), ei
+// datansäästötilassa, ja 1,5 s viiveellä ettei se kilpaile itse sivun kanssa.
+let naapuritEsiladattu = false
+function esilataaNaapurit(o: { dateFilter: DateFilter; municipality: string; bbox?: string; activeCategories: string[] }): void {
+  if (naapuritEsiladattu || typeof window === 'undefined') return
+  if (o.dateFilter !== 'today' || o.bbox || o.activeCategories.length > 0) return
+  const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+  if (conn?.saveData) return
+  naapuritEsiladattu = true
+  setTimeout(async () => {
+    for (const f of ESILADATTAVAT) {
+      const params = tapahtumaHakuParams({ dateFilter: f, page: 1, municipality: o.municipality })
+      const key = params.toString()
+      const c = eventsCache.get(key)
+      if (c && Date.now() - c.ts < CACHE_TTL) continue
+      try {
+        const res = await fetch(`/api/events?${params}`)
+        if (!res.ok) continue
+        const d = (await res.json()) as EventsResponse
+        const entry: CacheEntry = { events: d.events, hasMore: d.hasMore, total: d.total, ts: Date.now(), generatedAt: d.generatedAt, sources: d.sources }
+        eventsCache.set(key, entry)
+        persist(key, entry)
+      } catch { /* esilataus on lisä, ei ehto */ }
+    }
+  }, 1500)
+}
+
 export function useEvents({
   dateFilter,
   customDate,
@@ -93,7 +133,15 @@ export function useEvents({
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchingFull, setFetchingFull] = useState(false)
+  /** Näkyvä data on OSITTAINEN (pikatulos tai siemen) ja täysi haku on
+   *  kesken — UI näyttää "Haetaan…" + skeletonit. Eri asia kuin fetchingFull,
+   *  joka on tosi myös täyden mutta yli 5 min vanhan datan hiljaisessa
+   *  päivityksessä (silloin skeletonit lupaisivat lisää sisältöä turhaan). */
+  const [osittainen, setOsittainen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Ensimmäinen haku mountissa: siemen näytetään heti (ei skeleton-välähdystä
+   *  etusivun ensimaalaukseen); myöhemmät suodatinvaihdot odottavat armonajan. */
+  const ensimmainenRef = useRef(true)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [total, setTotal] = useState(0)
@@ -140,28 +188,22 @@ export function useEvents({
       setError(null)
       setFetchingFull(false) // reset from any previous aborted fetch
 
-      const { start, end, startAfter } = getDateRange(dateFilter, customDate, customDateEnd)
-
-      const keywordsFromCategories = activeCategories
-        .flatMap((id) => CATEGORIES.find((c) => c.id === id)?.keywords ?? [])
-        .join(',')
-
-      const params = new URLSearchParams({ start, end, page: String(pageNum), municipality })
-      if (startAfter) params.set('startAfter', startAfter)
-      if (bbox) params.set('bbox', bbox)
-      // keyword EI mene palvelimelle: LinkedEventsin text-haku ei tunne
-      // esiintyjänimiä, joten sen välittäminen pudotti mitatusti KOKO
-      // LinkedEvents-aineiston (1446 riviä → 0) ja tyhjensi openings-lähteen.
-      // Suodatus tehdään klientissä (HomeClient filteredEvents), joka osuu
-      // otsikkoon, kuvaukseen, paikkaan ja kategorioihin.
-      if (keywordsFromCategories) params.set('categories', keywordsFromCategories)
+      // Avain ja parametrit YHDESTÄ rakentajasta (lib/events-fetch), jotta
+      // esilataus ja suodatinvaihdon välimuistitarkistus osuvat samaan
+      // merkkijonoon. keyword EI mene palvelimelle: LinkedEventsin text-haku
+      // ei tunne esiintyjänimiä ja pudotti mitatusti KOKO aineiston (1446 → 0);
+      // suodatus tehdään klientissä (HomeClient filteredEvents).
+      const params = tapahtumaHakuParams({ dateFilter, customDate, customDateEnd, page: pageNum, municipality, bbox, activeCategories })
 
       const cacheKey = params.toString()
       const cached = eventsCache.get(cacheKey)
       const now = Date.now()
+      const ensimmainen = ensimmainenRef.current
+      ensimmainenRef.current = false
 
-      if (cached) {
-        // Serve cached results immediately — no loading flash
+      if (cached && !cached.seed) {
+        // Serve cached results immediately — no loading flash (täysi data)
+        setOsittainen(false)
         setEvents(prev => applySort(cached.events, append ? prev : [], append))
         setHasMore(cached.hasMore)
         setTotal(cached.total)
@@ -173,7 +215,11 @@ export function useEvents({
         }
         setLoading(false)
 
-        if (now - cached.ts < CACHE_TTL) return // still fresh, skip revalidation
+        if (now - cached.ts < CACHE_TTL) {
+          esilataaNaapurit({ dateFilter, municipality, bbox, activeCategories })
+          return // still fresh, skip revalidation
+        }
+        // Vanha täysi data: näytetään ja päivitetään hiljaa (ei skeletoneita).
 
         // Stale: revalidate silently in background
         setFetchingFull(true)
@@ -195,6 +241,7 @@ export function useEvents({
               setSources(data.sources ?? [])
             }
             setFetchingFull(false)
+            esilataaNaapurit({ dateFilter, municipality, bbox, activeCategories })
           }
         } catch {
           setFetchingFull(false)
@@ -202,58 +249,64 @@ export function useEvents({
         return
       }
 
-      // Cache miss: two-phase fetch
-      setLoading(true)
+      // Cache miss TAI siemen: pikatulos (LinkedEvents, 1. päivä — tai
+      // palvelimen siemen) ja täysi haku (46 lähdettä, koko väli) RINNAKKAIN
+      // + armonaika — lib/events-fetch. Jos täysi ehtii 0,8 s:ssa, pikatulosta
+      // ei näytetä lainkaan; muuten se on väliaikainen ja UI kertoo haun olevan
+      // kesken (osittainen). Mountissa siemen näytetään heti (armonaika 0):
+      // etusivun ensimaalaus ei saa välähtää skeletonina.
+      const siemen = cached?.seed ? cached : null
+      if (!(siemen && ensimmainen)) setLoading(true)
 
-      try {
-        // Phase 1: LinkedEvents only — shows results in ~1s
-        const quickParams = new URLSearchParams(params)
-        quickParams.set('quick', '1')
-        const quickRes = await fetch(`/api/events?${quickParams}`, { signal: controller.signal })
-        if (!quickRes.ok) throw new Error(`Virhe: ${quickRes.status}`)
-        const quickData = await quickRes.json()
-
-        if (!controller.signal.aborted) {
-          setEvents(prev => applySort(quickData.events, append ? prev : [], append))
-          setHasMore(quickData.hasMore)
-          setTotal(quickData.total)
-          if (!append) {
-            setGeneratedAt(quickData.generatedAt ?? null)
-            setSources(quickData.sources ?? [])
-          }
-          setLoading(false)
-          setFetchingFull(true)
+      const hae = async (quick: boolean): Promise<EventsResponse> => {
+        const p = new URLSearchParams(params)
+        if (quick) p.set('quick', '1')
+        const res = await fetch(`/api/events?${p}`, { signal: controller.signal })
+        if (!res.ok) throw new Error(`Virhe: ${res.status}`)
+        return (await res.json()) as EventsResponse
+      }
+      // No count-based slicing — page sizes vary (day-window batches);
+      // applySort dedupes re-fetched events by id.
+      const sovella = (data: EventsResponse) => {
+        setEvents(prev => applySort(data.events, append ? prev : [], append))
+        setHasMore(data.hasMore)
+        setTotal(data.total)
+        if (!append) {
+          setGeneratedAt(data.generatedAt ?? null)
+          setSources(data.sources ?? [])
         }
+      }
 
-        // Phase 2: All sources — silent background update
-        const fullRes = await fetch(`/api/events?${params}`, { signal: controller.signal })
-        if (!fullRes.ok) { setFetchingFull(false); return }
-        const fullData = await fullRes.json()
-
-        if (!controller.signal.aborted) {
-          const entry: CacheEntry = { events: fullData.events, hasMore: fullData.hasMore, total: fullData.total, ts: Date.now(), generatedAt: fullData.generatedAt, sources: fullData.sources }
+      await haeKahdessaVaiheessa<EventsResponse>({
+        pika: siemen
+          ? () => Promise.resolve({ events: siemen.events, hasMore: siemen.hasMore, total: siemen.total, generatedAt: siemen.generatedAt, sources: siemen.sources })
+          : () => hae(true),
+        taysi: () => hae(false),
+        armonaikaMs: siemen && ensimmainen ? 0 : undefined,
+        // Peruttu (uusi suodatin kesken haun): ei yhtään setStatea perumisen
+        // jälkeen — uusi fetchEvents-kutsu on jo nollannut fetchingFullin.
+        peruttu: () => controller.signal.aborted,
+        naytaPika: (d) => { sovella(d); setLoading(false); setFetchingFull(true); setOsittainen(true) },
+        naytaTaysi: (d) => {
+          const entry: CacheEntry = { events: d.events, hasMore: d.hasMore, total: d.total, ts: Date.now(), generatedAt: d.generatedAt, sources: d.sources }
           eventsCache.set(cacheKey, entry)
           persist(cacheKey, entry)
-          // No count-based slicing — page sizes vary (day-window batches);
-          // applySort dedupes re-fetched events by id.
-          setEvents(prev => applySort(fullData.events, append ? prev : [], append))
-          setHasMore(fullData.hasMore)
-          setTotal(fullData.total)
-          if (!append) {
-            setGeneratedAt(fullData.generatedAt ?? null)
-            setSources(fullData.sources ?? [])
-          }
+          sovella(d)
+          setLoading(false)
           setFetchingFull(false)
-        }
-      } catch (err) {
-        if ((err as Error).name === 'AbortError') {
+          setOsittainen(false)
+          esilataaNaapurit({ dateFilter, municipality, bbox, activeCategories })
+        },
+        // Täysi kaatui: pikatulos jää — se on yhä osittainen, mutta haku ei ole
+        // kesken, joten skeletonit pois (ei luvata lisää sisältöä).
+        taysiEpaonnistui: () => { setFetchingFull(false); setOsittainen(false) },
+        epaonnistui: () => {
+          setError('Tapahtumien lataaminen epäonnistui. Yritä uudelleen.')
+          setLoading(false)
           setFetchingFull(false)
-          return
-        }
-        setError('Tapahtumien lataaminen epäonnistui. Yritä uudelleen.')
-        setLoading(false)
-        setFetchingFull(false)
-      }
+          setOsittainen(false)
+        },
+      })
     },
     [dateFilter, customDate, customDateEnd, municipality, activeCategories, bbox, nearbyCoords, applySort]
   )
@@ -261,15 +314,14 @@ export function useEvents({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pagination when filters change
     setPage(1)
-    // Only clear events if there's no cached result for the new filter — avoids flash
-    const { start, end, startAfter } = getDateRange(dateFilter, customDate, customDateEnd)
-    const kws = activeCategories.flatMap((id) => CATEGORIES.find((c) => c.id === id)?.keywords ?? []).join(',')
-    const p = new URLSearchParams({ start, end, page: '1', municipality })
-    if (startAfter) p.set('startAfter', startAfter)
-    if (bbox) p.set('bbox', bbox)
-    // (ks. yllä: keyword ei kuulu palvelinpyyntöön)
-    if (kws) p.set('categories', kws)
-    const ck = p.toString()
+    // Only clear events if there's no cached result for the new filter — avoids flash.
+    // Sama avainrakentaja kuin fetchEventsissä ja esilatauksessa (lib/events-fetch).
+    const ck = tapahtumaHakuParams({ dateFilter, customDate, customDateEnd, page: 1, municipality, bbox, activeCategories }).toString()
+    // Siemen (osittainen) ei kelpaa "vanhan listan" tilalle suodatinvaihdossa:
+    // edellisen päivän kortit eivät saa jäädä näkyviin uuden chipin alle
+    // (omistaja 24.9.2026: "lista näyttää vielä vanhoja tapahtumia"). Mountissa
+    // siemen näytetään heti — silloin ei ole vanhaa listaa jota vaihtaa.
+    if (eventsCache.get(ck)?.seed && !ensimmainenRef.current) setEvents([])
     if (!eventsCache.has(ck)) {
       // Check localStorage before showing empty state — instant results for returning users
       try {
@@ -305,7 +357,7 @@ export function useEvents({
     fetchEvents(next, true)
   }, [page, fetchEvents])
 
-  return { events, loading, fetchingFull, error, hasMore, total, generatedAt, sources, loadMore }
+  return { events, loading, fetchingFull, osittainen, error, hasMore, total, generatedAt, sources, loadMore }
 }
 
 // Lightweight hook for collection previews (fetches up to 10 events)

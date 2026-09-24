@@ -1034,6 +1034,8 @@ const t = {
     'plan.tpl_standup':            'Naurua ja drinkit',
     'plan.tpl_sport':              'Peli ja oluet',
     'discover.grid_title_tonight': 'Tapahtumat illalla',
+    'discover.fetching_all':       'Haetaan kaikista lähteistä…',
+    'discover.fetching_short':     'Haetaan…',
   },
 
   en: {
@@ -2070,6 +2072,8 @@ const t = {
     'plan.tpl_standup':            'Laughs and drinks',
     'plan.tpl_sport':              'The game and a beer',
     'discover.grid_title_tonight': 'Events tonight',
+    'discover.fetching_all':       'Fetching all sources…',
+    'discover.fetching_short':     'Loading…',
   },
 } as const
 
