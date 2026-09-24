@@ -97,6 +97,8 @@ import { mapOpenmicEvent, koordAvain, katuosoite, poistaPaikkaHanta, type Openmi
 import { yhdistaJamit } from '../lib/guide-data'
 import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypille, type Suunnitelma } from '../lib/suunnitelma'
 import { rakennaRungot } from '../lib/illan-rungot'
+import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
+import { onEstettyPaikka } from '../lib/venue-blocklist'
 import { osuuPaivaan, viikonlopunPaivat, paivaPlus } from '../lib/map-date-filter'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
 import venueSiteFile from '../data/venue-sites.json'
@@ -3839,6 +3841,62 @@ for (const c of kwChecks) {
   for (const c of rCases) {
     if (c.ok) pass++
     else failures.push(`✗ rungot: ${c.name}`)
+  }
+}
+
+// ── POIMINTAJÄRJESTYS JOKA LISTALLE + ESTETYT PAIKAT (omistaja 24.9.2026):
+// Kallion lista alkoi klo 12.30 ompelupajalla ja tuolijumpalla; Stadin
+// yhteisötalo Alppila poistetaan kokonaan.
+{
+  const paikka = (nimi: string) => ({ name: nimi, city: 'Helsinki' } as Event['location'])
+  const paja = mkEvent({ id: 'paja', title: 'Avoin ompelupaja, vapaaehtoinen ohjaaja paikalla', startTime: '2026-09-24T12:30:00+03:00',
+    vibes: ['tyopaja'], categories: ['käsityöt'], location: paikka('Stadin yhteisötalo Alppila'), isFree: true })
+  const jumppa = mkEvent({ id: 'jumppa', title: 'Tuolijumppa videolta', startTime: '2026-09-24T09:00:00+03:00', vibes: [], categories: ['liikunta'], location: paikka('Stadin yhteisötalo Alppila') })
+  const kahvila = mkEvent({ id: 'kahvila', title: 'Kallion kirjaston kielikahvila', startTime: '2026-09-24T17:00:00+03:00', vibes: [], categories: ['kielikahvila'], location: paikka('Kallion kirjasto'), isFree: true })
+  const keikka = mkEvent({ id: 'keikka', title: 'Manala Afterwork Jazz', startTime: '2026-09-24T17:00:00+03:00', vibes: ['keikka'], categories: ['konsertit'], location: paikka('Manala Restaurant & Bar'), isFree: true })
+  const teatteri = mkEvent({ id: 'teatteri', title: 'Kaupunginteatteri: Sivuraide', startTime: '2026-09-24T19:00:00+03:00', vibes: ['teatteri'], categories: ['teatteri'], location: paikka('Helsingin Kaupunginteatteri'), isFree: false, price: '35 €' })
+  const visa = mkEvent({ id: 'visa', title: 'Pubivisa', startTime: '2026-09-24T19:00:00+03:00', vibes: ['baari'], categories: ['visa'], location: paikka('Kallion pub'), isFree: true })
+  const jarjestys = [paja, jumppa, kahvila, visa, teatteri, keikka].sort(poimintaJarjestys).map((e) => e.id)
+  const jCases: { name: string; ok: boolean }[] = [
+    { name: 'kategoria/kaupunginosa: keikka ja teatteri ennen ompelupajaa ja tuolijumppaa',
+      ok: jarjestys.indexOf('keikka') < jarjestys.indexOf('paja') && jarjestys.indexOf('teatteri') < jarjestys.indexOf('paja') && jarjestys.indexOf('keikka') < jarjestys.indexOf('jumppa') },
+    // Kori ensin: visa on ykköskorin (baari) viimeinen, kakkoskorin paja ja
+    // jumppa tulevat kaikkien ykköskorin rivien jälkeen — sama sääntö kuin
+    // etusivun poiminnoissa 25.8. alkaen.
+    { name: 'kategoria: pubivisa ykköskorin viimeiseksi (keikan ja teatterin jälkeen)',
+      ok: jarjestys.indexOf('visa') > jarjestys.indexOf('keikka') && jarjestys.indexOf('visa') > jarjestys.indexOf('teatteri') },
+    { name: 'kategoria: kakkoskori (paja, jumppa) kaikkien ykköskorin rivien jälkeen',
+      ok: jarjestys.indexOf('paja') > jarjestys.indexOf('visa') && jarjestys.indexOf('jumppa') > jarjestys.indexOf('visa') },
+    { name: 'kategoria: kohderyhmän ulkopuolinen (leikkipuiston musiikkituokio) kaikkien jälkeen, myös visan ja pajan',
+      ok: (() => {
+        const lp = mkEvent({ id: 'lp', title: 'Musiikkituokio', startTime: '2026-09-24T10:00:00+03:00', vibes: ['lapset'], categories: ['lapset'], location: paikka('Leikkipuisto Brahe'), isFree: true })
+        // Ompelupaja yhteisötalossa on ITSEKIN kohderyhmän ulkopuolinen (HOBBY_CIRCLES +
+        // COMMUNITY_VENUES), joten molemmat ovat kolmannessa korissa — kummankin on
+        // oltava visan (ykköskorin viimeinen) jälkeen.
+        const j = [lp, paja, visa, keikka].sort(poimintaJarjestys).map((e) => e.id)
+        return j[0] === 'keikka' && j[1] === 'visa' && j.indexOf('lp') > 1 && j.indexOf('paja') > 1
+      })() },
+    { name: 'kategoria: yhteisötalon päiväpaja saa sakon (kuvasta huolimatta alle kuvattoman kielikahvilan)',
+      ok: poimintaPisteet(paja) <= 2 && poimintaPisteet(paja) < poimintaPisteet(kahvila) },
+    { name: 'kategoria: sama pistefunktio kuin etusivun poiminnoilla — kuvallinen iltakeikka ≥ 12',
+      ok: poimintaPisteet(keikka) >= 12 },
+    { name: 'kategoria: tasapisteillä aikajärjestys (kaksi identtistä keikkaa)',
+      ok: (() => { const a = mkEvent({ ...keikka, id: 'a', startTime: '2026-09-24T21:00:00+03:00' }); const b = mkEvent({ ...keikka, id: 'b', startTime: '2026-09-24T18:00:00+03:00' }); return [a, b].sort(poimintaJarjestys)[0].id === 'b' })() },
+    { name: 'estetty paikka: Stadin yhteisötalo Alppila (myös isoilla kirjaimilla ja lisämääreellä)',
+      ok: onEstettyPaikka(paja) && onEstettyPaikka({ location: { name: 'STADIN YHTEISÖTALO ALPPILA, Sali 2' } }) },
+    { name: 'estetty paikkatyyppi: seniorikeskus / palvelukeskus / palvelutalo nimessä',
+      ok: onEstettyPaikka({ location: { name: 'Kampin palvelukeskus' } }) && onEstettyPaikka({ location: { name: 'Riistavuoren seniorikeskus/Palvelukeskus' } })
+        && onEstettyPaikka({ location: { name: 'Munkkiniemen palvelutalo' } }) && onEstettyPaikka({ location: { name: 'Kustaankartanon seniorikeskus, palvelukeskuksen toiminta' } }) },
+    { name: 'estetty paikkatyyppi: kulttuurikeskus, kauppakeskus ja nuorisotalo EIVÄT osu',
+      ok: !onEstettyPaikka({ location: { name: 'Kulttuurikeskus Caisa' } }) && !onEstettyPaikka({ location: { name: 'Kauppakeskus Redi' } }) && !onEstettyPaikka({ location: { name: 'Roihuvuoren nuorisotalo' } }) && !onEstettyPaikka({ location: { name: 'Palvelu Oy:n sali' } }) },
+    { name: 'estetty paikkatyyppi: kaikki yhteisötalot ja asukastalot (omistaja 24.9.2026)',
+      ok: onEstettyPaikka({ location: { name: 'Stadin yhteisötalo Saunabaari' } }) && onEstettyPaikka({ location: { name: 'Stadin yhteisötalo Oulunkylän Seurahuone' } }) && onEstettyPaikka({ location: { name: 'Asukastalo Ankkuri' } }) },
+    { name: 'estetty paikka: kirjasto, tyhjä ja puuttuva paikka EIVÄT osu',
+      ok: !onEstettyPaikka({ location: { name: null } }) && !onEstettyPaikka({ location: null }) && !onEstettyPaikka(kahvila) && !onEstettyPaikka({ location: { name: 'Malmitalo' } }) },
+  ]
+  for (const c of jCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ poimintajärjestys: ${c.name}`)
   }
 }
 

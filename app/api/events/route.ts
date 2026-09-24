@@ -6,6 +6,7 @@ import { helsinkiDateOf, normalizeHelsinkiTimestamp, helsinkiToday } from '@/lib
 import { decodeHtmlEntities } from '@/lib/utils'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { eventMatchesKeyword } from '@/lib/keyword-filter'
+import { onEstettyPaikka } from '@/lib/venue-blocklist'
 
 // Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
 // Ilman tätä alusta voi katkaista pyynnön oletuksellaan kesken kaiken, jolloin
@@ -504,6 +505,16 @@ export async function GET(req: NextRequest) {
         }
       }
       sources.push({ name, ok, count })
+    }
+
+    // Toimituksellisesti estetyt paikat pois KAIKISTA lähteistä (lib/venue-
+    // blocklist): omistaja 24.9.2026, Stadin yhteisötalo Alppila. Ennen
+    // päivärajausta, jotta total ja lähdelaskurit eivät lupaa rivejä joita ei
+    // näytetä.
+    {
+      const ennen = events.length
+      events = events.filter((e: Event) => !onEstettyPaikka(e))
+      total -= ennen - events.length
     }
 
     // Enforce date boundaries for all sources — external APIs may ignore the date params

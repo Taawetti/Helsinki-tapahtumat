@@ -7,13 +7,13 @@ import { Loader2, Heart, Bell, Plus, ChevronLeft, Download, Ellipsis } from 'luc
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime, tuntematonAika } from '@/lib/utils'
-import { COMMUNITY_DAYTIME_REGEX, TERRACE_REGEX } from '@/lib/nightlife'
-import { valitseHero, onVisa, onSuuriPaikka } from '@/lib/picks'
+import { TERRACE_REGEX } from '@/lib/nightlife'
+import { valitseHero, onVisa, poimintaPisteet, poimintaJarjestys } from '@/lib/picks'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { samaTapahtumaSarja, ryhmitaSarjat, type Sarjaryhma } from '@/lib/tapahtumaperhe'
 import SarjaKortti from '@/components/SarjaKortti'
 import MuseoOsio from '@/components/MuseoOsio'
-import { helsinkiDateOf, helsinkiHourOf, helsinkiToday } from '@/lib/helsinki-time'
+import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
@@ -912,9 +912,14 @@ export default function HomeClient({
     // ei laskenut suodatusta uudelleen ellei jokin muu tila muuttunut samalla)
   }, [upcomingEvents, activeCategories, activeVibes, priceFilter, keyword, hoodFilter])
 
+  // Suodatetut listat (kaupunginosa, aihepiiri, hinta) samaan poiminta-
+  // järjestykseen kuin etusivu (omistaja 24.9.2026, Kallion lista). HAKU
+  // pysyy aikajärjestyksessä: hakija etsii tiettyä tapahtumaa, ei kuratointia.
   const discoverEvents = useMemo(
-    () => [...filteredEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
-    [filteredEvents]
+    () => hakuIkkuna
+      ? [...filteredEvents].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      : [...filteredEvents].sort(poimintaJarjestys),
+    [filteredEvents, hakuIkkuna]
   )
 
   // Renderöintiraja alkuun aina kun suodatus vaihtuu — muuten uusi haku
@@ -964,31 +969,9 @@ export default function HomeClient({
   // ja rajattu max 2:een; heron 5 nostoa pois ettei sama toistu. Cap ~18.
   const bestPicks = useMemo(() => {
     const heroIds = new Set(heroGigs.map((e) => e.id))
-    const score = (e: Event): number => {
-      const vibes = getEventVibes(e)
-      let s = 0
-      if (e.image) s += 6                                                     // kuvalliset kärkeen
-      if (e.source === 'festivals' || vibes.includes('festivaali')) s += 5    // festarit
-      if (vibes.includes('keikka')) s += 4                                    // keikat
-      if (onSuuriPaikka(e)) s += 3                                            // isot keikkapaikat (lib/picks SUURET_PAIKAT)
-      if (vibes.includes('yoelama') || vibes.includes('underground')) s += 3  // klubit / underground
-      if (vibes.includes('teatteri') || vibes.includes('taide') || vibes.includes('standup')) s += 2
-      if (vibes.includes('urheilu')) s += 2
-      if (e.isFree) s += 1
-      if ((e.shortDescription || e.description || '').length > 60) s += 1
-      if (onVisa(e)) s -= 8                                                   // pubivisat alas
-      // Yhteisötalojen/leikkipuistojen päiväohjelma: kuvapankkikuva antoi
-      // +6 ja ne valtasivat "parhaat poiminnat" (mitattu 24.8.) — sakko
-      // syö kuvaedun. Iltatapahtuma saa pienen edun: otsikko lupaa "Illan
-      // parhaat".
-      if (COMMUNITY_DAYTIME_REGEX.test(`${e.title} ${e.shortDescription ?? ''} ${e.categories.join(' ')}`)) s -= 6
-      // Helsinki-tunti, EI katsojan laitteen vyöhyke: /en-yleisö on
-      // matkailijoita, ja laitevyöhykkeellä iltabonus osuisi väärille
-      // tapahtumille (mitattu heron portilla: Europe/London 123 nostoa
-      // 154:n sijaan, America/New_York 53).
-      if (helsinkiHourOf(e.startTime) >= 17) s += 2
-      return s
-    }
+    // Pisteet lib/picksissä (poimintaPisteet): sama ideologia kategoria- ja
+    // kaupunginosalistoissa (omistaja 24.9.2026), joten se ei saa asua tässä.
+    const score = poimintaPisteet
     const ranked = baseEvents
       // Kohderyhmärajaus (18–40, lib/audience): lapsi-/nuoriso-/seniori-/
       // käsityökerhotapahtumat EIVÄT kuulu poimintoihin — sakotus ei riitä,
@@ -1073,12 +1056,11 @@ export default function HomeClient({
   // Kategorian pystylista (koCat): ruudukon/aihepiirin napautus avaa tämän
   const koCatEvents = useMemo(() => {
     if (!koCat) return []
-    // Ykköskori (oikeat keikat, klubit, kulttuuri) ennen kakkoskoria
-    // (kirjastojamit, kierrokset) — ryhmien sisällä aikajärjestys säilyy
-    // (vakaa sort). Omistaja 4.9.2026: kirjaston ukulelejamit ei saa olla
-    // Keikka-listan kärjessä ennen illan oikeita keikkoja.
-    const koriJarjestys = (lista: Event[]) =>
-      [...lista].sort((a, b) => (isPrimaryPick(a) ? 0 : 1) - (isPrimaryPick(b) ? 0 : 1))
+    // Sama järjestys kuin "Parhaat poiminnat": ykköskori ennen kakkoskoria
+    // (omistaja 4.9.2026: kirjaston ukulelejamit ei Keikka-listan kärkeen),
+    // korien sisällä poimintapisteet (omistaja 24.9.2026: klo 12.30
+    // ompelupaja ei kategorian kärkeen), tasapisteillä aika. lib/picks.
+    const koriJarjestys = (lista: Event[]) => [...lista].sort(poimintaJarjestys)
     if (koCat === 'seuraavaksi') return seuraavaksiJako ? [...seuraavaksiJako.alkavat, ...seuraavaksiJako.kaynnissa] : []
     if (koCat === 'kaikki') return koriJarjestys(baseEvents)           // "Kaikki" — koko lista
     if (koCat === 'ilmainen') return koriJarjestys(baseEvents.filter((e) => e.isFree))

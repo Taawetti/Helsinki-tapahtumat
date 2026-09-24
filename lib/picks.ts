@@ -25,7 +25,7 @@
 import { Event } from './types'
 import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti } from './audience'
 import { getEventVibes, ohjelmatyyppi } from './event-classify'
-import { nightlifeScore } from './nightlife'
+import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from './nightlife'
 import { karsiTapahtumaSarjat } from './tapahtumaperhe'
 import { helsinkiHourOf } from './helsinki-time'
 
@@ -107,6 +107,56 @@ export const SUURET_PAIKAT = [
 export function onSuuriPaikka(e: Event): boolean {
   const n = (e.location?.name ?? '').toLowerCase()
   return !!n && SUURET_PAIKAT.some((p) => n.includes(p))
+}
+
+// ── Poimintajärjestys — sama ideologia joka listalle ─────────────────────────
+// Etusivun "Parhaat poiminnat" järjesti korttinsa näin jo 25.8. alkaen, mutta
+// kategoria- ja kaupunginosalistat olivat aikajärjestyksessä (kori ensin).
+// Omistaja 24.9.2026 Kallion listasta, jonka kärjessä oli klo 12.30
+// ompelupaja, tuolijumppa ja nuorten työnhakupaja: "nostetaan jokaiseen
+// kategoriaan samalla ideologialla kuin etusivun parhaat poiminnat". Yksi
+// pistefunktio + yksi vertailija, jotta pinnat eivät ajaudu erilleen.
+//
+// Pisteet ovat JÄRJESTYSAVAIN, eivät portti: kategoria näyttää yhä kaikki
+// tapahtumansa (lib/audience pudottaa kohderyhmän ulkopuoliset vain
+// suosituksista). Kohderyhmän kakkoskori (isPrimaryPick=false) tulee aina
+// ykköskorin jälkeen; korien sisällä pisteet; tasapisteillä aikajärjestys.
+export function poimintaPisteet(e: Event): number {
+  const vibes = getEventVibes(e)
+  let s = 0
+  if (e.image) s += 6                                                     // kuvalliset kärkeen
+  if (e.source === 'festivals' || vibes.includes('festivaali')) s += 5    // festarit
+  if (vibes.includes('keikka')) s += 4                                    // keikat
+  if (onSuuriPaikka(e)) s += 3                                            // isot keikkapaikat
+  if (vibes.includes('yoelama') || vibes.includes('underground')) s += 3  // klubit / underground
+  if (vibes.includes('teatteri') || vibes.includes('taide') || vibes.includes('standup')) s += 2
+  if (vibes.includes('urheilu')) s += 2
+  if (e.isFree) s += 1
+  if ((e.shortDescription || e.description || '').length > 60) s += 1
+  if (onVisa(e)) s -= 8                                                   // pubivisat alas
+  // Yhteisötalojen/leikkipuistojen päiväohjelma: kuvapankkikuva antoi +6 ja
+  // ne valtasivat poiminnat (mitattu 24.8.) — sakko syö kuvaedun.
+  if (COMMUNITY_DAYTIME_REGEX.test(`${e.title} ${e.shortDescription ?? ''} ${e.categories.join(' ')}`)) s -= 6
+  // Helsinki-tunti, EI katsojan laitteen vyöhyke (/en-yleisö on matkailijoita).
+  if (helsinkiHourOf(e.startTime) >= 17) s += 2
+  return s
+}
+
+/** Kolme koria: ykköskori (kulttuuri, keikat, festarit) → kakkoskori
+ *  (kierrokset, kirjastoillat) → kohderyhmän ulkopuoliset (leikkipuistot,
+ *  seniorikeskukset). Kolmas kori on se, jonka etusivun poiminnat PUDOTTAVAT
+ *  kokonaan (isOutsideTargetAudience); kategoria näyttää sen, mutta viimeisenä
+ *  (mitattu 24.9.2026: ilman koria "Musiikkituokio @ Leikkipuisto Brahe" oli
+ *  Kallion listan 5. rivi, koska ohuena päivänä sakko ei riittänyt). */
+function kori(e: Event): number {
+  if (isOutsideTargetAudience(e)) return 2
+  return isPrimaryPick(e) ? 0 : 1
+}
+
+export function poimintaJarjestys(a: Event, b: Event): number {
+  return kori(a) - kori(b) ||
+    poimintaPisteet(b) - poimintaPisteet(a) ||
+    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
 }
 
 export function heroJarjestys(a: Event, b: Event): number {
