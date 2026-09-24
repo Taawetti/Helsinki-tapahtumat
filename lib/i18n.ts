@@ -1041,6 +1041,7 @@ const t = {
     'plan.vaihda_ilta':            'Vaihda iltaa',
     'plan.vaihda_confirm':         'Korvataanko nykyinen suunnitelma uudella illalla?',
     'plan.ei_uusia':               'Ei enempää valmiita iltoja tälle päivälle',
+    'plan.tpl_gig_bar':            'Keikka ja jatkot',
   },
 
   en: {
@@ -2084,6 +2085,7 @@ const t = {
     'plan.vaihda_ilta':            'Try another evening',
     'plan.vaihda_confirm':         'Replace your current plan with a new evening?',
     'plan.ei_uusia':               'No more ready-made evenings for today',
+    'plan.tpl_gig_bar':            'Gig and afters',
   },
 } as const
 

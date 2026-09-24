@@ -28,7 +28,7 @@ import { track } from './track'
 import { tapahtumaAskel, ravintolaAskel, korvaaSuunnitelma, tunnitKloksi, type SuunnitelmaAskel } from './suunnitelma'
 
 export interface Runko {
-  id: 'dinner_gig' | 'culture' | 'party' | 'standup' | 'sport'
+  id: 'dinner_gig' | 'gig_bar' | 'culture' | 'party' | 'standup' | 'sport'
   emoji: string
   otsikkoAvain: TranslationKey
   /** YYYY-MM-DD (Helsinki) — rungon päivä. */
@@ -134,6 +134,18 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
     if (e) kaytetytTapahtumat.add(e.id)
     return e
   }
+  // Kulttuuri-ilta hyväksyy myös keikka+teatteri-yhdistelmät ("Decorado –
+  // Rakkautta & Anarkiaa"): laji() priorisoi keikan, mutta kun illallinen ei
+  // enää ehdi, sama tapahtuma on täysin kelvollinen kulttuuri-ilta baarin kanssa.
+  const otaKulttuuri = (minTunti: number): Event | null => {
+    const e = ehdokkaat.find((x) => !kaytetytTapahtumat.has(x.id) && tunti(x) >= minTunti
+      && getEventVibes(x).some((v) => v === 'teatteri' || v === 'taide' || v === 'museo')) ?? null
+    if (e) kaytetytTapahtumat.add(e.id)
+    return e
+  }
+  // Tapahtuman JÄLKEEN tuleva baari ei saa alkaa yli sovittimen yökaton
+  // (ARC_END_CAP_H 23.5 → 'myohaan'-varoitus): tapahtuma + 2¼ h ≤ 23.5.
+  const jatkotEhtii = (e: Event) => tunti(e) + 2.25 <= 23.5
   // ENNEN tapahtumaa tuleva askel on ehdittävä: sen alun pitää olla vielä
   // edessä (≥ raja) ja ruokailun/drinkkien KESTON + KÄVELYN + puskurin pitää
   // mahtua ennen tapahtumaa — täsmälleen sama kaava kuin lib/suunnitelma
@@ -194,9 +206,20 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
     const pari = ennenPari('keikka', 18.75, ehtiiIllalliselle, illallisKlo, DUR_H.food, ravintola)
     if (pari) rungot.push({ id: 'dinner_gig', emoji: '🎸', otsikkoAvain: 'plan.tpl_dinner_gig', paiva, askeleet: [pari.askel, tapahtumaAskel(pari.e)] })
   }
+  // 1b. Keikka ja jatkot: kun illalliselle ei enää ehdi (mitattu 24.9.2026
+  // klo 19: kaikki jäljellä olevat ehdokkaat olivat keikkoja ja rungot jäivät
+  // tyhjiksi), keikka → baari jälkeen.
+  if (!rungot.some((r) => r.id === 'dinner_gig')) {
+    const keikka = ota('keikka', 17, jatkotEhtii)
+    if (keikka) {
+      const b = baari(keikka, Math.max(21, tunti(keikka) + 2.25), false)
+      if (b) rungot.push({ id: 'gig_bar', emoji: '🍻', otsikkoAvain: 'plan.tpl_gig_bar', paiva, askeleet: [tapahtumaAskel(keikka), b] })
+      else kaytetytTapahtumat.delete(keikka.id)
+    }
+  }
   // 2. Kulttuuri-ilta: teatteri/taide/museo (illalla) → baari jälkeen.
   {
-    const k = ota('kulttuuri', 17)
+    const k = otaKulttuuri(17)
     if (k) {
       const b = baari(k, Math.max(21, tunti(k) + 2.25), false)
       const askeleet = [tapahtumaAskel(k), b].filter((a): a is Omit<SuunnitelmaAskel, 'id'> => !!a)

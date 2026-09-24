@@ -3879,9 +3879,20 @@ for (const c of kwChecks) {
         const alku = kloTunneiksi(sov[0].klo) ?? 0, keikkaKlo = kloTunneiksi(sov[1].klo) ?? 0
         return sov[0].klo === '20:00' && keikkaKlo - alku >= 1.25 + 31 / 60 && sov.every((x) => !x.varoitus)
       })() },
-    { name: 'illallinen ehdittävä: klo 20.30 ei yhtään keikkaa jonka eteen ehtii → ei illallisrunkoa', ok: (() => {
-        const myohaan = new Date('2026-09-06T20:30:00+03:00')
-        return !rakennaRungot([keikka], [r1, b1], myohaan).some((x) => x.id === 'dinner_gig') // keikka klo 21, illallinen ei ehdi
+    { name: 'illallinen ehdittävä: klo 20.30 ei yhtään keikkaa jonka eteen ehtii → ei illallisrunkoa, vaan Keikka ja jatkot (keikka → baari)', ok: (() => {
+        const myohaan = new Date('2026-09-06T19:30:00+03:00')
+        const r = rakennaRungot([keikka], [r1, b1], myohaan) // keikka klo 21, illallinen ei ehdi
+        const jatkot = r.find((x) => x.id === 'gig_bar')
+        return !r.some((x) => x.id === 'dinner_gig') && !!jatkot && jatkot.askeleet[0].viiteId === 'keikka' && jatkot.askeleet[1].nimi === 'Kulmabaari'
+      })() },
+    { name: 'keikka ja jatkot: keikka klo 22 → baari alkaisi 00.15 yli yökaton → ei runkoa', ok: (() => {
+        const k22 = mkEvent({ ...keikka, id: 'k22', startTime: '2026-09-06T22:00:00+03:00' })
+        return rakennaRungot([k22], [r1, b1], new Date('2026-09-06T19:30:00+03:00')).length === 0
+      })() },
+    { name: 'kulttuuri-ilta hyväksyy keikka+teatteri-yhdistelmän kun illallinen ei ehdi', ok: (() => {
+        const decorado = mkEvent({ ...keikka, id: 'deco', title: 'Decorado – Rakkautta & Anarkiaa', startTime: '2026-09-06T20:45:00+03:00', vibes: ['teatteri', 'keikka'] })
+        const r = rakennaRungot([decorado], [r1, b1], new Date('2026-09-06T19:00:00+03:00'))
+        return r.length === 1 && (r[0].id === 'gig_bar' || r[0].id === 'culture') && r[0].askeleet[0].viiteId === 'deco'
       })() },
   ]
   for (const c of rCases) {
