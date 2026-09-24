@@ -96,7 +96,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
       <div className="relative">
         <div
           ref={trackRef}
-          className="relative w-full rounded-[22px] overflow-hidden select-none cursor-pointer"
+          className="mobiili-cq relative w-full rounded-[22px] overflow-hidden select-none cursor-pointer"
           style={{
             aspectRatio: '16/10',
             boxShadow: '0 22px 50px -20px rgba(0,0,0,.6)',
@@ -132,7 +132,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
           {/* Laskuri + sydän KIINTEÄNÄ (eivät liu'u raiteen mukana):
               sydän koskee aina näkyvää korttia. */}
           <div className="absolute top-4 right-4 flex items-center gap-2">
-            <span className="text-[11px] font-black px-2.5 py-1.5 rounded-full text-white/85" style={{ background: 'rgba(10,10,12,.55)', backdropFilter: 'blur(8px)' }}>
+            <span className="text-[12px] md:text-[11px] font-black px-3 py-2 md:px-2.5 md:py-1.5 rounded-full text-white/90 md:text-white/85" style={{ background: 'rgba(10,10,12,.55)', backdropFilter: 'blur(8px)' }}>
               {safeIdx + 1} / {events.length}
             </span>
             <div
@@ -140,7 +140,7 @@ export default function HeroSwiper({ events, onOpen }: { events: Event[]; onOpen
               tabIndex={0}
               onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); toggle(current) } }}
               aria-label={fav ? t('detail.remove_fav') : t('detail.save_fav')}
-              className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+              className="w-11 h-11 md:w-9 md:h-9 rounded-full flex items-center justify-center cursor-pointer"
               style={{ background: 'rgba(10,10,12,.55)', border: '1px solid rgba(255,255,255,.15)', backdropFilter: 'blur(8px)' }}
               onPointerDown={(ev) => ev.stopPropagation()}
               onPointerUp={(ev) => ev.stopPropagation()}
@@ -233,8 +233,10 @@ function HeroSlide({ e, lang, t: tt, ensimmainen }: {
       )}
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,rgba(10,10,12,0.97) 0%,rgba(10,10,12,0.25) 55%,rgba(10,10,12,.25) 100%)' }} />
 
-      {/* Top-left: badge + päivä (per kortti — päivä voi vaihdella) */}
-      <div className="absolute top-4 left-4 flex gap-2">
+      {/* Top-left: badge + päivä (per kortti — päivä voi vaihdella). MOBIILISSA
+          PIILOSSA (HANDOFF-mobiili §2: "Tänä iltana"-lappu ja "✦ ILLAN NOSTOT"
+          poistuvat) — kellonaika ja päivä lukevat jo CTA-rivillä. */}
+      <div className="absolute top-4 left-4 hidden md:flex gap-2">
         <span className="text-[9px] font-black px-2.5 py-1.5 rounded-full text-white tracking-[.1em] uppercase"
           style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 6px 16px -6px rgba(91,101,230,.8)' }}>
           ✦ {tt('discover.hero_gigs')}
@@ -257,15 +259,15 @@ function HeroSlide({ e, lang, t: tt, ensimmainen }: {
             return `${cat ? `${cat} · ` : ''}${e.location?.name ?? ''}`
           })()}
         </p>
-        <h2 className="font-black text-white leading-[1.02] mb-3.5" style={{ fontSize: 'clamp(1.6rem,6.5vw,2.1rem)', letterSpacing: '-0.03em' }}>
+        <h2 className="font-black text-white leading-[1.02] mb-3.5 text-[clamp(1.6rem,6.5cqw,2.1rem)] md:text-[clamp(1.6rem,6.5vw,2.1rem)]" style={{ letterSpacing: '-0.03em' }}>
           {e.title}
         </h2>
         <div className="flex items-center justify-between gap-3">
-          <span className="px-4 py-2.5 rounded-full text-white text-[13px] font-black shrink-0"
+          <span className="px-[18px] py-3 text-[14px] md:px-4 md:py-2.5 md:text-[13px] rounded-full text-white font-black shrink-0"
             style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
             {cta}
           </span>
-          <span className="text-white/85 text-[14px] font-bold shrink-0">
+          <span className="text-white/90 md:text-white/85 text-[15px] md:text-[14px] font-bold shrink-0">
             {time ? `${dayLabel} ${time}` : dayLabel}
           </span>
         </div>

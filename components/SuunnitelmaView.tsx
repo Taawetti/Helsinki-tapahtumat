@@ -14,7 +14,7 @@
 // seuraa sormea; pudotuskohta näytetään indigoviivana; järjestys
 // vahvistetaan varastoon vasta irrotettaessa.
 
-import { useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import dynamic from 'next/dynamic'
 import { Loader2, X, ChevronUp, ChevronDown, Share2, AlertTriangle, GripVertical, Navigation } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -27,7 +27,9 @@ import {
 } from '@/lib/suunnitelma'
 import KulkutapaValitsin from '@/components/KulkutapaValitsin'
 import { walkMinutesBetween } from '@/lib/group'
-import type { Event } from '@/lib/types'
+import type { Event, Restaurant } from '@/lib/types'
+import { rakennaRungot, kaytaRunko, type Runko } from '@/lib/illan-rungot'
+import { getDateRange } from '@/lib/utils'
 import RestaurantDetailPanel from '@/components/RestaurantDetailPanel'
 import PlaceDetailPanel from '@/components/PlaceDetailPanel'
 import { helsinkiToday } from '@/lib/helsinki-time'
@@ -60,6 +62,25 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
   /** VARAtila: suppea infolevitys (askeleen id) niille askeleille, joilta
    *  puuttuu täysi lähdeolio (vanha varasto, jaetusta kopioitu pohja). */
   const [infoAuki, setInfoAuki] = useState<string | null>(null)
+  // Valmiit illan rungot (HANDOFF-mobiili §7) — VAIN mobiilin tyhjään tilaan.
+  // Haetaan tämän päivän tapahtumat ja ravintoladata kerran kun välilehti
+  // avataan tyhjänä alle 768 px; null = ei haettu / ei koske tätä laitetta.
+  const [rungot, setRungot] = useState<Runko[] | null>(null)
+  const tyhja = suunnitelma.askeleet.length === 0
+  useEffect(() => {
+    if (!tyhja || rungot !== null) return
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 767.98px)').matches) return
+    let peruttu = false
+    const { start, end } = getDateRange('today')
+    Promise.all([
+      fetch(`/api/events?start=${start}&end=${end}&page=1&municipality=helsinki`).then((r) => (r.ok ? r.json() : { events: [] })).catch(() => ({ events: [] })),
+      fetch('/api/restaurants').then((r) => (r.ok ? r.json() : { restaurants: [] })).catch(() => ({ restaurants: [] })),
+    ]).then(([e, r]: [{ events?: Event[] }, { restaurants?: Restaurant[] }]) => {
+      if (peruttu) return
+      setRungot(rakennaRungot(e.events ?? [], r.restaurants ?? [], new Date()))
+    })
+    return () => { peruttu = true }
+  }, [tyhja, rungot])
   /** Napautuksesta avattu OIKEA infopaneeli — sama kuin muualla sovelluksessa. */
   const [avattuRavintola, setAvattuRavintola] = useState<Extract<AskelData, { laji: 'ravintola' }> | null>(null)
   const [avattuPaikka, setAvattuPaikka] = useState<Extract<AskelData, { laji: 'paikka' }> | null>(null)
@@ -174,9 +195,56 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
       </h1>
 
       {sovitetut.length === 0 ? (
-        <TyhjaTila onSiirry={onSiirryOsioon} />
+        <>
+          {/* MOBIILI (HANDOFF-mobiili §7): otsikko + selite, valmiit illan
+              rungot päivän oikeasta datasta (lib/illan-rungot) ja 52 px
+              "Tai selaa tapahtumia". Työpöydällä TyhjaTila kuten ennen. */}
+          <div className="md:hidden space-y-5">
+            <div className="space-y-1.5">
+              <p className="text-white font-black text-[20px]" style={{ letterSpacing: '-0.01em' }}>{t('plan.empty_title_m')}</p>
+              <p className="text-[14px] leading-[1.55]" style={{ color: 'rgba(255,255,255,.55)' }}>{t('plan.empty_sub_m')}</p>
+            </div>
+            {rungot && rungot.length > 0 && (
+              <div className="flex flex-col gap-2.5">
+                {rungot.map((r) => {
+                  // Alaotsikko "Paikka klo X → Paikka klo Y" samalla sovittimella
+                  // kuin oikea aikajana — ei erillistä aikalogiikkaa.
+                  const sov = sovitaAjat({ otsikko: '', paiva: r.paiva, askeleet: r.askeleet.map((a, i) => ({ ...a, id: `r${i}` })) }, new Date())
+                  const eka = sov[0], vika = sov[sov.length - 1]
+                  const sub = eka && vika ? `${eka.askel.nimi} ${t('share.at_time')} ${eka.klo} → ${vika.askel.nimi} ${t('share.at_time')} ${vika.klo}` : ''
+                  return (
+                    <button key={r.id} onClick={() => kaytaRunko(r, t(r.otsikkoAvain))}
+                      className="flex items-center gap-3.5 w-full text-left p-4 rounded-[18px] text-white transition-transform active:scale-[.99]"
+                      style={{ border: '1px solid rgba(107,118,255,.25)', background: 'rgba(107,118,255,.07)' }}>
+                      <span className="text-[30px] leading-none shrink-0">{r.emoji}</span>
+                      <span className="flex flex-col gap-[3px] min-w-0 flex-1">
+                        <span className="text-[16px] font-black" style={{ letterSpacing: '-0.01em' }}>{t(r.otsikkoAvain)}</span>
+                        <span className="text-[13px] font-semibold truncate" style={{ color: 'rgba(255,255,255,.55)' }}>{sub}</span>
+                      </span>
+                      <span className="shrink-0 text-[13px] font-black" style={{ color: '#a3abff' }}>{t('plan.template_use')} →</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            <button onClick={() => onSiirryOsioon?.('discover')}
+              className="flex items-center justify-center gap-2 w-full h-[52px] rounded-[16px] font-black text-[15px] text-white/85 transition-transform active:scale-[.99]"
+              style={{ border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.05)' }}>
+              🎟 {t('plan.browse_alt')}
+            </button>
+          </div>
+          <div className="hidden md:block"><TyhjaTila onSiirry={onSiirryOsioon} /></div>
+        </>
       ) : (
         <>
+          {/* MOBIILI (HANDOFF-mobiili §7): 56 px "Jaa kavereille" ylhäällä. */}
+          <button onClick={jaa} disabled={jakoTila === 'busy'}
+            className="md:hidden flex items-center justify-center gap-2.5 w-full h-14 rounded-[16px] font-black text-white text-[16px] transition-all active:scale-[.99] disabled:opacity-60"
+            style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 12px 32px -8px rgba(91,101,230,.55)' }}>
+            {jakoTila === 'busy' ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+            {jakoTila === 'busy' ? t('plan.sharing') : t('plan.share_friends')}
+          </button>
+
           {/* Otsikko + päivä + aloitusaika */}
           <div className="space-y-3 rounded-2xl p-4" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
             <input
@@ -221,7 +289,7 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
                        lasketaan aikatauluun. Pilleripinta + reunus + nuoli
                        kertovat painettavuuden — pelkkä harmaa teksti ei
                        kutsunut painamaan (omistaja 7.9.2026). */
-                    <div className="pl-14 py-1">
+                    <div className="pl-[58px] md:pl-14 py-1">
                       <button onClick={() => setKulkutapaAuki(r.askel.id)}
                         className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white/70 hover:text-white transition-all active:scale-95"
                         style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.13)' }}>
@@ -231,8 +299,24 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
                       </button>
                     </div>
                   )}
+                  {/* MOBIILI (HANDOFF-mobiili §7): kellonaika 13 px aksentti +
+                      pystyviiva vasemmalla, kortissa 56 px kuvakaista, otsikko
+                      15 px, 📍 paikka 13 px, poista-✕ 44 px. Kaikki toiminnot
+                      (raahaus, ajan vaihto, kulkutapa, varoitukset) säilyvät;
+                      ↑↓-napit ovat mobiilissa piilossa — raahaus riittää.
+                      Työpöydän asettelu md:-luokilla ennallaan. */}
+                  <div className="flex gap-3.5 md:block">
+                  <div className="md:hidden flex flex-col items-center w-11 shrink-0">
+                    {r.askel.ankkuriISO ? (
+                      <span className="text-[13px] font-black pt-[18px]" style={{ color: '#a3abff' }}>{r.klo}</span>
+                    ) : (
+                      <button onClick={() => setAikaAuki(r.askel.id)} aria-label={t('plan.start')}
+                        className="text-[13px] font-black pt-[18px] min-h-11" style={{ color: '#a3abff' }}>{r.klo}</button>
+                    )}
+                    <span className="flex-1 w-0.5 mt-2 rounded-full" style={{ background: i < sovitetut.length - 1 ? 'rgba(107,118,255,.3)' : 'transparent' }} />
+                  </div>
                   <div data-askel-id={r.askel.id}
-                    className="flex gap-2 rounded-2xl p-3 items-start"
+                    className="flex gap-0 md:gap-2 rounded-2xl p-0 md:p-3 items-stretch md:items-start overflow-hidden md:overflow-visible flex-1 min-w-0 mb-3 md:mb-0"
                     style={{
                       background: raahattava ? 'rgba(30,32,44,.98)' : 'rgba(255,255,255,.04)',
                       border: `1px solid ${r.varoitus ? 'rgba(255,159,67,.4)' : raahattava ? 'rgba(107,118,255,.5)' : 'rgba(255,255,255,.08)'}`,
@@ -249,12 +333,13 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
                       onPointerUp={raahausLoppuu}
                       onPointerCancel={raahausLoppuu}
                       aria-label={t('plan.drag')}
-                      className="shrink-0 self-center p-1 -ml-1 text-white/25 cursor-grab active:cursor-grabbing"
+                      className="shrink-0 w-7 self-stretch flex items-center justify-center md:w-auto md:self-center md:p-1 md:-ml-1 text-white/25 cursor-grab active:cursor-grabbing"
                       style={{ touchAction: 'none' }}>
                       <GripVertical size={17} />
                     </button>
-                    {/* Aika: ankkuri kiinteä, muut avaavat rullavalitsimen */}
-                    <div className="shrink-0 w-[52px] text-center self-center">
+                    {/* Aika: ankkuri kiinteä, muut avaavat rullavalitsimen (työpöytä;
+                        mobiilissa aika on kortin vasemmalla puolella). */}
+                    <div className="hidden md:block shrink-0 w-[52px] text-center self-center">
                       {r.askel.ankkuriISO ? (
                         <span className="block text-[#a3abff] font-black text-[14px]">{r.klo}</span>
                       ) : (
@@ -269,15 +354,20 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
                         </>
                       )}
                     </div>
-                    {r.askel.kuva && (
+                    {r.askel.kuva ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={r.askel.kuva} alt="" loading="lazy" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                      <img src={r.askel.kuva} alt="" loading="lazy" className="w-14 self-stretch rounded-none md:w-12 md:h-12 md:self-auto md:rounded-xl object-cover shrink-0" />
+                    ) : (
+                      /* Kuvaton askel: mobiilin 56 px kaista roolin emojilla */
+                      <div className="md:hidden w-14 shrink-0 self-stretch flex items-center justify-center text-[20px]" style={{ background: 'rgba(107,118,255,.12)' }} aria-hidden>
+                        {ROOLI_META[r.askel.rooli].emoji}
+                      </div>
                     )}
-                    <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0}
+                    <div className="min-w-0 flex-1 cursor-pointer py-3 pl-3 md:py-0 md:pl-0 self-center md:self-auto" role="button" tabIndex={0}
                       onClick={() => avaaAskel(r.askel)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); avaaAskel(r.askel) } }}>
-                      <p className="text-white font-bold text-[14px] leading-snug">{ROOLI_META[r.askel.rooli].emoji} {r.askel.nimi}</p>
-                      {r.askel.osoite && <p className="text-white/35 text-[12px] truncate">{r.askel.osoite}</p>}
+                      <p className="text-white font-black md:font-bold text-[15px] md:text-[14px] leading-[1.25] md:leading-snug" style={{ letterSpacing: '-0.01em' }}>{ROOLI_META[r.askel.rooli].emoji} {r.askel.nimi}</p>
+                      {r.askel.osoite && <p className="text-white/50 md:text-white/35 text-[13px] md:text-[12px] truncate"><span className="md:hidden">📍 </span>{r.askel.osoite}</p>}
                       {r.varoitus && !r.askel.varoitusKuitattu && (
                         <p className="flex items-center gap-1 text-[12px] font-bold mt-0.5" style={{ color: '#ff9f43' }}>
                           <AlertTriangle size={12} /> {t(VAROITUS_AVAIN[r.varoitus] as Parameters<typeof t>[0])}
@@ -292,14 +382,15 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
                       )}
                       {infoAuki === r.askel.id && <AskelInfo askel={r.askel} />}
                     </div>
-                    <div className="shrink-0 flex flex-col gap-0.5">
+                    <div className="hidden md:flex shrink-0 flex-col gap-0.5">
                       <button onClick={() => siirraAskelta(r.askel.id, -1)} disabled={i === 0} aria-label="↑"
                         className="p-1 text-white/35 hover:text-white disabled:opacity-20"><ChevronUp size={15} /></button>
                       <button onClick={() => siirraAskelta(r.askel.id, 1)} disabled={i === sovitetut.length - 1} aria-label="↓"
                         className="p-1 text-white/35 hover:text-white disabled:opacity-20"><ChevronDown size={15} /></button>
                     </div>
                     <button onClick={() => poistaAskel(r.askel.id)} aria-label={t('common.close')}
-                      className="shrink-0 p-1.5 text-white/30 hover:text-white"><X size={15} /></button>
+                      className="shrink-0 self-center w-11 h-11 mr-1.5 rounded-full flex items-center justify-center bg-white/6 text-white/60 md:mr-0 md:w-auto md:h-auto md:self-auto md:rounded-none md:bg-transparent md:p-1.5 md:text-white/30 hover:text-white"><X size={15} /></button>
+                  </div>
                   </div>
                 </div>
               )
@@ -310,6 +401,13 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
             )}
           </div>
 
+          {/* MOBIILI (HANDOFF-mobiili §7): katkoviivainen 52 px "+ Lisää tapahtuma" → etusivu */}
+          <button onClick={() => onSiirryOsioon?.('discover')}
+            className="md:hidden flex items-center justify-center gap-2 w-full h-[52px] rounded-[16px] font-black text-[15px] transition-transform active:scale-[.99]"
+            style={{ border: '1px dashed rgba(107,118,255,.45)', background: 'rgba(107,118,255,.06)', color: '#a3abff' }}>
+            + {t('plan.add_step')}
+          </button>
+
           {/* Kartta + reittiohjeet */}
           {karttaItemit.length > 0 && (
             <div className="space-y-2">
@@ -319,7 +417,7 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
               {reittiUrl && (
                 <a href={reittiUrl} target="_blank" rel="noopener noreferrer"
                   onClick={() => track('external_click', { surface: 'plan', label: 'reittiohjeet' })}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-[13px] border border-white/10 text-white/70 hover:text-white transition-colors">
+                  className="flex items-center justify-center gap-2 min-h-11 md:min-h-0 px-4 py-2.5 rounded-xl font-bold text-[13px] border border-white/10 text-white/70 hover:text-white transition-colors">
                   <Navigation size={14} /> {t('plan.directions')} ↗
                 </a>
               )}
@@ -329,13 +427,13 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
           {/* Toiminnot */}
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={jaa} disabled={jakoTila === 'busy'}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl font-black text-white text-[14px] transition-all active:scale-95 disabled:opacity-60"
+              className="hidden md:flex items-center gap-2 px-5 py-3 rounded-xl font-black text-white text-[14px] transition-all active:scale-95 disabled:opacity-60"
               style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 20px -6px rgba(91,101,230,.6)' }}>
               {jakoTila === 'busy' ? <Loader2 size={15} className="animate-spin" /> : <Share2 size={15} />}
               {jakoTila === 'busy' ? t('plan.sharing') : t('plan.share')}
             </button>
             <button onClick={() => { if (confirm(t('plan.clear_confirm'))) tyhjennaSuunnitelma() }}
-              className="px-4 py-3 rounded-xl font-bold text-white/45 hover:text-white text-[13px] border border-white/10 transition-colors">
+              className="min-h-11 md:min-h-0 px-4 py-3 rounded-xl font-bold text-white/45 hover:text-white text-[13px] border border-white/10 transition-colors">
               {t('plan.clear')}
             </button>
           </div>

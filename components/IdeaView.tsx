@@ -558,11 +558,13 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       {/* ── Header + päivävalinta — AINA näkyvissä, jotta päivää voi vaihtaa
           myös tyhjällä/loppuneella pakalla. ── */}
       <div className="flex items-start justify-between gap-3">
-        <div>
+        {/* mobiili-cq: otsikko skaalautuu sarakkeen mukaan (cqw) alle 768 px;
+            flex-1 min-w-0 pakollinen, koska kontaineri ei anna omaa leveyttä. */}
+        <div className="mobiili-cq flex-1 min-w-0">
           <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">
             HELSINKI · {dayLabel(ideaDate, todayIso, lang).toUpperCase()}
           </p>
-          <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.6rem,6vw,2.6rem)', letterSpacing: '-0.03em' }}>
+          <h1 className="font-black text-white leading-none text-[clamp(1.6rem,6cqw,2.6rem)] md:text-[clamp(1.6rem,6vw,2.6rem)]" style={{ letterSpacing: '-0.03em' }}>
             {t('idea.dont_know')}
           </h1>
           <p className="text-white/30 text-xs mt-1">
@@ -743,7 +745,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               {current.url && (
                 <a href={/^https?:\/\//i.test(current.url) ? current.url : '#'} target="_blank" rel="noopener noreferrer"
                   onClick={() => track('external_click', { surface: 'idea', label: current.title })}
-                  className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-1.5 min-h-11 md:min-h-0 text-[14px] md:text-xs font-bold hover:opacity-80 transition-opacity"
                   style={{ color: '#a3abff' }}>
                   <Globe size={12} />
                   {current.buyable ? `${t('detail.buy_tickets')} →` : `${t('common.website')} →`}
@@ -751,13 +753,13 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               )}
               {onShowOnMap && current.lat && current.lon && (
                 <button onClick={() => onShowOnMap(current.lat!, current.lon!, current.title, current.type)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
+                  className="flex items-center gap-1.5 min-h-11 md:min-h-0 text-[14px] md:text-xs font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
                   <MapIcon size={12} /> {t('idea.on_map')}
                 </button>
               )}
               {onEventClick && current.eventRef && (
                 <button onClick={() => onEventClick(current.eventRef!)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-white/30 hover:text-white/60 transition-colors">
+                  className="flex items-center gap-1.5 min-h-11 md:min-h-0 text-[14px] md:text-xs font-bold text-white/30 hover:text-white/60 transition-colors">
                   {t('common.more_info')} →
                 </button>
               )}
@@ -770,14 +772,14 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       <div className="flex items-center justify-center gap-5">
         {/* Skip */}
         <button onClick={handleSkip}
-          className="w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
+          className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
           style={{ background: 'rgba(248,113,113,.12)', border: '2px solid rgba(248,113,113,.3)' }}>
           <X size={24} style={{ color: '#f87171' }} />
         </button>
 
         {/* Save */}
         <button onClick={handleSave}
-          className="w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105 shadow-lg"
+          className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105 shadow-lg"
           style={{
             background: savedIds.has(current.id)
               ? 'linear-gradient(150deg,#6b76ff,#5059e6)'
@@ -792,12 +794,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         {current.url ? (
           <a href={/^https?:\/\//i.test(current.url) ? current.url : '#'} target="_blank" rel="noopener noreferrer"
             onClick={() => track('external_click', { surface: 'idea', label: current.title })}
-            className="w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
+            className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
             style={{ background: 'rgba(250,146,60,.12)', border: '2px solid rgba(250,146,60,.3)' }}>
             <Clock size={22} style={{ color: '#fb923c' }} />
           </a>
         ) : (
-          <div className="w-16 h-16 rounded-full flex items-center justify-center opacity-20"
+          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center opacity-20"
             style={{ background: 'rgba(255,255,255,.05)', border: '2px solid rgba(255,255,255,.1)' }}>
             <Clock size={22} className="text-white/40" />
           </div>
@@ -867,7 +869,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
                 {/* Close */}
                 <button onClick={closePanel}
-                  className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+                  className="absolute top-4 right-4 w-11 h-11 md:w-10 md:h-10 rounded-full flex items-center justify-center"
                   style={{ background: 'rgba(0,0,0,.6)' }}>
                   <X size={18} className="text-white" />
                 </button>

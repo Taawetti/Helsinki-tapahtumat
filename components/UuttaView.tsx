@@ -24,9 +24,9 @@ export default function UuttaView() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-4 pb-24 space-y-5">
-      <div>
+      <div className="mobiili-cq">
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
-        <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
+        <h1 className="font-black text-white leading-none text-[clamp(1.8rem,6cqw,3rem)] md:text-[clamp(1.8rem,6vw,3rem)]" style={{ letterSpacing: '-0.03em' }}>
           {t('uutta.title')}
         </h1>
         {data && (

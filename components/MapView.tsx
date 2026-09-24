@@ -1027,10 +1027,11 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   ]
 
   return (
-    // Korkeus: mobiilissa vähennetään alanavigaation 72 px (100dvh - 220px),
-    // muuten kartta jatkuu navigaation ALLE ja alareunan lukumäärä- ja
-    // latausmerkit sekä esikatselukortti jäävät sen taakse piiloon.
-    <div className="relative w-full rounded-2xl border border-white/8 h-[calc(100dvh-220px)] min-h-[400px] md:h-[calc(100dvh-148px)] md:min-h-[480px]"
+    // Korkeus: mobiilissa vähennetään yläpalkki (~125 px), karttarivi (60 px; mitattu 24.9.: kartan yläreuna y=186)
+    // ja alanavigaatio (80 px + safe-area) — muuten kartta jatkuu navigaation
+    // ALLE ja alareunan lukumäärä- ja latausmerkit sekä esikatselukortti
+    // jäävät sen taakse piiloon. Mitat HANDOFF-mobiili.md:n mukaan (24.9.2026).
+    <div className="relative w-full rounded-2xl border border-white/8 h-[calc(100dvh-268px-env(safe-area-inset-bottom,0px))] min-h-[400px] md:h-[calc(100dvh-148px)] md:min-h-[480px]"
       style={{ clipPath: 'inset(0 round 1rem)' }}>
       {/* Leaflet-CSS vain karttaa käytettäessä (ennen render-block kaikilla sivuilla layoutin kautta) */}
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />

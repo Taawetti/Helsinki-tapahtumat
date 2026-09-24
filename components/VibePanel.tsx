@@ -96,7 +96,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose, on
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-base transition-all hover:bg-white/14"
+            className="w-11 h-11 md:w-9 md:h-9 rounded-full flex items-center justify-center text-base transition-all hover:bg-white/14"
             style={{ background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.5)' }}
           >
             ✕
@@ -133,7 +133,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose, on
                   🎁
                 </span>
                 <span
-                  className="text-[11px] font-black text-center leading-tight px-1"
+                  className="text-[12px] md:text-[11px] font-black text-center leading-tight px-1"
                   style={{ color: isFree ? '#7fe8bc' : 'rgba(255,255,255,.45)' }}
                 >
                   {t('discover.free_events')}
@@ -165,7 +165,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose, on
                   {v.emoji}
                 </span>
                 <span
-                  className="text-[11px] font-black text-center leading-tight px-1"
+                  className="text-[12px] md:text-[11px] font-black text-center leading-tight px-1"
                   style={{ color: isActive ? '#a3abff' : 'rgba(255,255,255,.45)' }}
                 >
                   {t(v.tKey as TranslationKey)}
@@ -192,7 +192,7 @@ export default function VibePanel({ open, active, onToggle, onClear, onClose, on
         <div className="px-5 pt-2 pb-6 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
           <button
             onClick={n === 0 ? onShowAll : onClose}
-            className="w-full py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[.98] hover:opacity-90"
+            className="w-full h-14 md:h-auto md:py-4 rounded-2xl font-black text-base text-white transition-all active:scale-[.98] hover:opacity-90"
             style={{
               background: 'linear-gradient(150deg,#6b76ff,#5059e6)',
               boxShadow: '0 12px 32px -8px rgba(91,101,230,.55)',

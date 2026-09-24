@@ -33,14 +33,14 @@ export default function ConsentBanner() {
       <div className="flex items-center gap-2 mt-3.5">
         <button
           onClick={() => setConsent('granted')}
-          className="flex-1 px-4 py-2.5 rounded-xl font-black text-[13px] text-white transition-transform active:scale-[.98]"
+          className="flex-1 min-h-11 md:min-h-0 px-4 py-2.5 rounded-xl font-black text-[13px] text-white transition-transform active:scale-[.98]"
           style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}
         >
           {t('consent.accept')}
         </button>
         <button
           onClick={() => setConsent('denied')}
-          className="flex-1 px-4 py-2.5 rounded-xl font-bold text-[13px] transition-colors hover:bg-white/10"
+          className="flex-1 min-h-11 md:min-h-0 px-4 py-2.5 rounded-xl font-bold text-[13px] transition-colors hover:bg-white/10"
           style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.75)' }}
         >
           {t('consent.reject')}

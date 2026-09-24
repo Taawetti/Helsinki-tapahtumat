@@ -25,6 +25,10 @@ interface Props {
   size?: 'sm' | 'md'
   /** Napin teksti kun mitään ei ole valittu (oletus: t('date.custom')). */
   placeholder?: string
+  /** Mobiilin päivächippirivin 📅-nappi (HANDOFF-mobiili §2): 44 × 44 px
+   *  pyöreä ikoni; valittu päivä laajentaa sen pilleriksi jossa lukee päivä,
+   *  jotta valinta ei jää näkymättömäksi. */
+  chip?: boolean
 }
 
 function toLocalDate(iso: string) {
@@ -36,7 +40,7 @@ function fmtIso(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-export default function DatePicker({ value, onChange, valueEnd, onChangeRange, size = 'md', placeholder, iconOnly }: Props) {
+export default function DatePicker({ value, onChange, valueEnd, onChangeRange, size = 'md', placeholder, iconOnly, chip }: Props) {
   const { t, lang } = useLanguage()
   const MONTHS = lang === 'fi' ? MONTHS_FI : MONTHS_EN
   const DAYS = lang === 'fi' ? DAYS_FI : DAYS_EN
@@ -286,13 +290,16 @@ export default function DatePicker({ value, onChange, valueEnd, onChangeRange, s
       <button
         ref={btnRef}
         onClick={openCalendar}
-        className={`shrink-0 flex items-center gap-1.5 font-black transition-all border-0 rounded-full cursor-pointer ${
-          btnSm ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'
-        } ${hasSelection ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/10 hover:text-white/65'}`}
+        aria-label={chip ? t('date.custom') : undefined}
+        className={`shrink-0 flex items-center justify-center gap-1.5 font-black transition-all rounded-full cursor-pointer ${
+          chip
+            ? (hasSelection ? 'h-11 px-4 text-sm border-0' : 'w-11 h-11 border border-white/10')
+            : btnSm ? 'px-3 py-1.5 text-xs border-0' : 'min-h-11 md:min-h-0 px-4 py-2 text-sm border-0'
+        } ${hasSelection ? 'text-white' : chip ? 'text-white/70 bg-white/5' : 'text-white/35 bg-white/5 hover:bg-white/10 hover:text-white/65'}`}
         style={hasSelection ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,0.5)' } : {}}
       >
-        <Calendar size={btnSm ? 11 : 13} />
-        {!iconOnly && (label ?? placeholder ?? t('date.custom'))}
+        <Calendar size={chip ? 18 : btnSm ? 11 : 13} />
+        {chip ? (hasSelection ? label : null) : !iconOnly && (label ?? placeholder ?? t('date.custom'))}
       </button>
       {dropdown}
     </>

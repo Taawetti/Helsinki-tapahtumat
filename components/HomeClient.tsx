@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Fragment, useState, useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
-import { Loader2, Heart, Bell, Plus, ChevronLeft, ChevronDown, Download } from 'lucide-react'
+import { Loader2, Heart, Bell, Plus, ChevronLeft, Download, Ellipsis } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
 import { haversineKm, getDateRange, formatTime, tuntematonAika } from '@/lib/utils'
@@ -36,7 +36,10 @@ import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
 import GuideInlineView, { GUIDE_META, type GuideSlug, type GuidePayload } from '@/components/GuideInlineView'
 import JarjestajaForm from '@/components/JarjestajaForm'
-import LanguageSwitch from '@/components/LanguageSwitch'
+import LanguageSwitch, { useLanguageSwitch } from '@/components/LanguageSwitch'
+import { ListSheet } from '@/components/BottomSheet'
+import ToastHost from '@/components/ToastHost'
+import { tilaaSuunnitelma, lueSuunnitelma } from '@/lib/suunnitelma'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 import { VENUE_PAGES } from '@/lib/venue-pages'
@@ -332,6 +335,10 @@ export default function HomeClient({
   // oli päällä. Rullataan valittu näkyviin kerran mountissa; käyttäjän omat
   // valinnat eivät rullaa riviä, koska hän näkee jo painamansa sirun.
   const dateStripRef = useRef<HTMLDivElement | null>(null)
+  // Mobiilin päivächippirivi (HANDOFF-mobiili §2): aktiivinen chip keskelle
+  // näkyviin samalla säännöllä kuin työpöydän pilleririvi (efekti alla,
+  // customDaten määrittelyn jälkeen).
+  const mobiiliChipitRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     if (!initialDateFilter || initialDateFilter === 'today') return
     const strip = dateStripRef.current
@@ -428,10 +435,27 @@ export default function HomeClient({
   const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta' | 'suunnitelma'>('discover')
   const [customDate, setCustomDate] = useState('')
   const [customDateEnd, setCustomDateEnd] = useState('')
+  // Mobiilin päivächipit (HANDOFF-mobiili §2): aktiivinen chip näkyviin joka
+  // vaihdolla — rivi on vaakavieritettävä, ja "Viikonloppu" jäi aiemmin
+  // ruudun ulkopuolelle (omistaja 31.8.2026). Vain kun rivi on renderöity
+  // (alle 768 px); työpöydällä ref on null.
+  useEffect(() => {
+    const strip = mobiiliChipitRef.current
+    const active = strip?.querySelector<HTMLElement>('[data-active-date="1"]')
+    if (!strip || !active) return
+    strip.scrollLeft = Math.max(0, active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2)
+  }, [dateFilter, customDate])
   const [showEiTieda, setShowEiTieda] = useState(false)
   const [eiTiedaMode, setEiTiedaMode] = useState<EiTiedaMode>('general')
   const [showJarjestajaForm, setShowJarjestajaForm] = useState(false)
   const [showVibePanel, setShowVibePanel] = useState(false)
+  // Mobiilin bottom sheetit (HANDOFF-mobiili §1, §2, §9): ⋯-valikko,
+  // Kaupunginosat, Oppaat. Työpöydällä samat toiminnot ovat pudotusvalikoina.
+  const [sheet, setSheet] = useState<'more' | 'hoods' | 'guides' | null>(null)
+  // Alanavin Suunnitelma-merkki (§4): askelten määrä suoraan varastosta.
+  const suunnitelmaAskeleita = useSyncExternalStore(tilaaSuunnitelma, lueSuunnitelmaMaara, nolla)
+  const kieli = useLanguageSwitch()
+  const asennus = useInstallAction()
   // Kaupunginosavalikko etusivulla — footerin linkkilista siirrettiin tänne
   // näkyville (omistaja: "tuolta alhaalta pienellä kukaan ei käytä niitä")
   const [showHoodMenu, setShowHoodMenu] = useState(false)
@@ -1252,55 +1276,53 @@ export default function HomeClient({
   )
 
   return (
-    <div className="min-h-screen text-white pb-20 md:pb-0" style={{ background: '#0a0a0c' }}>
+    <div className="min-h-screen text-white pb-[calc(80px_+_env(safe-area-inset-bottom,0px))] md:pb-0" style={{ background: '#0a0a0c' }}>
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(10,10,12,0.96)', backdropFilter: 'blur(20px)' }}>
         {/* ── Mobile header row 1: logo + actions ── */}
-        <div className="md:hidden flex items-center justify-between px-4 pt-3 pb-2">
-          <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="flex items-center gap-2">
+        {/* HANDOFF-mobiili §1 (24.9.2026): kuudesta 31 px napista jäi kaksi
+            44 px nappia — ♥ Suosikit ja ⋯. Kieli, Lisää tapahtuma,
+            Päiväilmoitukset ja Lataa sovellus ovat ⋯-valikon riveinä
+            (ListSheet alla); Kartta-nappi poistui, koska Lista⇄Kartta-kytkin
+            kattaa sen. Työpöydän rivi alla on ennallaan. */}
+        <div className="md:hidden flex items-center justify-between px-4 pt-2.5 pb-1.5">
+          <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }}
+            aria-label={t('nav.home')} className="flex items-center gap-2 min-h-11 py-2">
             {/* Merkki tulee nimen PERÄÄN — se on nimen kysymysmerkki, ei
                 erillinen ikoni. Aiemmin tässä oli indigo-laatta jossa luki M. */}
-            <Logo size={14} />
+            <Logo size={16} />
           </button>
           <div className="flex items-center gap-2">
-            <LanguageSwitch compact />
-            <InstallHeaderButton />
-            <button
-              onClick={handleBellClick}
-              title={pushEnabled ? t('nav.notif_off') : t('nav.notif_on')}
-              className={`p-2 rounded-xl border transition-all ${pushEnabled ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15 text-[#a3abff]' : 'border-white/8 text-white/40 bg-white/4 hover:text-white/70'}`}
-            >
-              <Bell size={15} />
-            </button>
-            <button
-              onClick={() => openOverlayMode('map')}
-              title={t('nav.map')}
-              className={`relative p-2 rounded-xl border transition-all ${mode === 'map' ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 bg-white/4 hover:text-white/70'}`}
-            >
-              <span className="text-[15px] leading-none">🗺</span>
-            </button>
             <button
               onClick={() => openOverlayMode('favorites')}
               title={t('fav.title')}
-              className={`relative p-2 rounded-xl border transition-all ${mode === 'favorites' ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 bg-white/4 hover:text-white/70'}`}
+              aria-label={t('fav.title')}
+              className="relative w-11 h-11 rounded-[14px] border flex items-center justify-center transition-all"
+              style={{
+                borderColor: mode === 'favorites' || favCount > 0 ? 'rgba(107,118,255,.45)' : 'rgba(255,255,255,.08)',
+                background: mode === 'favorites' ? 'rgba(107,118,255,.15)' : favCount > 0 ? 'rgba(107,118,255,.08)' : 'rgba(255,255,255,.04)',
+                color: '#6b76ff',
+              }}
             >
-              <Heart size={15} fill={favCount > 0 ? '#6b76ff' : 'none'} style={{ color: '#6b76ff' }} />
+              <Heart size={20} fill={favCount > 0 ? '#6b76ff' : 'none'} />
               {favCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{favCount}</span>
+                <span className="absolute -top-[5px] -right-[5px] min-w-[18px] h-[18px] px-[5px] rounded-full text-[10px] font-black flex items-center justify-center text-white" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>{favCount}</span>
               )}
             </button>
-            <button onClick={() => setShowJarjestajaForm((p) => !p)}
-              title={t('form.add_event_cta')}
-              aria-label={t('form.add_event_cta')}
-              className={`relative p-2 rounded-xl border transition-all ${showJarjestajaForm ? 'border-[#6b76ff]/60 bg-[#6b76ff]/15' : 'border-white/8 text-white/40 bg-white/4'}`}
-              style={showJarjestajaForm ? { color: '#6b76ff' } : {}}>
-              <Plus size={16} strokeWidth={2.5} />
+            <button
+              onClick={() => setSheet('more')}
+              aria-label={t('more.title')}
+              aria-haspopup="dialog"
+              className="w-11 h-11 rounded-[14px] border border-white/8 bg-white/4 flex items-center justify-center text-white/70 transition-all"
+            >
+              <Ellipsis size={20} />
             </button>
           </div>
         </div>
-        {/* ── Mobile header row 2: search ── */}
+        {/* ── Mobile header row 2: search (48 px, 14 px kulmat) ── */}
         <div className="md:hidden px-4 pb-3">
           <SearchBar
+            size="lg"
             value={keyword}
             onChange={(v) => { setKeyword(v); if (v) { setMode('discover'); setMobileTab('discover'); setKoCat(null); setGuideView(null) } }}
             venueHits={localSearchHits.venues}
@@ -1397,7 +1419,7 @@ export default function HomeClient({
           {/* Heading + ‹ back */}
           <div className="flex items-center gap-3">
             <button onClick={goBack} aria-label={t('common.back')}
-              className="shrink-0 w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
+              className="shrink-0 w-11 h-11 md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
               <ChevronLeft size={18} className="text-white" />
             </button>
             <Heart size={22} fill="#6b76ff" style={{ color: '#6b76ff' }} />
@@ -1481,19 +1503,34 @@ export default function HomeClient({
       {mode === 'discover' && (
         <main className="max-w-6xl mx-auto px-4 pt-5 pb-20 space-y-5">
 
-          {/* City headline */}
-          <div>
+          {/* City headline. mobiili-cq: otsikko skaalautuu sarakkeen (cqw) eikä
+              ikkunan mukaan alle 768 px (HANDOFF-mobiili §2). */}
+          <div className="mobiili-cq">
             {(() => {
               // Sama ulkoasu kummassakin tapauksessa — vaihtuu vain elementti.
               const HeroTag = heroAsHeading ? 'h1' : 'div'
               return (
-                <HeroTag className="font-black text-white leading-none select-none"
-                  style={{ fontSize: 'clamp(2.8rem,12vw,8rem)', letterSpacing: '-0.04em' }}>
+                <HeroTag className="font-black text-white leading-none select-none text-[clamp(2.8rem,12cqw,8rem)] md:text-[clamp(2.8rem,12vw,8rem)]"
+                  style={{ letterSpacing: '-0.04em' }}>
                   {municipality.toUpperCase()}
                 </HeroTag>
               )
             })()}
-            <p className="text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
+            {/* MOBIILI: yksi alarivi vihreällä pisteellä — "{päivä} · {n}
+                tapahtumaa tänään". Korvaa erillisen tilarivin heron yläpuolella
+                (se on alla hidden md:flex). */}
+            <p className="md:hidden mt-1.5 flex items-center gap-2 text-[12px] font-bold uppercase" style={{ color: 'rgba(255,255,255,.45)', letterSpacing: '.06em' }}>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#5fd9a6', boxShadow: '0 0 8px rgba(95,217,166,.8)', animation: 'pulse-glow 2s ease-in-out infinite' }} />
+              <span className="min-w-0 truncate">
+                {/* Numeerinen kuukausi: "torstai 24. syyskuuta · 233 tapahtumaa tänään"
+                    ei mahtunut 390 px:iin (mitattu 24.9.2026). */}
+                {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'numeric', timeZone: 'Europe/Helsinki' })}
+                {!loading && baseEvents.length > 0 && !keyword
+                  ? ` · ${baseEvents.length} ${dateFilter === 'today' || dateFilter === 'tonight' ? t('discover.events_today') : t('discover.events_count')}`
+                  : ''}
+              </span>
+            </p>
+            <p className="hidden md:block text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
               {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Helsinki' })}
               {/* Tuoreusleima: tapahtumamäärä ja kellonaika. Lähdemäärä ja
                   /lahteet-linkki POISTETTU julkisesta näkymästä (omistaja
@@ -1516,35 +1553,39 @@ export default function HomeClient({
               tuloksissa näkyy (omistaja 25.8.2026). Valinta säilyy tilassa ja
               palaa näkyviin kun hakukenttä tyhjennetään. */}
           {!hakuIkkuna && (
-          <div className="flex items-center gap-2">
-          {/* MOBIILI: vaakavieritys pois (omistaja 31.8.2026: "tänään, sitten
-              valikko vieressä mistä saa muut vaihtoehdot, ja kartta esillä").
-              Aktiivinen päivä + ▾-valikko + kalenteri + Lista⇄Kartta mahtuvat
-              kaikki ruutuun kerralla. Työpöydällä pilleririvi säilyy — siellä
-              tila riittää eikä omistaja halunnut siihen muutosta. */}
-          <div className="flex md:hidden items-center gap-2 flex-1 min-w-0">
-            <MobileDateMenu
-              options={[
-                // short = liipaisimen teksti ILMAN emojia: "🎉 Viikonloppu ▾"
-                // työnsi kalenterinapin Lista⇄Kartta-kytkimen alle 390 px
-                // leveydellä (mitattu kuvakaappauksesta 31.8.2026).
-                { d: 'today' as DateFilter, label: t('date.today') },
-                { d: 'tonight' as DateFilter, label: '🌙 ' + t('date.tonight_short'), short: t('date.tonight_short') },
-                { d: 'tomorrow' as DateFilter, label: t('date.tomorrow') },
-                { d: 'weekend' as DateFilter, label: '🎉 ' + t('date.weekend'), short: t('date.weekend') },
-                { d: 'week' as DateFilter, label: t('date.week_short') },
-              ]}
-              active={customDate || customDateEnd ? null : dateFilter}
-              customLabel={customDate
-                ? '📅 ' + new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
-                  + (customDateEnd ? '–' + new Date(customDateEnd + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' }) : '')
-                // Ikkuna jota valikko ei tunne (esim. month) EI saa pudota
-                // "Tänään"-tekstiin — valikko valehteli näin 6.9.2026 asti.
-                : dateFilter === 'month' ? '📅 ' + t('date.month')
-                : null}
-              onPick={(d) => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
-            />
-            <DatePicker size="md" iconOnly value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
+          <div className="flex flex-col md:flex-row md:items-center gap-2">
+          {/* MOBIILI (HANDOFF-mobiili §2, 24.9.2026): päivächipit vaaka-
+              vieritettävänä rivinä 44 px pillereinä + 📅-chip, ja Lista⇄Kartta
+              koko leveyden kytkimenä alla. Korvaa päivä-pudotusvalikon
+              (MobileDateMenu, 31.8.) ja erillisen kalenteri-ikonin. Aktiivinen
+              chip vieritetään näkyviin (mobiiliChipitRef). Työpöydällä
+              pilleririvi säilyy ennallaan. */}
+          <div ref={mobiiliChipitRef} className="flex md:hidden gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-0.5 items-center min-w-0">
+            {([
+              { d: 'today' as DateFilter, label: t('date.today') },
+              { d: 'tonight' as DateFilter, label: '🌙 ' + t('date.tonight_short') },
+              { d: 'tomorrow' as DateFilter, label: t('date.tomorrow') },
+              { d: 'weekend' as DateFilter, label: '🎉 ' + t('date.weekend') },
+              { d: 'week' as DateFilter, label: t('date.week_short') },
+            ]).map(({ d, label }) => {
+              const on = dateFilter === d && !customDate && !customDateEnd
+              return (
+                <button key={d} data-active-date={on ? '1' : undefined}
+                  onClick={() => { setDateFilter(d); setCustomDate(''); setCustomDateEnd('') }}
+                  className={`shrink-0 h-11 px-[18px] rounded-full text-[14px] font-black whitespace-nowrap transition-all ${on ? 'text-white' : 'text-white/70'}`}
+                  style={on
+                    ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,.4)' }
+                    : { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)' }}>
+                  {label}
+                </button>
+              )
+            })}
+            {/* 📅-chip avaa nykyisen kalenterin; valittu päivä näkyy chipin tekstinä.
+                Kuukausi-ikkuna (laskeutumissivuilta) näytetään omana aktiivisena chippinä. */}
+            {dateFilter === 'month' && !customDate && (
+              <span className="shrink-0 h-11 px-[18px] rounded-full text-[14px] font-black text-white flex items-center" style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>📅 {t('date.month')}</span>
+            )}
+            <DatePicker chip size="md" value={customDate} valueEnd={customDateEnd} onChangeRange={handleRangeChange} onChange={(v) => { setCustomDate(v); setCustomDateEnd(''); setDateFilter(v ? 'custom' : 'today') }} />
           </div>
           <div ref={dateStripRef} className="hidden md:flex gap-2 overflow-x-auto scrollbar-none -ml-4 pl-4 items-center flex-1 min-w-0">
             {([
@@ -1629,7 +1670,7 @@ export default function HomeClient({
             <section className="space-y-4">
               <div className="flex items-center gap-3">
                 <button onClick={() => setKoCat(null)}
-                  className="shrink-0 flex items-center gap-1 px-3.5 py-2 rounded-full text-[13px] font-black text-white/70 hover:text-white transition-all"
+                  className="shrink-0 flex items-center gap-1.5 h-11 px-4 text-[14px] md:h-auto md:px-3.5 md:py-2 md:text-[13px] rounded-full font-black text-white/85 md:text-white/70 hover:text-white transition-all"
                   style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
                   ← {t('common.back')}
                 </button>
@@ -1759,8 +1800,9 @@ export default function HomeClient({
           {!koCat && !guideView && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <>
               {/* Tilarivi: vihreä pulssipiste + päivän tapahtumamäärä */}
+              {/* Mobiilissa sama tieto on HELSINKI-otsikon alarivillä (§2). */}
               {!loading && baseEvents.length > 0 && !keyword && (
-                <div className="flex items-center gap-2 -mb-1">
+                <div className="hidden md:flex items-center gap-2 -mb-1">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#5fd9a6', boxShadow: '0 0 8px rgba(95,217,166,.8)', animation: 'pulse-glow 2s ease-in-out infinite' }} />
                   <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,.55)' }}>
                     {baseEvents.length} {dateFilter === 'today' || dateFilter === 'tonight' ? t('discover.events_today') : t('discover.events_count')}
@@ -1778,30 +1820,45 @@ export default function HomeClient({
                     {/* Otsikko elää päivävalinnan mukana — "Tapahtumat tänään"
                         Huomenna-suodattimella oli virhe */}
                     <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
-                      {t(dateFilter === 'today' || dateFilter === 'tonight' ? 'discover.grid_title'
+                      {/* Illalla-suodattimella "Tapahtumat illalla" (HANDOFF-mobiili §2;
+                          sama otsikkoelementti työpöydällä). */}
+                      {t(dateFilter === 'today' ? 'discover.grid_title'
+                        : dateFilter === 'tonight' ? 'discover.grid_title_tonight'
                         : dateFilter === 'tomorrow' ? 'discover.grid_title_tomorrow'
                         : dateFilter === 'weekend' ? 'discover.grid_title_weekend'
                         : dateFilter === 'week' ? 'discover.grid_title_week'
                         : 'discover.grid_title_generic')}
                     </h2>
-                    <span className="text-[12px] font-bold text-white/30">{t('discover.grid_sub')}</span>
+                    <span className="hidden md:inline text-[12px] font-bold text-white/30">{t('discover.grid_sub')}</span>
                   </div>
+                  {/* MOBIILI (HANDOFF-mobiili §2): 7 kategoriaa + 8. ruutu "+6 lisää",
+                      joka avaa aihepiiripaneelin — se korvaa "Kaikki aihepiirit"
+                      -pillerin. Työpöydällä 8. ruutu on Taide kuten ennen. */}
                   <div className="grid grid-cols-4 gap-2">
-                    {HOME_GRID_TILES.map(({ id, tint }) => {
+                    {HOME_GRID_TILES.map(({ id, tint }, i) => {
                       const vibe = VIBES.find(v => v.id === id)
                       if (!vibe) return null
+                      const viimeinen = i === HOME_GRID_TILES.length - 1
                       return (
                         <button key={id} onClick={() => setKoCat(id)}
-                          className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-4 px-1 transition-transform active:scale-95"
+                          className={`${viimeinen ? 'hidden md:flex' : 'flex'} flex-col items-center justify-center gap-2 md:gap-1.5 min-h-[84px] md:min-h-0 rounded-[16px] py-4 px-1 transition-transform active:scale-95`}
                           style={{
                             background: `radial-gradient(120% 100% at 50% 0%, rgba(${tint},.16), rgba(255,255,255,.03) 70%)`,
                             border: '1px solid rgba(255,255,255,.07)',
                           }}>
-                          <span className="text-[26px] leading-none">{vibe.emoji}</span>
-                          <span className="text-[11px] font-black text-white/85 text-center leading-tight">{t(vibe.tKey as TranslationKey)}</span>
+                          <span className="text-[28px] md:text-[26px] leading-none">{vibe.emoji}</span>
+                          <span className="text-[12px] md:text-[11px] font-black text-white/85 text-center leading-tight">{t(vibe.tKey as TranslationKey)}</span>
                         </button>
                       )
                     })}
+                    <button onClick={() => setShowVibePanel(true)}
+                      aria-label={t('discover.all_vibes')}
+                      className="flex md:hidden flex-col items-center justify-center gap-2 min-h-[84px] rounded-[16px] py-4 px-1 transition-transform active:scale-95"
+                      style={{ background: 'rgba(107,118,255,.08)', border: '1.5px dashed rgba(107,118,255,.45)' }}>
+                      {/* +N = aihepiiripaneelin laatat (VIBES + Ilmaiseksi) miinus näkyvät 7 */}
+                      <span className="text-[24px] leading-none font-black" style={{ color: '#a3abff' }}>+{VIBES.length + 1 - (HOME_GRID_TILES.length - 1)}</span>
+                      <span className="text-[12px] font-black text-center leading-tight" style={{ color: '#a3abff' }}>{t('discover.more_tiles')}</span>
+                    </button>
                   </div>
                   {/* "Kaikki tapahtumat"- ja "Ilmaiseksi"-leveät napit POISTETTU
                       (omistaja 25.8.): Ilmaiseksi on aihepiiripaneelin tiili,
@@ -1813,8 +1870,26 @@ export default function HomeClient({
                   alla, jotta ne näkee ilman koko sivun vieritystä (omistajan
                   pyyntö). Kaupunginosa suodattaa tapahtumat tässä näkymässä,
                   ei vie erilliselle sivulle. */}
+              {/* MOBIILI (HANDOFF-mobiili §2): kaksi rinnakkaista 52 px nappia,
+                  jotka avaavat bottom sheetin (ListSheet alla). Korvaa kolme
+                  pilleriä ja niiden pudotusvalikot; Kaikki aihepiirit on
+                  ruudukon "+6 lisää" -laatassa. */}
               {!loading && baseEvents.length > 0 && (
-                <div className="flex justify-center gap-1 sm:gap-2 pt-1 flex-nowrap sm:flex-wrap">
+                <div className="grid grid-cols-2 gap-2.5 md:hidden">
+                  <button onClick={() => setSheet('hoods')} aria-haspopup="dialog"
+                    className="flex items-center justify-center gap-2 h-[52px] rounded-[16px] text-[15px] font-black text-white transition-transform active:scale-[.98]"
+                    style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+                    <span className="text-[18px] leading-none">📍</span>{t('discover.neighborhoods')}
+                  </button>
+                  <button onClick={() => setSheet('guides')} aria-haspopup="dialog"
+                    className="flex items-center justify-center gap-2 h-[52px] rounded-[16px] text-[15px] font-black text-white transition-transform active:scale-[.98]"
+                    style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+                    <span className="text-[18px] leading-none">🧭</span>{t('discover.guides')}
+                  </button>
+                </div>
+              )}
+              {!loading && baseEvents.length > 0 && (
+                <div className="hidden md:flex justify-center gap-1 sm:gap-2 pt-1 flex-nowrap sm:flex-wrap">
                   <div className="relative">
                     <button onClick={() => { setShowGuideMenu(false); setShowHoodMenu((v) => !v) }}
                       className="flex items-center gap-1 sm:gap-2 px-2 py-2.5 text-[11px] sm:px-5 sm:py-3 sm:text-[13.5px] rounded-full font-black text-white transition-all active:scale-95"
@@ -1882,15 +1957,16 @@ export default function HomeClient({
                   elää aikavälin mukaan; sisältö kuratoitu (kuvalliset/keikat/festarit). */}
               {!loading && bestPicks.length > 0 && (
                 <section>
-                  <div className="flex items-baseline gap-2 mb-3">
-                    <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="flex items-center md:items-baseline gap-2 mb-3">
+                    <h2 className="font-black text-white text-[19px] md:text-[18px]" style={{ letterSpacing: '-0.02em' }}>
                       {picksHeading}
                     </h2>
                     <span className="text-[14px]" style={{ color: '#a3abff' }}>✦</span>
                     {/* Seuraavaksi — pieni linkki otsikon oikealla (omistaja
-                        6.9.2026): ei saa sekoittua ▾-valikkopillereihin. */}
+                        6.9.2026): ei saa sekoittua ▾-valikkopillereihin.
+                        Mobiilissa 44 px napautusalue (HANDOFF-mobiili §2). */}
                     <button onClick={() => { setShowHoodMenu(false); setShowGuideMenu(false); setKoCat('seuraavaksi'); window.scrollTo(0, 0) }}
-                      className="ml-auto shrink-0 text-[13px] font-black transition-colors hover:brightness-125"
+                      className="ml-auto shrink-0 min-h-11 md:min-h-0 py-2.5 md:py-0 text-[14px] md:text-[13px] font-black transition-colors hover:brightness-125"
                       style={{ color: '#a3abff' }}>
                       ⏰ {t('next.pill')} →
                     </button>
@@ -2036,10 +2112,13 @@ export default function HomeClient({
               vaatisi ~90 px. Omistajan vaatimus 25.8.2026: "jos ei mahdu niin
               asetella selkeästi että lisää tapahtuma" — tässä se on tekstinä.
               Yläpalkin nappi näyttää tekstin vasta lg:stä ylöspäin, joten tämä
-              on näkyvissä siihen asti (lg:hidden) — myös iPadilla pystyssä. */}
+              on näkyvissä siihen asti — mutta VAIN md–lg (iPad pystyssä):
+              alle 768 px sama toiminto on ⋯-valikon tekstirivinä "Lisää
+              tapahtuma" (HANDOFF-mobiili §1, 24.9.2026), eikä samaa
+              kontrollia näytetä kahdesti. */}
           <button
             onClick={() => setShowJarjestajaForm(true)}
-            className="lg:hidden w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-[13.5px] font-black text-white/70 border transition-all active:scale-[.99]"
+            className="hidden md:flex lg:hidden w-full items-center justify-center gap-2 py-3.5 rounded-2xl text-[13.5px] font-black text-white/70 border transition-all active:scale-[.99]"
             style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.09)' }}
           >
             <Plus size={16} strokeWidth={2.5} />
@@ -2070,7 +2149,7 @@ export default function HomeClient({
         <main className="px-2 pt-2 pb-0">
           <div className="flex items-center gap-3 px-2 pb-2">
             <button onClick={goBack} aria-label={t('common.back')}
-              className="shrink-0 w-[34px] h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
+              className="shrink-0 w-11 h-11 md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center border transition-all border-white/10 bg-white/8 hover:bg-white/14">
               <ChevronLeft size={18} className="text-white" />
             </button>
             {/* Sama Lista⇄Kartta-kytkin kuin discover-näkymässä — takaisin
@@ -2113,8 +2192,11 @@ export default function HomeClient({
       {mode === 'suunnitelma' && <SuunnitelmaView onAvaaTapahtuma={avaa.plan} onSiirryOsioon={handleTab} />}
 
       {/* ── MOBILE NAV ── */}
+      {/* HANDOFF-mobiili §4: 80 px + safe-area (korkeus KASVAA safe-arealla,
+          jotta iPhonen kotipalkki ei syö napeista mitään), ikoni 22 px,
+          teksti 11 px / 800, Suunnitelma-välilehdessä askelten lukumäärä. */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/7"
-        style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 72, paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        style={{ background: 'rgba(10,10,12,0.94)', backdropFilter: 'blur(18px)', height: 'calc(80px + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="grid grid-cols-5 h-full">
           {([
             { tab: 'discover' as const,     emoji: '🏠', labelKey: 'nav.home'        },
@@ -2126,14 +2208,23 @@ export default function HomeClient({
             const isActive = mobileTab === tab
             return (
               <button key={tab} onClick={() => handleTab(tab)}
-                className="relative flex flex-col items-center justify-center gap-0.5 transition-all"
-                style={{ color: isActive ? '#6b76ff' : 'rgba(255,255,255,0.4)' }}>
-                <span className="text-lg leading-none" style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(91,101,230,.5))' } : {}}>{emoji}</span>
+                className="relative flex flex-col items-center justify-center gap-[5px] transition-all"
+                style={{ color: isActive ? '#6b76ff' : 'rgba(255,255,255,0.55)' }}>
+                <span className="relative text-[22px] leading-none" style={isActive ? { filter: 'drop-shadow(0 0 8px rgba(91,101,230,.5))' } : {}}>
+                  {emoji}
+                  {tab === 'suunnitelma' && suunnitelmaAskeleita > 0 && (
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-[5px] rounded-full text-[10px] font-black flex items-center justify-center text-white"
+                      style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', filter: 'none' }}>
+                      {suunnitelmaAskeleita}
+                    </span>
+                  )}
+                </span>
                 {/* Skaalautuva koko: 5 suomenkielistä sanaa on ahdas rivi, ja
                     iPhonen näytön zoomaus / Safarin sivuzoomi kutistaa loogista
-                    leveyttä — kiinteä 10px leikkasi "Suunnitelma"-sanan
-                    (omistajan havainto 6.9.2026). clamp pitää tekstin lokerossaan. */}
-                <span className="font-bold whitespace-nowrap" style={{ fontSize: 'clamp(8px, 2.7vw, 10px)' }}>{t(labelKey)}</span>
+                    leveyttä — kiinteä koko leikkasi "Suunnitelma"-sanan
+                    (omistajan havainto 6.9.2026). clamp pitää tekstin lokerossaan;
+                    yläraja 11 px HANDOFFin mukaan. */}
+                <span className="font-extrabold whitespace-nowrap" style={{ fontSize: 'clamp(9px, 2.9vw, 11px)', letterSpacing: '-0.01em' }}>{t(labelKey)}</span>
               </button>
             )
           })}
@@ -2152,6 +2243,36 @@ export default function HomeClient({
         onClose={() => setShowVibePanel(false)}
         onShowAll={() => { setKoCat('kaikki'); setShowVibePanel(false) }}
       />
+
+      {/* Mobiilin bottom sheetit (HANDOFF-mobiili §1, §2, §9). Renderöidään
+          vain kun tarvitaan — ListSheet on aina DOM:issa auki/kiinni-
+          animaation takia, mutta kolme suljettua sheetiä on halpa. */}
+      <ListSheet open={sheet === 'more'} onClose={() => setSheet(null)} title={t('more.title')}
+        rivit={[
+          { id: 'lang', emoji: '🌐', title: t('more.lang'), sub: t('more.lang_sub'), onClick: () => { setSheet(null); kieli.handle() } },
+          { id: 'add', emoji: '➕', title: t('form.add_event_cta'), sub: t('more.add_event_sub'), onClick: () => { setSheet(null); setShowJarjestajaForm(true) } },
+          { id: 'notif', emoji: '🔔', title: t('more.notif_title'), sub: pushEnabled ? t('more.notif_sub_on') : t('more.notif_sub'), active: pushEnabled, onClick: () => { setSheet(null); void handleBellClick() } },
+          // Asennettuna rivi puuttuu — sama sääntö kuin yläpalkin napilla.
+          ...(asennus.installed ? [] : [{ id: 'install', emoji: '📲', title: t('dl.nav'), sub: t('more.install_sub'), onClick: () => { setSheet(null); void asennus.install() } }]),
+        ]} />
+      <ListSheet open={sheet === 'hoods'} onClose={() => setSheet(null)} title={t('discover.neighborhoods')}
+        rivit={NEIGHBORHOODS.map((n) => ({
+          id: n.id, emoji: n.emoji, title: n.name, sub: t(n.vibeKey), active: hoodFilter === n.id,
+          onClick: () => { setSheet(null); setHoodFilter(n.id); window.scrollTo(0, 0) },
+        }))} />
+      <ListSheet open={sheet === 'guides'} onClose={() => setSheet(null)} title={t('discover.guides')}
+        rivit={(Object.keys(GUIDE_META) as GuideSlug[]).map((slug) => {
+          const g = GUIDE_META[slug]
+          return {
+            id: slug, emoji: g.emoji, title: t(g.titleKey), sub: t(g.subKey), active: guideView === slug,
+            // Sama mittaus kuin työpöydän valikossa; opas avautuu etusivun sisällä.
+            onClick: () => { track('guide_open', { label: slug }); setSheet(null); setGuideView(slug) },
+          }
+        })} />
+      {/* Toast "✓ Lisätty suunnitelmaan" + Näytä (HANDOFF-mobiili §5): Näytä
+          sulkee paneelin ja avaa Suunnitelma-välilehden. Osiovaihto purkaa
+          myös Ravintolat-/opasnäkymän omat paneelit. */}
+      <ToastHost onToiminto={(tyyppi) => { if (tyyppi === 'nayta-suunnitelma') { setSelectedEvent(null); handleTab('suunnitelma') } }} />
 
       <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}
         onShowVenueEvents={showVenueEvents}/>
@@ -2181,15 +2302,18 @@ export default function HomeClient({
 // on laitekohtaiset ohjeet (iPhonelle asennus on AINA käsin Jaa-valikosta —
 // Apple ei tarjoa asennus-APIa, joten suoraa nappia ei voi olla olemassa).
 const alwaysFalse = () => false
+const nolla = () => 0
+const lueSuunnitelmaMaara = () => lueSuunnitelma().askeleet.length
 
-function InstallHeaderButton() {
-  const { t, lang } = useLanguage()
+/** Asennustoiminto hookkina: sama logiikka työpöydän yläpalkin napille ja
+ *  mobiilin ⋯-valikon "Lataa sovellus" -riville (HANDOFF-mobiili §1). */
+function useInstallAction() {
+  const { lang } = useLanguage()
   const router = useRouter()
   const prompt = useSyncExternalStore(subscribeInstall, getInstallPrompt, getInstallPromptServer)
   const installed = useSyncExternalStore(subscribeInstall, isInstalled, alwaysFalse)
-  if (installed) return null
 
-  async function handleClick() {
+  async function install() {
     if (prompt) {
       await prompt.prompt()
       const { outcome } = await prompt.userChoice
@@ -2203,6 +2327,13 @@ function InstallHeaderButton() {
     }
     router.push(lang === 'en' ? '/en/download' : '/lataa')
   }
+  return { installed, install }
+}
+
+function InstallHeaderButton() {
+  const { t } = useLanguage()
+  const { installed, install: handleClick } = useInstallAction()
+  if (installed) return null
 
   return (
     <button onClick={handleClick} title={t('dl.nav')} aria-label={t('dl.nav')}
@@ -2212,52 +2343,11 @@ function InstallHeaderButton() {
   )
 }
 
-// ── Mobiilin päivävalikko ───────────────────────────────────────────────────
-// Vaakavieritettävä pilleririvi ei toiminut kännykällä: "Viikonloppu" ja
-// kalenteri jäivät ruudun ulkopuolelle eikä niitä löytänyt (omistaja 31.8.2026,
-// kuvakaappaus). Nyt näkyvissä on aktiivinen valinta ja ▾-valikko — kaikki
-// vaihtoehdot yhden napautuksen takana, mitään ei tarvitse vierittää sivulle.
-function MobileDateMenu({ options, active, customLabel, onPick }: {
-  options: { d: DateFilter; label: string; short?: string }[]
-  /** null kun kalenteripäivä on valittuna — silloin mikään pilleri ei ole aktiivinen */
-  active: DateFilter | null
-  /** Kalenterivalinnan teksti nappiin ("📅 5.9."), null kun pikavalinta käytössä */
-  customLabel: string | null
-  onPick: (d: DateFilter) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const valittu = options.find((o) => o.d === active)
-  const label = customLabel ?? valittu?.short ?? valittu?.label ?? options[0].label
-  return (
-    <div className="relative shrink-0">
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-black text-white transition-all"
-        style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,.4)' }}>
-        {label}
-        <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <>
-          {/* Näkymätön tausta: napautus muualle sulkee valikon */}
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-2 z-40 min-w-[210px] rounded-2xl border border-white/10 p-1.5"
-            style={{ background: 'rgba(16,16,20,.98)', backdropFilter: 'blur(18px)', boxShadow: '0 18px 44px -10px rgba(0,0,0,.75)' }}>
-            {options.map((o) => {
-              const on = !customLabel && active === o.d
-              return (
-                <button key={o.d} onClick={() => { onPick(o.d); setOpen(false) }}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all ${on ? 'text-white' : 'text-white/60 hover:text-white hover:bg-white/6'}`}
-                  style={on ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)' } : {}}>
-                  {o.label}
-                </button>
-              )
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
+// Mobiilin päivä-PUDOTUSVALIKKO (MobileDateMenu, 31.8.2026) poistettiin
+// 24.9.2026: HANDOFF-mobiili §2 palautti vaakavieritettävän chippirivin 44 px
+// pillereinä, ja aktiivinen chip vieritetään näkyviin (mobiiliChipitRef) —
+// se oli alkuperäisen pilleririvin ongelma ("Viikonloppu jäi ruudun
+// ulkopuolelle").
 
 // ── Lista⇄Kartta-kytkin ─────────────────────────────────────────────────────
 // Kartta on saman suodatetun listan näkymätila, ei erillinen piilossa oleva
@@ -2270,12 +2360,14 @@ function ListMapToggle({ view, onList, onMap }: {
   onMap?: () => void
 }) {
   const { t } = useLanguage()
+  // Mobiilissa koko leveyden segmenttikytkin (2 × 42 px, HANDOFF-mobiili §2),
+  // työpöydällä kompakti pilleri kuten ennen.
   return (
-    <div className="flex shrink-0 rounded-full p-0.5 border border-white/10" style={{ background: 'rgba(255,255,255,0.05)' }}>
+    <div className="flex w-full md:w-auto shrink-0 rounded-full p-[3px] md:p-0.5 border border-white/10" style={{ background: 'rgba(255,255,255,0.05)' }}>
       {([['list', '📋', 'map.toggle_list'], ['map', '🗺', 'map.toggle_map']] as const).map(([v, emoji, key]) => (
         <button key={v}
           onClick={v === 'list' ? onList : onMap}
-          className={`px-3 py-1.5 rounded-full text-xs font-black transition-all whitespace-nowrap ${view === v ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+          className={`flex-1 md:flex-none h-[42px] md:h-auto px-3 md:py-1.5 rounded-full text-[14px] md:text-xs font-black transition-all whitespace-nowrap ${view === v ? 'text-white' : 'text-white/55 md:text-white/40 hover:text-white/70'}`}
           style={view === v ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 2px 10px -2px rgba(91,101,230,.5)' } : {}}>
           {emoji} {t(key)}
         </button>

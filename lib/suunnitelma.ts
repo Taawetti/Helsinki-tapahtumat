@@ -62,6 +62,13 @@ export interface SuunnitelmaAskel {
   /** OSM opening_hours aukiolotarkistuksiin (ravintolat, opaskohteet). */
   aukiolot?: string | null
   rooli: AskelRooli
+  /** Ravintolan TYYPPIKOHTAINEN oletuskellonaika "HH:MM" (ruokapaikat 18.00,
+   *  kahvilat 15.00, baarit 23.00, yökerhot 00.30 — HANDOFF-mobiili §6).
+   *  Käytetään VAIN kun askel on suunnitelman ensimmäinen eikä käyttäjä ole
+   *  asettanut aloitusaikaa: ketjun muut askeleet saavat aikansa sovittimesta
+   *  (edellisen loppu + siirtymä), jotta ilta etenee järjestyksessä eikä
+   *  jokainen ravintola hyppää omaan vakioaikaansa. */
+  oletusKlo?: string
   /** Infokortti: lyhyt kuvaus + turvallinen lisätietolinkki — talletetaan
    *  lisäyshetkellä, jotta myös JAETTU suunnitelma voi näyttää ne. */
   kuvaus?: string
@@ -185,6 +192,10 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
     : eka.ankkuriISO && !tuntematonAika(eka.ankkuriISO)
       ? ankkuriTunti(eka.ankkuriISO)
       : null
+  // Ensimmäisen askeleen tyyppikohtainen oletusaika (ravintolat): tänään
+  // vain jos se ei ole jo mennyt — muuten "nyt + 30 min" kuten ennen.
+  const ekaOletus = eka.oletusKlo ? oletusTunti(eka.oletusKlo) : null
+  let oletusKaytossa = false
   if (alkuKasin !== null) {
     kursori = alkuKasin
   } else if (ekaKiinnitetty !== null) {
@@ -192,6 +203,10 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
   } else if (tanaan) {
     // Tänään: seuraava tasavartti + puoli tuntia valmistautumiseen.
     kursori = Math.ceil((kello.hour + 0.5) * 4) / 4
+    if (ekaOletus !== null && ekaOletus >= kursori) { kursori = ekaOletus; oletusKaytossa = true }
+  } else if (ekaOletus !== null) {
+    kursori = ekaOletus
+    oletusKaytossa = true
   } else {
     kursori = 18
   }
@@ -241,7 +256,9 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
     }
 
     if (!varoitus && tanaan && klo + 0.05 < kello.hour) varoitus = 'mennyt'
-    if (!varoitus && klo > ARC_END_CAP_H) varoitus = 'myohaan'
+    // Yökerhon oma oletus 00.30 on tarkoituksella myöhään — siitä ei varoiteta.
+    const omaMyohainenOletus = oletusKaytossa && edellinen === null && Math.abs(klo - kursori) < 0.01
+    if (!varoitus && klo > ARC_END_CAP_H && !omaMyohainenOletus) varoitus = 'myohaan'
 
     tulos.push({ askel, klo: tunnitKloksi(klo), kavelyMin, varoitus })
     // Jatko lasketaan ajasta jonka käyttäjä NÄKEE — kiinnitetty aika on
@@ -250,6 +267,15 @@ export function sovitaAjat(s: Suunnitelma, nyt: Date): SovitettuAskel[] {
     edellinen = askel
   }
   return tulos
+}
+
+/** "HH:MM" → desimaalitunti; alle klo 05 tulkitaan seuraavan vuorokauden
+ *  puolelle (00:30 → 24.5), jotta yökerho asettuu illan JATKOKSI eikä
+ *  aamuyöhön ennen illallista. */
+function oletusTunti(klo: string): number | null {
+  const h = kloTunneiksi(klo)
+  if (h === null) return null
+  return h < 5 ? h + 24 : h
 }
 
 function kelloksi(paiva: Date, h: number): Date {
@@ -351,8 +377,11 @@ function riisuHtml(s: string): string {
     .trim()
 }
 
-export function lisaaTapahtuma(e: Event): boolean {
-  return lisaaAskel({
+/** Tapahtuma askeleeksi — PUHDAS rakentaja, ei kirjoita varastoon. Käytetään
+ *  sekä keräilynapista (lisaaTapahtuma) että valmiista illan rungoista
+ *  (lib/illan-rungot), jotta askel on täsmälleen sama molemmista poluista. */
+export function tapahtumaAskel(e: Event): Omit<SuunnitelmaAskel, 'id'> {
+  return {
     tyyppi: 'tapahtuma',
     viiteId: e.id,
     nimi: e.title,
@@ -373,11 +402,26 @@ export function lisaaTapahtuma(e: Event): boolean {
     loppuISO: e.endTime || undefined,
     hinta: e.isFree ? 'Maksuton' : e.price || undefined,
     data: { laji: 'tapahtuma', tapahtuma: e },
-  }, helsinkiPaivaISO(e.startTime))
+  }
 }
 
-export function lisaaRavintola(r: Restaurant, tyyli?: { cp: string; color: string }): boolean {
-  return lisaaAskel({
+export function lisaaTapahtuma(e: Event): boolean {
+  return lisaaAskel(tapahtumaAskel(e), helsinkiPaivaISO(e.startTime))
+}
+
+/** Ravintolatyypin oletuskellonaika aikajanalle (HANDOFF-mobiili §6). */
+export function oletusKloTyypille(type: Restaurant['type']): string {
+  switch (type) {
+    case 'kahvila': return '15:00'
+    case 'baari': return '23:00'
+    case 'yokerho': return '00:30'
+    default: return '18:00'
+  }
+}
+
+/** Ravintola askeleeksi — puhdas rakentaja, ks. tapahtumaAskel. */
+export function ravintolaAskel(r: Restaurant, tyyli?: { cp: string; color: string }): Omit<SuunnitelmaAskel, 'id'> {
+  return {
     tyyppi: 'ravintola',
     viiteId: r.id,
     nimi: r.name,
@@ -387,6 +431,7 @@ export function lisaaRavintola(r: Restaurant, tyyli?: { cp: string; color: strin
     kuva: r.image,
     aukiolot: r.openingHours,
     rooli: r.type === 'baari' || r.type === 'yokerho' ? 'drinkit' : 'ruoka',
+    oletusKlo: oletusKloTyypille(r.type),
     // blurb on toimituksellinen esittely; description on raaka OSM-keittiö-
     // stringi ("french") eikä kelpaa kuvaukseksi.
     kuvaus: riisuHtml(r.blurb || '').slice(0, 4000) || undefined,
@@ -396,7 +441,11 @@ export function lisaaRavintola(r: Restaurant, tyyli?: { cp: string; color: strin
     arvosana: r.googleRating,
     arvosteluja: r.reviewCount,
     data: { laji: 'ravintola', ravintola: r, tyyli },
-  })
+  }
+}
+
+export function lisaaRavintola(r: Restaurant, tyyli?: { cp: string; color: string }): boolean {
+  return lisaaAskel(ravintolaAskel(r, tyyli))
 }
 
 export function lisaaPaikka(p: PaikkaTieto & { description?: string | null }, guideSlug = ''): boolean {

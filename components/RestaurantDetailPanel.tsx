@@ -20,6 +20,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { tilaaSuunnitelma, onSuunnitelmassa, poistaViitteella, lisaaRavintola } from '@/lib/suunnitelma'
+import { naytaToast } from '@/lib/toast'
 
 const PRICE_LABELS = ['', '€', '€€', '€€€', '€€€€']
 
@@ -120,7 +121,8 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
   const suunnitelmaKlik = () => {
     if (!r) return
     if (suunnitelmassa) poistaViitteella(r.id)
-    else if (!lisaaRavintola(r, tyyli)) alert(t('plan.full'))
+    else if (lisaaRavintola(r, tyyli)) naytaToast({ teksti: t('plan.toast_added'), toiminto: { label: t('plan.toast_show'), tyyppi: 'nayta-suunnitelma' } })
+    else alert(t('plan.full'))
   }
 
 
@@ -243,7 +245,7 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0e1117] via-black/20 to-transparent" />
           <button onClick={handleClose} aria-label={t('detail.close')}
-            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors">
+            className="absolute top-4 right-4 p-3.5 md:p-2 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors">
             <X size={16} />
           </button>
           {r.michelinStars ? (
@@ -261,36 +263,58 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
         <div className="p-6 space-y-5">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[.12em] text-white/35">{kicker}</p>
-            <h2 className="text-xl font-bold text-white leading-tight mt-1">{r.name}</h2>
+            <h2 className="text-[22px] md:text-xl font-extrabold md:font-bold text-white leading-[1.25] md:leading-tight mt-1" style={{ letterSpacing: '-0.02em' }}>{r.name}</h2>
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               {tieto.tila !== 'tuntematon' && (
                 tieto.tila === 'auki' ? (
                   tieto.pian ? (
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400">● {t('hours.closing_soon')}</span>
+                    <span className="text-[12px] md:text-[10px] font-black px-2.5 py-1 md:px-2 md:py-0.5 rounded-full bg-amber-500/15 text-amber-400">● {t('hours.closing_soon')}</span>
                   ) : (
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                    <span className="text-[12px] md:text-[10px] font-black px-2.5 py-1 md:px-2 md:py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
                       ● {t('common.open')}{tieto.klo ? ` → ${tieto.klo}` : ''}
                     </span>
                   )
                 ) : (
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/60">
+                  <span className="text-[12px] md:text-[10px] font-black px-2.5 py-1 md:px-2 md:py-0.5 rounded-full bg-white/6 text-white/60">
                     ○ {tieto.klo ? `${t('hours.opens')} ${tieto.klo}` : t('common.closed')}
                   </span>
                 )
               )}
               {r.priceRange && (
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/6 text-white/45">{PRICE_LABELS[r.priceRange]}</span>
+                <span className="text-[12px] md:text-[10px] font-black px-2.5 py-1 md:px-2 md:py-0.5 rounded-full bg-white/6 text-white/45">{PRICE_LABELS[r.priceRange]}</span>
               )}
               {r.googleRating && (
-                <span className="text-[11px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>
+                <span className="text-[12px] md:text-[11px] font-black px-2.5 py-1 md:px-2 md:py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>
                   ⭐ {r.googleRating.toFixed(1)}
                   {r.reviewCount ? <span className="font-normal opacity-70"> ({r.reviewCount > 999 ? `${(r.reviewCount / 1000).toFixed(1)}${t('restaurants.thousand_suffix')}` : r.reviewCount})</span> : null}
                 </span>
               )}
               {google?.isClaimed && (
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-500/12 text-sky-300/90">{t('restaurants.verified')}</span>
+                <span className="text-[12px] md:text-[10px] font-black px-2.5 py-1 md:px-2 md:py-0.5 rounded-full bg-sky-500/12 text-sky-300/90">{t('restaurants.verified')}</span>
               )}
             </div>
+          </div>
+
+          {/* MOBIILI: kaksi rinnakkaista 52 px pääpainiketta heti merkkirivin
+              alla — sama paikka kuin tapahtumapaneelissa (HANDOFF-mobiili §6):
+              vasemmalla Nettisivu, oikealla Lisää suunnitelmaan. Työpöydällä
+              samat napit pysyvät alaosan CTA-lohkossa. */}
+          <div className="grid grid-cols-2 gap-2.5 md:hidden">
+            {www && (
+              <a href={www} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 h-[52px] rounded-[14px] text-white font-extrabold text-[15px] transition-colors"
+                style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.6)' }}>
+                <Globe size={17} />
+                <span className="truncate">{t('common.website')}</span>
+              </a>
+            )}
+            <button onClick={suunnitelmaKlik}
+              className={`flex items-center justify-center gap-2 h-[52px] px-2 rounded-[14px] font-extrabold text-[15px] leading-tight text-center transition-all active:scale-[.99] ${www ? '' : 'col-span-2'}`}
+              style={suunnitelmassa
+                ? { background: 'rgba(107,118,255,.14)', border: '1.5px solid rgba(107,118,255,.7)', color: '#c7caff' }
+                : { background: 'rgba(107,118,255,.08)', border: '1.5px solid rgba(107,118,255,.45)', color: '#a3abff' }}>
+              {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
+            </button>
           </div>
 
           {/* Metakortti — sama pohja kuin tapahtuma- ja paikkapaneeleissa */}
@@ -456,23 +480,26 @@ export default function RestaurantDetailPanel({ r, tyyli, onClose, onShowOnMap }
               virtaan. Varaaminen = Nettisivu (ravintolan oma varaus) tai
               puhelinnumero metakortissa — suomalainen tapa. */}
           <div className="flex flex-col gap-2.5 pt-1">
-            {/* Lisää suunnitelmaan — Suunnitelma-välilehden keräilynappi. */}
-            <button onClick={suunnitelmaKlik}
-              className="w-full py-3 rounded-xl font-black text-[13.5px] transition-all active:scale-[.99]"
-              style={suunnitelmassa
-                ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.4)', color: '#a3abff' }
-                : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.85)' }}>
-              {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
-            </button>
-            {www && (
-              <a href={www} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
-                style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                <Globe size={15} />
-                <span className="truncate">{t('common.website')}</span>
-                <ExternalLink size={13} className="opacity-70 shrink-0" />
-              </a>
-            )}
+            {/* TYÖPÖYTÄ: Lisää suunnitelmaan + Nettisivu alaosassa kuten ennen;
+                mobiilissa ne ovat merkkirivin alla (yllä) → tässä piilossa. */}
+            <div className="hidden md:contents">
+              <button onClick={suunnitelmaKlik}
+                className="w-full py-3 rounded-xl font-black text-[13.5px] transition-all active:scale-[.99]"
+                style={suunnitelmassa
+                  ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.4)', color: '#a3abff' }
+                  : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.85)' }}>
+                {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
+              </button>
+              {www && (
+                <a href={www} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
+                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
+                  <Globe size={15} />
+                  <span className="truncate">{t('common.website')}</span>
+                  <ExternalLink size={13} className="opacity-70 shrink-0" />
+                </a>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {onShowOnMap && r.lat && r.lon ? (
                 <button onClick={() => { onShowOnMap(r.lat!, r.lon!, r.name); handleClose() }}

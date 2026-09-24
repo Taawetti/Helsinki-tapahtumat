@@ -21,13 +21,18 @@ interface Props {
   onSelectVenue?: (name: string) => void
   onSelectActivity?: (id: string) => void
   onSelectRestaurant?: (id: string) => void
+  /** 'lg' = mobiilin yläpalkin kenttä (HANDOFF-mobiili §1): 48 px korkea,
+   *  14 px kulmat, isompi hakuikoni. Oletus 'md' = työpöydän kenttä. */
+  size?: 'md' | 'lg'
 }
 
 export default function SearchBar({
   value, onChange,
   venueHits = [], activityHits = [], restaurantHits = [],
   onSelectVenue, onSelectActivity, onSelectRestaurant,
+  size = 'md',
 }: Props) {
+  const lg = size === 'lg'
   const inputRef = useRef<HTMLInputElement>(null)
   const [focused, setFocused] = useState(false)
   const { t } = useLanguage()
@@ -47,7 +52,7 @@ export default function SearchBar({
 
   return (
     <div className="relative w-full max-w-md">
-      <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+      <Search size={lg ? 18 : 15} className={`absolute ${lg ? 'left-4 text-white/35' : 'left-3.5 text-white/30'} top-1/2 -translate-y-1/2 pointer-events-none`} />
       <input
         ref={inputRef}
         type="text"
@@ -58,7 +63,9 @@ export default function SearchBar({
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={t('search.placeholder')}
         aria-label={t('search.placeholder')}
-        className="w-full border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:border-[#6b76ff]/60 transition-all"
+        className={`w-full border border-white/10 placeholder:text-white/30 focus:outline-none focus:border-[#6b76ff]/60 transition-all ${
+          lg ? 'rounded-[14px] h-12 pl-11 pr-11 text-[15px]' : 'rounded-xl pl-9 pr-9 py-2.5 text-sm'
+        }`}
         style={{
           color: '#fff',
           WebkitTextFillColor: '#fff',
@@ -69,7 +76,7 @@ export default function SearchBar({
       {value && (
         <button
           onClick={() => onChange('')}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+          className={`absolute ${lg ? 'right-1 w-11 h-11 flex items-center justify-center' : 'right-3'} top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors`}
           aria-label={t('common.clear')}
         >
           <X size={14} />

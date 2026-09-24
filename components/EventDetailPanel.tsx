@@ -16,6 +16,7 @@ import { VENUE_PAGES } from '@/lib/venue-pages'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { tilaaSuunnitelma, onSuunnitelmassa, poistaViitteella, lisaaTapahtuma } from '@/lib/suunnitelma'
+import { naytaToast } from '@/lib/toast'
 
 interface Props {
   event: Event | null
@@ -82,7 +83,10 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   const suunnitelmaKlik = () => {
     if (!event) return
     if (suunnitelmassa) poistaViitteella(event.id)
-    else if (!lisaaTapahtuma(event)) alert(t('plan.full'))
+    // Toast (HANDOFF-mobiili §5): "✓ Lisätty suunnitelmaan" + Näytä — piirtyy
+    // HomeClientin ToastHostissa, vain mobiilissa.
+    else if (lisaaTapahtuma(event)) naytaToast({ teksti: t('plan.toast_added'), toiminto: { label: t('plan.toast_show'), tyyppi: 'nayta-suunnitelma' } })
+    else alert(t('plan.full'))
   }
 
 
@@ -213,6 +217,93 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   const ctaTyyppi = ctaKohde(ulkoinenUrl, venueSite, paikanTapahtumatSaatavilla)
   const naytaKuvaus = naytettavaKuvaus(event)
 
+  // ── Pääpainikkeet (HANDOFF-mobiili §5) ──────────────────────────────────
+  // Mobiilissa HETI otsikon alla kaksi rinnakkaista 52 px nappia: vasemmalla
+  // lipun/lisätiedon CTA, oikealla "Lisää suunnitelmaan". Työpöydällä samat
+  // napit pysyvät paneelin alaosassa entisessä muodossaan. Sama JSX-rakentaja
+  // molemmille, jotta mittaus (ticket_click/external_click/venue_events) ja
+  // kaskadi (ctaKohde) pysyvät yhdessä paikassa.
+  const paaNappi = (mobiili: boolean) => {
+    const kuori = mobiili
+      ? 'flex items-center justify-center gap-2 h-[52px] rounded-[14px] bg-[#0072C6] hover:bg-[#0060a8] text-white font-extrabold text-[15px] transition-colors'
+      : 'flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors'
+    if (ctaTyyppi === 'paikan_tapahtumat') {
+      /* Kun tapahtumasta ei tiedetä linkkiä eikä paikan sivua, päänappi on
+         SOVELLUKSEN OMA toiminto eikä hakukone (ks. lib/event-links ctaKohde).
+         onShowVenueEvents sulkee paneelin itse. */
+      return (
+        <button
+          onClick={() => {
+            track('venue_events', { surface: 'detail', eventId: event.id, label: paikanNimi })
+            onShowVenueEvents?.(paikanNimi)
+          }}
+          className={kuori}
+        >
+          <CalendarDays size={15} />
+          <span className="truncate">{t('detail.venue_events')}</span>
+        </button>
+      )
+    }
+    if (ctaTyyppi !== 'ulkoinen' && ctaTyyppi !== 'paikan_sivu') return null
+    const external = ctaTyyppi === 'ulkoinen' ? ulkoinenUrl : null
+    const href = external ?? venueSite!
+    const label = external
+      ? (canBuyTickets(event) ? t('detail.buy_tickets') : t('detail.read_more'))
+      : `${paikanNimi || t('detail.venue_site')} →`
+    return (
+      /* TÄRKEIN MITATTAVA. Erotellaan oikea lippukauppa (ticket_click)
+         muusta uloslinkistä (external_click): vain lippukauppaklikki on
+         myyntiargumentti. Erottelun tekee canBuyTickets — sama portti
+         joka päättää näkyykö "Osta liput" lainkaan.
+
+         HUOM: linkki vie käyttäjän POIS sivulta, joten tavallinen fetch
+         ehdittäisiin perua. lib/track lähettää poistuttaessa
+         sendBeaconilla, joka jää selaimen hoidettavaksi. */
+      <a
+        href={external ? (affiliateUrl(external) || external) : href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => {
+          const kohde = external ? (affiliateUrl(external) || external) : href
+          let domain = ''
+          try { domain = new URL(kohde).hostname.replace(/^www\./, '') } catch { /* ei osoite */ }
+          track(external && canBuyTickets(event) ? 'ticket_click' : 'external_click', {
+            surface: 'detail',
+            eventId: event.id,
+            label: event.title,
+            meta: domain,
+          })
+        }}
+        className={kuori}
+      >
+        {external ? <Ticket size={15} /> : <Globe size={15} />}
+        <span className="truncate">{label}</span>
+        <ExternalLink size={13} className="opacity-70 shrink-0" />
+      </a>
+    )
+  }
+  /** Lisää suunnitelmaan — Suunnitelma-välilehden keräilynappi. Mobiilissa
+   *  HANDOFFin tyyli (aksenttireunus 1.5 px, lisättynä ✓ ja vaaleampi teksti);
+   *  taysi = ainoa nappi rivillä (ei CTA:ta) → koko leveys. */
+  const suunnitelmaNappi = (mobiili: boolean, taysi = false) => mobiili ? (
+    <button onClick={suunnitelmaKlik}
+      className={`flex items-center justify-center gap-2 h-[52px] px-2 rounded-[14px] font-extrabold text-[15px] leading-tight text-center transition-all active:scale-[.99] ${taysi ? 'col-span-2' : ''}`}
+      style={suunnitelmassa
+        ? { background: 'rgba(107,118,255,.14)', border: '1.5px solid rgba(107,118,255,.7)', color: '#c7caff' }
+        : { background: 'rgba(107,118,255,.08)', border: '1.5px solid rgba(107,118,255,.45)', color: '#a3abff' }}>
+      {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
+    </button>
+  ) : (
+    <button onClick={suunnitelmaKlik}
+      className="w-full py-3 rounded-xl font-black text-[13.5px] transition-all active:scale-[.99]"
+      style={suunnitelmassa
+        ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.4)', color: '#a3abff' }
+        : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.85)' }}>
+      {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
+    </button>
+  )
+  const mobiiliCta = paaNappi(true)
+
   const shareText = buildShareText(event)
   // Jakolinkki: oma tapahtumasivu kun /e/[id] osaa sen ratkaista, muuten
   // ulkoinen linkki — mutta EI KOSKAAN kilpailevaan tapahtumakalenteriin
@@ -284,7 +375,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
           <div className="absolute top-4 right-4 flex gap-2">
             <button
               onClick={handleNativeShare}
-              className="p-2 bg-black/50 hover:bg-black/80 backdrop-blur-sm rounded-full text-white/70 hover:text-white transition-colors"
+              className="p-3.5 md:p-2 bg-black/50 hover:bg-black/80 backdrop-blur-sm rounded-full text-white/70 hover:text-white transition-colors"
               aria-label={t('detail.share_label')}
             >
               <Share2 size={16} />
@@ -295,14 +386,14 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
                 background: fav ? '#ec4899' : 'rgba(0,0,0,0.5)',
                 color: fav ? '#fff' : 'rgba(255,255,255,0.7)',
               }}
-              className="p-2 rounded-full transition-all"
+              className="p-3.5 md:p-2 rounded-full transition-all"
               aria-label={t('detail.save_fav')}
             >
               <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
             </button>
             <button
               onClick={handleClose}
-              className="p-2 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors"
+              className="p-3.5 md:p-2 bg-black/50 hover:bg-black/80 rounded-full text-white transition-colors"
               aria-label={t('detail.close')}
             >
               <X size={16} />
@@ -318,7 +409,14 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
 
         {/* Content */}
         <div className="p-6 space-y-5">
-          <h2 className="text-xl font-bold text-white leading-tight">{event.title}</h2>
+          <h2 className="text-[22px] md:text-xl font-extrabold md:font-bold text-white leading-[1.25] md:leading-tight" style={{ letterSpacing: '-0.02em' }}>{event.title}</h2>
+
+          {/* MOBIILI: pääpainikkeet heti otsikon alla (HANDOFF-mobiili §5).
+              Sama paikka kuin ravintolapaneelissa. */}
+          <div className="grid grid-cols-2 gap-2.5 md:hidden">
+            {mobiiliCta}
+            {suunnitelmaNappi(true, !mobiiliCta)}
+          </div>
 
           {/* Meta card */}
           <div className="space-y-3 bg-white/4 rounded-xl p-4 border border-white/6">
@@ -439,67 +537,12 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
               ei jää umpikujaksi (näillä tapahtumilla on mitatusti kuvaus vain
               31 %:lla ja kuva 11 %:lla, joten paneelissa ei ole muuta luettavaa). */}
           <div className="flex flex-col gap-2.5 pt-1">
-            {/* Lisää suunnitelmaan — Suunnitelma-välilehden keräilynappi. */}
-            <button onClick={suunnitelmaKlik}
-              className="w-full py-3 rounded-xl font-black text-[13.5px] transition-all active:scale-[.99]"
-              style={suunnitelmassa
-                ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.4)', color: '#a3abff' }
-                : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.85)' }}>
-              {suunnitelmassa ? `✓ ${t('plan.added')}` : `🗓 ${t('plan.add')}`}
-            </button>
-            {ctaTyyppi === 'paikan_tapahtumat' && (
-              /* Kun tapahtumasta ei tiedetä linkkiä eikä paikan sivua, päänappi
-                 on SOVELLUKSEN OMA toiminto eikä hakukone (ks. lib/event-links
-                 ctaKohde). onShowVenueEvents sulkee paneelin itse. */
-              <button
-                onClick={() => {
-                  track('venue_events', { surface: 'detail', eventId: event.id, label: paikanNimi })
-                  onShowVenueEvents?.(paikanNimi)
-                }}
-                className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
-              >
-                <CalendarDays size={15} />
-                <span className="truncate">{t('detail.venue_events')}</span>
-              </button>
-            )}
-            {(ctaTyyppi === 'ulkoinen' || ctaTyyppi === 'paikan_sivu') && (() => {
-              const external = ctaTyyppi === 'ulkoinen' ? ulkoinenUrl : null
-              const href = external ?? venueSite!
-              const label = external
-                ? (canBuyTickets(event) ? t('detail.buy_tickets') : t('detail.read_more'))
-                : `${paikanNimi || t('detail.venue_site')} →`
-              return (
-                /* TÄRKEIN MITATTAVA. Erotellaan oikea lippukauppa (ticket_click)
-                   muusta uloslinkistä (external_click): vain lippukauppaklikki on
-                   myyntiargumentti. Erottelun tekee canBuyTickets — sama portti
-                   joka päättää näkyykö "Osta liput" lainkaan.
-
-                   HUOM: linkki vie käyttäjän POIS sivulta, joten tavallinen fetch
-                   ehdittäisiin perua. lib/track lähettää poistuttaessa
-                   sendBeaconilla, joka jää selaimen hoidettavaksi. */
-                <a
-                  href={external ? (affiliateUrl(external) || external) : href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    const kohde = external ? (affiliateUrl(external) || external) : href
-                    let domain = ''
-                    try { domain = new URL(kohde).hostname.replace(/^www\./, '') } catch { /* ei osoite */ }
-                    track(external && canBuyTickets(event) ? 'ticket_click' : 'external_click', {
-                      surface: 'detail',
-                      eventId: event.id,
-                      label: event.title,
-                      meta: domain,
-                    })
-                  }}
-                  className="flex items-center justify-center gap-2 bg-[#0072C6] hover:bg-[#0060a8] text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
-                >
-                  {external ? <Ticket size={15} /> : <Globe size={15} />}
-                  <span className="truncate">{label}</span>
-                  <ExternalLink size={13} className="opacity-70 shrink-0" />
-                </a>
-              )
-            })()}
+            {/* TYÖPÖYTÄ: Lisää suunnitelmaan + päänappi paneelin alaosassa kuten
+                ennen. Mobiilissa ne ovat otsikon alla (yllä) → tässä piilossa. */}
+            <div className="hidden md:contents">
+              {suunnitelmaNappi(false)}
+              {paaNappi(false)}
+            </div>
             {(mapsUrl || transitUrl) && (
               <div className="grid grid-cols-2 gap-2">
                 {mapsUrl && (

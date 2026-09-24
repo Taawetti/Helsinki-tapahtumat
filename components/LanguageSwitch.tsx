@@ -11,7 +11,10 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-export default function LanguageSwitch({ compact = false }: { compact?: boolean }) {
+/** Kielenvaihdon logiikka — sama sekä tälle napille että mobiilin ⋯-valikon
+ *  "In English / Suomeksi" -riville (HomeClient), jotta osoitesääntö ei
+ *  kopioidu kahteen paikkaan. */
+export function useLanguageSwitch() {
   const { lang, setLang } = useLanguage()
   const pathname = usePathname()
   const router = useRouter()
@@ -26,6 +29,11 @@ export default function LanguageSwitch({ compact = false }: { compact?: boolean 
     if (pathname === '/'   && next === 'en') { setLang('en'); router.push('/en'); return }
     setLang(next)
   }
+  return { lang, next, handle }
+}
+
+export default function LanguageSwitch({ compact = false }: { compact?: boolean }) {
+  const { lang, handle } = useLanguageSwitch()
 
   return (
     <button

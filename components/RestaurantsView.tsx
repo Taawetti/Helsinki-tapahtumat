@@ -441,7 +441,7 @@ function HeroCard({ r, distance, onShowOnMap }: {
         <div className="flex items-center gap-3 flex-wrap">
           {r.www ? (
             <a href={/^https?:\/\//i.test(r.www) ? r.www : 'https://' + r.www} target="_blank" rel="noopener noreferrer"
-              className="px-4 py-2 rounded-full text-white text-[13px] font-black"
+              className="inline-flex items-center min-h-11 md:min-h-0 px-4 py-2 rounded-full text-white text-[13px] font-black"
               style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 10px 24px -8px rgba(91,101,230,.85)' }}>
               {ctaLabel}
             </a>
@@ -457,7 +457,7 @@ function HeroCard({ r, distance, onShowOnMap }: {
           </span>
           {onShowOnMap && r.lat && r.lon && (
             <button onClick={() => onShowOnMap(r.lat!, r.lon!, r.name)}
-              className="text-[12px] font-bold text-white/40 hover:text-white/70 transition-colors">
+              className="min-h-11 md:min-h-0 text-[12px] font-bold text-white/40 hover:text-white/70 transition-colors">
               🗺 {t('idea.on_map')}
             </button>
           )}
@@ -533,7 +533,7 @@ function RestListCard({ r, distance, onShowOnMap, onOpen }: {
       </div>
       <div className="p-4 space-y-2">
         <div className="space-y-1.5">
-          <h3 className="font-black text-white text-sm leading-tight">{r.name}</h3>
+          <h3 className="font-black text-white text-[15px] md:text-sm leading-tight">{r.name}</h3>
           <div className="flex items-center gap-1 flex-wrap">
             {tieto.tila !== 'tuntematon' && (
               tieto.tila === 'auki' ? (
@@ -743,7 +743,7 @@ function ChainListCard({ chain, onClick }: {
         </div>
       </div>
       <div className="p-4">
-        <h3 className="font-black text-white text-sm leading-tight">{r.name}</h3>
+        <h3 className="font-black text-white text-[15px] md:text-sm leading-tight">{r.name}</h3>
         {/* Rivinsisäinen muoto (pieni alkukirjain): common.show_all on painikkeen
             teksti 'Näytä kaikki', tässä se jatkaa lausetta "3 sijaintia · …". */}
         <p className="text-[11px] font-bold mt-0.5" style={{ color: '#a3abff' }}>{chain.locations.length} {t('restaurants.locations')} · {t('restaurants.show_all_inline')}</p>
@@ -894,13 +894,13 @@ function SubCatGrid({ restType, onSelect }: {
   const sarakkeet = laattoja >= 9 || laattoja % 4 === 0 ? 4 : 3
   const laatta = (cat: { id: string; tKey: TranslationKey; emoji: string }) => (
     <button key={cat.id} onClick={() => onSelect(cat.id)}
-      className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-4 px-1 transition-transform active:scale-95"
+      className="flex flex-col items-center justify-center gap-2 md:gap-1.5 min-h-[84px] md:min-h-0 rounded-[16px] py-4 px-1 transition-transform active:scale-95"
       style={{
         background: `radial-gradient(120% 100% at 50% 0%, rgba(${GRID_TINTS[cat.id] ?? '120,130,200'},.16), rgba(255,255,255,.03) 70%)`,
         border: '1px solid rgba(255,255,255,.07)',
       }}>
-      <span className="text-[26px] leading-none">{cat.emoji}</span>
-      <span className="text-[11px] font-black text-white/85 text-center leading-tight">{t(cat.tKey)}</span>
+      <span className="text-[28px] md:text-[26px] leading-none">{cat.emoji}</span>
+      <span className="text-[12px] md:text-[11px] font-black text-white/85 text-center leading-tight">{t(cat.tKey)}</span>
     </button>
   )
   return (
@@ -913,13 +913,13 @@ function SubCatGrid({ restType, onSelect }: {
         {/* Avattuna mukana myös "Kaikki"-laatta → selausnäkymä suodattimineen */}
         {kaikkiAuki && (
           <button onClick={() => onSelect('kaikki')}
-            className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-4 px-1 transition-transform active:scale-95"
+            className="flex flex-col items-center justify-center gap-2 md:gap-1.5 min-h-[84px] md:min-h-0 rounded-[16px] py-4 px-1 transition-transform active:scale-95"
             style={{
               background: 'radial-gradient(120% 100% at 50% 0%, rgba(107,118,255,.22), rgba(255,255,255,.03) 70%)',
               border: '1px solid rgba(107,118,255,.28)',
             }}>
-            <span className="text-[26px] leading-none">🍽</span>
-            <span className="text-[11px] font-black text-white/85 text-center leading-tight">{t('common.all')}</span>
+            <span className="text-[28px] md:text-[26px] leading-none">🍽</span>
+            <span className="text-[12px] md:text-[11px] font-black text-white/85 text-center leading-tight">{t('common.all')}</span>
           </button>
         )}
       </div>
@@ -964,7 +964,7 @@ function TypeTabs({ active, onChange }: { active: RestType; onChange: (id: RestT
         const isActive = active === tab.id
         return (
           <button key={tab.id} onClick={() => onChange(tab.id)}
-            className={`shrink-0 flex items-center gap-2 rounded-full px-3 py-2 sm:px-4 sm:py-2.5 font-black text-[12px] sm:text-[13.5px] transition-all active:scale-[.97] ${
+            className={`shrink-0 flex items-center gap-2 rounded-full h-11 px-[18px] text-[14px] md:h-auto md:px-4 md:py-2.5 md:text-[13.5px] font-black transition-all active:scale-[.97] ${
               isActive ? 'text-white' : 'text-white/35 bg-white/5 hover:bg-white/8 hover:text-white/65'
             }`}
             style={isActive ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 4px 16px -4px rgba(91,101,230,.4)', letterSpacing: '-0.01em' } : { letterSpacing: '-0.01em' }}>
@@ -1550,7 +1550,7 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey, onSu
           {subCat !== 'all' && (
             <>
               <button onClick={() => setSubCat('all')}
-                className="flex items-center gap-2 text-[13.5px] font-black text-white/50 hover:text-white transition-colors -mb-1"
+                className="flex items-center gap-2 min-h-11 md:min-h-0 text-[13.5px] font-black text-white/50 hover:text-white transition-colors -mb-1"
                 style={{ letterSpacing: '-0.01em' }}>
                 ← {t('common.back')}
               </button>

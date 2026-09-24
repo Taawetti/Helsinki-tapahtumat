@@ -19,6 +19,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { tilaaSuunnitelma, onSuunnitelmassa, poistaViitteella, lisaaPaikka } from '@/lib/suunnitelma'
+import { naytaToast } from '@/lib/toast'
 
 export interface PaikkaTieto {
   id: string
@@ -108,7 +109,8 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   const suunnitelmaKlik = () => {
     if (!paikka) return
     if (suunnitelmassa) poistaViitteella(paikka.id)
-    else if (!lisaaPaikka(paikka, guideSlug)) alert(t('plan.full'))
+    else if (lisaaPaikka(paikka, guideSlug)) naytaToast({ teksti: t('plan.toast_added'), toiminto: { label: t('plan.toast_show'), tyyppi: 'nayta-suunnitelma' } })
+    else alert(t('plan.full'))
   }
 
 

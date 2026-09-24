@@ -265,7 +265,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
         {count !== null && <span className="text-[13px] font-bold text-white/35">{count}</span>}
         <div className="relative">
           <button onClick={() => setShowMenu((v) => !v)}
-            className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
+            className="text-[12px] font-bold min-w-11 h-11 px-3 md:min-w-0 md:h-auto md:py-1.5 rounded-full transition-colors"
             style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
             {t('guides.switch')}
           </button>
@@ -293,7 +293,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
           )}
         </div>
         <button onClick={onBack} aria-label={t('guides.close_guide')}
-          className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors"
+          className="text-[12px] font-bold min-w-11 h-11 px-3 md:min-w-0 md:h-auto md:py-1.5 rounded-full transition-colors"
           style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.1)' }}>
           ✕
         </button>

@@ -95,7 +95,8 @@ import { onPaikkaPlaceholder, naytettavaKuvaus, lyhytkuvaus } from '../lib/event
 import { arvioiPudotus, type Kuolinsyy } from './fetch-venue-sites'
 import { mapOpenmicEvent, koordAvain, katuosoite, poistaPaikkaHanta, type OpenmicRaw } from '../lib/openmic'
 import { yhdistaJamit } from '../lib/guide-data'
-import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, type Suunnitelma } from '../lib/suunnitelma'
+import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypille, type Suunnitelma } from '../lib/suunnitelma'
+import { rakennaRungot } from '../lib/illan-rungot'
 import { osuuPaivaan, viikonlopunPaivat, paivaPlus } from '../lib/map-date-filter'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
 import venueSiteFile from '../data/venue-sites.json'
@@ -3741,6 +3742,103 @@ for (const c of kwChecks) {
   for (const c of rCases) {
     if (c.ok) pass++
     else failures.push(`✗ suunnitelma: ${c.name}`)
+  }
+}
+
+// ── RAVINTOLAN OLETUSKELLONAIKA + VALMIIT ILLAN RUNGOT (HANDOFF-mobiili §6–7,
+// 24.9.2026): ensimmäinen askel saa tyyppinsä oletusajan, ketjun muut askeleet
+// sovittimesta; rungot koostuvat päivän oikeasta datasta eikä täytteestä.
+{
+  const NYT = new Date('2026-09-06T10:00:00+03:00')
+  const tuleva = '2026-09-12'
+  const ruoka = (nimi: string, oletusKlo?: string) => ({
+    id: nimi, tyyppi: 'ravintola' as const, nimi, rooli: 'ruoka' as const,
+    lat: 60.168, lon: 24.94, aukiolot: 'Mo-Su 11:00-02:00', oletusKlo,
+  })
+  const yksin = (askel: Suunnitelma['askeleet'][number], paiva = tuleva, nyt = NYT, alkuKlo?: string) =>
+    sovitaAjat({ otsikko: '', paiva, alkuKlo, askeleet: [askel] }, nyt)
+  const s1 = yksin(ruoka('Ravintola', '18:00'))
+  const s2 = yksin(ruoka('Kahvila', '15:00'))
+  const s3 = yksin({ ...ruoka('Klubi', '00:30'), rooli: 'drinkit', aukiolot: 'Mo-Su 22:00-04:00' })
+  // Toisena askeleena oletus EI päde: baari tulee keikan perään, ei klo 23.
+  const s4 = sovitaAjat({ otsikko: '', paiva: tuleva, askeleet: [
+    { id: 'k', tyyppi: 'tapahtuma', nimi: 'Keikka', rooli: 'ohjelma', lat: 60.171, lon: 24.95, ankkuriISO: `${tuleva}T19:00:00+03:00` },
+    { ...ruoka('Baari', '23:00'), rooli: 'drinkit' },
+  ] }, NYT)
+  // Tänään ja oletus jo mennyt (kahvila 15 kun kello on 20) → nyt + 30 min.
+  const s5 = yksin(ruoka('Kahvila', '15:00'), '2026-09-06', new Date('2026-09-06T20:00:00+03:00'))
+  // Tänään ja oletus vielä edessä (ravintola 18 kun kello on 10) → oletus.
+  const s5b = yksin(ruoka('Ravintola', '18:00'), '2026-09-06', NYT)
+  // Käyttäjän aloitusaika voittaa oletuksen.
+  const s6 = yksin(ruoka('Ravintola', '18:00'), tuleva, NYT, '12:00')
+  // Vanha askel ilman oletusKlo-kenttää → entinen 18.
+  const s7 = yksin(ruoka('Vanha'))
+  const oCases: { name: string; ok: boolean }[] = [
+    { name: 'oletus: ruokapaikka ensimmäisenä → 18:00', ok: s1[0].klo === '18:00' && !s1[0].varoitus },
+    { name: 'oletus: kahvila ensimmäisenä → 15:00', ok: s2[0].klo === '15:00' && !s2[0].varoitus },
+    { name: 'oletus: yökerho 00:30 seuraavan vuorokauden puolelle EIKÄ myöhään-varoitusta', ok: s3[0].klo === '00:30' && !s3[0].varoitus },
+    { name: 'oletus ei koske ketjun toista askelta (baari keikan perään, ei 23:00)',
+      ok: s4[1].klo !== '23:00' && (kloTunneiksi(s4[1].klo) ?? 0) >= 21 && (kloTunneiksi(s4[1].klo) ?? 0) < 22 },
+    { name: 'tänään mennyt oletus → nyt + 30 min (20:30)', ok: s5[0].klo === '20:30' },
+    { name: 'tänään tuleva oletus → oletus (18:00)', ok: s5b[0].klo === '18:00' },
+    { name: 'käyttäjän aloitusaika voittaa oletuksen', ok: s6[0].klo === '12:00' },
+    { name: 'ilman oletusKlo-kenttää entinen 18:00', ok: s7[0].klo === '18:00' },
+    { name: 'oletusKloTyypille: ravintola/kahvila/baari/yökerho/pikaruoka',
+      ok: oletusKloTyypille('ravintola') === '18:00' && oletusKloTyypille('kahvila') === '15:00'
+        && oletusKloTyypille('baari') === '23:00' && oletusKloTyypille('yokerho') === '00:30' && oletusKloTyypille('pikaruoka') === '18:00' },
+  ]
+  for (const c of oCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ oletusaika: ${c.name}`)
+  }
+
+  // Rungot: tämän päivän (2026-09-06, kello 10) tulevat tapahtumat + oikea ravintoladata.
+  const paikka = (nimi: string, lat: number, lon: number) => ({ name: nimi, city: 'Helsinki', lat, lon } as Event['location'])
+  const keikka = mkEvent({ id: 'keikka', title: 'Iso keikka', startTime: '2026-09-06T21:00:00+03:00', vibes: ['keikka'], location: paikka('Tavastia', 60.169, 24.940) })
+  const teatteri = mkEvent({ id: 'teatteri', title: 'Näytelmä', startTime: '2026-09-06T19:00:00+03:00', vibes: ['teatteri'], location: paikka('Kansallisteatteri', 60.172, 24.945) })
+  const mennyt = mkEvent({ id: 'mennyt', title: 'Aamukeikka', startTime: '2026-09-06T08:00:00+03:00', vibes: ['keikka'], location: paikka('X', 60.169, 24.940) })
+  const visa = mkEvent({ id: 'visa', title: 'Pubivisa', startTime: '2026-09-06T20:00:00+03:00', vibes: ['keikka'], location: paikka('Pub', 60.169, 24.940) })
+  const eiKoord = mkEvent({ id: 'eikoord', title: 'Keikka ilman koordinaatteja', startTime: '2026-09-06T21:00:00+03:00', vibes: ['keikka'], location: { name: 'Jossain', city: 'Helsinki' } as Event['location'] })
+  const mkRest = (over: Partial<Restaurant> & { id: string; name: string }): Restaurant => ({
+    description: '', cuisines: [], cuisineCategories: [], address: 'Katu 1', city: 'Helsinki', image: null, www: null, phone: null,
+    type: 'ravintola', googleRating: 4.6, reviewCount: 500, openingHours: 'Mo-Su 11:00-23:00', lat: 60.1695, lon: 24.941, ...over,
+  } as Restaurant)
+  const r1 = mkRest({ id: 'r1', name: 'Lähiravintola' })
+  const kauas = mkRest({ id: 'kauas', name: 'Kauas', lat: 60.25, lon: 25.10 })
+  const heikko = mkRest({ id: 'heikko', name: 'Heikko', googleRating: 4.0, lat: 60.1691, lon: 24.9401 })
+  const vahanArvioita = mkRest({ id: 'vaha', name: 'Vähän arvioita', reviewCount: 20, lat: 60.1691, lon: 24.9401 })
+  const kiinni = mkRest({ id: 'kiinni', name: 'Kiinni illalla', openingHours: 'Mo-Su 08:00-16:00', lat: 60.1691, lon: 24.9401 })
+  const b1 = mkRest({ id: 'b1', name: 'Kulmabaari', type: 'baari', openingHours: 'Mo-Su 16:00-02:00', lat: 60.1715, lon: 24.946, reviewCount: 300, googleRating: 4.5 })
+  const rungot = rakennaRungot([mennyt, visa, eiKoord, keikka, teatteri], [kauas, heikko, vahanArvioita, kiinni, r1, b1], NYT)
+  const dinner = rungot.find((r) => r.id === 'dinner_gig')
+  const culture = rungot.find((r) => r.id === 'culture')
+  const rCases: { name: string; ok: boolean }[] = [
+    { name: 'rungot: keikkailta + kulttuuri-ilta, enintään 3', ok: rungot.length === 2 && !!dinner && !!culture },
+    { name: 'rungot: illallinen → keikka, lähin laatukynnyksen ylittävä auki oleva ravintola',
+      ok: !!dinner && dinner.askeleet.length === 2 && dinner.askeleet[0].nimi === 'Lähiravintola' && dinner.askeleet[1].nimi === 'Iso keikka' },
+    { name: 'rungot: illallisen oletusaika = keikka − 2¼ h (21:00 → 18:45), tapahtumalla ankkuri',
+      ok: !!dinner && dinner.askeleet[0].oletusKlo === '18:45' && dinner.askeleet[1].ankkuriISO === keikka.startTime },
+    { name: 'rungot: käytettynä ravintola tulee ENNEN keikkaa eikä varoita (ei "Huomioi aika")',
+      ok: (() => {
+        if (!dinner) return false
+        const sov = sovitaAjat({ otsikko: '', paiva: dinner.paiva, askeleet: dinner.askeleet.map((a, i) => ({ ...a, id: `t${i}` })) }, NYT)
+        return sov[0].klo === '18:45' && sov[1].klo === '21:00' && sov.every((x) => !x.varoitus)
+      })() },
+    { name: 'rungot: kulttuurin jälkeinen baari pitää tyypin oletuksen (23:00) — toisena askeleena sovitin ajoittaa sen',
+      ok: !!culture && culture.askeleet[1].oletusKlo === '23:00' },
+    { name: 'rungot: kulttuuri → baari jälkeen', ok: !!culture && culture.askeleet[0].nimi === 'Näytelmä' && culture.askeleet[1].nimi === 'Kulmabaari' },
+    { name: 'rungot: kauas/heikko/vähän arvioita/kiinni EI valita',
+      ok: rungot.every((r) => r.askeleet.every((a) => !['Kauas', 'Heikko', 'Vähän arvioita', 'Kiinni illalla'].includes(a.nimi))) },
+    { name: 'rungot: mennyt, visa ja koordinaatiton tapahtuma EI mukana',
+      ok: rungot.every((r) => r.askeleet.every((a) => !['Aamukeikka', 'Pubivisa', 'Keikka ilman koordinaatteja'].includes(a.nimi))) },
+    { name: 'rungot: päivä on tämä päivä', ok: rungot.every((r) => r.paiva === '2026-09-06') },
+    { name: 'rungot: tyhjä data → tyhjä lista (ei täytettä)', ok: rakennaRungot([], [], NYT).length === 0 },
+    { name: 'rungot: tapahtuma ilman sopivaa ravintolaa → ei yhden askeleen runkoa', ok: rakennaRungot([keikka], [kauas], NYT).length === 0 },
+    { name: 'rungot: eri päivän tapahtuma EI mukana', ok: rakennaRungot([mkEvent({ ...keikka, id: 'huomenna', startTime: '2026-09-07T21:00:00+03:00' })], [r1], NYT).length === 0 },
+  ]
+  for (const c of rCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ rungot: ${c.name}`)
   }
 }
 
