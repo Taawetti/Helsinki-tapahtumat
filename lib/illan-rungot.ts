@@ -19,7 +19,8 @@ import type { TranslationKey } from './i18n'
 import { getEventVibes } from './event-classify'
 import { isOutsideTargetAudience } from './audience'
 import { onVisa, onPeruttu } from './picks'
-import { haversineMeters } from './group'
+import { haversineMeters, walkMinutesBetween } from './group'
+import { DUR_H, TRAVEL_BUFFER_H } from './group-scheduler'
 import { isOpenAt } from './opening-hours'
 import { helsinkiClock } from './arvo-ilta'
 import { tuntematonAika } from './utils'
@@ -106,12 +107,20 @@ function lahinAuki(
  * Palauttaa tyhjän listan kun päivästä ei saa yhtään uskottavaa iltaa —
  * kutsuja piilottaa silloin koko lohkon eikä näytä täytettä.
  */
-export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: Date): Runko[] {
+export interface RunkoOpts {
+  /** Tapahtuma-id:t joita EI käytetä — "Vaihda iltaa" (omistaja 24.9.2026)
+   *  antaa tähän jo ehdotetut, jotta jokainen painallus tuottaa uuden illan. */
+  ohita?: ReadonlySet<string>
+}
+
+export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: Date, opts: RunkoOpts = {}): Runko[] {
   const kello = helsinkiClock(nyt)
   const paiva = kello.date
+  const ohita = opts.ohita ?? new Set<string>()
   // Vähintään 45 min valmistautumisaikaa; vain tämän päivän tapahtumat.
   const raja = kello.hour + 0.75
   const ehdokkaat = events
+    .filter((e) => !ohita.has(e.id))
     .filter((e) => !tuntematonAika(e.startTime) && !onVisa(e) && !onPeruttu(e) && !isOutsideTargetAudience(e))
     .filter((e) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Helsinki' }).format(new Date(e.startTime)) === paiva)
     .filter((e) => tunti(e) >= raja && e.location?.lat != null && e.location?.lon != null)
@@ -120,10 +129,45 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
 
   const kaytetytTapahtumat = new Set<string>()
   const kaytetytPaikat = new Set<string>()
-  const ota = (l: Laji, minTunti = 0, maxTunti = 30): Event | null => {
-    const e = ehdokkaat.find((x) => !kaytetytTapahtumat.has(x.id) && laji(x) === l && tunti(x) >= minTunti && tunti(x) <= maxTunti) ?? null
+  const ota = (l: Laji, minTunti = 0, ehto: (e: Event) => boolean = () => true): Event | null => {
+    const e = ehdokkaat.find((x) => !kaytetytTapahtumat.has(x.id) && laji(x) === l && tunti(x) >= minTunti && ehto(x)) ?? null
     if (e) kaytetytTapahtumat.add(e.id)
     return e
+  }
+  // ENNEN tapahtumaa tuleva askel on ehdittävä: sen alun pitää olla vielä
+  // edessä (≥ raja) ja ruokailun/drinkkien KESTON + KÄVELYN + puskurin pitää
+  // mahtua ennen tapahtumaa — täsmälleen sama kaava kuin lib/suunnitelma
+  // sovitaAjat käyttää (DUR_H.food 1,5 h ≥ omistajan vähimmäisaika 1 h 15 min,
+  // drinkit 1 h, TRAVEL_BUFFER_H 15 min, kävely lib/group). Ilman tätä
+  // klo 17.45 ehdotettiin "illallinen 18.30 → keikka 19.00" ja jokainen runko
+  // sai heti "Huomioi aika" -varoituksen (mitattu 24.9.2026). Kävely
+  // tiedetään vasta kun ravintola on valittu, joten sopivuus tarkistetaan
+  // ravintolan kanssa ja huono pari hylätään (seuraava tapahtuma).
+  const illallisKlo = (e: Event) => clamp(tunti(e) - 2.25, 16.5, 20)
+  const baariKlo = (e: Event) => clamp(tunti(e) - 1.75, 19, 22.5)
+  const ehtii = (klo: number, kestoH: number, paikka: { lat?: number; lon?: number }, e: Event) => {
+    if (klo < raja) return false
+    const kavely = walkMinutesBetween(paikka, e.location ?? {}) ?? 0
+    return klo + kestoH + kavely / 60 + TRAVEL_BUFFER_H <= tunti(e)
+  }
+  const ehtiiIllalliselle = (e: Event) => illallisKlo(e) >= raja && illallisKlo(e) + DUR_H.food + TRAVEL_BUFFER_H <= tunti(e)
+  const ehtiiBaariin = (e: Event) => baariKlo(e) >= raja && baariKlo(e) + DUR_H.drinks + TRAVEL_BUFFER_H <= tunti(e)
+  /** Valitsee ennen-askeleelle tapahtuman ja paikan niin että aika riittää
+   *  kävelyineen; epäsopiva pari vapautetaan ja kokeillaan seuraavaa. */
+  const ennenPari = (
+    l: Laji, minTunti: number, karkea: (e: Event) => boolean, klo: (e: Event) => number, kestoH: number,
+    hae: (kohde: Event, klo: number, ennen: boolean) => Omit<SuunnitelmaAskel, 'id'> | null,
+  ): { e: Event; askel: Omit<SuunnitelmaAskel, 'id'> } | null => {
+    for (let yritys = 0; yritys < 6; yritys++) {
+      const e = ota(l, minTunti, karkea)
+      if (!e) return null
+      const askel = hae(e, klo(e), true)
+      if (askel && ehtii(klo(e), kestoH, askel, e)) return { e, askel }
+      // Ei sovi: vapauta tapahtuma ja paikka, koeta seuraavaa tapahtumaa
+      // (tapahtuma jää poissa-listalle, ettei sama pari toistu).
+      if (askel?.viiteId) kaytetytPaikat.delete(askel.viiteId)
+    }
+    return null
   }
   // Ravintola/baari ENNEN tapahtumaa: askeleen oletusKlo asetetaan laskettuun
   // aikaan, jotta suunnitelman sovitin aloittaa siitä eikä tyypin vakiosta
@@ -147,13 +191,8 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
 
   // 1. Illallinen ja keikka: ravintola 2¼ h ennen keikkaa (16.30–20.00) → keikka.
   {
-    const keikka = ota('keikka', 18.75)
-    if (keikka) {
-      const r = ravintola(keikka, clamp(tunti(keikka) - 2.25, 16.5, 20), true)
-      const askeleet = [r, tapahtumaAskel(keikka)].filter((a): a is Omit<SuunnitelmaAskel, 'id'> => !!a)
-      if (askeleet.length >= 2) rungot.push({ id: 'dinner_gig', emoji: '🎸', otsikkoAvain: 'plan.tpl_dinner_gig', paiva, askeleet })
-      else kaytetytTapahtumat.delete(keikka.id)
-    }
+    const pari = ennenPari('keikka', 18.75, ehtiiIllalliselle, illallisKlo, DUR_H.food, ravintola)
+    if (pari) rungot.push({ id: 'dinner_gig', emoji: '🎸', otsikkoAvain: 'plan.tpl_dinner_gig', paiva, askeleet: [pari.askel, tapahtumaAskel(pari.e)] })
   }
   // 2. Kulttuuri-ilta: teatteri/taide/museo (illalla) → baari jälkeen.
   {
@@ -167,13 +206,8 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
   }
   // 3. Bileisiin: baari 1¾ h ennen (19.00–22.30) → klubi myöhään.
   if (rungot.length < 3) {
-    const klubi = ota('bileet', 21)
-    if (klubi) {
-      const b = baari(klubi, clamp(tunti(klubi) - 1.75, 19, 22.5), true)
-      const askeleet = [b, tapahtumaAskel(klubi)].filter((a): a is Omit<SuunnitelmaAskel, 'id'> => !!a)
-      if (askeleet.length >= 2) rungot.push({ id: 'party', emoji: '🪩', otsikkoAvain: 'plan.tpl_party', paiva, askeleet })
-      else kaytetytTapahtumat.delete(klubi.id)
-    }
+    const pari = ennenPari('bileet', 21, ehtiiBaariin, baariKlo, DUR_H.drinks, baari)
+    if (pari) rungot.push({ id: 'party', emoji: '🪩', otsikkoAvain: 'plan.tpl_party', paiva, askeleet: [pari.askel, tapahtumaAskel(pari.e)] })
   }
   // 4. Naurua ja drinkit: stand up → baari.
   if (rungot.length < 3) {
@@ -198,13 +232,39 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
   return rungot.slice(0, 3)
 }
 
-/** Ottaa rungon suunnitelman pohjaksi (korvaa tyhjän suunnitelman). */
-export function kaytaRunko(runko: Runko, otsikko: string): void {
+/** Rungon tapahtuma-id:t — "Vaihda iltaa" ohittaa nämä seuraavalla kerralla. */
+export function rungonTapahtumat(runko: Runko): string[] {
+  return runko.askeleet.flatMap((a) => (a.tyyppi === 'tapahtuma' && a.viiteId ? [a.viiteId] : []))
+}
+
+/** Ottaa rungon suunnitelman pohjaksi (korvaa suunnitelman). */
+export function kaytaRunko(runko: Runko, otsikko: string, lahde: 'runko' | 'runko-vaihto' = 'runko'): void {
   korvaaSuunnitelma({
     otsikko,
     paiva: runko.paiva,
     askeleet: runko.askeleet.map((a, i) => ({ ...a, id: `runko${i}` })),
   })
-  // Sama mittari kuin keräilynapeilla; meta kertoo että lähde oli runko.
-  track('plan_add', { label: runko.id, meta: 'runko' })
+  // Sama mittari kuin keräilynapeilla; meta kertoo että lähde oli runko
+  // (tai "Vaihda iltaa" -painallus).
+  track('plan_add', { label: runko.id, meta: lahde })
+}
+
+/** Seuraava ilta "Vaihda iltaa" -napille: mieluiten samaa lajia kuin nykyinen,
+ *  muuten mikä tahansa uusi; jos ohituslista on syönyt kaikki, aloitetaan
+ *  alusta ohittaen vain nykyisen illan tapahtumat. null = päivästä ei saa
+ *  yhtään runkoa. */
+export function seuraavaRunko(
+  events: Event[], restaurants: Restaurant[], nyt: Date,
+  nykyinen: Runko['id'] | null, ohita: ReadonlySet<string>, nykyisenTapahtumat: ReadonlySet<string>,
+): { runko: Runko; ohita: Set<string> } | null {
+  const valitse = (lista: Runko[]) => lista.find((r) => r.id === nykyinen) ?? lista[0] ?? null
+  let r = valitse(rakennaRungot(events, restaurants, nyt, { ohita }))
+  let uusiOhita = new Set(ohita)
+  if (!r) {
+    uusiOhita = new Set(nykyisenTapahtumat)
+    r = valitse(rakennaRungot(events, restaurants, nyt, { ohita: uusiOhita }))
+    if (!r) return null
+  }
+  for (const id of rungonTapahtumat(r)) uusiOhita.add(id)
+  return { runko: r, ohita: uusiOhita }
 }

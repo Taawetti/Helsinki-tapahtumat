@@ -28,7 +28,8 @@ import {
 import KulkutapaValitsin from '@/components/KulkutapaValitsin'
 import { walkMinutesBetween } from '@/lib/group'
 import type { Event, Restaurant } from '@/lib/types'
-import { rakennaRungot, kaytaRunko, type Runko } from '@/lib/illan-rungot'
+import { rakennaRungot, kaytaRunko, seuraavaRunko, rungonTapahtumat, type Runko } from '@/lib/illan-rungot'
+import { naytaToast } from '@/lib/toast'
 import { getDateRange } from '@/lib/utils'
 import RestaurantDetailPanel from '@/components/RestaurantDetailPanel'
 import PlaceDetailPanel from '@/components/PlaceDetailPanel'
@@ -62,13 +63,27 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
   /** VARAtila: suppea infolevitys (askeleen id) niille askeleille, joilta
    *  puuttuu täysi lähdeolio (vanha varasto, jaetusta kopioitu pohja). */
   const [infoAuki, setInfoAuki] = useState<string | null>(null)
-  // Valmiit illan rungot (HANDOFF-mobiili §7) — VAIN mobiilin tyhjään tilaan.
-  // Haetaan tämän päivän tapahtumat ja ravintoladata kerran kun välilehti
+  // Valmiit illan rungot (HANDOFF-mobiili §7) — VAIN mobiilissa. Raakadata
+  // (tämän päivän tapahtumat + ravintolat) haetaan kerran kun välilehti
   // avataan tyhjänä alle 768 px; null = ei haettu / ei koske tätä laitetta.
-  const [rungot, setRungot] = useState<Runko[] | null>(null)
+  // Data pidetään tallessa, koska "Vaihda iltaa" (omistaja 24.9.2026) laskee
+  // siitä aina uuden illan ohittaen jo ehdotetut tapahtumat.
+  const [runkoData, setRunkoData] = useState<{ events: Event[]; restaurants: Restaurant[] } | null>(null)
+  /** Jo ehdotettujen iltojen tapahtuma-id:t — seuraava ilta ohittaa nämä. */
+  const [ohita, setOhita] = useState<Set<string>>(() => new Set())
+  /** Tässä istunnossa käyttöön otettu runko + sen askelten viitteet (jotta
+   *  huomataan jos käyttäjä on jo muokannut iltaa ennen vaihtoa). */
+  const [runkoTila, setRunkoTila] = useState<{ id: Runko['id']; viitteet: string } | null>(null)
   const tyhja = suunnitelma.askeleet.length === 0
+  // Tyhjän tilan ehdotukset EIVÄT ohita mitään: ohituslista kuuluu vain
+  // "Vaihda iltaa" -kiertoon (mitattu 24.9.: tyhjennyksen jälkeen näkyi enää
+  // 1 runko 3:sta, koska aiemmin katsotut oli ohitettu).
+  const rungot = useMemo(
+    () => (runkoData ? rakennaRungot(runkoData.events, runkoData.restaurants, new Date()) : null),
+    [runkoData],
+  )
   useEffect(() => {
-    if (!tyhja || rungot !== null) return
+    if (!tyhja || runkoData !== null) return
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 767.98px)').matches) return
     let peruttu = false
     const { start, end } = getDateRange('today')
@@ -77,10 +92,32 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
       fetch('/api/restaurants').then((r) => (r.ok ? r.json() : { restaurants: [] })).catch(() => ({ restaurants: [] })),
     ]).then(([e, r]: [{ events?: Event[] }, { restaurants?: Restaurant[] }]) => {
       if (peruttu) return
-      setRungot(rakennaRungot(e.events ?? [], r.restaurants ?? [], new Date()))
+      setRunkoData({ events: e.events ?? [], restaurants: r.restaurants ?? [] })
     })
     return () => { peruttu = true }
-  }, [tyhja, rungot])
+  }, [tyhja, runkoData])
+
+  const viitteet = (askeleet: { viiteId?: string }[]) => askeleet.map((a) => a.viiteId ?? '').join('|')
+  function otaRunko(r: Runko) {
+    kaytaRunko(r, t(r.otsikkoAvain))
+    // Uusi ilta alkaa: ohituslista alkaa tästä rungosta, ei vanhoista kierroista.
+    setOhita(new Set(rungonTapahtumat(r)))
+    setRunkoTila({ id: r.id, viitteet: viitteet(r.askeleet) })
+  }
+  function vaihdaIlta() {
+    if (!runkoData || !runkoTila) return
+    // Käyttäjä on jo muokannut iltaa → varmista ennen korvaamista.
+    if (viitteet(suunnitelma.askeleet) !== runkoTila.viitteet && !confirm(t('plan.vaihda_confirm'))) return
+    const nykyiset = new Set(suunnitelma.askeleet.flatMap((a) => (a.tyyppi === 'tapahtuma' && a.viiteId ? [a.viiteId] : [])))
+    const tulos = seuraavaRunko(runkoData.events, runkoData.restaurants, new Date(), runkoTila.id, ohita, nykyiset)
+    if (!tulos) { naytaToast({ teksti: t('plan.ei_uusia') }); return }
+    kaytaRunko(tulos.runko, t(tulos.runko.otsikkoAvain), 'runko-vaihto')
+    setOhita(tulos.ohita)
+    setRunkoTila({ id: tulos.runko.id, viitteet: viitteet(tulos.runko.askeleet) })
+  }
+  // Runkotila raukeaa kun suunnitelma tyhjennetään — "Vaihda iltaa" ei jää
+  // roikkumaan tyhjään tilaan.
+  const runkoAktiivinen = !!runkoTila && !tyhja && !!runkoData
   /** Napautuksesta avattu OIKEA infopaneeli — sama kuin muualla sovelluksessa. */
   const [avattuRavintola, setAvattuRavintola] = useState<Extract<AskelData, { laji: 'ravintola' }> | null>(null)
   const [avattuPaikka, setAvattuPaikka] = useState<Extract<AskelData, { laji: 'paikka' }> | null>(null)
@@ -204,8 +241,17 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
               <p className="text-white font-black text-[20px]" style={{ letterSpacing: '-0.01em' }}>{t('plan.empty_title_m')}</p>
               <p className="text-[14px] leading-[1.55]" style={{ color: 'rgba(255,255,255,.55)' }}>{t('plan.empty_sub_m')}</p>
             </div>
+            {/* PÄÄASIA on oma ilta (omistaja 24.9.2026): selaus on ensisijainen
+                56 px aksenttinappi heti selitteen alla; valmiit rungot ovat
+                ehdotuksia sen alla omalla otsikollaan. */}
+            <button onClick={() => onSiirryOsioon?.('discover')}
+              className="flex items-center justify-center gap-2 w-full h-14 rounded-[16px] font-black text-white text-[16px] transition-all active:scale-[.99]"
+              style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 12px 32px -8px rgba(91,101,230,.55)' }}>
+              🎟 {t('plan.empty_browse_events')}
+            </button>
             {rungot && rungot.length > 0 && (
               <div className="flex flex-col gap-2.5">
+                <p className="text-[12px] font-bold uppercase pt-1" style={{ color: 'rgba(255,255,255,.4)', letterSpacing: '.08em' }}>{t('plan.templates_heading')}</p>
                 {rungot.map((r) => {
                   // Alaotsikko "Paikka klo X → Paikka klo Y" samalla sovittimella
                   // kuin oikea aikajana — ei erillistä aikalogiikkaa.
@@ -213,7 +259,7 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
                   const eka = sov[0], vika = sov[sov.length - 1]
                   const sub = eka && vika ? `${eka.askel.nimi} ${t('share.at_time')} ${eka.klo} → ${vika.askel.nimi} ${t('share.at_time')} ${vika.klo}` : ''
                   return (
-                    <button key={r.id} onClick={() => kaytaRunko(r, t(r.otsikkoAvain))}
+                    <button key={r.id} onClick={() => otaRunko(r)}
                       className="flex items-center gap-3.5 w-full text-left p-4 rounded-[18px] text-white transition-transform active:scale-[.99]"
                       style={{ border: '1px solid rgba(107,118,255,.25)', background: 'rgba(107,118,255,.07)' }}>
                       <span className="text-[30px] leading-none shrink-0">{r.emoji}</span>
@@ -227,11 +273,6 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
                 })}
               </div>
             )}
-            <button onClick={() => onSiirryOsioon?.('discover')}
-              className="flex items-center justify-center gap-2 w-full h-[52px] rounded-[16px] font-black text-[15px] text-white/85 transition-transform active:scale-[.99]"
-              style={{ border: '1px solid rgba(255,255,255,.1)', background: 'rgba(255,255,255,.05)' }}>
-              🎟 {t('plan.browse_alt')}
-            </button>
           </div>
           <div className="hidden md:block"><TyhjaTila onSiirry={onSiirryOsioon} /></div>
         </>
@@ -244,6 +285,17 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
             {jakoTila === 'busy' ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
             {jakoTila === 'busy' ? t('plan.sharing') : t('plan.share_friends')}
           </button>
+          {/* "Vaihda iltaa" (omistaja 24.9.2026): arpoo uuden illan eri
+              tapahtumista joka painalluksella — nopea tapa katsoa mitä
+              rungot tuottavat. Näkyy vain kun ilta on otettu rungosta tässä
+              istunnossa; käsin koottua iltaa ei korvata ilman varmistusta. */}
+          {runkoAktiivinen && (
+            <button onClick={vaihdaIlta}
+              className="md:hidden flex items-center justify-center gap-2 w-full h-12 -mt-1 rounded-[16px] font-black text-[15px] transition-transform active:scale-[.99]"
+              style={{ border: '1px solid rgba(107,118,255,.35)', background: 'rgba(107,118,255,.08)', color: '#c7caff' }}>
+              🔀 {t('plan.vaihda_ilta')}
+            </button>
+          )}
 
           {/* Otsikko + päivä + aloitusaika */}
           <div className="space-y-3 rounded-2xl p-4" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>

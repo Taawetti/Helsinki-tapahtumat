@@ -1037,6 +1037,10 @@ const t = {
     'discover.fetching_all':       'Haetaan kaikista lähteistä…',
     'discover.fetching_short':     'Haetaan…',
     'hood.ita-helsinki.vibe':      'Itäkeskus · Vuosaari · Herttoniemi',
+    'plan.templates_heading':      'Tai valitse valmis runko',
+    'plan.vaihda_ilta':            'Vaihda iltaa',
+    'plan.vaihda_confirm':         'Korvataanko nykyinen suunnitelma uudella illalla?',
+    'plan.ei_uusia':               'Ei enempää valmiita iltoja tälle päivälle',
   },
 
   en: {
@@ -2076,6 +2080,10 @@ const t = {
     'discover.fetching_all':       'Fetching all sources…',
     'discover.fetching_short':     'Loading…',
     'hood.ita-helsinki.vibe':      'Itäkeskus · Vuosaari · Herttoniemi',
+    'plan.templates_heading':      'Or pick a ready-made outline',
+    'plan.vaihda_ilta':            'Try another evening',
+    'plan.vaihda_confirm':         'Replace your current plan with a new evening?',
+    'plan.ei_uusia':               'No more ready-made evenings for today',
   },
 } as const
 
