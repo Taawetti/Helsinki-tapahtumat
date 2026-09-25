@@ -21,10 +21,11 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import {
   lueSuunnitelma, lueSuunnitelmaServer, tilaaSuunnitelma, sovitaAjat,
   poistaAskel, siirraAskelta, siirraIndeksiin, asetaOtsikko, asetaPaiva, kuittaaVaroitus,
-  asetaAlkuKlo, asetaKasinKlo, tyhjennaSuunnitelma, ROOLI_META,
+  asetaAlkuKlo, asetaKasinKlo, tyhjennaSuunnitelma, korvaaSuunnitelma, ROOLI_META,
   reittiohjeUrl, asetaKulkutapa, roolinKesto, kloTunneiksi, tunnitKloksi,
-  KULKUTAPA_META, type VaroitusSyy, type SuunnitelmaAskel, type AskelData,
+  KULKUTAPA_META, type VaroitusSyy, type SuunnitelmaAskel, type AskelData, type Suunnitelma,
 } from '@/lib/suunnitelma'
+import { useTaaksepain } from '@/hooks/useTaaksepain'
 import KulkutapaValitsin from '@/components/KulkutapaValitsin'
 import { walkMinutesBetween } from '@/lib/group'
 import type { Event, Restaurant } from '@/lib/types'
@@ -98,7 +99,12 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
   }, [tyhja, runkoData])
 
   const viitteet = (askeleet: { viiteId?: string }[]) => askeleet.map((a) => a.viiteId ?? '').join('|')
+  /** Suunnitelma sellaisena kuin se oli ENNEN rungon käyttöönottoa (käytännössä
+   *  tyhjä, koska rungot näkyvät vain tyhjässä tilassa). Paluuele palauttaa
+   *  tämän — "Vaihda iltaa" ei muuta lähtötilannetta. */
+  const ennenRunkoa = useRef<Suunnitelma | null>(null)
   function otaRunko(r: Runko) {
+    ennenRunkoa.current ??= suunnitelma
     kaytaRunko(r, t(r.otsikkoAvain))
     // Uusi ilta alkaa: ohituslista alkaa tästä rungosta, ei vanhoista kierroista.
     setOhita(new Set(rungonTapahtumat(r)))
@@ -118,6 +124,21 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
   // Runkotila raukeaa kun suunnitelma tyhjennetään — "Vaihda iltaa" ei jää
   // roikkumaan tyhjään tilaan.
   const runkoAktiivinen = !!runkoTila && !tyhja && !!runkoData
+  /** Paluuele rungosta kootussa illassa vie takaisin runkovalintaan, ei ulos
+   *  välilehdeltä (omistaja 25.9.2026: "pyyhkäisy taaksepäin pitäisi viedä
+   *  edelliselle sivulle eikä etusivulle"). Sama kuin kumoa: palautetaan
+   *  rungon käyttöönottoa edeltänyt suunnitelma. Ehto on TAHALLAAN suppea —
+   *  jos käyttäjä on lisännyt tai poistanut askeleita, ilta on hänen omansa
+   *  eikä paluuele saa pyyhkiä sitä, vaan poistuu välilehdeltä kuten ennen. */
+  const runkoMuokkaamaton = !!runkoTila && viitteet(suunnitelma.askeleet) === runkoTila.viitteet
+  useTaaksepain(runkoAktiivinen && runkoMuokkaamaton, () => {
+    const edellinen = ennenRunkoa.current
+    ennenRunkoa.current = null
+    setRunkoTila(null)
+    setOhita(new Set())
+    if (edellinen && edellinen.askeleet.length > 0) korvaaSuunnitelma(edellinen)
+    else tyhjennaSuunnitelma()
+  })
   /** Napautuksesta avattu OIKEA infopaneeli — sama kuin muualla sovelluksessa. */
   const [avattuRavintola, setAvattuRavintola] = useState<Extract<AskelData, { laji: 'ravintola' }> | null>(null)
   const [avattuPaikka, setAvattuPaikka] = useState<Extract<AskelData, { laji: 'paikka' }> | null>(null)
