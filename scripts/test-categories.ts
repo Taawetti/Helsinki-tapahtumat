@@ -99,7 +99,7 @@ import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypill
 import { rakennaRungot, seuraavaRunko, rungonTapahtumat } from '../lib/illan-rungot'
 import { pakotettuTyyppi, onKeikkapaikka } from '../lib/venue-type-overrides'
 import { lisaaKiinnostava, poistaKiinnostava, siivoaKiinnostavat, lueKiinnostavat, tallennaKiinnostavat, KIINNOSTAVAT_MAX, type Kiinnostava } from '../lib/kiinnostavat'
-import { toEvent, lahdeIdsta } from '../lib/event-page'
+import { toEvent, lahdeIdsta, eventToPageData, kelpoJakoId, kelpoPaiva, etsiTapahtuma, normalisoiAjat } from '../lib/event-page'
 import { HELSINKI_NIGHTCLUBS } from '../lib/helsinki-nightclubs'
 import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
 import { onEstettyPaikka } from '../lib/venue-blocklist'
@@ -1676,9 +1676,10 @@ for (const c of arcChecks) {
     { name: 'oma sivu: rss-/recurring- ei ratkea', ok: !hasOwnEventPage({ id: 'rss-123' }) && !hasOwnEventPage({ id: 'recurring-abc' }) },
     // Jakolinkki
     { name: 'jako: oma sivu kun id ratkeaa', ok: shareUrlFor({ id: 'helsinki:abc123' }, B) === `${B}/e/helsinki%3Aabc123` },
-    { name: 'jako: stadissa-tapahtuma → EI kilpailijan osoitetta', ok: shareUrlFor({ id: 'stadissa-1', infoUrl: 'https://www.stadissa.fi/tapahtumat/x' }, B) === B },
-    { name: 'jako: järjestäjän linkki kelpaa kun omaa sivua ei ole', ok: shareUrlFor({ id: 'venue-1', infoUrl: 'https://tavastiaklubi.fi/keikka' }, B) === 'https://tavastiaklubi.fi/keikka' },
-    { name: 'jako: kilpailija ohitetaan, lippulinkki käytetään', ok: shareUrlFor({ id: 'stadissa-2', infoUrl: 'https://stadissa.fi/x', ticketUrl: 'https://www.lippu.fi/y' }, B) === 'https://www.lippu.fi/y' },
+    // Jako vie AINA sovellukseen (omistaja 28.9.2026) — ei järjestäjän sivulle eikä kilpailijalle.
+    { name: 'jako: skrapattu tapahtuma → sovellukseen päivän kanssa, EI kilpailijan eikä järjestäjän osoitetta', ok: shareUrlFor({ id: 'stadissa-1', startTime: '2026-09-28T19:00:00+03:00' }, B) === `${B}/e/stadissa-1?d=2026-09-28` },
+    { name: 'jako: ilman aikaa sovellukseen ilman päivää', ok: shareUrlFor({ id: 'venue-1' }, B) === `${B}/e/venue-1` && shareUrlFor({ id: 'x-1', startTime: 'roska' }, B) === `${B}/e/x-1` },
+    { name: 'jako: päivä on Helsingin päivä (UTC 21.30 = 00.30 seuraavana), oma sivu ilman päivää', ok: shareUrlFor({ id: 'nauramaan-20260928-x', startTime: '2026-09-28T21:30:00Z' }, B) === `${B}/e/nauramaan-20260928-x?d=2026-09-29` && shareUrlFor({ id: 'helsinki:abc123', startTime: '2026-09-28T19:00:00+03:00' }, B) === `${B}/e/helsinki%3Aabc123` },
   ]
   // CTA-linkki: kilpailijan osoite ei kelpaa ulkoiseksi linkiksi, ja kun
   // linkkiä ei ole, kaskadi päätyy sovelluksen omaan toimintoon — EI enää
@@ -3782,6 +3783,19 @@ for (const c of kwChecks) {
       ok: le.ysoIds?.[0] === 'yso:p1808' && tm.ysoIds === undefined && Array.isArray(le.vibes) },
     { name: 'oma tapahtumasivu tunnistetaan → paneelin Jaa tuottaa saman /e/-linkin',
       ok: hasOwnEventPage(le) && hasOwnEventPage(tm) && hasOwnEventPage(fest) },
+    { name: 'eventToPageData: käänteinen muunnos säilyttää kentät ja laskee isPast (loppu tai alku + 3 h)', ok: (() => {
+        const pd = eventToPageData(le, Date.parse('2026-10-03T17:00:00+03:00'))
+        const pd2 = eventToPageData({ ...le, endTime: null }, Date.parse('2026-10-03T12:30:00+03:00'))
+        return pd.title === le.title && pd.venue === 'Kaapelitehdas' && pd.address === 'Tallberginkatu 1' && pd.lat === 60.16 && pd.isPast === true && pd.ysoIds?.[0] === 'yso:p1808' && pd2.isPast === false
+      })() },
+    { name: 'kelpoJakoId: lähteiden tunnisteet kelpaavat, polut ja välilyönnit eivät',
+      ok: ['nauramaan-20260928-salakapakka-stand-up', 'helsinki:agqf27skau', 'espoo_le:abc', 'tm-Z698xZ', 'festival-flow-2026-08-14', 'osm:n123'].every(kelpoJakoId)
+        && ['', 'ab', '../x', 'a b', 'x/y', 'a'.repeat(161)].every((x) => !kelpoJakoId(x)) },
+    { name: 'kelpoPaiva: vain oikea kalenteripäivä', ok: kelpoPaiva('2026-09-28') && !kelpoPaiva('2026-13-01') && !kelpoPaiva('2026-02-30') && !kelpoPaiva('28.9.2026') },
+    { name: 'etsiTapahtuma + normalisoiAjat: tunnisteella koosteesta, vyöhykkeetön aika Helsinkiin', ok: (() => {
+        const n = normalisoiAjat({ ...le, startTime: '2026-10-03T10:00:00', endTime: '2026-10-03T16:00:00' })
+        return etsiTapahtuma([le, tm], 'tm-Z698xZ')?.id === 'tm-Z698xZ' && etsiTapahtuma([le], 'ei') === null && n.startTime === '2026-10-03T10:00:00+03:00' && n.endTime === '2026-10-03T16:00:00+03:00'
+      })() },
   ]
   for (const c of jCases) {
     if (c.ok) pass++

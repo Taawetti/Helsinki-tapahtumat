@@ -17,6 +17,7 @@ import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { tilaaSuunnitelma, onSuunnitelmassa, poistaViitteella, lisaaTapahtuma } from '@/lib/suunnitelma'
 import { naytaToast } from '@/lib/toast'
+import { helsinkiDateOf } from '@/lib/helsinki-time'
 
 interface Props {
   event: Event | null
@@ -329,7 +330,25 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents, av
   // osoitti 404-sivulle (mitattu 25.8.2026).
   const shareUrl = shareUrlFor(event, 'https://mitatanaan.fi')
 
+  // Jaon tilannekuva palvelimelle (fire-and-forget, keepalive: pyyntö
+  // selviää vaikka WhatsApp avautuisi heti päälle). Selain lähettää VAIN
+  // tunnisteen ja päivän; palvelin hakee tapahtuman omasta koosteestaan
+  // (app/api/jaa-tapahtuma). Jos tämä ei onnistu, linkki toimii silti
+  // koosteen kautta (?d= jakolinkissä).
+  function ilmoitaJako() {
+    if (!event) return
+    try {
+      const d = helsinkiDateOf(event.startTime)
+      fetch('/api/jaa-tapahtuma', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: event.id, d }),
+      }).catch(() => {})
+    } catch { /* jako ei saa kaatua tähän */ }
+  }
+
   async function handleNativeShare() {
+    ilmoitaJako()
     if (navigator.share) {
       try {
         await navigator.share({ title: event!.title, text: shareText, url: shareUrl })
@@ -340,11 +359,13 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents, av
   }
 
   function handleWhatsApp() {
+    ilmoitaJako()
     const text = encodeURIComponent(`${shareText}\n${shareUrl}`)
     window.open(`https://wa.me/?text=${text}`, '_blank')
   }
 
   function handleCopy() {
+    ilmoitaJako()
     navigator.clipboard.writeText(`${shareText}\n${shareUrl}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)

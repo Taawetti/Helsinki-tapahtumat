@@ -1,9 +1,12 @@
 import type { Metadata } from 'next'
-import { onMaksunkeruuUrl } from '@/lib/event-links'
+import { onMaksunkeruuUrl, hasOwnEventPage } from '@/lib/event-links'
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 import HomeShell from '@/components/HomeShell'
-import { toEvent, type EventPageData } from '@/lib/event-page'
+import type { Event } from '@/lib/types'
+import { toEvent, eventToPageData, kelpoJakoId, kelpoPaiva, type EventPageData } from '@/lib/event-page'
+import { haeKoosteesta, julkinenOsoite, lueJaettuTilannekuva } from '@/lib/jaettu-tapahtuma'
 import { extractYsoIds } from '@/lib/event-classify'
 import { supabase, DbFestival } from '@/lib/supabase'
 import { FESTIVALS_STATIC, fromDb, FestivalDef } from '@/lib/festivals-data'
@@ -204,12 +207,45 @@ function formatTime(iso: string): string {
 
 // ── Metadata ────────────────────────────────────────────────────────────────
 
-type Props = { params: Promise<{ id: string }> }
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+// ── Ratkaisu: oma lähdesivu → jakohetken tilannekuva → kooste (?d=) ────────
+// Jakolinkki vie AINA sovellukseen (omistaja 28.9.2026), myös skrapattujen
+// lähteiden tapahtumille, joita ei voi hakea tunnisteella lähteestä:
+//  1. LinkedEvents/Ticketmaster/festivaali: tuore data suoraan lähteestä.
+//  2. Jakohetken tilannekuva (jaetut_tapahtumat, app/api/jaa-tapahtuma).
+//  3. Sovelluksen oma kooste jakolinkin päivälle (?d=YYYY-MM-DD).
+// Vain 1. on indeksoitava sivu: 2–3 ovat jaettuja linkkejä, eikä Googlen
+// pidä ryömiä koostehakuja laukaisevia osoitteita (palvelinkuorma).
+interface Ratkaistu { data: EventPageData; ev: Event; oma: boolean }
+
+const ratkaise = cache(async (rawId: string, d: string): Promise<Ratkaistu | null> => {
+  const id = decodeURIComponent(rawId)
+  if (!kelpoJakoId(id)) return null
+  if (hasOwnEventPage({ id })) {
+    const data = await getEventData(rawId)
+    if (data) return { data, ev: toEvent(id, data), oma: true }
+  }
+  const tilannekuva = await lueJaettuTilannekuva(id)
+  if (tilannekuva) return { data: eventToPageData(tilannekuva), ev: tilannekuva, oma: false }
+  if (kelpoPaiva(d)) {
+    const h = await headers()
+    const ev = await haeKoosteesta(julkinenOsoite(h.get('x-forwarded-host') ?? h.get('host')), d, id)
+    if (ev) return { data: eventToPageData(ev), ev, oma: false }
+  }
+  return null
+})
+
+async function paivaParametri(searchParams: Props['searchParams']): Promise<string> {
+  const sp = await searchParams
+  return typeof sp?.d === 'string' ? sp.d : ''
+}
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { id } = await params
-  const event = await getEventData(id)
-  if (!event) return { title: 'Tapahtumaa ei löydy' }
+  const r = await ratkaise(id, await paivaParametri(searchParams))
+  if (!r) return { title: 'Tapahtumaa ei löydy' }
+  const { data: event, oma } = r
 
   const startDate = new Date(event.startTime).toLocaleDateString('fi-FI', { timeZone: 'Europe/Helsinki' })
   const title = `${event.title} – ${startDate}`
@@ -224,8 +260,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: desc,
     // Mennyt tapahtuma ei kuulu hakemistoon — sivu jäi aiemmin 200:ksi ja
     // indeksoitavaksi ikuisesti (auditointi 5.9.2026). Sivu pysyy avattavana
-    // (vanha jaettu linkki toimii), mutta Google ohjataan pois.
-    ...(event.isPast ? { robots: { index: false, follow: true } } : {}),
+    // (vanha jaettu linkki toimii), mutta Google ohjataan pois. Sama
+    // tilannekuvasta/koosteesta ratkaistulle jaetulle linkille (ks. ratkaise).
+    ...(event.isPast || !oma ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: pageUrl },
     openGraph: {
       title: event.title,
@@ -246,15 +283,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // ── Page ────────────────────────────────────────────────────────────────────
 
-export default async function EventPage({ params }: Props) {
+export default async function EventPage({ params, searchParams }: Props) {
   const { id } = await params
-  const event = await getEventData(id)
-  if (!event) notFound()
-
-  const pageUrl = `${BASE}/e/${encodeURIComponent(decodeURIComponent(id))}`
+  const r = await ratkaise(id, await paivaParametri(searchParams))
+  if (!r) notFound()
   // Sovelluksen oma olio: sama id kuin /api/events antaa, joten paneelin
   // "Jaa" tuottaa saman linkin ja "Lisää suunnitelmaan" tunnistaa saman.
-  const ev = toEvent(decodeURIComponent(id), event)
+  const { data: event, ev } = r
+
+  const pageUrl = `${BASE}/e/${encodeURIComponent(decodeURIComponent(id))}`
   const isolla = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
   const jsonLd = {

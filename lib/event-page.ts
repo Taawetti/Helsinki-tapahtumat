@@ -12,6 +12,9 @@ import type { Event } from './types'
 import { normalizeHelsinkiTimestamp } from './helsinki-time'
 import { getEventVibes } from './event-classify'
 
+/** Alkanut tapahtuma on "ohi" tämän jälkeen — sama 3 h -sääntö kuin koosteessa. */
+const KAYNNISSA_MS = 3 * 3_600_000
+
 export interface EventPageData {
   title: string
   shortDescription: string
@@ -75,4 +78,58 @@ export function toEvent(id: string, d: EventPageData): Event {
   // Luokittelu kerran palvelimella kuten /api/events — paneelin
   // kategoriamerkki ja tunnelmat ovat samat kuin sovelluksen sisällä.
   return { ...pohja, vibes: getEventVibes(pohja) }
+}
+
+/** Käänteinen muunnos: koosteen tai tilannekuvan Event → sivun metatiedot,
+ *  JSON-LD ja SEO-osio. */
+export function eventToPageData(e: Event, nyt = Date.now()): EventPageData {
+  const alku = Date.parse(e.startTime)
+  const loppu = e.endTime ? Date.parse(e.endTime) : alku + KAYNNISSA_MS
+  return {
+    title: e.title,
+    shortDescription: e.shortDescription ?? '',
+    description: e.description ?? '',
+    startTime: e.startTime,
+    endTime: e.endTime ?? null,
+    image: e.image ?? null,
+    isFree: !!e.isFree,
+    price: e.price ?? null,
+    ticketUrl: e.ticketUrl ?? null,
+    infoUrl: e.infoUrl ?? null,
+    categories: e.categories ?? [],
+    venue: e.location?.name ?? '',
+    address: e.location?.streetAddress ?? '',
+    city: e.location?.city || 'Helsinki',
+    lat: e.location?.lat,
+    lon: e.location?.lon,
+    isPast: !Number.isNaN(alku) && !Number.isNaN(loppu) && loppu < nyt,
+    ...(e.ysoIds?.length ? { ysoIds: e.ysoIds } : {}),
+  }
+}
+
+/** Vyöhykkeettömät aikaleimat Helsingin offsetiin (ks. toEvent). */
+export function normalisoiAjat(e: Event): Event {
+  return {
+    ...e,
+    startTime: normalizeHelsinkiTimestamp(e.startTime) ?? e.startTime,
+    endTime: e.endTime ? (normalizeHelsinkiTimestamp(e.endTime) ?? e.endTime) : null,
+  }
+}
+
+/** Jakolinkin tunniste: lähteiden id-muodot (kirjaimet, numerot, : _ . -),
+ *  ei polkumerkkejä eikä välilyöntejä. */
+export function kelpoJakoId(id: string): boolean {
+  return /^[A-Za-z0-9_:.-]{3,160}$/.test(id)
+}
+
+/** Jakolinkin päivä YYYY-MM-DD, oikea kalenteripäivä. */
+export function kelpoPaiva(d: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
+  const t = new Date(`${d}T12:00:00Z`)
+  return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === d
+}
+
+/** Tapahtuma koosteesta tunnisteella. */
+export function etsiTapahtuma(events: Event[], id: string): Event | null {
+  return events.find((e) => e.id === id) ?? null
 }

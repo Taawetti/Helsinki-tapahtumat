@@ -1,3 +1,4 @@
+import { helsinkiDateOf } from './helsinki-time'
 // Mihin tapahtumasta saa linkittää ja mihin ei.
 //
 // 1) OMA TAPAHTUMASIVU: /e/[id] osaa ratkaista vain tietyt id-muodot
@@ -60,14 +61,20 @@ export function onMaksunkeruuUrl(url: string | null | undefined): boolean {
   }
 }
 
-/** Osoite jonka jakaminen ohjaa takaisin palveluun — ei koskaan kilpailijalle. */
-export function shareUrlFor(
-  e: { id: string; infoUrl?: string | null; ticketUrl?: string | null },
-  base: string,
-): string {
-  if (hasOwnEventPage(e)) return `${base}/e/${encodeURIComponent(e.id)}`
-  const external = [e.infoUrl, e.ticketUrl].find((u) => u && !isCompetitorUrl(u) && !onMaksunkeruuUrl(u))
-  return external ?? base
+/** Osoite jonka jakaminen ohjaa AINA sovellukseen (omistaja 28.9.2026:
+ *  "haluan aina että linkki vie sovellukseen jotta käyttäjä voi alkaa
+ *  käyttämään sovellusta"). /e/[id] avaa sovelluksen infokortti valmiiksi
+ *  auki. Tapahtumalle jolla on oma lähdesivu (LinkedEvents, Ticketmaster,
+ *  festivaali) riittää tunniste; muille mukaan päivä (?d=), jolla sivu
+ *  löytää tapahtuman koosteesta, jos jakohetken tilannekuvaa ei ole
+ *  (lib/jaettu-tapahtuma). Aiempi versio (25.8.2026) ohjasi muut
+ *  järjestäjän sivulle — se oli 404-korjaus, ei tavoite. */
+export function shareUrlFor(e: { id: string; startTime?: string | null }, base: string): string {
+  const polku = `${base}/e/${encodeURIComponent(e.id)}`
+  if (hasOwnEventPage(e)) return polku
+  let paiva = ''
+  try { paiva = e.startTime ? helsinkiDateOf(e.startTime) : '' } catch { paiva = '' }
+  return /^\d{4}-\d{2}-\d{2}$/.test(paiva) ? `${polku}?d=${paiva}` : polku
 }
 
 /** Tapahtuman ulkoinen linkki, tai null jos ainoa tiedossa oleva veisi
