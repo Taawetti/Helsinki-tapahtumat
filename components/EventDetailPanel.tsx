@@ -24,9 +24,13 @@ interface Props {
   /** "Paikan kaikki tapahtumat" paikoille joilla EI ole omaa ohjelmasivua:
    *  kutsuja suodattaa listan paikan nimellä. */
   onShowVenueEvents?: (venueName: string) => void
+  /** Jaettu linkki (/e/[id]) avaa sovelluksen tämä paneeli VALMIIKSI auki:
+   *  ei liukuanimaatiota ensimmäisellä piirrolla, jotta vastaanottaja näkee
+   *  kortin heti — myös palvelimen HTML:ssä ennen hydraatiota. */
+  avattuHeti?: boolean
 }
 
-export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: Props) {
+export default function EventDetailPanel({ event, onClose, onShowVenueEvents, avattuHeti = false }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   // Fokus paneeliin, Tab-loukku, palautus avaajaan (Escape sidottu alla).
   // HUOM: open on !!event eikä true — komponentti on AINA mountattuna
@@ -45,7 +49,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
   // oikea sivu — mitattu 25.8.2026: 23 % näistä tapahtumista saa osuman.
   const [venueSite, setVenueSite] = useState<string | null>(null)
   const [showShare, setShowShare] = useState(false)
-  const [slideIn, setSlideIn] = useState(false)
+  const [slideIn, setSlideIn] = useState(avattuHeti)
   const { toggle, isFavorite } = useFavorites()
   const { t, lang } = useLanguage()
   const fav = event ? isFavorite(event.id) : false
@@ -71,6 +75,19 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event])
+
+  // Päättynyt tapahtuma (vanha jaettu linkki): kerrotaan että se on ohi.
+  // Lasketaan vasta selaimessa timeoutin kautta — palvelimen HTML voi olla
+  // välimuistista, ja palvelimen/selaimen eri kello tuottaisi hydraatiovirheen.
+  const [paattynyt, setPaattynyt] = useState(false)
+  useEffect(() => {
+    const t0 = setTimeout(() => {
+      if (!event) { setPaattynyt(false); return }
+      const loppu = event.endTime ? Date.parse(event.endTime) : Date.parse(event.startTime) + 3 * 3_600_000
+      setPaattynyt(!Number.isNaN(loppu) && loppu < Date.now())
+    }, 0)
+    return () => clearTimeout(t0)
   }, [event])
 
   // Selaimen paluuele: keskitetty paluupino (hooks/useTaaksepain) työntää
@@ -423,6 +440,11 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents }: 
             <div className="flex items-start gap-3 text-sm">
               <Clock size={15} className="text-[#0072C6] mt-0.5 shrink-0" />
               <span className="text-white/80">{formatDateRange(event.startTime, event.endTime, lang)}</span>
+              {paattynyt && (
+                <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                  {t('detail.ended')}
+                </span>
+              )}
               {event.soldOut && (
                 <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/25">
                   {t('detail.sold_out')}

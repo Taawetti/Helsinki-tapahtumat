@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import { onMaksunkeruuUrl } from '@/lib/event-links'
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import ShareButton from '@/components/ShareButton'
+import HomeShell from '@/components/HomeShell'
+import { toEvent, type EventPageData } from '@/lib/event-page'
+import { extractYsoIds } from '@/lib/event-classify'
 import { supabase, DbFestival } from '@/lib/supabase'
 import { FESTIVALS_STATIC, fromDb, FestivalDef } from '@/lib/festivals-data'
 import { jsonLdHtml } from '@/lib/json-ld'
@@ -12,27 +13,7 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
 const TM_KEY = process.env.TICKETMASTER_API_KEY
 
-// ── Unified event data shape ────────────────────────────────────────────────
-
-interface EventPageData {
-  title: string
-  shortDescription: string
-  description: string
-  startTime: string
-  endTime: string | null
-  image: string | null
-  isFree: boolean
-  price: string | null
-  ticketUrl: string | null
-  infoUrl: string | null
-  categories: string[]
-  venue: string
-  address: string
-  city: string
-  lat?: number
-  lon?: number
-  isPast: boolean
-}
+// ── Unified event data shape: lib/event-page (EventPageData + toEvent) ──────
 
 // ── Source-specific fetchers ────────────────────────────────────────────────
 
@@ -52,7 +33,7 @@ interface LEEvent {
   }
   offers?: { is_free: boolean; price?: { fi?: string }; info_url?: { fi?: string; en?: string } }[]
   info_url?: { fi?: string; en?: string }
-  keywords?: { name: { fi?: string; en?: string } }[]
+  keywords?: { '@id'?: string; name: { fi?: string; en?: string } }[]
 }
 
 async function fetchLinkedEvent(id: string): Promise<EventPageData | null> {
@@ -87,6 +68,7 @@ async function fetchLinkedEvent(id: string): Promise<EventPageData | null> {
       })(),
       infoUrl: e.info_url?.fi || e.info_url?.en || null,
       categories: (e.keywords || []).map((k) => k.name?.fi || k.name?.en || '').filter(Boolean).slice(0, 5),
+      ysoIds: extractYsoIds(e.keywords),
       venue: loc?.name?.fi || loc?.name?.en || '',
       address: loc?.street_address?.fi || loc?.street_address?.en || '',
       city: loc?.address_locality?.fi || 'Helsinki',
@@ -270,6 +252,10 @@ export default async function EventPage({ params }: Props) {
   if (!event) notFound()
 
   const pageUrl = `${BASE}/e/${encodeURIComponent(decodeURIComponent(id))}`
+  // Sovelluksen oma olio: sama id kuin /api/events antaa, joten paneelin
+  // "Jaa" tuottaa saman linkin ja "Lisää suunnitelmaan" tunnistaa saman.
+  const ev = toEvent(decodeURIComponent(id), event)
+  const isolla = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -330,92 +316,44 @@ export default async function EventPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
-      <main className="min-h-screen bg-gray-950 text-white">
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <Link href="/" className="text-blue-400 hover:text-blue-300 text-sm mb-6 inline-block">
-            ← Kaikki tapahtumat
-          </Link>
+      {/* Sovellusnäkymä, tapahtuman infopaneeli VALMIIKSI auki — sama näkymä
+          kuin lähettäjällä. Erillinen sivu poistui 28.9.2026 (omistaja:
+          jaetusta linkistä pitää olla hyvin pieni kynnys alkaa käyttää
+          sovellusta): siitä pääsi sovellukseen vain "← Kaikki tapahtumat"
+          -linkistä. Kun vastaanottaja sulkee paneelin, hän on etusivulla. */}
+      <HomeShell initialEvent={ev} />
 
-          {event.image && (
-            <div className="rounded-xl overflow-hidden mb-6 aspect-video">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {event.categories.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {event.isFree && (
-                  <span className="bg-emerald-900/60 text-emerald-300 text-xs font-semibold px-3 py-1 rounded-full">
-                    Ilmainen
-                  </span>
-                )}
-                {event.categories.map((cat) => (
-                  <span key={cat} className="bg-blue-900/40 text-blue-300 text-xs px-2 py-1 rounded-full">
-                    {cat}
-                  </span>
-                ))}
-              </div>
+      {/* Sivun oma sisältö hakukoneelle ja ilman JavaScriptiä avaavalle —
+          samat tiedot kuin paneelissa, sovelluksen alla kuten muillakin
+          laskeutumissivuilla. H1 vain ruudunlukijoille: paneeli näyttää
+          otsikon jo, eikä kahta näkyvää otsikkoa haluta. */}
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">{event.title}</h1>
+        <p className="text-sm text-white/35 leading-relaxed">
+          📅 {isolla(formatDate(event.startTime))} klo {formatTime(event.startTime)}
+          {event.endTime && ` – ${formatTime(event.endTime)}`}
+          {event.venue && ` · 📍 ${event.venue}${event.address ? `, ${event.address}` : ''}`}
+          {event.price && !event.isFree && ` · 💶 ${event.price}`}
+          {event.isFree && ' · Ilmainen'}
+          {event.isPast && ' · Tapahtuma on päättynyt'}
+        </p>
+        {(event.shortDescription || event.description) && (
+          <p className="mt-3 text-sm text-white/35 leading-relaxed">
+            {event.shortDescription || event.description.slice(0, 600)}
+          </p>
+        )}
+        {(event.ticketUrl || event.infoUrl) && (
+          <p className="mt-3 text-[13px] text-white/40">
+            {event.ticketUrl && !event.isPast && (
+              <a href={event.ticketUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70">Osta liput</a>
             )}
-
-            <h1 className="text-2xl font-bold leading-tight">{event.title}</h1>
-
-            {event.isPast && (
-              <p className="text-amber-400 text-sm font-medium">Tapahtuma on päättynyt</p>
+            {event.ticketUrl && !event.isPast && event.infoUrl && event.infoUrl !== event.ticketUrl && ' · '}
+            {event.infoUrl && event.infoUrl !== event.ticketUrl && (
+              <a href={event.infoUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70">Lisätietoja</a>
             )}
-
-            <div className="space-y-1 text-gray-300">
-              <p className="text-lg capitalize">
-                📅 {formatDate(event.startTime)} klo {formatTime(event.startTime)}
-                {event.endTime && ` – ${formatTime(event.endTime)}`}
-              </p>
-              {event.venue && (
-                <p>
-                  📍 {event.venue}
-                  {event.address && <span className="text-gray-500">, {event.address}</span>}
-                  {event.city && event.city !== 'Helsinki' && (
-                    <span className="text-gray-500">, {event.city}</span>
-                  )}
-                </p>
-              )}
-              {event.price && !event.isFree && (
-                <p className="text-gray-400">💶 {event.price}</p>
-              )}
-            </div>
-
-            {(event.shortDescription || event.description) && (
-              <p className="text-gray-300 leading-relaxed">
-                {event.shortDescription || event.description.slice(0, 600)}
-              </p>
-            )}
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              {event.ticketUrl && !event.isPast && (
-                <a
-                  href={event.ticketUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
-                >
-                  Osta liput
-                </a>
-              )}
-              {event.infoUrl && event.infoUrl !== event.ticketUrl && (
-                <a
-                  href={event.infoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block bg-gray-800 hover:bg-gray-700 text-white font-medium px-6 py-3 rounded-xl transition-colors"
-                >
-                  Lisätietoja
-                </a>
-              )}
-              <ShareButton title={event.title} url={pageUrl} />
-            </div>
-          </div>
-        </div>
-      </main>
+          </p>
+        )}
+      </section>
     </>
   )
 }

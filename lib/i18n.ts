@@ -1050,6 +1050,7 @@ const t = {
     'idea.poista_listalta':        'Poista listalta',
     'idea.katso_uudelleen':        'Katso uudelleen',
     'idea.paivan_menot':           'Päivän tapahtumia ja tekemistä',
+    'detail.ended':                'Tapahtuma on päättynyt',
   },
 
   en: {
@@ -2102,6 +2103,7 @@ const t = {
     'idea.poista_listalta':        'Remove from list',
     'idea.katso_uudelleen':        'Start over',
     'idea.paivan_menot':           'Events and things to do that day',
+    'detail.ended':                'This event has ended',
   },
 } as const
 

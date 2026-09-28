@@ -6,14 +6,19 @@ import HomeClient from '@/components/HomeClient'
 import type { GuideSlug, GuidePayload } from '@/components/GuideInlineView'
 import { fetchInitialEvents } from '@/lib/fetchInitialEvents'
 import { getDateRange } from '@/lib/utils'
-import type { DateFilter, PriceFilter } from '@/lib/types'
+import type { DateFilter, Event, PriceFilter } from '@/lib/types'
 
 /** @param initialGuide  Avaa sovelluksen suoraan tähän opasnäkymään.
  *  @param initialGuideData  Palvelimella haettu data samalle oppaalle, jotta
  *    Googlelle lähtevä HTML sisältää listan eikä tyhjää kuorta. */
-export default async function HomeShell({ initialGuide, initialGuideData, initialVibes, initialHood, initialPriceFilter, initialMode, initialDateFilter, heroAsHeading }: {
+export default async function HomeShell({ initialGuide, initialGuideData, initialVibes, initialHood, initialPriceFilter, initialMode, initialDateFilter, initialEvent, heroAsHeading }: {
   initialGuide?: GuideSlug
   initialGuideData?: GuidePayload
+  /** Jaettu tapahtumalinkki (/e/[id]) avaa sovelluksen tämän tapahtuman
+   *  infopaneeli valmiiksi auki — sama näkymä kuin lähettäjällä (omistaja
+   *  28.9.2026: jaetusta linkistä pitää olla hyvin pieni kynnys alkaa
+   *  käyttää sovellusta). Ks. HomeClient. */
+  initialEvent?: Event | null
   /** Ks. HomeClient. Kategoriasivu avaa sovelluksen tunnelmasuodatin päällä. */
   initialVibes?: string[]
   initialHood?: string | null
@@ -49,7 +54,7 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
   // joten se putoaa suoraan tavalliseen hakuun.
   const tarvitaan: DateFilter[] = initialDateFilter
     ? [initialDateFilter]
-    : (initialGuide || initialVibes?.length || initialHood || initialMode)
+    : (initialGuide || initialVibes?.length || initialHood || initialMode || initialEvent)
       ? ['today']
       : ['today', 'tomorrow', 'weekend', 'week']
 
@@ -73,7 +78,8 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
       initialPriceFilter={initialPriceFilter}
       initialMode={initialMode}
       initialDateFilter={initialDateFilter}
-      heroAsHeading={heroAsHeading ?? !(initialGuide || initialVibes?.length || initialHood || initialPriceFilter || initialMode || initialDateFilter)}
+      initialEvent={initialEvent}
+      heroAsHeading={heroAsHeading ?? !(initialGuide || initialVibes?.length || initialHood || initialPriceFilter || initialMode || initialDateFilter || initialEvent)}
       preloadedData={{
         today:    { start: todayRange.start,    end: todayRange.end,    events: todayData.events,    total: todayData.total    },
         tomorrow: { start: tomorrowRange.start, end: tomorrowRange.end, events: tomorrowData.events, total: tomorrowData.total },

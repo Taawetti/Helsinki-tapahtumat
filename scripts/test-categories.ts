@@ -99,6 +99,7 @@ import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypill
 import { rakennaRungot, seuraavaRunko, rungonTapahtumat } from '../lib/illan-rungot'
 import { pakotettuTyyppi, onKeikkapaikka } from '../lib/venue-type-overrides'
 import { lisaaKiinnostava, poistaKiinnostava, siivoaKiinnostavat, lueKiinnostavat, tallennaKiinnostavat, KIINNOSTAVAT_MAX, type Kiinnostava } from '../lib/kiinnostavat'
+import { toEvent, lahdeIdsta } from '../lib/event-page'
 import { HELSINKI_NIGHTCLUBS } from '../lib/helsinki-nightclubs'
 import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
 import { onEstettyPaikka } from '../lib/venue-blocklist'
@@ -3749,6 +3750,42 @@ for (const c of kwChecks) {
   for (const c of rCases) {
     if (c.ok) pass++
     else failures.push(`✗ suunnitelma: ${c.name}`)
+  }
+}
+
+// ── JAETTU TAPAHTUMALINKKI: /e/[id]-sivun data → sovelluksen Event (lib/event-page,
+// 28.9.2026: jaettu linkki avaa sovelluksen infopaneeli valmiiksi auki) ──
+{
+  const pohja = {
+    title: 'Lakritsifestivaalit', shortDescription: 'Lyhyt', description: 'Pitkä',
+    startTime: '2026-10-03T10:00:00+03:00', endTime: '2026-10-03T16:00:00+03:00', image: 'https://x/y.png',
+    isFree: false, price: '15-20 €', ticketUrl: 'https://liput', infoUrl: 'https://info',
+    categories: ['Musiikki', 'musiikki', 'Festivaalit', 'Ruoka', 'Juoma', 'Kuudes'],
+    venue: 'Kaapelitehdas', address: 'Tallberginkatu 1', city: 'Helsinki', lat: 60.16, lon: 24.91, isPast: false, ysoIds: ['yso:p1808'],
+  }
+  const le = toEvent('helsinki:agqf27skau', pohja)
+  const tm = toEvent('tm-Z698xZ', { ...pohja, startTime: '2026-10-03T19:00:00', endTime: null, ysoIds: undefined })
+  const fest = toEvent('festival-flow-2026-08-14', { ...pohja, startTime: '2026-08-14T12:00:00', venue: '', address: '', lat: undefined, lon: undefined })
+  const jCases: { name: string; ok: boolean }[] = [
+    { name: 'id, lähde ja perustiedot säilyvät (LinkedEvents)',
+      ok: le.id === 'helsinki:agqf27skau' && le.source === 'linked-events' && le.title === 'Lakritsifestivaalit' && le.image === 'https://x/y.png' && le.price === '15-20 €' && le.ticketUrl === 'https://liput' && le.infoUrl === 'https://info' && le.isFree === false },
+    { name: 'lähde id-etuliitteestä: tm- → ticketmaster, festival- → festival',
+      ok: tm.source === 'ticketmaster' && fest.source === 'festival' && lahdeIdsta('helsinki:x') === 'linked-events' },
+    { name: 'kategoriat: tuplat pois ja enintään 4 kuten /api/events',
+      ok: le.categories.join(',') === 'Musiikki,Festivaalit,Ruoka,Juoma' },
+    { name: 'sijainti: nimi, osoite, kaupunki ja koordinaatit',
+      ok: le.location?.name === 'Kaapelitehdas' && le.location?.streetAddress === 'Tallberginkatu 1' && le.location?.city === 'Helsinki' && le.location?.lat === 60.16 && le.location?.lon === 24.91 },
+    { name: 'sijainti null kun paikkaa ei tunneta', ok: fest.location === null },
+    { name: 'vyöhykkeetön aikaleima saa Helsingin offsetin (palvelin ja selain näyttävät saman ajan)',
+      ok: tm.startTime === '2026-10-03T19:00:00+03:00' && tm.endTime === null && le.startTime === '2026-10-03T10:00:00+03:00' && fest.startTime === '2026-08-14T12:00:00+03:00' },
+    { name: 'yso-tunnisteet ja tunnelmat mukana — sama luokittelu kuin sovelluksessa',
+      ok: le.ysoIds?.[0] === 'yso:p1808' && tm.ysoIds === undefined && Array.isArray(le.vibes) },
+    { name: 'oma tapahtumasivu tunnistetaan → paneelin Jaa tuottaa saman /e/-linkin',
+      ok: hasOwnEventPage(le) && hasOwnEventPage(tm) && hasOwnEventPage(fest) },
+  ]
+  for (const c of jCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ jaettu linkki: ${c.name}`)
   }
 }
 

@@ -231,6 +231,7 @@ export default function HomeClient({
   initialPriceFilter,
   initialMode,
   initialDateFilter,
+  initialEvent,
   heroAsHeading = true,
 }: {
   /** SEO-sivu (esim. /saunat) avaa saman sovellusnäkymän kuin oppaan
@@ -258,6 +259,13 @@ export default function HomeClient({
    *  usein tyhjä ja laskeutuja näkisi tyhjän näkymän. Viikko on jo esiladattu
    *  eikä siitä tule lisäkuormaa. */
   initialDateFilter?: DateFilter
+  /** Jaettu tapahtumalinkki (/e/[id]): sovellus avautuu tämän tapahtuman
+   *  infopaneeli VALMIIKSI auki, ilman animaatiota, taustalla normaali
+   *  etusivu. Kun vastaanottaja sulkee paneelin tai pyyhkäisee taaksepäin,
+   *  hän on jo sovelluksessa (useTaaksepain-kerros kuoriutuu ensin).
+   *  Aiemmin linkki laskeutui erilliselle sivulle, josta sovellukseen pääsi
+   *  vain "← Kaikki tapahtumat" -linkistä (omistaja 28.9.2026). */
+  initialEvent?: Event | null
   /** Laskeutumissivu tuo OMAN h1:nsä (esim. "Saunat Helsingissä"), joten
    *  sovelluksen koristeellinen kaupunkiotsikko ei saa olla h1 — muuten
    *  jokaisen laskeutumissivun vahvin otsikkosignaali Googlelle olisi sama
@@ -411,7 +419,13 @@ export default function HomeClient({
   }, [])
   const [listStyle, setListStyle] = useState<ListStyle>('feed')
   const [priceFilter, setPriceFilter] = useState<PriceFilter>(initialPriceFilter ?? 'all')
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(initialEvent ?? null)
+  // Jaetun linkin avaus mitataan omana pintanaan — kertoo kuinka moni jaettu
+  // tapahtuma oikeasti avataan (vrt. grid/picks/search alla).
+  useEffect(() => {
+    if (initialEvent) track('event_open', { surface: 'share', eventId: initialEvent.id, label: initialEvent.title, meta: initialEvent.categories?.[0] })
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- vain kerran sivun avauksessa
+  }, [])
 
   // Tapahtuman avaus mitataan PINNAN mukaan: sama tapahtuma voi aueta
   // ruudukosta, poiminnoista, hausta, herosta, kartalta, Ideasta, oppaasta tai
@@ -2279,7 +2293,7 @@ export default function HomeClient({
       <ToastHost onToiminto={(tyyppi) => { if (tyyppi === 'nayta-suunnitelma') { setSelectedEvent(null); handleTab('suunnitelma') } }} />
 
       <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}
-        onShowVenueEvents={showVenueEvents}/>
+        onShowVenueEvents={showVenueEvents} avattuHeti={!!initialEvent}/>
       <InstallBanner/>
 
       {showEiTieda && (
