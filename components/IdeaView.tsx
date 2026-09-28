@@ -6,14 +6,13 @@ import type { Event, Activity, ActivityCategory } from '@/lib/types'
 import { track } from '@/lib/track'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
-import { useFavorites } from '@/contexts/FavoritesContext'
 import { isOpenNow } from '@/lib/opening-hours'
-import { helsinkiToday } from '@/lib/helsinki-time'
+import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
 import { stripPriceFromPrefix, tuntematonAika } from '@/lib/utils'
 import { addDays } from '@/lib/arvo-ilta'
 import { buildIdeaDeck, usefulWhy, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
-import { getEventVibes } from '@/lib/event-classify'
+import { lisaaKiinnostava, poistaKiinnostava, siivoaKiinnostavat, lueKiinnostavat, tallennaKiinnostavat, type Kiinnostava } from '@/lib/kiinnostavat'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { canBuyTickets } from '@/lib/tickets'
 import DatePicker from '@/components/DatePicker'
@@ -24,6 +23,12 @@ import { useTaaksepain } from '@/hooks/useTaaksepain'
 // toiston) — pakka on nyt tapahtumakeskeinen: tämän päivän tapahtumat
 // kohderyhmäsuodatuksella (vauva/perhe pois oletuksena, seniori alas),
 // makumuistilla ja cold-start-sceneilla painotettuna (lib/idea-deck.ts).
+//
+// 28.9.2026 (omistaja): Tinder-pyyhkäisy POISTETTU. Yksi idea kerrallaan ja
+// kaksi nappia: "Seuraava" (pelkkä ohitus, EI opeta makua) ja "Kiinnostaa"
+// (makumuisti + kohde kertyy sivun omaan Kiinnostavat-listaan, lib/kiinnostavat).
+// Kiinnostava EI mene suosikiksi: listalta avataan kortti, ja suosikkiin tai
+// suunnitelmaan käyttäjä lisää sen itse. Kortin napautus avaa kortin.
 
 // ── Types ────────────────────────────────────────────────
 
@@ -123,29 +128,15 @@ interface Props {
 
 export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const { lang, t } = useLanguage()
-  const { toggle, isFavorite } = useFavorites()
-
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  /** "Kiinnostaa"-lista (laitteella, lib/kiinnostavat) — ei suosikki. */
+  const [kiinnostavat, setKiinnostavat] = useState<Kiinnostava<Suggestion>[]>([])
   const [detailSuggestion, setDetailSuggestion] = useState<Suggestion | null>(null)
-  // Instantly hide card when panel opens — no competing animations
-  const [cardHidden, setCardHidden] = useState(false)
   // rAF-based slide-in: panel is always in DOM when detailSuggestion is set
   // so the backdrop appears immediately (no gap between card-hide and backdrop)
   const [panelSlideIn, setPanelSlideIn] = useState(false)
   const panelCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const detailPanelRef = useRef<HTMLDivElement>(null)
-
-  // Swipe state — use refs for synchronous drag tracking (useState closures would lose updates)
-  const [dragX, setDragX] = useState(0)
-  const isDragging = useRef(false)
-  const isHorizontalDrag = useRef(false)
-  const dragStartX = useRef(0)
-  const dragStartY = useRef(0)
-  const cardRef = useRef<HTMLDivElement>(null)
-
-  // Exit animation
-  const [exitDir, setExitDir] = useState<'left' | 'right' | null>(null)
 
   const [activities, setActivities] = useState<Activity[]>([])
 
@@ -209,12 +200,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   // ── Kohderyhmä- ja makutila (localStorage) ──
   // Kylmäkäynnistyskysely ("Minkälainen ilta?") POISTETTU 25.8.2026
   // (omistaja: "tätä ei kuuluisi olla ollenkaan") — pakka henkilökohtaistuu
-  // pelkällä makumuistilla (recordClick) ja "ei tällaista" -demotioilla.
+  // pelkällä makumuistilla (recordClick). "Ei tällaista" -demotiot POISTETTU
+  // 28.9.2026 (ohitus ei opeta makua) — vanha idea-demoted-avain siivotaan.
   // Aiemmin tallennetut scene-/perhevalinnat luetaan yhä (legacy-käyttäjät
   // pitävät painotuksensa), uutta asetus-UI:ta ei ole.
   const [ideaScenes, setIdeaScenes] = useState<IdeaSceneId[]>([])
   const [audience, setAudience] = useState<'default' | 'perhe'>('default')
-  const [demoted, setDemoted] = useState<string[]>([])
   const [deviceId, setDeviceId] = useState('anon')
 
   useEffect(() => {
@@ -225,8 +216,8 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         const scenes = JSON.parse(localStorage.getItem('idea-scenes') || '[]') as IdeaSceneId[]
         setIdeaScenes(Array.isArray(scenes) ? scenes : [])
         setAudience(localStorage.getItem('idea-audience') === 'perhe' ? 'perhe' : 'default')
-        const dem = JSON.parse(localStorage.getItem('idea-demoted') || '[]')
-        setDemoted(Array.isArray(dem) ? dem : [])
+        localStorage.removeItem('idea-demoted')
+        setKiinnostavat(siivoaKiinnostavat(lueKiinnostavat<Suggestion>(localStorage), helsinkiToday()))
         let id = localStorage.getItem('idea-device-id')
         if (!id) { id = Math.random().toString(36).slice(2); localStorage.setItem('idea-device-id', id) }
         setDeviceId(id)
@@ -297,7 +288,6 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       today: ideaDate,
       scenes: ideaScenes,
       audience,
-      demoted,
       categoryScores: getCategoryScores(),
     }).map(s => ({
       id: `event-${s.event.id}`,
@@ -321,7 +311,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       emoji: eventEmoji(s.event),
       eventRef: s.event,
     }))
-  }, [targetEvents, lang, ideaScenes, audience, demoted, ideaDate, deviceId])
+  }, [targetEvents, lang, ideaScenes, audience, ideaDate, deviceId])
 
   const pool = useMemo(() => {
     // Paikkakortit (sauna/näköala) vain tänään — "● Auki nyt" ei kerro mitään
@@ -350,206 +340,34 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
   const current = pool[0] ?? null
   const meta = current ? TYPE_META[current.type] : TYPE_META.event
 
-  // ── Swipe logic ──────────────────────────────────────
-
-  const SWIPE_THRESHOLD = 80
-
-  // Mouse / stylus only — Pointer Events with setPointerCapture are safe for non-touch.
-  // Touch is handled separately below via native Touch Events to avoid the iOS Safari
-  // bug where setPointerCapture + touchAction triggers immediate pointercancel.
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === 'touch') return
-    dragStartX.current = e.clientX
-    dragStartY.current = e.clientY
-    isDragging.current = true
-    isHorizontalDrag.current = false
-    cardRef.current?.setPointerCapture(e.pointerId)
+  // ── Toiminnot: EI eleitä (omistaja 28.9.2026: "poistetaan tinder-swaippaus") ──
+  const tallenna = useCallback((lista: Kiinnostava<Suggestion>[]) => {
+    setKiinnostavat(lista)
+    try { tallennaKiinnostavat(localStorage, lista) } catch { /* privaattitila */ }
   }, [])
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === 'touch') return
-    if (!isDragging.current) return
-    setDragX(e.clientX - dragStartX.current)
-  }, [])
-
-  const commit = useCallback((dir: 'left' | 'right') => {
+  /** "Seuraava": pelkkä ohitus — ei opeta makua, ei demotoi kategorioita. */
+  const seuraava = useCallback(() => {
     if (!current) return
     const id = current.id
-    const eventRef = current.eventRef
-    const snap = current
-
-    if (dir === 'right') {
-      // Makumuisti: tykkääminen kirjataan kategorioittain (recordClick) —
-      // pakka painottuu vastaisuudessa tämän mukaisesti.
-      if (eventRef) recordClick(eventRef)
-      // Reset drag + hide card immediately — no exitDir transform, no translateX(110%)
-      // that would cause iOS Safari horizontal overflow and page zoom
-      setDragX(0)
-      setCardHidden(true)
-      // Open panel in next rAF — identical to home page tap flow: single clean state update
-      requestAnimationFrame(() => {
-        if (eventRef && onEventClick) onEventClick(eventRef)
-        else setDetailSuggestion(snap)
-      })
-      // Defer expensive FavoritesContext update until panel animation is already running
-      setTimeout(() => {
-        setSavedIds(s => new Set([...s, id]))
-        if (eventRef) toggle(eventRef)
-      }, 400)
-      // Advance to next card after panel has opened
-      setTimeout(() => {
-        setSeenIds(s => new Set([...s, id]))
-        setCardHidden(false)
-      }, 380)
-    } else {
-      // "Ei tällaista": demota PYSYVÄSTI kortin vibe/kategoria (-4 pisteytyksessä),
-      // ei vain ohita — käyttäjä kokee vaikutuksen heti seuraavilla korteilla.
-      if (eventRef) {
-        const vibes = getEventVibes(eventRef)
-        const cats = eventRef.categories.map(c => c.toLowerCase())
-        const keys = [...new Set([...vibes, ...cats])].slice(0, 3)
-        setDemoted(prev => {
-          const next = [...new Set([...prev, ...keys])].slice(0, 40)
-          try { localStorage.setItem('idea-demoted', JSON.stringify(next)) } catch { /* privaattitila */ }
-          return next
-        })
-      }
-      setExitDir('left')
-      setTimeout(() => {
-        setSeenIds(s => new Set([...s, id]))
-        setDragX(0)
-        setExitDir(null)
-      }, 220)
-    }
-  }, [current, toggle, onEventClick])
-
-  // Mouse/stylus pointer up (touch handled by native touchend below)
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === 'touch') return
-    if (!isDragging.current) return
-    isDragging.current = false
-    isHorizontalDrag.current = false
-    const dx = e.clientX - dragStartX.current
-    const dy = e.clientY - dragStartY.current
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-      if (current?.eventRef && onEventClick) onEventClick(current.eventRef)
-      else if (current) setDetailSuggestion(current)
-      setDragX(0)
-      return
-    }
-    if (dx > SWIPE_THRESHOLD) commit('right')
-    else if (dx < -SWIPE_THRESHOLD) commit('left')
-    else setDragX(0)
-  }, [commit, current, onEventClick])
-
-  const onPointerCancel = useCallback(() => {
-    isDragging.current = false
-    isHorizontalDrag.current = false
-    setDragX(0)
-  }, [])
-
-  // Touch gesture handler via native Touch Events.
-  // Uses non-passive touchmove so we can call e.preventDefault() for horizontal drags,
-  // blocking page scroll only when the user is swiping the card sideways.
-  // Vertical gestures pass through unblocked — the browser scrolls the page normally.
-  // Re-registers whenever the card changes (current.id changes → card remounts via key).
-  useEffect(() => {
-    const card = cardRef.current
-    if (!card) return
-
-    let startX = 0
-    let startY = 0
-    let dragging = false
-    let horizontal = false
-
-    const onTouchStart = (e: TouchEvent) => {
-      const t = e.touches[0]
-      startX = t.clientX
-      startY = t.clientY
-      dragStartX.current = startX
-      dragStartY.current = startY
-      dragging = true
-      horizontal = false
-      isDragging.current = true
-      isHorizontalDrag.current = false
-    }
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!dragging || e.touches.length !== 1) return
-      const t = e.touches[0]
-      const dx = t.clientX - startX
-      const dy = t.clientY - startY
-      if (!horizontal) {
-        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return
-        if (Math.abs(dy) >= Math.abs(dx)) {
-          dragging = false
-          isDragging.current = false
-          setDragX(0)
-          return
-        }
-        horizontal = true
-        isHorizontalDrag.current = true
-      }
-      e.preventDefault()
-      setDragX(dx)
-    }
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (!dragging) return
-      dragging = false
-      horizontal = false
-      isDragging.current = false
-      isHorizontalDrag.current = false
-      const t = e.changedTouches[0]
-      const dx = t.clientX - startX
-      const dy = t.clientY - startY
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-        if (current?.eventRef && onEventClick) onEventClick(current.eventRef)
-        else if (current) setDetailSuggestion(current)
-        setDragX(0)
-        return
-      }
-      if (dx > SWIPE_THRESHOLD) commit('right')
-      else if (dx < -SWIPE_THRESHOLD) commit('left')
-      else setDragX(0)
-    }
-
-    const onTouchCancel = () => {
-      dragging = false
-      horizontal = false
-      isDragging.current = false
-      isHorizontalDrag.current = false
-      setDragX(0)
-    }
-
-    card.addEventListener('touchstart', onTouchStart, { passive: true })
-    card.addEventListener('touchmove', onTouchMove, { passive: false })
-    card.addEventListener('touchend', onTouchEnd, { passive: true })
-    card.addEventListener('touchcancel', onTouchCancel, { passive: true })
-
-    return () => {
-      card.removeEventListener('touchstart', onTouchStart)
-      card.removeEventListener('touchmove', onTouchMove)
-      card.removeEventListener('touchend', onTouchEnd)
-      card.removeEventListener('touchcancel', onTouchCancel)
-    }
-  }, [current, commit, onEventClick])
-
-  const handleSkip = useCallback(() => commit('left'), [commit])
-  const handleSave = useCallback(() => commit('right'), [commit])
-
-  // Card transform
-  const cardTransform = exitDir === 'right'
-    ? 'translateX(110%) rotate(12deg)'
-    : exitDir === 'left'
-    ? 'translateX(-110%) rotate(-12deg)'
-    : `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`
-
-  const swipeOpacity = Math.min(Math.abs(dragX) / SWIPE_THRESHOLD, 1)
-  const swipeRight = dragX > 20
-  const swipeLeft = dragX < -20
-
-  const savedCount = savedIds.size
+    setSeenIds((s) => new Set([...s, id]))
+  }, [current])
+  /** "Kiinnostaa": makumuisti + Kiinnostavat-lista, sitten seuraava kortti.
+   *  EI suosikkia — suosikkiin tai suunnitelmaan käyttäjä lisää kortista. */
+  const kiinnostaa = useCallback(() => {
+    if (!current) return
+    if (current.eventRef) recordClick(current.eventRef)
+    track('idea_interest', { surface: 'idea', eventId: current.eventRef?.id, label: current.title })
+    const paiva = current.eventRef ? helsinkiDateOf(current.eventRef.startTime) : ideaDate
+    tallenna(lisaaKiinnostava(kiinnostavat, current, paiva))
+    seuraava()
+  }, [current, kiinnostavat, tallenna, seuraava, ideaDate])
+  const poista = useCallback((id: string) => tallenna(poistaKiinnostava(kiinnostavat, id)), [kiinnostavat, tallenna])
+  /** Kortin avaus: tapahtumalle sovelluksen oikea paneeli, paikalle oma levite. */
+  const avaa = useCallback((s: Suggestion) => {
+    if (s.eventRef && onEventClick) onEventClick(s.eventRef)
+    else setDetailSuggestion(s)
+  }, [onEventClick])
+  const listalla = !!current && kiinnostavat.some((k) => k.id === current.id)
 
   return (
     <>
@@ -570,16 +388,9 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           <p className="text-white/30 text-xs mt-1">
             {ideaDate === todayIso
               ? t('idea.tonight_all')
-              : lang === 'en' ? 'Swipe through the day’s events' : 'Pyyhkäise päivän menot läpi'}
+              : t('idea.paivan_menot')}
           </p>
         </div>
-        {savedCount > 0 && (
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full shrink-0 mt-1"
-            style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.2)' }}>
-            <Heart size={12} fill="#6b76ff" style={{ color: '#6b76ff' }} />
-            <span className="text-[12px] font-black" style={{ color: '#6b76ff' }}>{savedCount}</span>
-          </div>
-        )}
       </div>
 
       {/* ── Päivävalinta: yksi nappi, kalenteri aukeaa (sama DatePicker kuin
@@ -594,36 +405,35 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       </div>
 
     {!current ? (
-      <p className="flex items-center justify-center min-h-[30vh] text-white/25 text-sm">
-        {(ideaDate === todayIso ? activities.length === 0 : dateLoading)
-          ? t('idea.loading_suggestions')
-          : t('idea.all_seen')}
-      </p>
+      <div className="flex flex-col items-center justify-center gap-4 min-h-[30vh]">
+        <p className="text-white/25 text-sm">
+          {(ideaDate === todayIso ? activities.length === 0 : dateLoading)
+            ? t('idea.loading_suggestions')
+            : t('idea.all_seen')}
+        </p>
+        {/* "Seuraava"-napilla pakan päähän pääsee nopeasti — umpikujaa ei jätetä. */}
+        {seenIds.size > 0 && !(ideaDate === todayIso ? activities.length === 0 : dateLoading) && (
+          <button type="button" onClick={() => setSeenIds(new Set())}
+            className="min-h-11 px-5 rounded-full font-black text-[14px] text-white/80 hover:bg-white/10 transition-colors"
+            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
+            ↻ {t('idea.katso_uudelleen')}
+          </button>
+        )}
+      </div>
     ) : (
     <>
 
-      {/* ── Swipeable card ── */}
-      <div className="relative select-none" style={cardHidden ? { visibility: 'hidden' } : {}}>
-
-        {/* Shadow card behind */}
-        {pool.length > 1 && (
-          <div className="absolute inset-x-3 bottom-0 top-2 rounded-3xl z-0"
-            style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.06)' }} />
-        )}
-
-        {/* Main card — pan-y lets browser handle vertical scroll; horizontal drag is captured once intent is confirmed */}
-        <div key={current.id} ref={cardRef}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerCancel}
-          className="relative z-10 rounded-3xl overflow-hidden cursor-grab active:cursor-grabbing"
+      {/* ── Kortti: napautus avaa (ei eleitä). Sisäiset napit pysäyttävät
+          kuplinnan, ettei "Kartalla" avaisi myös paneelia. ── */}
+      <div className="relative">
+        <div key={current.id}
+          role="button" tabIndex={0}
+          onClick={() => avaa(current)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); avaa(current) } }}
+          aria-label={current.title}
+          className="relative z-10 rounded-3xl overflow-hidden cursor-pointer animate-slide-up focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"
           style={{
-            touchAction: 'pan-y',
             border: '1px solid rgba(255,255,255,.1)',
-            transform: cardTransform,
-            // eslint-disable-next-line react-hooks/refs -- raahauksen lippu refissä tarkoituksella (ei turhia rendereitä); renderöinnin triggeröi swipe-tila
-            transition: isDragging.current ? 'none' : 'transform 220ms cubic-bezier(.34,1.56,.64,1)',
             boxShadow: '0 24px 60px -20px rgba(0,0,0,.9)',
           }}>
 
@@ -642,24 +452,6 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               <div className="absolute inset-0 flex items-center justify-center"
                 style={{ fontSize: '8rem', opacity: 0.18, filter: `drop-shadow(0 0 40px ${meta.accent})` }}>
                 {current.emoji}
-              </div>
-            )}
-
-            {/* Swipe overlays */}
-            {swipeRight && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: swipeOpacity }}>
-                <div className="flex flex-col items-center gap-2 bg-emerald-500/20 backdrop-blur-sm rounded-3xl px-8 py-6 border-2 border-emerald-400">
-                  <Heart size={40} fill="#4ade80" style={{ color: '#4ade80' }} />
-                  <span className="text-emerald-300 font-black text-xl">{t('idea.saved_overlay')}</span>
-                </div>
-              </div>
-            )}
-            {swipeLeft && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: swipeOpacity }}>
-                <div className="flex flex-col items-center gap-2 bg-red-500/20 backdrop-blur-sm rounded-3xl px-8 py-6 border-2 border-red-400">
-                  <X size={40} style={{ color: '#f87171' }} />
-                  <span className="text-red-300 font-black text-xl">{t('idea.skipped')}</span>
-                </div>
               </div>
             )}
 
@@ -744,7 +536,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             <div className="flex items-center gap-4 flex-wrap">
               {current.url && (
                 <a href={/^https?:\/\//i.test(current.url) ? current.url : '#'} target="_blank" rel="noopener noreferrer"
-                  onClick={() => track('external_click', { surface: 'idea', label: current.title })}
+                  onClick={(e) => { e.stopPropagation(); track('external_click', { surface: 'idea', label: current.title }) }}
                   className="flex items-center gap-1.5 min-h-11 md:min-h-0 text-[14px] md:text-xs font-bold hover:opacity-80 transition-opacity"
                   style={{ color: '#a3abff' }}>
                   <Globe size={12} />
@@ -752,13 +544,13 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                 </a>
               )}
               {onShowOnMap && current.lat && current.lon && (
-                <button onClick={() => onShowOnMap(current.lat!, current.lon!, current.title, current.type)}
+                <button onClick={(e) => { e.stopPropagation(); onShowOnMap(current.lat!, current.lon!, current.title, current.type) }}
                   className="flex items-center gap-1.5 min-h-11 md:min-h-0 text-[14px] md:text-xs font-bold text-teal-400/70 hover:text-teal-300 transition-colors">
                   <MapIcon size={12} /> {t('idea.on_map')}
                 </button>
               )}
               {onEventClick && current.eventRef && (
-                <button onClick={() => onEventClick(current.eventRef!)}
+                <button onClick={(e) => { e.stopPropagation(); onEventClick(current.eventRef!) }}
                   className="flex items-center gap-1.5 min-h-11 md:min-h-0 text-[14px] md:text-xs font-bold text-white/30 hover:text-white/60 transition-colors">
                   {t('common.more_info')} →
                 </button>
@@ -768,51 +560,65 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         </div>
       </div>
 
-      {/* ── Action buttons ── */}
-      <div className="flex items-center justify-center gap-5">
-        {/* Skip */}
-        <button onClick={handleSkip}
-          className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
-          style={{ background: 'rgba(248,113,113,.12)', border: '2px solid rgba(248,113,113,.3)' }}>
-          <X size={24} style={{ color: '#f87171' }} />
+      {/* ── Kaksi nappia, ei eleitä ── */}
+      <div className="flex items-stretch gap-3">
+        <button type="button" onClick={seuraava}
+          className="flex-1 min-h-14 md:min-h-12 rounded-2xl font-black text-[16px] md:text-sm text-white/80 transition-all active:scale-[.98] hover:bg-white/10"
+          style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
+          {t('idea.seuraava')} →
         </button>
-
-        {/* Save */}
-        <button onClick={handleSave}
-          className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105 shadow-lg"
-          style={{
-            background: savedIds.has(current.id)
-              ? 'linear-gradient(150deg,#6b76ff,#5059e6)'
-              : 'rgba(107,118,255,.12)',
-            border: '2px solid rgba(107,118,255,.4)',
-            boxShadow: savedIds.has(current.id) ? '0 8px 24px -8px rgba(91,101,230,.8)' : 'none',
-          }}>
-          <Heart size={28} fill={savedIds.has(current.id) ? '#fff' : 'none'} style={{ color: savedIds.has(current.id) ? '#fff' : '#6b76ff' }} />
+        <button type="button" onClick={listalla ? seuraava : kiinnostaa} aria-pressed={listalla}
+          className="flex-[1.4] min-h-14 md:min-h-12 rounded-2xl font-black text-[16px] md:text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[.98]"
+          style={listalla
+            ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.35)', color: '#c7caff' }
+            : { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 24px -8px rgba(91,101,230,.8)' }}>
+          {listalla ? <>✓ {t('idea.listalla')}</> : <><Heart size={18} /> {t('idea.kiinnostaa')}</>}
         </button>
-
-        {/* Link / tickets */}
-        {current.url ? (
-          <a href={/^https?:\/\//i.test(current.url) ? current.url : '#'} target="_blank" rel="noopener noreferrer"
-            onClick={() => track('external_click', { surface: 'idea', label: current.title })}
-            className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center transition-all active:scale-90 hover:scale-105"
-            style={{ background: 'rgba(250,146,60,.12)', border: '2px solid rgba(250,146,60,.3)' }}>
-            <Clock size={22} style={{ color: '#fb923c' }} />
-          </a>
-        ) : (
-          <div className="w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center opacity-20"
-            style={{ background: 'rgba(255,255,255,.05)', border: '2px solid rgba(255,255,255,.1)' }}>
-            <Clock size={22} className="text-white/40" />
-          </div>
-        )}
       </div>
-
-      {/* Swipe hint */}
-      <p className="text-center text-white/20 text-[11px] font-bold">
-        {t('idea.swipe_hint')}
-      </p>
 
     </>
     )}
+
+      {/* ── Kiinnostavat: kertyy laitteelle, EI suosikkeihin. Rivin napautus
+          avaa kortin (siellä ♥ ja "Lisää suunnitelmaan"), ✕ poistaa. ── */}
+      {kiinnostavat.length > 0 ? (
+        <section aria-label={t('idea.kiinnostavat')} className="space-y-2 pt-2">
+          <p className="text-white/40 text-[11px] font-black uppercase tracking-[.2em]">
+            {t('idea.kiinnostavat')} · {kiinnostavat.length}
+          </p>
+          <ul className="space-y-2">
+            {kiinnostavat.map((k) => (
+              <li key={k.id} className="flex items-center gap-2 rounded-2xl pl-2 pr-1 py-1.5"
+                style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
+                <button type="button" onClick={() => avaa(k.kohde)}
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left min-h-12 rounded-xl">
+                  <span className="w-12 h-12 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl"
+                    style={{ background: TYPE_META[k.kohde.type].gradient }}>
+                    {k.kohde.image
+                      ? <img src={k.kohde.image} alt="" className="w-full h-full object-cover"
+                          onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
+                      : k.kohde.emoji}
+                  </span>
+                  <span className="min-w-0 flex flex-col">
+                    <span className="text-white font-extrabold text-[15px] truncate">{k.kohde.title}</span>
+                    <span className="text-white/45 text-[12px] font-semibold truncate">
+                      {dayLabel(k.paiva, todayIso, lang)}{k.kohde.time ? ` ${k.kohde.time}` : ''}{k.kohde.address ? ` · ${k.kohde.address}` : ''}
+                    </span>
+                  </span>
+                </button>
+                <button type="button" onClick={() => poista(k.id)} aria-label={t('idea.poista_listalta')}
+                  className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors">
+                  <X size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : current ? (
+        <p className="text-center text-white/25 text-[12px] font-semibold leading-relaxed px-4">
+          {t('idea.kiinnostavat_vihje')}
+        </p>
+      ) : null}
     </main>
 
     {/* ── Detail panel (activities / restaurants) ── */}
@@ -873,15 +679,6 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                   style={{ background: 'rgba(0,0,0,.6)' }}>
                   <X size={18} className="text-white" />
                 </button>
-
-                {/* Saved badge */}
-                {savedIds.has(d.id) && (
-                  <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                    style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)' }}>
-                    <Heart size={12} fill="white" className="text-white" />
-                    <span className="text-white text-[11px] font-black">{t('detail.saved')}</span>
-                  </div>
-                )}
 
                 {/* Title */}
                 <div className="absolute bottom-0 left-0 right-0 p-5">

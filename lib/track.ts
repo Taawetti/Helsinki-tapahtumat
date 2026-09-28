@@ -22,7 +22,7 @@ import { kirjaaToiminto } from './engagement'
 
 export type TrackKind =
   | 'pageview' | 'engaged' | 'returning'
-  | 'event_open' | 'ticket_click' | 'external_click' | 'favorite_add'
+  | 'event_open' | 'ticket_click' | 'external_click' | 'favorite_add' | 'idea_interest'
   | 'section' | 'guide_open' | 'category' | 'search'
   | 'map_open' | 'install' | 'newsletter' | 'share' | 'plan_add' | 'plan_copy'
   | 'venue_events'

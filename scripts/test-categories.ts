@@ -98,6 +98,7 @@ import { yhdistaJamit } from '../lib/guide-data'
 import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypille, type Suunnitelma } from '../lib/suunnitelma'
 import { rakennaRungot, seuraavaRunko, rungonTapahtumat } from '../lib/illan-rungot'
 import { pakotettuTyyppi, onKeikkapaikka } from '../lib/venue-type-overrides'
+import { lisaaKiinnostava, poistaKiinnostava, siivoaKiinnostavat, lueKiinnostavat, tallennaKiinnostavat, KIINNOSTAVAT_MAX, type Kiinnostava } from '../lib/kiinnostavat'
 import { HELSINKI_NIGHTCLUBS } from '../lib/helsinki-nightclubs'
 import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
 import { onEstettyPaikka } from '../lib/venue-blocklist'
@@ -3748,6 +3749,54 @@ for (const c of kwChecks) {
   for (const c of rCases) {
     if (c.ok) pass++
     else failures.push(`✗ suunnitelma: ${c.name}`)
+  }
+}
+
+// ── IDEA-SIVUN KIINNOSTAVAT-LISTA (omistaja 28.9.2026: kiinnostava ei mene
+// heti suosikiksi vaan kertyy Idea-sivun omaan listaan; lib/kiinnostavat) ──
+{
+  const nyt = Date.parse('2026-09-28T18:00:00+03:00')
+  const tanaan = '2026-09-28'
+  const ev = (id: string, start: string) => mkEvent({ id, title: `Tapahtuma ${id}`, startTime: start, vibes: ['keikka'], categories: ['musiikki'] })
+  const kohde = (id: string, start: string, time?: string) =>
+    ({ id: `event-${id}`, type: 'event' as const, title: `Tapahtuma ${id}`, image: null, emoji: '🎸', time, eventRef: ev(id, start), isOpen: true, minutesUntil: 30 })
+  const paikka = { id: 'activity-db-9', type: 'activity' as const, title: 'Sauna', image: null, emoji: '🧖', isOpen: true }
+  type Kohde = ReturnType<typeof kohde> | typeof paikka
+  let lista: Kiinnostava<Kohde>[] = lisaaKiinnostava<Kohde>([], kohde('b', '2026-09-28T21:00:00+03:00', '21.00'), tanaan, nyt)
+  lista = lisaaKiinnostava(lista, kohde('a', '2026-09-28T19:00:00+03:00', '19.00'), tanaan, nyt + 1)
+  lista = lisaaKiinnostava(lista, paikka, tanaan, nyt + 2)
+  lista = lisaaKiinnostava(lista, kohde('c', '2026-09-27T19:00:00+03:00', '19.00'), '2026-09-27', nyt + 3) // eilinen, lisätty viimeisenä
+  const tupla = lisaaKiinnostava(lista, kohde('a', '2026-09-28T19:00:00+03:00', '19.00'), tanaan, nyt + 4)
+  const sailo = new Map<string, string>()
+  const fake = { getItem: (k: string) => sailo.get(k) ?? null, setItem: (k: string, v: string) => { sailo.set(k, v) } }
+  tallennaKiinnostavat(fake, lista)
+  const luettu = lueKiinnostavat(fake)
+  const rikki = { getItem: () => '{"ei":"lista"}', setItem: () => {} }
+  const roska = { getItem: () => '[{"id":1},{"id":"x","paiva":"2026-09-28","lisatty":1,"kohde":{"id":"x","type":"event","title":"ok","image":null,"emoji":""}}]', setItem: () => {} }
+  let iso: ReturnType<typeof lisaaKiinnostava> = []
+  for (let i = 0; i < KIINNOSTAVAT_MAX + 5; i++) iso = lisaaKiinnostava(iso, kohde(`n${i}`, '2026-10-01T19:00:00+03:00', '19.00'), '2026-10-01', nyt + i)
+  const kCases: { name: string; ok: boolean }[] = [
+    { name: 'aikajärjestys: eilinen c, tänään a 19, b 21, ajaton sauna päivän viimeisenä',
+      ok: lista.map((k) => k.id).join(',') === 'event-c,event-a,event-b,activity-db-9' },
+    { name: 'sama kohde vain kerran', ok: tupla.length === lista.length },
+    { name: 'ajasta riippuvat kentät (isOpen, minutesUntil) eivät tallennu',
+      ok: lista.every((k) => !('isOpen' in k.kohde) && !('minutesUntil' in k.kohde)) },
+    { name: 'siivous: eilinen pois, tämän päivän tulevat ja sauna jäävät',
+      ok: siivoaKiinnostavat(lista, tanaan, nyt).map((k) => k.id).join(',') === 'event-a,event-b,activity-db-9' },
+    { name: 'siivous: yli 3 h sitten alkanut tapahtuma pois, alle 3 h sitten alkanut pysyy', ok: (() => {
+        const l = lisaaKiinnostava(lisaaKiinnostava([], kohde('v', '2026-09-28T14:30:00+03:00', '14.30'), tanaan, nyt), kohde('k', '2026-09-28T15:30:00+03:00', '15.30'), tanaan, nyt)
+        return siivoaKiinnostavat(l, tanaan, nyt).map((k) => k.id).join(',') === 'event-k'
+      })() },
+    { name: 'poisto id:llä', ok: poistaKiinnostava(lista, 'event-a').map((k) => k.id).join(',') === 'event-c,event-b,activity-db-9' },
+    { name: 'säilö: tallennus ja luku palauttavat saman listan', ok: JSON.stringify(luettu) === JSON.stringify(lista) },
+    { name: 'säilö: rikkinäinen sisältö → tyhjä, vieraat alkiot suodatetaan',
+      ok: lueKiinnostavat(rikki).length === 0 && lueKiinnostavat(roska).length === 1 },
+    { name: `enimmäismäärä ${KIINNOSTAVAT_MAX}: vanhin lisäys putoaa, uusin säilyy`,
+      ok: iso.length === KIINNOSTAVAT_MAX && !iso.some((k) => k.id === 'event-n0') && iso.some((k) => k.id === `event-n${KIINNOSTAVAT_MAX + 4}`) },
+  ]
+  for (const c of kCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ kiinnostavat: ${c.name}`)
   }
 }
 

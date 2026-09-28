@@ -39,6 +39,7 @@ const SALLITUT = new Set([
   'ticket_click',    // ulos lippukauppaan (canBuyTickets = true)
   'external_click',  // ulos muualle (lue lisää, paikan sivu, haku)
   'favorite_add',    // tapahtuma tallennettiin suosikiksi
+  'idea_interest',   // Idea-sivun "Kiinnostaa" — oma lista, EI suosikki (28.9.2026)
   'section',         // sovelluksen osio avattiin (tapahtumat/idea/ravintolat/uutta)
   'guide_open',      // opas avattiin
   'category',        // kategoria- tai tunnelmasuodatin valittiin
