@@ -40,7 +40,20 @@ const ESTETYT_PAIKAT: readonly string[] = [
 // lib/audiencen COMMUNITY_VENUES piti ne jo poissa suosituksista; nyt ne
 // poistuvat kokonaan. Sana 'asukastalo' mukana samasta syystä (sama paikkatyyppi,
 // lib/audience listaa sen yhteisötalon rinnalla).
-const ESTETYT_PAIKKATYYPIT = /seniorikeskus|palvelukeskus|palvelutalo|yhteisötalo|asukastalo/i
+//
+// LEIKKIPUISTOT, PERHETALOT JA NUORISOTALOT (omistaja 29.9.2026: "toteuta
+// paikkaesto jotta saadaan nämä vauva lapsi tapahtumat pois"; seniorikarsinta
+// oli hyvä). Mitattu 29.9.2026 (30 pv, 5 180 tapahtumaa): 778 tapahtumaa =
+// 15 % koosteesta — leikkipuisto 656 (Rudolf, Laurinniitty, Linja, Lampi,
+// Torpparinmäki … noin 30 puistoa), perhetalo 86 (Sahrami, Kajuutta),
+// nuorisotalo/-tila 36. Jokainen oli jo lib/audiencen mukaan lapsi- tai
+// nuorisotapahtuma (vauvatreffit, taaperoaamut, laulu- ja loruhetket,
+// koululaisten iltapäivät), joten esto ei vie yhtään aikuisten tapahtumaa.
+// Kaikki LinkedEventsistä. Kartan "Lapset & perhe" -kategoriaan jää
+// kirjastojen, Annantalon ja kulttuuritalojen lastenohjelma.
+// 'nuorisopuisto' EI kuulu tänne: Pihlajamäen nuorisopuiston skeittipuistossa
+// kisataan SM-tasolla (Skate SM, omistaja 27.8.2026).
+const ESTETYT_PAIKKATYYPIT = /seniorikeskus|palvelukeskus|palvelutalo|yhteisötalo|asukastalo|leikkipuisto|perhetalo|nuorisotalo|nuorisotila/i
 
 export function onEstettyPaikka(e: { location?: { name?: string | null } | null }): boolean {
   const n = (e.location?.name ?? '').trim().toLowerCase()

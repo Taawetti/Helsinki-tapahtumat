@@ -3,6 +3,7 @@ import { onMaksunkeruuUrl } from '@/lib/event-links'
 import { unstable_cache } from 'next/cache'
 import type { Event } from '@/lib/types'
 import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
+import { extractYsoIds } from '@/lib/event-classify'
 
 // Minimal LinkedEvents types needed for normalization
 interface LEEvent {
@@ -19,7 +20,7 @@ interface LEEvent {
     position?: { coordinates: [number, number] }
   }
   offers?: { is_free: boolean; price?: { fi?: string; en?: string }; info_url?: { fi?: string; en?: string } }[]
-  keywords?: { name: { fi?: string; en?: string } }[]
+  keywords?: { '@id'?: string; name: { fi?: string; en?: string } }[]
   info_url?: { fi?: string; en?: string }
 }
 
@@ -49,6 +50,10 @@ function normalize(raw: LEEvent): Event {
     })(),
     infoUrl: raw.info_url?.fi || raw.info_url?.en || null,
     categories: (raw.keywords || []).map(k => k.name?.fi || k.name?.en || '').filter(Boolean).slice(0, 4),
+    // yso-tunnisteet myös siemeniin: kohderyhmäsääntö (lib/audience) lukee
+    // "lapset ikäryhmänä" -tagin rakenteisesti, ja ilman tätä siemenetty
+    // etusivu näkisi lastentapahtuman eri tavalla kuin täysi haku.
+    ysoIds: extractYsoIds(raw.keywords),
     source: 'linked-events',
   }
 }

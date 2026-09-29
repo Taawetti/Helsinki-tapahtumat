@@ -37,12 +37,20 @@ interface AudienceCheckable {
   vibes?: string[]
 }
 
+// Vartalot, ei perusmuodot: 'vauv' kattaa vauvojen/vauvoille (mitattu 29.9.2026:
+// "Vauvojen aamut" Kalasataman kirjastossa läpäisi 'vauva'-muodon), '\\blasten'
+// ilman loppurajaa kattaa lastenleffan ja lastenkonsertin. Lisäsignaalit
+// 29.9.2026 (omistajan lista): BabyKino, koululomien ohjelma (syysloma-
+// leffat, "Höstlovsbio"), lukukoirat, temppurata, ruotsin barn-/familje-.
 const KIDS_TEENS =
-  'vauva|taapero|muskari|satutunti|satutuokio|satuhetki|\\bloru|leikkipuisto|leikkituokio|leikki-ikäis|' +
-  'perhekahvila|perheaamu|perhetalo|lapsiperhe|päiväkoti|eskari|koululais|kouluikäis|alakouluikäis|yläkouluikäis|' +
-  '\\blapsi\\b|lapsille|lapsil|lapsen kanssa|\\blasten\\b|\\blapset\\b|' +
-  'nuorisotalo|nuorisotila|\\bnuorten\\b(?!\\s+aikuis)|nuorille(?!\\s+aikuis)|' +
-  'vanhemman kanssa|huoltajan kanssa|aikuisen kanssa'
+  'vauv|taaper|muskari|satutunti|satutuokio|satuhetki|satupäiv|satuseikkailu|\\bloru|leikkipuisto|leikkituokio|leikki-ikäis|' +
+  'perhekahvila|perheaamu|perhetalo|perhepäiv|lapsiperhe|päiväkoti|eskari|koululais|kouluikäis|alakouluikäis|yläkouluikäis|' +
+  '\\blapsi\\b|lapsille|lapsil|lapsen kanssa|\\blasten|\\blapset\\b|\\bkids?\\b|\\bchildren|\\bjunior|' +
+  'babykino|\\bbaby[- ]?(?:kino|sirkus|jooga|hieronta|muskari|treffit|disko|dance)|' +
+  'nuorisotalo|nuorisotila|nuorisopalvelu|\\bnuorten\\b(?!\\s+aikuis)|nuorille(?!\\s+aikuis)|' +
+  'vanhemman kanssa|huoltajan kanssa|aikuisen kanssa|' +
+  'lukukoira|temppurata|pikkulaps|lomaleffa|syyslom|talvilom|hiihtolom|' +
+  'höstlov|sportlov|\\bbarn(?:en|ens|kalas|teater|film|bio|program|familj)\\w*|\\bfamilje\\w*'
 
 // Ikähaitarit: alkupää 0–17 ("13-17-vuotiaille", "0-6 vuotiaille",
 // "7–8-vuotiaat", "8-vuotiaille"). Vartalo 'vuotia' kattaa taivutukset
@@ -111,9 +119,77 @@ export const TOUR_TITLE_REGEX = new RegExp(
   'i',
 )
 
-/** Tunnelmat jotka eivät kuulu suosituksiin. Luokittelija voi merkitä
- *  tapahtuman lapsille vaikka otsikossa ei lue mitään lapsista. */
-const OUT_OF_TARGET_VIBES = ['lapset']
+// ── LAPSILLE TEHTY vs. SOPII MYÖS LAPSILLE (omistaja 29.9.2026) ─────────────
+// Mitattu 29.9.2026 (30 pv, 4 550 tapahtumaa): 1 283 tapahtumaa oli poissa
+// suosituksista lapsisyystä, ja niistä 60 riviä / 21 otsikkoa VAIN lähteen
+// yleisötagin takia ("lapsiperheet", "perheet", "nuoret"): Creative Nerd
+// 1996–2026 -näyttely (Kaapelitehdas, 28 riviä), Tutankhamun: The Immersive
+// Exhibition, seitsemän yrittäjäneuvonnan verkkoinfoa, Lautapeli-illat
+// Vuosaaren kirjastossa, Doc Helios -dokumentti, Will Funk For Food -tanssi-
+// esitys, The Mystery Wires -tribuuttikonsertti. Ne ovat aikuisten kulttuuria,
+// jota lähde vain suosittelee myös perheille. Omistaja: "sopii myös lapsille"
+// ei ole sama kuin "lapsille tehty".
+//
+// Suosituksista putoaa vain tapahtuma, jolla on LAPSILLE TEHTY -signaali:
+//   1. teksti (otsikko, lyhytkuvaus, paikan nimi): KIDS_TEENS + AGE_RANGE, sekä
+//      luokittelijan 'lapset'-avainsanat otsikosta/lyhytkuvauksesta (lib/types
+//      VIBES: ^perhe, ^kids, family, nuoret … — "Koko perheelle suunnattu
+//      taikashow" on perhe-esitys, ei aikuisten näyttely)
+//   2. lähteen kategorianimi, joka nimeää lapset tai nuoret YLEISÖKSI
+//      (Lastentapahtumat, "lapset (ikäryhmät)", koululaiset, "nuorten
+//      lomatekemistä", vauvat, Kids …)
+//   3. yso-avainsana: lapset ikäryhmänä, vauvat, vauvaperheet, koululaiset,
+//      leikkipuistot, leikkiminen, satutunnit
+// HEIKKO signaali, joka EI pudota: yso lapsiperheet (p13050) / perheet
+// (p4363), kategorianimi lapsiperheet/perheet/perhe/family/nuoret, tai
+// luokittelijan 'lapset'-tunnelma ilman mitään yllä olevaa (se syntyy juuri
+// näistä heikoista tageista). Kartan "Lapset & perhe" -kategoria
+// (onPerheTapahtuma) pysyy laajana: sinne kuuluu myös perheille sopiva.
+// Sirkus Finlandia pysyy ulkona (yso lapset ikäryhmänä), Skate SM näkyy
+// (vain perheet-tagi + kisa). Mittaus toistettavissa: scripts/mittaa-kohderyhma.ts.
+const KIDS_CLASSIFIER_TEXT = new RegExp(
+  '\\blapsi|\\blapset|\\bperhe|\\blasten|nuoret|nuoriso|koululais|\\bkids|family|children|vauv|taaper|muskari|' +
+  'satutun|satutuokio|leikkipuisto|loru|temppurata|leikkiminen|eskari|päiväkoti',
+  'i',
+)
+const KIDS_CATEGORY_REGEX = new RegExp(
+  'lastentapahtum|\\blapset\\b|\\blasten|lapsille|nuorille|\\bnuorten\\b(?!\\s+aikuis)|koululais|vauv|taaper|' +
+  '\\bkids?\\b|children|junior|leikki|satutun|kuvakirj|lukukoir|lastenkulttuur|nuorisopalvelu|nuorisotalo|nuorisotila|\\bbarn',
+  'i',
+)
+const WEAK_AUDIENCE_CATEGORY = /^(lapsiperheet|perheet|perhe|family|nuoret)$/i
+const KIDS_YSO_STRONG = new Set(['yso:p4354', 'yso:p15937', 'yso:p20513', 'yso:p16485', 'yso:p8105', 'yso:p316', 'yso:p14710'])
+const KIDS_YSO_WEAK = new Set(['yso:p13050', 'yso:p4363'])
+
+export type LapsiSignaali = 'vahva' | 'heikko' | null
+
+function turvallinenLuokittelu(e: AudienceCheckable): string[] {
+  // Eristetty kuten getEventVibes: luokitteluvirhe ei saa kaataa listaa.
+  try {
+    return classifyEvent({ title: e.title, shortDescription: e.shortDescription ?? undefined, categories: e.categories })
+  } catch {
+    return []
+  }
+}
+
+/** Tuleeko lapsille tehty -signaali TEKSTISTÄ (otsikko, lyhytkuvaus, paikka)? */
+function lapsiTekstista(e: AudienceCheckable): boolean {
+  const teksti = `${e.title} ${e.shortDescription ?? ''}`
+  return KIDS_TEXT_REGEX.test(`${teksti} ${e.location?.name ?? ''}`) || KIDS_CLASSIFIER_TEXT.test(teksti)
+}
+
+/** 'vahva' = lapsille tai nuorille tehty, 'heikko' = sopii myös perheille
+ *  (vain yleisötagi tai luokittelu), null = ei lapsisignaalia. */
+export function lapsiSignaali(e: AudienceCheckable): LapsiSignaali {
+  if (lapsiTekstista(e)) return 'vahva'
+  if (e.categories.some((c) => KIDS_CATEGORY_REGEX.test(c))) return 'vahva'
+  const yso = e.ysoIds ?? []
+  if (yso.some((y) => KIDS_YSO_STRONG.has(y))) return 'vahva'
+  if (yso.some((y) => KIDS_YSO_WEAK.has(y))) return 'heikko'
+  if (e.categories.some((c) => WEAK_AUDIENCE_CATEGORY.test(c.trim()))) return 'heikko'
+  if ((e.vibes ?? turvallinenLuokittelu(e)).includes('lapset')) return 'heikko'
+  return null
+}
 
 // Kartan "Lapset & perhe" -kategoria (omistaja 4.9.2026): perhetapahtumat
 // näkyvät VAIN kun kategoria on valittu, senioritapahtumat eivät koskaan.
@@ -137,43 +213,30 @@ export function onSenioriTapahtuma(e: AudienceCheckable): boolean {
   return SENIORI_REGEX.test(audienceHay(e))
 }
 
-export const OUT_OF_TARGET_REGEX = new RegExp(
-  `${KIDS_TEENS}|${AGE_RANGE}|${SENIORS}|${HOBBY_CIRCLES}|${COMMUNITY_VENUES}`,
-  'i',
-)
+/** Lapsille/nuorille tehty -tekstisääntö: otsikko + lyhytkuvaus + paikan nimi. */
+const KIDS_TEXT_REGEX = new RegExp(`${KIDS_TEENS}|${AGE_RANGE}`, 'i')
+/** Seniorit, käsityökerhot ja yhteisötalot: otsikko, lyhytkuvaus, paikka JA kategoriat. */
+const OTHER_OUT_OF_TARGET_REGEX = new RegExp(`${SENIORS}|${HOBBY_CIRCLES}|${COMMUNITY_VENUES}`, 'i')
 
 /** Onko tapahtuma suunnattu kohderyhmän (18–40) ULKOPUOLELLE?
  *  Skannaa otsikon, lyhytkuvauksen, kategoriat ja tapahtumapaikan nimen
  *  (Perhetalo/Leikkipuisto/Seniorikeskus ovat vahvoja signaaleja) — EI koko
  *  kuvausta, koska festivaalimarkkinointi ("ohjelmaa koko perheelle") ei saa
- *  pudottaa aitoa festaria. */
+ *  pudottaa aitoa festaria. Lapsisignaalin vahvuus: ks. lapsiSignaali. */
 export function isOutsideTargetAudience(e: AudienceCheckable): boolean {
-  // 1) Luokittelu. Tarkistetaan ensin, koska se ei riipu sanamuodoista.
-  //    Vibet lasketaan jos niitä ei ole: /api/events asettaa ne kaikille, mutta
-  //    SSR-seedit ja vanhat välimuistivastaukset tulevat ilman — ja silloin
-  //    sääntö olisi jäänyt hiljaa tekemättä juuri etusivun poiminnoissa.
-  //    Eristetty kuten getEventVibes: luokitteluvirhe ei saa kaataa listaa.
-  let vibes = e.vibes
-  if (!vibes) {
-    try {
-      vibes = classifyEvent({ title: e.title, shortDescription: e.shortDescription ?? undefined, categories: e.categories })
-    } catch {
-      vibes = []
-    }
-  }
-  // Mestaruuskilpailu ei ole lastentapahtuma, vaikka lähde merkitsisi sen
-  // perheille (omistaja 27.8.2026). Mitattu 5 062 tuotannon tapahtumasta:
-  // kilpailusignaali osuu 11:een ja niistä lapset-leima on YHDELLÄ — Skate SM.
-  // Tekstisäännöt ajetaan silti alla, joten "Lasten SM-kisat" putoaisi yhä.
-  if (vibes.some((v) => OUT_OF_TARGET_VIBES.includes(v)) &&
-      !CHAMPIONSHIP_REGEX.test(`${e.title} ${e.shortDescription ?? ''}`)) return true
-
-  // 2) Opastetut kierrokset: VAIN otsikosta, ks. TOUR_TITLE_REGEX.
+  // 1) Opastetut kierrokset: VAIN otsikosta, ks. TOUR_TITLE_REGEX.
   if (TOUR_TITLE_REGEX.test(e.title)) return true
 
-  // 3) Muut tekstisäännöt: otsikko, lyhytkuvaus, paikan nimi ja kategoriat.
-  const hay = [e.title, e.shortDescription ?? '', e.location?.name ?? '', ...e.categories].join(' ')
-  return OUT_OF_TARGET_REGEX.test(hay)
+  // 2) Seniorit, käsityökerhot, yhteisötalot: otsikko, lyhytkuvaus, paikka, kategoriat.
+  if (OTHER_OUT_OF_TARGET_REGEX.test(audienceHay(e))) return true
+
+  // 3) Lapset ja nuoret: vain LAPSILLE TEHTY -signaali pudottaa (29.9.2026).
+  if (lapsiSignaali(e) !== 'vahva') return false
+  // Mestaruuskilpailu ei ole lastentapahtuma, vaikka lähde merkitsisi sen
+  // lapsille tai perheille (omistaja 27.8.2026, Skate SM). Poikkeus koskee
+  // vain rakenteista signaalia: "Lasten SM-kisat" putoaa yhä tekstisäännöllä.
+  if (!lapsiTekstista(e) && CHAMPIONSHIP_REGEX.test(`${e.title} ${e.shortDescription ?? ''}`)) return false
+  return true
 }
 
 // ── Poimintojen ykköskori (omistaja 25.8.2026): suosituksiin ENSIN

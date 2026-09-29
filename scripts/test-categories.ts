@@ -75,7 +75,7 @@ import { credibilityScore } from '../lib/credibility'
 import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/restaurant-news-match'
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
-import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti } from '../lib/audience'
+import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti, lapsiSignaali } from '../lib/audience'
 import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello, onSuuriPaikka, heroJarjestys } from '../lib/picks'
 import { mapAspEvent, onAllasLiveKeikka } from '../lib/allas'
 import { samaTapahtumaSarja, ryhmitaSarjat, sarjaEtuliite } from '../lib/tapahtumaperhe'
@@ -1452,18 +1452,52 @@ for (const c of arcChecks) {
     // ANSAT: kisapoikkeus koskee VAIN luokittelun leimaa. Tekstisäännöt ajetaan
     // silti, joten lasten kisat putoavat yhä.
     { name: 'ansa: lasten SM-kisat putoavat yhä (tekstisääntö)', ok: aud('Lasten SM-kisat', 'Kisat 7–8-vuotiaille.') === true },
-    { name: 'ansa: perhekonsertti ilman kisaa putoaa yhä', ok:
-      isOutsideTargetAudience({ title: 'Konsertti', shortDescription: 'Musiikkia.', categories: ['Musiikki'], vibes: ['lapset'] }) === true },
+    { name: 'ansa: perhekonsertti ilman kisaa putoaa yhä (lapset ikäryhmänä)', ok:
+      isOutsideTargetAudience({ title: 'Konsertti', shortDescription: 'Musiikkia.', categories: ['Musiikki', 'lapset (ikäryhmät)'], vibes: ['lapset'] }) === true },
+    // 29.9.2026: luokittelun 'lapset'-leima YKSIN on heikko signaali — se syntyy
+    // myös yleisötageista lapsiperheet/perheet — eikä enää pudota.
+    { name: 'heikko: pelkkä lapset-leima ilman tekstiä, kategoriaa tai ysoa EI pudota', ok:
+      isOutsideTargetAudience({ title: 'Konsertti', shortDescription: 'Musiikkia.', categories: ['Musiikki'], vibes: ['lapset'] }) === false },
 
     // ── Luokittelun tuoma rajaus. Tekstisäännöt EIVÄT näe vibejä: lastenooppera
     // jonka otsikossa/kuvauksessa ei lue mitään lapsista läpäisi ennen kaiken.
-    { name: 'vibe: lapsille luokiteltu ilman tekstivihjettä rajautuu', ok: isOutsideTargetAudience({ title: 'Heinähattu, Vilttitossu ja suuri pamaus', categories: ['oopperataide'], vibes: ['lapset'] }) === true },
+    { name: 'yso: lastenooppera ilman tekstivihjettä rajautuu, kun yso sanoo lapset ikäryhmänä', ok: isOutsideTargetAudience({ title: 'Heinähattu, Vilttitossu ja suuri pamaus', categories: ['oopperataide'], ysoIds: ['yso:p4354'], vibes: ['lapset'] }) === true },
+    { name: 'yso: sama ooppera pelkällä lapsiperheet-tagilla EI rajaudu (sopii myös perheille)', ok: isOutsideTargetAudience({ title: 'Heinähattu, Vilttitossu ja suuri pamaus', categories: ['oopperataide'], ysoIds: ['yso:p13050'], vibes: ['lapset'] }) === false },
     { name: 'vibe: keikka ei rajaudu', ok: isOutsideTargetAudience({ title: 'Iltakeikka', categories: ['musiikki'], vibes: ['keikka'] }) === false },
     { name: 'vibe: puuttuvat vibet eivät kaada tarkistusta', ok: isOutsideTargetAudience({ title: 'Iltakeikka', categories: ['musiikki'] }) === false },
     // ILMAN valmiita vibejä: luokittelu ajetaan itse. Tekstisäännöt eivät tunne
     // fraasia "koko perheelle", joten tämä osuu VAIN laskettujen vibejen kautta.
     // Näin etusivun poiminnat saavat saman suojan kuin Idea-pakka.
     { name: 'vibe: lasketaan jos puuttuu (koko perheelle)', ok: isOutsideTargetAudience({ title: 'Uskomaton taikashow', shortDescription: 'Koko perheelle suunnattu taikashow.', categories: ['Sirkus'] }) === true },
+
+    // ── LAPSILLE TEHTY vs. SOPII MYÖS LAPSILLE (omistaja 29.9.2026). Tapaukset
+    // ovat oikeita tuotannon tapahtumia 29.9.2026 mittauksesta: nämä LUKITSEVAT
+    // säännön — jos jokin sääntömuutos kääntää yhdenkin, CI kaatuu.
+    // Aikuisten kulttuuri, jonka lähde vain suosittelee myös perheille → NÄKYY.
+    { name: 'näkyy: Creative Nerd -näyttely (tagit nuoret, lapsiperheet)', ok: isOutsideTargetAudience({ title: 'Creative Nerd 1996–2026', shortDescription: 'Creative Nerd 1996–2026: Modeemeista meemitalouteen -näyttely esittelee kaupallisen internetin 30-vuotista historiaa Suomessa.', categories: ['nuoret', 'mediataide', 'lapsiperheet', 'näyttelyt', 'Avajaiset'], ysoIds: ['yso:p13050', 'yso:p11617'], location: { name: 'Kaapelitehdas' }, vibes: ['lapset', 'taide'] }) === false },
+    { name: 'näkyy: Tutankhamun-näyttely (nuoret, lapsiperheet, Perhe)', ok: isOutsideTargetAudience({ title: 'Tutankhamun: The Immersive Exhibition', categories: ['nuoret', 'lapsiperheet', 'kulttuuritapahtumat', 'näyttelyt', 'Perhe'], ysoIds: ['yso:p13050'], location: { name: 'Malmin jäähalli' }, vibes: ['taide', 'lapset'] }) === false },
+    { name: 'näkyy: yrittäjäneuvonnan info (tagi nuoret)', ok: isOutsideTargetAudience({ title: 'Yritysinfo yritystä aloittaville', categories: ['nuoret', 'yrittäjät', 'yrittäjyys', 'liiketoimintasuunnitelmat'], location: { name: 'Internet' }, vibes: ['lapset'] }) === false },
+    { name: 'näkyy: lautapeli-illat kirjastossa (yso perheet)', ok: isOutsideTargetAudience({ title: 'Lautapeli-illat Vuosaaren kirjastossa', categories: ['kulttuuritapahtumat', 'pelit'], ysoIds: ['yso:p4363'], location: { name: 'Vuosaaren kirjasto' }, vibes: ['lapset', 'tyopaja'] }) === false },
+    { name: 'näkyy: dokumenttielokuva, tanssiesitys ja tribuuttikonsertti pelkällä lapset-leimalla', ok:
+      isOutsideTargetAudience({ title: 'Kappale kauneinta Suomea – Doc Helios', categories: ['Elokuva ja media', 'Elokuvat', 'Malmitalo', 'Suomi'], location: { name: 'Malmitalo' }, vibes: ['lapset'] }) === false
+      && isOutsideTargetAudience({ title: 'Will Funk For Food: A Fistful of Funk', categories: ['Tanssi', 'Kanneltalo', 'Suomi'], location: { name: 'Kanneltalo' }, vibes: ['teatteri', 'lapset'] }) === false
+      && isOutsideTargetAudience({ title: 'The Mystery Wires & Mape Veijalainen: A Tribute', categories: ['Musiikki', 'Vuotalo', 'Suomi', 'Ruotsi'], location: { name: 'Vuotalo' }, vibes: ['keikka', 'lapset'] }) === false },
+    // Lapsille tai nuorille tehty → PUTOAA.
+    { name: 'putoaa: Sirkus Finlandia (yso lapset ikäryhmänä)', ok: isOutsideTargetAudience({ title: 'Sirkus Finlandian juhlavuoden näytös', shortDescription: 'Sirkus Finlandia tarjoaa sirkuksen ystäville jälleen uuden ohjelman, jonka laadusta vastaavat kansainväliset ja kotimaiset sirkustaiteilijat.', categories: ['kulttuuritapahtumat', 'lapset (ikäryhmät)', 'perheet', 'sirkustaide'], ysoIds: ['yso:p4354', 'yso:p4363'], location: { name: 'Käpylän liikuntapuisto' }, vibes: ['lapset', 'teatteri', 'taide'] }) === true },
+    { name: 'putoaa: ruotsinkielinen syyslomaelokuva ja temppurata (uudet tekstisignaalit)', ok:
+      isOutsideTargetAudience({ title: 'Höstlovsbio: Vorosen perhe ja kyttäjahti', categories: ['Elokuva ja media', 'Elokuvat', 'Vuotalo', 'Suomi'], vibes: ['museo', 'lapset'] }) === true
+      && isOutsideTargetAudience({ title: 'Transpoli on temppurata', categories: ['Teatteri ja sirkus', 'Caisa', 'Sirkus', 'Suomi'], location: { name: 'Caisa' }, vibes: ['lapset', 'teatteri'] }) === true },
+    { name: 'putoaa: BabyKino ja Vauvojen aamut (mitatut vuodot 29.9.2026)', ok:
+      isOutsideTargetAudience({ title: 'BabyKino Kallion kirjastossa, joka keskiviikko!', categories: [], location: { name: 'Kallion kirjasto' } }) === true
+      && isOutsideTargetAudience({ title: 'Vauvojen aamut', categories: [], location: { name: 'Kalasataman kirjasto' } }) === true },
+    { name: 'putoaa: syyslomaleffa (kategoria Lastentapahtumat), lukukoira (nuorten lomatekemistä), Print Workshop for Kids', ok:
+      isOutsideTargetAudience({ title: 'Syyslomaleffa: Paddington seikkailee (7)', categories: ['Lastentapahtumat', 'Elokuva ja media', 'Elokuvat', 'Malmitalo'], location: { name: 'Malmitalo' }, vibes: ['lapset'] }) === true
+      && isOutsideTargetAudience({ title: 'Lukukoira Ebba Kallion kirjastossa', categories: ['nuorten lomatekemistä', 'osallistuminen', 'lukukoirat'], location: { name: 'Kallion kirjasto' }, vibes: [] }) === true
+      && isOutsideTargetAudience({ title: 'Southnord Artfest: Print Workshop for Kids', categories: ['Työpajat'], location: { name: 'Keskustakirjasto Oodi' }, vibes: ['tyopaja', 'lapset'] }) === true },
+    { name: 'lapsiSignaali: Creative Nerd heikko, Sirkus Finlandia vahva, iltakeikka ei mitään', ok:
+      lapsiSignaali({ title: 'Creative Nerd 1996–2026', categories: ['nuoret', 'lapsiperheet', 'näyttelyt'], ysoIds: ['yso:p13050'] }) === 'heikko'
+      && lapsiSignaali({ title: 'Sirkus Finlandian juhlavuoden näytös', categories: ['lapset (ikäryhmät)'], ysoIds: ['yso:p4354'] }) === 'vahva'
+      && lapsiSignaali({ title: 'Iltakeikka', categories: ['musiikki'], vibes: ['keikka'] }) === null },
     { name: 'vibe: laskenta ei rajaa aikuisten keikkaa', ok: isOutsideTargetAudience({ title: 'Juuristo-klubilla Pepe Ahlqvist & Sons', shortDescription: 'Trio kertoo elämästään aitona bluesperheenä.', categories: ['musiikki'] }) === false },
   ]
   for (const c of audCases) {
@@ -4126,9 +4160,12 @@ for (const c of kwChecks) {
       ok: onEstettyPaikka({ location: { name: 'Kampin palvelukeskus' } }) && onEstettyPaikka({ location: { name: 'Riistavuoren seniorikeskus/Palvelukeskus' } })
         && onEstettyPaikka({ location: { name: 'Munkkiniemen palvelutalo' } }) && onEstettyPaikka({ location: { name: 'Kustaankartanon seniorikeskus, palvelukeskuksen toiminta' } }) },
     { name: 'estetty paikkatyyppi: kulttuurikeskus, kauppakeskus ja nuorisotalo EIVÄT osu',
-      ok: !onEstettyPaikka({ location: { name: 'Kulttuurikeskus Caisa' } }) && !onEstettyPaikka({ location: { name: 'Kauppakeskus Redi' } }) && !onEstettyPaikka({ location: { name: 'Roihuvuoren nuorisotalo' } }) && !onEstettyPaikka({ location: { name: 'Palvelu Oy:n sali' } }) },
+      ok: !onEstettyPaikka({ location: { name: 'Kulttuurikeskus Caisa' } }) && !onEstettyPaikka({ location: { name: 'Kauppakeskus Redi' } }) && !onEstettyPaikka({ location: { name: 'Pihlajamäen nuorisopuisto / Freestyle-skeittipuisto' } }) && !onEstettyPaikka({ location: { name: 'Palvelu Oy:n sali' } }) },
     { name: 'estetty paikkatyyppi: kaikki yhteisötalot ja asukastalot (omistaja 24.9.2026)',
       ok: onEstettyPaikka({ location: { name: 'Stadin yhteisötalo Saunabaari' } }) && onEstettyPaikka({ location: { name: 'Stadin yhteisötalo Oulunkylän Seurahuone' } }) && onEstettyPaikka({ location: { name: 'Asukastalo Ankkuri' } }) },
+    { name: 'paikkaesto: leikkipuistot, perhetalot ja nuorisotalot pois (omistaja 29.9.2026), liikuntapuisto ja kirjasto jäävät',
+      ok: onEstettyPaikka({ location: { name: 'Leikkipuisto Rudolf' } }) && onEstettyPaikka({ location: { name: 'Perhetalo Sahrami' } }) && onEstettyPaikka({ location: { name: 'Roihuvuoren nuorisotalo' } }) && onEstettyPaikka({ location: { name: 'Nuorisotila Kipinä' } })
+        && !onEstettyPaikka({ location: { name: 'Käpylän liikuntapuisto' } }) && !onEstettyPaikka({ location: { name: 'Kallion kirjasto' } }) && !onEstettyPaikka({ location: { name: 'Annantalo' } }) },
     { name: 'estetty paikka: kirjasto, tyhjä ja puuttuva paikka EIVÄT osu',
       ok: !onEstettyPaikka({ location: { name: null } }) && !onEstettyPaikka({ location: null }) && !onEstettyPaikka(kahvila) && !onEstettyPaikka({ location: { name: 'Malmitalo' } }) },
   ]
