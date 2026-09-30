@@ -142,10 +142,11 @@ const AIKA_AIHEET: Record<string, { slug: string; pari: boolean }> = {
 
 const HELSINKI_CENTER: [number, number] = [60.1699, 24.9384]
 
+// vari = tason yksi väri (pinnit, kytkimet, Näytä myös -pisteet, HANDOFF-kartta-v2 §2–3).
 const LAYER_META = [
-  { key: 'events'      as const, label: '🎟 Tapahtumat', bg: 'linear-gradient(150deg,#6b76ff,#5059e6)' },
-  { key: 'restaurants' as const, label: '🍽 Ravintolat',  bg: 'linear-gradient(150deg,#2563eb,#5f96ff)' },
-  { key: 'activities'  as const, label: '🧖 Tekemistä',   bg: 'linear-gradient(150deg,#10b981,#5fd9a6)' },
+  { key: 'events'      as const, label: '🎟 Tapahtumat', emoji: '🎟', vari: '#6b76ff', bg: 'linear-gradient(150deg,#6b76ff,#5059e6)', nimiAvain: 'map.layer_events_name' as const, kuvausAvain: 'map.layer_events_sub' as const },
+  { key: 'restaurants' as const, label: '🍽 Ravintolat',  emoji: '🍽', vari: '#5f96ff', bg: 'linear-gradient(150deg,#2563eb,#5f96ff)', nimiAvain: 'map.layer_rests_name' as const,  kuvausAvain: 'map.layer_rests_sub' as const },
+  { key: 'activities'  as const, label: '🧖 Tekemistä',   emoji: '🧖', vari: '#5fd9a6', bg: 'linear-gradient(150deg,#10b981,#5fd9a6)', nimiAvain: 'map.layer_acts_name' as const,   kuvausAvain: 'map.layer_acts_sub' as const },
 ]
 
 // ── Color helpers ─────────────────────────────────────────
@@ -548,6 +549,22 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   // Työpöytä (≥ 768 px) pysyy ennallaan: ulkoasu erotetaan md:-luokilla.
   /** §5 Suodatinpaneeli auki — kontekstichipistä. */
   const [suodatinAuki, setSuodatinAuki] = useState(false)
+  /** §6 Tasopaneeli auki — "● Näytä myös" -napista. */
+  const [tasotAuki, setTasotAuki] = useState(false)
+  /** §2 Sijaintivihje: näkyy kunnes lupa on annettu tai vihje suljettu.
+   *  Sulkeminen muistetaan laitteella — vihje ei saa palata joka avauksella. */
+  const [vihjeSuljettu, setVihjeSuljettu] = useState(false)
+  useEffect(() => {
+    // localStorage luetaan timeout-callbackissa (React Compiler: ei synkronista setStateä efektissä).
+    const t0 = setTimeout(() => {
+      try { if (localStorage.getItem('kartta-sijaintivihje-suljettu') === '1') setVihjeSuljettu(true) } catch { /* privaattitila */ }
+    }, 0)
+    return () => clearTimeout(t0)
+  }, [])
+  const suljeVihje = useCallback(() => {
+    setVihjeSuljettu(true)
+    try { localStorage.setItem('kartta-sijaintivihje-suljettu', '1') } catch { /* privaattitila */ }
+  }, [])
 
   const LEGEND_KEYS: Record<string, TranslationKey> = {
     'Keikka':     'legend.concert',
@@ -1167,7 +1184,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
           ja saman päivän jatko: "karttanäkymä pitäisi olla myös tietokoneella
           samanlainen"). Rivi 1: nimetyt tasot. Rivi 2: aktiivisten tasojen
           pudotusvalikot. Vanhat pilleririvit poistettu kokonaan. ── */}
-      <div className="absolute z-[1001] flex flex-col gap-1.5 items-start" style={{ top: 10, left: 8, right: 8 }}>
+      <div className="absolute z-[1001] hidden md:flex flex-col gap-1.5 items-start" style={{ top: 10, left: 8, right: 8 }}>
         {openMenu && <div className="fixed inset-0 z-[-1]" onClick={() => setOpenMenu(null)} />}
         <div className="flex gap-1.5">
           {LAYER_META.map(opt => (
@@ -1285,13 +1302,47 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         </div>
       </div>
 
-      {/* ── Locate me ── */}
+      {/* ── Locate me (työpöytä) ── */}
       <button onClick={locateMe} disabled={locating} aria-label={userPos ? t('common.update_loc') : t('common.locate_me')}
-        className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 px-2 py-2 sm:px-3 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 text-white/60 hover:text-white text-xs font-bold transition-all shadow-lg disabled:opacity-60">
+        className="absolute top-3 right-3 z-[1000] hidden md:flex items-center gap-1.5 px-2 py-2 sm:px-3 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 text-white/60 hover:text-white text-xs font-bold transition-all shadow-lg disabled:opacity-60">
         {locating
           ? <span className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'rgba(107,118,255,.5)', borderTopColor: '#6b76ff' }} />
           : <span>📍</span>}
         <span className="hidden sm:inline">{userPos ? t('common.update_loc') : t('common.locate_me')}</span>
+      </button>
+
+      {/* ── §2 Kartan päällä VAIN kolme kontrollia (mobiili): 📍 Paikanna,
+          sijaintivihje ja "● Näytä myös". Tasonapit, pudotusvalikot,
+          minikalenteri, legenda, lukumäärämerkki, latauspilleri ja
+          esikatselukortti ovat mobiilissa piilossa — kontekstichip (§1),
+          suodatinpaneeli (§5) ja korttinauha (§4) korvaavat ne. ── */}
+      <button type="button" onClick={locateMe} disabled={locating} aria-label={userPos ? t('common.update_loc') : t('common.locate_me')}
+        className="md:hidden absolute top-3 right-3 z-[1000] w-11 h-11 flex items-center justify-center text-[18px] shadow-lg disabled:opacity-60"
+        style={{ borderRadius: 14, background: 'rgba(10,10,12,.88)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,.1)', color: userPos ? '#6b76ff' : 'rgba(255,255,255,.85)' }}>
+        {locating
+          ? <span className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'rgba(107,118,255,.5)', borderTopColor: '#6b76ff' }} />
+          : '📍'}
+      </button>
+      {!userPos && !vihjeSuljettu && (
+        <div className="md:hidden absolute top-3 left-3 z-[1000] flex items-stretch shadow-lg"
+          style={{ maxWidth: 'calc(100% - 76px)', borderRadius: 14, background: 'rgba(10,10,12,.88)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,.1)' }}>
+          <button type="button" onClick={locateMe} className="flex items-center gap-2 pl-3 pr-1 py-2 text-left min-w-0">
+            <span className="text-[16px] shrink-0">📍</span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-black text-white leading-tight">{t('map.locate_hint_title')}</span>
+              <span className="block text-[11px] font-semibold leading-tight mt-0.5" style={{ color: 'rgba(255,255,255,.5)' }}>{t('map.locate_hint_sub')}</span>
+            </span>
+          </button>
+          <button type="button" onClick={suljeVihje} aria-label={t('map.dismiss_hint')} className="w-9 shrink-0 flex items-center justify-center text-white/45 text-[13px]">✕</button>
+        </div>
+      )}
+      <button type="button" onClick={() => setTasotAuki(true)} aria-haspopup="dialog" aria-expanded={tasotAuki}
+        className="md:hidden absolute right-3 z-[1000] h-11 px-3.5 flex items-center gap-2 text-[13px] font-black text-white shadow-lg"
+        style={{ bottom: 12, borderRadius: 14, background: 'rgba(10,10,12,.88)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,.1)' }}>
+        <span className="flex items-center gap-1">
+          {LAYER_META.filter((m) => layers[m.key]).map((m) => <span key={m.key} className="w-2 h-2 rounded-full" style={{ background: m.vari }} />)}
+        </span>
+        {t('map.show_also')}
       </button>
 
       {/* ── Loading indicators ── */}
@@ -1322,7 +1373,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       )}
 
       {(restsLoading || activitiesLoading || aiheLatautuu || (eventsLoading && layers.events)) && (
-        <div className="absolute bottom-16 right-3 z-[1000] flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
+        <div className="absolute bottom-16 right-3 z-[1000] hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-black/85 text-white/50 text-xs">
           <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white/70 animate-spin" />
           {restsLoading ? t('map.loading_rests') : activitiesLoading ? t('map.loading_acts') : `${t('discover.loading_events')}…`}
         </div>
@@ -1330,7 +1381,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
 
       {/* ── Legend ── */}
       {activeLegend.length > 0 && (
-        <div className="absolute bottom-10 left-3 hidden sm:flex flex-col gap-1 bg-black/75 backdrop-blur-sm rounded-xl p-2.5 z-[1000] max-h-48 overflow-hidden">
+        <div className="absolute bottom-10 left-3 hidden md:flex flex-col gap-1 bg-black/75 backdrop-blur-sm rounded-xl p-2.5 z-[1000] max-h-48 overflow-hidden">
           {activeLegend.slice(0, 12).map(({ color, label }) => (
             <div key={label} className="flex items-center gap-1.5">
               <div style={{ width: 9, height: 9, borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}` }} />
@@ -1344,7 +1395,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
           Oma lohko eikä suodatinstackin sisällä: stack on mobiilissa piilossa,
           mutta kalenterin pitää aueta myös mobiilivalikon Valitse päivä -rivistä. ── */}
       {calOpen && (layers.events || aiheTapahtumina) && (
-        <div className="absolute z-[1003] left-1/2 -translate-x-1/2" style={{ top: 96, width: 282 }}>
+        <div className="absolute z-[1003] left-1/2 -translate-x-1/2 hidden md:block" style={{ top: 96, width: 282 }}>
           <div style={{ background: '#0d0d10', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.9)' }}>
               {/* Month navigation */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 8px 8px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
@@ -1436,7 +1487,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       {/* ── Tapahtuman esikatselukortti — pinnin napautuksesta.
           Mobiilimalli: kortti liukuu alareunaan (ei popupia pinniin). ── */}
       {previewEvent && (
-        <div className="absolute left-2 right-2 bottom-5 z-[1001] flex justify-center pointer-events-none">
+        <div className="absolute left-2 right-2 bottom-5 z-[1001] hidden md:flex justify-center pointer-events-none">
           <div className="pointer-events-auto w-full max-w-md rounded-2xl border border-white/10 overflow-hidden"
             style={{ background: 'rgba(13,13,16,.97)', backdropFilter: 'blur(16px)', boxShadow: '0 20px 50px -12px rgba(0,0,0,.8)' }}>
             {previewEvent.image && (
@@ -1474,7 +1525,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
 
       {/* ── Count badge ── */}
       {countParts && (
-        <div className="absolute bottom-4 right-3 bg-black/75 backdrop-blur-sm text-white/45 text-xs px-3 py-1.5 rounded-full z-[1000]">
+        <div className="absolute bottom-4 right-3 hidden md:block bg-black/75 backdrop-blur-sm text-white/45 text-xs px-3 py-1.5 rounded-full z-[1000]">
           {countParts}
         </div>
       )}
@@ -1516,6 +1567,21 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         )}
         <section>
           <p className="text-[11px] font-black uppercase tracking-[.2em] mb-2.5" style={{ color: 'rgba(255,255,255,.4)' }}>{t('map.what')}</p>
+          {/* Kirpputorien pari (paikat ⇄ kirppistapahtumat): työpöydällä oma
+              napparivi kartan päällä, mobiilissa täällä. */}
+          {opasAihe?.pari && (
+            <div className="flex gap-2 mb-3">
+              {(['paikat', 'tapahtumat'] as const).map((m) => (
+                <button key={m} type="button" onClick={() => { vaihdaKirppis(m); setSuodatinAuki(false) }}
+                  className="flex-1 h-11 rounded-full text-[14px] font-black transition-all active:scale-[.97]"
+                  style={kirppisMoodi === m
+                    ? { background: m === 'paikat' ? LAYER_META[2].bg : LAYER_META[0].bg, color: '#fff' }
+                    : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', border: '1px solid rgba(255,255,255,.1)' }}>
+                  {m === 'paikat' ? `🛍 ${t('map.layer_places')}` : `🎟 ${t('map.events_kirpputorit')}`}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
             {suodatinTiilet.map((tiili) => (
               <button key={tiili.key} type="button" onClick={tiili.onClick}
@@ -1544,6 +1610,32 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
             </div>
           )}
         </section>
+      </div>
+    </BottomSheet>
+
+    {/* ── §6 Tasopaneeli ("● Näytä myös", mobiili): kolme kytkinriviä 64 px,
+        iOS-tyylinen kytkin 52 × 32 px tason värillä, ikonilaatta 40 px tason
+        gradientilla kun päällä. Useampi taso voi olla päällä; kortit
+        yhdistyvät samaan nauhaan (§4). ── */}
+    <BottomSheet open={tasotAuki} onClose={() => setTasotAuki(false)} title={t('map.layers_title')}>
+      <div className="px-3 pb-7 pt-1 flex flex-col gap-1">
+        {LAYER_META.map((m) => {
+          const on = layers[m.key]
+          return (
+            <button key={m.key} type="button" role="switch" aria-checked={on} onClick={() => toggleLayer(m.key)}
+              className="w-full min-h-[64px] px-3 py-2 rounded-[14px] flex items-center gap-3.5 text-left transition-colors active:bg-white/6">
+              <span className="w-10 h-10 rounded-xl flex items-center justify-center text-[20px] shrink-0"
+                style={{ background: on ? m.bg : 'rgba(255,255,255,.08)' }}>{m.emoji}</span>
+              <span className="min-w-0 flex-1 flex flex-col gap-0.5">
+                <span className="text-[16px] font-extrabold text-white">{t(m.nimiAvain)}</span>
+                <span className="text-[13px] font-medium truncate" style={{ color: 'rgba(255,255,255,.5)' }}>{t(m.kuvausAvain)}</span>
+              </span>
+              <span className="relative shrink-0 rounded-full transition-colors" style={{ width: 52, height: 32, background: on ? m.vari : 'rgba(255,255,255,.14)' }}>
+                <span className="absolute top-[3px] rounded-full bg-white shadow" style={{ width: 26, height: 26, left: on ? 23 : 3, transition: 'left .18s' }} />
+              </span>
+            </button>
+          )
+        })}
       </div>
     </BottomSheet>
     </>
