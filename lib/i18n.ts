@@ -1070,6 +1070,12 @@ const t = {
     'map.layer_events_sub':        'Keikat, teatteri, urheilu…',
     'map.layer_rests_sub':         'Ruokapaikat, kahvilat, baarit',
     'map.layer_acts_sub':          'Saunat, museot, kirpputorit…',
+    'map.walk_min':                'min kävellen',
+    'map.allow_location_distance': 'Salli sijainti nähdäksesi etäisyyden',
+    'map.empty_card_title':        'Ei kohteita tällä valinnalla',
+    'map.empty_card_sub':          'Vaihda aihepiiriä ylhäältä',
+    'map.next_card':               'Seuraava kohde',
+    'detail.from_you':             'sinusta',
   },
 
   en: {
@@ -2142,6 +2148,12 @@ const t = {
     'map.layer_events_sub':        'Gigs, theatre, sports…',
     'map.layer_rests_sub':         'Restaurants, cafés, bars',
     'map.layer_acts_sub':          'Saunas, museums, flea markets…',
+    'map.walk_min':                'min walk',
+    'map.allow_location_distance': 'Allow location to see the distance',
+    'map.empty_card_title':        'Nothing here for this selection',
+    'map.empty_card_sub':          'Change the topic above',
+    'map.next_card':               'Next',
+    'detail.from_you':             'from you',
   },
 } as const
 

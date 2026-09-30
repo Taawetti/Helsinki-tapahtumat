@@ -39,6 +39,7 @@ import JarjestajaForm from '@/components/JarjestajaForm'
 import LanguageSwitch, { useLanguageSwitch } from '@/components/LanguageSwitch'
 import { ListSheet } from '@/components/BottomSheet'
 import type { DateFilterKey } from '@/lib/map-date-filter'
+import { haversineMeters } from '@/lib/group'
 import ToastHost from '@/components/ToastHost'
 import { tilaaSuunnitelma, lueSuunnitelma } from '@/lib/suunnitelma'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -1161,6 +1162,9 @@ export default function HomeClient({
   // Ei heti: koCat rekisteröi paluupinoon oman kerroksensa, ja kartalla tehty
   // valinta olisi tuottanut ylimääräisen paluuaskeleen ennen kartan sulkua.
   // Kartta itse näyttää valinnan heti omassa tilassaan.
+  /** Kartan sijaintiluvan antama paikka — tapahtumapaneeli näyttää sen
+   *  perusteella etäisyyden (HANDOFF-kartta-v2 §7). */
+  const [karttaSijainti, setKarttaSijainti] = useState<[number, number] | null>(null)
   const karttaValintaRef = useRef<{ dateFilter?: DateFilterKey; customDate?: string; eventGroup?: string | null } | null>(null)
   const karttaValinta = useCallback((v: { dateFilter?: DateFilterKey; customDate?: string; eventGroup?: string | null }) => {
     karttaValintaRef.current = { ...(karttaValintaRef.current ?? {}), ...v }
@@ -2201,7 +2205,7 @@ export default function HomeClient({
             <ListMapToggle view="map" onList={goBack} />
           </div>
           <MapView events={karttaTapahtumat} eventsLoading={loading || fetchingFull} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)} {...karttaKonteksti} opasSlug={karttaOpasSlug}
-            onKarttaValinta={karttaValinta}
+            onKarttaValinta={karttaValinta} onUserPos={setKarttaSijainti}
             initialDateFilter={
               // Listan päivävalinta tulee mukaan karttaan: kartta näyttää
               // samat tapahtumat. Kartta tuntee nyt myös tonight ja weekend
@@ -2321,7 +2325,10 @@ export default function HomeClient({
       <ToastHost onToiminto={(tyyppi) => { if (tyyppi === 'nayta-suunnitelma') { setSelectedEvent(null); handleTab('suunnitelma') } }} />
 
       <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}
-        onShowVenueEvents={showVenueEvents} avattuHeti={!!initialEvent}/>
+        onShowVenueEvents={showVenueEvents} avattuHeti={!!initialEvent}
+        etaisyysKm={karttaSijainti && selectedEvent?.location?.lat != null && selectedEvent.location.lon != null
+          ? haversineMeters(karttaSijainti[0], karttaSijainti[1], selectedEvent.location.lat, selectedEvent.location.lon) / 1000
+          : null}/>
       <InstallBanner/>
 
       {showEiTieda && (

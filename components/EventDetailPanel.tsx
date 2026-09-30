@@ -25,13 +25,16 @@ interface Props {
   /** "Paikan kaikki tapahtumat" paikoille joilla EI ole omaa ohjelmasivua:
    *  kutsuja suodattaa listan paikan nimellä. */
   onShowVenueEvents?: (venueName: string) => void
+  /** Etäisyys käyttäjän sijainnista (km), kun kartta on saanut sijaintiluvan
+   *  (HANDOFF-kartta-v2 §7): näytetään osoiterivillä "650 m sinusta". */
+  etaisyysKm?: number | null
   /** Jaettu linkki (/e/[id]) avaa sovelluksen tämä paneeli VALMIIKSI auki:
    *  ei liukuanimaatiota ensimmäisellä piirrolla, jotta vastaanottaja näkee
    *  kortin heti — myös palvelimen HTML:ssä ennen hydraatiota. */
   avattuHeti?: boolean
 }
 
-export default function EventDetailPanel({ event, onClose, onShowVenueEvents, avattuHeti = false }: Props) {
+export default function EventDetailPanel({ event, onClose, onShowVenueEvents, avattuHeti = false, etaisyysKm }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   // Fokus paneeliin, Tab-loukku, palautus avaajaan (Escape sidottu alla).
   // HUOM: open on !!event eikä true — komponentti on AINA mountattuna
@@ -479,6 +482,11 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents, av
                   {event.location.name && <p className="text-white/80 font-medium">{event.location.name}</p>}
                   {event.location.streetAddress && (
                     <p className="text-white/60 text-xs mt-0.5">{event.location.streetAddress}, {event.location.city}</p>
+                  )}
+                  {typeof etaisyysKm === 'number' && Number.isFinite(etaisyysKm) && (
+                    <p className="text-xs mt-0.5 font-semibold" style={{ color: '#a3abff' }}>
+                      📍 {etaisyysKm < 1 ? `${Math.round(etaisyysKm * 1000)} m` : `${etaisyysKm.toFixed(1)} km`} {t('detail.from_you')}
+                    </p>
                   )}
                   {/* PAIKAN KAIKKI TAPAHTUMAT — footerin keikkapaikkalinkit
                       siirrettiin tänne, kontekstiin jossa niitä tarvitaan

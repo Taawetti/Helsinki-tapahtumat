@@ -11,6 +11,9 @@ import { helsinkiDateOf, helsinkiISO, helsinkiToday } from '@/lib/helsinki-time'
 import { osuuPaivaan, paivaPlus, type DateFilterKey } from '@/lib/map-date-filter'
 import BottomSheet from '@/components/BottomSheet'
 import DatePicker from '@/components/DatePicker'
+import RestaurantDetailPanel from '@/components/RestaurantDetailPanel'
+import PlaceDetailPanel, { type PaikkaTieto } from '@/components/PlaceDetailPanel'
+import { tuntematonAika } from '@/lib/utils'
 
 // Static imports are safe here: MapView is always loaded with { ssr: false }.
 // The webpack alias in next.config.ts forces both this ESM import and the CJS
@@ -128,6 +131,9 @@ interface Props {
    *  valinta kirjoitetaan takaisin listan tilaan — kartta ei ole erillinen
    *  suodatinkone vaan sama valinta eri näkymässä. */
   onKarttaValinta?: (valinta: { dateFilter?: DateFilterKey; customDate?: string; eventGroup?: string | null }) => void
+  /** Sijaintiluvan antama paikka ylöspäin (HANDOFF-kartta-v2 §7): tapahtuma-
+   *  paneeli näyttää etäisyyden "650 m sinusta". */
+  onUserPos?: (pos: [number, number] | null) => void
 }
 
 /** Opasaiheet joilla on aikaan sidottua sisältöä. Avain = kartan
@@ -231,21 +237,33 @@ function createClusterIcon(cluster: any, color: string) {
   })
 }
 
-function makePinIcon(color: string, emoji: string, round = false) {
+function makePinIcon(color: string, emoji: string, round = false, valittu = false) {
+  // Valittu pinni (HANDOFF-kartta-v2 §3, mobiili): 46 px, 3 px reunus, hehku {color}aa.
+  const koko = valittu ? 46 : 36
   const shape = round
     ? `border-radius:50%`
     : `border-radius:50% 50% 50% 4px;transform:rotate(-45deg)`
   const inner = round ? emoji : `<span style="transform:rotate(45deg)">${emoji}</span>`
   // 30 px → 36 px: pinnit pitää saada osuttua peukalolla mobiilissa
   return L.divIcon({
-    html: `<div style="width:36px;height:36px;${shape};background:${color};border:2.5px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.6),0 0 10px ${color}66;display:flex;align-items:center;justify-content:center;font-size:15px">${inner}</div>`,
+    html: `<div style="width:${koko}px;height:${koko}px;${shape};background:${color};border:${valittu ? 3 : 2.5}px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.6),0 0 ${valittu ? 18 : 10}px ${color}${valittu ? 'aa' : '66'};display:flex;align-items:center;justify-content:center;font-size:${valittu ? 19 : 15}px">${inner}</div>`,
     className: '',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    iconSize: [36, 36] as any,
+    iconSize: [koko, koko] as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    iconAnchor: (round ? [18, 18] : [18, 31]) as any,
+    iconAnchor: (round ? [koko / 2, koko / 2] : [koko / 2, koko - 5]) as any,
   })
 }
+
+/** Korttinauhan (§4) korkeus px: kortti 104 + pystyvälit + pisteet. Kartan
+ *  alareunan kontrollit ja Leaflet-attribuutio nostetaan tämän yläpuolelle. */
+const NAUHA_KORKEUS = 150
+/** Nauhassa enintään näin monta korttia kerralla (koko ravintolakanta olisi
+ *  yli 3 000 korttia). Pinnit piirretään silti kaikille; pinnin napautus
+ *  nostaa rajauksen ulkopuolisen kohteen nauhaan. */
+const NAUHA_MAX = 60
+/** Kävelyaika (§8): ≈ km × 12 min. */
+const kavelyMin = (km: number) => Math.max(1, Math.round(km * 12))
 
 // ── Sub-filter definitions ────────────────────────────────
 
@@ -538,7 +556,7 @@ function LayerNappi({ on, bg, onClick, children }: { on: boolean; bg: string; on
   )
 }
 
-export default function MapView({ events, eventsLoading, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate, initialLayers, initialEventGroup, initialRestType, initialRestCuisine, initialActCat, opasSlug, onKarttaValinta }: Props) {
+export default function MapView({ events, eventsLoading, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate, initialLayers, initialEventGroup, initialRestType, initialRestCuisine, initialActCat, opasSlug, onKarttaValinta, onUserPos }: Props) {
   const { t, lang } = useLanguage()
   // Mobiilivalikoista auki enintään yksi kerrallaan; kartan/taustan napautus sulkee.
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -547,8 +565,44 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   // Kartta ei ole suodatinkone vaan "mitä on lähellä nyt": yksi kontekstichip
   // yläpalkissa, enintään kolme kontrollia kartan päällä, korttinauha alla.
   // Työpöytä (≥ 768 px) pysyy ennallaan: ulkoasu erotetaan md:-luokilla.
+  const [mobiili, setMobiili] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767.98px)')
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mediakyselyn synkkaus mountissa
+    setMobiili(mq.matches)
+    const paivita = (e: MediaQueryListEvent) => setMobiili(e.matches)
+    mq.addEventListener('change', paivita)
+    return () => mq.removeEventListener('change', paivita)
+  }, [])
   /** §5 Suodatinpaneeli auki — kontekstichipistä. */
   const [suodatinAuki, setSuodatinAuki] = useState(false)
+  /** §3–4 Valittu kohde (nauhan kortti = kartan pinni). Avain on tasokohtainen
+   *  ('event-…', 'rest-…', 'act-…'), jotta eri tasojen samat id:t eivät törmää. */
+  type ValinnanLahde = 'nauha' | 'pinni' | 'nuoli' | 'lista' | 'sijainti'
+  /** Valinta + mistä se tuli: nauhan omasta vierityksestä nauhaa ei vieritetä
+   *  uudelleen. Tila eikä ref, jotta React Compiler hyväksyy kutsut
+   *  tapahtumankäsittelijöistä. */
+  const [valinta, setValinta] = useState<{ id: string | null; lahde: ValinnanLahde | null }>({ id: null, lahde: null })
+  const valittuId = valinta.id
+  const valitse = useCallback((id: string | null, lahde: ValinnanLahde) => setValinta({ id, lahde }), [])
+  /** Markkeriefektit lukevat valinnan refistä (ne eivät riipu valinnasta,
+   *  jottei jokainen valinta piirrä kaikkia pinnejä uudelleen). Synkataan
+   *  ENNEN markkeriefektejä — efektit ajetaan määrittelyjärjestyksessä. */
+  const valittuIdRef = useRef<string | null>(null)
+  useEffect(() => { valittuIdRef.current = valittuId }, [valittuId])
+  /** Pinnit avaimen mukaan valinnan synkkaa varten (vain mobiilissa täytetään). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markerRefs = useRef(new Map<string, { marker: any; cluster: any; vari: string; emoji: string; round: boolean }>())
+  const nauhaRef = useRef<HTMLDivElement>(null)
+  /** Ohjelmallinen vieritys käynnissä → scroll-kuuntelija mykistetty (§4, 500 ms). */
+  const suppressRef = useRef(false)
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** Milloin kartta viimeksi rajattiin listan mukaan (fitBounds) — heti perään
+   *  tuleva valinnan panTo ohitetaan, ettei rajaus kumoudu. */
+  const rajausMsRef = useRef(0)
+  /** §7 Paikkakortin napautuksesta avattu paneeli (tapahtumat avaa HomeClient). */
+  const [avattuRavintola, setAvattuRavintola] = useState<Restaurant | null>(null)
+  const [avattuPaikka, setAvattuPaikka] = useState<{ tieto: PaikkaTieto; slug: string } | null>(null)
   /** §6 Tasopaneeli auki — "● Näytä myös" -napista. */
   const [tasotAuki, setTasotAuki] = useState(false)
   /** §2 Sijaintivihje: näkyy kunnes lupa on annettu tai vihje suljettu.
@@ -650,6 +704,24 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     // Setterit ovat vakaita; listattu jotta React Compiler voi todistaa sen
     // eikä ohita koko komponentin optimointia (lint-virhe 31.8.2026).
   }, [setEventGroup, setCalOpen, setRestType, setRestCuisine, setActCat])
+
+  /** Ravintolan suodatinehto — SAMA markkereille ja korttinauhalle (§4),
+   *  jotteivät nauha ja pinnit voi eriytyä. */
+  const restaurantNakyy = useCallback((r: Restaurant): boolean => {
+    if (!r.lat || !r.lon) return false
+    if (restType && r.type !== restType) return false
+    if (restCuisine) {
+      if (restType === 'ravintola') {
+        if (restCuisine === 'awarded') return !!r.featured
+        // Sama ehto kuin listalla (RestaurantsView: tähdet, Bib Gourmand,
+        // Green tai valikoima) — michelin ei ole keittiötyyppi.
+        if (restCuisine === 'michelin') return !!(r.michelinStars || r.bibGourmand || r.greenMichelin || r.michelinRecommended)
+        return r.cuisineCategories.includes(restCuisine)
+      }
+      return (r.subCategories ?? []).includes(restCuisine)
+    }
+    return true
+  }, [restType, restCuisine])
 
   // ── Init map ─────────────────────────────────────────────
   useEffect(() => {
@@ -894,6 +966,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     if (!mapReady || !mapRef.current || !eventClusterRef.current) return
     const cluster = eventClusterRef.current
     cluster.clearLayers()
+    for (const k of [...markerRefs.current.keys()]) if (k.startsWith('event-')) markerRefs.current.delete(k)
     // Esikatselukortti suljetaan kun suodattimet vaihtuvat, jottei kortti
     // jää näyttämään pinniä joka poistui kartalta.
     setPreviewEvent(null)
@@ -907,38 +980,34 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       if (lat == null || lon == null) return
       // Pubivisat ovat generoituja tapahtumia eivätkä osu luokittimeen —
       // annetaan niille visakategorian oma kuvake ja väri.
-      const { color, emoji } = event.id.startsWith('visa-')
+      const { color: ryhmaVari, emoji } = event.id.startsWith('visa-')
         ? { color: '#8b5cf6', emoji: '🧠' }
         : eventColor(event)
-      const icon = makePinIcon(color, emoji, false)
+      // Mobiili (§3): yksi väri per taso, ei kategoriaväriä — emoji kertoo lajin.
+      const color = mobiili ? LAYER_META[0].vari : ryhmaVari
+      const kohdeId = `event-${event.id}`
+      const valittu = mobiili && valittuIdRef.current === kohdeId
+      const icon = makePinIcon(color, emoji, false, valittu)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const marker = L.marker([lat, lon] as any, { icon })
+      const marker = L.marker([lat, lon] as any, { icon, zIndexOffset: valittu ? 1000 : 0 })
       // Pinnin klikkaus avasi aiemmin SEKÄ Leaflet-popupin että koko
-      // infopaneelin päällekkäin — mobiilissa sekava tuplaus. Nyt vain
-      // esikatselukortti, josta on selkeä CTA varsinaisiin tietoihin.
-      marker.on('click', () => setPreviewEvent(event))
+      // infopaneelin päällekkäin — mobiilissa sekava tuplaus. Työpöydällä
+      // esikatselukortti; mobiilissa (§3–4) napautus valitsee nauhan kortin.
+      marker.on('click', () => { if (mobiili) valitse(kohdeId, 'pinni'); else setPreviewEvent(event) })
+      if (mobiili) markerRefs.current.set(kohdeId, { marker, cluster, vari: color, emoji, round: false })
       cluster.addLayer(marker)
     })
-  }, [mapReady, naytettavatTapahtumat, layers.events, aiheTapahtumina])
+  }, [mapReady, naytettavatTapahtumat, layers.events, aiheTapahtumina, mobiili, valitse])
 
   // ── Restaurant markers ────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !restClusterRef.current) return
     const cluster = restClusterRef.current
     cluster.clearLayers()
+    for (const k of [...markerRefs.current.keys()]) if (k.startsWith('rest-')) markerRefs.current.delete(k)
     if (!layers.restaurants) return
     restaurants.forEach((r) => {
-      if (!r.lat || !r.lon) return
-      if (restType && r.type !== restType) return
-      if (restCuisine) {
-        if (restType === 'ravintola') {
-          if (restCuisine === 'awarded' && !r.featured) return
-          // Sama ehto kuin listalla (RestaurantsView: tähdet, Bib Gourmand,
-          // Green tai valikoima) — michelin ei ole keittiötyyppi.
-          else if (restCuisine === 'michelin' && !(r.michelinStars || r.bibGourmand || r.greenMichelin || r.michelinRecommended)) return
-          else if (restCuisine !== 'awarded' && restCuisine !== 'michelin' && !r.cuisineCategories.includes(restCuisine)) return
-        } else if (!(r.subCategories ?? []).includes(restCuisine)) return
-      }
+      if (!restaurantNakyy(r)) return
       const { color, emoji: tyyppiEmoji } = restaurantColor(r.type)
       // Pinnin kuvake seuraa VALITTUA suodatinta (omistaja 6.9.2026:
       // Olutbaarit-valinnalla pinnissä 🍺, ei tyypin yleinen 🍸) — sama
@@ -950,7 +1019,10 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         : undefined
       const emoji = aliSub?.emoji ?? tyyppiEmoji
       const dist = userPos ? haversine(userPos[0], userPos[1], r.lat!, r.lon!) : null
-      const icon = makePinIcon(color, emoji, true)
+      // Mobiili (§3): kaikki pinnit pisaramuotoisia; valittu kasvaa.
+      const kohdeId = `rest-${r.id}`
+      const valittu = mobiili && valittuIdRef.current === kohdeId
+      const icon = makePinIcon(color, emoji, !mobiili, valittu)
       // Suomeksi r.description sellaisenaan; englanniksi käännetty keittiökategoria
       // silloin kun sellainen on tiedossa (uusien avausten kuvaus on suomeksi).
       const restCuisineKey = lang === 'en' ? CUISINE_KEYS[r.cuisineCategories?.[0] ?? ''] : undefined
@@ -964,24 +1036,29 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         ${r.phone ? `<p style="font-size:11px;color:#aaa;margin:${safeUrl(r.www) ? '3px' : '0'} 0 0">${esc(r.phone)}</p>` : ''}
       </div>`
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const marker = L.marker([r.lat, r.lon] as any, { icon })
-      marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
+      const marker = L.marker([r.lat, r.lon] as any, { icon, zIndexOffset: valittu ? 1000 : 0 })
+      // Mobiilissa ei popupia: napautus valitsee nauhan kortin (§4), ja kortti avaa paneelin (§7).
+      if (mobiili) { marker.on('click', () => valitse(kohdeId, 'pinni')); markerRefs.current.set(kohdeId, { marker, cluster, vari: color, emoji, round: false }) }
+      else marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
       cluster.addLayer(marker)
     })
-  }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine, t, lang])
+  }, [mapReady, restaurants, layers.restaurants, userPos, restType, restCuisine, restaurantNakyy, t, lang, mobiili, valitse])
 
   // ── Activity markers ──────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !actClusterRef.current) return
     const cluster = actClusterRef.current
     cluster.clearLayers()
+    for (const k of [...markerRefs.current.keys()]) if (k.startsWith('act-')) markerRefs.current.delete(k)
     // Aihetilassa paikat väistyvät: käyttäjä katsoo aiheen tapahtumia.
     if (!layers.activities || aiheTapahtumina) return
     activities.forEach((a) => {
       if (!a.lat || !a.lon) return
       if (actCat && a.category !== actCat) return
       const { color, emoji } = activityColor(a.category)
-      const icon = makePinIcon(color, emoji, true)
+      const kohdeId = `act-${a.id}`
+      const valittu = mobiili && valittuIdRef.current === kohdeId
+      const icon = makePinIcon(color, emoji, !mobiili, valittu)
       // a.description on palvelimella suomeksi muotoiltu (ja tarkempi: mm. saunan
       // polttoaine), joten suomeksi se säilyy; englanniksi näytetään kategoria.
       // Tuntematon kategoria putoaa turvallisesti takaisin kuvaukseen.
@@ -996,26 +1073,30 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         ${safeUrl(a.www) ? `<a href="${safeUrl(a.www)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a3abff;font-weight:600;text-decoration:none">${t('common.website')} →</a>` : ''}
       </div>`
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const marker = L.marker([a.lat, a.lon] as any, { icon })
-      marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
+      const marker = L.marker([a.lat, a.lon] as any, { icon, zIndexOffset: valittu ? 1000 : 0 })
+      if (mobiili) { marker.on('click', () => valitse(kohdeId, 'pinni')); markerRefs.current.set(kohdeId, { marker, cluster, vari: color, emoji, round: false }) }
+      else marker.bindPopup(popup, { className: 'dark-popup', maxWidth: 220 })
       cluster.addLayer(marker)
     })
-  }, [mapReady, activities, layers.activities, aiheTapahtumina, actCat, t, lang])
+  }, [mapReady, activities, layers.activities, aiheTapahtumina, actCat, t, lang, mobiili, valitse])
 
   // ── User position marker ──────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || !userPos) return
     if (userMarkerRef.current) { try { mapRef.current.removeLayer(userMarkerRef.current) } catch {} }
+    // Mobiili (§3): 20 px indigo piste valkoisella reunuksella + pulssirengas.
     const icon = L.divIcon({
-      html: `<div style="width:18px;height:18px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 5px rgba(59,130,246,0.25)"></div>`,
+      html: mobiili
+        ? `<div style="position:relative;width:20px;height:20px"><div style="position:absolute;inset:-8px;border-radius:50%;border:2px solid #6b76ff;animation:pulse-ring 1.8s ease-out infinite"></div><div style="width:20px;height:20px;border-radius:50%;background:#6b76ff;border:3px solid #fff;box-shadow:0 0 0 5px rgba(107,118,255,.25)"></div></div>`
+        : `<div style="width:18px;height:18px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 5px rgba(59,130,246,0.25)"></div>`,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      className: '', iconSize: [18, 18] as any, iconAnchor: [9, 9] as any,
+      className: '', iconSize: (mobiili ? [20, 20] : [18, 18]) as any, iconAnchor: (mobiili ? [10, 10] : [9, 9]) as any,
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     userMarkerRef.current = L.marker(userPos as any, { icon, zIndexOffset: 2000 })
       .bindPopup(`<p style="color:#fff;font-family:Inter;font-size:12px;margin:0;font-weight:600">${t('map.you_are_here')}</p>`, { className: 'dark-popup' })
       .addTo(mapRef.current)
-  }, [mapReady, userPos, t])
+  }, [mapReady, userPos, t, mobiili])
 
   // ── Locate me ─────────────────────────────────────────────
   const locateMe = useCallback(() => {
@@ -1025,13 +1106,15 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       (pos) => {
         const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude]
         setUserPos(coords)
-        if (mapRef.current) mapRef.current.setView(coords, 15)
+        onUserPos?.(coords)
+        // Mobiilissa (§8) näkymän rajaa korttilista + sijainti (fitBounds), ei kiinteä zoom.
+        if (mapRef.current && !mobiili) mapRef.current.setView(coords, 15)
         setLocating(false)
       },
       () => setLocating(false),
       { enableHighAccuracy: true, timeout: 10000 }
     )
-  }, [])
+  }, [mobiili, onUserPos])
 
   // ── Counts ────────────────────────────────────────────────
   // Tapahtumien luku tulee SUORAAN markkeriefektistä (eventMarkerCount):
@@ -1059,6 +1142,186 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     layers.restaurants && restsOnMap      > 0 && `${restsOnMap} ${t('map.rests_count')}`,
     layers.activities && !aiheTapahtumina && activitiesOnMap > 0 && `${activitiesOnMap} ${t('map.acts_count')}`,
   ].filter(Boolean).join(' · ')
+
+  // ── §4 Korttinauha (mobiili): pinnien kanssa synkassa oleva lista ───────
+  // Kohteet = kartalla NÄKYVÄT tapahtumat + ravintolat + paikat (samat
+  // predikaatit kuin markkereilla). Järjestys: sijaintiluvalla etäisyys,
+  // ilman lupaa tapahtumat alkamisajan mukaan ja ajattomat paikat perässä.
+  type Kohde = {
+    id: string; laji: 'event' | 'restaurant' | 'activity'
+    otsikko: string; aika: string; paikka: string
+    lat: number; lon: number; kuva: string | null; emoji: string; vari: string
+    alkuMs?: number; event?: Event; restaurant?: Restaurant; activity?: Activity
+  }
+  const kohteet = useMemo<Kohde[]>(() => {
+    if (!mobiili) return []
+    const lista: Kohde[] = []
+    const locale = lang === 'fi' ? 'fi-FI' : 'en-GB'
+    const eriPaiva = dateFilter !== 'today' && dateFilter !== 'tonight'
+    if (layers.events || aiheTapahtumina) {
+      for (const e of naytettavatTapahtumat) {
+        const lat = e.location?.lat, lon = e.location?.lon
+        if (lat == null || lon == null) continue
+        const emoji = e.id.startsWith('visa-') ? '🧠' : eventColor(e).emoji
+        const d = new Date(e.startTime)
+        const klo = tuntematonAika(e.startTime) ? '' : d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' })
+        const vp = eriPaiva ? d.toLocaleDateString(locale, { weekday: 'short', timeZone: 'Europe/Helsinki' }) : ''
+        const aika = [vp, klo ? (lang === 'fi' ? `klo ${klo}` : klo) : ''].filter(Boolean).join(' ')
+        lista.push({ id: `event-${e.id}`, laji: 'event', otsikko: e.title, aika, paikka: e.location?.name ?? '', lat, lon, kuva: e.image, emoji, vari: LAYER_META[0].vari, alkuMs: d.getTime(), event: e })
+      }
+    }
+    if (layers.restaurants) {
+      for (const r of restaurants) {
+        if (!restaurantNakyy(r)) continue
+        lista.push({ id: `rest-${r.id}`, laji: 'restaurant', otsikko: r.name, aika: t(REST_SUBS.find((sf) => sf.key === r.type)?.tKey ?? 'map.rest_food'), paikka: r.address ?? '', lat: r.lat!, lon: r.lon!, kuva: r.image, emoji: restaurantColor(r.type).emoji, vari: LAYER_META[1].vari, restaurant: r })
+      }
+    }
+    if (layers.activities && !aiheTapahtumina) {
+      for (const a of activities) {
+        if (!a.lat || !a.lon) continue
+        if (actCat && a.category !== actCat) continue
+        lista.push({ id: `act-${a.id}`, laji: 'activity', otsikko: a.name, aika: t(ACT_CAT_KEYS[a.category] ?? 'cat.muu'), paikka: a.address ?? '', lat: a.lat, lon: a.lon, kuva: a.image, emoji: activityColor(a.category).emoji, vari: LAYER_META[2].vari, activity: a })
+      }
+    }
+    if (userPos) lista.sort((a, b) => haversine(userPos[0], userPos[1], a.lat, a.lon) - haversine(userPos[0], userPos[1], b.lat, b.lon))
+    else lista.sort((a, b) => (a.alkuMs ?? Infinity) - (b.alkuMs ?? Infinity))
+    return lista
+  }, [mobiili, lang, dateFilter, layers, aiheTapahtumina, naytettavatTapahtumat, restaurants, restaurantNakyy, activities, actCat, userPos, t])
+
+  /** Nauhan kortit: NAUHA_MAX ensimmäistä + valittu, jos se on rajauksen ulkopuolella. */
+  const nauha = useMemo(() => {
+    const base = kohteet.slice(0, NAUHA_MAX)
+    if (valittuId && !base.some((k) => k.id === valittuId)) {
+      const k = kohteet.find((x) => x.id === valittuId)
+      if (k) base.push(k)
+    }
+    return base
+  }, [kohteet, valittuId])
+  const valittuIndeksi = nauha.findIndex((k) => k.id === valittuId)
+  const nauhaLataa = (eventsLoading && (layers.events || aiheTapahtumina)) || restsLoading || activitiesLoading || aiheLatautuu
+
+  /** Vieritä nauha korttiin i (keskelle). Ohjelmallisen vierityksen aikana
+   *  scroll-kuuntelija on mykistetty (§4: suppressScroll 500 ms). */
+  const vieritaKorttiin = useCallback((i: number, smooth = true) => {
+    const el = nauhaRef.current
+    const kortti = el?.querySelector<HTMLElement>(`[data-nauha-i="${i}"]`)
+    if (!el || !kortti) return
+    suppressRef.current = true
+    el.scrollTo({ left: kortti.offsetLeft - (el.clientWidth - kortti.offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' })
+    setTimeout(() => { suppressRef.current = false }, 500)
+  }, [])
+
+  // Lista vaihtui: valinta ensimmäiseen korttiin (tai pois, jos lista tyhjeni).
+  useEffect(() => {
+    if (!mobiili) return
+    if (nauha.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- valinnan synkkaus listaan
+      if (valittuId !== null) valitse(null, 'lista')
+      return
+    }
+    if (!valittuId || !nauha.some((k) => k.id === valittuId)) valitse(nauha[0].id, 'lista')
+  }, [nauha, mobiili, valittuId, valitse])
+
+  // Kartan rajaus kun lista vaihtuu (§4): viisi ensimmäistä korttia + oma
+  // sijainti, padding [70,50], maxZoom 15. Syvälinkin (mapTarget) flyTo voittaa.
+  const listaAvain = nauha.slice(0, 5).map((k) => k.id).join('|') + `|${nauha.length}`
+  useEffect(() => {
+    if (!mobiili || !mapReady || !mapRef.current || mapTarget || nauha.length === 0) return
+    const pisteet = nauha.slice(0, 5).map((k) => L.latLng(k.lat, k.lon))
+    if (userPos) pisteet.push(L.latLng(userPos[0], userPos[1]))
+    rajausMsRef.current = Date.now()
+    mapRef.current.fitBounds(L.latLngBounds(pisteet), { padding: [70, 50], maxZoom: 15 })
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- rajaus vain kun viisi ensimmäistä korttia tai sijainti vaihtuu
+  }, [listaAvain, userPos, mobiili, mapReady, mapTarget])
+
+  // §8: sijaintiluvan jälkeen kortit järjestyvät etäisyyden mukaan → valinta
+  // ensimmäiseen (lähimpään). Rajaus hoituu yllä userPos-riippuvuudesta.
+  useEffect(() => {
+    if (!mobiili || !userPos) return
+    const eka = kohteet[0]
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- valinta lähimpään heti sijainnin jälkeen
+    if (eka) valitse(eka.id, 'sijainti')
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- vain sijainnin vaihtuessa
+  }, [userPos, mobiili])
+
+  // Valinta → pinni kasvaa, kartta panToaa, nauha vierii kortille (§3–4).
+  const edellinenValittuRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!mobiili) return
+    const edellinen = edellinenValittuRef.current
+    if (edellinen && edellinen !== valittuId) {
+      const e = markerRefs.current.get(edellinen)
+      if (e) { e.marker.setIcon(makePinIcon(e.vari, e.emoji, e.round, false)); e.marker.setZIndexOffset(0) }
+    }
+    edellinenValittuRef.current = valittuId
+    if (!valittuId) return
+    const v = markerRefs.current.get(valittuId)
+    const map = mapRef.current
+    if (v) {
+      v.marker.setIcon(makePinIcon(v.vari, v.emoji, v.round, true))
+      v.marker.setZIndexOffset(1000)
+      // Heti listan rajauksen (fitBounds) perään ei panToata: rajaus näyttäisi
+      // muuten vain vilahdukselta ennen kuin ensimmäinen kortti vetää näkymän.
+      if (map && Date.now() - rajausMsRef.current > 400) {
+        const latlng = v.marker.getLatLng()
+        const parent = typeof v.cluster?.getVisibleParent === 'function' ? v.cluster.getVisibleParent(v.marker) : null
+        // Klusterin sisällä oleva pinni ei voi kasvaa — zoomataan sen näkyviin.
+        if (parent && parent !== v.marker && typeof v.cluster.zoomToShowLayer === 'function') v.cluster.zoomToShowLayer(v.marker, () => map.panTo(latlng, { animate: true }))
+        else map.panTo(latlng, { animate: true })
+      }
+    }
+    if (valinta.lahde !== 'nauha') {
+      const i = nauha.findIndex((k) => k.id === valittuId)
+      if (i >= 0) vieritaKorttiin(i)
+    }
+  }, [valinta, valittuId, mobiili, nauha, vieritaKorttiin])
+
+  /** Nauhan vieritys päättyi (debounce 80 ms) → keskimmäinen kortti valituksi. */
+  const onNauhaScroll = useCallback(() => {
+    if (suppressRef.current) return
+    if (scrollTimer.current) clearTimeout(scrollTimer.current)
+    scrollTimer.current = setTimeout(() => {
+      const el = nauhaRef.current
+      if (!el) return
+      const keski = el.scrollLeft + el.clientWidth / 2
+      let paras = -1, parasEt = Infinity
+      el.querySelectorAll<HTMLElement>('[data-nauha-i]').forEach((k) => {
+        const et = Math.abs(k.offsetLeft + k.offsetWidth / 2 - keski)
+        if (et < parasEt) { parasEt = et; paras = Number(k.dataset.nauhaI) }
+      })
+      const k = paras >= 0 ? nauha[paras] : undefined
+      if (k && k.id !== valittuId) valitse(k.id, 'nauha')
+    }, 80)
+  }, [nauha, valittuId, valitse])
+  /** §7 "Näytä kartalla" ravintolapaneelista: ollaan jo kartalla → sulje ja keskitä. */
+  const naytaRavintolaKartalla = useCallback((lat: number, lon: number) => {
+    setAvattuRavintola(null)
+    mapRef.current?.panTo([lat, lon], { animate: true })
+  }, [])
+  /** Nuolinappi: seuraava kortti, viimeisestä kiertää ensimmäiseen. */
+  const seuraavaKortti = () => {
+    if (nauha.length === 0) return
+    const i = valittuIndeksi >= 0 ? (valittuIndeksi + 1) % nauha.length : 0
+    valitse(nauha[i].id, 'nuoli')
+  }
+  /** §7 Kortin napautus: valittu kortti avaa oikean paneelin, naapuri valitaan ensin. */
+  const OPAS_SLUG_KATEGORIALLE: Record<string, string> = { sauna: 'saunat', kirpputori: 'kirpputorit', museo: 'ilmaiset-museot' }
+  const avaaKohde = (k: Kohde) => {
+    if (k.laji === 'event' && k.event) { onEventClick(k.event); return }
+    if (k.laji === 'restaurant' && k.restaurant) { setAvattuRavintola(k.restaurant); return }
+    if (k.laji === 'activity' && k.activity) {
+      const a = k.activity
+      setAvattuPaikka({
+        slug: OPAS_SLUG_KATEGORIALLE[a.category] ?? '',
+        tieto: {
+          id: a.id, name: a.name, address: a.address || null, image: a.image, emoji: k.emoji, kicker: k.aika,
+          www: a.www, lat: a.lat, lon: a.lon, phone: a.phone, openingHours: a.openingHours ?? null,
+          rating: a.rating ?? null, reviews: a.reviewCount ?? null,
+          bottomChip: a.fee === false ? t('map.free_act') : null,
+        },
+      })
+    }
+  }
 
   // ── §1 Kontekstichip + §5 suodatinpaneeli (mobiili) ────────────────────
   // Chip näyttää PERITYN valinnan yhdellä rivillä: "🎸 Keikka · Tänään ▾".
@@ -1177,6 +1440,9 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       <style>{`
         @media (max-width: 639px) { .leaflet-control-zoom { display: none } }
         @media (min-width: 640px) { .leaflet-top.leaflet-left .leaflet-control-zoom { margin-top: 96px } }
+        /* Mobiili (§4): Leaflet-attribuutio korttinauhan yläpuolelle, ei sen alle. */
+        @media (max-width: 767.98px) { .leaflet-bottom { bottom: ${NAUHA_KORKEUS}px } }
+        @keyframes pulse-ring { 0% { transform: scale(.6); opacity: .9 } 100% { transform: scale(1.8); opacity: 0 } }
       `}</style>
 
       {/* ── Suodattimet: kaksi tiivistä riviä KAIKILLA leveyksillä (omistaja
@@ -1338,7 +1604,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
       )}
       <button type="button" onClick={() => setTasotAuki(true)} aria-haspopup="dialog" aria-expanded={tasotAuki}
         className="md:hidden absolute right-3 z-[1000] h-11 px-3.5 flex items-center gap-2 text-[13px] font-black text-white shadow-lg"
-        style={{ bottom: 12, borderRadius: 14, background: 'rgba(10,10,12,.88)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,.1)' }}>
+        style={{ bottom: NAUHA_KORKEUS + 12, borderRadius: 14, background: 'rgba(10,10,12,.88)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,.1)' }}>
         <span className="flex items-center gap-1">
           {LAYER_META.filter((m) => layers[m.key]).map((m) => <span key={m.key} className="w-2 h-2 rounded-full" style={{ background: m.vari }} />)}
         </span>
@@ -1364,7 +1630,7 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         </div>
       )}
       {(layers.events || aiheTapahtumina) && !naytaTulevat && eventMarkerCount === 0 && !eventsLoading && !aiheLatautuu && (
-        <div className="absolute inset-x-0 z-[1000] flex justify-center pointer-events-none" style={{ top: '42%' }}>
+        <div className="absolute inset-x-0 z-[1000] hidden md:flex justify-center pointer-events-none" style={{ top: '42%' }}>
           <div className="flex flex-col items-center gap-0.5 px-5 py-3.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/12 shadow-2xl text-center">
             <span className="text-white/85 text-[13px] font-bold">{t('discover.no_filter_match')}</span>
             <span className="text-white/40 text-[11.5px] font-semibold">{t('map.empty_hint')}</span>
@@ -1523,6 +1789,75 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         </div>
       )}
 
+      {/* ── §4 Korttinauha (mobiili): kartan alareunassa alapalkin päällä,
+          vaakavieritys scroll-snapilla, pinnien kanssa synkassa. ── */}
+      <div className="md:hidden absolute inset-x-0 bottom-0 z-[1001]"
+        style={{ height: NAUHA_KORKEUS, background: 'linear-gradient(to top,#0a0a0c 70%,rgba(10,10,12,.85))', paddingTop: 10 }}>
+        <div ref={nauhaRef} onScroll={onNauhaScroll} className="relative flex gap-2.5 overflow-x-auto scrollbar-none"
+          style={{ scrollSnapType: 'x mandatory', padding: '0 24px', scrollPaddingInline: 24 }}>
+          {nauha.length === 0 ? (
+            <div className="shrink-0 rounded-[18px] flex flex-col items-center justify-center text-center px-5"
+              style={{ flex: '0 0 calc(100% - 48px)', minHeight: 104, background: '#111318', border: '1.5px solid rgba(255,255,255,.08)' }}>
+              {nauhaLataa ? (
+                <span className="text-[14px] font-bold" style={{ color: 'rgba(255,255,255,.5)' }}>{t('discover.fetching_short')}</span>
+              ) : (
+                <>
+                  <span className="text-[15px] font-black text-white">🫥 {t('map.empty_card_title')}</span>
+                  <span className="text-[13px] font-semibold mt-1" style={{ color: 'rgba(255,255,255,.45)' }}>{t('map.empty_card_sub')}</span>
+                </>
+              )}
+            </div>
+          ) : nauha.map((k, i) => {
+            const valittu = k.id === valittuId
+            const km = userPos ? haversine(userPos[0], userPos[1], k.lat, k.lon) : null
+            return (
+              <div key={k.id} data-nauha-i={i} role="button" tabIndex={0} aria-label={k.otsikko} aria-current={valittu || undefined}
+                onClick={() => { if (valittu) avaaKohde(k); else valitse(k.id, 'nauha') }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (valittu) avaaKohde(k); else valitse(k.id, 'nauha') } }}
+                className="relative shrink-0 rounded-[18px] overflow-hidden flex cursor-pointer"
+                style={{
+                  flex: '0 0 calc(100% - 48px)', scrollSnapAlign: 'center', minHeight: 104, background: '#111318',
+                  border: `1.5px solid ${valittu ? k.vari : 'rgba(255,255,255,.08)'}`,
+                  boxShadow: valittu ? `0 12px 30px -12px ${k.vari}88` : 'none',
+                  transition: 'border-color .15s, box-shadow .15s',
+                }}>
+                <div className="w-24 shrink-0 relative flex items-center justify-center text-[30px]"
+                  style={{ background: k.laji === 'event' ? 'linear-gradient(160deg,#1e1b4b,#4c1d95)' : k.laji === 'restaurant' ? LAYER_META[1].bg : LAYER_META[2].bg }}>
+                  {k.kuva
+                    // eslint-disable-next-line @next/next/no-img-element -- Leaflet-konteksti, ei next/image-optimointia
+                    ? <img src={k.kuva} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLElement).style.display = 'none' }} />
+                    : null}
+                  <span className="relative">{k.kuva ? '' : k.emoji}</span>
+                </div>
+                <div className="flex-1 min-w-0 py-3 pl-3 pr-16 flex flex-col justify-center gap-1">
+                  <p className="text-[15px] font-black text-white leading-tight line-clamp-2">{k.otsikko}</p>
+                  <p className="text-[13px] font-semibold truncate">
+                    {k.aika && <span style={{ color: '#a3abff' }}>{k.aika}</span>}
+                    {k.aika && k.paikka && <span style={{ color: 'rgba(255,255,255,.5)' }}> · </span>}
+                    {k.paikka && <span style={{ color: 'rgba(255,255,255,.5)' }}>{k.paikka}</span>}
+                  </p>
+                  <p className="text-[13px] font-semibold truncate" style={{ color: km !== null ? 'rgba(255,255,255,.65)' : 'rgba(255,255,255,.35)' }}>
+                    {km !== null ? `📍 ${fmtDist(km)} · ${kavelyMin(km)} ${t('map.walk_min')}` : `📍 ${t('map.allow_location_distance')}`}
+                  </p>
+                </div>
+                <button type="button" onClick={(e) => { e.stopPropagation(); seuraavaKortti() }} aria-label={t('map.next_card')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full text-white text-[24px] leading-none font-black flex items-center justify-center active:scale-95 transition-transform"
+                  style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 6px 16px -6px rgba(91,101,230,.8)' }}>›</button>
+              </div>
+            )
+          })}
+        </div>
+        {/* Pisteet: valittu 16 px indigo; yli 12 kortilla laskuri "3 / 48". */}
+        <div className="flex items-center justify-center gap-1.5 mt-2" style={{ height: 12 }}>
+          {nauha.length > 0 && nauha.length <= 12 && nauha.map((k) => (
+            <span key={k.id} className="rounded-full transition-all" style={{ height: 5, width: k.id === valittuId ? 16 : 5, background: k.id === valittuId ? '#6b76ff' : 'rgba(255,255,255,.25)' }} />
+          ))}
+          {nauha.length > 12 && (
+            <span className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,.45)' }}>{Math.max(valittuIndeksi, 0) + 1} / {nauha.length}</span>
+          )}
+        </div>
+      </div>
+
       {/* ── Count badge ── */}
       {countParts && (
         <div className="absolute bottom-4 right-3 hidden md:block bg-black/75 backdrop-blur-sm text-white/45 text-xs px-3 py-1.5 rounded-full z-[1000]">
@@ -1638,6 +1973,12 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         })}
       </div>
     </BottomSheet>
+
+    {/* ── §7 Tietopaneelit (mobiili): paikkakortin napautus avaa saman
+        paneelin kuin listassa; tapahtumat avaa HomeClientin EventDetailPanel
+        (onEventClick). "Näytä kartalla" sulkee paneelin — ollaan jo kartalla. ── */}
+    <RestaurantDetailPanel r={avattuRavintola} onClose={() => setAvattuRavintola(null)} onShowOnMap={naytaRavintolaKartalla} />
+    <PlaceDetailPanel paikka={avattuPaikka?.tieto ?? null} guideSlug={avattuPaikka?.slug ?? ''} onClose={() => setAvattuPaikka(null)} />
     </>
   )
 }
