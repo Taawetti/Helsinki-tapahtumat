@@ -38,6 +38,7 @@ import GuideInlineView, { GUIDE_META, type GuideSlug, type GuidePayload } from '
 import JarjestajaForm from '@/components/JarjestajaForm'
 import LanguageSwitch, { useLanguageSwitch } from '@/components/LanguageSwitch'
 import { ListSheet } from '@/components/BottomSheet'
+import type { DateFilterKey } from '@/lib/map-date-filter'
 import ToastHost from '@/components/ToastHost'
 import { tilaaSuunnitelma, lueSuunnitelma } from '@/lib/suunnitelma'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -68,10 +69,14 @@ const UuttaView = dynamic(() => import('@/components/UuttaView'), { ssr: false }
 /** MapViewn EVENT_SUBS-avaimet. Listan aihepiiri näytetään kartan omassa
  *  pillerissä vain jos kartta tuntee sen; muuten kartalle annetaan valmiiksi
  *  suodatettu tapahtumalista. */
-const KARTAN_RYHMAT: readonly string[] = ['keikka', 'yoelama', 'baari', 'teatteri', 'taide', 'urheilu', 'ilmainen', 'perhe']
+// Kartan ryhmät = listan aihepiirit (MapView EVENT_SUBS = Ilmaiseksi + VIBES).
+// Lista oli vanhentunut (8 ryhmää, 'lapset'→'perhe'): Stand up- tai Museo-
+// listasta kartalle tullessa kartan chip väitti "Kaikki", ja Lapset & perhe
+// osoitti ryhmään jota kartta ei tunne (30.9.2026, HANDOFF-kartta-v2 §1/§5).
+const KARTAN_RYHMAT: readonly string[] = ['ilmainen', 'keikka', 'yoelama', 'baari', 'urheilu', 'standup', 'museo', 'lapset', 'tyopaja', 'teatteri', 'taide', 'festivaali', 'underground']
 
-/** VIBES-id → kartan ryhmä silloin kun nimet eroavat. */
-const VIBE_KARTAN_RYHMAKSI: Record<string, string> = { lapset: 'perhe' }
+/** VIBES-id → kartan ryhmä silloin kun nimet eroavat (nyt samat avaimet). */
+const VIBE_KARTAN_RYHMAKSI: Record<string, string> = {}
 
 /** RestaurantsView'n välilehti → kartan REST_SUBS-avain (sama kuin
  *  TYPE_TABS.dbType, RestaurantsView.tsx:36-41). */
@@ -1151,6 +1156,28 @@ export default function HomeClient({
     return koCatEvents
   }, [mapTarget, koCat, filteredEvents, koCatEvents])
 
+  // Kartalla tehty päivä-/aihepiirivalinta kirjoitetaan listaan VASTA kun
+  // kartalta poistutaan (HANDOFF-kartta-v2 §5: "valinta pysyy myös listassa").
+  // Ei heti: koCat rekisteröi paluupinoon oman kerroksensa, ja kartalla tehty
+  // valinta olisi tuottanut ylimääräisen paluuaskeleen ennen kartan sulkua.
+  // Kartta itse näyttää valinnan heti omassa tilassaan.
+  const karttaValintaRef = useRef<{ dateFilter?: DateFilterKey; customDate?: string; eventGroup?: string | null } | null>(null)
+  const karttaValinta = useCallback((v: { dateFilter?: DateFilterKey; customDate?: string; eventGroup?: string | null }) => {
+    karttaValintaRef.current = { ...(karttaValintaRef.current ?? {}), ...v }
+  }, [])
+  useEffect(() => {
+    if (mode === 'map') return
+    const v = karttaValintaRef.current
+    if (!v) return
+    karttaValintaRef.current = null
+    // setState timeout-callbackissa (React Compiler: ei synkronista setStateä efektissä).
+    const t0 = setTimeout(() => {
+      if (v.dateFilter) { setDateFilter(v.dateFilter); setCustomDate(v.dateFilter === 'custom' ? (v.customDate ?? '') : ''); setCustomDateEnd('') }
+      if (v.eventGroup !== undefined) { setActiveVibes([]); setActiveCategories([]); setPriceFilter('all'); setKoCat(v.eventGroup) }
+    }, 0)
+    return () => clearTimeout(t0)
+  }, [mode])
+
   // Tyhjä kategorialista → "Ei tapahtumia valitulla päivällä" + TULEVAT
   // kuukauden ikkunasta (omistaja 6.9.2026: tyhjä sivu ei kerro mitään —
   // näytetään mitä on tulossa). null = haku kesken / ei tarvita.
@@ -2174,6 +2201,7 @@ export default function HomeClient({
             <ListMapToggle view="map" onList={goBack} />
           </div>
           <MapView events={karttaTapahtumat} eventsLoading={loading || fetchingFull} onEventClick={avaa.map} mapTarget={mapTarget} onTargetConsumed={() => setMapTarget(null)} {...karttaKonteksti} opasSlug={karttaOpasSlug}
+            onKarttaValinta={karttaValinta}
             initialDateFilter={
               // Listan päivävalinta tulee mukaan karttaan: kartta näyttää
               // samat tapahtumat. Kartta tuntee nyt myös tonight ja weekend

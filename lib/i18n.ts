@@ -1051,6 +1051,14 @@ const t = {
     'idea.katso_uudelleen':        'Katso uudelleen',
     'idea.paivan_menot':           'Päivän tapahtumia ja tekemistä',
     'detail.ended':                'Tapahtuma on päättynyt',
+    'map.chip_places':             'Paikat',
+    'map.filter_title':            'Mitä näytetään kartalla',
+    'map.filter_sub':              'Valinta pysyy myös listassa',
+    'map.when':                    'Milloin',
+    'map.what':                    'Mitä',
+    'map.show_all_events':         'Näytä kaikki tapahtumat',
+    'map.show_all_rests':          'Näytä kaikki ravintolat',
+    'map.show_all_places':         'Näytä kaikki paikat',
   },
 
   en: {
@@ -2104,6 +2112,14 @@ const t = {
     'idea.katso_uudelleen':        'Start over',
     'idea.paivan_menot':           'Events and things to do that day',
     'detail.ended':                'This event has ended',
+    'map.chip_places':             'Places',
+    'map.filter_title':            'What the map shows',
+    'map.filter_sub':              'Your choice also applies to the list',
+    'map.when':                    'When',
+    'map.what':                    'What',
+    'map.show_all_events':         'Show all events',
+    'map.show_all_rests':          'Show all restaurants',
+    'map.show_all_places':         'Show all places',
   },
 } as const
 

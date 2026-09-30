@@ -9,6 +9,8 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 import { helsinkiDateOf, helsinkiISO, helsinkiToday } from '@/lib/helsinki-time'
 import { osuuPaivaan, paivaPlus, type DateFilterKey } from '@/lib/map-date-filter'
+import BottomSheet from '@/components/BottomSheet'
+import DatePicker from '@/components/DatePicker'
 
 // Static imports are safe here: MapView is always loaded with { ssr: false }.
 // The webpack alias in next.config.ts forces both this ESM import and the CJS
@@ -122,6 +124,10 @@ interface Props {
    *  (/api/guides/[slug]), joten sama toimii myös kun aihe valitaan kartan
    *  Opas-valikosta ilman että opasta on avattu (omistaja 9.9.2026). */
   opasSlug?: string
+  /** MOBIILI (HANDOFF-kartta-v2 §5): kartalla tehty päivä- tai aihepiiri-
+   *  valinta kirjoitetaan takaisin listan tilaan — kartta ei ole erillinen
+   *  suodatinkone vaan sama valinta eri näkymässä. */
+  onKarttaValinta?: (valinta: { dateFilter?: DateFilterKey; customDate?: string; eventGroup?: string | null }) => void
 }
 
 /** Opasaiheet joilla on aikaan sidottua sisältöä. Avain = kartan
@@ -409,6 +415,17 @@ const DATE_PILLS: { key: DateFilterKey; tKey: TranslationKey }[] = [
   { key: 'month',    tKey: 'map.date_month' },
 ]
 
+/** Mobiilin suodatinpaneelin MILLOIN-chipit (HANDOFF-kartta-v2 §5) = listan
+ *  päivärivi. Kuukausi puuttuu tarkoituksella: se on kartan oma laaja ikkuna,
+ *  jonka syvälinkki asettaa, ei käyttäjän listavalinta. */
+const PAIVA_CHIPIT: { key: DateFilterKey; tKey: TranslationKey; emoji?: string }[] = [
+  { key: 'today',    tKey: 'date.today' },
+  { key: 'tonight',  tKey: 'date.tonight_short', emoji: '🌙' },
+  { key: 'tomorrow', tKey: 'map.date_tomorrow' },
+  { key: 'weekend',  tKey: 'date.weekend',       emoji: '🎉' },
+  { key: 'week',     tKey: 'map.date_week' },
+]
+
 // Pinnin VÄRIN pääryhmä — keskitetystä luokittimesta (sama kuin listan
 // kategoriat), tärkeysjärjestys määrää värin kun kategorioita on monta.
 // SUODATUS EI käytä tätä: se tarkistaa koko vibes-joukon (alla), koska
@@ -520,10 +537,17 @@ function LayerNappi({ on, bg, onClick, children }: { on: boolean; bg: string; on
   )
 }
 
-export default function MapView({ events, eventsLoading, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate, initialLayers, initialEventGroup, initialRestType, initialRestCuisine, initialActCat, opasSlug }: Props) {
+export default function MapView({ events, eventsLoading, onEventClick, mapTarget, onTargetConsumed, initialDateFilter, initialCustomDate, initialLayers, initialEventGroup, initialRestType, initialRestCuisine, initialActCat, opasSlug, onKarttaValinta }: Props) {
   const { t, lang } = useLanguage()
   // Mobiilivalikoista auki enintään yksi kerrallaan; kartan/taustan napautus sulkee.
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+
+  // ── MOBIILI (< 768 px, HANDOFF-kartta-v2 30.9.2026) ─────────────────────
+  // Kartta ei ole suodatinkone vaan "mitä on lähellä nyt": yksi kontekstichip
+  // yläpalkissa, enintään kolme kontrollia kartan päällä, korttinauha alla.
+  // Työpöytä (≥ 768 px) pysyy ennallaan: ulkoasu erotetaan md:-luokilla.
+  /** §5 Suodatinpaneeli auki — kontekstichipistä. */
+  const [suodatinAuki, setSuodatinAuki] = useState(false)
 
   const LEGEND_KEYS: Record<string, TranslationKey> = {
     'Keikka':     'legend.concert',
@@ -1019,6 +1043,85 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
     layers.activities && !aiheTapahtumina && activitiesOnMap > 0 && `${activitiesOnMap} ${t('map.acts_count')}`,
   ].filter(Boolean).join(' · ')
 
+  // ── §1 Kontekstichip + §5 suodatinpaneeli (mobiili) ────────────────────
+  // Chip näyttää PERITYN valinnan yhdellä rivillä: "🎸 Keikka · Tänään ▾".
+  // Ilman aihepiiriä "🎟 Kaikki · Tänään"; kun tapahtumataso on pois,
+  // ravintola-/opasvalinta tai "🗺 Paikat".
+  const tapahtumaKonteksti = layers.events || aiheTapahtumina
+  const paivaTeksti = dateFilter === 'custom' && customDate
+    ? new Date(customDate + 'T12:00:00').toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { day: 'numeric', month: 'numeric' })
+    : t(dateFilter === 'tonight' ? 'date.tonight_short' : (DATE_PILLS.find((dp) => dp.key === dateFilter)?.tKey ?? 'date.today'))
+  const aiheTeksti = (() => {
+    if (eventGroup) {
+      const s = EVENT_SUBS.find((sf) => sf.key === eventGroup)
+      if (s) return `${s.emoji} ${t(s.tKey)}`
+    }
+    if (aiheTapahtumina && opasAihe) {
+      if (opasAihe.slug === 'pubivisat') return `🧠 ${t('guides.pubivisat_title')}`
+      if (opasAihe.slug === 'kirpputorit') return `🛍 ${t('map.events_kirpputorit')}`
+      if (opasAihe.slug === 'jamit') return `🎷 ${t('map.events_jamit')}`
+    }
+    return `🎟 ${t('map.all')}`
+  })()
+  const chipTeksti = tapahtumaKonteksti
+    ? `${aiheTeksti} · ${paivaTeksti}`
+    : layers.restaurants
+      ? (restType ? `${REST_SUBS.find((sf) => sf.key === restType)?.emoji} ${t(REST_SUBS.find((sf) => sf.key === restType)!.tKey)}` : t('map.layer_restaurants'))
+      : layers.activities
+        ? (actCat ? `${ACT_SUBS.find((sf) => sf.key === actCat)?.emoji} ${t(ACT_SUBS.find((sf) => sf.key === actCat)!.tKey)}` : t('map.layer_guide'))
+        : `🗺 ${t('map.chip_places')}`
+  const laskuriTeksti = (eventsLoading && layers.events) || restsLoading || activitiesLoading || aiheLatautuu
+    ? t('discover.fetching_short')
+    : (countParts || `0 ${tapahtumaKonteksti ? t('map.events_count') : t('map.acts_count')}`)
+
+  /** Päivävalinta: kartan tila + kirjoitus listaan. Setterit listattu depseissä
+   *  React Compilerin takia (ks. toggleLayer). */
+  const valitsePaiva = useCallback((key: DateFilterKey, custom = '') => {
+    setDateFilter(key)
+    setCustomDate(key === 'custom' ? custom : '')
+    setCalOpen(false)
+    setOpenMenu(null)
+    onKarttaValinta?.({ dateFilter: key, customDate: key === 'custom' ? custom : '' })
+  }, [onKarttaValinta, setDateFilter, setCustomDate, setCalOpen, setOpenMenu])
+  /** Aihepiirivalinta; null = kaikki (purkaa myös saapumisoppaan rajauksen,
+   *  jolle ei ole omaa karttakategoriaa — muuten siitä ei pääsisi pois). */
+  const valitseRyhma = useCallback((key: string | null) => {
+    setEventGroup(key)
+    if (key === null) setAiheHylatty(true)
+    setOpenMenu(null)
+    setSuodatinAuki(false)
+    onKarttaValinta?.({ eventGroup: key })
+  }, [onKarttaValinta, setEventGroup, setAiheHylatty, setOpenMenu, setSuodatinAuki])
+
+  /** MITÄ-ruudukon tiilet kontekstin mukaan: tapahtumat → aihepiirit (sama
+   *  joukko ja järjestys kuin VibePanel), ravintolat → tyypit (+ alakategoriat
+   *  alla), opas/paikat → opasaiheet. */
+  type Tiili = { key: string; emoji: string; label: string; on: boolean; onClick: () => void; vihrea?: boolean }
+  const suodatinTiilet: Tiili[] = layers.events
+    ? EVENT_SUBS.map((sf) => ({ key: sf.key, emoji: sf.emoji, label: t(sf.tKey), on: eventGroup === sf.key, vihrea: sf.key === 'ilmainen', onClick: () => valitseRyhma(sf.key) }))
+    : layers.restaurants
+      ? REST_SUBS.map((sf) => ({ key: sf.key, emoji: sf.emoji, label: t(sf.tKey), on: restType === sf.key, onClick: () => { setRestType(sf.key); setRestCuisine(null); setSuodatinAuki(false) } }))
+      : ACT_SUBS.map((sf) => ({ key: sf.key, emoji: sf.emoji, label: t(sf.tKey), on: actCat === sf.key, onClick: () => {
+          setActCat(sf.key)
+          // Aikaan sidottu aihe (kirpputori, pubivisa) ottaa kartan haltuun —
+          // sama sääntö kuin työpöydän Opas-valikossa.
+          if (AIKA_AIHEET[sf.key]) { setLayers((l) => ({ ...l, events: false })); setKirppisMoodi('paikat') }
+          setSuodatinAuki(false)
+        } }))
+  const alaTiilet: Tiili[] = !layers.events && layers.restaurants && restType
+    ? (restType === 'ravintola' ? REST_CUISINE_SUBS : (REST_TYPE_ALASUBIT[restType] ?? [])).map((sf) => ({
+        key: sf.key, emoji: sf.emoji, label: t(sf.tKey), on: restCuisine === sf.key,
+        onClick: () => { setRestCuisine(restCuisine === sf.key ? null : sf.key); setSuodatinAuki(false) },
+      }))
+    : []
+  const naytaKaikki = () => {
+    if (layers.events) { valitseRyhma(null); return }
+    if (layers.restaurants) { setRestType(null); setRestCuisine(null) }
+    else { setActCat(null); setAiheHylatty(true) }
+    setSuodatinAuki(false)
+  }
+  const naytaKaikkiTeksti = layers.events ? t('map.show_all_events') : layers.restaurants ? t('map.show_all_rests') : t('map.show_all_places')
+
   const tapahtumaLegenda = opasAihe?.slug === 'pubivisat' && !layers.events ? LEGENDA_VISAT : LEGEND_EVENT
   const activeLegend = [
     ...(layers.events || aiheTapahtumina ? tapahtumaLegenda : []),
@@ -1027,12 +1130,26 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
   ]
 
   return (
-    // Korkeus: mobiilissa vähennetään yläpalkki (~125 px), karttarivi (60 px; mitattu 24.9.: kartan yläreuna y=186)
-    // ja alanavigaatio (80 px + safe-area) — muuten kartta jatkuu navigaation
-    // ALLE ja alareunan lukumäärä- ja latausmerkit sekä esikatselukortti
-    // jäävät sen taakse piiloon. Mitat HANDOFF-mobiili.md:n mukaan (24.9.2026).
-    <div className="relative w-full rounded-2xl border border-white/8 h-[calc(100dvh-268px-env(safe-area-inset-bottom,0px))] min-h-[400px] md:h-[calc(100dvh-148px)] md:min-h-[480px]"
-      style={{ clipPath: 'inset(0 round 1rem)' }}>
+    <>
+    {/* ── §1 Yläpalkin rivi 2 (mobiili): kontekstichip + lukumäärä. Kartan
+        YLÄPUOLELLA, ei päällä — chip perii listan valinnan ja avaa
+        suodatinpaneelin (§5). Lukumäärä vain aktiivisista tasoista. ── */}
+    <div className="md:hidden flex items-center gap-3 px-2 pb-2 min-w-0">
+      <button type="button" onClick={() => setSuodatinAuki(true)} aria-haspopup="dialog" aria-expanded={suodatinAuki}
+        className="h-10 px-3.5 rounded-full text-[14px] font-black text-white flex items-center gap-1.5 shrink-0 max-w-[72%] min-w-0"
+        style={{ background: 'rgba(107,118,255,.12)', border: '1px solid rgba(107,118,255,.45)' }}>
+        <span className="truncate">{chipTeksti}</span>
+        <span className="text-[11px] shrink-0" style={{ opacity: .7 }}>▾</span>
+      </button>
+      <span className="text-[13px] font-semibold truncate min-w-0" style={{ color: 'rgba(255,255,255,.45)' }}>{laskuriTeksti}</span>
+    </div>
+    {/* Korkeus: mobiilissa vähennetään yläpalkki (~125 px), karttarivi (60 px),
+        kontekstichip-rivi (48 px, HANDOFF-kartta-v2 §1) ja alanavigaatio
+        (80 px + safe-area) — muuten kartta jatkuu navigaation ALLE.
+        isolation: Leaflet-tasot (z 400–1000) pysyvät kartan sisällä, jotta
+        kiinteät sheetit ja paneelit (z 40–50) piirtyvät kartan PÄÄLLE. */}
+    <div className="relative w-full rounded-2xl border border-white/8 h-[calc(100dvh-316px-env(safe-area-inset-bottom,0px))] min-h-[380px] md:h-[calc(100dvh-148px)] md:min-h-[480px]"
+      style={{ clipPath: 'inset(0 round 1rem)', isolation: 'isolate' }}>
       {/* Leaflet-CSS vain karttaa käytettäessä (ennen render-block kaikilla sivuilla layoutin kautta) */}
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -1362,5 +1479,73 @@ export default function MapView({ events, eventsLoading, onEventClick, mapTarget
         </div>
       )}
     </div>
+
+    {/* ── §5 Suodatinpaneeli (mobiili): kontekstichipistä. Sama sheet-kuori
+        kuin ⋯-valikossa. MILLOIN = listan päivärivi + 📅, MITÄ = samat
+        aihepiirit kuin VibePanelissa (Ilmaiseksi ensin); ravintola-/opas-
+        kontekstissa tyypit + alakategoriat tai opasaiheet. Valinta sulkee
+        paneelin ja kirjoittuu listan tilaan (onKarttaValinta). ── */}
+    <BottomSheet open={suodatinAuki} onClose={() => setSuodatinAuki(false)} title={t('map.filter_title')} subtitle={t('map.filter_sub')} maxHeight="88vh"
+      footer={
+        <button type="button" onClick={naytaKaikki}
+          className="w-full h-14 rounded-2xl font-black text-[16px] text-white active:scale-[.98] transition-transform"
+          style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 24px -8px rgba(91,101,230,.8)' }}>
+          {naytaKaikkiTeksti}
+        </button>
+      }>
+      <div className="px-5 pb-3 space-y-5">
+        {tapahtumaKonteksti && (
+          <section>
+            <p className="text-[11px] font-black uppercase tracking-[.2em] mb-2.5" style={{ color: 'rgba(255,255,255,.4)' }}>{t('map.when')}</p>
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none -mx-5 px-5">
+              {PAIVA_CHIPIT.map((pc) => {
+                const on = dateFilter === pc.key && !customDate
+                return (
+                  <button key={pc.key} type="button" onClick={() => valitsePaiva(pc.key)}
+                    className="h-11 px-4 rounded-full text-[14px] font-black whitespace-nowrap shrink-0 transition-all active:scale-[.97]"
+                    style={on
+                      ? { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', color: '#fff', boxShadow: '0 2px 10px -2px rgba(91,101,230,.5)' }
+                      : { background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', border: '1px solid rgba(255,255,255,.1)' }}>
+                    {pc.emoji ? `${pc.emoji} ` : ''}{t(pc.tKey)}
+                  </button>
+                )
+              })}
+              <DatePicker chip size="md" value={dateFilter === 'custom' ? customDate : ''} onChange={(v) => (v ? valitsePaiva('custom', v) : valitsePaiva('today'))} />
+            </div>
+          </section>
+        )}
+        <section>
+          <p className="text-[11px] font-black uppercase tracking-[.2em] mb-2.5" style={{ color: 'rgba(255,255,255,.4)' }}>{t('map.what')}</p>
+          <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+            {suodatinTiilet.map((tiili) => (
+              <button key={tiili.key} type="button" onClick={tiili.onClick}
+                className="flex flex-col items-center gap-2 py-4 rounded-[18px] transition-all active:scale-[.96] min-h-[88px]"
+                style={tiili.on
+                  ? (tiili.vihrea
+                      ? { background: 'rgba(95,217,166,.14)', border: '1.5px solid rgba(95,217,166,.5)' }
+                      : { background: 'rgba(107,118,255,.13)', border: '1.5px solid rgba(107,118,255,.45)' })
+                  : { background: 'rgba(255,255,255,.05)', border: '1.5px solid rgba(255,255,255,.08)' }}>
+                <span className="text-[28px] leading-none" style={{ transform: tiili.on ? 'scale(1.18)' : 'scale(1)', transition: 'transform .15s', display: 'block' }}>{tiili.emoji}</span>
+                <span className="text-[12px] font-black text-center leading-tight px-1" style={{ color: tiili.on ? (tiili.vihrea ? '#7fe8bc' : '#c7caff') : 'rgba(255,255,255,.45)' }}>{tiili.label}</span>
+              </button>
+            ))}
+          </div>
+          {alaTiilet.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {alaTiilet.map((tiili) => (
+                <button key={tiili.key} type="button" onClick={tiili.onClick}
+                  className="h-10 px-3.5 rounded-full text-[13px] font-black transition-all active:scale-[.97]"
+                  style={tiili.on
+                    ? { background: 'rgba(107,118,255,.13)', border: '1.5px solid rgba(107,118,255,.45)', color: '#c7caff' }
+                    : { background: 'rgba(255,255,255,.05)', border: '1.5px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.55)' }}>
+                  {tiili.emoji} {tiili.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </BottomSheet>
+    </>
   )
 }
