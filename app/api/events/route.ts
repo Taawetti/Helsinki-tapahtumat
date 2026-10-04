@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isCompetitorUrl, onMaksunkeruuUrl } from '@/lib/event-links'
+import { taydennaKoordinaatit } from '@/lib/venue-coords'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
 import { helsinkiDateOf, normalizeHelsinkiTimestamp, helsinkiToday } from '@/lib/helsinki-time'
@@ -635,7 +636,10 @@ export async function GET(req: NextRequest) {
       shortDescription: decodeHtmlEntities(e.shortDescription ?? ''),
       description: decodeHtmlEntities(e.description ?? ''),
       price: e.price ? decodeHtmlEntities(e.price) : e.price,
-      location: e.location ? { ...e.location, name: decodeHtmlEntities(e.location.name ?? '') } : e.location,
+      // Isojen paikkojen koordinaatit nimen perusteella, kun lähde (lippu.fi,
+      // stadissa, festivals) ei antanut niitä — lib/venue-coords. Lähteen omat
+      // koordinaatit voittavat aina.
+      location: e.location ? taydennaKoordinaatit({ ...e.location, name: decodeHtmlEntities(e.location.name ?? '') }) : e.location,
       // http-kuva https-sivulla on sekasisältöä jonka selain estää — kulke-
       // lähteen vanhat osoitteet päivitetään (palvelin vastaa https:llä).
       image: e.image ? e.image.replace(/^http:\/\//, 'https://') : e.image,

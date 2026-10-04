@@ -30,6 +30,7 @@ import KulkutapaValitsin from '@/components/KulkutapaValitsin'
 import { walkMinutesBetween } from '@/lib/group'
 import type { Event, Restaurant } from '@/lib/types'
 import { rakennaRungot, kaytaRunko, seuraavaRunko, rungonTapahtumat, type Runko } from '@/lib/illan-rungot'
+import { addDays } from '@/lib/arvo-ilta'
 import { naytaToast } from '@/lib/toast'
 import { getDateRange } from '@/lib/utils'
 import RestaurantDetailPanel from '@/components/RestaurantDetailPanel'
@@ -64,11 +65,11 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
   /** VARAtila: suppea infolevitys (askeleen id) niille askeleille, joilta
    *  puuttuu täysi lähdeolio (vanha varasto, jaetusta kopioitu pohja). */
   const [infoAuki, setInfoAuki] = useState<string | null>(null)
-  // Valmiit illan rungot (HANDOFF-mobiili §7) — VAIN mobiilissa. Raakadata
-  // (tämän päivän tapahtumat + ravintolat) haetaan kerran kun välilehti
-  // avataan tyhjänä alle 768 px; null = ei haettu / ei koske tätä laitetta.
-  // Data pidetään tallessa, koska "Vaihda iltaa" (omistaja 24.9.2026) laskee
-  // siitä aina uuden illan ohittaen jo ehdotetut tapahtumat.
+  // Valmiit rungot (HANDOFF-mobiili §7; 4.10.2026 myös työpöydällä).
+  // Raakadata (tämän JA huomisen päivän tapahtumat + ravintolat) haetaan
+  // kerran kun välilehti avataan tyhjänä; null = ei haettu. Data pidetään
+  // tallessa, koska "Vaihda ehdotusta" (omistaja 24.9.2026) laskee siitä
+  // aina uuden ehdotuksen ohittaen jo ehdotetut tapahtumat.
   const [runkoData, setRunkoData] = useState<{ events: Event[]; restaurants: Restaurant[] } | null>(null)
   /** Jo ehdotettujen iltojen tapahtuma-id:t — seuraava ilta ohittaa nämä. */
   const [ohita, setOhita] = useState<Set<string>>(() => new Set())
@@ -85,9 +86,11 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
   )
   useEffect(() => {
     if (!tyhja || runkoData !== null) return
-    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 767.98px)').matches) return
     let peruttu = false
-    const { start, end } = getDateRange('today')
+    // Tänään JA huomenna yhdellä haulla: myöhään illalla rungot ehdottavat
+    // huomisen isoja tapahtumia (lib/illan-rungot, omistaja 4.10.2026).
+    const { start } = getDateRange('today')
+    const end = addDays(start, 1)
     Promise.all([
       fetch(`/api/events?start=${start}&end=${end}&page=1&municipality=helsinki`).then((r) => (r.ok ? r.json() : { events: [] })).catch(() => ({ events: [] })),
       fetch('/api/restaurants').then((r) => (r.ok ? r.json() : { restaurants: [] })).catch(() => ({ restaurants: [] })),
@@ -270,32 +273,9 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
               style={{ background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 12px 32px -8px rgba(91,101,230,.55)' }}>
               🎟 {t('plan.empty_browse_events')}
             </button>
-            {rungot && rungot.length > 0 && (
-              <div className="flex flex-col gap-2.5">
-                <p className="text-[12px] font-bold uppercase pt-1" style={{ color: 'rgba(255,255,255,.4)', letterSpacing: '.08em' }}>{t('plan.templates_heading')}</p>
-                {rungot.map((r) => {
-                  // Alaotsikko "Paikka klo X → Paikka klo Y" samalla sovittimella
-                  // kuin oikea aikajana — ei erillistä aikalogiikkaa.
-                  const sov = sovitaAjat({ otsikko: '', paiva: r.paiva, askeleet: r.askeleet.map((a, i) => ({ ...a, id: `r${i}` })) }, new Date())
-                  const eka = sov[0], vika = sov[sov.length - 1]
-                  const sub = eka && vika ? `${eka.askel.nimi} ${t('share.at_time')} ${eka.klo} → ${vika.askel.nimi} ${t('share.at_time')} ${vika.klo}` : ''
-                  return (
-                    <button key={r.id} onClick={() => otaRunko(r)}
-                      className="flex items-center gap-3.5 w-full text-left p-4 rounded-[18px] text-white transition-transform active:scale-[.99]"
-                      style={{ border: '1px solid rgba(107,118,255,.25)', background: 'rgba(107,118,255,.07)' }}>
-                      <span className="text-[30px] leading-none shrink-0">{r.emoji}</span>
-                      <span className="flex flex-col gap-[3px] min-w-0 flex-1">
-                        <span className="text-[16px] font-black" style={{ letterSpacing: '-0.01em' }}>{t(r.otsikkoAvain)}</span>
-                        <span className="text-[13px] font-semibold truncate" style={{ color: 'rgba(255,255,255,.55)' }}>{sub}</span>
-                      </span>
-                      <span className="shrink-0 text-[13px] font-black" style={{ color: '#a3abff' }}>{t('plan.template_use')} →</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+            {rungot && rungot.length > 0 && <RunkoLista rungot={rungot} onOta={otaRunko} />}
           </div>
-          <div className="hidden md:block"><TyhjaTila onSiirry={onSiirryOsioon} /></div>
+          <div className="hidden md:block"><TyhjaTila onSiirry={onSiirryOsioon} rungot={rungot ?? []} onOta={otaRunko} /></div>
         </>
       ) : (
         <>
@@ -306,13 +286,14 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
             {jakoTila === 'busy' ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
             {jakoTila === 'busy' ? t('plan.sharing') : t('plan.share_friends')}
           </button>
-          {/* "Vaihda iltaa" (omistaja 24.9.2026): arpoo uuden illan eri
+          {/* "Vaihda ehdotusta" (omistaja 24.9.2026): arpoo uuden ehdotuksen eri
               tapahtumista joka painalluksella — nopea tapa katsoa mitä
-              rungot tuottavat. Näkyy vain kun ilta on otettu rungosta tässä
-              istunnossa; käsin koottua iltaa ei korvata ilman varmistusta. */}
+              rungot tuottavat. Näkyy vain kun suunnitelma on otettu rungosta
+              tässä istunnossa; käsin koottua ei korvata ilman varmistusta.
+              Myös työpöydällä (4.10.2026), koska rungot ovat sielläkin. */}
           {runkoAktiivinen && (
             <button onClick={vaihdaIlta}
-              className="md:hidden flex items-center justify-center gap-2 w-full h-12 -mt-1 rounded-[16px] font-black text-[15px] transition-transform active:scale-[.99]"
+              className="flex items-center justify-center gap-2 w-full h-12 -mt-1 rounded-[16px] font-black text-[15px] transition-transform active:scale-[.99]"
               style={{ border: '1px solid rgba(107,118,255,.35)', background: 'rgba(107,118,255,.08)', color: '#c7caff' }}>
               🔀 {t('plan.vaihda_ilta')}
             </button>
@@ -593,7 +574,7 @@ const ESIMERKKI_PISTEET = [
   { klo: '22:30', emoji: '🍸', nimi: 'plan.ex_drinks', osio: 'restaurants', kavely: 5, lat: 60.1648, lon: 24.9490 },
 ] as const
 
-function TyhjaTila({ onSiirry }: { onSiirry?: (osio: 'discover' | 'restaurants') => void }) {
+function TyhjaTila({ onSiirry, rungot, onOta }: { onSiirry?: (osio: 'discover' | 'restaurants') => void; rungot: Runko[]; onOta: (r: Runko) => void }) {
   const { t } = useLanguage()
   // Vakaa viite: PlannerMapin effekti purkaa ja rakentaa kartan aina kun
   // items-viite vaihtuu — ilman memoa joka renderöinti tekisi sen ja
@@ -626,59 +607,114 @@ function TyhjaTila({ onSiirry }: { onSiirry?: (osio: 'discover' | 'restaurants')
         <div className="hidden md:flex justify-start animate-askel-esiin" style={{ animationDelay: '460ms' }}>{cta}</div>
       </div>
 
-      {/* Haamuesimerkki — katkoviivakehys ja himmeä indigopohja erottavat
-          sen oikeasta sisällöstä, ESIMERKKI-merkki sanoo sen ääneen. */}
-      <div className="mt-5 md:mt-0 rounded-3xl p-4 pt-3"
-        style={{ border: '1px dashed rgba(107,118,255,.4)', background: 'rgba(107,118,255,.06)' }}>
-        <p className="text-[10px] font-black uppercase tracking-[.16em] mb-2.5" style={{ color: '#a3abff' }}>
-          {t('plan.empty_example')}
-        </p>
-        <div className="relative">
-          <div className="absolute left-[13px] top-6 bottom-6 w-px" style={{ background: 'rgba(255,255,255,.12)' }} />
-          <div className="space-y-2">
-            {ESIMERKKI_PISTEET.map((e, i) => (
-              <div key={e.nimi} className="animate-askel-esiin" style={{ animationDelay: `${i * 140}ms` }}>
-                {e.kavely !== null && (
-                  <div className="flex items-center gap-3 py-0.5">
-                    <span className="w-7 shrink-0" />
-                    <span className="text-white/25 text-[11px] font-bold">🚶 {e.kavely} min {t('plan.walk')}</span>
+      {/* Valmiit ehdotukset päivän oikeasta datasta (omistaja 4.10.2026:
+          "kolme esimerkkiä … nostetaan isot tapahtumat") korvaavat haamu-
+          esimerkin aina kun niitä on; esimerkki jää vain tyhjälle päivälle. */}
+      {rungot.length > 0 ? (
+        <div className="mt-5 md:mt-0"><RunkoLista rungot={rungot} onOta={onOta} /></div>
+      ) : (
+      <>
+        {/* Haamuesimerkki — katkoviivakehys ja himmeä indigopohja erottavat
+            sen oikeasta sisällöstä, ESIMERKKI-merkki sanoo sen ääneen. */}
+        <div className="mt-5 md:mt-0 rounded-3xl p-4 pt-3"
+          style={{ border: '1px dashed rgba(107,118,255,.4)', background: 'rgba(107,118,255,.06)' }}>
+          <p className="text-[10px] font-black uppercase tracking-[.16em] mb-2.5" style={{ color: '#a3abff' }}>
+            {t('plan.empty_example')}
+          </p>
+          <div className="relative">
+            <div className="absolute left-[13px] top-6 bottom-6 w-px" style={{ background: 'rgba(255,255,255,.12)' }} />
+            <div className="space-y-2">
+              {ESIMERKKI_PISTEET.map((e, i) => (
+                <div key={e.nimi} className="animate-askel-esiin" style={{ animationDelay: `${i * 140}ms` }}>
+                  {e.kavely !== null && (
+                    <div className="flex items-center gap-3 py-0.5">
+                      <span className="w-7 shrink-0" />
+                      <span className="text-white/25 text-[11px] font-bold">🚶 {e.kavely} min {t('plan.walk')}</span>
+                    </div>
+                  )}
+                  <div className="flex gap-3 items-center">
+                    <span className="shrink-0 w-7 flex justify-center">
+                      <span className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-white"
+                        style={{ background: '#6b76ff', border: '2px solid rgba(255,255,255,.28)', boxShadow: '0 2px 10px rgba(0,0,0,.4)' }}>
+                        {i + 1}
+                      </span>
+                    </span>
+                    <button onClick={() => onSiirry?.(e.osio)}
+                      className="min-w-0 flex-1 text-left flex gap-3 items-center rounded-2xl p-3 transition-all active:scale-[.98] hover:border-white/20"
+                      style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
+                      <span className="shrink-0 w-[46px] text-center text-[#a3abff] font-black text-[14px]">{e.klo}</span>
+                      <span className="min-w-0 flex-1 font-bold text-white/85 text-[14px]">
+                        {e.emoji} {t(e.nimi as Parameters<typeof t>[0])}
+                      </span>
+                      <span className="shrink-0 text-white/30 text-[16px] font-bold pr-1" aria-hidden>›</span>
+                    </button>
                   </div>
-                )}
-                <div className="flex gap-3 items-center">
-                  <span className="shrink-0 w-7 flex justify-center">
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-white"
-                      style={{ background: '#6b76ff', border: '2px solid rgba(255,255,255,.28)', boxShadow: '0 2px 10px rgba(0,0,0,.4)' }}>
-                      {i + 1}
-                    </span>
-                  </span>
-                  <button onClick={() => onSiirry?.(e.osio)}
-                    className="min-w-0 flex-1 text-left flex gap-3 items-center rounded-2xl p-3 transition-all active:scale-[.98] hover:border-white/20"
-                    style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)' }}>
-                    <span className="shrink-0 w-[46px] text-center text-[#a3abff] font-black text-[14px]">{e.klo}</span>
-                    <span className="min-w-0 flex-1 font-bold text-white/85 text-[14px]">
-                      {e.emoji} {t(e.nimi as Parameters<typeof t>[0])}
-                    </span>
-                    <span className="shrink-0 text-white/30 text-[16px] font-bold pr-1" aria-hidden>›</span>
-                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+          {/* Sama kartta kuin oikeassa suunnitelmassa — pinnien numerot
+              vastaavat aikajanaa. Koriste (pointer-events-none): esimerkin
+              kartta ei saa kaapata vieritystä eikä zoomia. */}
+          <div className="mt-3 rounded-xl overflow-hidden border border-white/10 pointer-events-none select-none" style={{ height: 150 }} aria-hidden>
+            <PlannerMap items={karttaItemit} korkeus={150} />
+          </div>
+          {/* Ainoa rivi joka kertoo esimerkin olevan napautettava — täysi
+              aksenttiväri ja 13 px, ettei se huku. */}
+          <p className="text-center text-[13px] font-bold mt-3" style={{ color: '#a3abff' }}>
+            {t('plan.empty_hint')}
+          </p>
         </div>
-        {/* Sama kartta kuin oikeassa suunnitelmassa — pinnien numerot
-            vastaavat aikajanaa. Koriste (pointer-events-none): esimerkin
-            kartta ei saa kaapata vieritystä eikä zoomia. */}
-        <div className="mt-3 rounded-xl overflow-hidden border border-white/10 pointer-events-none select-none" style={{ height: 150 }} aria-hidden>
-          <PlannerMap items={karttaItemit} korkeus={150} />
-        </div>
-        {/* Ainoa rivi joka kertoo esimerkin olevan napautettava — täysi
-            aksenttiväri ja 13 px, ettei se huku. */}
-        <p className="text-center text-[13px] font-bold mt-3" style={{ color: '#a3abff' }}>
-          {t('plan.empty_hint')}
-        </p>
-      </div>
+      </>
+      )}
 
       <div className="mt-5 flex justify-center md:hidden animate-askel-esiin" style={{ animationDelay: '460ms' }}>{cta}</div>
+    </div>
+  )
+}
+
+// ── Valmiit ehdotukset (lib/illan-rungot): otsikko + enintään kolme korttia ──
+// Sama lista mobiilissa ja työpöydän tyhjässä tilassa (omistaja 4.10.2026).
+// Alaotsikko "Paikka klo X → Paikka klo Y" samalla sovittimella kuin oikea
+// aikajana — ei erillistä aikalogiikkaa. Huomisen ehdotus (runko.paiva ≠
+// tänään) saa "Huomenna"-merkin, jotta päivä ei jää arvattavaksi.
+function RunkoLista({ rungot, onOta }: { rungot: Runko[]; onOta: (r: Runko) => void }) {
+  const { t } = useLanguage()
+  const tanaan = helsinkiToday()
+  return (
+    <div className="flex flex-col gap-2.5">
+      <p className="text-[12px] font-bold uppercase pt-1" style={{ color: 'rgba(255,255,255,.4)', letterSpacing: '.08em' }}>{t('plan.templates_heading')}</p>
+      {rungot.map((r, i) => {
+        const sov = sovitaAjat({ otsikko: '', paiva: r.paiva, askeleet: r.askeleet.map((a, j) => ({ ...a, id: `r${j}` })) }, new Date())
+        const eka = sov[0], vika = sov[sov.length - 1]
+        const sub = eka && vika ? `${eka.askel.nimi} ${t('share.at_time')} ${eka.klo} → ${vika.askel.nimi} ${t('share.at_time')} ${vika.klo}` : ''
+        const huomenna = r.paiva !== tanaan
+        return (
+          // Avain sisältää päivän ja indeksin: kaksi "Tapahtuma ja ruokaa"
+          // -ehdotusta (tänään + huomenna) jakavat saman id:n.
+          <button key={`${r.id}-${r.paiva}-${i}`} onClick={() => onOta(r)}
+            className="flex items-center gap-3.5 w-full text-left p-4 rounded-[18px] text-white transition-transform active:scale-[.99]"
+            style={{ border: '1px solid rgba(107,118,255,.25)', background: 'rgba(107,118,255,.07)' }}>
+            <span className="text-[30px] leading-none shrink-0">{r.emoji}</span>
+            <span className="flex flex-col gap-[3px] min-w-0 flex-1">
+              {/* flex-wrap: kun otsikko + merkki eivät mahdu riville (390 px),
+                  merkki rivittyy otsikon ALLE eikä otsikkoa katkaista
+                  ("Festivaali ja r…", mitattu 4.10.2026). */}
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+                <span className="text-[16px] font-black leading-tight" style={{ letterSpacing: '-0.01em' }}>{t(r.otsikkoAvain)}</span>
+                {huomenna && (
+                  <span className="shrink-0 text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(107,118,255,.18)', color: '#c7caff', letterSpacing: '.06em' }}>
+                    {t('date.tomorrow')}
+                  </span>
+                )}
+              </span>
+              <span className="text-[13px] font-semibold truncate" style={{ color: 'rgba(255,255,255,.55)' }}>{sub}</span>
+            </span>
+            <span className="shrink-0 text-[13px] font-black" style={{ color: '#a3abff' }}>{t('plan.template_use')} →</span>
+          </button>
+        )
+      })}
     </div>
   )
 }

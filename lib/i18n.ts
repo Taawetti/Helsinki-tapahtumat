@@ -1035,9 +1035,9 @@ const t = {
     'discover.fetching_short':     'Haetaan…',
     'hood.ita-helsinki.vibe':      'Itäkeskus · Vuosaari · Herttoniemi',
     'plan.templates_heading':      'Tai valitse valmis runko',
-    'plan.vaihda_ilta':            'Vaihda iltaa',
+    'plan.vaihda_ilta':            'Vaihda ehdotusta',
     'plan.vaihda_confirm':         'Korvataanko nykyinen suunnitelma uudella illalla?',
-    'plan.ei_uusia':               'Ei enempää valmiita iltoja tälle päivälle',
+    'plan.ei_uusia':               'Ei enempää valmiita ehdotuksia',
     'plan.tpl_gig_bar':            'Keikka ja jatkot',
     'plan.tpl_late_dinner':        'Myöhäinen illallinen ja baari',
     'plan.tpl_bar_hop':            'Baarikierros',
@@ -1077,6 +1077,9 @@ const t = {
     'map.next_card':               'Seuraava kohde',
     'detail.from_you':             'sinusta',
     'idea.toast_lisatty':          'Lisätty Kiinnostaviin',
+    'plan.tpl_festival_food':      'Festivaali ja ruokaa',
+    'plan.tpl_sport_food':         'Peli ja ruokaa',
+    'plan.tpl_event_food':         'Tapahtuma ja ruokaa',
   },
 
   en: {
@@ -2114,9 +2117,9 @@ const t = {
     'discover.fetching_short':     'Loading…',
     'hood.ita-helsinki.vibe':      'Itäkeskus · Vuosaari · Herttoniemi',
     'plan.templates_heading':      'Or pick a ready-made outline',
-    'plan.vaihda_ilta':            'Try another evening',
+    'plan.vaihda_ilta':            'Try another suggestion',
     'plan.vaihda_confirm':         'Replace your current plan with a new evening?',
-    'plan.ei_uusia':               'No more ready-made evenings for today',
+    'plan.ei_uusia':               'No more ready-made suggestions',
     'plan.tpl_gig_bar':            'Gig and afters',
     'plan.tpl_late_dinner':        'Late dinner and a bar',
     'plan.tpl_bar_hop':            'Bar hop',
@@ -2156,6 +2159,9 @@ const t = {
     'map.next_card':               'Next',
     'detail.from_you':             'from you',
     'idea.toast_lisatty':          'Saved to Interested',
+    'plan.tpl_festival_food':      'Festival and a meal',
+    'plan.tpl_sport_food':         'The match and a meal',
+    'plan.tpl_event_food':         'An event and a meal',
   },
 } as const
 

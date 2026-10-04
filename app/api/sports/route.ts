@@ -16,10 +16,12 @@ const HELSINKI_CLUBS: Record<string, { venueName: string; address: string; ticke
   },
   'IF Gnistan': {
     venueName: 'Bolt Arena',
-    address: 'Töölönlahdenkatu 1',
+    // Urheilukatu 5 Olympiastadionin vieressä (Nominatim 4.10.2026). Vanhat
+    // 60.1791/24.9224 osoittivat Töölönlahdelle, kilometrin väärään paikkaan.
+    address: 'Urheilukatu 5',
     ticketUrl: 'https://www.ifgnistan.fi',
-    lat: 60.1791,
-    lon: 24.9224,
+    lat: 60.1876,
+    lon: 24.9227,
   },
 }
 
