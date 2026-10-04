@@ -79,7 +79,8 @@ import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti, lapsiS
 import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello, onSuuriPaikka, heroJarjestys } from '../lib/picks'
 import { mapAspEvent, onAllasLiveKeikka } from '../lib/allas'
 import { samaTapahtumaSarja, ryhmitaSarjat, sarjaEtuliite } from '../lib/tapahtumaperhe'
-import { kirjattavaAsennusPinta } from '../lib/install'
+import { kirjattavaAsennusPinta, asennusMuoto } from '../lib/install'
+import { saaPeruuttaa } from '../hooks/useTaaksepain'
 import { ohjelmatyyppi } from '../lib/event-classify'
 import { getEventVibes } from '../lib/event-classify'
 import { onRobotti } from '../lib/bot'
@@ -4707,6 +4708,23 @@ for (const c of kwChecks) {
       ok: kirjattavaAsennusPinta(false, false, 'ios') === null },
     { name: 'asennus: selainkäynti ei kirjaudu vaikka lippua ei olisi',
       ok: kirjattavaAsennusPinta(false, true, 'android') === null },
+    // Asennuslevyn sisältö (4.10.2026): kehote voittaa aina, sisäinen selain
+    // ennen laitetta, muuten laitteen ohjeet.
+    { name: 'asennuslevy: selaimen kehote → Asenna-nappi riippumatta laitteesta',
+      ok: asennusMuoto(true, false, 'android') === 'native' && asennusMuoto(true, false, 'ios') === 'native' && asennusMuoto(true, true, 'android') === 'native' },
+    { name: 'asennuslevy: sovelluksen sisäinen selain ilman kehotetta → "avaa oikeassa selaimessa" (ei iOS-ohjetta)',
+      ok: asennusMuoto(false, true, 'ios') === 'inapp' && asennusMuoto(false, true, 'android') === 'inapp' },
+    { name: 'asennuslevy: iPhone Safari → Jaa-ohje, Android ilman kehotetta → valikko-ohje, työpöytä → työpöydän ohje',
+      ok: asennusMuoto(false, false, 'ios') === 'ios' && asennusMuoto(false, false, 'android') === 'android' && asennusMuoto(false, false, 'desktop') === 'desktop' },
+    // Paluupino (hooks/useTaaksepain): kerroksen merkintä peruutetaan vain
+    // kun se on looginen kärki JA sivu on sama kuin avattaessa. Tämä on se
+    // vika jossa ⋯-valikon /lataa-siirtymä katosi back():n alle.
+    { name: 'paluupino: oma kärki samalla sivulla → back() sallittu',
+      ok: saaPeruuttaa(7, 7, '/', '/') === true },
+    { name: 'paluupino: sivu vaihtui kerroksen ollessa auki → EI back():ia (merkintä jää orvoksi)',
+      ok: saaPeruuttaa(7, 7, '/', '/lataa') === false && saaPeruuttaa(7, 7, '/?q=a', '/') === false },
+    { name: 'paluupino: merkintä ei ole kärki → EI back():ia',
+      ok: saaPeruuttaa(8, 7, '/', '/') === false && saaPeruuttaa(undefined, 7, '/', '/') === false },
   ]
   for (const c of aChecks) {
     if (c.ok) pass++

@@ -1080,6 +1080,10 @@ const t = {
     'plan.tpl_festival_food':      'Festivaali ja ruokaa',
     'plan.tpl_sport_food':         'Peli ja ruokaa',
     'plan.tpl_event_food':         'Tapahtuma ja ruokaa',
+    'install.copy_link':           'Kopioi linkki',
+    'install.link_copied':         'Linkki kopioitu',
+    'install.android_menu':        'Avaa selaimen valikko (kolme pistettä oikeassa yläkulmassa) ja valitse Asenna sovellus tai Lisää aloitusnäyttöön.',
+    'install.sheet_sub':           'Avautuu kotinäytöltä kuin sovellus, ilman osoiteriviä.',
   },
 
   en: {
@@ -2162,6 +2166,10 @@ const t = {
     'plan.tpl_festival_food':      'Festival and a meal',
     'plan.tpl_sport_food':         'The match and a meal',
     'plan.tpl_event_food':         'An event and a meal',
+    'install.copy_link':           'Copy link',
+    'install.link_copied':         'Link copied',
+    'install.android_menu':        'Open the browser menu (three dots in the top right) and choose Install app or Add to Home screen.',
+    'install.sheet_sub':           'Opens from your home screen like an app, without the address bar.',
   },
 } as const
 

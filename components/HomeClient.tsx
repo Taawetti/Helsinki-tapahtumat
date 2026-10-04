@@ -17,7 +17,7 @@ import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
-import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled, merkitseAsennusKirjatuksi } from '@/lib/install'
+import { subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled, naytaAsennuskehote } from '@/lib/install'
 import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
@@ -31,6 +31,7 @@ import SuunnitelmaView from '@/components/SuunnitelmaView'
 import SearchBar from '@/components/SearchBar'
 import PosterCard from '@/components/PosterCard'
 import InstallBanner from '@/components/InstallBanner'
+import InstallSheet from '@/components/InstallSheet'
 import VibePanel from '@/components/VibePanel'
 import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
@@ -472,7 +473,7 @@ export default function HomeClient({
   const [showVibePanel, setShowVibePanel] = useState(false)
   // Mobiilin bottom sheetit (HANDOFF-mobiili §1, §2, §9): ⋯-valikko,
   // Kaupunginosat, Oppaat. Työpöydällä samat toiminnot ovat pudotusvalikoina.
-  const [sheet, setSheet] = useState<'more' | 'hoods' | 'guides' | null>(null)
+  const [sheet, setSheet] = useState<'more' | 'hoods' | 'guides' | 'install' | null>(null)
   // Alanavin Suunnitelma-merkki (§4): askelten määrä suoraan varastosta.
   const suunnitelmaAskeleita = useSyncExternalStore(tilaaSuunnitelma, lueSuunnitelmaMaara, nolla)
   const kieli = useLanguageSwitch()
@@ -2303,8 +2304,14 @@ export default function HomeClient({
           { id: 'add', emoji: '➕', title: t('form.add_event_cta'), sub: t('more.add_event_sub'), onClick: () => { setSheet(null); setShowJarjestajaForm(true) } },
           { id: 'notif', emoji: '🔔', title: t('more.notif_title'), sub: pushEnabled ? t('more.notif_sub_on') : t('more.notif_sub'), active: pushEnabled, onClick: () => { setSheet(null); void handleBellClick() } },
           // Asennettuna rivi puuttuu — sama sääntö kuin yläpalkin napilla.
-          ...(asennus.installed ? [] : [{ id: 'install', emoji: '📲', title: t('dl.nav'), sub: t('more.install_sub'), onClick: () => { setSheet(null); void asennus.install() } }]),
+          // Rivi AVAA ASENNUSLEVYN (InstallSheet) eikä reititä /lataa-sivulle:
+          // levyn sulku + router.push samassa tikissä hävitti siirtymän
+          // (paluupinon back() ehti ennen pushStatea; mitattu tuotannosta
+          // 4.10.2026, "painoi asenna sovellus, ei tullut ohjeita"). Levystä
+          // levyyn siirtyminen on paluupinon jonossa turvallista.
+          ...(asennus.installed ? [] : [{ id: 'install', emoji: '📲', title: t('dl.nav'), sub: t('more.install_sub'), onClick: () => setSheet('install') }]),
         ]} />
+      <InstallSheet open={sheet === 'install'} onClose={() => setSheet(null)} />
       <ListSheet open={sheet === 'hoods'} onClose={() => setSheet(null)} title={t('discover.neighborhoods')}
         rivit={NEIGHBORHOODS.map((n) => ({
           // Vain nimi (omistaja 24.9.2026: ei kuvia eikä olettamia sisällöstä).
@@ -2369,8 +2376,9 @@ const alwaysFalse = () => false
 const nolla = () => 0
 const lueSuunnitelmaMaara = () => lueSuunnitelma().askeleet.length
 
-/** Asennustoiminto hookkina: sama logiikka työpöydän yläpalkin napille ja
- *  mobiilin ⋯-valikon "Lataa sovellus" -riville (HANDOFF-mobiili §1). */
+/** Asennustoiminto hookkina työpöydän yläpalkin napille (HANDOFF-mobiili §1).
+ *  Mobiilin ⋯-valikon rivi avaa InstallSheetin (ks. rivi), joten tätä ei
+ *  kutsuta avoimen levyn alta — /lataa-siirtymä on täällä turvallinen. */
 function useInstallAction() {
   const { lang } = useLanguage()
   const router = useRouter()
@@ -2378,17 +2386,9 @@ function useInstallAction() {
   const installed = useSyncExternalStore(subscribeInstall, isInstalled, alwaysFalse)
 
   async function install() {
-    if (prompt) {
-      await prompt.prompt()
-      const { outcome } = await prompt.userChoice
-      if (outcome === 'accepted') {
-        // Merkintä estää saman asennuksen kirjautumisen toiseen kertaan
-        // kun sovellus käynnistetään ensimmäisen kerran kotivalikosta.
-        merkitseAsennusKirjatuksi()
-        track('install', { surface: 'header' })
-      }
-      return
-    }
+    // Jaettu kehote (lib/install): tyhjentää tapahtuman käytön jälkeen,
+    // kirjaa hyväksynnän. null = kehotetta ei ole → ohjesivu.
+    if (prompt && (await naytaAsennuskehote('header')) !== null) return
     router.push(lang === 'en' ? '/en/download' : '/lataa')
   }
   return { installed, install }

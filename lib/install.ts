@@ -7,6 +7,8 @@
 // Siksi tapahtuma otetaan talteen moduulitasolla heti kun tämä tiedosto
 // ladataan, ja molemmat lukevat samaa talletettua arvoa.
 
+import { track } from './track'
+
 export interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
@@ -42,6 +44,50 @@ export function getInstallPrompt(): BeforeInstallPromptEvent | null {
 
 export function getInstallPromptServer(): BeforeInstallPromptEvent | null {
   return null
+}
+
+/** Näyttää selaimen asennuskehotteen ja kirjaa tuloksen — YKSI paikka
+ *  bannerille, yläpalkin napille, ⋯-valikon levylle ja latausivulle.
+ *
+ *  Tapahtuman prompt() saa kutsua vain KERRAN: toinen kutsu samalle
+ *  tapahtumalle hylätään. Aiemmin käytetty tapahtuma jäi talteen, joten kun
+ *  käyttäjä oli hylännyt bannerin kehotteen ja painoi sitten ⋯-valikon
+ *  "Lataa sovellus", kutsu hylättiin hiljaa eikä mitään tapahtunut (todettu
+ *  koodista 4.10.2026). Nyt tapahtuma tyhjennetään heti käytön jälkeen ja
+ *  kuuntelijoille ilmoitetaan → napit putoavat ohjeisiin, kunnes selain
+ *  antaa uuden tapahtuman. null = kehotetta ei ollut (tai se oli jo käytetty). */
+export async function naytaAsennuskehote(surface: string): Promise<'accepted' | 'dismissed' | null> {
+  const e = saved
+  if (!e) return null
+  // Tyhjennys ENNEN odotusta: kaksi nopeaa painallusta ei kutsu samaa
+  // tapahtumaa kahdesti.
+  saved = null
+  listeners.forEach((l) => l())
+  try {
+    await e.prompt()
+    const { outcome } = await e.userChoice
+    if (outcome === 'accepted') {
+      // Merkintä estää saman asennuksen kirjautumisen toiseen kertaan
+      // kun sovellus käynnistetään ensimmäisen kerran kotivalikosta.
+      merkitseAsennusKirjatuksi()
+      track('install', { surface })
+    }
+    return outcome
+  } catch {
+    // Jo käytetty tai selaimen estämä kehote: kutsuja näyttää ohjeet.
+    return null
+  }
+}
+
+export type AsennusMuoto = 'native' | 'ios' | 'android' | 'inapp' | 'desktop'
+
+/** Mikä sisältö asennuslevylle/bannerille: selaimen kehote jos sellainen on,
+ *  muuten laitteen ohjeet; sovelluksen sisäisessä selaimessa asennus ei ole
+ *  mahdollista lainkaan. Puhdas funktio testejä varten. */
+export function asennusMuoto(kehote: boolean, sisainenSelain: boolean, alusta: Platform): AsennusMuoto {
+  if (kehote) return 'native'
+  if (sisainenSelain) return 'inapp'
+  return alusta
 }
 
 /** Onko sovellus jo asennettu ja avattu omana sovelluksenaan.

@@ -25,6 +25,16 @@
 // Sivun uudelleenlataus tyhjentää pinon muttei historiaa: vanhoihin
 // merkintöihin laskeutuva paluuele ei sulje mitään → yksi "tyhjä" askel
 // voi jäädä — tunnettu ja vaaraton kompromissi.
+//
+// KERROS SULKEUTUU SIVUN VAIHTUESSA (4.10.2026): jos kerros sulkeutuu siksi,
+// että reititin vei toiselle sivulle (unmount), historian kärki on jo uuden
+// sivun merkintä eikä meidän. history.back() veisi silloin uudelta sivulta
+// takaisin — juuri näin ⋯-valikon "Lataa sovellus" -rivin /lataa-siirtymä
+// katosi: rivi sulki levyn ja käynnisti siirtymän samassa tikissä, levyn
+// back() ja sen popstate ehtivät ennen reitittimen pushStatea, ja Next
+// palautti etusivun (mitattu tuotannosta history-lokilla). Kerros muistaa
+// polun jolla se avattiin; jos polku on vaihtunut, merkintä jätetään
+// orvoksi eikä peruuteta (paluuele ohittaa sen yhdellä askeleella).
 
 import { useEffect, useRef } from 'react'
 
@@ -32,6 +42,19 @@ interface Kerros {
   id: number
   sulje: () => void
   elossa: boolean
+  /** Polku (pathname + search) kerroksen avautuessa — ks. saaPeruuttaa. */
+  polku: string
+}
+
+/** Saako kerroksen historiamerkinnän peruuttaa history.back():lla: vain jos
+ *  se on MEIDÄN historiamme looginen kärki JA sivu on yhä sama kuin
+ *  avattaessa. Puhdas funktio testejä varten. */
+export function saaPeruuttaa(peiliKarki: number | undefined, id: number, polkuSilloin: string, polkuNyt: string): boolean {
+  return peiliKarki === id && polkuSilloin === polkuNyt
+}
+
+function nykyinenPolku(): string {
+  return typeof location === 'undefined' ? '' : location.pathname + location.search
 }
 
 const pino: Kerros[] = []
@@ -90,10 +113,10 @@ function kuittaa(kerros: Kerros): void {
   if (idx !== -1) pino.splice(idx, 1)
   if (!kerros.elossa) return // paluuele sulki jo — historia on jo oikein
   kerros.elossa = false
-  // Peruutetaan VAIN jos merkintä on meidän historiamme looginen kärki —
-  // muuten se jää orvoksi keskelle (paluuele ohittaa sen yhdellä
-  // ylimääräisellä askeleella, mikään ei rikkoudu).
-  if (peili.length > 0 && peili[peili.length - 1] === kerros.id) {
+  // Peruutetaan VAIN jos merkintä on meidän historiamme looginen kärki JA
+  // sivu ei ole vaihtunut — muuten se jää orvoksi keskelle (paluuele ohittaa
+  // sen yhdellä ylimääräisellä askeleella, mikään ei rikkoudu).
+  if (saaPeruuttaa(peili[peili.length - 1], kerros.id, kerros.polku, nykyinenPolku())) {
     jono.push({ tyyppi: 'back' })
     aja()
   }
@@ -113,7 +136,7 @@ export function useTaaksepain(auki: boolean, sulje: () => void): void {
   useEffect(() => {
     asennaKuuntelija()
     if (auki && !kerrosRef.current) {
-      const kerros: Kerros = { id: seuraavaId++, sulje: () => suljeRef.current(), elossa: true }
+      const kerros: Kerros = { id: seuraavaId++, sulje: () => suljeRef.current(), elossa: true, polku: nykyinenPolku() }
       pino.push(kerros)
       kerrosRef.current = kerros
       jono.push({ tyyppi: 'push', id: kerros.id })

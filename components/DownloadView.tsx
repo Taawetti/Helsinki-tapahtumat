@@ -16,10 +16,9 @@
 import { useState, useSyncExternalStore } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Logo } from '@/components/Logo'
-import { track } from '@/lib/track'
 import {
   subscribeInstall, getInstallPrompt, getInstallPromptServer,
-  isInstalled, detectPlatform, merkitseAsennusKirjatuksi, type Platform,
+  isInstalled, detectPlatform, naytaAsennuskehote, type Platform,
 } from '@/lib/install'
 
 const alwaysFalse = () => false
@@ -36,15 +35,10 @@ export default function DownloadView() {
   const laite: Platform = avattu ?? (selaimessa ? detectPlatform() : 'desktop')
 
   async function asenna() {
-    if (!prompt) return
-    await prompt.prompt()
-    const { outcome } = await prompt.userChoice
-    if (outcome === 'accepted') {
-      // Merkintä estää saman asennuksen kirjautumisen toiseen kertaan
-      // kun sovellus käynnistetään ensimmäisen kerran kotivalikosta.
-      merkitseAsennusKirjatuksi()
-      track('install', { surface: 'download_page' })
-    }
+    // Jaettu kehote (lib/install): tyhjentää tapahtuman käytön jälkeen ja
+    // kirjaa hyväksynnän. Hylkäyksen jälkeen nappi katoaa (prompt null) ja
+    // laitteen ohjeet jäävät näkyviin.
+    await naytaAsennuskehote('download_page')
   }
 
   const OHJEET: { id: Platform; otsikko: string; askeleet: string[] }[] = [

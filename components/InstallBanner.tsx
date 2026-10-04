@@ -28,9 +28,8 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import {
   subscribeInstall, getInstallPrompt, getInstallPromptServer, isInstalled,
   detectPlatform, isInAppBrowser, isBannerDismissed, dismissBanner,
-  merkitseAsennusKirjatuksi,
+  naytaAsennuskehote,
 } from '@/lib/install'
-import { track } from '@/lib/track'
 
 const alwaysFalse = () => false
 
@@ -56,15 +55,9 @@ export default function InstallBanner() {
   if (!muoto || dismissed || installed) return null
 
   async function handleInstall() {
-    if (!prompt) return
-    await prompt.prompt()
-    const { outcome } = await prompt.userChoice
-    if (outcome === 'accepted') {
-      // Merkintä estää saman asennuksen kirjautumisen toiseen kertaan
-      // kun sovellus käynnistetään ensimmäisen kerran kotivalikosta.
-      merkitseAsennusKirjatuksi()
-      track('install', { surface: 'banner' })
-    }
+    // Jaettu kehote (lib/install): tyhjentää tapahtuman käytön jälkeen ja
+    // kirjaa hyväksynnän — toinen painike ei voi kutsua samaa tapahtumaa.
+    await naytaAsennuskehote('banner')
     setDismissed(true)
   }
 
