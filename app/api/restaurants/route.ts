@@ -581,15 +581,19 @@ const _fetchOSMCachedOrThrow = unstable_cache(
   { revalidate: 86400, tags: ['restaurants'] }
 )
 
-export const fetchOSMCached = async (): Promise<Restaurant[]> => {
+/** OSM-lista + tieto siitä, palveltiinko VARALISTA (Overpass-katko). GET
+ *  tarvitsee tiedon, jotta varavastaus ei saa tunnin reunavälimuistia. */
+export const fetchOSMCachedTila = async (): Promise<{ lista: Restaurant[]; vara: boolean }> => {
   try {
-    return await _fetchOSMCachedOrThrow()
+    return { lista: await _fetchOSMCachedOrThrow(), vara: false }
   } catch {
     // Overpass-katko → tarjoa pelkät supplementit varana (ei cachea);
     // seuraava pyyntö yrittää täyttä OSM-hakua taas.
-    return applySupplements([])
+    return { lista: applySupplements([]), vara: true }
   }
 }
+
+export const fetchOSMCached = async (): Promise<Restaurant[]> => (await fetchOSMCachedTila()).lista
 
 export const fetchPKCached = async () => [] as Restaurant[]
 
@@ -774,8 +778,8 @@ export async function GET(req: NextRequest) {
   const priceMax = parseInt(req.nextUrl.searchParams.get('priceMax') ?? '0') || 0
   const featured = req.nextUrl.searchParams.get('featured') === '1'
 
-  const [osmListRaw, enrichmentMap] = await Promise.all([
-    fetchOSMCached(),
+  const [osmTila, enrichmentMap] = await Promise.all([
+    fetchOSMCachedTila(),
     // Rikastuksen kaatuminen ei saa kaataa koko ravintolalistaa: tämä pyyntö
     // palvellaan ilman rikastusta, ja koska heitto ohitti välimuistin,
     // seuraava pyyntö hakee uudelleen — vika korjaantuu itsestään minuutissa
@@ -789,7 +793,7 @@ export async function GET(req: NextRequest) {
   // Juuri avatut paikat, joita OSM ei vielä tunne, liitetään mukaan ENNEN
   // duplikaattien poistoa. Näin kun kartoittajat lisäävät paikan myöhemmin,
   // kortti ei kahdennu vaan tietorikkaampi voittaa.
-  const osmListRawWithNew = [...osmListRaw, ...newOpeningRestaurants()]
+  const osmListRawWithNew = [...osmTila.lista, ...newOpeningRestaurants()]
 
   // Sama paikka voi olla OSM:ssä kahtena kohteena. Se ei näkynyt 3583 kortin
   // luettelossa, mutta kuratoidussa kärjessä näkyy heti: "Shelter" ja "shelter"
@@ -1043,7 +1047,18 @@ export async function GET(req: NextRequest) {
       // max-age=300 antaa selaimen käyttää jo ladattua kopiota — etusivun
       // esilataus ja Ravintolat-välilehden haku eivät lataa 2,3 Mt kahdesti.
       // Tuoreus ei heikkene: rikastus oli jo ennestään tunnin välimuistissa.
-      'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+      //
+      // OSM-KATKON VARALISTA (~99 supplementtia) EI SAA JÄÄDÄ REUNALLE TUNNIKSI.
+      // Mitattu 4.10.2026: deployn jälkeinen ensimmäinen pyyntö osui Overpass-
+      // katkoon, 99 paikan vastaus sai s-maxage=3600:n ja Ravintolat-välilehti
+      // sekä Suunnitelman valmiit rungot elivät varalistalla (age 661 s) vaikka
+      // Overpass oli jo toipunut — ohittava pyyntö antoi 3628 paikkaa. Minuutin
+      // reunavälimuisti rajoittaa uusintayritykset katkon aikana (no-store
+      // laukaisisi kolmen peilin aikakatkaisut joka pyynnöllä); selain ei
+      // tallenna varalistaa lainkaan. Sama periaate kuin /api/activities.
+      'Cache-Control': osmTila.vara
+        ? 'public, max-age=0, s-maxage=60'
+        : 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
     },
   })
 }
