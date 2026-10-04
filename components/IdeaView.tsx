@@ -555,11 +555,17 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
                   ✦ {t(current.reason)}
                 </p>
               )}
-              <h2 className="font-black text-white text-2xl leading-tight mb-1" style={{ letterSpacing: '-0.02em' }}>
+              {/* Mobiilissa otsikko max 3 riviä ja aika/hinta max 2 riviä: lähteen
+                  hintateksti voi olla kappaleen mittainen ("Liput alk. Alle 10-v.
+                  lapset vapaa pääsy, Super Early Bird …, Maksutavat: …" = 5 riviä),
+                  jolloin peite kasvoi 222 px:iin ja otsikko ajoi merkkien päälle
+                  240 px:n kuvassa (mitattu tuotannosta SE:llä 4.10.2026). Koko
+                  teksti näkyy kortin paneelissa. Työpöytä ennallaan. */}
+              <h2 className="font-black text-white text-2xl leading-tight mb-1 line-clamp-3 md:line-clamp-none" style={{ letterSpacing: '-0.02em' }}>
                 {current.title}
               </h2>
               {current.time && (
-                <p className="text-white/60 text-sm font-bold">
+                <p className="text-white/60 text-sm font-bold line-clamp-2 md:line-clamp-none">
                   {dayLabel(ideaDate, todayIso, lang)} {current.time}{current.price ? ` · ${t('discover.tickets_from')} ${stripPriceFromPrefix(current.price)}` : ''}
                 </p>
               )}
