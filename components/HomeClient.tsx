@@ -41,6 +41,7 @@ import { ListSheet } from '@/components/BottomSheet'
 import type { DateFilterKey } from '@/lib/map-date-filter'
 import { haversineMeters } from '@/lib/group'
 import ToastHost from '@/components/ToastHost'
+import { KIINNOSTAVAT_ELEMENTTI_ID } from '@/lib/kiinnostavat'
 import { tilaaSuunnitelma, lueSuunnitelma } from '@/lib/suunnitelma'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
@@ -2322,7 +2323,17 @@ export default function HomeClient({
       {/* Toast "✓ Lisätty suunnitelmaan" + Näytä (HANDOFF-mobiili §5): Näytä
           sulkee paneelin ja avaa Suunnitelma-välilehden. Osiovaihto purkaa
           myös Ravintolat-/opasnäkymän omat paneelit. */}
-      <ToastHost onToiminto={(tyyppi) => { if (tyyppi === 'nayta-suunnitelma') { setSelectedEvent(null); handleTab('suunnitelma') } }} />
+      <ToastHost onToiminto={(tyyppi) => {
+        if (tyyppi === 'nayta-suunnitelma') { setSelectedEvent(null); handleTab('suunnitelma') }
+        // Idea-sivun "✓ Lisätty Kiinnostaviin" → Näytä vierittää listaan
+        // (section-elementin scroll-mt pitää otsikon kiinteän yläpalkin alla).
+        else if (tyyppi === 'nayta-kiinnostavat') {
+          document.getElementById(KIINNOSTAVAT_ELEMENTTI_ID)?.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'start',
+          })
+        }
+      }} />
 
       <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}
         onShowVenueEvents={showVenueEvents} avattuHeti={!!initialEvent}

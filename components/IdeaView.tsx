@@ -12,7 +12,8 @@ import { stripPriceFromPrefix, tuntematonAika } from '@/lib/utils'
 import { addDays } from '@/lib/arvo-ilta'
 import { buildIdeaDeck, usefulWhy, type IdeaSceneId } from '@/lib/idea-deck'
 import { recordClick, getCategoryScores } from '@/lib/preferences'
-import { lisaaKiinnostava, poistaKiinnostava, siivoaKiinnostavat, lueKiinnostavat, tallennaKiinnostavat, type Kiinnostava } from '@/lib/kiinnostavat'
+import { lisaaKiinnostava, poistaKiinnostava, siivoaKiinnostavat, lueKiinnostavat, tallennaKiinnostavat, KIINNOSTAVAT_ELEMENTTI_ID, type Kiinnostava } from '@/lib/kiinnostavat'
+import { naytaToast } from '@/lib/toast'
 import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { canBuyTickets } from '@/lib/tickets'
 import DatePicker from '@/components/DatePicker'
@@ -29,6 +30,13 @@ import { useTaaksepain } from '@/hooks/useTaaksepain'
 // (makumuisti + kohde kertyy sivun omaan Kiinnostavat-listaan, lib/kiinnostavat).
 // Kiinnostava EI mene suosikiksi: listalta avataan kortti, ja suosikkiin tai
 // suunnitelmaan käyttäjä lisää sen itse. Kortin napautus avaa kortin.
+//
+// 4.10.2026 (omistaja: "napit samassa näkymässä kuin tapahtuman kuva, ei
+// tarvitse vierittää"): mobiilissa napit ovat KIINTEÄSSÄ rivissä alanavin
+// päällä, yläosa on tiivis (pienempi otsikko + 📅-chip samalla rivillä) ja
+// kuvan korkeus rajataan svh:n mukaan niin, että kuva mahtuu kokonaan
+// nappirivin yläpuolelle. "Kiinnostaa" kuittaa toastilla, koska lista on
+// nappirivin alla ruudun ulkopuolella. Työpöytä ennallaan (md:-luokat).
 
 // ── Types ────────────────────────────────────────────────
 
@@ -115,6 +123,10 @@ const TYPE_META: Record<SuggestionType, { label: string; gradient: string; accen
   event:    { label: '📅 Tapahtuma',   gradient: 'linear-gradient(160deg,#1e1b4b,#4c1d95,#7c3aed)', accent: '#a78bfa' },
   activity: { label: '🧖 Aktiviteetti', gradient: 'linear-gradient(160deg,#042f2e,#065f46,#0f766e)', accent: '#2dd4bf' },
 }
+
+/** Mobiilin kiinteän nappirivin korkeus: 56 px napit + 2 × 12 px pehmuste.
+ *  Toast nostetaan tämän verran, ettei se peitä nappeja. */
+const NAPPIRIVI_PX = 80
 
 // ── Props ────────────────────────────────────────────────
 
@@ -350,6 +362,13 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     if (!current) return
     const id = current.id
     setSeenIds((s) => new Set([...s, id]))
+    // Mobiili: napit ovat kiinteässä rivissä, joten niitä voi painaa myös
+    // kuvauksen tai Kiinnostavat-listan kohdalta vieritettynä. Uuden kortin
+    // kuvan pitää silloin näkyä heti → takaisin sivun alkuun. Työpöydällä
+    // napit ovat kortin alla eikä vieritys saa hyppiä.
+    if (typeof window !== 'undefined' && window.scrollY > 0 && window.matchMedia('(max-width: 767.98px)').matches) {
+      window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+    }
   }, [current])
   /** "Kiinnostaa": makumuisti + Kiinnostavat-lista, sitten seuraava kortti.
    *  EI suosikkia — suosikkiin tai suunnitelmaan käyttäjä lisää kortista. */
@@ -359,8 +378,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
     track('idea_interest', { surface: 'idea', eventId: current.eventRef?.id, label: current.title })
     const paiva = current.eventRef ? helsinkiDateOf(current.eventRef.startTime) : ideaDate
     tallenna(lisaaKiinnostava(kiinnostavat, current, paiva))
+    // Palaute mobiilissa (ToastHost on md:hidden): kortti vaihtuu heti ja
+    // lista on kiinteän nappirivin alla ruudun ulkopuolella, joten ilman
+    // toastia tallennus jäisi näkymättömäksi. Näytä vierittää listaan.
+    naytaToast({ teksti: t('idea.toast_lisatty'), nosto: NAPPIRIVI_PX, toiminto: { label: t('plan.toast_show'), tyyppi: 'nayta-kiinnostavat' } })
     seuraava()
-  }, [current, kiinnostavat, tallenna, seuraava, ideaDate])
+  }, [current, kiinnostavat, tallenna, seuraava, ideaDate, t])
   const poista = useCallback((id: string) => tallenna(poistaKiinnostava(kiinnostavat, id)), [kiinnostavat, tallenna])
   /** Kortin avaus: tapahtumalle sovelluksen oikea paneeli, paikalle oma levite. */
   const avaa = useCallback((s: Suggestion) => {
@@ -371,10 +394,12 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
 
   return (
     <>
-    <main className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4" style={{ overscrollBehavior: 'none' }}>
+    <main className="max-w-lg mx-auto px-4 pt-3 md:pt-4 pb-28 space-y-4" style={{ overscrollBehavior: 'none' }}>
 
       {/* ── Header + päivävalinta — AINA näkyvissä, jotta päivää voi vaihtaa
-          myös tyhjällä/loppuneella pakalla. ── */}
+          myös tyhjällä/loppuneella pakalla. Mobiilissa (4.10.2026) yläosa on
+          tiivis: pienempi otsikko ja 📅-chip samalla rivillä, jotta kortti
+          alkaa ~60 px ylempää ja kuva mahtuu kiinteän nappirivin yläpuolelle. ── */}
       <div className="flex items-start justify-between gap-3">
         {/* mobiili-cq: otsikko skaalautuu sarakkeen mukaan (cqw) alle 768 px;
             flex-1 min-w-0 pakollinen, koska kontaineri ei anna omaa leveyttä. */}
@@ -382,7 +407,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
           <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">
             HELSINKI · {dayLabel(ideaDate, todayIso, lang).toUpperCase()}
           </p>
-          <h1 className="font-black text-white leading-none text-[clamp(1.6rem,6cqw,2.6rem)] md:text-[clamp(1.6rem,6vw,2.6rem)]" style={{ letterSpacing: '-0.03em' }}>
+          <h1 className="font-black text-white leading-none text-[clamp(1.3rem,6.5cqw,2.6rem)] md:text-[clamp(1.6rem,6vw,2.6rem)]" style={{ letterSpacing: '-0.03em' }}>
             {t('idea.dont_know')}
           </h1>
           <p className="text-white/30 text-xs mt-1">
@@ -391,12 +416,22 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               : t('idea.paivan_menot')}
           </p>
         </div>
+        {/* Mobiili: sama 📅-chip kuin Tapahtumat-välilehden päivärivillä
+            (44 × 44 px; valittu päivä laajentaa sen pilleriksi). Päivä lukee
+            myös yllä HELSINKI · -rivillä. */}
+        <div className="md:hidden shrink-0">
+          <DatePicker
+            chip
+            value={ideaDate === todayIso ? '' : ideaDate}
+            onChange={(v) => setIdeaDate(v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : todayIso)}
+          />
+        </div>
       </div>
 
-      {/* ── Päivävalinta: yksi nappi, kalenteri aukeaa (sama DatePicker kuin
-          Tapahtumat-välilehdellä). Tyhjä arvo / kalenterin "Tyhjennä
-          valinta" = takaisin tähän päivään. ── */}
-      <div>
+      {/* ── Työpöytä: päivävalinta omalla rivillään — yksi nappi, kalenteri
+          aukeaa (sama DatePicker kuin Tapahtumat-välilehdellä). Tyhjä arvo /
+          kalenterin "Tyhjennä valinta" = takaisin tähän päivään. ── */}
+      <div className="hidden md:block">
         <DatePicker
           value={ideaDate === todayIso ? '' : ideaDate}
           onChange={(v) => setIdeaDate(v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : todayIso)}
@@ -437,8 +472,17 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
             boxShadow: '0 24px 60px -20px rgba(0,0,0,.9)',
           }}>
 
-          {/* Image / gradient */}
-          <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/13' }}>
+          {/* Image / gradient. Mobiili: korkeus rajataan niin, että kuva
+              mahtuu kokonaan otsikon ja kiinteän nappirivin väliin
+              (100svh − yläpuoli 209 px [yläpalkki 121 + otsikko 60 + välit]
+              − nappirivi 80 − alanavi 80 − 7 px − safe-area; mitattu 4.10.2026).
+              Tavallisella puhelimella (svh ≈ 660) raja ≈ 16/13 eli ei muuta
+              mitään. Alaraja 240 px: otsikkopeite (syy + 2–3-rivinen otsikko
+              + aika + osoite) on 160–190 px eikä mahdu matalampaan ilman että
+              se ajaa merkkien päälle — mitattu 180 px:llä SE:llä. SE (svh ≈
+              550) vierittää siis ~60 px, muut eivät. svh eikä dvh: dvh
+              muuttuu Safarin palkin piiloutuessa ja kuva hyppisi. */}
+          <div className="relative w-full overflow-hidden max-h-[calc(100svh_-_376px_-_env(safe-area-inset-bottom,0px))] min-h-[240px] md:max-h-none md:min-h-0" style={{ aspectRatio: '16/13' }}>
             <div className="absolute inset-0" style={{ background: meta.gradient }} />
             {current.image && (
               <>
@@ -455,32 +499,41 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
               </div>
             )}
 
-            {/* Type badge (laskuri "X jäljellä" poistettu — se latisti korttia) */}
-            <div className="absolute top-4 left-4">
-              <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/90 bg-black/40 backdrop-blur-sm">
-                {current.type === 'event' ? t('idea.type_event') : current.type === 'activity' ? t('idea.type_activity') : t('idea.type_rest')}
-              </span>
+            {/* Merkit vasemmalla ylhäällä. Mobiilissa YHDELLÄ rivillä (tyyppi +
+                aika/aukiolo vierekkäin), jotta madalletussa kuvassa otsikko-
+                peitteelle jää tilaa 44 px:stä alaspäin — kahdessa kerroksessa
+                merkit ulottuivat 84 px:iin ja otsikko ajoi aikamerkin päälle
+                (mitattu SE:llä 4.10.2026). Työpöydällä kääre on display:
+                contents ja merkit ovat entisillä absoluuttisilla paikoillaan
+                (top-4 / top-14) — pikselilleen ennallaan. */}
+            <div className="absolute top-4 left-4 flex items-center gap-2 md:contents">
+              {/* Type badge (laskuri "X jäljellä" poistettu — se latisti korttia) */}
+              <div className="md:absolute md:top-4 md:left-4">
+                <span className="text-[11px] font-black px-2.5 py-1 rounded-full text-white/90 bg-black/40 backdrop-blur-sm">
+                  {current.type === 'event' ? t('idea.type_event') : current.type === 'activity' ? t('idea.type_activity') : t('idea.type_rest')}
+                </span>
+              </div>
+
+              {/* Time indicator ("Alkaa X min") */}
+              {current.minutesUntil !== undefined && current.minutesUntil >= 0 && current.minutesUntil < 240 && (
+                <div className="md:absolute md:top-14 md:left-4">
+                  <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-500/90 text-white">
+                    ⏱ {t('idea.starts_in')} {current.minutesUntil < 60
+                      ? `${current.minutesUntil} min`
+                      : `${Math.round(current.minutesUntil / 60)} h`}
+                  </span>
+                </div>
+              )}
+
+              {/* Open status */}
+              {current.isOpen !== undefined && current.minutesUntil === undefined && (
+                <div className="md:absolute md:top-14 md:left-4">
+                  <span className={`text-[11px] font-black px-2.5 py-1 rounded-full ${current.isOpen ? 'bg-emerald-500/90' : 'bg-white/20'} text-white`}>
+                    {current.isOpen ? `● ${t('idea.open_now')}` : `○ ${t('common.closed')}`}
+                  </span>
+                </div>
+              )}
             </div>
-
-            {/* Time indicator ("Alkaa X min") */}
-            {current.minutesUntil !== undefined && current.minutesUntil >= 0 && current.minutesUntil < 240 && (
-              <div className="absolute top-14 left-4">
-                <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-500/90 text-white">
-                  ⏱ {t('idea.starts_in')} {current.minutesUntil < 60
-                    ? `${current.minutesUntil} min`
-                    : `${Math.round(current.minutesUntil / 60)} h`}
-                </span>
-              </div>
-            )}
-
-            {/* Open status */}
-            {current.isOpen !== undefined && current.minutesUntil === undefined && (
-              <div className="absolute top-14 left-4">
-                <span className={`text-[11px] font-black px-2.5 py-1 rounded-full ${current.isOpen ? 'bg-emerald-500/90' : 'bg-white/20'} text-white`}>
-                  {current.isOpen ? `● ${t('idea.open_now')}` : `○ ${t('common.closed')}`}
-                </span>
-              </div>
-            )}
 
             {/* Free badge */}
             {current.isFree && (
@@ -560,20 +613,29 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
         </div>
       </div>
 
-      {/* ── Kaksi nappia, ei eleitä ── */}
-      <div className="flex items-stretch gap-3">
-        <button type="button" onClick={seuraava}
-          className="flex-1 min-h-14 md:min-h-12 rounded-2xl font-black text-[16px] md:text-sm text-white/80 transition-all active:scale-[.98] hover:bg-white/10"
-          style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
-          {t('idea.seuraava')} →
-        </button>
-        <button type="button" onClick={listalla ? seuraava : kiinnostaa} aria-pressed={listalla}
-          className="flex-[1.4] min-h-14 md:min-h-12 rounded-2xl font-black text-[16px] md:text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[.98]"
-          style={listalla
-            ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.35)', color: '#c7caff' }
-            : { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 24px -8px rgba(91,101,230,.8)' }}>
-          {listalla ? <>✓ {t('idea.listalla')}</> : <><Heart size={18} /> {t('idea.kiinnostaa')}</>}
-        </button>
+      {/* ── Kaksi nappia, ei eleitä. Mobiilissa rivi on KIINTEÄ alanavin
+          (80 px + safe-area) päällä — sama tausta ja sumennus kuin navilla,
+          56 px napit + 2 × 12 px pehmuste = 80 px (NAPPIRIVI_PX; mainin pb-28
+          jättää sisällölle tilan sen alta). Sisäkääre toistaa mainin
+          max-w-lg + px-4:n, jotta napit ovat täsmälleen kortin levyiset.
+          mb-0: mainin space-y-4 antaisi kiinteälle riville margin-bottomin,
+          joka nostaisi sen 16 px irti alanavista (mitattu 4.10.2026).
+          Työpöydällä rivi on ennallaan kortin alla (md:static, mb-4 = space-y). ── */}
+      <div className="fixed inset-x-0 bottom-[calc(80px_+_env(safe-area-inset-bottom,0px))] z-30 py-3 mb-0 md:mb-4 border-t border-white/7 bg-[rgba(10,10,12,.94)] backdrop-blur-[18px] md:static md:inset-x-auto md:bottom-auto md:z-auto md:py-0 md:border-0 md:bg-transparent md:backdrop-blur-none">
+        <div className="max-w-lg mx-auto px-4 md:px-0 flex items-stretch gap-3">
+          <button type="button" onClick={seuraava}
+            className="flex-1 min-h-14 md:min-h-12 rounded-2xl font-black text-[16px] md:text-sm text-white/80 transition-all active:scale-[.98] hover:bg-white/10"
+            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)' }}>
+            {t('idea.seuraava')} →
+          </button>
+          <button type="button" onClick={listalla ? seuraava : kiinnostaa} aria-pressed={listalla}
+            className="flex-[1.4] min-h-14 md:min-h-12 rounded-2xl font-black text-[16px] md:text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[.98]"
+            style={listalla
+              ? { background: 'rgba(107,118,255,.14)', border: '1px solid rgba(107,118,255,.35)', color: '#c7caff' }
+              : { background: 'linear-gradient(150deg,#6b76ff,#5059e6)', boxShadow: '0 8px 24px -8px rgba(91,101,230,.8)' }}>
+            {listalla ? <>✓ {t('idea.listalla')}</> : <><Heart size={18} /> {t('idea.kiinnostaa')}</>}
+          </button>
+        </div>
       </div>
 
     </>
@@ -582,7 +644,7 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       {/* ── Kiinnostavat: kertyy laitteelle, EI suosikkeihin. Rivin napautus
           avaa kortin (siellä ♥ ja "Lisää suunnitelmaan"), ✕ poistaa. ── */}
       {kiinnostavat.length > 0 ? (
-        <section aria-label={t('idea.kiinnostavat')} className="space-y-2 pt-2">
+        <section id={KIINNOSTAVAT_ELEMENTTI_ID} aria-label={t('idea.kiinnostavat')} className="space-y-2 pt-2 scroll-mt-32">
           <p className="text-white/40 text-[11px] font-black uppercase tracking-[.2em]">
             {t('idea.kiinnostavat')} · {kiinnostavat.length}
           </p>

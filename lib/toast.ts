@@ -12,12 +12,20 @@
 // Toiminto on TUNNISTE eikä callback: paneeli ei tiedä miten Suunnitelma-
 // välilehti avataan (se on HomeClientin tila), joten se pyytää vain
 // "näytä suunnitelma" ja isäntä päättää mitä se tarkoittaa.
+//
+// 4.10.2026: Idea-sivun "✓ Lisätty Kiinnostaviin" + Näytä ('nayta-
+// kiinnostavat' vierittää listaan). Idea-sivulla on alanavin päällä oma
+// kiinteä nappirivi, joten toast nostetaan sen verran ylemmäs (nosto).
 
-export type ToastToiminto = 'nayta-suunnitelma'
+export type ToastToiminto = 'nayta-suunnitelma' | 'nayta-kiinnostavat'
 
 export interface Toast {
   id: number
   teksti: string
+  /** Lisänosto pikseleinä oletuspaikasta (16 px alanavin yläpuolella), kun
+   *  näkymässä on oma kiinteä rivi alanavin päällä — toast ei saa peittää
+   *  sen nappeja. */
+  nosto?: number
   toiminto?: { label: string; tyyppi: ToastToiminto }
 }
 

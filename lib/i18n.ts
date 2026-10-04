@@ -1076,6 +1076,7 @@ const t = {
     'map.empty_card_sub':          'Vaihda aihepiiriä ylhäältä',
     'map.next_card':               'Seuraava kohde',
     'detail.from_you':             'sinusta',
+    'idea.toast_lisatty':          'Lisätty Kiinnostaviin',
   },
 
   en: {
@@ -2154,6 +2155,7 @@ const t = {
     'map.empty_card_sub':          'Change the topic above',
     'map.next_card':               'Next',
     'detail.from_you':             'from you',
+    'idea.toast_lisatty':          'Saved to Interested',
   },
 } as const
 

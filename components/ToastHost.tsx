@@ -5,7 +5,9 @@
 // -napin tila on riittävä palaute, eikä työpöytänäkymä saa muuttua.
 //
 // Sijainti: alapalkin (80 px + safe-area) yläpuolella 16 px — toast ei saa
-// peittää navigaatiota (tarkistuslista). Häviää 3,5 s kuluttua; uusi toast
+// peittää navigaatiota (tarkistuslista). Näkymän oma kiinteä rivi alapalkin
+// päällä (Idea-sivun nappirivi) ilmoittaa korkeutensa toastin nosto-kentässä,
+// jotta toast nousee senkin yläpuolelle. Häviää 3,5 s kuluttua; uusi toast
 // nollaa ajastimen (id-vertailu lib/toast piilotaToastissa).
 
 import { useEffect, useSyncExternalStore } from 'react'
@@ -31,7 +33,7 @@ export default function ToastHost({ onToiminto }: { onToiminto: (tyyppi: ToastTo
       aria-live="polite"
       className="md:hidden fixed left-1/2 z-[70] flex items-center gap-1.5 rounded-full whitespace-nowrap animate-toast-in"
       style={{
-        bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
+        bottom: `calc(${96 + (toast.nosto ?? 0)}px + env(safe-area-inset-bottom, 0px))`,
         transform: 'translateX(-50%)',
         padding: '6px 6px 6px 16px',
         background: '#1a1b24',

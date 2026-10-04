@@ -13,6 +13,9 @@ import { tuntematonAika } from './utils'
 
 export const KIINNOSTAVAT_AVAIN = 'idea-kiinnostavat-v1'
 export const KIINNOSTAVAT_MAX = 30
+/** Kiinnostavat-listan elementti-id Idea-sivulla: toastin "Näytä"
+ *  (HomeClientin ToastHost → 'nayta-kiinnostavat') vierittää tähän. */
+export const KIINNOSTAVAT_ELEMENTTI_ID = 'idea-kiinnostavat'
 /** Alkanut tapahtuma pysyy listalla vielä tämän verran — sama 3 h
  *  "käynnissä"-sääntö kuin Idea-pakassa (lib/idea-deck). */
 const KAYNNISSA_MS = 3 * 60 * 60 * 1000
