@@ -8,38 +8,21 @@ import { decodeHtmlEntities } from '@/lib/utils'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { eventMatchesKeyword } from '@/lib/keyword-filter'
 import { onEstettyPaikka } from '@/lib/venue-blocklist'
+import { haeUlkoisetLahteet, ULKOISET_LAHTEET } from '@/lib/lahdevarasto'
 
 // Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
 // Ilman tätä alusta voi katkaista pyynnön oletuksellaan kesken kaiken, jolloin
 // osittainen data näkyisi käyttäjälle täytenä listana.
 export const maxDuration = 60
 
-// External sources fetched via internal API routes (api/<name>).
-// Order defines merge priority: earlier sources win dedup upgrades first.
-// JÄRJESTYSTÄ EI SAA SÄÄTÄÄ ILMAN MITTAUSTA. Kokeiltu 25.8.2026: 'stadissa'
-// siirto listan viimeiseksi (jotta kilpailijan linkki häviäisi dedupissä)
-// EI muuttanut mitattavasti mitään — kilpailijalinkkien määrä pysyi 198/1875
-// molemmilla järjestyksillä, koska päällekkäiset tapaukset korjautuvat jo
-// ticketUrl-päivityksen kautta. Kilpailijalinkki hoidetaan täsmällisellä
-// infoUrl-päivityksellä alempana (isCompetitorUrl).
-//
-// HUOM samalla mitattu: dedupin lopputulos EI ole täysin deterministinen —
-// sama tuotantokoodi antoi kahdella peräkkäisellä pyynnöllä eri CTA-linkin
-// 4 kortille (lähteiden vastausajat vaihtelevat → pariutuminen vaihtuu).
-// Se on oma erillinen vikansa; älä tulkitse tällaista eroa muutoksen syyksi.
-const EXTERNAL_SOURCES = [
-  'ticketmaster', 'fienta', 'billetto', 'meetup', 'rss', 'venues', 'culture', 'espoo',
-  'helmet', 'ilmonet', 'finna', 'visitfinland', 'sports', 'festivals', 'theatre',
-  'bars', 'ra', 'museums', 'liiga', 'kide', 'arenas', 'recurring', 'pubivisat',
-  'stadissa', 'myhelsinki', 'openings', 'allas', 'lippu', 'scraped',
-  'flyingdutchman', 'juttutupa', 'lepakkomies', 'glivelab', 'kulttuuritalo',
-  'postbar', 'korjaamo', 'malmitalo', 'vuotalo', 'savoy', 'nauramaan', 'siltanen',
-  'apollo', 'maxine', 'tanssintalo',
-  // openmicfinland.fi VIIMEISENÄ: sama jami voi tulla myös paikan omasta
-  // skraperista (Semifinal, Lepakkomies), ja dedupissa aiempi lähde voittaa —
-  // paikan oma ilmoitus on tarkempi kuin valtakunnallinen kalenteri.
-  'openmic',
-] as const
+// Ulkoiset lähteet (45 kpl, järjestys = dedupin etusija) ovat lib/lahdevarasto
+// ULKOISET_LAHTEET-listassa, koska sama lista ohjaa myös varaston rakentajaa.
+// Lähteet luetaan LÄHDEVARASTOSTA (Supabase, 10 pv palat, rakennetaan 5 min
+// välein app/api/warm) — tämä reitti ei enää kutsu 45 lähdereittiä joka
+// pyynnöllä. Puuttuva tai vanhentunut pala haetaan suoraan lähteestä ja
+// kirjoitetaan varastoon (write-through); ilman taulua toimitaan kuten ennen.
+// Mitattu 10.10.2026: kooste oli 45 funktiokutsua / välimuistin ohitus, ja
+// kahdeksan Facebookin esikatseluhakijaa viisinkertaisti kutsut (Vercel-hälytys).
 
 interface LinkedEventsImage {
   url: string
@@ -145,6 +128,10 @@ export async function GET(req: NextRequest) {
   const bbox = searchParams.get('bbox') || '' // neighborhood bounding box
 
   const quick = searchParams.get('quick') === '1'
+  // varasto=0: ulkoiset lähteet suoraan reiteistä, ei lähdevarastoa (A/B-
+  // vertailu ja hätäkytkin). CDN-avain eroaa parametrin takia → ei sotke
+  // normaalia välimuistia.
+  const ohitaVarasto = searchParams.get('varasto') === '0'
 
   // ── LinkedEvents: per-day chunk fetching ──────────────────────────────
   // LinkedEvents `start=` matches also events STILL ONGOING at that date
@@ -174,32 +161,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const extraParams = new URLSearchParams({ start, end, ...(keyword ? { keyword } : {}) })
     const origin = req.nextUrl.origin
-
-    // Helper: fetch an internal API route — catches ALL errors (incl. AbortSignal.timeout)
-    // so they never escape Promise.allSettled in Node 24+
-    //
-    // RUNKO LUETAAN TÄSSÄ, ei kutsupaikalla. Aiemmin tämä palautti Response-olion
-    // heti kun OTSAKKEET saapuivat ja runko jäi lukemattomaksi streamiksi, johon
-    // AbortSignal jäi kiinni. Runko luettiin vasta kun LinkedEventsin päiväpalaset
-    // (10 päivää ≈ 10 MB) oli parsittu sarjassa — siihen mennessä deadline oli
-    // umpeutunut ja abort oli virheistänyt streamin, joten res.json() heitti ja
-    // lähde kirjattiin kuolleeksi. Mitattu: 900 ms:ssä vastannut lähde merkittiin
-    // pettäneeksi; 10 päivän haussa 44/45 lähdettä katosi näin (2 päivän haussa
-    // 45/45 selvisi, koska koko haku mahtui 8 sekuntiin). Kun runko luetaan
-    // saman deadlinen sisällä, lähteen kohtalo riippuu vain sen OMASTA nopeudesta.
-    const src = async (path: string): Promise<{ events?: Event[] } | null> => {
-      try {
-        const res = await fetch(`${origin}/${path}?${extraParams}`, {
-          signal: AbortSignal.timeout(8000),
-        })
-        if (!res.ok) return null
-        return (await res.json()) as { events?: Event[] }
-      } catch {
-        return null
-      }
-    }
 
     // quick=1: return only LinkedEvents immediately (used for phase-1 fast load)
     const pageNum = Math.max(1, parseInt(page) || 1)
@@ -223,12 +185,14 @@ export async function GET(req: NextRequest) {
     // Fresh options per call — AbortSignal.timeout starts ticking on creation,
     // so a shared signal would shortchange the second fetch wave.
     const leFetchOpts = () => ({ next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(10000) })
-    const settled = await Promise.allSettled([
-      ...dayDates.map((day) => fetch(buildLeUrl(day), leFetchOpts())),
-      ...EXTERNAL_SOURCES.map((name) => attemptExternal ? src(`api/${name}`) : Promise.resolve(null)),
+    // LinkedEventsin päiväpalat ja ulkoiset lähteet rinnakkain. Ulkoiset
+    // tulevat lähdevarastosta koko välille (sivu 1), puuttuvat palat suoraan
+    // lähteestä (lib/lahdevarasto haeUlkoisetLahteet). Hakusanaa ei välitetä
+    // lähteille — se suodatetaan yhtenäisesti koko lopputulokseen alempana.
+    const [dayResults, ulkoiset] = await Promise.all([
+      Promise.allSettled(dayDates.map((day) => fetch(buildLeUrl(day), leFetchOpts()))),
+      attemptExternal ? haeUlkoisetLahteet({ origin, start, end, ohita: ohitaVarasto }) : Promise.resolve(null),
     ])
-    const dayResults = settled.slice(0, dayDates.length) as PromiseSettledResult<Response>[]
-    const externalRes = settled.slice(dayDates.length) as PromiseSettledResult<{ events?: Event[] } | null>[]
 
     // Cutoff anchored to THIS PAGE's day-window (not the range start) so
     // deeper pages don't re-admit ongoing rows from the range's first days —
@@ -373,16 +337,16 @@ export async function GET(req: NextRequest) {
     }
     let perEventFailures = 0
 
-    for (let i = 0; i < externalRes.length && attemptExternal; i++) {
-      const name = EXTERNAL_SOURCES[i]
-      const res = externalRes[i]
+    for (const name of (ulkoiset ? ULKOISET_LAHTEET : [])) {
+      const res = ulkoiset!.tulokset.get(name)
       let ok = false
       let count = 0
-      // rejected / null (timeout, network, non-OK HTTP, bad JSON — kaikki
-      // suodattuvat src():ssä) → ok jää falseksi
-      if (res.status === 'fulfilled' && res.value) {
+      // Lähde pettänyt (varastossa ei kelvollista palaa eikä suora haku
+      // onnistunut; aikakatkaisu, verkko, muu kuin 200, rikkinäinen JSON —
+      // kaikki suodattuvat lib/lahdevarasto haeLahdeValissa) → ok jää falseksi
+      if (res && res.ok) {
         try {
-          const incomingRaw: Event[] = res.value.events ?? []
+          const incomingRaw: Event[] = res.events
           // AIKAVYÖHYKE ENSIN: skraperit tuottavat naiivia seinäkelloaikaa
           // ("2026-08-22T23:30:00"). Ilman offsetia UTC-palvelin lukee sen 3 h
           // väärin → klo 21+ tapahtumat vaihtavat päivää, putoavat Illalla-
@@ -652,7 +616,9 @@ export async function GET(req: NextRequest) {
     // käynti). 5 min tuoreus + SWR tunniksi → tyypillinen käynti ~0,2 s.
     // Virhepolku (alla) EI saa otsaketta — 500 ei cachetu.
     return NextResponse.json(
-      { events, hasMore, total, generatedAt: new Date().toISOString(), sources },
+      // varasto: lähdevaraston tila tälle pyynnölle (luettu/puuttui/vanhin) —
+      // admin ja mittaukset näkevät, kulkeeko kooste varastosta.
+      { events, hasMore, total, generatedAt: new Date().toISOString(), sources, varasto: ulkoiset?.varasto ?? null },
       { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' } },
     )
   } catch (err) {

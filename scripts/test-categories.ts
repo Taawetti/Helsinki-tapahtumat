@@ -80,6 +80,7 @@ import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello, onSuuriPai
 import { mapAspEvent, onAllasLiveKeikka } from '../lib/allas'
 import { samaTapahtumaSarja, ryhmitaSarjat, sarjaEtuliite } from '../lib/tapahtumaperhe'
 import { kirjattavaAsennusPinta, asennusMuoto } from '../lib/install'
+import { palanAlku, palanLoppu, palatValille, horisontinPalat, palanEtaisyys, paivitysvaliMs, onEraantynyt, kelpaaLukuun, kuuluuPalaan, erittelePaloihin, jarjestaRakennettavat, normalisoiAikaleimat, jaaEriin, rakentajanVali, kattaakoVarasto, ULKOISET_LAHTEET, PALAN_PITUUS_PV, HORISONTTI_PV } from '../lib/lahdevarasto'
 import { saaPeruuttaa } from '../hooks/useTaaksepain'
 import { ohjelmatyyppi } from '../lib/event-classify'
 import { getEventVibes } from '../lib/event-classify'
@@ -4617,6 +4618,89 @@ for (const c of kwChecks) {
   for (const c of aChecks) {
     if (c.ok) pass++
     else failures.push(`✗ vartija: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+
+  // ── LÄHDEVARASTO (lib/lahdevarasto, 12.10.2026) ────────────────────────
+  // Palaruudukko on kiinteä (epookkipäivä mod 10), jotta eri pyynnöt jakavat
+  // samat rivit; erääntyminen ja kelpoisuus ovat puhtaita funktioita.
+  {
+    const NYT = new Date('2026-10-12T10:00:00+03:00')
+    const TANAAN = '2026-10-12'
+    const alku = palanAlku(TANAAN)
+    const ev = (id: string, startTime: string): Event => mkEvent({ id, title: id, startTime })
+    const vCases: { name: string; ok: boolean; got?: string }[] = [
+      { name: 'varasto: palan alku on 10 päivän ruudukossa — palan jokainen päivä kuuluu samaan palaan ja pala on 10 päivää',
+        ok: Array.from({ length: PALAN_PITUUS_PV }, (_, i) => palanAlku(new Date(new Date(alku + 'T12:00:00Z').getTime() + i * 86400000).toISOString().slice(0, 10)))
+          .every((a) => a === alku) && alku <= TANAAN && palanLoppu(alku) >= TANAAN
+          && (new Date(palanLoppu(alku) + 'T12:00:00Z').getTime() - new Date(alku + 'T12:00:00Z').getTime()) / 86400000 === PALAN_PITUUS_PV - 1,
+        got: alku },
+      { name: 'varasto: seuraava päivä palan lopun jälkeen alkaa uuden palan',
+        ok: palanAlku(palanLoppu(alku)) === alku && palanAlku(new Date(new Date(palanLoppu(alku) + 'T12:00:00Z').getTime() + 86400000).toISOString().slice(0, 10)) !== alku },
+      { name: 'varasto: yhden päivän väli = 1 pala, 90 päivän väli = 9–10 palaa, rajan yli = 2',
+        ok: palatValille(TANAAN, TANAAN).length === 1 && [9, 10].includes(palatValille(TANAAN, '2026-01-10' < TANAAN ? TANAAN : '2027-01-10').length) === false
+          && palatValille(TANAAN, '2027-01-10').length === 10 && palatValille(palanLoppu(alku), palanLoppu(alku).slice(0, 8) + String(Number(palanLoppu(alku).slice(8)) + 1).padStart(2, '0')).length === 2 },
+      { name: 'varasto: horisontti kattaa tämän päivän palan ja 92 päivää eteenpäin',
+        ok: horisontinPalat(TANAAN)[0] === alku && horisontinPalat(TANAAN).length === palatValille(TANAAN, new Date(new Date(TANAAN + 'T12:00:00Z').getTime() + HORISONTTI_PV * 86400000).toISOString().slice(0, 10)).length },
+      { name: 'varasto: etäisyys 0 tämän päivän palalle, 1 seuraavalle, −1 menneelle',
+        ok: palanEtaisyys(alku, TANAAN) === 0 && palanEtaisyys(horisontinPalat(TANAAN)[1], TANAAN) === 1
+          && palanEtaisyys(new Date(new Date(alku + 'T12:00:00Z').getTime() - 10 * 86400000).toISOString().slice(0, 10), TANAAN) === -1 },
+      { name: 'varasto: päivitysväli 10 min / 30 min / 2 h etäisyyden mukaan',
+        ok: paivitysvaliMs(alku, TANAAN) === 600000 && paivitysvaliMs(horisontinPalat(TANAAN)[1], TANAAN) === 1800000 && paivitysvaliMs(horisontinPalat(TANAAN)[5], TANAAN) === 7200000 },
+      { name: 'varasto: erääntyminen — ei koskaan yritetty → heti; onnistunut 9 min sitten → ei; 11 min → kyllä; epäonnistunut 6 min → kyllä',
+        ok: onEraantynyt({ yritetty: null, ok: false }, NYT, 600000)
+          && !onEraantynyt({ yritetty: new Date(NYT.getTime() - 9 * 60000).toISOString(), ok: true }, NYT, 600000)
+          && onEraantynyt({ yritetty: new Date(NYT.getTime() - 11 * 60000).toISOString(), ok: true }, NYT, 600000)
+          && onEraantynyt({ yritetty: new Date(NYT.getTime() - 6 * 60000).toISOString(), ok: false }, NYT, 600000) },
+      { name: 'varasto: kelpoisuus — tuore kelpaa, 2 h vanha tämän päivän pala EI, 2 h vanha kaukainen pala kelpaa, ei koskaan haettu EI',
+        ok: kelpaaLukuun({ haettu: new Date(NYT.getTime() - 5 * 60000).toISOString() }, NYT, TANAAN, alku)
+          && !kelpaaLukuun({ haettu: new Date(NYT.getTime() - 120 * 60000).toISOString() }, NYT, TANAAN, alku)
+          && kelpaaLukuun({ haettu: new Date(NYT.getTime() - 120 * 60000).toISOString() }, NYT, TANAAN, horisontinPalat(TANAAN)[5])
+          && !kelpaaLukuun({ haettu: null }, NYT, TANAAN, alku) },
+      { name: 'varasto: palaan kuuluu alkupäivä alku−4…loppu (käynnissä-sääntö), ei aiempi eikä myöhempi, ei rikkinäinen aika',
+        ok: kuuluuPalaan(ev('a', alku + 'T19:00:00+03:00'), alku, palanLoppu(alku))
+          && kuuluuPalaan(ev('b', new Date(new Date(alku + 'T12:00:00Z').getTime() - 4 * 86400000).toISOString().slice(0, 10) + 'T10:00:00+03:00'), alku, palanLoppu(alku))
+          && !kuuluuPalaan(ev('c', new Date(new Date(alku + 'T12:00:00Z').getTime() - 5 * 86400000).toISOString().slice(0, 10) + 'T10:00:00+03:00'), alku, palanLoppu(alku))
+          && !kuuluuPalaan(ev('d', new Date(new Date(palanLoppu(alku) + 'T12:00:00Z').getTime() + 86400000).toISOString().slice(0, 10) + 'T10:00:00+03:00'), alku, palanLoppu(alku))
+          && !kuuluuPalaan(ev('e', 'rikki'), alku, palanLoppu(alku)) },
+      { name: 'varasto: jako paloihin — tapahtuma omaan palaansa, palan lopussa alkava myös seuraavaan (käynnissä-sääntö), muut tyhjiä',
+        ok: (() => {
+          const p2 = horisontinPalat(TANAAN)[1]
+          const jaettu = erittelePaloihin([ev('x', alku + 'T19:00:00+03:00'), ev('y', palanLoppu(alku) + 'T19:00:00+03:00')], [alku, p2])
+          return jaettu.get(alku)!.map((e) => e.id).join(',') === 'x,y' && jaettu.get(p2)!.map((e) => e.id).join(',') === 'y'
+        })() },
+      { name: 'varasto: rakennusjärjestys — läheisin pala ensin, sen sisällä pisimpään odottanut (null ensin)',
+        ok: (() => {
+          const p2 = horisontinPalat(TANAAN)[1]
+          const r = jarjestaRakennettavat([
+            { lahde: 'a', alku: p2, yritetty: null },
+            { lahde: 'b', alku, yritetty: new Date(NYT.getTime() - 60000).toISOString() },
+            { lahde: 'c', alku, yritetty: null },
+            { lahde: 'd', alku, yritetty: new Date(NYT.getTime() - 5 * 60000).toISOString() },
+          ], TANAAN)
+          return r.map((x) => x.lahde).join('') === 'cdba'
+        })() },
+      { name: 'varasto: aikaleimojen normalisointi lisää offsetin naiiviin aikaan eikä koske offsetilliseen',
+        ok: (() => {
+          const [n, o] = normalisoiAikaleimat([ev('n', '2026-10-12T23:30:00'), ev('o', '2026-10-12T23:30:00+03:00')])
+          return n.startTime === '2026-10-12T23:30:00+03:00' && o.startTime === '2026-10-12T23:30:00+03:00' && n.endTime === null
+        })() },
+      { name: 'varasto: tallennuserät — koon mukaan, ylisuuri rivi omana eränään, järjestys säilyy',
+        ok: (() => {
+          const erat = jaaEriin([1, 2, 3, 10, 1, 1], (k) => k, 4)
+          return erat.map((e) => e.join('+')).join(' | ') === '1+2 | 3 | 10 | 1+1' && jaaEriin([], () => 1).length === 0
+        })() },
+      { name: 'varasto: rakentajan hakuväli alkaa aikaisintaan tänään −4 pv (tämän päivän pala), tulevat palat kokonaan',
+        ok: rakentajanVali(alku, palanLoppu(alku), TANAAN).start === '2026-10-08' && rakentajanVali(alku, palanLoppu(alku), TANAAN).end === palanLoppu(alku)
+          && rakentajanVali(horisontinPalat(TANAAN)[1], palanLoppu(horisontinPalat(TANAAN)[1]), TANAAN).start === horisontinPalat(TANAAN)[1] },
+      { name: 'varasto: menneen välin pyyntö (alku ennen tänään −4 pv) ei lue varastoa',
+        ok: kattaakoVarasto('2026-10-08', TANAAN) && !kattaakoVarasto('2026-10-07', TANAAN) && kattaakoVarasto(TANAAN, TANAAN) },
+      { name: 'varasto: lähdelista on 45 nimeä, openmic viimeisenä, ticketmaster ensimmäisenä',
+        ok: ULKOISET_LAHTEET.length === 45 && ULKOISET_LAHTEET[0] === 'ticketmaster' && ULKOISET_LAHTEET[ULKOISET_LAHTEET.length - 1] === 'openmic' },
+    ]
+    for (const c of vCases) {
+      if (c.ok) pass++
+      else failures.push(`✗ lähdevarasto: ${c.name}${c.got ? ' (' + c.got + ')' : ''}`)
+    }
   }
 }
 

@@ -123,14 +123,24 @@ async function fetchAll(startDate: string, endDate: string): Promise<MHEvent[]> 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const start = searchParams.get('start') || new Date().toISOString().split('T')[0]
-  // Fetch 28 days ahead to warm the cache — filter to requested range locally
   const endReq = searchParams.get('end') || start
-  const endFetch = new Date(start)
+  // HAKU AINA TÄSTÄ PÄIVÄSTÄ 28 päivää eteenpäin, rajaus pyydettyyn väliin
+  // paikallisesti. Aiemmin haku alkoi pyynnön alkupäivästä, ja MyHelsingin
+  // rajapinta palauttaa myöhemmästä start_datesta haettaessa selvästi
+  // vähemmän tapahtumia SAMOILLE päiville (mitattu 13.10.2026: 24.10. antoi
+  // 15 tapahtumaa haettaessa 4.10. alkaen, mutta vain 3 haettaessa 24.10.
+  // alkaen). Lähdevaraston 10 päivän palat (lib/lahdevarasto) alkavat
+  // tulevista päivistä, joten ilman tätä varasto olisi ollut köyhempi kuin
+  // vanha suora haku, joka alkoi aina tänään. Sivuvaikutus: yksi yhteinen
+  // välimuistiosuma kaikille kutsujille (cache on yksipaikkainen).
+  // Yli 28 päivän päähän reitti ei yllä — sama raja kuin ennen.
+  const fetchStart = new Date().toISOString().split('T')[0] < start ? new Date().toISOString().split('T')[0] : start
+  const endFetch = new Date(fetchStart)
   endFetch.setDate(endFetch.getDate() + 27)
   const endDate = endFetch.toISOString().split('T')[0]
 
   try {
-    const all = await fetchAll(start, endDate)
+    const all = await fetchAll(fetchStart, endDate)
 
     const startTs = new Date(start).getTime()
     const endTs = new Date(endReq).getTime() + 24 * 60 * 60 * 1000
