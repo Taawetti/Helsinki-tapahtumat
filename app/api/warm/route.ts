@@ -40,10 +40,15 @@ function lahtoOsoite(req: NextRequest): string {
 export async function GET(req: NextRequest) {
   const origin = lahtoOsoite(req)
   const alku = Date.now()
-  // Rakennus ENSIN: lähdekutsut sisäiseen osoitteeseen (ei CDN:n läpi).
-  // Taulun puute tai Supabase-virhe ei kaada lämmitystä — kooste toimii
-  // silloin suoralla haulla kuten ennen, ja varasto-kenttä kertoo syyn.
-  const varasto = await rakennaVarasto({ origin: req.nextUrl.origin, budjettiMs: 30_000 })
+  // Rakennus ENSIN. Lähdekutsut JULKISEEN osoitteeseen (sama kuin lämmitys),
+  // EI req.nextUrl.originiin: Vercelin cron kutsuu reittiä deployment-URL:lla,
+  // joka on "Protected by Vercel Authentication" — sisäinen fetch siihen saa
+  // kirjautumissivun, ja 40/45 lähdehakua kaatui SyntaxErroriin cronin
+  // ensimmäisellä ajolla 13.10.2026 klo 19.00 UTC. Taulun puute tai
+  // Supabase-virhe ei kaada lämmitystä — kooste toimii silloin suoralla
+  // haulla kuten ennen, ja varasto-kenttä kertoo syyn. maxHaut 60: tasainen
+  // tarve on ~48 paria / 5 min (tämän päivän pala 10 min välein ×45 jne.).
+  const varasto = await rakennaVarasto({ origin, budjettiMs: 30_000, maxHaut: 60 })
   const tulokset = await Promise.all(
     lammitettavatParams().map(async ({ filter, params }) => {
       const url = `${origin}/api/events?${params}`
