@@ -483,10 +483,11 @@ const HISTORY_GAP_DAYS = 30
 /** Lupatiedostot haetaan KESTÄVÄSTI: avoindata.suomi.fi kirjoittaa ne
  *  uusiksi maanantaiaamuna ja palauttaa kirjoituksen ajan 403/404 (mitattu
  *  21.9.2026: ikkuna n. 2 min; get():n 3 yritystä ~12 s eivät kata sitä).
- *  Tässä odotetaan minuutti kerrallaan enintään viisi kertaa — maksaa aikaa
- *  vain kun lähde oikeasti pettää, ja 30 min jobiaikaraja riittää. */
+ *  Kolme yritystä minuutin välein kattaa sen ikkunan (0, 60, 120 s).
+ *  EI enempää: 23.10.2026 mitattu 403 oli pysyvä (ajokoneen osoite torjutaan),
+ *  ja viisi yritystä tuhlasi viisi minuuttia työn aikarajasta joka maanantai. */
 async function readAlluRowsKestava(url: string, nimi: string): Promise<AlluRow[]> {
-  const YRITYKSET = 5
+  const YRITYKSET = 3
   const TAUKO_MS = 60_000
   let viimeinen = ''
   for (let i = 1; i <= YRITYKSET; i++) {

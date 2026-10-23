@@ -47,7 +47,12 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 90 min, ei 30: mitattu 23.10.2026 kahdeksan viikon ruuhkan jälkeen
+    # (kaikki ajot 31.8.–19.10. kaatuivat lupatiedostoihin) askeleet veivät
+    # 23 min ennen kuolleiden kuvien haravaa, ja 30 min raja keskeytti työn
+    # kesken haravan — commit jäi tekemättä, vaikka kaikki haut onnistuivat.
+    # Tämä työ ei ole kenenkään tiellä; aikaraja on vain vartija jumia vastaan.
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
@@ -133,6 +138,9 @@ jobs:
       # tarkistuksia. Epäonnistuminen ei estä syiden päivitystä.
       - name: Haravoi kuolleet kuvat
         continue-on-error: true
+        # Askelkohtainen raja: hidas harava (tuhansia HTTP-tarkistuksia) ei saa
+        # syödä koko työn aikaa — commit on tärkeämpi kuin tämän viikon harava.
+        timeout-minutes: 20
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
