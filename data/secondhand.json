@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-24T05:30:31.734Z",
+  "fetchedAt": "2026-10-23T11:59:00.615Z",
   "shops": [
     {
       "name": "88.fi kirpputori",
@@ -98,7 +98,7 @@
       "www": "https://antiques-helsinki.com/"
     },
     {
-      "name": "Astiaparatiisi",
+      "name": "Astiaparatiisi ja Paroni Antiikki",
       "lat": 60.1882297,
       "lon": 24.9532822,
       "address": null,
@@ -290,6 +290,14 @@
       "www": "https://www.facebook.com/Hepsankeikka-593817494080512/"
     },
     {
+      "name": "Hertsikan kirppis",
+      "lat": 60.2068899,
+      "lon": 25.0413665,
+      "address": "Siilitie 6",
+      "openingHours": null,
+      "www": null
+    },
+    {
       "name": "Huutokauppa Helander",
       "lat": 60.2229658,
       "lon": 24.9931701,
@@ -410,12 +418,28 @@
       "www": "https://www.kierratyskeskus.fi/myymalat_ja_palvelut/myyrmaen_kauppa"
     },
     {
+      "name": "Kierrätyskeskus",
+      "lat": 60.2394188,
+      "lon": 24.8498519,
+      "address": "Ajomiehentie 1",
+      "openingHours": "Mo-Fr 09:00-20:00; Sa 10:00-19:00; Su 10:00-18:00",
+      "www": "https://kierratyskeskus.fi/myymala/konala/"
+    },
+    {
       "name": "Kierrätyskeskus Finnoo",
       "lat": 60.15808,
       "lon": 24.7075154,
       "address": "Luoteisrinne 1",
       "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
       "www": "https://kierratyskeskus.fi/myymala/finnoo/"
+    },
+    {
+      "name": "Kierrätyskeskus Herttoniemi",
+      "lat": 60.1930339,
+      "lon": 25.0305975,
+      "address": "Hitsaajankatu 14",
+      "openingHours": "ma-pe 09:00-21:00; la-su 10:00-18:00",
+      "www": "https://kierratyskeskus.fi/myymala/herttoniemi/"
     },
     {
       "name": "Kierrätyskeskus Iso Omena",
@@ -439,14 +463,6 @@
       "lon": 24.9478573,
       "address": "Kaisaniemenkatu 7",
       "openingHours": "Mo-Fr 09:00-21:00; Sa-Su 10:00-18:00",
-      "www": "https://www.kierratyskeskus.fi/"
-    },
-    {
-      "name": "Kierrätyskeskus kauppa Kontula",
-      "lat": 60.2366091,
-      "lon": 25.0850534,
-      "address": "Keinulaudankuja 4",
-      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00",
       "www": "https://www.kierratyskeskus.fi/"
     },
     {
@@ -478,7 +494,7 @@
       "lat": 60.2100316,
       "lon": 24.7534068,
       "address": "Kutojantie 3",
-      "openingHours": "Mo-Fr 9:00-21:00; Sa 10:00-18:00; Su 10:00-18:00; Mo-Fr 09:00-21:00",
+      "openingHours": "Mo-Fr 09:00-21:00; Sa 10:00-18:00; Su 10:00-18:00; Mo-Fr 09:00-21:00",
       "www": "https://www.kierratyskeskus.fi"
     },
     {
@@ -522,6 +538,14 @@
       "www": null
     },
     {
+      "name": "Kontti",
+      "lat": 60.1628803,
+      "lon": 24.7060364,
+      "address": "Finnoonlaaksontie 9",
+      "openingHours": "Mo-Fr 10:00-19:00; Sa 10:00-17:00; Su 11:00-17:00",
+      "www": "https://sprkontti.fi/pages/espoon-kontti-merituuli"
+    },
+    {
       "name": "Koopernu",
       "lat": 60.1614406,
       "lon": 24.9465993,
@@ -550,6 +574,14 @@
       "lat": 60.1710905,
       "lon": 24.9587357,
       "address": "Kirkkokatu 1b",
+      "openingHours": null,
+      "www": null
+    },
+    {
+      "name": "Lastenkirppis PikkuVekara",
+      "lat": 60.179355,
+      "lon": 25.0517655,
+      "address": "Yliskylän puistokatu 4",
       "openingHours": null,
       "www": null
     },
@@ -722,28 +754,12 @@
       "www": null
     },
     {
-      "name": "Siilitien Kirppis",
-      "lat": 60.2068899,
-      "lon": 25.0413665,
-      "address": "Siilitie 6",
-      "openingHours": null,
-      "www": "https://siilitiekirppis.fi/"
-    },
-    {
       "name": "Soma oma",
       "lat": 60.1614502,
       "lon": 24.9408342,
       "address": "Fredrikinkatu 16",
       "openingHours": "Tu-Fr 11:00-18:00; Sa 11:00-15:00",
       "www": "https://www.somaoma.fi/"
-    },
-    {
-      "name": "SPR Espoon Kontti",
-      "lat": 60.2164622,
-      "lon": 24.6540828,
-      "address": "Nimismiehenpelto 6",
-      "openingHours": "Mo-Fr 09:00-20:00; Sa 10:00-17:00; Su 11:00-17:00",
-      "www": "https://kontti.punainenristi.fi/espoo"
     },
     {
       "name": "SPR Kontti",
@@ -810,6 +826,14 @@
       "www": "https://www.tattarisuonantiikki.fi/"
     },
     {
+      "name": "Tavararahaksi",
+      "lat": 60.2164116,
+      "lon": 24.6524057,
+      "address": "Nimismiehenpelto 6",
+      "openingHours": "Tu,Th 14:00-18:00; Sa 10:00-16:00; Su 10:00-15:00; PH Off",
+      "www": null
+    },
+    {
       "name": "Theodora second hand shop",
       "lat": 60.1599261,
       "lon": 24.9373259,
@@ -851,6 +875,14 @@
     },
     {
       "name": "UFF",
+      "lat": 60.2921753,
+      "lon": 25.0422872,
+      "address": "Asematie 4-10",
+      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-17:00; Su 12:00-16:00",
+      "www": "https://uff.fi/"
+    },
+    {
+      "name": "UFF",
       "lat": 60.1948804,
       "lon": 25.0296229,
       "address": "Hiihtomäentie 14",
@@ -879,14 +911,6 @@
       "lon": 24.8112345,
       "address": "Leppävaarankäytävä 3-9",
       "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-18:00; Su 12:00-18:00",
-      "www": "https://uff.fi/"
-    },
-    {
-      "name": "UFF Tikkuri",
-      "lat": 60.2921753,
-      "lon": 25.0422872,
-      "address": "Asematie 4-10",
-      "openingHours": "Mo-Fr 10:00-20:00; Sa 10:00-17:00; 12:00-16:00",
       "www": "https://uff.fi/"
     },
     {

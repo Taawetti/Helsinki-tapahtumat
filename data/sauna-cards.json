@@ -1,209 +1,209 @@
 {
-  "fetchedAt": "2026-08-24T05:30:32.632Z",
+  "fetchedAt": "2026-10-23T12:04:48.113Z",
   "cards": {
     "sompasauna": {
       "name": "Sompasauna",
       "title": "Sompasauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWngx1-iGWL73VwUeIo4Mv31rBY1ZQffOd-eMdFqqReCq1mSoBKBZNSEiPNGOwsAEyKE_BKGz_0vRaEsrj81aw7U4JidcIJTSqEorYwqwypz7zKFrWnglJRREnkejEVjIUZu57bX=w408-h307-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLfjnAzH3iHmTsrA46hvidIElCb2oZCUnlwMn-7WiWfsZyWI7jkNrkCMzblNRuNpQPuukXmQEToOwrrnFQbVdzNW9yQC3tuuxQVvS_RW9Tn_0zU8EVyNSQzA0DN4zzcgZEXC4Bg=w408-h306-k-no",
       "address": "Kansanpuistonpolku 5, 00570 Helsinki",
       "www": "http://www.sompasauna.fi/",
       "phone": null,
       "priceLevel": null,
       "rating": 4.8,
-      "reviewCount": 1381,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 1416,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "kotiharjun sauna": {
       "name": "Kotiharjun sauna",
       "title": "Kotiharjun Sauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlMNw_CnsbA6QVasOQ09UTE4AkDvXzPxB6KhZH71tz9aWqHMLkOtwE_KLecVy1GvuydwppVRme-Nk5GyZ5Pj4mlEy-K_1CoXRmX_jraAMcVlt_NQPZtAGz7QDvwjQqRWZnoILtf=w426-h240-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLcZ3TRVx87XQ0SZHtcdBCObx9vDXQoAqjhuJ2FORM63wtCToXKxJw9c2OmAdkTeX_fWli2nieeBQJv_57cWU_TAuMiY8whGf15YHfPuwp25c4p7DQ2mCRANe3RO7eJnRMW_VyUo=w426-h240-k-no",
       "address": "Harjutorinkatu 1, 00500 Helsinki",
       "www": "http://www.kotiharjunsauna.fi/",
       "phone": "+35897531535",
       "priceLevel": null,
       "rating": 4.7,
-      "reviewCount": 865,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 882,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "sauna hermanni": {
       "name": "Sauna Hermanni",
       "title": "Sauna Hermanni",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWngFDPyyFkOE1eSvRmlRtJJow3E0ZL_68ySrm-4lcTRkscUVw9NzNYyhp0KrArcszIzD6FpDDq1pAuIctVCt_9sKGj6J9sx-cd3x6anql3Oy2Ts34iw4F8Qxs4FLnsxYC_gK3fY4g=w408-h271-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLdc4rwueMsEk1dLg7rq2va3cQEIrq4R5TLrNpGCVP53sfn_60G-LiFN2mDCkxpp2WOgz5YkyPn4LPeRgS9xyp-HRwfqjp-DfbCXkXh-ZL9whieCRcpm_B84xCvc6rSUlz0WlHakVg=w408-h271-k-no",
       "address": "Hämeentie 63, 00550 Helsinki",
       "www": "http://www.saunahermanni.fi/",
       "phone": "+358407769926",
       "priceLevel": null,
       "rating": 4.7,
-      "reviewCount": 213,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 215,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "gay sauna vogue": {
       "name": "Gay Sauna Vogue",
       "title": "Sauna Vogue",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmkX8zO4_uf0NZ9QOKd283I6cU2qNvIMo4W_koTlYYuEqL-LdGbP68t1ZY_njxvW20ezSw37_p77yZXs4O2pTyr9ElHOcRBXR-6tbXv39DpKJ5ZQoslK-noSp_eeJPBUs-fso5a=w408-h272-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLf57hRokgPgHTZ0YINRMUO0dhhjwpcXp6ZYBMSLfwXnR4yY-GHMrvfveVD85SnZuxTM-K02dDgqsK_BxODmjOtJP-CdTx_plyaqzdSiQOkAKyx2BrQqF0Mn1Ix0YS0tbZ1JIK59=w408-h272-k-no",
       "address": "Sturenkatu 27, 00550 Helsinki",
       "www": "http://www.saunavogue.net/",
       "phone": "+358442458044",
       "priceLevel": null,
       "rating": 3.6,
       "reviewCount": 72,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "furuvik rantasauna": {
       "name": "Furuvik rantasauna",
       "title": "Furuvik Rantasauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmIWnM_W8abVSflHgY67HyGyMymTd6VlpvRaMby_ic_jhDhqJXr0ayVKfCYu93n2VSRmn2fhZvTB2rfFB6F3RLsruL8POf8gWRGVOfAfs--b5XqTthHrm71KapYC_-LpyfFhS42WQ=w408-h262-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLcOveMFeDGMZ3DkJDubY3IKghMI7nFgTNTduCL-3QyKu8bH_O1ipfy7hwHDoIxDy-Q5rjfia1XZdKzGpghPxjnHjlJ0TsVQcXFaXW-NGOKk4gxzjQ_1Z15x3HNYilkrxMMllcMcHQ=w408-h262-k-no",
       "address": "Furuvikintie 5, 00870 Helsinki",
       "www": "https://saunat.fi/lippu/villa-furuvik-rantasauna",
       "phone": "+358449893454",
       "priceLevel": null,
       "rating": 4.7,
-      "reviewCount": 220,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 233,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "jämeräntaival rooftop sauna": {
       "name": "Jämeräntaival Rooftop Sauna",
       "title": "Jämeräntaival kattosauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWk2D4P8dHS1AIbl39Y1oTrt2b2MQiVcVY5gq8OfqPfCHUcqnwLFpguUz9qbBnTesyKHGPP0RwBSy2EOSol6-CmEi3Y4ycW90QJob3p0ixksBuCB-_q48e_jWBbXEhRzGLk9oMo3=w408-h272-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLe6rxSINVZ0Y_bMHW383Y811WNluP3xeB5os44NMB5yofxFLtsaQzIOjSuP7XO2uu3O0IwAm2hmLN38uru53gZw2BldCmKVmcdZeD6Be3Yd6wza26XMrD1Wm3Fm70518UDomkyi=w408-h272-k-no",
       "address": "Jämeräntaival 3 A, 02150 Espoo",
       "www": "https://www.ayy.fi/fi/jamerantaipaleen-kattosauna",
       "phone": null,
       "priceLevel": null,
       "rating": 4.4,
       "reviewCount": 14,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "lapinlahden sauna": {
       "name": "Lapinlahden Sauna",
       "title": "Lapinlahden Lähteen sauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWla389w8rYrphxGlrAeaJHZLvVNqsiT8lSkDdJgypd4z7PZES7023bb3RUyhr6yxpGANZ1yuDAsgqWaZYElWsnI9hxOwHlVhE0gtnIF696zfBqTYQh_VuHIbwAGq4eCONlxSPdU=w408-h272-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLcsmamMStwPq8QNxJZ1jLxD5f-kFi6CkG5ba3_U_DHDncd-V-9slDO-kdCV5nA2uPCkSICjSi0Cubl43YqHDuQiS_BwGNyN9foGbOtAyE9uo26h1WA1pF2ZB28PCp_R4jkBUF0M=w408-h272-k-no",
       "address": "Lapinlahdenpolku 8, 00108 Helsinki",
       "www": "https://lapinlahdenlahde.fi/sauna/",
       "phone": null,
       "priceLevel": null,
       "rating": 4.6,
       "reviewCount": 72,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "kyrö sauna bar": {
       "name": "Kyrö Sauna Bar",
       "title": "Kyrö Sauna Bar",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlYLC1iFimIaK32f5FXVHYxW0Xp3JD-pyYyTJSX2brFTmK18HR9_pcJUP2FfBz0Y5MIZoglioZsEG5yLQdzzgdJbPZcdZKX7FyhwVV8d_Lw9ouJtSPgLB6hrDjoQHBq1mxoy8HKMQ=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLe9brBgFXz0QiByJRVxAisTfqZvfzpzE8DHQ32AvGwfYT7lBsw1lAaxHzRylyxMHoc8AWcVsjHYFIDxG02YeHIRMZugjtkePNwJay-yN6dWvHBqMmBj2-UbL1hVtDQeIXQD_APakQ=w408-h306-k-no",
       "address": "Keskuskatu 6, 00100 Helsinki",
-      "www": "https://visit.kyrodistillery.com/pages/kyro-sauna-bar",
+      "www": null,
       "phone": "+358505056955",
-      "priceLevel": "inexpensive",
+      "priceLevel": null,
       "rating": 4.6,
       "reviewCount": 41,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "mysauna tikkurila": {
       "name": "MySauna Tikkurila",
       "title": "MySauna Tikkurila",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlW4vPePCWq1KtpJdVfp5LpRRieRFk-K1W5BGl_ZIyQnSJhw5wvC4Ry2jEDHes5KLgmaJLolcfqqyKVh-TBekws76BTEkpZTHzIAMNz9Alu2HtqfdxzSagOaBdBgrhNV9oAov0v=w408-h544-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLcDKJ8s2M_Kkj-5X7X32ZR219izsZTnXpXVHeuNK2Tt1IvfavrfI3t-P_kxLOyymln985IrWaE6MUOnh2zGaVbYa9H0ZhRUn0PAwxeE3Y8gLAiiVlCTBFCWmQsM4ErgANz37Mk0=w408-h544-k-no",
       "address": "Peltolantie 1, 01300 Vantaa",
       "www": "https://saunaonline.fi/saunatilat/saunatilat-vantaa-tikkurila",
       "phone": "+358105170150",
       "priceLevel": null,
       "rating": 4.1,
       "reviewCount": 45,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "pasilan saunatilat": {
       "name": "Pasilan Saunatilat",
       "title": "Pasilan Saunatilat Oy",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnLj9s-S-OqceFvtQ-5UdeiEr0sWNgdxKpyqclNi9-syec7z5HODlyBk-dxMW_n8WT7Lv1SSHQ-MTdyE5hldeoiCQuziyj1U7dfVBJ3PSxkS6VEUQucfOPqW9tqaPfD4L8a53Vv5RmfY3tN=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLehmXMeZiH8xRW24dglNN9j5lwZ2es6pENXPB7YdOQO368oavUdHqZnFakk8U3KqYQSZhWaTQwXkPDiif2pxrw4xxuJsfqF2L66MlN2BV7l1AuvW6EIQgc5KowEsLENNysXpGQmueNaxU8H=w408-h306-k-no",
       "address": "Esterinportti 2, 00240 Helsinki",
       "www": "https://www.pasilansaunatilat.fi/",
       "phone": "+358408403069",
       "priceLevel": null,
       "rating": 4.4,
-      "reviewCount": 47,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 46,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "saunatfi tapiola": {
       "name": "SaunatFI Tapiola",
       "title": "Saunat.fi Tapiola",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnin6cQeVVlY-yKRqMjxk_KEWIKiwDm4PoBxZOSaGoOBKuIJPks6c2NKyuDm_Ggz4K_Bcx-oVyLlSFQ87ZAnuvoAhdurRWa43Mi9R1NJPDUFVwCPqtpz_HDj1NG8dGGoceXy6_RSQ=w408-h272-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLdaBbmsz5UCtMoEIVy18vsSnO0VatW3c-Fa1Sg8MWmKWiWrcykHYH53krqot8RsAho8V_44PROvN3ZpqvqoREYf-xiC4tKMJTu1dN4x_wAgOYGu6IYw4KcfViJCSCqEzw9y3q6Cyg=w408-h272-k-no",
       "address": "Länsituuli 1 A 4th, 02100 Espoo",
       "www": "https://saunat.fi/",
       "phone": "+358449893454",
       "priceLevel": null,
       "rating": 2.2,
       "reviewCount": 6,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "sipoonjoen perinnesauna": {
       "name": "Sipoonjoen perinnesauna",
       "title": "Sipoonjoen perinnesauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnj9KnMz6ONWN-rvh7baHdP-lMq-WiuflKJeFBF8qZEgt7mwr4uZfTvUt_ts5315HQgww9pjlnk1M3UqX0x0qLMbfzV8ze3PLjCMSWyYrj5AvfKdDmCOcDCxg-1srU93sce0YFCJw=w408-h541-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLeXwD98wfE-9AOdp4I0S78Kjnt8J5cbvoogBpi5YhQypZa2EMm-nh-qcIIMaexg-0G5E7aDb8DIWEKNCC3ORKbHMhBv0vR6Zl91o3NIYch5njNjCvjDzkeB0oszbrn3RODtYdM7zA=w408-h544-k-no",
       "address": "Hindsbyntie 124, 04130 Sipoo",
       "www": "https://saunotus.fi/",
       "phone": "+358102992866",
       "priceLevel": null,
       "rating": 4.6,
-      "reviewCount": 170,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 177,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "teurastamon sauna": {
       "name": "Teurastamon sauna",
       "title": "Teurastamon sauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmOTSikvx9P8cGpk7E7Q-7XjPUlMpGYCOeyHGLS039WzsR0B4E1_qBHcVV9fik8V5FGsMVMZykjMFFoHYsrWGm_V9MhCZL8DKqMZML-wC9XolTOYoXSzb1OWxJCDH9_1AH2Sew=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLetoGP0iZljANeKQfIs9SO17OUoci0oVhQe3_FDnkLDYP_dPmsK9Yz937VG_xd6eJrFWur-mevgqtY4MeZRkyyGLpX7aeCBBsmf4ta83sOBq5BR9eckr1mIBXi9e5WdhvxY4L4=w408-h306-k-no",
       "address": "Työpajankatu 2 rakennus 5, 00580 Helsinki",
       "www": "https://ravintolapalema.fi/#teurastamon-sauna",
       "phone": null,
       "priceLevel": null,
       "rating": 4.6,
       "reviewCount": 7,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "urbansauna kallio": {
       "name": "Urbansauna Kallio",
       "title": "Urbansauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkc3KuuCqr2pSiuJqAX3fqHepXRiGq8kNVUb_e4xAj2iaIipELpQ0UgURCFQW7JtdnmNhj93yR64NWXAY_y9F_nxZRkZmoHEImQni9r_2TmBe0z63E7DwWm7VRSIZ3pzE5GzK4V=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLfzyC9mO-_JeZtNVCHHdgS5Vv00gHlK11YdH8RSw9qHF2wWocsWDsgzIdSdCx-12Wc73k723KKasef1OU_j7lq8GPfE5i956Pj4k2yBZValV1mXuMQeHu9e9u0nMrN-XJcRi_pq=w408-h306-k-no",
       "address": "Aleksis Kiven katu 22, 00500 Helsinki",
       "www": "https://urbansauna.fi/",
       "phone": "+358454906906",
       "priceLevel": null,
-      "rating": 3.9,
-      "reviewCount": 63,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "rating": 3.8,
+      "reviewCount": 67,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "tilaussauna siera nevada": {
       "name": "Tilaussauna Siera Nevada",
       "title": "Sauna Siera Nevada",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmswnioP2lhFwYFsdg-fk7U7RRL97_jn8a_BFUd3lNezEUtTeSjNH_JuCujHZD49N4wXIigCdq1cY_EP1HobN5SulrN2C9AAsX_m6W5ZkHcdkhpUh0LwuK1U_2TxHSi92VTO9FO=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLdDudecpplg5iU_WdQ8ffx6Z_xYpmFEYUKeRVuGV4eyL9SWpdQdz1GOUNN4AoW5I9p0za-lybRbPl9MBBMqmSwrpFNTg1QYaCk_l2ym7T2T4beOCX0wfUFvQKuSDJmGU-8c3E3-=w408-h306-k-no",
       "address": "Mänkimiehentie 14, 02780 Espoo",
       "www": "https://www.saunaonline.fi/saunatilat/saunatila-espoo-siera-nevada",
       "phone": null,
       "priceLevel": null,
       "rating": 4.2,
       "reviewCount": 10,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "uusi sauna": {
       "name": "Uusi Sauna",
       "title": "Uusi Sauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWklTAFUCPaekLexntufXR5c9ka9rOY6j0IxVOXWeUnmjy26k_UlEMKW0RYzVcO3AxddewurdzLITb8QEuSB_LgvmmMk76MRRbjy3KPoERIp4ycLEi_nMqVla0MPDRZuPQmWLVdk=w426-h240-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLdX8yeJ2mo0Uan0Ek5zFjV06PKcRPsh_lMxHOKA_6Q46VooGQUBhPOAGf6CeglD1STE71PdFddposWEEui1GFq4oxI1OEXnkq9f2zrw5qQcMlCC0TbLnibRFRXMTCCDUmnFnaic=w426-h240-k-no",
       "address": "Välimerenkatu 10, 00220 Helsinki",
       "www": "http://www.uusisauna.fi/",
       "phone": "+358447583228",
       "priceLevel": null,
       "rating": 4.6,
-      "reviewCount": 382,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 391,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "wanda's kitchen & lounge, sauna ja kokoustilat": {
       "name": "Wanda's Kitchen & Lounge, Sauna ja kokoustilat",
       "title": "Wanda's Kitchen & Lounge",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkY3CA_xI55XI9POn4b0tbda2GAX7XkMmBM0EWi_R2d_n-8cp_J9brUGTF2ih_EoxNOqPL4hvz3rSAt_hIHSwwR8PyPGpaIEFOEpiR_zZzdrPzDurbf2rveOGRz51LMkAp-Z2Y=w408-h408-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLf_tvvrpHPCF8GD1VRvvUkJmgGnywDsekrmkCPk9hYfr2EQGvLU5Q2DMGvjbARMPZc-u-J5htKPiC2k9YIrfV41rtIqsAn_zE5giZyfwTL5itJEa0O3tameVoyq_mcEx5DGji4=w408-h408-k-no",
       "address": "Liesikuja 5, 01600 Vantaa",
       "www": "http://www.wandas.fi/",
       "phone": "+358456645064",
-      "priceLevel": "moderate",
+      "priceLevel": null,
       "rating": 4.1,
-      "reviewCount": 1432,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 1435,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "yhteiskerhotila talas, sauna": {
       "name": "Yhteiskerhotila Talas, sauna",
@@ -220,38 +220,38 @@
     "hakunilan uimahalli": {
       "name": "Hakunilan uimahalli",
       "title": "Hakunilan uimahalli",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkKXbQYsXxqm5OVqr4rVBZ_xVKzGydzt7MQH4zr2hE01RiE9jVtlkjGjh4kFnqrcQCc6DW5bVVOPbUnZkChBzmej-psTyCpSgzU9ok0fiMhJYJP4kNkujjkjzeC6NzxWmZ6iCF_8Q=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLfZqQdxaPYj3RY2SEJPBiVxQjDH6XkQaAInsSsPGx9C-bsbu_OUwSVO7rFcwhpFYajcUCgjszPhgzA3q_6c8V6XlYGg5wUB7zSWZsmhsPxk1-7jjhMK6HvFX8-Vx0luq9joeq_MbA=w408-h306-k-no",
       "address": "Sotungintie 17, 01200 Vantaa",
       "www": "https://www.vantaa.fi/fi/palveluhakemisto/toimipiste/hakunilan-uimahalli",
       "phone": "+358438272573",
       "priceLevel": null,
-      "rating": 4.1,
-      "reviewCount": 981,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "rating": 4.2,
+      "reviewCount": 988,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "löylykontti kivenlahti": {
       "name": "Löylykontti Kivenlahti",
       "title": "Löylykontti Kivenlahti",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWne5fDlEG_RhCabuSP1KEinoqPYeGo6tZIr0iFga5Hc9lCQ4jCdx2kOLYSK6dafIqsVLa6TH2pzfxjAooXnlCEYtjGqDKCZUf80YBh5QDklOs4kg5IHHS22iiUZ0f4vOTFbyLoPZH7fZxM=w408-h268-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLfFeOJuYhju9xlOe1EiesaqIYPHjSdcOjAVY_V6lJwzfpHfaJ1dUH_MGPShs3WhDU0278eDeExboaKE2IOpFire3MLfI6qD-vsb2aLagn7AGv9dscvOBf9TLdX0la8Xj6OATQnQ19t-_gg=w408-h268-k-no",
       "address": "Merivalkama 11, 02320 Espoo",
-      "www": "https://loylykontti.fi/",
+      "www": "https://www.loylykontti.fi/fi/saunas/espoo/kivenlahti?utm_source=google&utm_medium=organic&utm_campaign=gbp_kivenlahti&utm_content=website",
       "phone": "+358452346960",
       "priceLevel": null,
       "rating": 4.1,
       "reviewCount": 45,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "löylykontti matinkylä": {
       "name": "Löylykontti Matinkylä",
       "title": "Löylykontti Matinkylä",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlAdXzJMK_JLN4kcDk43c-s7hTqdTP1RH5UlVWAVMc3oVeRjDFnhvs5B63q7yOUylqynRuj5nsqxw0hcegL0Y5ciKAyd-zWElSR71p4F8TS6s8oViCx5okkbA02Y9_FAV5e7cMvzFuMvdbr=w408-h272-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLdcOzysmGaohi6LpFZ8y91YdnIcyJSSk6dRn1z8b05R2BrSxuP-fZZrEO9vCOUVN0tqY0E1Uo4XTPrxx9bisI089HQrMPp41Y1Euc1WeuiFevWEAVPGzPKfpjvMAElIlXfH4W1aLifg4ruD=w408-h272-k-no",
       "address": "Nokkalanpolku 3, 02230 Espoo",
       "www": "https://www.loylykontti.fi/",
       "phone": "+358452346960",
       "priceLevel": null,
       "rating": 4.7,
-      "reviewCount": 99,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 102,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "myyrmäen urheilutalon saunat": {
       "name": "Myyrmäen urheilutalon saunat",
@@ -268,126 +268,143 @@
     "ok20": {
       "name": "OK20",
       "title": "OK20",
-      "image": "https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=JZ4RXnbVg51t1Igpy2TUwg&cb_client=search.gws-prod.gps&w=408&h=240&yaw=131.06865&pitch=0&thumbfov=100",
+      "image": "https://streetviewpixels-pa.googleapis.com/v1/thumbnail?panoid=JZ4RXnbVg51t1Igpy2TUwg&cb_client=search.gws-prod.grass&w=408&h=240&yaw=131.07138&pitch=0&thumbfov=100",
       "address": "Otakaari 20, 02150 Espoo",
       "www": "https://www.ayy.fi/fi/ok20-juhla-ja-saunatila",
       "phone": null,
       "priceLevel": null,
       "rating": 4.6,
       "reviewCount": 9,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "olutravintola malmgård saunatila": {
       "name": "Olutravintola Malmgård saunatila",
       "title": "Olutravintola Malmgård",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmrpDMrwklM7tq9nKZQSmOGwa4TlC1ceIZ6zrPvw2STKl0pzQ9t9BmZqHVC7yqD210Kz3JrhbYfzg6n5K-4DqONvr7_UvVfpyB9X1CPLeCUVDhZlWCW37Jx-VTEJ4EJ0gM7wpHlTuNwMous=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLcq7Ujsoqom1bD2gKBNPouWR1CxjdwJBfyCNt19PBMB-p6e67GPyJngZZj05GNoE2Tidq6EazDjNiFbJ7YmFMVXZGjGRYFX2RDQ1CfKDwkku6-mu7IyY-a-GopPmGHtKHU_DWKqQQt5R8Ha=w408-h306-k-no",
       "address": "Malminkartanonaukio 4, 00410 Helsinki",
       "www": "https://m.facebook.com/OlutravintolaMalmgard",
       "phone": "+358504085482",
-      "priceLevel": "moderate",
+      "priceLevel": null,
       "rating": 4.3,
-      "reviewCount": 208,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "reviewCount": 209,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "mäkelänkadun sauna": {
       "name": "Mäkelänkadun Sauna",
       "title": "Mäkelänkadun Sauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWn9myKZrbqh-ZNXVuJZ417hIV-_qy8cT7zrnVIHe8VZPmVv6G-ADHGKLBbriV79Q6IPI_ztcgnNEQNMQlrBAhyiZmKyJBq8vyLOu8KgNyVHv9SRrBLNhXd72UvDsW8CfveoHtYX=w408-h306-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLdYxTmAF4_h-46rHU8-hMMiesSKa7h6lDzIst7LVL7qjzqa02ewIROREPlQX50yZAyd8OCWBb4B2g0F5PSoljfs1w8K7_wPSEaJVyK5Z6PfIjbvaEhEU5VHaq2QtZLK1kE-RXyK=w408-h306-k-no",
       "address": "Mäkelänkatu 87, 00610 Helsinki",
       "www": "http://saunavuokraus.com/",
       "phone": "+358408403069",
       "priceLevel": null,
       "rating": 4.5,
       "reviewCount": 50,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     },
     "ossinsauna": {
       "name": "Ossinsauna",
       "title": "Ossinsauna",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnxHv9Kiit1vHJ0lfw35grlQ5V6XjTWRMUvigT3IqThjotaKJXqXpCxvYN_od63fEvCDk3LUzhvGqyvuPniQnwr8QknQIEL1NDPEnTxnb1jgZYF3T1JBPUhhcBUWpMCED9jHPu3=w408-h255-k-no",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLely8YYL02X7byi_SxTGb4PuI25QlomvRY9jfEcW1BQSPul-O0TSsn-yo7ObvhKcS25fDSHmQgOh30tCcpiVvi0V_0CEqqDCnsjHBhK3FBi70-CTw2XZl4KhQJTaPT0a89etY6x=w408-h255-k-no",
       "address": "Otakaari 18, 02150 Espoo",
       "www": "https://www.ayy.fi/fi/ossinsauna",
       "phone": null,
       "priceLevel": null,
       "rating": 4.3,
       "reviewCount": 34,
-      "fetchedAt": "2026-08-23T21:32:33.136Z"
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
+    },
+    "gay sauna con hombres": {
+      "name": "Gay Sauna Con Hombres",
+      "title": "Sauna Con Hombres",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLcNqOAg0j6tYs6ZmopOJNZptcRzluJ015uNr8dsBYZ782baegB5ZP53hAw2ihyfLV5YUuU753Ww_6ijW-uRn5mjAQlSDlesKcCuK_rOpUPvYwDt98HTk0fq5PVofMsNDWQp511iwQ=w408-h306-k-no",
+      "address": "Kruunuvuorenkatu 3, 00160 Helsinki",
+      "www": "https://www.conhombres.com/",
+      "phone": "+358442458044",
+      "priceLevel": null,
+      "rating": 3.8,
+      "reviewCount": 26,
+      "fetchedAt": "2026-10-23T12:04:48.113Z"
     }
   },
   "misses": [
-    {
-      "name": "gay sauna con hombres",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "name": "löyly",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "väärä sijainti (962 m)"
-    },
-    {
-      "name": "otaranta rooftop sauna",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "eri nimi (\"Otarannan kattosauna\")"
-    },
-    {
-      "name": "kuusijärven saunat",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "name": "merihaka sauna",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "name": "pikku leikosaari",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "name": "luukki",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "name": "kartanosauna",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "name": "höyrysauna",
-      "at": "2026-08-23T21:32:33.136Z",
-      "reason": "ei googlessa"
-    },
     {
       "name": "mansikka",
       "at": "2026-08-23T21:32:33.136Z",
       "reason": "ei googlessa"
     },
     {
-      "name": "rantasauna",
-      "at": "2026-08-23T21:32:33.136Z",
+      "name": "löyly",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "väärä sijainti (962 m)"
+    },
+    {
+      "name": "kuusijärven saunat",
+      "at": "2026-10-23T12:04:48.113Z",
       "reason": "ei googlessa"
     },
     {
-      "name": "ouritsaaren talviuintipaikka",
-      "at": "2026-08-23T21:32:33.136Z",
+      "name": "otaranta rooftop sauna",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "eri nimi (\"Otarannan kattosauna\")"
+    },
+    {
+      "name": "merihaka sauna",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "name": "pikku leikosaari",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "name": "yhteiskerhotila talas, sauna",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "name": "höyrysauna",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "name": "kartanosauna",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "name": "luukki",
+      "at": "2026-10-23T12:04:48.113Z",
       "reason": "ei googlessa"
     },
     {
       "name": "oittaan sauna",
-      "at": "2026-08-23T21:32:33.136Z",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "name": "ouritsaaren talviuintipaikka",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "name": "rantasauna",
+      "at": "2026-10-23T12:04:48.113Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "name": "myyrmäen urheilutalon saunat",
+      "at": "2026-10-23T12:04:48.113Z",
       "reason": "ei googlessa"
     },
     {
       "name": "oulunkylän liikuntapuisto, saunat",
-      "at": "2026-08-23T21:32:33.136Z",
+      "at": "2026-10-23T12:04:48.113Z",
       "reason": "ei googlessa"
     },
     {
       "name": "sauna (talviuinti- smark)",
-      "at": "2026-08-23T21:32:33.136Z",
+      "at": "2026-10-23T12:04:48.113Z",
       "reason": "ei googlessa"
     }
   ]

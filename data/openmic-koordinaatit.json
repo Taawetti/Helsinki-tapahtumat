@@ -108,5 +108,25 @@
   "lat": 60.2311143,
   "lon": 24.9329375,
   "name": "Maunula talo"
+ },
+ "mannerheimintie 12|helsinki": {
+  "lat": 60.1680384,
+  "lon": 24.9407221,
+  "name": "Iguana Bar"
+ },
+ "eerikinkatu 28|helsinki": {
+  "lat": 60.1658836,
+  "lon": 24.9317404,
+  "name": "Bar Mendocino"
+ },
+ "paciuksenkaari 15|helsinki": {
+  "lat": 60.1968148,
+  "lon": 24.8957156,
+  "name": "Pub Huopis"
+ },
+ "tyynenmerenkatu 2|helsinki": {
+  "lat": 60.1596797,
+  "lon": 24.9220185,
+  "name": "Clarion Hotel Helsinki"
  }
 }

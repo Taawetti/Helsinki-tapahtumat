@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-24T05:30:25.872Z",
+  "fetchedAt": "2026-10-23T11:55:38.961Z",
   "cards": {
     "https://www.openstreetmap.org/node/13615218885": {
       "name": "Expo Open Lobby",
@@ -214,30 +214,30 @@
     "https://www.openstreetmap.org/node/13812213492": {
       "name": "Taphouse Train Factory",
       "title": "Taphouse Train Factory",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkR1LDUUm6nYwAb59f0GZTEGo71G4-wOITzNTdVROWxlADJd_yE0_dHqYXBZTDVvARqhcVMPWAv9anR1MM0MJlsgLIB0t_noTYVOO7qXdRgyWhnCo4OFSHCnGLXukDHBnRAsgvXiK7hoLfQ=w426-h240-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/5b615e719280ac5b0acc719167ab2136e14d4fb3.webp",
       "address": "Konepajanraitti 3, 00510 Helsinki",
       "www": "https://www.facebook.com/TaphouseTrainFactory/",
       "phone": "+358405639969",
       "category": "Baari",
-      "rating": 4.1,
-      "reviewCount": 8,
+      "rating": 3.7,
+      "reviewCount": 10,
       "lat": 60.193307399999995,
       "lon": 24.945184599999997,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/13870712999": {
       "name": "Ripasso",
       "title": "Ripasso Ravintola",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkPTIlrestHbci_QOeRTTYgClyfWy11Podc4tGyHBNyLbTKL0Ofq4u3r1nhO7x4O4xdUmmm0x3a-RNKY1NsnknJwt4cTIqBmI4EMx5gJWIaMJmpEmLYaP_xzhKYg2a7BssXZj1POA=w408-h273-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/2c31f0b405cb83933c0ab8d6281b819881418c28.webp",
       "address": "Solvikinkatu 11, 00990 Helsinki",
       "www": "https://ripasso.fi/",
       "phone": "+358442478783",
-      "category": "Ravintola",
+      "category": "Pizzeria",
       "rating": 4.5,
-      "reviewCount": 77,
+      "reviewCount": 78,
       "lat": 60.202284299999995,
       "lon": 25.154608999999997,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/13842553626": {
       "name": "Koi Sushi Pakila",
@@ -270,16 +270,16 @@
     "https://www.openstreetmap.org/node/13897544875": {
       "name": "Dragon Sticks",
       "title": "Dragon Sticks Train Factory",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlL1z3HNm67kP3XWHYuURPqSCUk5a_lOi2vOOMhXH51whnS-EYFkvLeiYi8KZfW9BqFgMk28joWJLeuzoLCwn3wyFzaj1m5X52Uww0rjcz-D-V7P9zBxy3jrCZ_gKECXkP0H_-XssbopvUn=w408-h314-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/e2345ea5f0789d4f2cbc6087de2105e30f4aec89.webp",
       "address": "Aleksis Kiven katu 17, 00510 Helsinki",
       "www": null,
       "phone": "+358451706788",
-      "category": "Ravintola",
+      "category": "Sichuan-ravintola",
       "rating": 4.8,
-      "reviewCount": 20,
+      "reviewCount": 21,
       "lat": 60.193511799999996,
       "lon": 24.9467444,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/13930902648": {
       "name": "Ravintola 305",
@@ -298,35 +298,35 @@
     "https://www.openstreetmap.org/node/13937836842": {
       "name": "Ariel Ravintola",
       "title": "Ariel",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkpVVqYNzWSPXmf3zRB55TYbvIRUmW_VFczBTdu38IpVeTlNIF2Yqdr8cNBWSwy_JZ-2A9-GNYCNRhp5WyVj0Ssy4oBzUhNgMVkmnxdK_d5sXSHtQ777lAn0ifh9VMMVQrP-3EwUYYXaz1u=w408-h306-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/8eab27fbdf18aa8e904055a226540cd762238328.webp",
       "address": "Koksikatu 12, 00540 Helsinki",
       "www": "https://arielravintola.fi/",
       "phone": "+358400214421",
-      "category": "Ravintola",
+      "category": "Suomalainen ravintola",
       "rating": 4.9,
-      "reviewCount": 20,
+      "reviewCount": 48,
       "lat": 60.184053299999995,
       "lon": 24.9751956,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/13950807379": {
       "name": "Klandestina",
       "title": "Klandestina",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmrBV7vvUZHcgiC8jInXqqc0DSeP7CCNKhQWBhvgkQ7U-lV9ToRVKPndfsU_lNOF6xXwvVRpFfhyrgd6WmhrMfLrHtwXHsPk6eRD3eHWmaaKg-Ybz-UckG2FSZH4nlF9S_txPXW=w408-h544-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/074133aa00abd8c2c5f78308ee8e0e7325631e80.webp",
       "address": "Market Hall in Konepaja, Aleksis Kiven katu 17, 00510 Helsinki",
-      "www": "http://www.klande.fi/",
+      "www": "https://klandestina-konepaja.menu.sciometa.com/",
       "phone": "+358413299494",
       "category": "Meksikolainen ravintola",
       "rating": 4.4,
-      "reviewCount": 267,
+      "reviewCount": 278,
       "lat": 60.1929163,
       "lon": 24.945881699999997,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14005207221": {
       "name": "Wenla",
       "title": "Ravintola Wenla",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWl2s7FjP1iR8O4WzHXLIiwg7GJ48qezXnl0BezzboiGmMk5FB0kaZ266wRVz2bfBBT7eMRihSCGyhe7ynLiiYAoJeojnlfyfZDdD37OTRFeaNGSb-ibYnHPg9Ild-USvmI_n95ijg=w408-h306-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/6b8a3a93e07904e50abbf256e86f05cbb3111cbe.webp",
       "address": "Keinulaudankuja 4, 00940 Helsinki",
       "www": null,
       "phone": null,
@@ -335,12 +335,12 @@
       "reviewCount": 42,
       "lat": 60.2367809,
       "lon": 25.084756,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14005207222": {
       "name": "OMG Nightclub",
       "title": "OMG Nightclub",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWk95agHreRv0mo6kUX4F2StIaNL7mvC0Pu0ANWV9EXoVx_BDWgBUG3RJPvRMShFb_a0iWUcrR6XzVhITFPmRbkAjZO1odB5UYlvAlkk0ZWKQrtdSKpuzW-rSdrFYmh04lmyaiHCM-NVt58=w408-h544-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/d15dc99f8dac13f38812ed4e03a0116b53abea61.webp",
       "address": "Keinulaudankuja 4, 00940 Helsinki",
       "www": null,
       "phone": "+358458809095",
@@ -349,54 +349,54 @@
       "reviewCount": 8,
       "lat": 60.2367579,
       "lon": 25.0849941,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14051042991": {
       "name": "Ravintola Abyssinia",
       "title": "Ravintola Abyssinia",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkcAmGQXbAiD9Lk3X20XUrMHERiIZ7_XAd3jzcYsilOdJb_4x6j3iS5xfOCnqMItyt0V8SDVaQPycdihE2UhmXX7tVzLyukYntc5nXFnqVuT9e1ZGAssDmUZ7uZj6UAgegW7Xxsvg=w408-h544-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/ef61dd5806fbc90ec1ae520b7f70bebf20d59dfd.webp",
       "address": "Kutomotie 6 A, 00380 Helsinki",
       "www": "http://abyssiniaravintola.fi/",
       "phone": "+358449803812",
-      "category": "Ravintola",
+      "category": "Etiopialainen ravintola",
       "rating": 4.5,
-      "reviewCount": 90,
+      "reviewCount": 92,
       "lat": 60.214145599999995,
       "lon": 24.8738842,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14051863218": {
       "name": "Palace",
       "title": "Ravintola Palace",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmIYvVNROII7EzmnfNyezxkBRC0c4Lq0BD3Jb43lzlFCz6mscvgBNPh2I-XafGy4Sk-i9LbfZNamJabB-eKWW6n23GudH2wSg-0UkRlY5SekbRdKcNjprKTS_aa2eQQy4p_XZ_A=w408-h306-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/2f20f24d076faad525ef5ffafabee19aac434524.webp",
       "address": "Eteläranta 10, 00130 Helsinki",
       "www": "http://www.palacerestaurant.fi/",
       "phone": "+358505020718",
       "category": "Fine dining -ravintola",
       "rating": 4.7,
-      "reviewCount": 359,
+      "reviewCount": 368,
       "lat": 60.165219,
       "lon": 24.952263199999997,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14051863220": {
       "name": "Victor's Garden",
       "title": "Victor’s Garden",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnsHfe-r5Zw5yiuxSF4EWWGL2QOsGR0KvzyZ2y186df9D-PmsNl-Axfgfez79cp4gKaQItnr7efSumWMaNUQUbcQniI_JHptdwBEM_M7xepX9UycIRxvXp8r6VoKWX0fQzNEuCXYIAHntQ=w408-h544-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/eabd5f7e8356358c05f4710ab9632bf8f8972abd.webp",
       "address": "Eteläranta 16, 00130 Helsinki",
       "www": "https://www.victorsgarden.fi/",
       "phone": "+358451416550",
       "category": "Aasialainen fuusioravintola",
       "rating": 4.5,
-      "reviewCount": 67,
+      "reviewCount": 72,
       "lat": 60.166553,
       "lon": 24.952181099999997,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14053296206": {
       "name": "Ravintola Pause",
       "title": "Pause",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkwsvN4YWsfTYoBwuUfuj1bdPtXkwM-0HnKCeeCHNEXGQ_T6DNpctNmH4uUes1n0sONdRdqAOpWkpRbs9PfIvoKwZ6ihZeADHscZS1JcdwBwh2Z0W-Pl0YZUquvyIGREjVrDMMk=w408-h544-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/f2f8509bf09b6ffd9b55f3765b34061dbb1b17df.webp",
       "address": "Kutomotie 2, 00380 Helsinki",
       "www": "https://www.compass-group.fi/ravintolat-ja-ruokalistat/muut-avoimet-ravintolat/kaupungit/helsinki/ravintola-pause/",
       "phone": "+358505762676",
@@ -405,7 +405,7 @@
       "reviewCount": 16,
       "lat": 60.214929,
       "lon": 24.875995,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14089824027": {
       "name": "Huuva Malmi",
@@ -452,58 +452,240 @@
     "https://www.openstreetmap.org/node/14104745576": {
       "name": "Magnolia Coffee & Bakery",
       "title": "Magnolia Coffee & Bakery Tripla",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWm00ygmJnp-ZuibLjl7OUnLq3yzoSKAueN8kL1acmuAvb2rRUnp_bjODOtmOAuErOZYD8W7bml5rdqiLr-mceI58FJ2XPKcMytzVIVqhaDfsjs0viVjZJKJvMnos7YEV6mP44qVbA=w408-h544-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/c7d8871ca8f27853dfa935716c296d215711cd6b.webp",
       "address": "Firdonkatu 2B 4026, 00520 Helsinki",
       "www": "https://www.magnoliacafe.fi/",
       "phone": "+358449788381",
       "category": "Kahvila",
       "rating": 4.5,
-      "reviewCount": 127,
+      "reviewCount": 163,
       "lat": 60.1984995,
       "lon": 24.9297914,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14104745575": {
       "name": "The Schnitzel",
       "title": "The Schnitzel",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnQ7od2np7gQFmbCJV1JWTzpsoG_wWB9k7N6sFXLiusIRQSQXv8H3_hAacTelXwsxxQsfXS8ACdWuEGsfZc9ysrwdXHkpAT5KCbaa-uuNRR80OR2QFliru4LqLmYA9HyqbJ1mkoZdn-K-Jw=w408-h305-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/dbbc1b2106d5f5b89d5eb55b457b8a458355083e.webp",
       "address": "Mall of Tripla, Firdonkatu 2 A, 00520 Helsinki",
       "www": "https://www.schnitzel.fi/",
       "phone": "+358408203033",
-      "category": "Ravintola",
-      "rating": 3.9,
-      "reviewCount": 211,
+      "category": "Perheravintola",
+      "rating": 4.1,
+      "reviewCount": 272,
       "lat": 60.1989106,
       "lon": 24.930212299999997,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14107073354": {
       "name": "Roots Herttoniemi",
-      "title": "ROOTS Herttoniemi",
-      "image": "http://t2.gstatic.com/images?q=tbn:ANd9GcSxY3miFa2glwLtXnYqjh20ZY2X9W2MX1Iq1qR6LAMjM6mwtk_h",
+      "title": "ROOTS Herttoniemi Joogastudio & kahvila",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/0d2b116ef85055fb06b806876cf91638f17b799b.webp",
       "address": "Hitsaajankatu 20, 00810 Helsinki",
       "www": "https://www.rootshki.fi/",
       "phone": "+358407526070",
       "category": "Joogastudio",
-      "rating": 4.7,
-      "reviewCount": 11,
+      "rating": 4.8,
+      "reviewCount": 16,
       "lat": 60.1934094,
       "lon": 25.0329986,
-      "fetchedAt": "2026-08-23T18:59:45.939Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     },
     "https://www.openstreetmap.org/node/14008140237": {
       "name": "Walhala",
       "title": "Ravintola Walhalla",
-      "image": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkSuq3y81JCgMio-hHxr0_SjwtUcxHyrkFJmg0JcYfGsRDePWCgYYEvFrLeoh75BLCTu0axFV82dYqGRDBrqXemPWDGge0QtTpndvw8N3QEbhp4CdWe8abK_F4atNL1tvtt1LeHjNDD-Qlv=w408-h271-k-no",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/4e318bad21f4946cd3ee566641c8bc55bf74dca8.webp",
       "address": "Suomenlinna A10, 00190 Helsinki",
       "www": "http://www.ravintolawalhalla.fi/",
       "phone": "+358505726741",
       "category": "Ravintola",
       "rating": 4.1,
-      "reviewCount": 270,
+      "reviewCount": 268,
       "lat": 60.138695,
       "lon": 24.989476,
-      "fetchedAt": "2026-08-23T19:06:33.586Z"
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14120193424": {
+      "name": "Jäätelökioski Sibeliuspuisto",
+      "title": "Jäätelökioski Sibeliuspuisto",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/29f7cbe9f47c00d348dee9be17710f9c965f8432.webp",
+      "address": "Merikannontie, 00260 Helsinki",
+      "www": null,
+      "phone": "+358401699441",
+      "category": "Kioski",
+      "rating": 4.2,
+      "reviewCount": 66,
+      "lat": 60.181518399999995,
+      "lon": 24.912849599999998,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14177928010": {
+      "name": "Cloudspoon",
+      "title": "Cloudspoon",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/d34889b0a656dcef9c1a769cdc01f9fc547303f9.webp",
+      "address": "Mannerheimintie 3, 00100 Helsinki",
+      "www": "https://www.instagram.com/cloudspoonbistro?stkn=aG82cWV4ZzdseTdp&utm_source=qr",
+      "phone": "+358442368265",
+      "category": "Ravintola",
+      "rating": 4.9,
+      "reviewCount": 20,
+      "lat": 60.169053,
+      "lon": 24.9407127,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14162891434": {
+      "name": "KATANA RAMEN RESTAURANT",
+      "title": "Katana Ramen -ravintola",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/3f91805003bc33eb37e148afcf1c2518f85b3a2c.webp",
+      "address": "Telakkakatu 12, 00150 Helsinki",
+      "www": "https://www.instagram.com/katana.ppi.eu",
+      "phone": null,
+      "category": "Ravintola",
+      "rating": 4.7,
+      "reviewCount": 203,
+      "lat": 60.158892099999996,
+      "lon": 24.932308799999998,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14167560306": {
+      "name": "Kamu",
+      "title": "Ravintola Kamu",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/76c0af47fddcd9d6ea61bebe31bc73422c4c6b9b.webp",
+      "address": "Höyrykatu 1, 00520 Helsinki",
+      "www": "https://juvenes.fi/kamu/",
+      "phone": "+358207600300",
+      "category": "Ravintola",
+      "rating": 4.5,
+      "reviewCount": 11,
+      "lat": 60.200720499999996,
+      "lon": 24.929675399999997,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14185207761": {
+      "name": "OP Museo",
+      "title": "OP Museo",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/1d0fe419e2d6b8c77a774893e5a0710c03d69c95.webp",
+      "address": "Gebhardinaukio 1, 00510 Helsinki",
+      "www": "https://www.op.fi/op-ryhma/tietoa-ryhmasta/historiasaatio/museo",
+      "phone": null,
+      "category": "Museo",
+      "rating": null,
+      "reviewCount": null,
+      "lat": 60.190463099999995,
+      "lon": 24.959048199999998,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14221317183": {
+      "name": "Harodi",
+      "title": "Harodi Kallio",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/4e2cc03791279888258e7c8346f25cc8a9365954.webp",
+      "address": "Porvoonkatu 1, 00510 Helsinki",
+      "www": "https://www.harodi.fi/",
+      "phone": null,
+      "category": "Ravintola",
+      "rating": 4.3,
+      "reviewCount": 16,
+      "lat": 60.188820799999995,
+      "lon": 24.9526023,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14221325749": {
+      "name": "Pulla & Piirakka",
+      "title": "Pulla&Piirakka Vaasankatu",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/7831668908db3f38c88f0dc5b3d184c838930ff6.webp",
+      "address": "Vaasankatu 20, 00500 Helsinki",
+      "www": "https://www.pullajapiirakka.fi/",
+      "phone": "+358458526502",
+      "category": "Leipomo",
+      "rating": 4.7,
+      "reviewCount": 25,
+      "lat": 60.188159399999996,
+      "lon": 24.953405399999998,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14210242839": {
+      "name": "Restaurant Syke",
+      "title": "Restaurant Syke",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/93a718f116cb5ec3e8acfdab5b167d89f7e4d6aa.webp",
+      "address": "Mäkelänkatu 2, 00500 Helsinki",
+      "www": "http://www.juvenes.fi/syke",
+      "phone": "+358207600154",
+      "category": "Ravintola",
+      "rating": 4.1,
+      "reviewCount": 12,
+      "lat": 60.1899315,
+      "lon": 24.9630092,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14226494175": {
+      "name": "YourEscape Pakohuoneet Helsinki",
+      "title": "YourEscape Pakohuoneet",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/abbcfd6c4af239cab408275188ad4a6fd29e1221.webp",
+      "address": "Sturenkatu 36, 00550 Helsinki",
+      "www": "http://www.yourescape.fi/",
+      "phone": null,
+      "category": "Pakohuone",
+      "rating": 4.9,
+      "reviewCount": 101,
+      "lat": 60.1955533,
+      "lon": 24.9587753,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14239064088": {
+      "name": "Fresh Garbage Records",
+      "title": "Fresh Garbage Records",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/cced132f51bc961203f20a9f8117bab447039da9.webp",
+      "address": "Hämeentie 7 B, 00530 Helsinki",
+      "www": "http://www.freshgarbage.fi/",
+      "phone": "+358443271996",
+      "category": "Levykauppa",
+      "rating": 4.6,
+      "reviewCount": 93,
+      "lat": 60.181594499999996,
+      "lon": 24.9553112,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14263496461": {
+      "name": "Ravintola Laivakoira",
+      "title": "Ravintola Laivakoira",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/502e2bd4436227e6372dadd66bd275c783a7425f.webp",
+      "address": "Tehtaankatu 34 D, 00150 Helsinki",
+      "www": "https://ravintolalaivakoira.fi/",
+      "phone": "+358469214400",
+      "category": "Ravintola",
+      "rating": 4.6,
+      "reviewCount": 172,
+      "lat": 60.1576752,
+      "lon": 24.9360589,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14297294406": {
+      "name": "Kallion tietokonemuseo",
+      "title": "Kallion tietokonemuseo",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/0cf01fab8a7bb3874a7963c9f944f606544e7e83.webp",
+      "address": "Alppikatu 17, 00530 Helsinki",
+      "www": "https://www.kalliontietokonemuseo.fi/",
+      "phone": "+358440100240",
+      "category": "Museo",
+      "rating": 4.9,
+      "reviewCount": 40,
+      "lat": 60.185586,
+      "lon": 24.946535299999997,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14287799819": {
+      "name": "Che bontà",
+      "title": "Che bontà",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/f2b56acc35f98dd46bfba5623245fe61719a1e1b.webp",
+      "address": "Toinen linja 31, 00530 Helsinki",
+      "www": "https://chebonta.sumupstore.com/",
+      "phone": "+358442428303",
+      "category": "Ravintola",
+      "rating": 4.8,
+      "reviewCount": 57,
+      "lat": 60.1839613,
+      "lon": 24.942652,
+      "fetchedAt": "2026-10-23T11:55:38.961Z"
     }
   },
   "misses": [
@@ -538,38 +720,8 @@
       "reason": "ei googlessa"
     },
     {
-      "url": "https://www.openstreetmap.org/node/13806917234",
-      "name": "Pilkku",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "ei googlessa"
-    },
-    {
       "url": "https://www.openstreetmap.org/node/13750203904",
       "name": "Mansikka",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/13897544874",
-      "name": "Twisted Street Kitchen",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "väärä sijainti (2731 m)"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/13921894668",
-      "name": "Huili",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "väärä sijainti (9120 m)"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/13897544873",
-      "name": "Shangri-La",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/13913910709",
-      "name": "Yhteiskerhotila Talas, sauna",
       "at": "2026-08-23T18:59:45.939Z",
       "reason": "ei googlessa"
     },
@@ -580,81 +732,153 @@
       "reason": "väärä sijainti (5466 m)"
     },
     {
-      "url": "https://www.openstreetmap.org/node/13939136986",
-      "name": "Ihana Kahvila",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "väärä sijainti (1743 m)"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/13950807378",
-      "name": "Kampai",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "väärä sijainti (1126 m)"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/13986735642",
-      "name": "Casa Italia",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "väärä sijainti (3186 m)"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/14041090256",
-      "name": "Kioski Jädehelmi",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "väärä sijainti (3768 m)"
-    },
-    {
       "url": "https://www.openstreetmap.org/node/14011427925",
       "name": "Huuva",
       "at": "2026-08-23T18:59:45.939Z",
       "reason": "ei googlessa"
     },
     {
-      "url": "https://www.openstreetmap.org/node/14040915439",
-      "name": "Kesäkahvila Laivaranta",
-      "at": "2026-08-23T18:59:45.939Z",
+      "url": "https://www.openstreetmap.org/node/13897544874",
+      "name": "Twisted Street Kitchen",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "väärä sijainti (2731 m)"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/13897544873",
+      "name": "Shangri-La",
+      "at": "2026-10-23T11:55:38.961Z",
       "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/13921894668",
+      "name": "Huili",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "väärä sijainti (9120 m)"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/13806917234",
+      "name": "Pilkku",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/13939136986",
+      "name": "Ihana Kahvila",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "väärä sijainti (1743 m)"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/13950807378",
+      "name": "Kampai",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "väärä sijainti (1126 m)"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/13913910709",
+      "name": "Yhteiskerhotila Talas, sauna",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/13986735642",
+      "name": "Casa Italia",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "väärä sijainti (3186 m)"
     },
     {
       "url": "https://www.openstreetmap.org/node/14039856211",
       "name": "Vohvelivaja",
-      "at": "2026-08-23T18:59:45.939Z",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "väärä sijainti (9737 m)"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14041090256",
+      "name": "Kioski Jädehelmi",
+      "at": "2026-10-23T11:55:38.961Z",
       "reason": "ei googlessa"
     },
     {
       "url": "https://www.openstreetmap.org/node/14089487064",
       "name": "Walk Cycle",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "ei googlessa"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/14107109663",
-      "name": "Figaro",
-      "at": "2026-08-23T18:59:45.939Z",
-      "reason": "väärä sijainti (2997 m)"
-    },
-    {
-      "url": "https://www.openstreetmap.org/node/14104745578",
-      "name": "Luckiefun's Sushibuffet",
-      "at": "2026-08-23T18:59:45.939Z",
+      "at": "2026-10-23T11:55:38.961Z",
       "reason": "ei googlessa"
     },
     {
       "url": "https://www.openstreetmap.org/node/14104745579",
       "name": "Sizzle Station",
-      "at": "2026-08-23T18:59:45.939Z",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14104745578",
+      "name": "Luckiefun's Sushibuffet",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14107109663",
+      "name": "Figaro",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14118559301",
+      "name": "Tapulikahvila Pietari",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14040915439",
+      "name": "Kesäkahvila Laivaranta",
+      "at": "2026-10-23T11:55:38.961Z",
       "reason": "ei googlessa"
     },
     {
       "url": "https://www.openstreetmap.org/node/14108207288",
       "name": "Merihaka Sauna",
-      "at": "2026-08-23T18:59:45.939Z",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14132130193",
+      "name": "SIC",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14188906990",
+      "name": "Papa Giovanni",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "väärä sijainti (7224 m)"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14207558013",
+      "name": "Kierrätyskeskus",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14252785684",
+      "name": "Bär Bar",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/way/1570816273",
+      "name": "Mansikka",
+      "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14221330614",
+      "name": "Mex-Man",
+      "at": "2026-10-23T11:55:38.961Z",
       "reason": "ei googlessa"
     },
     {
       "url": "https://www.openstreetmap.org/way/1549061841",
       "name": "Solid Sauna",
-      "at": "2026-08-23T18:59:45.939Z",
+      "at": "2026-10-23T11:55:38.961Z",
       "reason": "ei googlessa"
     }
   ]

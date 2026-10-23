@@ -1,6 +1,24 @@
 {
-  "fetchedAt": "2026-08-24T05:29:11.676Z",
+  "fetchedAt": "2026-10-23T11:51:36.466Z",
   "openings": [
+    {
+      "key": "fazer café munkkiniemi|solnantie|26",
+      "name": "Fazer Café Munkkiniemi",
+      "address": "Solnantie 26, 00330 Helsinki",
+      "lat": 60.1971632,
+      "lon": 24.878415699999998,
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/54001f42ffc341cc3ac266562a4ccb31240fda38.webp",
+      "www": "https://www.fazer.fi/fazer-cafe/kahvilat/fazer-cafe-munkkiniemi/",
+      "phone": "+358504302691",
+      "category": "Kahvila",
+      "cuisineCategories": [],
+      "openingHours": "Mo 07:30-20:00, Tu 07:30-20:00, We 07:30-20:00, Th 07:30-20:00, Fr 07:30-20:00, Sa 08:00-19:00, Su 09:00-19:00",
+      "priceLevel": null,
+      "googleRating": 5,
+      "reviewCount": 1,
+      "openedAt": "2026-09-15",
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
+    },
     {
       "key": "bar & night club luck lady|kirkonkylantie|5",
       "name": "Bar & Night Club Luck Lady",
@@ -13,11 +31,29 @@
       "category": "Baari",
       "cuisineCategories": [],
       "openingHours": "Mo 15:00-04:00, Tu 15:00-04:00, We 15:00-04:00, Th 15:00-04:00, Fr 15:00-04:30, Sa 15:00-04:30, Su 21:00-04:00",
-      "priceLevel": "moderate",
+      "priceLevel": null,
       "googleRating": 3.7,
-      "reviewCount": 358,
+      "reviewCount": 364,
       "openedAt": "2026-09-01",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
+    },
+    {
+      "key": "miller's bbq töölö|sibeliuksenkatu|2",
+      "name": "Miller's BBQ Töölö",
+      "address": "Sibeliuksenkatu 2, 00260 Helsinki",
+      "lat": 60.182972899999996,
+      "lon": 24.9243751,
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/04f0e7fffe2d1983938ac3292f40acbe198ead4d.webp",
+      "www": "https://www.millersbbq.fi/",
+      "phone": "+358444914336",
+      "category": "Ravintola",
+      "cuisineCategories": [],
+      "openingHours": null,
+      "priceLevel": null,
+      "googleRating": null,
+      "reviewCount": null,
+      "openedAt": "2026-09-01",
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "noodle master kamppi|eerikinkatu|20",
@@ -31,29 +67,29 @@
       "category": "Kiinalainen nuudeliravintola",
       "cuisineCategories": [],
       "openingHours": "Mo 11:00-21:00, Tu 11:00-21:00, We 11:00-21:00, Th 11:00-21:00, Fr 11:00-21:00, Sa 12:00-21:00, Su 12:00-21:00",
-      "priceLevel": "inexpensive",
+      "priceLevel": null,
       "googleRating": 4.7,
-      "reviewCount": 798,
+      "reviewCount": 820,
       "openedAt": "2026-08-24",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "copitas|malagankatu|3",
       "name": "Copitas",
       "address": "Malagankatu 3, 00220 Helsinki",
-      "lat": 60.157603599999995,
-      "lon": 24.913288599999998,
+      "lat": 60.1575442,
+      "lon": 24.9133791,
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/65a1806ec99772093562f669c4c28f0ea5840a28.webp",
-      "www": null,
-      "phone": "+358505481575",
+      "www": "https://www.barcopitas.fi/",
+      "phone": "+358503501710",
       "category": "Baari",
       "cuisineCategories": [],
-      "openingHours": null,
-      "priceLevel": "inexpensive",
-      "googleRating": 4.6,
-      "reviewCount": 68,
+      "openingHours": "We 16:00-24:00, Th 16:00-24:00, Fr 16:00-01:00, Sa 16:00-01:00",
+      "priceLevel": null,
+      "googleRating": 5,
+      "reviewCount": 12,
       "openedAt": "2026-08-17",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "snadi pub kallio|kolman linja|6",
@@ -63,15 +99,15 @@
       "lon": 24.951263299999997,
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/6d99a565615134aa29bb9c5d88b76109f9165ce1.webp",
       "www": "https://snadipub.fi/",
-      "phone": "+358452085696",
+      "phone": "+358442424491",
       "category": "Baari",
       "cuisineCategories": [],
-      "openingHours": "Mo 15:00-02:00, Tu 15:00-02:00, We 15:00-02:00, Th 15:00-02:00, Fr 15:00-02:00, Sa 12:00-02:00, Su 12:00-02:00",
-      "priceLevel": "inexpensive",
+      "openingHours": "Mo 11:00-01:00, Tu 11:00-01:00, We 11:00-01:00, Th 11:00-01:00, Fr 11:00-02:00, Sa 11:00-02:00, Su 11:00-01:00",
+      "priceLevel": null,
       "googleRating": 4.6,
-      "reviewCount": 54,
+      "reviewCount": 60,
       "openedAt": "2026-08-01",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "qvevri|hameentie|62",
@@ -106,10 +142,10 @@
       ],
       "openingHours": "Mo 10:30-14:30, Tu 10:30-14:30, We 10:30-14:30, Th 10:30-14:30, Fr 10:30-14:30",
       "priceLevel": null,
-      "googleRating": 4.9,
-      "reviewCount": 37,
+      "googleRating": 4.7,
+      "reviewCount": 48,
       "openedAt": "2026-07-27",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "tian tian dumplings|lonnrotinkatu|21",
@@ -141,11 +177,11 @@
       "category": "Ravintola",
       "cuisineCategories": [],
       "openingHours": "Mo 11:00-22:00, Tu 11:00-22:00, We 11:00-22:00, Th 11:00-22:00, Fr 11:00-22:00, Sa 11:00-24:00, Su 12:00-21:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 5,
-      "reviewCount": 80,
+      "priceLevel": null,
+      "googleRating": 4.9,
+      "reviewCount": 194,
       "openedAt": "2026-07-16",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "hoi an vietnamilainen kitcken/yuzu japanese izakaya|kaisaniemenkatu|3",
@@ -159,11 +195,11 @@
       "category": "Ravintola",
       "cuisineCategories": [],
       "openingHours": "Mo 11:00-22:00, Tu 11:00-22:00, We 11:00-22:00, Th 11:00-22:00, Fr 11:00-24:00, Sa 12:00-24:00, Su 12:00-22:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 5,
-      "reviewCount": 8,
+      "priceLevel": null,
+      "googleRating": 4.7,
+      "reviewCount": 34,
       "openedAt": "2026-07-15",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "caverna kaivopiha|mannerheimintie|3",
@@ -177,11 +213,11 @@
       "category": "Buffetravintola",
       "cuisineCategories": [],
       "openingHours": "Mo 11:00-22:00, Tu 11:00-22:00, We 11:00-22:00, Th 11:00-22:00, Fr 11:00-24:00, Sa 12:00-24:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.3,
-      "reviewCount": 10,
+      "priceLevel": null,
+      "googleRating": 4.9,
+      "reviewCount": 210,
       "openedAt": "2026-07-15",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "umami taste|makelankatu|16",
@@ -190,16 +226,16 @@
       "lat": 60.193172999999994,
       "lon": 24.9589994,
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/9aa55b238a068598f3c6749138f9025a27c728a1.webp",
-      "www": null,
+      "www": "https://order.site/umami-taste",
       "phone": "+358414717424",
       "category": "Aasialainen ravintola",
       "cuisineCategories": [],
-      "openingHours": "Mo 11:00-21:00, Tu 11:00-21:00, We 11:00-21:00, Th 11:00-21:00, Fr 11:00-21:00, Sa 11:00-22:00, Su 11:30-21:00",
-      "priceLevel": "inexpensive",
+      "openingHours": "Mo 11:00-21:00, Tu 11:00-21:00, We 11:00-19:30, Th 11:00-21:00, Fr 11:00-21:00, Sa 11:00-22:00, Su 11:30-21:00",
+      "priceLevel": null,
       "googleRating": 5,
-      "reviewCount": 18,
+      "reviewCount": 38,
       "openedAt": "2026-07-09",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "juvenes oy patisserie teemu aura hakaniemi|siltasaarenkatu|12",
@@ -213,11 +249,11 @@
       "category": "Kahvila",
       "cuisineCategories": [],
       "openingHours": "Mo 08:00-18:00, Tu 08:00-18:00, We 08:00-18:00, Th 08:00-18:00, Fr 08:00-18:00, Sa 09:00-17:00",
-      "priceLevel": "moderate",
+      "priceLevel": null,
       "googleRating": 4.5,
-      "reviewCount": 265,
+      "reviewCount": 266,
       "openedAt": "2026-07-02",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "mr melody|kontulankaari|1",
@@ -245,17 +281,17 @@
       "lon": 24.954099799999998,
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/4daf7ce772be923397dddfbfd8432f17c9900ed9.webp",
       "www": "http://eat.fi/en/helsinki/thai-fast-food-du-dii",
-      "phone": "+3589730151",
+      "phone": "+358504755867",
       "category": "Thairavintola",
       "cuisineCategories": [
         "asian"
       ],
       "openingHours": "Mo 10:00-19:00, Tu 10:00-19:00, We 10:00-19:00, Th 10:00-19:00, Fr 10:00-21:00, Sa 10:00-21:00, Su 10:00-21:00",
-      "priceLevel": "inexpensive",
+      "priceLevel": null,
       "googleRating": 4.6,
-      "reviewCount": 261,
+      "reviewCount": 269,
       "openedAt": "2026-07-01",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "figaro|hameentie|19",
@@ -264,16 +300,16 @@
       "lat": 60.1859396,
       "lon": 24.961606999999997,
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/486bbbe31365e8f6f217e17d58f4cc664b58b71f.webp",
-      "www": null,
-      "phone": null,
+      "www": "https://figarohelsinki.fi/",
+      "phone": "+358505546717",
       "category": "Viinibaari",
       "cuisineCategories": [],
-      "openingHours": "Tu 12:00-24:00, We 12:00-24:00, Th 12:00-24:00, Fr 12:00-02:00, Sa 12:00-02:00",
+      "openingHours": "Tu 08:00-24:00, We 08:00-24:00, Th 08:00-24:00, Fr 08:00-02:00, Sa 12:00-02:00",
       "priceLevel": null,
-      "googleRating": 5,
-      "reviewCount": 2,
+      "googleRating": 4.7,
+      "reviewCount": 15,
       "openedAt": "2026-06-30",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "damak ravintola|insinoorinkatu|14",
@@ -284,14 +320,14 @@
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/86360a8543c797c281fbecf453071203360331b6.webp",
       "www": "https://www.damak.fi/",
       "phone": "+358413270758",
-      "category": "Ravintola",
+      "category": "Turkkilainen ravintola",
       "cuisineCategories": [],
       "openingHours": "Mo 10:00-22:00, Tu 10:00-22:00, We 10:00-22:00, Th 10:00-22:00, Fr 10:00-22:00, Sa 10:00-22:00, Su 11:00-22:00",
-      "priceLevel": "inexpensive",
+      "priceLevel": null,
       "googleRating": 4.9,
-      "reviewCount": 61,
+      "reviewCount": 83,
       "openedAt": "2026-06-30",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "weckström roastery|mastokatu|4",
@@ -304,12 +340,12 @@
       "phone": "+358503234032",
       "category": "Kahvila",
       "cuisineCategories": [],
-      "openingHours": "Tu 08:00-17:00, We 08:00-17:00, Th 08:00-17:00, Fr 08:00-17:00, Sa 08:00-17:00, Su 08:00-15:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 34,
+      "openingHours": "Tu 08:00-17:00, We 08:00-17:00, Th 08:00-17:00, Fr 08:00-17:00, Sa 08:00-16:00, Su 08:00-15:00",
+      "priceLevel": null,
+      "googleRating": 4.8,
+      "reviewCount": 46,
       "openedAt": "2026-06-22",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "shanghai taste|eerikinkatu|21",
@@ -322,19 +358,19 @@
       "phone": "+358503863200",
       "category": "Aasialainen ravintola",
       "cuisineCategories": [],
-      "openingHours": "Mo 11:00-21:00, Tu 11:00-21:00, We 11:00-21:00, Th 11:00-21:00, Fr 11:00-21:00, Sa 12:00-21:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 48,
+      "openingHours": "Mo 11:00-20:00, Tu 11:00-20:00, We 11:00-20:00, Th 11:00-20:00, Fr 11:00-20:00, Sa 12:00-20:00",
+      "priceLevel": null,
+      "googleRating": 4.8,
+      "reviewCount": 77,
       "openedAt": "2026-06-16",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "luu's wine shop|runeberginkatu|33",
       "name": "Luu's Wine Shop",
-      "address": "Runeberginkatu 33b, 00100 Helsinki",
-      "lat": 60.173890199999995,
-      "lon": 24.922629099999998,
+      "address": "Runeberginkatu 33, 00100 Helsinki",
+      "lat": 60.1737043,
+      "lon": 24.9228697,
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/8148434f0354c95aeaa1c16a3545b58005f5e9c9.webp",
       "www": "https://www.luuswineshop.com/",
       "phone": "+358504604676",
@@ -343,9 +379,9 @@
       "openingHours": "Tu 15:00-22:00, We 15:00-22:00, Th 15:00-22:00, Fr 15:00-22:00, Sa 15:00-22:00",
       "priceLevel": null,
       "googleRating": 5,
-      "reviewCount": 4,
+      "reviewCount": 19,
       "openedAt": "2026-06-15",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "ravintola la sinfonia|pohjoisesplanadi|37",
@@ -378,12 +414,12 @@
       "phone": "+358505548441",
       "category": "Kahvila",
       "cuisineCategories": [],
-      "openingHours": "Mo 10:00-18:00, Tu 10:00-18:00, We 10:00-18:00, Th 10:00-18:00, Fr 10:00-18:00, Sa 09:00-17:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.3,
-      "reviewCount": 132,
+      "openingHours": "Mo 10:00-17:00, Tu 10:00-17:00, We 10:00-17:00, Th 10:00-18:00, Fr 10:00-18:00, Sa 09:00-17:00",
+      "priceLevel": null,
+      "googleRating": 4.4,
+      "reviewCount": 134,
       "openedAt": "2026-06-15",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "katana|telakkakatu|12",
@@ -394,16 +430,16 @@
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/86310f5a89b18922eb929004a9ec8ffa2fe1b75a.webp",
       "www": "https://www.instagram.com/katana.ppi.eu",
       "phone": null,
-      "category": "Ramen-ravintola",
+      "category": "Ravintola",
       "cuisineCategories": [
         "japanese"
       ],
       "openingHours": "Mo 11:00-14:00,17:00-21:00, Tu 11:00-14:00,17:00-21:00, We 11:00-14:00,17:00-21:00, Th 11:00-14:00,17:00-21:00, Fr 11:00-14:00,17:00-21:00, Sa 11:00-21:00",
-      "priceLevel": "inexpensive",
+      "priceLevel": null,
       "googleRating": 4.7,
-      "reviewCount": 138,
+      "reviewCount": 203,
       "openedAt": "2026-06-12",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "dip and sip|helsinginkatu|13",
@@ -414,14 +450,14 @@
       "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/ba59547eeb4022882b30a86f7c07184f1edc7072.webp",
       "www": "http://www.dipandsip.fi/",
       "phone": "+358505890708",
-      "category": "Ravintola",
+      "category": "Fuusioravintola",
       "cuisineCategories": [],
       "openingHours": "Mo 10:30-20:30, Tu 10:30-20:30, We 10:30-20:30, Th 10:30-20:30, Fr 10:30-21:00, Sa 11:30-21:00",
-      "priceLevel": "inexpensive",
+      "priceLevel": null,
       "googleRating": 5,
-      "reviewCount": 100,
+      "reviewCount": 117,
       "openedAt": "2026-06-01",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "el patio|tyopajankatu|2",
@@ -434,557 +470,19 @@
       "phone": null,
       "category": "Viinibaari",
       "cuisineCategories": [],
-      "openingHours": "We 16:00-22:00, Th 16:00-22:00, Fr 16:00-22:00, Sa 15:00-22:00, Su 14:00-18:00",
+      "openingHours": null,
       "priceLevel": null,
       "googleRating": 5,
       "reviewCount": 3,
       "openedAt": "2026-05-28",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
-    },
-    {
-      "key": "ariel|koksikatu|12",
-      "name": "Ariel",
-      "address": "Koksikatu 12, 00540 Helsinki",
-      "lat": 60.184053299999995,
-      "lon": 24.9751956,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/0a2e4da8f53ff496298559b7f100067ec5868c8b.webp",
-      "www": "https://arielravintola.fi/",
-      "phone": "+358400214421",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Tu 11:00-21:00, We 11:00-21:00, Th 11:00-21:00, Fr 11:00-22:00, Sa 10:00-22:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 20,
-      "openedAt": "2026-05-20",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "dragon sticks|aleksis kiven katu|17",
-      "name": "Dragon Sticks",
-      "address": "Aleksis Kiven katu 17, 00510 Helsinki",
-      "lat": 60.193511799999996,
-      "lon": 24.9467444,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/e2345ea5f0789d4f2cbc6087de2105e30f4aec89.webp",
-      "www": null,
-      "phone": "+358451706788",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 11:00-20:00, Tu 11:00-20:00, We 11:00-20:00, Th 11:00-20:00, Fr 11:00-21:00, Sa 12:00-21:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.8,
-      "reviewCount": 19,
-      "openedAt": "2026-05-19",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "bistro kajo|neitojenranta|2",
-      "name": "Bistro Kajo",
-      "address": "Neitojenranta 2, 00810 Helsinki",
-      "lat": 60.185691899999995,
-      "lon": 25.0332012,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/14498ce2e321d058da8f232bbc56b10e3e8b61e2.webp",
-      "www": "http://bistrokajo.fi/",
-      "phone": "+358449844846",
-      "category": "Bistro",
-      "cuisineCategories": [
-        "french"
-      ],
-      "openingHours": "Tu 15:00-22:00, We 15:00-22:00, Th 15:00-22:00, Fr 15:00-22:00, Sa 12:00-22:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 22,
-      "openedAt": "2026-05-19",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "grenier rouge|tervasaarenkannas|3",
-      "name": "Grenier Rouge",
-      "address": "Tervasaarenkannas 3, 00170 Helsinki",
-      "lat": 60.173740699999996,
-      "lon": 24.968566199999998,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/424a66a72bcfe084a2ecdd9a2d31dc9e5b6a7908.webp",
-      "www": "http://www.roguerouge.fi/",
-      "phone": "+358408233323",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 17:00-23:00, Tu 17:00-23:00, We 17:00-23:00, Th 17:00-23:00, Fr 17:00-23:00, Sa 14:00-23:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.6,
-      "reviewCount": 100,
-      "openedAt": "2026-05-06",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "cafe briossi|kalevankatu|9",
-      "name": "Cafe Briossi",
-      "address": "Kalevankatu 9, 00100 Helsinki",
-      "lat": 60.1673919,
-      "lon": 24.9378896,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/09bb3add793d817d25e1104322c262ff3d65b171.webp",
-      "www": "https://briossi.com/",
-      "phone": "+3589645062",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 09:00-17:00, Tu 09:00-17:00, We 09:00-17:00, Th 09:00-17:00, Fr 09:00-17:00, Sa 10:00-16:00",
-      "priceLevel": "moderate",
-      "googleRating": 4.2,
-      "reviewCount": 368,
-      "openedAt": "2026-05-04",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "satama bar & bistro, jollas|isonsarvastontie|4",
-      "name": "Satama Bar & Bistro, Jollas",
-      "address": "Isonsarvastontie 4, 00840 Helsinki",
-      "lat": 60.1677587,
-      "lon": 25.0598882,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/b421bda7adcf7b2e53779982284bbbec7e5cbdc9.webp",
-      "www": "https://www.satamabar.com/",
-      "phone": "+358505163298",
-      "category": "Kahvila",
-      "cuisineCategories": [],
-      "openingHours": "Mo 12:00-22:00, Tu 12:00-22:00, We 12:00-22:00, Th 12:00-22:00, Fr 12:00-24:00, Sa 12:00-24:00, Su 12:00-22:00",
-      "priceLevel": "moderate",
-      "googleRating": 4.3,
-      "reviewCount": 140,
-      "openedAt": "2026-05-01",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "saari lotus,bar restaurant|yliskylan puistokatu|4",
-      "name": "Saari Lotus,bar restaurant",
-      "address": "Yliskylän puistokatu 4, 00840 Helsinki",
-      "lat": 60.1798435,
-      "lon": 25.0516401,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/75a199a0613fc0e82af5fcd2309bf802f5038a10.webp",
-      "www": "https://saarilotus.fi/",
-      "phone": "+358449243486",
-      "category": "Baari",
-      "cuisineCategories": [],
-      "openingHours": "Mo 10:30-23:00, Tu 10:30-23:00, We 10:30-23:00, Th 10:30-23:00, Fr 10:30-01:00, Sa 10:30-01:00, Su 10:30-22:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.3,
-      "reviewCount": 17,
-      "openedAt": "2026-05-01",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
-    },
-    {
-      "key": "1664 / market hall|aleksis kiven katu|17",
-      "name": "1664 / Market Hall",
-      "address": "The Train Factory, Aleksis Kiven katu 17, 00510 Helsinki",
-      "lat": 60.193191799999994,
-      "lon": 24.9460291,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/fb004e9b82115886af060d28ab47fbb02b10f037.webp",
-      "www": "https://twistedkitchen.fi/",
-      "phone": "+358406832753",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 11:00-20:00, Tu 11:00-20:00, We 11:00-20:00, Th 11:00-20:00, Fr 11:00-21:00, Sa 12:00-21:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.1,
-      "reviewCount": 17,
-      "openedAt": "2026-04-30",
-      "fetchedAt": "2026-08-22T23:04:29.247Z"
-    },
-    {
-      "key": "shangrila nepalese kitchen|aleksis kivenkatu|17",
-      "name": "Shangrila Nepalese Kitchen",
-      "address": "Aleksis Kiven katu 17, 00510 Helsinki",
-      "lat": 60.1932949,
-      "lon": 24.9453903,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/ed695aea6b94d69a479f8455ee15e7c3a788edc1.webp",
-      "www": "https://shangrila.fi/",
-      "phone": "+358505359842",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 10:30-22:00, Tu 10:30-22:00, We 10:30-22:00, Th 10:30-22:00, Fr 10:30-22:00, Sa 12:00-22:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 37,
-      "openedAt": "2026-04-25",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "toki toki|opastinsilta|2",
-      "name": "Toki Toki",
-      "address": "Opastinsilta 2, 00520 Helsinki",
-      "lat": 60.1995319,
-      "lon": 24.942231699999997,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/f768124a5345f19d433d6903ce862efa0e0205b9.webp",
-      "www": "http://tokitokiravintola.fi/",
-      "phone": "+358505383348",
-      "category": "Japanilainen ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 10:30-20:00, Tu 10:30-20:00, We 10:30-20:00, Th 10:30-20:00, Fr 10:30-20:00, Sa 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 171,
-      "openedAt": "2026-04-24",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "salavi ravintola|kap hornin katu|3",
-      "name": "Salavi Ravintola",
-      "address": "Kap Hornin katu 3, 00220 Helsinki",
-      "lat": 60.157703399999995,
-      "lon": 24.9205577,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/08f2f132820335697774248c2536e036a5eb60fc.webp",
-      "www": "https://www.salavi.fi/",
-      "phone": "+358413252666",
-      "category": "Terveysruokaravintola",
-      "cuisineCategories": [
-        "japanese"
-      ],
-      "openingHours": "Mo 10:30-20:30, Tu 10:30-20:30, We 10:30-20:30, Th 10:30-20:30, Fr 10:30-20:30, Sa 12:00-20:00, Su 12:00-20:30",
-      "priceLevel": "inexpensive",
-      "googleRating": 5,
-      "reviewCount": 135,
-      "openedAt": "2026-04-24",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "pilkku|helsinginkatu|15",
-      "name": "Pilkku",
-      "address": "Helsinginkatu 15, 00500 Helsinki",
-      "lat": 60.187362099999994,
-      "lon": 24.9549848,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/6412deef0058c190d7cd372be130ed4085299b6d.webp",
-      "www": "https://www.instagram.com/pilkku.dot",
-      "phone": null,
-      "category": "Kahvila",
-      "cuisineCategories": [],
-      "openingHours": "We 09:00-21:00, Th 09:00-21:00, Fr 09:00-23:00, Sa 10:00-23:00, Su 16:00-02:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 28,
-      "openedAt": "2026-04-22",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "nuri baba|kallvikintie|76",
-      "name": "Nuri Baba",
-      "address": "Kallvikintie 76, 00960 Helsinki",
-      "lat": 60.215457,
-      "lon": 25.1330001,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/89727958aa14060933c1e37feb3b86998d32a105.webp",
-      "www": "https://www.ravintolanuribaba.fi/",
-      "phone": "+358503718547",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 10:00-22:00, Tu 10:00-22:00, We 10:00-22:00, Th 10:00-22:00, Fr 10:00-23:00, Sa 11:00-23:00, Su 11:00-22:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.6,
-      "reviewCount": 35,
-      "openedAt": "2026-04-21",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "nami teppanyaki|malminkaari|13",
-      "name": "Nami Teppanyaki",
-      "address": "Malminkaari 13 17, 00700 Helsinki",
-      "lat": 60.2507922,
-      "lon": 25.012593,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/484781593581bc1c31d82aa800b8c60da28f4ba9.webp",
-      "www": null,
-      "phone": "+358505580692",
-      "category": "Buffetravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 10:30-20:00, Tu 10:30-20:00, We 10:30-20:00, Th 10:30-20:00, Fr 10:30-20:00, Sa 12:00-20:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.6,
-      "reviewCount": 30,
-      "openedAt": "2026-04-21",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "ravintola barahi|laippatie|1",
-      "name": "Ravintola Barahi",
-      "address": "Laippatie 1, 00880 Helsinki",
-      "lat": 60.2097026,
-      "lon": 25.0542365,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/ba1cd67717223f72a87a4fce98df8b683c18c9b4.webp",
-      "www": "https://www.talbarahi.fi/",
-      "phone": "+358405582600",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 10:00-21:00, Tu 10:00-21:00, We 10:00-21:00, Th 10:00-21:00, Fr 10:00-21:00, Sa 12:00-21:00, Su 12:00-18:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 38,
-      "openedAt": "2026-04-21",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "ravintola flq|tallinnanaukio|4",
-      "name": "Ravintola FLQ",
-      "address": "Tallinnanaukio 4, 00930 Helsinki",
-      "lat": 60.2106005,
-      "lon": 25.0785061,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/6a3f110803573186696a64f78be82a4da11900e6.webp",
-      "www": "https://www.flq.fi/",
-      "phone": "+358942890875",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 10:30-20:00, Tu 10:30-20:00, We 10:30-20:00, Th 10:30-20:00, Fr 10:30-20:00, Sa 11:00-20:00, Su 11:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4,
-      "reviewCount": 396,
-      "openedAt": "2026-04-20",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "letona cafe & pizzeria|metsapurontie|20",
-      "name": "Letona Cafe & Pizzeria",
-      "address": "Metsäpurontie 20, 00630 Helsinki",
-      "lat": 60.228539,
-      "lon": 24.926631099999998,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/a2abae8829e9f8e4f0ef2e2e2bc6ef6a9dbae4f3.webp",
-      "www": "http://www.letona.fi/",
-      "phone": "+358400550904",
-      "category": "Ravintola",
-      "cuisineCategories": [
-        "pizza"
-      ],
-      "openingHours": "Mo 11:00-20:00, Tu 11:00-20:00, We 11:00-20:00, Th 11:00-20:00, Fr 11:00-20:00, Sa 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.8,
-      "reviewCount": 216,
-      "openedAt": "2026-04-17",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
-    },
-    {
-      "key": "bui ramen|aallonhalkoja|1",
-      "name": "BUI RAMEN",
-      "address": "Aallonhalkoja 1 L T 2, 00540 Helsinki",
-      "lat": 60.182270599999995,
-      "lon": 24.9791918,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/07be64f822317f85876f36aa58788f5c5fcb3de1.webp",
-      "www": "http://buiramen.fi/",
-      "phone": "+358505488453",
-      "category": "Japanilainen ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 11:00-21:00, Tu 11:00-21:00, We 11:00-21:00, Th 11:00-21:00, Fr 11:00-21:00, Sa 11:00-21:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 109,
-      "openedAt": "2026-04-15",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "bruuveri|fredrikinkatu|63",
-      "name": "Bruuveri",
-      "address": "Fredrikinkatu 63 AB, 00100 Helsinki",
-      "lat": 60.168553499999994,
-      "lon": 24.9315434,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/66a06ce48eaaac020924615576e282cfa15fbe9d.webp",
-      "www": "http://www.bruuveri.fi/",
-      "phone": "+358449011155",
-      "category": "Olutravintola",
-      "cuisineCategories": [
-        "pizza"
-      ],
-      "openingHours": "Mo 10:30-01:00, Tu 10:30-01:00, We 10:30-01:00, Th 10:30-01:00, Fr 10:30-02:00, Sa 12:00-02:00, Su 12:00-24:00",
-      "priceLevel": "moderate",
-      "googleRating": 4.2,
-      "reviewCount": 2558,
-      "openedAt": "2026-04-15",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "bocado*28|valimerenkatu|15",
-      "name": "Bocado*28",
-      "address": "Välimerenkatu 15, 00180 Helsinki",
-      "lat": 60.158604,
-      "lon": 24.913603,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/e2acad5e2262101c56bd569833d37c739e682b23.webp",
-      "www": null,
-      "phone": null,
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": null,
-      "priceLevel": null,
-      "googleRating": null,
-      "reviewCount": null,
-      "openedAt": "2026-04-15",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
-    },
-    {
-      "key": "focaccina|eerikinkatu|4",
-      "name": "Focaccina",
-      "address": "Eerikinkatu 4, 00100 Helsinki",
-      "lat": 60.1676478,
-      "lon": 24.9369688,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/5a2f0ae72b253e138c527374e75d9ef2083dc106.webp",
-      "www": "https://focaccina.fi/",
-      "phone": "+35840253111",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 11:00-22:00, Tu 11:00-22:00, We 11:00-22:00, Th 11:00-22:00, Fr 11:00-23:00, Sa 12:00-23:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.8,
-      "reviewCount": 49,
-      "openedAt": "2026-04-13",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "itsuyaki redi|hermannin rantatie|5",
-      "name": "Itsuyaki Redi",
-      "address": "Redi 1.krs Food Port, Hermannin rantatie 5, 00580 Helsinki",
-      "lat": 60.187066599999994,
-      "lon": 24.9806007,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/3ea5e1938f286049f5434ce4cac77feb14c18ccf.webp",
-      "www": "https://www.itsuyaki.fi/",
-      "phone": "+358503694465",
-      "category": "Aasialainen ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 10:30-20:00, Tu 10:30-20:00, We 10:30-20:00, Th 10:30-20:00, Fr 10:30-20:00, Sa 11:00-20:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.7,
-      "reviewCount": 109,
-      "openedAt": "2026-04-13",
-      "fetchedAt": "2026-08-22T23:04:29.247Z"
-    },
-    {
-      "key": "bistro pasila|asemapaallikonkatu|3",
-      "name": "Bistro Pasila",
-      "address": "K-Marketin yläpuolella, Asemapäällikönkatu 3A, 00520 Helsinki",
-      "lat": 60.199230299999996,
-      "lon": 24.9420762,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/50acc00eb678c5a9bc03042450ab29f8ba0df018.webp",
-      "www": "https://bistropasila.fi/",
-      "phone": "+358503753954",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 11:00-21:00, Tu 11:00-21:00, We 11:00-21:00, Th 11:00-21:00, Fr 11:00-21:00, Sa 12:00-21:00, Su 12:00-21:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 3.9,
-      "reviewCount": 28,
-      "openedAt": "2026-04-09",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
-    },
-    {
-      "key": "ravintola huudi|huopalahdentie|24",
-      "name": "Ravintola Huudi",
-      "address": "Huopalahdentie 24, 00350 Helsinki",
-      "lat": 60.2084268,
-      "lon": 24.8787265,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/7b726d6386d5f1bb78b1046af3ad2696a15aa4df.webp",
-      "www": "https://gvcravintolat.fi/munkka/",
-      "phone": null,
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 11:00-14:00, Tu 11:00-14:00, We 11:00-14:00, Th 11:00-14:00, Fr 11:00-14:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.4,
-      "reviewCount": 48,
-      "openedAt": "2026-04-08",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "cafe harbo|harbonkatu|13",
-      "name": "Cafe Harbo",
-      "address": "Harbonkatu 13, 00980 Helsinki",
-      "lat": 60.1977516,
-      "lon": 25.1282242,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/69450379c5584bc26d06942593ede7b0d7a72b21.webp",
-      "www": "https://naturaviva.fi/cafeharbo",
-      "phone": "+358102924030",
-      "category": "Kahvila",
-      "cuisineCategories": [],
-      "openingHours": "Mo 11:00-21:00, Tu 11:00-21:00, We 11:00-21:00, Th 11:00-21:00, Fr 11:00-21:00, Sa 10:00-21:00, Su 10:00-18:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.1,
-      "reviewCount": 9,
-      "openedAt": "2026-04-01",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "vietologie oy|runeberginkatu|59",
-      "name": "Vietologie Oy",
-      "address": "Runeberginkatu 59, 00260 Helsinki",
-      "lat": 60.180040399999996,
-      "lon": 24.9242571,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/7ec7c9a7296a1b220eef7dcdac99ea117782605d.webp",
-      "www": "http://www.vietologie.com/",
-      "phone": "+358458591633",
-      "category": "Vietnamilainen ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 11:00-20:00, Tu 11:00-20:00, We 11:00-20:00, Th 11:00-20:00, Fr 11:00-21:00, Sa 11:00-21:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.9,
-      "reviewCount": 197,
-      "openedAt": "2026-04-01",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "the pantry vallila|teollisuuskatu|21",
-      "name": "The Pantry Vallila",
-      "address": "Teollisuuskatu 21, 00510 Helsinki",
-      "lat": 60.1943724,
-      "lon": 24.9483633,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/30c99df5eafb14af77d139f4db0c9e95ea00512b.webp",
-      "www": "https://thepantry.fi/vallila",
-      "phone": "+358505363709",
-      "category": "Ravintola",
-      "cuisineCategories": [],
-      "openingHours": "Mo 09:00-15:00, Tu 09:00-15:00, We 09:00-15:00, Th 09:00-15:00, Fr 09:00-15:00",
-      "priceLevel": null,
-      "googleRating": 5,
-      "reviewCount": 2,
-      "openedAt": "2026-04-01",
-      "fetchedAt": "2026-08-22T22:46:40.960Z"
-    },
-    {
-      "key": "omu raisu|kulmavuorenkatu|4",
-      "name": "Omu Raisu",
-      "address": "Kulmavuorenkatu 4, 00500 Helsinki",
-      "lat": 60.1883772,
-      "lon": 24.964682699999997,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/884e5185c054656e3418136d07ad3a1c5a78a640.webp",
-      "www": null,
-      "phone": "+358449719577",
-      "category": "Aasialainen ravintola",
-      "cuisineCategories": [
-        "indian",
-        "japanese"
-      ],
-      "openingHours": "Tu 10:30-21:00, We 10:30-21:00, Th 10:30-21:00, Fr 10:30-22:30, Sa 12:00-20:00, Su 12:00-20:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 4.8,
-      "reviewCount": 123,
-      "openedAt": "2026-04-01",
-      "fetchedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "brutto cocktail bar|paaskylanrinne|2",
-      "name": "Brutto Cocktail Bar",
-      "address": "Pääskylänrinne 2, 00500 Helsinki",
-      "lat": 60.1873564,
-      "lon": 24.9658843,
-      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/faf5b5d4b2e2a356e98d5a88266ecbc568428c65.webp",
-      "www": "https://bside.fi/fi/bruttococktailbar",
-      "phone": null,
-      "category": "Baari",
-      "cuisineCategories": [],
-      "openingHours": "Mo 16:00-23:00, Tu 16:00-23:00, We 16:00-23:00, Th 16:00-23:00, Fr 15:00-02:00, Sa 15:00-02:00",
-      "priceLevel": "inexpensive",
-      "googleRating": 5,
-      "reviewCount": 11,
-      "openedAt": "2026-04-01",
-      "fetchedAt": "2026-08-24T05:29:11.676Z"
+      "fetchedAt": "2026-10-23T11:51:36.466Z"
     }
   ],
   "misses": [
     {
       "key": "horisontin huippu|hermannin rantatie|9",
       "why": "ei ravintola (Kokouskeskus)",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "hotel rantapuisto|furuborginkatu|3",
-      "why": "ei ravintola (Hotelli)",
-      "triedAt": "2026-08-22T22:57:06.354Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "miller's bbq töölö|sibeliuksenkatu|2",
@@ -993,98 +491,53 @@
     },
     {
       "key": "ravintola iki|mannerheimintie|14",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "bar blondie|vaasankatu|14",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "tapulikahvila pietari|unioninkatu|29",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "retroo italiano|porthaninkatu|5",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
+      "why": "osoite ei täsmää (Kalevankatu 1, 00100 Helsinki)",
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "päärata bar|kaivokatu|1",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
+      "why": "osoite ei täsmää (Elielinaukio 3, 00100 Helsinki)",
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "aila chhen|porthaninkatu|9",
       "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "atmos atelier|pohjoinen rautatiekatu|19",
       "why": "ei ravintola (Kampaamo)",
-      "triedAt": "2026-08-22T22:57:06.354Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "bröner kallio|vaasankatu|13",
       "why": "pikaruoka (Dönerkebabravintola)",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "kampai|aleksis kivenkatu|17",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "the pantry porkkalankatu|porkkalankatu|21",
       "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "pexit|kanavaranta|4",
       "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "noodle story kamppi|urho kekkosen katu|1",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "taphouse train factory|aleksis kiven katu|17",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "basbas sirkus eats & treats|paasivuorenkatu|4",
       "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "hard days night|firdonkatu|2",
-      "why": "ei Googlessa",
-      "triedAt": "2026-08-22T22:57:06.354Z"
-    },
-    {
-      "key": "tango argentino atelier|tallberginkatu|1",
-      "why": "ei ravintola (Tanssiklubi)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "vibae|fredrikinkatu|30",
       "why": "osoite ei täsmää (Fredrikinkatu 22, 00120 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
-    },
-    {
-      "key": "seoul fried chicken|bruno granholmin kuja|4",
-      "why": "osoite ei täsmää (Market Hall, Konepajanpasaasi, 00510 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "levain galleria|aleksanterinkatu|40",
       "why": "osoite ei täsmää (Pohjoisesplanadi 33, 00100 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "fazer café munkkiniemi|solnantie|26",
@@ -1094,52 +547,62 @@
     {
       "key": "zär syrian eatery|bruno granholmin kuja|4",
       "why": "osoite ei täsmää (Aleksis Kiven katu 17, 00510 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "rio|maaherrantie|34",
       "why": "osoite ei täsmää (Roihuvuorentie 9, 00820 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "täproom tripla|firdonkatu|2",
-      "why": "osoite ei täsmää (Fredikanterassi 1, 00520 Helsinki)",
-      "triedAt": "2026-08-22T23:04:29.247Z"
+      "why": "ei Googlessa",
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "sturen kulma|makelankatu|28",
-      "why": "osoite ei täsmää (Mäkelänkatu 45, 00550 Helsinki)",
-      "triedAt": "2026-08-24T05:29:11.676Z"
-    },
-    {
-      "key": "wisnia|orskinkuja|2",
-      "why": "ei ravintola (Elintarviketoimittaja)",
-      "triedAt": "2026-08-24T05:29:11.676Z"
+      "why": "ei Googlessa",
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "juvenes oy patisserie teemu aura valla|itamerenkatu|19",
       "why": "osoite ei täsmää (Itämerentori 2, 00180 Helsinki)",
-      "triedAt": "2026-08-24T05:29:11.676Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "kallio bar|hameentie|10",
       "why": "ei Googlessa",
-      "triedAt": "2026-08-24T05:29:11.676Z"
-    },
-    {
-      "key": "rubert 180|yrjonkatu|4",
-      "why": "osoite ei täsmää (Iso Roobertinkatu 2, 00120 Helsinki)",
-      "triedAt": "2026-08-24T05:29:11.676Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "lotus café|aino ackten tie|8",
       "why": "ei Googlessa",
-      "triedAt": "2026-08-24T05:29:11.676Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
     },
     {
       "key": "borssi ja khachapuri|lonnrotinkatu|34",
       "why": "ei Googlessa",
-      "triedAt": "2026-08-24T05:29:11.676Z"
+      "triedAt": "2026-10-23T11:51:36.466Z"
+    },
+    {
+      "key": "qvevri|hameentie|62",
+      "why": "ei Googlessa",
+      "triedAt": "2026-10-23T11:51:36.466Z"
+    },
+    {
+      "key": "mr melody|kontulankaari|1",
+      "why": "ei Googlessa",
+      "triedAt": "2026-10-23T11:51:36.466Z"
+    },
+    {
+      "key": "ravintola la sinfonia|pohjoisesplanadi|37",
+      "why": "ei Googlessa",
+      "triedAt": "2026-10-23T11:51:36.466Z"
+    },
+    {
+      "key": "tian tian dumplings|lonnrotinkatu|21",
+      "why": "ei Googlessa",
+      "triedAt": "2026-10-23T11:51:36.466Z"
     }
   ]
 }
