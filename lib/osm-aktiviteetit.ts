@@ -251,6 +251,40 @@ export async function haeOsmAktiviteetit(o: { budjettiMs?: number; aikakatkaisuM
   throw new Error(`kaikki Overpass-peilit epäonnistuivat: ${seloste || 'budjetti loppui ennen ensimmäistä yritystä'}`)
 }
 
+/** Yksi Overpass-kysely peilit läpi: ensimmäinen kelvollinen vastaus
+ *  palautetaan, muuten heitetään kaikkien peilien syyt. Osittainen vastaus
+ *  (remark) hylätään. Skriptien yhteinen apu — yksi peili ei riitä: 23.10.2026
+ *  overpass-api.de vastasi 502 "at capacity" ja kaatoi viikkoajon askeleen
+ *  "Hae tekemisen syyt", vaikka z.overpass-api.de vastasi samaan aikaan. */
+export async function haeOverpass<T extends { remark?: string } = { elements?: OsmElement[]; remark?: string }>(
+  kysely: string,
+  o: { aikakatkaisuMs?: number; peilit?: readonly string[]; userAgent?: string } = {},
+): Promise<{ data: T; peili: string }> {
+  const peilit = o.peilit ?? OVERPASS_PEILIT
+  const virheet: string[] = []
+  for (const peili of peilit) {
+    const host = new URL(peili).host
+    try {
+      const res = await fetch(peili, {
+        method: 'POST',
+        headers: { ...OSM_HEADERS, ...(o.userAgent ? { 'User-Agent': o.userAgent } : {}), 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(kysely),
+        signal: AbortSignal.timeout(o.aikakatkaisuMs ?? 150_000),
+      })
+      if (!res.ok) { virheet.push(`${host}: HTTP ${res.status}`); continue }
+      const data = (await res.json()) as T
+      if (data.remark && /runtime error|timed out|out of memory/i.test(data.remark)) {
+        virheet.push(`${host}: osittainen vastaus: ${data.remark.slice(0, 60)}`)
+        continue
+      }
+      return { data, peili }
+    } catch (e) {
+      virheet.push(`${host}: ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}`.slice(0, 100))
+    }
+  }
+  throw new Error(`overpass: kaikki peilit epäonnistuivat — ${virheet.join('; ')}`)
+}
+
 // ── Romahdusvahti ───────────────────────────────────────────────────────────
 // Mitattu 23.10.2026: 3 175 kohdetta, joista 43 saunaa ja 92 museota.
 // Vähempi tarkoittaa hakuvikaa (osittainen vastaus, peilin vajaa kanta),

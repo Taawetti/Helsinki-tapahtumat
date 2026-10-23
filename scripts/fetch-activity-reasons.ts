@@ -39,6 +39,7 @@ import { reasonKeyVariants } from '../lib/restaurant-reasons'
 import { extractImageFromHtml } from '../lib/og-image'
 import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
 import { get, stripTags, listTitleNote, listPill, extractListEntries, NOT_A_VENUE, looksLikeSentence } from '../lib/editorial-scrape'
+import { haeOverpass } from '../lib/osm-aktiviteetit'
 
 const OUT = join(process.cwd(), 'data', 'activity-reasons.json')
 const DRY = process.argv.includes('--dry')
@@ -346,7 +347,6 @@ async function fetchVenuu(): Promise<Raw[]> {
 // lisäävät paikan viikoissa avaamisesta. Mitattu 180 pv: Merihaka Sauna,
 // Solid Sauna, Kampin Keilahalli & Biljardi, Finnfoto Galleria.
 const OSM_WINDOW_DAYS = 180
-const OVERPASS = 'https://overpass-api.de/api/interpreter'
 
 async function fetchNewLeisure(): Promise<Raw[]> {
   const since = new Date(TODAY.getTime() - OSM_WINDOW_DAYS * 86_400_000).toISOString().slice(0, 19) + 'Z'
@@ -360,18 +360,13 @@ area["boundary"="administrative"]["admin_level"="8"]["name"="Helsinki"]->.hki;
   nwr["shop"~"^(bakery|pastry|confectionery|chocolate|coffee|deli|cheese|wine|books|music|second_hand)$"](area.hki)(newer:"${since}");
 );
 out tags center meta;`
-  const res = await fetch(OVERPASS, {
-    method: 'POST',
-    body: 'data=' + encodeURIComponent(q),
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      // Overpass palauttaa 406 ilman tunnistautuvaa User-Agentia — mitattu.
-      'User-Agent': 'MitaTanaanBot/1.0 (+https://mitatanaan.fi)',
-    },
-    signal: AbortSignal.timeout(150_000),
-  })
-  if (!res.ok) throw new Error(`overpass: HTTP ${res.status}`)
-  const data = await res.json() as { elements?: { type: string; id: number; version?: number; timestamp?: string; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[] }
+  // Peilit järjestyksessä (lib/osm-aktiviteetit OVERPASS_PEILIT), ei yhtä
+  // osoitetta: overpass-api.de vastasi 502 "at capacity" 23.10.2026 ja kaatoi
+  // koko viikkoajon tähän askeleeseen. Overpass palauttaa 406 ilman
+  // tunnistautuvaa User-Agentia — mitattu, siksi oma.
+  const { data } = await haeOverpass<{ elements?: { type: string; id: number; version?: number; timestamp?: string; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[]; remark?: string }>(
+    q, { aikakatkaisuMs: 150_000, userAgent: 'MitaTanaanBot/1.0 (+https://mitatanaan.fi)' },
+  )
   const out: Raw[] = []
   const MONTHS = ['tammikuussa', 'helmikuussa', 'maaliskuussa', 'huhtikuussa', 'toukokuussa', 'kesäkuussa', 'heinäkuussa', 'elokuussa', 'syyskuussa', 'lokakuussa', 'marraskuussa', 'joulukuussa']
   // Ruoka- ja kauppapaikat menevät VAIN newPlaces-osioon (Uutta Helsingissä
