@@ -92,6 +92,15 @@ export interface ReasonFile {
    * aktiviteetti antaisi väärän "Uusi paikka" -merkin.
    */
   newPlaces?: RestaurantReason[]
+  /**
+   * Lupalähteen katkon merkki: `uusi`-syyt EIVÄT ole tämän ajon hakua vaan
+   * siirretty edellisestä tiedostosta (siirraEdellisetAvaukset). `lahde` on
+   * sen ajon fetchedAt, josta avaukset ovat alun perin; `syy` kertoo miksi
+   * lupatiedostoja ei saatu. Testit eivät vaadi uusi-alarajaa kun tämä on
+   * asetettu: siirto on ilmoitettu, ei hiljainen romahdus. Kenttä katoaa
+   * itsestään kun lataus taas onnistuu.
+   */
+  avauksetSiirretty?: { lahde: string; syy: string }
 }
 
 // ── NIMIEN YHDISTÄMINEN ─────────────────────────────────────────────────────
@@ -715,6 +724,49 @@ export function openingLabel(isoDate: string, today: Date): string | null {
   return d.getTime() > today.getTime()
     ? `Avaa ${month}${suffix}`
     : `Avattu ${month}${suffix}`
+}
+
+// ── LUPALÄHTEEN KATKON VARA: AVAUSTEN SIIRTO EDELLISESTÄ TIEDOSTOSTA ────────
+//
+// avoindata.suomi.fi:n lupatiedostot palauttivat 403 GitHubin ajokoneelta
+// kahdeksana maanantaina peräkkäin (31.8.–19.10.2026), vaikka sama lataus
+// toimi kehityskoneelta. Koska yksi pettänyt lähde pysäytti koko viikkoajon,
+// sen perässä yhdeksän muuta datahakua jäi ajamatta ja data-kansio jäätyi
+// 24.8. tilaan. Lupalähde on ainoa, jolla on kelvollinen vara: luvan alkupäivä
+// on tosiasia joka ei vanhene — vain sen uutisarvo vanhenee avausikkunan
+// mukana. Muita lajeja EI siirretä; ne pysyvät kaikki tai ei mitään -portin
+// takana kuten ennen.
+
+/**
+ * Edellisen tiedoston `uusi`-syyt, jotka ovat yhä avausikkunan (ikkunaPv)
+ * sisällä, tekstit koottuna uudelleen: "Avaa lokakuussa" muuttuu "Avattu
+ * lokakuussa", kun päivä menee ohi. `lkm` on erillisten paikkojen määrä
+ * (sama paikka on tiedostossa usealla nimiavaimella). `alkupera` on sen
+ * ajon fetchedAt, josta avaukset ovat alun perin — ketjutetussa siirrossa
+ * alkuperäinen hakuaika säilyy, jotta "siirretty 24.8. haausta" pysyy
+ * totena vaikka katko kestäisi kuukausia.
+ */
+export function siirraEdellisetAvaukset(
+  edellinen: Pick<ReasonFile, 'byName' | 'fetchedAt' | 'avauksetSiirretty'> | null | undefined,
+  tanaan: Date,
+  ikkunaPv: number,
+): { byName: Record<string, RestaurantReason[]>; lkm: number; alkupera: string | null } {
+  const byName: Record<string, RestaurantReason[]> = {}
+  const paikat = new Set<string>()
+  if (!edellinen?.byName) return { byName, lkm: 0, alkupera: null }
+  for (const [avain, syyt] of Object.entries(edellinen.byName)) {
+    for (const r of syyt) {
+      if (r.kind !== 'uusi' || !r.date) continue
+      const t = Date.parse(r.date)
+      if (Number.isNaN(t)) continue
+      if ((tanaan.getTime() - t) / 86_400_000 > ikkunaPv) continue
+      const label = openingLabel(r.date, tanaan)
+      if (!label) continue
+      ;(byName[avain] ??= []).push({ ...r, label })
+      paikat.add(`${r.venue ?? avain}|${r.street ?? ''}|${r.date}`)
+    }
+  }
+  return { byName, lkm: paikat.size, alkupera: edellinen.avauksetSiirretty?.lahde ?? edellinen.fetchedAt ?? null }
 }
 
 // ── SYYMERKIN TEKSTI KIELEN MUKAAN ──────────────────────────────────────────

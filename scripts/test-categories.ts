@@ -45,6 +45,7 @@ import {
   reasonsWeight,
   primaryReason,
   openingLabel,
+  siirraEdellisetAvaukset,
   interleaveReasoned,
   isTouristBasic,
   filterReasonsForBasics,
@@ -2603,6 +2604,9 @@ for (const c of ideaChecks) {
   const rf = reasonFile as unknown as ReasonFile
   rChecks.push({ name: 'syytiedostossa on avaimia', ok: Object.keys(rf.byName ?? {}).length > 100, got: String(Object.keys(rf.byName ?? {}).length) })
   for (const [kind, floor] of [['michelin', 20], ['top50', 20], ['timeout', 80], ['uusi', 10]] as const) {
+    // Siirretyt avaukset (lupalähteen katko, avauksetSiirretty) saavat vähetä
+    // avausikkunan mukana: siirto on ilmoitettu tiedostossa, ei hiljainen romahdus.
+    if (kind === 'uusi' && rf.avauksetSiirretty) continue
     rChecks.push({ name: `syytiedosto: ${kind} ≥ ${floor}`, ok: (rf.counts?.[kind] ?? 0) >= floor, got: String(rf.counts?.[kind] ?? 0) })
   }
   // Jokaisella syyllä on laji ja teksti — tyhjä merkki näyttäisi kortissa rikkinäiseltä.
@@ -4918,6 +4922,45 @@ odotettavat.push((async () => {
   for (const c of oCases) {
     if (c.ok) pass++
     else failures.push(`✗ osm-otos: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Lupalähteen katko: avausten siirto edellisestä tiedostosta ───────────────
+// Viikkoajo kaatui 8 maanantaita peräkkäin (31.8.–19.10.2026), kun
+// lupatiedostot palauttivat 403 GitHubin ajokoneelta, ja koko data-kansio
+// jäätyi. Siirto pitää muut lähteet elossa; nämä testit lukitsevat sen säännöt.
+{
+  const tanaan = new Date('2026-10-23T00:00:00Z')
+  const uusi = (date: string, label: string, venue: string, street = 'Katu 1'): RestaurantReason =>
+    ({ kind: 'uusi', label, source: 'Anniskelulupa\u00adrekisteri', date, street, venue })
+  const michelin: RestaurantReason = { kind: 'michelin', label: 'Michelin 1★', source: 'Michelin', tier: 3 }
+  const edellinen = {
+    fetchedAt: '2026-08-24T05:28:02.795Z',
+    byName: {
+      'bar blondie': [uusi('2026-10-01', 'Avaa lokakuussa', 'Bar Blondie', 'Vaasankatu 14')],
+      'blondie': [uusi('2026-10-01', 'Avaa lokakuussa', 'Bar Blondie', 'Vaasankatu 14')],   // sama paikka toisella avaimella
+      'vanha avaus': [uusi('2026-04-06', 'Avattu huhtikuussa', 'Vanha Avaus')],              // 200 pv → ikkunan ulkopuolella
+      'tuleva': [uusi('2026-11-15', 'Avaa marraskuussa', 'Tuleva')],
+      'gron': [michelin],
+      'seka': [michelin, uusi('2026-09-10', 'Avattu syyskuussa', 'Seka')],
+    },
+  }
+  const s = siirraEdellisetAvaukset(edellinen, tanaan, 150)
+  const ketju = siirraEdellisetAvaukset({ ...edellinen, avauksetSiirretty: { lahde: '2026-08-24T05:28:02.795Z', syy: '403' }, fetchedAt: '2026-09-28T05:30:00.000Z' }, tanaan, 150)
+  const sCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'ikkunan sisällä olevat avaukset siirtyvät, teksti kootaan uudelleen (Avaa → Avattu)',
+      ok: s.byName['bar blondie']?.[0]?.label === 'Avattu lokakuussa' && s.byName['bar blondie'][0].street === 'Vaasankatu 14', got: JSON.stringify(s.byName['bar blondie']) },
+    { name: 'yli 150 pv vanha avaus putoaa', ok: !s.byName['vanha avaus'] },
+    { name: 'tuleva avaus säilyy futuurissa', ok: s.byName['tuleva']?.[0]?.label === 'Avaa marraskuussa', got: JSON.stringify(s.byName['tuleva']) },
+    { name: 'muita lajeja ei siirretä (Michelin jää hakemattomana pois)', ok: !s.byName['gron'] && s.byName['seka']?.length === 1 && s.byName['seka'][0].kind === 'uusi' },
+    { name: 'lkm laskee paikat, ei avaimia (sama paikka kahdella avaimella = 1)', ok: s.lkm === 3, got: String(s.lkm) },
+    { name: 'alkuperä on edellisen ajon fetchedAt', ok: s.alkupera === '2026-08-24T05:28:02.795Z', got: String(s.alkupera) },
+    { name: 'ketjutettu siirto säilyttää alkuperäisen hakuajan', ok: ketju.alkupera === '2026-08-24T05:28:02.795Z', got: String(ketju.alkupera) },
+    { name: 'ilman edellistä tiedostoa siirto on tyhjä', ok: siirraEdellisetAvaukset(null, tanaan, 150).lkm === 0 && siirraEdellisetAvaukset(undefined, tanaan, 150).alkupera === null },
+  ]
+  for (const c of sCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ avausten siirto: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

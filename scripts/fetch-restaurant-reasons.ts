@@ -4,6 +4,19 @@
 //
 //     npx tsx scripts/fetch-restaurant-reasons.ts          # kirjoita tiedosto
 //     npx tsx scripts/fetch-restaurant-reasons.ts --dry    # näytä, älä kirjoita
+//     npx tsx scripts/fetch-restaurant-reasons.ts --dry --simuloi-lupakatko
+//                     # lupatiedostot "eivät lataudu": näytä siirto edellisestä
+//
+// LUPALÄHTEEN KATKO EI PYSÄYTÄ AJOA (23.10.2026). avoindata.suomi.fi:n
+// lupatiedostot palauttivat 403 GitHubin ajokoneelta kahdeksana maanantaina
+// peräkkäin (31.8.–19.10.), vaikka sama lataus toimi kehityskoneelta — este
+// on ajokoneen osoitteessa, ei Valviran kirjoitusikkunassa kuten 23.9.
+// arveltiin. Kaikki tai ei mitään -portti pysäytti koko ajon ja sen perässä
+// yhdeksän muuta datahakua: data-kansio jäätyi 24.8. tilaan. Nyt lupalähteen
+// katkossa edelliset avaukset SIIRRETÄÄN avausikkunan sisällä
+// (lib/restaurant-reasons siirraEdellisetAvaukset), varoitus on äänekäs
+// (loki, GitHubin ajoyhteenveto, tiedoston avauksetSiirretty-kenttä), ja muut
+// lähteet pysyvät portin takana kuten ennen.
 //
 // LÄHTEET, ja miksi juuri nämä. Kaikki mitattu 22.8.2026 ja tarkistettu
 // robots.txt:stä. Suluissa osuma meidän 3583 ravintolaamme.
@@ -28,15 +41,18 @@
 //                       tietokanta — samalla periaatteella kuin TableOnline,
 //                       jätetään rauhaan. Lupa­rekisteri antaa 4× enemmän.
 
-import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs'
+import { writeFileSync, mkdirSync, readFileSync, existsSync, appendFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { ReasonKind, RestaurantReason, ReasonFile } from '../lib/restaurant-reasons'
-import { reasonKeyVariants, openingLabel, streetKey } from '../lib/restaurant-reasons'
+import { reasonKeyVariants, openingLabel, streetKey, siirraEdellisetAvaukset } from '../lib/restaurant-reasons'
 import { readSheet } from '../lib/xlsx-read'
 import { get, stripTags, listTitleNote, listPill, extractListEntries, NOT_A_VENUE } from '../lib/editorial-scrape'
 
 const OUT = join(process.cwd(), 'data', 'restaurant-reasons.json')
 const DRY = process.argv.includes('--dry')
+/** Testikytkin: lupatiedostojen lataus "epäonnistuu" heti → siirtopolku näkyy
+ *  ilman viiden minuutin uusintoja. Ei koskaan päälle tuotantoajossa. */
+const SIMULOI_LUPAKATKO = process.argv.includes('--simuloi-lupakatko')
 const TODAY = new Date()
 
 /** Yksi lähteen tuottama rivi ennen avaimeksi muuntamista. */
@@ -488,6 +504,7 @@ async function readAlluRowsKestava(url: string, nimi: string): Promise<AlluRow[]
 }
 
 async function fetchNewOpenings(): Promise<Raw[]> {
+  if (SIMULOI_LUPAKATKO) throw new Error('simuloitu lupakatko (--simuloi-lupakatko)')
   const [current, ended] = await Promise.all([
     readAlluRowsKestava(ALLU_XLSX, 'voimassa olevat luvat'),
     readAlluRowsKestava(ALLU_ENDED_XLSX, 'päättyneet luvat').catch((e) => {
@@ -570,10 +587,33 @@ const SOURCES: { kind: ReasonKind; name: string; run: () => Promise<Raw[]> }[] =
   { kind: 'uusi', name: 'Uudet avaukset', run: fetchNewOpenings },
 ]
 
+/** Edellinen tiedosto: vertailuun ja lupalähteen katkon varaksi. */
+function lueEdellinen(): ReasonFile | null {
+  if (!existsSync(OUT)) return null
+  try { return JSON.parse(readFileSync(OUT, 'utf8')) as ReasonFile } catch { return null }
+}
+
+/** Siirto ei saa olla hiljainen: loki JA GitHubin ajoyhteenveto (näkyy
+ *  Actions-sivulla ilman lokien avaamista). */
+function varoitaSiirrosta(lkm: number, alkupera: string, syy: string) {
+  const viesti = `UUDET AVAUKSET SIIRRETTY EDELLISESTÄ TIEDOSTOSTA: ${lkm} avausta, alkuperäinen haku ${alkupera}. Lupatiedostoja ei saatu: ${syy}`
+  console.warn(`\n  ⚠ ${viesti}`)
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      `## ⚠️ Uudet avaukset siirretty edellisestä tiedostosta\n\n${viesti}\n\n` +
+      'Avaukset vähenevät 150 päivän ikkunan mukana, kunnes lupatiedostojen lataus ' +
+      '(scripts/fetch-restaurant-reasons.ts, ALLU_XLSX) taas onnistuu — silloin siirto loppuu itsestään.\n',
+    )
+  }
+}
+
 async function main() {
   const byName: Record<string, RestaurantReason[]> = {}
   const counts: Record<string, number> = {}
   const failures: string[] = []
+  const edellinen = lueEdellinen()
+  let lupakatko: string | null = null
 
   for (const s of SOURCES) {
     process.stdout.write(`  ${s.name} … `)
@@ -582,7 +622,10 @@ async function main() {
       rows = await s.run()
     } catch (e) {
       console.log(`VIRHE: ${(e as Error).message}`)
-      failures.push(`${s.name}: ${(e as Error).message}`)
+      // Lupalähde on ainoa, jolla on kelvollinen vara (siirto edellisestä
+      // tiedostosta, ks. alla) — muut lähteet pysäyttävät ajon kuten ennen.
+      if (s.kind === 'uusi') lupakatko = (e as Error).message
+      else failures.push(`${s.name}: ${(e as Error).message}`)
       continue
     }
     console.log(`${rows.length}`)
@@ -601,10 +644,28 @@ async function main() {
     }
   }
 
+  // ── LUPALÄHTEEN KATKO → SIIRTO EDELLISESTÄ TIEDOSTOSTA ───────────────────
+  // Ks. tiedoston alku ja lib/restaurant-reasons siirraEdellisetAvaukset.
+  // Siirretyt avaukset lasketaan paikkoina kuten haetutkin (counts.uusi),
+  // jotta diffi ja loki näyttävät määrän vähenemisen ikkunan mukana.
+  let siirto: ReasonFile['avauksetSiirretty']
+  if (lupakatko) {
+    const s = siirraEdellisetAvaukset(edellinen, TODAY, OPENING_WINDOW_DAYS)
+    for (const [key, rs] of Object.entries(s.byName)) {
+      const list = (byName[key] ??= [])
+      for (const r of rs) if (!list.some((x) => x.kind === 'uusi')) list.push(r)
+    }
+    counts.uusi = s.lkm
+    siirto = { lahde: s.alkupera ?? 'ei edellistä tiedostoa', syy: lupakatko }
+    varoitaSiirrosta(s.lkm, siirto.lahde, lupakatko)
+  }
+
   // ── ROMAHDUSVAHTI ─────────────────────────────────────────────────────────
   // Kaikki tai ei mitään: yksikin alarajan alittava lähde estää kirjoituksen.
-  // Vanha tiedosto on aina parempi kuin puolikas uusi.
+  // Vanha tiedosto on aina parempi kuin puolikas uusi. Siirretyt avaukset
+  // ovat poikkeus: ne saavat vähetä ikkunan mukana, koska siirto on ilmoitettu.
   const low = SOURCES
+    .filter((s) => !(siirto && s.kind === 'uusi'))
     .filter((s) => (counts[s.kind] ?? 0) < (FLOOR[s.kind] ?? 0))
     .map((s) => `${s.name}: ${counts[s.kind] ?? 0} < ${FLOOR[s.kind]}`)
 
@@ -620,6 +681,7 @@ async function main() {
     fetchedAt: TODAY.toISOString(),
     byName,
     counts,
+    ...(siirto ? { avauksetSiirretty: siirto } : {}),
   }
   const total = Object.values(byName).flat().length
   console.log(`\n  ${Object.keys(byName).length} avainta, ${total} syytä`)
@@ -629,15 +691,10 @@ async function main() {
     return
   }
   // Vertailu edelliseen, jotta romahdus näkyy myös lokissa eikä vain diffissä.
-  if (existsSync(OUT)) {
-    try {
-      const prev = JSON.parse(readFileSync(OUT, 'utf8')) as ReasonFile
-      for (const [k, v] of Object.entries(prev.counts ?? {})) {
-        const now = counts[k] ?? 0
-        const arrow = now === v ? '' : now > v ? ` (+${now - v})` : ` (${now - v})`
-        console.log(`    ${k}: ${v} → ${now}${arrow}`)
-      }
-    } catch { /* vioittunut vanha tiedosto ei estä kirjoitusta */ }
+  for (const [k, v] of Object.entries(edellinen?.counts ?? {})) {
+    const now = counts[k] ?? 0
+    const arrow = now === v ? '' : now > v ? ` (+${now - v})` : ` (${now - v})`
+    console.log(`    ${k}: ${v} → ${now}${arrow}`)
   }
   mkdirSync(join(process.cwd(), 'data'), { recursive: true })
   writeFileSync(OUT, JSON.stringify(file, null, 2) + '\n')
