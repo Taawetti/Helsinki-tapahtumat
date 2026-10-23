@@ -365,7 +365,9 @@ out tags center meta;`
   // koko viikkoajon tähän askeleeseen. Overpass palauttaa 406 ilman
   // tunnistautuvaa User-Agentia — mitattu, siksi oma.
   const { data } = await haeOverpass<{ elements?: { type: string; id: number; version?: number; timestamp?: string; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[]; remark?: string }>(
-    q, { aikakatkaisuMs: 150_000, userAgent: 'MitaTanaanBot/1.0 (+https://mitatanaan.fi)' },
+    // Kolme kierrosta tauoilla 60 s ja 120 s: kaikki peilit olivat 23.10.2026
+    // hetken yhtä aikaa alhaalla ja pystyssä taas vartin päästä.
+    q, { aikakatkaisuMs: 150_000, userAgent: 'MitaTanaanBot/1.0 (+https://mitatanaan.fi)', kierrokset: 3, taukoMs: 60_000 },
   )
   const out: Raw[] = []
   const MONTHS = ['tammikuussa', 'helmikuussa', 'maaliskuussa', 'huhtikuussa', 'toukokuussa', 'kesäkuussa', 'heinäkuussa', 'elokuussa', 'syyskuussa', 'lokakuussa', 'marraskuussa', 'joulukuussa']

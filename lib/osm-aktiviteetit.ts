@@ -255,13 +255,26 @@ export async function haeOsmAktiviteetit(o: { budjettiMs?: number; aikakatkaisuM
  *  palautetaan, muuten heitetään kaikkien peilien syyt. Osittainen vastaus
  *  (remark) hylätään. Skriptien yhteinen apu — yksi peili ei riitä: 23.10.2026
  *  overpass-api.de vastasi 502 "at capacity" ja kaatoi viikkoajon askeleen
- *  "Hae tekemisen syyt", vaikka z.overpass-api.de vastasi samaan aikaan. */
+ *  "Hae tekemisen syyt", vaikka z.overpass-api.de vastasi samaan aikaan.
+ *
+ *  KIERROKSET: samana päivänä klo 11.45 UTC KAIKKI kolme peiliä olivat
+ *  hetken alhaalla (502, 502, aikakatkaisu) ja vartin päästä taas pystyssä.
+ *  Overpassin oma ohje 502-vastauksessa on "retry using exponential backoff",
+ *  joten peilikierros toistetaan `kierrokset` kertaa kasvavalla tauolla
+ *  (tauko × kierros). Skriptit käyttävät kierroksia; pyyntöpolku ei. */
 export async function haeOverpass<T extends { remark?: string } = { elements?: OsmElement[]; remark?: string }>(
   kysely: string,
-  o: { aikakatkaisuMs?: number; peilit?: readonly string[]; userAgent?: string } = {},
+  o: { aikakatkaisuMs?: number; peilit?: readonly string[]; userAgent?: string; kierrokset?: number; taukoMs?: number } = {},
 ): Promise<{ data: T; peili: string }> {
   const peilit = o.peilit ?? OVERPASS_PEILIT
+  const kierrokset = Math.max(1, o.kierrokset ?? 1)
+  const taukoMs = o.taukoMs ?? 60_000
   const virheet: string[] = []
+  for (let kierros = 1; kierros <= kierrokset; kierros++) {
+    if (kierros > 1) {
+      console.warn(`    overpass: kaikki peilit pettivät, odotetaan ${(taukoMs * (kierros - 1)) / 1000} s (kierros ${kierros}/${kierrokset})`)
+      await new Promise((r) => setTimeout(r, taukoMs * (kierros - 1)))
+    }
   for (const peili of peilit) {
     const host = new URL(peili).host
     try {
@@ -282,7 +295,8 @@ export async function haeOverpass<T extends { remark?: string } = { elements?: O
       virheet.push(`${host}: ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}`.slice(0, 100))
     }
   }
-  throw new Error(`overpass: kaikki peilit epäonnistuivat — ${virheet.join('; ')}`)
+  }
+  throw new Error(`overpass: kaikki peilit epäonnistuivat (${kierrokset} kierrosta) — ${virheet.join('; ')}`)
 }
 
 // ── Romahdusvahti ───────────────────────────────────────────────────────────
