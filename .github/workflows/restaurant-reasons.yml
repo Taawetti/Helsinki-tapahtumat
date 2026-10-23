@@ -162,8 +162,13 @@ jobs:
       # joten rikkinäinen haku ei pääse committiin vaikka skripti olisi päästänyt.
       - name: Tarkista tyypit ja testit
         if: steps.diff.outputs.changed == 'true'
+        # npm run typecheck (= next typegen && tsc), EI paljas tsc: Next 16:n
+        # globaalit LayoutProps/PageProps-tyypit syntyvät vasta typegenissä, ja
+        # paljas tsc kaatui niihin ajokoneella 23.10.2026 (TS2304 app/en/layout.tsx)
+        # — vika oli piilossa, koska ajo ei ollut päässyt tähän askeleeseen
+        # 24.8. jälkeen. Sama komento kuin CI:ssä ja korjausagentilla.
         run: |
-          npx tsc --noEmit
+          npm run typecheck
           npx tsx scripts/test-categories.ts
 
       # PORTTI 3 — vain tämä yksi tiedosto committoidaan. Ei `git add .`.
