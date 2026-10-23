@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
-import type { Activity, ActivityCategory } from '@/lib/types'
+import type { Activity } from '@/lib/types'
 import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
 import { supabase } from '@/lib/supabase'
 // Kuolleet kuvaosoitteet — sama harava kuin ravintolapuolella, ks.
@@ -18,108 +18,21 @@ import type { ReasonFile, RestaurantReason } from '@/lib/restaurant-reasons'
 import { credibilityScore } from '@/lib/credibility'
 import { fetchRestaurantNews } from '@/lib/restaurant-news'
 import { matchNewsToRestaurants, toNewsReason } from '@/lib/restaurant-news-match'
+// OSM-OTOS (23.10.2026): Overpassia EI kutsuta enää pyynnön aikana. Kysely
+// kesti 20–40 s, ensimmäinen peili alkoi vastata 403 ja oppaiden reitti
+// (maxDuration 30) kaatui joka pyynnöllä 504:ään — saunaopas ja ilmaiset
+// museot olivat tyhjiä. Otoksen päivittää päivittäin /api/cron/osm-otos
+// Supabase Storageen; tämä reitti lukee sen, tai jos sitä ei ole, repoon
+// committoidun pohjaotoksen (scripts/hae-osm-otos.ts). Overpass-kysely ja
+// tagien tulkinta: lib/osm-aktiviteetit.ts.
+import { lueOtosVarastosta, type OsmOtos } from '@/lib/osm-aktiviteetit'
+import pohjaOtosData from '@/data/aktiviteetit-osm.json'
 
 const DEAD_IMAGES = new Set<string>((deadImageData as { dead?: string[] }).dead ?? [])
+const POHJA_OTOS = pohjaOtosData as unknown as OsmOtos
 
-
-interface OSMElement {
-  type: 'node' | 'way' | 'relation'
-  id: number
-  lat?: number
-  lon?: number
-  center?: { lat: number; lon: number }
-  tags?: Record<string, string>
-}
-
-// ── Category mapping from OSM tags ───────────────────────
-
-function osmCategory(tags: Record<string, string>): ActivityCategory {
-  const tourism = tags.tourism
-  const leisure = tags.leisure
-  const natural = tags.natural
-  const amenity = tags.amenity
-
-  if (leisure === 'sauna' || amenity === 'sauna') return 'sauna'
-  if (tourism === 'museum') return 'museo'
-  if (tourism === 'gallery') return 'galleria'
-  if (tourism === 'viewpoint') return 'nakopaikka'
-  if (natural === 'beach' || leisure === 'swimming_area' || leisure === 'swimming_pool') return 'uimaranta'
-  if (leisure === 'park' || leisure === 'garden' || leisure === 'nature_reserve') return 'puisto'
-  if (amenity === 'marketplace') return 'markkina'
-  if (leisure === 'sports_centre' || leisure === 'pitch' || leisure === 'fitness_centre') return 'urheilu'
-  if (tourism === 'attraction') return 'nahtavyys'
-  if (tourism === 'zoo' || leisure === 'amusement_park' || amenity === 'library') return 'muu'
-  return 'muu'
-}
-
-function osmDescription(tags: Record<string, string>, cat: ActivityCategory): string {
-  // Return a human-readable category label in Finnish
-  const labels: Record<ActivityCategory, string> = {
-    // kirpputori ei tule OSM:stä vaan data/secondhand.json:sta (MapView
-    // yhdistää sen karttakerrokseen) — tyyppi vaatii silti rivin tähän.
-    kirpputori: 'Kirpputori',
-    // pubivisa: sama tilanne, lähde data/pubivisa-koordinaatit.json
-    pubivisa: 'Pubivisa',
-    sauna:      'Julkinen sauna',
-    museo:      'Museo',
-    nahtavyys:  'Nähtävyys',
-    galleria:   'Taidegalleria',
-    nakopaikka: 'Näköalapaikka',
-    uimaranta:  'Uimaranta / uimapaikka',
-    puisto:     'Puisto / luontoalue',
-    markkina:   'Kauppahalli / tori',
-    urheilu:    'Urheilupaikka',
-    muu:        'Aktiviteetti',
-  }
-  // Append sauna fuel info
-  if (cat === 'sauna' && tags['sauna:fuel']) {
-    const fuel = tags['sauna:fuel']
-    const fuelFi = fuel === 'wood' ? 'puusauna' : fuel === 'electric' ? 'sähkösauna' : fuel
-    return `Julkinen sauna — ${fuelFi}`
-  }
-  // Append specific attraction subtype if available
-  if (tags.historic) return `Historiallinen kohde (${tags.historic})`
-  return labels[cat]
-}
-
-function osmAddress(tags: Record<string, string>): string {
-  const street = tags['addr:street'] ?? ''
-  const num = tags['addr:housenumber'] ?? ''
-  return street ? `${street}${num ? ` ${num}` : ''}` : ''
-}
-
-// ── OSM Overpass query ────────────────────────────────────
-// Helsinki+Espoo+Vantaa bbox: south,west,north,east
-
-const BBOX = '60.09,24.58,60.41,25.26'
-
-// Fetch nodes AND ways (museums, parks etc. are often mapped as closed ways)
-const OSM_QUERY = `[out:json][timeout:35][bbox:${BBOX}];
-(
-  node["leisure"~"^(sauna|swimming_area|swimming_pool|park|garden|nature_reserve|sports_centre|fitness_centre|amusement_park)$"]["name"];
-  node["amenity"~"^(sauna|marketplace|library)$"]["name"];
-  node["tourism"~"^(museum|attraction|gallery|viewpoint|zoo)$"]["name"];
-  node["natural"="beach"]["name"];
-  way["tourism"~"^(museum|attraction|gallery|zoo)$"]["name"];
-  way["leisure"~"^(park|garden|nature_reserve|sports_centre|amusement_park)$"]["name"];
-  way["amenity"~"^(marketplace|library)$"]["name"];
-  way["natural"="beach"]["name"];
-);
-out center;`
-
-const OVERPASS_MIRRORS = [
-  'https://overpass.openstreetmap.fr/api/interpreter',
-  'https://z.overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-]
-
-const OSM_HEADERS = {
-  'User-Agent': 'Helsinki-Tapahtumat/1.0 (https://github.com/Taawetti/Helsinki-tapahtumat)',
-  'Accept': 'application/json',
-}
-
-// Places that are OSM relations (not nodes/ways) or otherwise missed by the query.
-// These are always injected unless the OSM query already returned them by name.
+// Paikat, jotka ovat OSM:ssä relaatioita (eivät solmuja/alueita) tai jäävät
+// muuten kyselyn ulkopuolelle. Lisätään aina, ellei OSM jo tuonut samannimistä.
 const SUPPLEMENT: Activity[] = [
   { id: 'supplement-suomenlinna',    name: 'Suomenlinna',           description: 'Merilinnoitus',   category: 'nahtavyys', address: 'Suomenlinna',              city: 'Helsinki', lat: 60.1454, lon: 24.9881, www: 'https://www.suomenlinna.fi',        phone: null, image: null, fee: false,     outdoor: true  },
   { id: 'supplement-loyly',          name: 'Löyly',                 description: 'Julkinen sauna',  category: 'sauna',     address: 'Hernesaarenranta 4',       city: 'Helsinki', lat: 60.1551, lon: 24.9140, www: 'https://loylyhelsinki.fi',          phone: null, image: null, fee: true      },
@@ -128,156 +41,112 @@ const SUPPLEMENT: Activity[] = [
   { id: 'supplement-ham',            name: 'HAM Helsinki',          description: 'Taidegalleria',   category: 'galleria',  address: 'Eteläinen Rautatiekatu 8', city: 'Helsinki', lat: 60.1635, lon: 24.9332, www: 'https://hamhelsinki.fi',            phone: null, image: null, fee: true      },
 ]
 
-async function _fetchActivities(): Promise<Activity[]> {
-  const url = `?data=${encodeURIComponent(OSM_QUERY)}`
+export interface ActivitiesTila {
+  activities: Activity[]
+  /** Mistä otos luettiin ja milloin se haettiin Overpassista — näkyy
+   *  /api/activities-vastauksessa, jotta vanhentunut otos huomataan. */
+  otos: { fetchedAt: string; lahde: 'varasto' | 'pohja' }
+}
 
-  for (const mirror of OVERPASS_MIRRORS) {
-    try {
-      const res = await fetch(mirror + url, {
-        headers: OSM_HEADERS,
-        signal: AbortSignal.timeout(40000),
-      })
-      if (!res.ok) continue
+async function _fetchActivities(): Promise<ActivitiesTila> {
+  // Otos Storagesta; ilman sitä repoon committoitu pohjaotos. Kumpikaan ei
+  // kutsu Overpassia, joten tämä kestää sekunteja eikä minuuttia.
+  const varasto = await lueOtosVarastosta()
+  const otos = varasto ?? POHJA_OTOS
+  const lahde = varasto ? 'varasto' as const : 'pohja' as const
+  // Kopiot: rikastus kirjoittaa riveihin paikallaan (kuva, aukiolot, arvosana),
+  // eikä moduulitason pohjaotosta eikä välimuistin oliota saa muuttaa.
+  const results: Activity[] = otos.activities.map((a) => ({ ...a }))
 
-      const data: { elements: OSMElement[] } = await res.json()
-      const seen = new Set<string>()
-      const results: Activity[] = []
+  // Täydennyspaikat (OSM-relaatiot / kyselyn ulkopuoliset), ellei jo mukana
+  const nameSet = new Set(results.map(r => r.name.toLowerCase()))
+  for (const s of SUPPLEMENT) {
+    if (!nameSet.has(s.name.toLowerCase())) results.push({ ...s })
+  }
 
-      for (const el of data.elements ?? []) {
-        const tags = el.tags ?? {}
-        const name = (tags.name || tags['name:fi'] || '').trim()
-        if (!name) continue
+  // Järjestys: Wikipedia/Wikidata-kohteet ensin (tunnetuimmat), sitten nimi
+  results.sort((a, b) => {
+    const aScore = (a.wikipedia ? 2 : 0) + (a.wikidata ? 1 : 0) + (a.www ? 1 : 0)
+    const bScore = (b.wikipedia ? 2 : 0) + (b.wikidata ? 1 : 0) + (b.www ? 1 : 0)
+    if (aScore !== bScore) return bScore - aScore
+    return a.name.localeCompare(b.name, 'fi')
+  })
 
-        const lat = el.type === 'node' ? el.lat : el.center?.lat
-        const lon = el.type === 'node' ? el.lon : el.center?.lon
-        if (!lat || !lon) continue
+  // Kuvat: Wikipedia ensin, sitten Supabase (DataForSEO) täydentää
+  const { venues: venueMap } = await fetchImagesCached()
+  for (const act of results) {
+    act.image = getEventImage(act.name, [act.category], venueMap, {})
+  }
 
-        // Deduplicate by name + rough location
-        const key = `${name.toLowerCase()}|${Math.round(lat * 1000)}|${Math.round(lon * 1000)}`
-        if (seen.has(key)) continue
-        seen.add(key)
-
-        const cat = osmCategory(tags)
-
-        // Skip non-public swimming pools
-        if ((tags.leisure === 'swimming_pool' || tags.amenity === 'swimming_pool') && tags.access === 'private') continue
-        // Skip private saunas
-        if (cat === 'sauna' && tags.access === 'private') continue
-
-        results.push({
-          id: `act-${el.type[0]}${el.id}`,
-          name,
-          description: osmDescription(tags, cat),
-          category: cat,
-          address: osmAddress(tags),
-          city: tags['addr:city'] ?? '',
-          lat,
-          lon,
-          www: tags.website ?? tags.url ?? tags['contact:website'] ?? null,
-          phone: tags.phone ?? tags['contact:phone'] ?? null,
-          openingHours: tags.opening_hours ?? undefined,
-          image: null,
-          fee: tags.fee === 'yes' ? true : tags.fee === 'no' ? false : undefined,
-          charge: tags.charge ?? tags.entrance_fee ?? undefined,
-          wheelchair: tags.wheelchair === 'yes' ? true : tags.wheelchair === 'no' ? false : undefined,
-          saunaFuel: tags['sauna:fuel'] ?? undefined,
-          outdoor: tags.indoor === 'no' ? true : undefined,
-          wikidata: tags.wikidata ?? undefined,
-          wikipedia: tags.wikipedia ?? undefined,
-        })
+  // Täytä puuttuvat kuvat + Google-aukiolot Supabasen DataForSEO-rikastuksesta.
+  // Sivutettu: Supabase katkaisee SELECTin 1000 riviin, ja act:-rivejä voi
+  // rikastuksen jälkeen olla yli sen — sivuttamaton luku tiputtaisi osan.
+  if (supabase) {
+    // Ulkokohteet (rannat, puistot, näköpaikat, nähtävyydet) ovat aina
+    // saavutettavissa — niille EI aseteta Google-aukioloa, ettei "aina auki"
+    // -logiikka rikkoudu (Google listaa niille usein rajatun "käyntiajan").
+    const OUTDOOR_ALWAYS_OPEN = new Set(['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys'])
+    const PAGE = 1000
+    const actImageMap: Record<string, string> = {}
+    const actHoursMap: Record<string, string> = {}
+    const actDescMap: Record<string, string> = {}
+    const actRateMap: Record<string, { rating: number; reviews: number }> = {}
+    for (let page = 0; ; page++) {
+      const { data: rows, error } = await supabase
+        .from('venue_ratings')
+        .select('venue_key, main_image, google_hours, description, google_rating, review_count')
+        .like('venue_key', 'act:%')
+        .order('venue_key')  // deterministinen sivutus — ilman tätä rivi voi jäädä väliin >1000 kohdalla
+        .range(page * PAGE, (page + 1) * PAGE - 1)
+      if (error || !rows || rows.length === 0) break
+      for (const row of rows as { venue_key: string; main_image: string | null; google_hours: string | null; description: string | null; google_rating: number | null; review_count: number | null }[]) {
+        const key = row.venue_key.replace('act:', '')
+        if (row.main_image && !DEAD_IMAGES.has(row.main_image)) actImageMap[key] = row.main_image
+        if (row.google_hours) actHoursMap[key] = row.google_hours
+        if (row.description) actDescMap[key] = row.description
+        if (typeof row.google_rating === 'number') actRateMap[key] = { rating: row.google_rating, reviews: row.review_count ?? 0 }
       }
-
-      // Inject supplement places (OSM relations / hard-to-query) unless already present
-      const nameSet = new Set(results.map(r => r.name.toLowerCase()))
-      for (const s of SUPPLEMENT) {
-        if (!nameSet.has(s.name.toLowerCase())) results.push(s)
-      }
-
-      // Sort: wikipedia/wikidata entries first (more notable), then by name
-      results.sort((a, b) => {
-        const aScore = (a.wikipedia ? 2 : 0) + (a.wikidata ? 1 : 0) + (a.www ? 1 : 0)
-        const bScore = (b.wikipedia ? 2 : 0) + (b.wikidata ? 1 : 0) + (b.www ? 1 : 0)
-        if (aScore !== bScore) return bScore - aScore
-        return a.name.localeCompare(b.name, 'fi')
-      })
-
-      // Assign images: Wikipedia first, then Supabase (DataForSEO) as supplement
-      const { venues: venueMap } = await fetchImagesCached()
-      for (const act of results) {
-        act.image = getEventImage(act.name, [act.category], venueMap, {})
-      }
-
-      // Täytä puuttuvat kuvat + Google-aukiolot Supabasen DataForSEO-rikastuksesta.
-      // Sivutettu: Supabase katkaisee SELECTin 1000 riviin, ja act:-rivejä voi
-      // rikastuksen jälkeen olla yli sen — sivuttamaton luku tiputtaisi osan.
-      if (supabase) {
-        // Ulkokohteet (rannat, puistot, näköpaikat, nähtävyydet) ovat aina
-        // saavutettavissa — niille EI aseteta Google-aukioloa, ettei "aina auki"
-        // -logiikka rikkoudu (Google listaa niille usein rajatun "käyntiajan").
-        const OUTDOOR_ALWAYS_OPEN = new Set(['uimaranta', 'puisto', 'nakopaikka', 'nahtavyys'])
-        const PAGE = 1000
-        const actImageMap: Record<string, string> = {}
-        const actHoursMap: Record<string, string> = {}
-        const actDescMap: Record<string, string> = {}
-        const actRateMap: Record<string, { rating: number; reviews: number }> = {}
-        for (let page = 0; ; page++) {
-          const { data: rows, error } = await supabase
-            .from('venue_ratings')
-            .select('venue_key, main_image, google_hours, description, google_rating, review_count')
-            .like('venue_key', 'act:%')
-            .order('venue_key')  // deterministinen sivutus — ilman tätä rivi voi jäädä väliin >1000 kohdalla
-            .range(page * PAGE, (page + 1) * PAGE - 1)
-          if (error || !rows || rows.length === 0) break
-          for (const row of rows as { venue_key: string; main_image: string | null; google_hours: string | null; description: string | null; google_rating: number | null; review_count: number | null }[]) {
-            const key = row.venue_key.replace('act:', '')
-            if (row.main_image && !DEAD_IMAGES.has(row.main_image)) actImageMap[key] = row.main_image
-            if (row.google_hours) actHoursMap[key] = row.google_hours
-            if (row.description) actDescMap[key] = row.description
-            if (typeof row.google_rating === 'number') actRateMap[key] = { rating: row.google_rating, reviews: row.review_count ?? 0 }
-          }
-          if (rows.length < PAGE) break
-        }
-        for (const act of results) {
-          const key = act.name.toLowerCase().trim()
-          if (!act.image && actImageMap[key]) act.image = actImageMap[key]
-          // Google-aukiolot ovat tuoreempia kuin OSM → suositaan niitä, PAITSI
-          // ulkokohteille joiden "aina auki" -takuu säilytetään
-          if (actHoursMap[key] && !OUTDOOR_ALWAYS_OPEN.has(act.category)) act.openingHours = actHoursMap[key]
-          // Google-kuvaus on laadukas suomenkielinen esittely → suositaan sitä
-          if (actDescMap[key]) act.description = actDescMap[key]
-          const rt = actRateMap[key]
-          if (rt) { act.rating = rt.rating; act.reviewCount = rt.reviews }
-        }
-      }
-
-      console.log(`[activities] OSM: ${results.length} results from ${mirror}`)
-      return results
-    } catch (err) {
-      console.warn(`[activities] OSM mirror ${mirror} failed:`, (err as Error).message)
+      if (rows.length < PAGE) break
+    }
+    for (const act of results) {
+      const key = act.name.toLowerCase().trim()
+      if (!act.image && actImageMap[key]) act.image = actImageMap[key]
+      // Google-aukiolot ovat tuoreempia kuin OSM → suositaan niitä, PAITSI
+      // ulkokohteille joiden "aina auki" -takuu säilytetään
+      if (actHoursMap[key] && !OUTDOOR_ALWAYS_OPEN.has(act.category)) act.openingHours = actHoursMap[key]
+      // Google-kuvaus on laadukas suomenkielinen esittely → suositaan sitä
+      if (actDescMap[key]) act.description = actDescMap[key]
+      const rt = actRateMap[key]
+      if (rt) { act.rating = rt.rating; act.reviewCount = rt.reviews }
     }
   }
 
-  // HEITTO, EI tyhjää: tyhjä tulos tallentuisi unstable_cacheen VUOROKAUDEKSI
-  // (mitattu 4.9.2026: /api/activities palautti 46 tavua ja Opas-karttataso
-  // oli tyhjä koko päivän). Heitto ohittaa välimuistin ja GET palvelee tämän
-  // pyynnön tyhjänä — seuraava pyyntö yrittää uudelleen.
-  throw new Error('[activities] kaikki OSM-peilit epäonnistuivat')
+  console.log(`[activities] otos ${lahde} (${otos.fetchedAt}): ${results.length} kohdetta`)
+  return { activities: results, otos: { fetchedAt: otos.fetchedAt, lahde } }
 }
 
-export const fetchActivitiesCached = unstable_cache(_fetchActivities, ['activities-osm-v2'], {
+// v3: paluuarvo on { activities, otos } — vanha avain piti pelkkää listaa.
+const _fetchActivitiesTilaCached = unstable_cache(_fetchActivities, ['activities-osm-v3'], {
   revalidate: 86400,
   tags: ['activities'],
 })
 
-// OSM-haku voi kylmänä kestää yli oletusaikakatkaisun — funktio saa aikaa
-// eikä kuole kesken (kuollut haku näkyi tyhjänä Opas-tasona).
+/** Lista + otoksen alkuperä (GET-vastaukseen). */
+export const fetchActivitiesTila = (): Promise<ActivitiesTila> => _fetchActivitiesTilaCached()
+
+/** Pelkkä lista — oppaat (lib/guide-data) ja muut kutsujat. */
+export const fetchActivitiesCached = async (): Promise<Activity[]> => (await _fetchActivitiesTilaCached()).activities
+
+// Otoksen luku + kuvat + Google-rikastus + uutiset kestävät kylmänä muutaman
+// sekunnin; 60 s on varaa uutisputken hitaimmalle päivälle.
 export const maxDuration = 60
 
 export async function GET() {
   // Heittävä haku ei saa kaataa reittiä: tämä pyyntö palvellaan tyhjänä
   // (EI välimuistiin), seuraava yrittää uudelleen.
   let hakuEpaonnistui = false
-  const base = await fetchActivitiesCached().catch((e): Activity[] => {
+  let otos: ActivitiesTila['otos'] | null = null
+  const base = await fetchActivitiesTila().then((t) => { otos = t.otos; return t.activities }).catch((e): Activity[] => {
     console.error('[activities] haku ohitettu tältä pyynnöltä:', e)
     hakuEpaonnistui = true
     return []
@@ -384,6 +253,7 @@ export async function GET() {
     activities,
     total: activities.length,
     categoryCount,
+    otos,
   }, {
     headers: {
       // Sama reunavälimuisti kuin ravintola-API:ssa: Vercelin reuna palvelee

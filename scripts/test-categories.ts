@@ -34,6 +34,7 @@ import { parseApolloGrid } from '../lib/apollo-parse'
 import { parseMaxineTribe } from '../lib/maxine-parse'
 import { parseTanssintaloEntries } from '../lib/tanssintalo-parse'
 import { parsePostbarEvents } from '../lib/postbar-parse'
+import { elementitAktiviteeteiksi, tarkistaOtos, type OsmElement, type OsmOtos } from '../lib/osm-aktiviteetit'
 import {
   reasonKey,
   reasonKeyVariants,
@@ -4875,6 +4876,50 @@ odotettavat.push((async () => {
     else failures.push(`✗ kaksivaihehaku: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 })())
+
+// ── OSM-otos: tagien tulkinta ja romahdusvahti (lib/osm-aktiviteetit) ─────────
+// Saunaopas ja ilmaiset museot lukevat otoksen suoraan — väärin tulkittu tai
+// vajaa otos näkyisi tyhjänä oppaana (23.10.2026: 504 joka pyynnöllä, kun
+// Overpass-haku vielä asui pyyntöpolulla).
+{
+  type Akt = OsmOtos['activities'][number]
+  const solmu = (id: number, tags: Record<string, string>, lat = 60.17, lon = 24.94): OsmElement => ({ type: 'node', id, lat, lon, tags })
+  const akt = elementitAktiviteeteiksi([
+    solmu(1, { name: 'Kotiharjun sauna', leisure: 'sauna', access: 'customers', 'sauna:fuel': 'wood', 'addr:street': 'Harjutorinkatu', 'addr:housenumber': '1', opening_hours: 'Tu-Su 14:00-21:00', fee: 'yes' }),
+    solmu(2, { name: 'Firman sauna', leisure: 'sauna', access: 'private' }),
+    solmu(3, { name: 'kotiharjun sauna', leisure: 'sauna' }),                 // sama sauna samasta pisteestä → yksi rivi
+    { type: 'way', id: 4, center: { lat: 60.1702, lon: 24.9442 }, tags: { name: 'Ateneum', tourism: 'museum', fee: 'yes' } },
+    solmu(5, { leisure: 'park' }),                                             // nimetön → pois
+    solmu(6, { name: 'Taloyhtiön allas', leisure: 'swimming_pool', access: 'private' }),
+    solmu(7, { name: 'Hietaranta', natural: 'beach' }),
+    solmu(8, { 'name:fi': 'Pohjoisrannan sauna', amenity: 'sauna' }),
+  ])
+  const byId = new Map(akt.map((a) => [a.id, a]))
+  const koti = byId.get('act-n1')
+  const ateneum = byId.get('act-w4')
+  const monta = (n: number, category: 'sauna' | 'museo' | 'puisto'): Akt[] =>
+    Array.from({ length: n }, (_, i) => ({ id: `${category}-${i}`, name: `${category} ${i}`, description: '', category, address: '', city: '', www: null, phone: null, image: null }))
+  const terve = [...monta(40, 'sauna'), ...monta(90, 'museo'), ...monta(2900, 'puisto')]
+  const oCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'yleinen sauna tulkitaan: kategoria, puusauna, osoite, aukiolot, maksu',
+      ok: !!koti && koti.category === 'sauna' && koti.description === 'Julkinen sauna — puusauna' && koti.address === 'Harjutorinkatu 1'
+        && koti.openingHours === 'Tu-Su 14:00-21:00' && koti.fee === true && koti.saunaFuel === 'wood', got: JSON.stringify(koti) },
+    { name: 'yksityinen sauna ja taloyhtiön allas eivät tule mukaan', ok: !byId.has('act-n2') && !byId.has('act-n6') },
+    { name: 'sama sauna kahdesti samasta pisteestä → yksi rivi', ok: !byId.has('act-n3') && akt.filter((a) => a.name.toLowerCase() === 'kotiharjun sauna').length === 1 },
+    { name: 'alue (way) saa keskipisteen koordinaatit ja museo-kategorian', ok: !!ateneum && ateneum.category === 'museo' && ateneum.lat === 60.1702 && ateneum.lon === 24.9442 && ateneum.fee === true, got: JSON.stringify(ateneum) },
+    { name: 'nimetön kohde jätetään pois', ok: !byId.has('act-n5') },
+    { name: 'ranta → uimaranta, amenity=sauna ja name:fi → sauna', ok: byId.get('act-n7')?.category === 'uimaranta' && byId.get('act-n8')?.category === 'sauna' && byId.get('act-n8')?.name === 'Pohjoisrannan sauna' },
+    { name: 'romahdusvahti: terve otos (40 saunaa, 90 museota, 3 030 kohdetta) kelpaa', ok: tarkistaOtos(terve, null).ok },
+    { name: 'romahdusvahti: 10 saunaa ei kelpaa', ok: !tarkistaOtos([...monta(10, 'sauna'), ...monta(90, 'museo'), ...monta(2900, 'puisto')], null).ok },
+    { name: 'romahdusvahti: 1 000 kohdetta ei kelpaa', ok: !tarkistaOtos([...monta(40, 'sauna'), ...monta(90, 'museo'), ...monta(870, 'puisto')], null).ok },
+    { name: 'romahdusvahti: alle 60 % edellisestä ei kelpaa', ok: !tarkistaOtos([...monta(40, 'sauna'), ...monta(90, 'museo'), ...monta(1500, 'puisto')], terve).ok },
+    { name: 'romahdusvahti: 70 % edellisestä kelpaa', ok: tarkistaOtos([...monta(40, 'sauna'), ...monta(90, 'museo'), ...monta(2000, 'puisto')], terve).ok },
+  ]
+  for (const c of oCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ osm-otos: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
 
 // Kokonaismäärä johdetaan aina todellisista ajoista — ei käsin ylläpidettyä kaavaa.
 // Yhteenveto odottaa asynkroniset lohkot (kaksivaihehaku) — muuten ne eivät

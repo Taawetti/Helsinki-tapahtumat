@@ -9,7 +9,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildGuidePayload, type GuideDataSlug } from '@/lib/guide-data'
 
-export const maxDuration = 30
+// 60 s kuten /api/activities: 30 s:n raja kaatui 504:ään joka pyynnöllä, kun
+// saunaoppaan data odotti Overpassia (23.10.2026). Nyt data tulee otoksesta
+// sekunneissa (lib/osm-aktiviteetit), mutta raja pidetään samana kuin
+// datareitillä, ettei kylmä uutis- tai kuvahaku enää katkaise opasta.
+export const maxDuration = 60
 
 // SWR vuorokausi: 10 min ikkunalla yli 70 min hiljaiselon jälkeinen kävijä
 // blokkasi koko rakennuksen ajan (mitattu 5.9.2026: saunat kylmänä 20 s).

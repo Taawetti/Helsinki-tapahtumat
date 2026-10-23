@@ -307,9 +307,12 @@ function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
 const OSM_BBOX = '60.09,24.58,60.41,25.26'
 const OSM_QUERY = `[out:json][timeout:30][bbox:${OSM_BBOX}];(node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten|nightclub)$"]["name"];way["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten|nightclub)$"]["name"];);out center;`
 
+// overpass.openstreetmap.fr poistettu 23.10.2026: vastaa 403 "only available
+// to white-listed usages" — jokainen haku maksoi turhan kierroksen ennen
+// toimivaa peiliä. Sama lista kuin lib/osm-aktiviteetit.ts.
 const OVERPASS_MIRRORS = [
-  'https://overpass.openstreetmap.fr/api/interpreter',
   'https://z.overpass-api.de/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
 ]
 
