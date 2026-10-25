@@ -4986,14 +4986,17 @@ odotettavat.push((async () => {
     { name: 'tyhjä otsikko ei osu koskaan', ok: !osuukoKorjaus(osuva, { ...k, osuma: { otsikko: '  ', paiva: '2026-12-09' } }) },
     { name: 'muut tapahtumat eivät muutu', ok: sovellaTapahtumakorjaukset([ev('Joulukonsertti', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')], [k])[0].image === null },
     { name: 'tyhjä aseta ei ylikirjoita', ok: sovellaTapahtumakorjaukset([osuva], [{ ...k, aseta: {} }])[0].infoUrl === 'https://www.stadissa.fi/x' },
+    { name: 'kuvaus ja lyhyt kuvaus asetetaan kun ne on annettu',
+      ok: (() => { const r = sovellaTapahtumakorjaukset([{ ...osuva, description: '', shortDescription: '@ Kallion kirkko' }], [{ ...k, aseta: { description: 'Eka kappale.\n\nToka kappale.', shortDescription: 'Lyhyt.' } }])[0]; return r.description === 'Eka kappale.\n\nToka kappale.' && r.shortDescription === 'Lyhyt.' && r.infoUrl === 'https://www.stadissa.fi/x' })() },
     { name: 'kelvoton aikaleima ei osu eikä kaada', ok: !osuukoKorjaus(ev('Jannan joulu', 'ei-aika', 'Kallion kirkko'), k) },
   ]
   // Oikea tiedosto: jokaisella rivillä tunniste, otsikko, päivä ja https-osoitteet.
   const tiedosto = tapahtumakorjausFile as unknown as TapahtumakorjausTiedosto
   kCases.push({ name: 'korjaustiedostossa on rivejä', ok: tiedosto.korjaukset.length >= 1 })
-  kCases.push({ name: 'jokaisella korjauksella on tunniste, otsikko, päivä YYYY-MM-DD ja https-osoitteet',
+  kCases.push({ name: 'jokaisella korjauksella on tunniste, otsikko, päivä YYYY-MM-DD, https-osoitteet ja tekstit ilman HTML:ää',
     ok: tiedosto.korjaukset.every((r) => /^[a-z0-9-]+$/.test(r.id) && r.osuma.otsikko.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.osuma.paiva)
-      && Object.values(r.aseta).every((u) => typeof u === 'string' && /^https:\/\//.test(u))) })
+      && ([r.aseta.image, r.aseta.ticketUrl, r.aseta.infoUrl].filter((u) => u !== undefined) as string[]).every((u) => /^https:\/\//.test(u))
+      && ([r.aseta.description, r.aseta.shortDescription].filter((u) => u !== undefined) as string[]).every((u) => u.trim().length > 0 && !/<[a-z][\s\S]*>/i.test(u))) })
   for (const c of kCases) {
     if (c.ok) pass++
     else failures.push(`✗ tapahtumakorjaukset: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)

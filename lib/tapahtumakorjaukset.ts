@@ -36,6 +36,10 @@ export interface Tapahtumakorjaus {
     image?: string
     ticketUrl?: string
     infoUrl?: string
+    /** Infopaneelin kuvaus (kappaleet tyhjällä rivillä; näytetään whitespace-pre-line). */
+    description?: string
+    /** Yhden rivin kuvaus: kortin alarivi ja jaetun sivun meta description. */
+    shortDescription?: string
   }
   muistiinpano?: string
 }
@@ -52,6 +56,8 @@ export interface Korjattava {
   image?: string | null
   ticketUrl?: string | null
   infoUrl?: string | null
+  description?: string
+  shortDescription?: string
 }
 
 /** Vertailumuoto: pienet kirjaimet, ääkköset pelkiksi kirjaimiksi, välimerkit välilyönneiksi. */
@@ -83,6 +89,8 @@ export function sovellaTapahtumakorjaukset<T extends Korjattava>(events: T[], ko
         ...(k.aseta.image ? { image: k.aseta.image } : {}),
         ...(k.aseta.ticketUrl ? { ticketUrl: k.aseta.ticketUrl } : {}),
         ...(k.aseta.infoUrl ? { infoUrl: k.aseta.infoUrl } : {}),
+        ...(k.aseta.description ? { description: k.aseta.description } : {}),
+        ...(k.aseta.shortDescription ? { shortDescription: k.aseta.shortDescription } : {}),
       }
     }
     return tulos
