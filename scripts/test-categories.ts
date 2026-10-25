@@ -70,6 +70,7 @@ import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from '../lib/nightlife'
 import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/arvo-ilta'
 import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto } from '../lib/tapahtumakorjaukset'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
+import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, type KlikkiRivi } from '../lib/kavijatilastot'
 import { nameOverlap } from '../lib/dataforseo'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
@@ -4996,6 +4997,57 @@ odotettavat.push((async () => {
   for (const c of kCases) {
     if (c.ok) pass++
     else failures.push(`✗ tapahtumakorjaukset: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Kävijätilastot: Helsinki-päivärajat, päiväsarja ja tapahtumakohtainen erittely
+// (lib/kavijatilastot). Admin-näkymän päiväliukusäädin ja Tapahtuman seuranta
+// nojaavat näihin; väärä päiväraja siirtäisi yön käynnit väärälle päivälle.
+{
+  const rivi = (kind: string, created_at: string, o: Partial<KlikkiRivi> = {}): KlikkiRivi =>
+    ({ kind, surface: null, event_id: null, label: null, meta: null, country: 'FI', city: 'Helsinki', region: '18', visitor: null, created_at, ...o })
+  const rivit: KlikkiRivi[] = [
+    rivi('pageview', '2026-10-24T22:30:00Z', { label: '/', visitor: 'a' }),          // 25.10. klo 01.30 Helsinkiä (kesäaika)
+    rivi('pageview', '2026-10-25T10:00:00Z', { label: '/', visitor: 'b' }),
+    rivi('pageview', '2026-10-25T11:00:00Z', { label: '/e/stadissa-117757', visitor: 'b' }),
+    rivi('event_open', '2026-10-24T10:52:20Z', { event_id: 'stadissa-117757', label: 'Jannan Joulu', surface: 'search', visitor: 'a' }),
+    rivi('event_open', '2026-10-25T09:42:11Z', { event_id: 'stadissa-117757', label: 'Jannan Joulu', surface: 'search', visitor: 'a' }),
+    rivi('event_open', '2026-10-25T09:50:00Z', { event_id: 'stadissa-117757', label: 'Jannan Joulu', surface: 'hero', visitor: 'c' }),
+    rivi('external_click', '2026-10-25T09:43:00Z', { event_id: 'stadissa-117757', label: 'Jannan Joulu', meta: 'lippu.fi', visitor: 'a' }),
+    rivi('external_click', '2026-10-25T09:44:00Z', { event_id: 'stadissa-117757', label: 'Jannan Joulu', meta: 'www.ticketmaster.fi', visitor: 'c' }),
+    rivi('external_click', '2026-10-24T10:52:33Z', { event_id: 'stadissa-117757', label: 'Jannan Joulu', meta: 'helsinginseurakunnat.fi', visitor: 'a' }),
+    rivi('plan_add', '2026-10-25T09:45:00Z', { label: 'Jannan Joulu', meta: 'tapahtuma' }),
+    rivi('event_open', '2026-10-25T12:00:00Z', { event_id: 'helsinki:abc', label: 'Muu keikka', surface: 'grid', visitor: 'b' }),
+  ]
+  const t = koostaTilastot(rivit, { from: '2026-10-23', to: '2026-10-25', tapahtumaId: 'stadissa-117757' })
+  const paiva = (p: string) => t.paivittain.find((x) => x.paiva === p)
+  const j = t.tapahtuma
+  const vCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'Helsinki-päivän alku kesäajan päättymispäivänä 25.10.2026 on 24.10. 21:00Z', ok: helsinkiPaivanAlku('2026-10-25') === '2026-10-24T21:00:00.000Z', got: helsinkiPaivanAlku('2026-10-25') },
+    { name: 'Helsinki-päivän alku talviaikaan 26.10.2026 on 25.10. 22:00Z', ok: helsinkiPaivanAlku('2026-10-26') === '2026-10-25T22:00:00.000Z', got: helsinkiPaivanAlku('2026-10-26') },
+    { name: 'Helsinki-päivän alku kesällä on 21:00Z ja talvella 22:00Z', ok: helsinkiPaivanAlku('2026-07-01') === '2026-06-30T21:00:00.000Z' && helsinkiPaivanAlku('2026-01-15') === '2026-01-14T22:00:00.000Z' },
+    { name: 'siirraPaivaa yli kuukauden ja vuoden rajan', ok: siirraPaivaa('2026-11-01', -1) === '2026-10-31' && siirraPaivaa('2026-12-31', 1) === '2027-01-01' },
+    { name: 'paivatValilla antaa kaikki päivät järjestyksessä, nurin oleva väli on tyhjä', ok: paivatValilla('2026-10-23', '2026-10-25').join(',') === '2026-10-23,2026-10-24,2026-10-25' && paivatValilla('2026-10-25', '2026-10-23').length === 0 },
+    { name: 'ratkaiseJakso: days=7 on seitsemän päivää tähän päivään, nurin oleva from/to käännetään',
+      ok: JSON.stringify(ratkaiseJakso({ days: '7' }, '2026-10-25')) === JSON.stringify({ from: '2026-10-19', to: '2026-10-25' })
+        && JSON.stringify(ratkaiseJakso({ from: '2026-10-25', to: '2026-10-20' }, '2026-10-25')) === JSON.stringify({ from: '2026-10-20', to: '2026-10-25' }),
+      got: JSON.stringify(ratkaiseJakso({ days: '7' }, '2026-10-25')) },
+    { name: 'yön käynti (22:30Z) kirjautuu seuraavalle Helsinki-päivälle', ok: paiva('2026-10-25')?.kaynnit === 3 && paiva('2026-10-24')?.kaynnit === 0, got: JSON.stringify(t.paivittain) },
+    { name: 'päiväsarjassa on jokainen jakson päivä, myös tyhjä 23.10.', ok: t.paivittain.length === 3 && paiva('2026-10-23')?.kaynnit === 0 && paiva('2026-10-23')?.kavijat === 0 },
+    { name: 'eri kävijät päivittäin lasketaan kaikista riveistä', ok: paiva('2026-10-25')?.kavijat === 3 && paiva('2026-10-24')?.kavijat === 1, got: JSON.stringify(t.paivittain) },
+    { name: 'tapahtumalista: Jannan Joulu 3 avausta ensimmäisenä', ok: t.tapahtumat[0]?.id === 'stadissa-117757' && t.tapahtumat[0]?.maara === 3 && t.tapahtumat[0]?.nimi === 'Jannan Joulu', got: JSON.stringify(t.tapahtumat) },
+    { name: 'tapahtuman erittely: avaukset, eri avaajat, uloslinkit ja lippukauppaklikit', ok: !!j && j.avaukset === 3 && j.eriAvaajat === 2 && j.ulkoisetKlikit === 3 && j.lippuklikit === 2, got: JSON.stringify(j) },
+    { name: 'tapahtuman erittely: suunnitelmaan otsikolla ja jaetun sivun avaus polulla', ok: !!j && j.suunnitelmaan === 1 && j.jaetunSivunKaynnit === 1 },
+    { name: 'tapahtuman päiväsarja: 24.10. yksi avaus ja yksi muu klikki, 25.10. kaksi avausta ja kaksi lippuklikkiä',
+      ok: !!j && JSON.stringify(j.paivittain.map((p) => [p.avaukset, p.ulkoiset, p.lippuklikit])) === JSON.stringify([[0, 0, 0], [1, 1, 0], [2, 2, 2]]), got: JSON.stringify(j?.paivittain) },
+    { name: 'tapahtuman erittely: pinnat ja verkkotunnukset', ok: !!j && j.pinnat[0]?.nimi === 'search' && j.pinnat[0]?.maara === 2 && j.domainit.some((d) => d.nimi === 'lippu.fi'), got: JSON.stringify(j?.pinnat) },
+    { name: 'lippukauppaKlikit kokoaa lippukauppoihin menneet uloslinkit otsikolla', ok: t.lippukauppaKlikit[0]?.nimi === 'Jannan Joulu' && t.lippukauppaKlikit[0]?.maara === 2 },
+    { name: 'tuntematon tapahtuma antaa null, ei virhettä', ok: koostaTilastot(rivit, { from: '2026-10-23', to: '2026-10-25', tapahtumaId: 'ei-ole' }).tapahtuma === null },
+    { name: 'onLippukauppa tunnistaa lippu.fi:n, Ticketmasterin ja Kiden, ei seurakuntaa', ok: onLippukauppa('lippu.fi') && onLippukauppa('www.ticketmaster.fi') && onLippukauppa('kide.app') && !onLippukauppa('helsinginseurakunnat.fi') && !onLippukauppa(null) },
+  ]
+  for (const c of vCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ kävijätilastot: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 
