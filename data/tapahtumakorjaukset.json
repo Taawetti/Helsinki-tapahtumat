@@ -1,0 +1,17 @@
+{
+  "korjaukset": [
+    {
+      "id": "jannan-joulu-kallion-kirkko-2026-12-09",
+      "osuma": {
+        "otsikko": "jannan joulu",
+        "paiva": "2026-12-09",
+        "paikka": "kallion kirkko"
+      },
+      "aseta": {
+        "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/event-images/jannan-joulu-kallion-kirkko-2026-12-09.jpg",
+        "ticketUrl": "https://www.lippu.fi/event/jannan-joulu-kallion-kirkko-22112817/"
+      },
+      "muistiinpano": "Omistaja 25.10.2026: kiertuejuliste (Janna presents: Jannan joulu ystävien kanssa & Leri Leskisen orkesteri; Tuure Kilpeläinen, Olga, Arttu Wiskari) ja lippu.fi-linkki Eventimin rajapinnasta. Stadissa-lähde ei anna kumpaakaan, eikä lippu.fi-lähteen yksi kysely sisällä tätä tapahtumaa."
+    }
+  ]
+}

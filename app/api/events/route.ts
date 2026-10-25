@@ -9,6 +9,8 @@ import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { eventMatchesKeyword } from '@/lib/keyword-filter'
 import { onEstettyPaikka } from '@/lib/venue-blocklist'
 import { haeUlkoisetLahteet, ULKOISET_LAHTEET } from '@/lib/lahdevarasto'
+import { sovellaTapahtumakorjaukset, type TapahtumakorjausTiedosto } from '@/lib/tapahtumakorjaukset'
+import tapahtumakorjaukset from '@/data/tapahtumakorjaukset.json'
 
 // Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
 // Ilman tätä alusta voi katkaista pyynnön oletuksellaan kesken kaiken, jolloin
@@ -611,6 +613,11 @@ export async function GET(req: NextRequest) {
       // putoavat infoUrliin (ks. lib/event-links.ts onMaksunkeruuUrl).
       ticketUrl: onMaksunkeruuUrl(e.ticketUrl) ? null : e.ticketUrl,
     }))
+    // Käsin tehdyt korjaukset (kuva, lippulinkki) tapahtumiin, joille lähde
+    // ei niitä anna — data/tapahtumakorjaukset.json, ks. lib/tapahtumakorjaukset.
+    // Viimeisenä, jotta korjaus näkyy kaikissa lähteissä ja myös jaetulla
+    // /e/-sivulla, joka lukee tämän koosteen.
+    events = sovellaTapahtumakorjaukset(events, (tapahtumakorjaukset as TapahtumakorjausTiedosto).korjaukset)
     // Reunavälimuisti: ilman otsaketta Vercel antaa max-age=0:n eikä reuna
     // koskaan osu (mitattu 5.9.2026: x-vercel-cache MISS, TTFB 3,7–6,7 s per
     // käynti). 5 min tuoreus + SWR tunniksi → tyypillinen käynti ~0,2 s.

@@ -68,6 +68,8 @@ import secondhandFile from '../data/secondhand.json'
 import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from '../lib/nightlife'
 import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/arvo-ilta'
+import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto } from '../lib/tapahtumakorjaukset'
+import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { nameOverlap } from '../lib/dataforseo'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
@@ -4961,6 +4963,39 @@ odotettavat.push((async () => {
   for (const c of sCases) {
     if (c.ok) pass++
     else failures.push(`✗ avausten siirto: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Tapahtumakorjaukset: käsin annettu kuva ja lippulinkki (lib/tapahtumakorjaukset)
+// "Jannan joulu" 9.12.2026 tulee stadissa-lähteestä ilman kuvaa ja lippulinkkiä;
+// korjaus osuu otsikolla, Helsinki-päivällä ja paikalla, ei tunnisteella.
+{
+  const k = { id: 'testi', osuma: { otsikko: 'Jannan joulu', paiva: '2026-12-09', paikka: 'Kallion kirkko' }, aseta: { image: 'https://kuva.test/j.jpg', ticketUrl: 'https://www.lippu.fi/event/x/' } }
+  const ev = (title: string, startTime: string, venue: string | null) =>
+    ({ title, startTime, location: venue ? { name: venue } : null, image: null as string | null, ticketUrl: null as string | null, infoUrl: 'https://www.stadissa.fi/x' as string | null })
+  const osuva = ev('JANNAN JOULU – Ystävien kanssa', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')
+  const [tulos] = sovellaTapahtumakorjaukset([osuva], [k])
+  const kCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'otsikko + päivä + paikka osuu kirjainkoosta ja välimerkeistä riippumatta', ok: osuukoKorjaus(osuva, k) },
+    { name: 'kuva ja lippulinkki asetetaan, infoUrl säilyy', ok: tulos.image === 'https://kuva.test/j.jpg' && tulos.ticketUrl === 'https://www.lippu.fi/event/x/' && tulos.infoUrl === 'https://www.stadissa.fi/x', got: JSON.stringify(tulos) },
+    { name: 'eri päivä ei osu (kiertueen Tampere 16.12.)', ok: !osuukoKorjaus(ev('Jannan joulu', '2026-12-16T19:00:00+02:00', 'Kallion kirkko'), k) },
+    { name: 'eri paikka ei osu', ok: !osuukoKorjaus(ev('Jannan joulu', '2026-12-09T19:00:00+02:00', 'Tampereen Tuomiokirkko'), k) },
+    { name: 'päivä on Helsinki-päivä: 9.12. klo 23.30 osuu, 10.12. klo 00.30 ei', ok: osuukoKorjaus(ev('Jannan joulu', '2026-12-09T23:30:00+02:00', 'Kallion kirkko'), k) && !osuukoKorjaus(ev('Jannan joulu', '2026-12-10T00:30:00+02:00', 'Kallion kirkko'), k) },
+    { name: 'ilman paikkaa osuu pelkällä otsikolla ja päivällä', ok: osuukoKorjaus(ev('Jannan joulu', '2026-12-09T19:00:00+02:00', null), { ...k, osuma: { otsikko: 'jannan joulu', paiva: '2026-12-09' } }) },
+    { name: 'tyhjä otsikko ei osu koskaan', ok: !osuukoKorjaus(osuva, { ...k, osuma: { otsikko: '  ', paiva: '2026-12-09' } }) },
+    { name: 'muut tapahtumat eivät muutu', ok: sovellaTapahtumakorjaukset([ev('Joulukonsertti', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')], [k])[0].image === null },
+    { name: 'tyhjä aseta ei ylikirjoita', ok: sovellaTapahtumakorjaukset([osuva], [{ ...k, aseta: {} }])[0].infoUrl === 'https://www.stadissa.fi/x' },
+    { name: 'kelvoton aikaleima ei osu eikä kaada', ok: !osuukoKorjaus(ev('Jannan joulu', 'ei-aika', 'Kallion kirkko'), k) },
+  ]
+  // Oikea tiedosto: jokaisella rivillä tunniste, otsikko, päivä ja https-osoitteet.
+  const tiedosto = tapahtumakorjausFile as unknown as TapahtumakorjausTiedosto
+  kCases.push({ name: 'korjaustiedostossa on rivejä', ok: tiedosto.korjaukset.length >= 1 })
+  kCases.push({ name: 'jokaisella korjauksella on tunniste, otsikko, päivä YYYY-MM-DD ja https-osoitteet',
+    ok: tiedosto.korjaukset.every((r) => /^[a-z0-9-]+$/.test(r.id) && r.osuma.otsikko.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.osuma.paiva)
+      && Object.values(r.aseta).every((u) => typeof u === 'string' && /^https:\/\//.test(u))) })
+  for (const c of kCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ tapahtumakorjaukset: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 
