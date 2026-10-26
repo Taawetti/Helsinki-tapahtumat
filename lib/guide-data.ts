@@ -253,10 +253,10 @@ interface RestaurantLite {
 
 /** Rakentaa nimi → rikastus -kartan ravintoladatasta. Palauttaa hakufunktion,
  *  joka vaatii osoiteosuman kun samannimisiä on useita. */
-export async function buildPlaceEnricher(origin: string): Promise<(name: string, address?: string | null) => PlaceEnrichment | null> {
+export async function buildPlaceEnricher(origin: string, aikakatkaisuMs = 20000): Promise<(name: string, address?: string | null) => PlaceEnrichment | null> {
   let rows: RestaurantLite[] = []
   try {
-    const r = await fetch(`${origin}/api/restaurants`, { signal: AbortSignal.timeout(20000) })
+    const r = await fetch(`${origin}/api/restaurants`, { signal: AbortSignal.timeout(aikakatkaisuMs) })
     if (r.ok) rows = ((await r.json()) as { restaurants?: RestaurantLite[] }).restaurants ?? []
   } catch { /* rikastus on lisä, ei ehto — opas toimii ilmankin */ }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Event } from '@/lib/types'
-import { PubVisa, fetchVisas, PUBIVISAT_SOURCE_URL } from '@/lib/pubivisat'
+import { PubVisa, fetchVisas, haunTila, PUBIVISAT_SOURCE_URL } from '@/lib/pubivisat'
 import { helsinkiISO, helsinkiToday } from '@/lib/helsinki-time'
 import { buildPlaceEnricher } from '@/lib/guide-data'
 import koordData from '@/data/pubivisa-koordinaatit.json'
@@ -76,7 +76,11 @@ export async function GET(req: NextRequest) {
       // Koordinaatti-/kuvarikastus ravintoladatasta. Rikastajan sisäinen
       // try/catch takaa: jos /api/restaurants ei vastaa, visat palautuvat
       // silti (ilman koordinaatteja) eikä lähde kaadu.
-      buildPlaceEnricher(req.nextUrl.origin),
+      // 6 s rikastukselle (oletus 20 s): lähdevarasto katkaisee tämän reitin
+      // 20 sekunnissa, ja kun /api/restaurants on kylmä tai Overpass-varalistalla,
+      // 20 s rikastusodotus kaatoi koko palan TimeoutErroriin (26.10.2026).
+      // Koordinaatit löytyvät ilman rikastustakin data/pubivisa-koordinaatit.json:sta.
+      buildPlaceEnricher(req.nextUrl.origin, 6000),
     ])
     const startDate = new Date(start)
     const endDate = new Date(end)
@@ -94,7 +98,8 @@ export async function GET(req: NextRequest) {
     })
     events.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 
-    return NextResponse.json({ events, total: events.length, source: 'pubivisat' })
+    // lahde: viimeisimmän pubivisat.fi-haun tila (status, syy) — näkyy ilman lokeja.
+    return NextResponse.json({ events, total: events.length, source: 'pubivisat', lahde: haunTila() })
   } catch (err) {
     console.error('pubivisat error:', err)
     return NextResponse.json({ events: [] })

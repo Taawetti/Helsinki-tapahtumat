@@ -106,6 +106,15 @@ let cachedVisas: PubVisa[] | null = null
 let cacheTime = 0
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h — schedule changes rarely
 
+/** Viimeisimmän lähdehaun tila vianetsintää varten: /api/pubivisat palauttaa
+ *  tämän `lahde`-kentässä, jolloin Vercelin saama vastaus (status, jäsentyikö,
+ *  katkelma) näkyy ilman lokeja. 26.10.2026 lähde antoi Vercelille 0 visaa,
+ *  vaikka kehityskoneelta sama sivu jäsentyi 97 visaksi — syytä ei nähnyt
+ *  mistään, koska haku nieli virheen hiljaa. */
+export interface LahdehaunTila { aika: string; status: number | null; visoja: number; syy: string | null; ms: number }
+let viimeisinHaku: LahdehaunTila | null = null
+export function haunTila(): LahdehaunTila | null { return viimeisinHaku }
+
 export async function fetchVisas(): Promise<PubVisa[]> {
   if (cachedVisas && Date.now() - cacheTime < CACHE_TTL) return cachedVisas
 
@@ -115,21 +124,41 @@ export async function fetchVisas(): Promise<PubVisa[]> {
   // sivuston build kaatui aina kun pubivisat.fi oli nurin. Mitattu 31.8.2026:
   // kaksi buildia peräkkäin kaatui lähteen ConnectTimeoutiin. Lähteen alhaalla-
   // olo ei saa estää MEIDÄN julkaisuamme — sivu renderöityy silloin tyhjänä
-  // ja täyttyy revalidaten (24 h) myötä kun lähde palaa.
-  let res: Response
-  try {
-    res = await fetch(PUBIVISAT_SOURCE_URL, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Helsinki-tapahtumat/1.0)' },
-      signal: AbortSignal.timeout(10000),
-      next: { revalidate: 86400 },
-    })
-  } catch {
-    return cachedVisas ?? []
+  // ja täyttyy, kun lähde palaa.
+  //
+  // EI next.revalidate-välimuistia (poistettu 26.10.2026): se tallensi MINKÄ
+  // TAHANSA 2xx-vastauksen vuorokaudeksi — myös sivun, josta ei jäsenny yhtään
+  // visaa — ja tyhjä tulos jäi palvelemaan koko päiväksi vaikka lähde olisi
+  // jo toipunut. Onnistunut jäsennys pysyy muistissa 24 h (yllä); epäonnistunut
+  // haku yritetään uudelleen seuraavalla pyynnöllä. Kaksi yritystä lyhyellä
+  // tauolla kattaa hetkellisen pätkäisyn; 8 s yrityksellä mahtuu lähdevaraston
+  // 20 s rajaan rikastuksen kanssa.
+  const t0 = Date.now()
+  let status: number | null = null
+  let syy: string | null = null
+  let visas: PubVisa[] = []
+  for (let yritys = 1; yritys <= 2 && visas.length === 0; yritys++) {
+    if (yritys > 1) await new Promise((r) => setTimeout(r, 1500))
+    try {
+      const res = await fetch(PUBIVISAT_SOURCE_URL, {
+        headers: {
+          'User-Agent': 'Mita-tanaan/1.0 (+https://mitatanaan.fi)',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'fi-FI,fi;q=0.9',
+        },
+        signal: AbortSignal.timeout(8000),
+      })
+      status = res.status
+      if (!res.ok) { syy = `HTTP ${res.status}`; continue }
+      const html = await res.text()
+      visas = parseRows(html)
+      if (visas.length === 0) syy = `jäsentyi 0 visaa (${html.length} merkkiä): ${html.replace(/\s+/g, ' ').slice(0, 200)}`
+    } catch (e) {
+      syy = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
+    }
   }
-  if (!res.ok) return cachedVisas ?? []
-
-  const html = await res.text()
-  const visas = parseRows(html)
+  viimeisinHaku = { aika: new Date().toISOString(), status, visoja: visas.length, syy: visas.length > 0 ? null : syy, ms: Date.now() - t0 }
+  if (visas.length === 0) console.warn('[pubivisat] lähde ei antanut visoja:', JSON.stringify(viimeisinHaku))
   if (visas.length > 0) {
     cachedVisas = visas
     cacheTime = Date.now()
