@@ -31,5 +31,100 @@
       "purpose": "maskable"
     }
   ],
-  "lang": "fi"
+  "lang": "fi",
+  "screenshots": [
+    {
+      "src": "/screenshots/1-tanaan.png",
+      "sizes": "1188x2112",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tapahtumat tänään"
+    },
+    {
+      "src": "/screenshots/2-tapahtuma.png",
+      "sizes": "1188x2112",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tapahtuman tiedot ja liput"
+    },
+    {
+      "src": "/screenshots/3-kartta.png",
+      "sizes": "1188x2112",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tapahtumat kartalla"
+    },
+    {
+      "src": "/screenshots/5-viikonloppu.png",
+      "sizes": "1188x2112",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Viikonlopun tapahtumat"
+    },
+    {
+      "src": "/screenshots/6-saunat.png",
+      "sizes": "1188x2112",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Saunaopas"
+    },
+    {
+      "src": "/screenshots/7-uutta.png",
+      "sizes": "1188x2112",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Uutta Helsingissä"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tapahtumat tänään",
+      "short_name": "Tänään",
+      "url": "/tapahtumat/tanaan",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Viikonlopun tapahtumat",
+      "short_name": "Viikonloppu",
+      "url": "/tapahtumat/viikonloppu",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Saunat Helsingissä",
+      "short_name": "Saunat",
+      "url": "/saunat",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Uutta Helsingissä",
+      "short_name": "Uutta",
+      "url": "/uutta-helsingissa",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
 }

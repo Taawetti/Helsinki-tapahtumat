@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "fi.mitatanaan.app",
+      "sha256_cert_fingerprints": [
+        "C9:FB:B2:D0:D1:43:54:9B:31:4E:6D:6A:30:C7:B9:C8:8F:D1:7F:46:8F:C6:CC:05:6F:59:47:B9:61:09:BE:41"
+      ]
+    }
+  }
+]
