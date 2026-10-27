@@ -442,6 +442,12 @@ const t = {
     // ── Hero card ─────────────────────────────────────────────
     'hero.recommended': 'Suositellaan',
 
+    // ── "✦ Tulossa" — kärkinosto (lib/nostot) ────────────────
+    'promo.title':      'Tulossa',
+    'promo.ad':         'Mainos',
+    'promo.tickets':    'Liput',
+    'promo.more':       'Lue lisää',
+
     // ── Spontaani ─────────────────────────────────────────────
     'spontaani.title':      'Spontaani ilta',
     'spontaani.different':  'Näytä eri tapahtuma',
@@ -513,6 +519,8 @@ const t = {
     'guides.kirpputorit_sub':      'second hand & kirppikset',
     'guides.jamit_title':          'Jamit & open mic',
     'guides.jamit_sub':            'avoimet lavat',
+    'guides.joulukonsertit_title': 'Joulukonsertit',
+    'guides.joulukonsertit_sub':   'joululaulut ja konsertit',
     'guides.museot_title':         'Ilmaiset museot',
     'guides.museot_sub':           'aina vapaa pääsy',
     'guides.switch':               'Vaihda ▾',
@@ -534,6 +542,8 @@ const t = {
     'guides.sec_flea_shops_sub':   'Second hand -liikkeet ja kirpputorit.',
     'guides.sec_jams':             '🎤 Tulevat jamit & open micit',
     'guides.sec_jams_sub':         'Avoimet lavat, jamit ja open micit — tule soittamaan tai kuuntelemaan.',
+    'guides.sec_joulu':            '🎄 Joulukonsertit Helsingissä',
+    'guides.sec_joulu_sub':        'Joululaulut, kuorot ja konsertit kirkoissa ja saleissa — liput ja ilmaiset.',
     'guides.sec_museums':          '🏛 Museot',
     'guides.sec_museums_sub':      'Aina vapaa pääsy — ei ilmaispäiviä, vaan pysyvästi maksuttomat.',
     'guides.sec_galleries':        '🖼 Galleriat',
@@ -1478,6 +1488,12 @@ const t = {
     // ── Hero card ─────────────────────────────────────────────
     'hero.recommended': 'Recommended',
 
+    // ── "✦ Tulossa" — kärkinosto (lib/nostot) ────────────────
+    'promo.title':      'Upcoming',
+    'promo.ad':         'Ad',
+    'promo.tickets':    'Tickets',
+    'promo.more':       'Read more',
+
     // ── Spontaani ─────────────────────────────────────────────
     'spontaani.title':      'Spontaneous evening',
     'spontaani.different':  'Show different event',
@@ -1599,6 +1615,8 @@ const t = {
     'guides.kirpputorit_sub':      'second hand & thrift shops',
     'guides.jamit_title':          'Jams & open mic',
     'guides.jamit_sub':            'open stages',
+    'guides.joulukonsertit_title': 'Christmas concerts',
+    'guides.joulukonsertit_sub':   'carols & concerts',
     'guides.museot_title':         'Free museums',
     'guides.museot_sub':           'always free entry',
     'guides.switch':               'Switch ▾',
@@ -1620,6 +1638,8 @@ const t = {
     'guides.sec_flea_shops_sub':   'Second hand shops and flea markets.',
     'guides.sec_jams':             '🎤 Upcoming jams & open mics',
     'guides.sec_jams_sub':         'Open stages, jams and open mics — come to play or just listen.',
+    'guides.sec_joulu':            '🎄 Christmas concerts in Helsinki',
+    'guides.sec_joulu_sub':        'Carols, choirs and concerts in churches and halls — ticketed and free.',
     'guides.sec_museums':          '🏛 Museums',
     'guides.sec_museums_sub':      'Always free entry — not free days, free all year round.',
     'guides.sec_galleries':        '🖼 Galleries',

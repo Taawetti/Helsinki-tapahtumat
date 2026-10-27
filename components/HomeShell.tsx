@@ -6,6 +6,10 @@ import HomeClient from '@/components/HomeClient'
 import type { GuideSlug, GuidePayload } from '@/components/GuideInlineView'
 import { fetchInitialEvents } from '@/lib/fetchInitialEvents'
 import { getDateRange } from '@/lib/utils'
+import { helsinkiToday } from '@/lib/helsinki-time'
+import { haeNostot, type NostoTiedosto } from '@/lib/nostot'
+import nostoData from '@/data/nostot.json'
+import { omaOrigin } from '@/lib/origin'
 import type { DateFilter, Event, PriceFilter } from '@/lib/types'
 
 /** @param initialGuide  Avaa sovelluksen suoraan tähän opasnäkymään.
@@ -62,11 +66,21 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
   const hae = (f: DateFilter, start: string, end: string) =>
     tarvitaan.includes(f) ? fetchInitialEvents(start, end) : Promise.resolve(tyhja)
 
-  const [todayData, tomorrowData, weekendData, weekData] = await Promise.all([
+  // "✦ TULOSSA" (lib/nostot) haetaan AINA, myös laskeutumissivuilla ja jaetun
+  // linkin avauksessa: käyttäjä päätyy etusivunäkymään sulkemalla paneelin tai
+  // napauttamalla logoa ILMAN uutta palvelinrenderiä, ja kortin pitää olla
+  // siellä silloinkin. Aiempi rajaus "vain etusivulla" (27.10.2026) jätti
+  // jaetun linkin kautta tulleen ilman nostoa heti paneelin suljettuaan —
+  // juuri sen käyttäjän, jolle nosto on mainostajalle arvokkain. Haku on
+  // välimuistissa 5 min ja kulkee rinnakkain päiväikkunoiden kanssa.
+  const base = omaOrigin()
+
+  const [todayData, tomorrowData, weekendData, weekData, nostot] = await Promise.all([
     hae('today',    todayRange.start,    todayRange.end),
     hae('tomorrow', tomorrowRange.start, tomorrowRange.end),
     hae('weekend',  weekendRange.start,  weekendRange.end),
     hae('week',     weekRange.start,     weekRange.end),
+    haeNostot(base, (nostoData as NostoTiedosto).nostot, helsinkiToday()),
   ])
 
   return (
@@ -79,6 +93,7 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
       initialMode={initialMode}
       initialDateFilter={initialDateFilter}
       initialEvent={initialEvent}
+      initialNostot={nostot}
       heroAsHeading={heroAsHeading ?? !(initialGuide || initialVibes?.length || initialHood || initialPriceFilter || initialMode || initialDateFilter || initialEvent)}
       preloadedData={{
         today:    { start: todayRange.start,    end: todayRange.end,    events: todayData.events,    total: todayData.total    },

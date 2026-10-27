@@ -215,6 +215,10 @@ export interface RunkoOpts {
    *  24.9.2026) antaa tähän jo ehdotetut, jotta jokainen painallus tuottaa
    *  uuden ehdotuksen. */
   ohita?: ReadonlySet<string>
+  /** Kärkinostojen (lib/nostot) tapahtuma-id:t: nosto on illan rungon
+   *  pääasia aina kun se on tarjolla, ennen festivaaleja ja isoja paikkoja
+   *  (omistaja 27.10.2026). Tyhjä = ei nostoja. */
+  nostot?: ReadonlySet<string>
 }
 
 /** Ehdokas ruokayhdistelmään: tapahtuma, rungon päivä, aikaisin sallittu
@@ -234,6 +238,7 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
   const paiva = kello.date
   const huomenna = addDays(paiva, 1)
   const ohita = opts.ohita ?? new Set<string>()
+  const nostot = opts.nostot ?? new Set<string>()
   // Tapahtumaan ehtii 20 minuutissa; ravintolaan/baariin ENNEN tapahtumaa
   // vasta 45 minuutissa.
   const rajaTapahtuma = kello.hour + VALMISTAUTUMINEN_H
@@ -348,11 +353,12 @@ export function rakennaRungot(events: Event[], restaurants: Restaurant[], nyt: D
     }
     return null
   }
-  const isot = (l: Ehdokas[]) => l.filter((k) => onIsoTapahtuma(k.e)).sort(isoJarjestys)
+  const isot = (l: Ehdokas[]) => l.filter((k) => nostot.has(k.e.id) || onIsoTapahtuma(k.e))
+    .sort((a, b) => Number(nostot.has(b.e.id)) - Number(nostot.has(a.e.id)) || isoJarjestys(a, b))
   const urheilut = (l: Ehdokas[]) => l.filter((k) => onUrheilu(k.e)).sort(pisteJarjestys)
   // Varalla: ykköskorin keikka/kulttuuri/stand up (ei yöelämää — se kuuluu
   // baaripaikkaan; ei luokittelematonta — harrastematinea ei ole ehdotus).
-  const muut = (l: Ehdokas[]) => l.filter((k) => !onIsoTapahtuma(k.e) && !onUrheilu(k.e) && isPrimaryPick(k.e)
+  const muut = (l: Ehdokas[]) => l.filter((k) => !nostot.has(k.e.id) && !onIsoTapahtuma(k.e) && !onUrheilu(k.e) && isPrimaryPick(k.e)
     && ['keikka', 'kulttuuri', 'standup'].includes(laji(k.e) ?? '')).sort(pisteJarjestys)
   const lisaa = (r: Runko | null) => { if (r) rungot.push(r) }
 

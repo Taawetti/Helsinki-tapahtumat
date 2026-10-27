@@ -40,6 +40,12 @@ export interface Tapahtumakorjaus {
     description?: string
     /** Yhden rivin kuvaus: kortin alarivi ja jaetun sivun meta description. */
     shortDescription?: string
+    /** Otsikko lähteen tilalle, kun lähde kirjoittaa sen vajaana ("Jannan Joulu"
+     *  vs. julisteen "Jannan joulu – Ystävien kanssa"). Osuma tehdään
+     *  LÄHTEEN otsikolla, joten korjauksen osuma-otsikko ei muutu. */
+    title?: string
+    /** Lipun hinta tekstinä, esim. "39,90 €" → napissa "Liput alk. 39,90 €". */
+    price?: string
   }
   muistiinpano?: string
 }
@@ -58,6 +64,7 @@ export interface Korjattava {
   infoUrl?: string | null
   description?: string
   shortDescription?: string
+  price?: string | null
 }
 
 /** Vertailumuoto: pienet kirjaimet, ääkköset pelkiksi kirjaimiksi, välimerkit välilyönneiksi. */
@@ -91,6 +98,8 @@ export function sovellaTapahtumakorjaukset<T extends Korjattava>(events: T[], ko
         ...(k.aseta.infoUrl ? { infoUrl: k.aseta.infoUrl } : {}),
         ...(k.aseta.description ? { description: k.aseta.description } : {}),
         ...(k.aseta.shortDescription ? { shortDescription: k.aseta.shortDescription } : {}),
+        ...(k.aseta.title ? { title: k.aseta.title } : {}),
+        ...(k.aseta.price ? { price: k.aseta.price } : {}),
       }
     }
     return tulos

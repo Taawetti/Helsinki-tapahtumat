@@ -7,7 +7,7 @@
 // testinä ENNEN kuin sääntöjä korjataan — näin sama virhe ei voi palata.
 // Testit ovat puhtaita fixtureita: ei verkkoa, ei ympäristöriippuvuuksia.
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { classifyEvent, extractYsoIds } from '../lib/event-classify'
 import { eventMatchesKeyword } from '../lib/keyword-filter'
 import { classifyEventCategory } from '../lib/event-category'
@@ -71,6 +71,9 @@ import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/
 import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto } from '../lib/tapahtumakorjaukset'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, type KlikkiRivi } from '../lib/kavijatilastot'
+import { aktiivisetNostot, yhdistaNostot, type NostoMaaritys, type NostoTiedosto } from '../lib/nostot'
+import nostoFile from '../data/nostot.json'
+import { suodataJoulukonsertit, onJoulukausi } from '../lib/joulukonsertit'
 import { nameOverlap } from '../lib/dataforseo'
 import { dedupeOsmVenues } from '../lib/osm-dedupe'
 import openingFile from '../data/new-openings.json'
@@ -4996,7 +4999,7 @@ odotettavat.push((async () => {
   kCases.push({ name: 'jokaisella korjauksella on tunniste, otsikko, päivä YYYY-MM-DD, https-osoitteet ja tekstit ilman HTML:ää',
     ok: tiedosto.korjaukset.every((r) => /^[a-z0-9-]+$/.test(r.id) && r.osuma.otsikko.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.osuma.paiva)
       && ([r.aseta.image, r.aseta.ticketUrl, r.aseta.infoUrl].filter((u) => u !== undefined) as string[]).every((u) => /^https:\/\//.test(u))
-      && ([r.aseta.description, r.aseta.shortDescription].filter((u) => u !== undefined) as string[]).every((u) => u.trim().length > 0 && !/<[a-z][\s\S]*>/i.test(u))) })
+      && ([r.aseta.description, r.aseta.shortDescription, r.aseta.title, r.aseta.price].filter((u) => u !== undefined) as string[]).every((u) => u.trim().length > 0 && !/<[a-z][\s\S]*>/i.test(u))) })
   for (const c of kCases) {
     if (c.ok) pass++
     else failures.push(`✗ tapahtumakorjaukset: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
@@ -5051,6 +5054,61 @@ odotettavat.push((async () => {
   for (const c of vCases) {
     if (c.ok) pass++
     else failures.push(`✗ kävijätilastot: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── "✦ Tulossa" — kärkinostot (lib/nostot): kampanjajakso, tapahtumapäivä ja osuma
+{
+  const m = (o: Partial<NostoMaaritys> = {}): NostoMaaritys => ({ id: 'janna', osuma: { otsikko: 'Jannan joulu', paiva: '2026-12-09', paikka: 'Kallion kirkko' }, alku: '2026-10-27', loppu: '2026-12-09', mainos: true, ...o })
+  const ev = (title: string, startTime: string, venue: string) => ({ id: 'x', title, shortDescription: '', description: '', startTime, endTime: null, location: { name: venue, streetAddress: '', city: 'Helsinki' }, image: null, isFree: false, price: null, ticketUrl: null, infoUrl: null, categories: [] as string[], source: 'linked-events' })
+  const nCases: { name: string; ok: boolean }[] = [
+    { name: 'kampanjan sisällä aktiivinen', ok: aktiivisetNostot([m()], '2026-11-15').length === 1 },
+    { name: 'ennen alkua ei aktiivinen', ok: aktiivisetNostot([m()], '2026-10-26').length === 0 },
+    { name: 'lopun jälkeen ei aktiivinen', ok: aktiivisetNostot([m()], '2026-12-10').length === 0 },
+    { name: 'tapahtumapäivänä vielä aktiivinen', ok: aktiivisetNostot([m()], '2026-12-09').length === 1 },
+    { name: 'mennyt tapahtuma ei nouse vaikka jakso jatkuisi', ok: aktiivisetNostot([m({ loppu: '2026-12-31' })], '2026-12-10').length === 0 },
+    { name: 'järjestys: pienempi ensin', ok: aktiivisetNostot([m({ id: 'b', jarjestys: 2 }), m({ id: 'a', jarjestys: 1 })], '2026-11-15').map((n) => n.id).join(',') === 'a,b' },
+    { name: 'kelvoton päivämäärä pudotetaan', ok: aktiivisetNostot([m({ alku: 'huomenna' })], '2026-11-15').length === 0 },
+    { name: 'yhdistys koosteen tapahtumaan otsikolla, päivällä ja paikalla (Tampere 16.12. ei kelpaa)',
+      ok: (() => { const r = yhdistaNostot([m()], [ev('Jannan Joulu', '2026-12-16T19:00:00+02:00', 'Tampereen Tuomiokirkko'), ev('Jannan Joulu', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')]); return r.length === 1 && r[0].event.location?.name === 'Kallion kirkko' && r[0].mainos === true })() },
+    { name: 'ilman osuvaa tapahtumaa nosto jää pois', ok: yhdistaNostot([m()], [ev('Joulukonsertti', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')]).length === 0 },
+  ]
+  const tiedosto = nostoFile as unknown as NostoTiedosto
+  nCases.push({ name: 'nostot.json: tunniste, päivät YYYY-MM-DD, alku ≤ loppu ≤ tapahtumapäivä, mainos boolean',
+    ok: tiedosto.nostot.every((n) => /^[a-z0-9-]+$/.test(n.id) && /^\d{4}-\d{2}-\d{2}$/.test(n.alku) && /^\d{4}-\d{2}-\d{2}$/.test(n.loppu) && /^\d{4}-\d{2}-\d{2}$/.test(n.osuma.paiva)
+      && n.alku <= n.loppu && n.loppu <= n.osuma.paiva && typeof n.mainos === 'boolean' && n.osuma.otsikko.trim().length > 0) })
+  for (const c of nCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ nostot: ${c.name}`)
+  }
+}
+
+// ── Joulukonsertit-opas (lib/joulukonsertit): kausi ja konserttisuodatin ─────
+{
+  const ev = (title: string, venue: string, categories: string[] = []) => ({ id: title, title, shortDescription: '', description: '', startTime: '2026-12-09T19:00:00+02:00', endTime: null, location: { name: venue, streetAddress: '', city: 'Helsinki' }, image: null, isFree: false, price: null, ticketUrl: null, infoUrl: null, categories, source: 'linked-events' })
+  const tulos = suodataJoulukonsertit([
+    ev('Jannan joulu – Ystävien kanssa', 'Kallion kirkko'),
+    ev('Kauneimmat joululaulut', 'Helsingin tuomiokirkko'),
+    ev('Christmas Carols by Candlelight', 'Temppeliaukion kirkko'),
+    ev('Joulumarkkinat', 'Senaatintori'),
+    ev('Joulupaja lapsille', 'Annantalo'),
+    ev('Rock-konsertti', 'Tavastia'),
+    ev('Joulumessu', 'Paavalinkirkko'),
+    ev('Jouluinen jazz-ilta', 'G Livelab', ['Konsertit']),
+    ev('Pre Christmas Party @Maxine Friday 13.11', 'Maxine', ['Musiikki', 'Klubit']),
+    ev('Pikkujoulubileet', 'Apollo', ['Musiikki']),
+  ]).map((e) => e.title)
+  const jCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'joulukonsertit kirkoissa ja saleissa mukaan (Janna, joululaulut, carols, jazz)', ok: ['Jannan joulu – Ystävien kanssa', 'Kauneimmat joululaulut', 'Christmas Carols by Candlelight', 'Jouluinen jazz-ilta'].every((t) => tulos.includes(t)), got: tulos.join(' | ') },
+    { name: 'markkinat, lasten paja, messu, klubibileet ja pikkujoulut pois; ei-joulu pois', ok: !tulos.includes('Joulumarkkinat') && !tulos.includes('Joulupaja lapsille') && !tulos.includes('Joulumessu') && !tulos.includes('Rock-konsertti') && !tulos.includes('Pre Christmas Party @Maxine Friday 13.11') && !tulos.includes('Pikkujoulubileet'), got: tulos.join(' | ') },
+    { name: 'joulukausi 15.10.–26.12.', ok: onJoulukausi('2026-10-27') && onJoulukausi('2026-12-26') && !onJoulukausi('2026-09-30') && !onJoulukausi('2026-12-27') },
+    { name: 'nosto kantaa koukun ja todisteen', ok: (() => { const r = yhdistaNostot([{ id: 'j', osuma: { otsikko: 'Jannan joulu', paiva: '2026-12-09' }, alku: '2026-10-27', loppu: '2026-12-09', mainos: false, koukku: 'Vieraina X', todiste: 'Loppuunmyyty' }], [ev('Jannan joulu – Ystävien kanssa', 'Kallion kirkko')]); return r[0]?.koukku === 'Vieraina X' && r[0]?.todiste === 'Loppuunmyyty' })() },
+    { name: 'nosto kantaa jakokuvan; nostot.json-jakokuva on https-osoite tai löytyy public-kansiosta', ok: (() => { const r = yhdistaNostot([{ id: 'j', osuma: { otsikko: 'Jannan joulu', paiva: '2026-12-09' }, alku: '2026-10-27', loppu: '2026-12-09', mainos: false, jakokuva: '/nostot/x.jpg' }], [ev('Jannan joulu – Ystävien kanssa', 'Kallion kirkko')]); return r[0]?.jakokuva === '/nostot/x.jpg' && (nostoFile as unknown as NostoTiedosto).nostot.every((n) => !n.jakokuva || /^https:\/\//.test(n.jakokuva) || (n.jakokuva.startsWith('/') && existsSync(new URL(`../public${n.jakokuva}`, import.meta.url)))) })() },
+    { name: 'korjaus asettaa otsikon ja hinnan', ok: (() => { const r = sovellaTapahtumakorjaukset([{ ...ev('Jannan Joulu', 'Kallion kirkko'), description: '', shortDescription: '' }], [{ id: 't', osuma: { otsikko: 'jannan joulu', paiva: '2026-12-09' }, aseta: { title: 'Jannan joulu – Ystävien kanssa', price: '39,90 €' } }])[0]; return r.title === 'Jannan joulu – Ystävien kanssa' && r.price === '39,90 €' })() },
+  ]
+  for (const c of jCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ joulukonsertit: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

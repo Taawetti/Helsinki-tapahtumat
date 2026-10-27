@@ -17,8 +17,10 @@ import type { Event } from '@/lib/types'
 import type { SaunaRow } from '@/components/SaunatView'
 import type { GuidePlace } from '@/components/GuidePlaceList'
 import type { GuideEvent } from '@/lib/guide-data'
+import { helsinkiToday } from '@/lib/helsinki-time'
+import { onJoulukausi } from '@/lib/joulukonsertit'
 
-export type GuideSlug = 'saunat' | 'terassit' | 'pubivisat' | 'kirpputorit' | 'jamit' | 'ilmaiset-museot'
+export type GuideSlug = 'saunat' | 'terassit' | 'pubivisat' | 'kirpputorit' | 'jamit' | 'ilmaiset-museot' | 'joulukonsertit'
 
 // Moduulitason taulukko → t() ei ole käytettävissä täällä, joten nimi ja
 // alaotsikko kannetaan käännösavaimina (sama kuvio kuin lib/types.ts:n VIBES).
@@ -29,6 +31,13 @@ export const GUIDE_META: Record<GuideSlug, { emoji: string; titleKey: Translatio
   kirpputorit:       { emoji: '🛍', titleKey: 'guides.kirpputorit_title', subKey: 'guides.kirpputorit_sub' },
   jamit:             { emoji: '🎤', titleKey: 'guides.jamit_title',       subKey: 'guides.jamit_sub' },
   'ilmaiset-museot': { emoji: '🏛', titleKey: 'guides.museot_title',      subKey: 'guides.museot_sub' },
+  joulukonsertit:    { emoji: '🎄', titleKey: 'guides.joulukonsertit_title', subKey: 'guides.joulukonsertit_sub' },
+}
+
+/** Oppaat valikoihin. Joulukonsertit on kausiopas (lib/joulukonsertit): näkyy
+ *  15.10.–26.12., muut aina. SEO-sivu /joulukonsertit toimii ympäri vuoden. */
+export function naytettavatOppaat(tanaan: string = helsinkiToday()): GuideSlug[] {
+  return (Object.keys(GUIDE_META) as GuideSlug[]).filter((s) => s !== 'joulukonsertit' || onJoulukausi(tanaan))
 }
 
 // lat/lon EIVÄT näy kortissa, mutta ne ovat lähdedatassa ja menevät sivujen
@@ -99,7 +108,7 @@ function toEvent(e: GuideEvent): Event {
     image: e.image ?? null,
     isFree: e.isFree,
     price: e.price ?? null,
-    ticketUrl: null,
+    ticketUrl: e.ticketUrl ?? null,
     // Oppaan tapahtuman oma linkki (openmicfinland.fi:n tapahtumasivu) —
     // ilman läpivientiä paneelin päänappi putosi paikan tapahtumiin.
     infoUrl: e.infoUrl ?? null,
@@ -275,7 +284,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
                 onClick={() => setShowMenu(false)} />
               <div className="absolute z-50 mt-2 left-0 w-56 rounded-2xl p-1.5"
                 style={{ background: 'rgba(18,18,22,.98)', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 18px 44px -12px rgba(0,0,0,.85)' }}>
-                {(Object.keys(GUIDE_META) as GuideSlug[]).filter((s) => s !== slug).map((s) => {
+                {naytettavatOppaat().filter((s) => s !== slug).map((s) => {
                   const g = GUIDE_META[s]
                   return (
                     <button key={s} onClick={() => { setShowMenu(false); onSwitch(s) }}
@@ -401,6 +410,17 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
         </div>
       )}
 
+      {data && slug === 'joulukonsertit' && (
+        <div>
+          <SectionHead sub={t('guides.sec_joulu_sub')}>{t('guides.sec_joulu')}</SectionHead>
+          <CardGrid>
+            {(data.events ?? []).map((e) => (
+              <PosterCard key={e.id} event={toEvent(e)} onClick={onEventClick} />
+            ))}
+          </CardGrid>
+        </div>
+      )}
+
       {/* Ilmaiset museot -oppaan yläleima on 'MAKSUTON', ei common.free_badgen
           'ILMAINEN': oma avain, koska free_badge on käytössä myös tapahtuma-
           korteissa (PosterCard/IdeaView/HomeClient) joissa 'ILMAINEN' on oikein. */}
@@ -431,7 +451,7 @@ export default function GuideInlineView({ slug, onBack, onSwitch, onEventClick, 
       <PlaceDetailPanel paikka={valittu} guideSlug={slug} onClose={() => setValittu(null)} />
 
       {/* Tapahtumaosioiden tyhjätila */}
-      {data && (slug === 'jamit' || slug === 'terassit' || slug === 'kirpputorit') && (data.events ?? []).length === 0 && (
+      {data && (slug === 'jamit' || slug === 'terassit' || slug === 'kirpputorit' || slug === 'joulukonsertit') && (data.events ?? []).length === 0 && (
         <p className="text-white/30 text-sm">{t('guides.no_events')}</p>
       )}
     </section>

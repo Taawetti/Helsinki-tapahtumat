@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { onMaksunkeruuUrl, hasOwnEventPage } from '@/lib/event-links'
+import { onMaksunkeruuUrl, hasOwnEventPage, shareUrlFor } from '@/lib/event-links'
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
@@ -11,6 +11,9 @@ import { extractYsoIds } from '@/lib/event-classify'
 import { supabase, DbFestival } from '@/lib/supabase'
 import { FESTIVALS_STATIC, fromDb, FestivalDef } from '@/lib/festivals-data'
 import { jsonLdHtml } from '@/lib/json-ld'
+import { aktiivisetNostot, yhdistaNostot, type NostoTiedosto } from '@/lib/nostot'
+import nostoData from '@/data/nostot.json'
+import { helsinkiToday } from '@/lib/helsinki-time'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
@@ -241,19 +244,36 @@ async function paivaParametri(searchParams: Props['searchParams']): Promise<stri
   return typeof sp?.d === 'string' ? sp.d : ''
 }
 
+// Sivun osoite canonicaliin, og:url:iin ja JSON-LD:hen. Oma lähdesivu: pelkkä
+// tunniste. Jaettu linkki (tilannekuva/kooste): sama ?d=-osoite jonka paneelin
+// Jaa tuottaa — ilman päivää /e/<id> on 404, ja Facebook noutaa esikatselun
+// nimenomaan og:url-osoitteesta (todettu paikallisesti 27.10.2026).
+// params-id on jo prosenttikoodattu → dekoodaus ensin, muuten ':' päätyy
+// muotoon %253A ja canonical/JSON-LD-url eroavat oikeasta osoitteesta.
+function sivunOsoite(id: string, r: Ratkaistu): string {
+  return r.oma ? `${BASE}/e/${encodeURIComponent(decodeURIComponent(id))}` : shareUrlFor(r.ev, BASE)
+}
+
+/** Kampanjan oma esikatselukuva (lib/nostot jakokuva), kun tapahtuma on juuri
+ *  nyt nostossa; muuten tapahtuman oma kuva. */
+function nostonJakokuva(ev: Event): string | null {
+  const nosto = yhdistaNostot(aktiivisetNostot((nostoData as NostoTiedosto).nostot, helsinkiToday()), [ev])[0]
+  if (!nosto?.jakokuva) return null
+  try { return new URL(nosto.jakokuva, BASE).toString() } catch { return null }
+}
+
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { id } = await params
   const r = await ratkaise(id, await paivaParametri(searchParams))
   if (!r) return { title: 'Tapahtumaa ei löydy' }
-  const { data: event, oma } = r
+  const { data: event, ev, oma } = r
 
   const startDate = new Date(event.startTime).toLocaleDateString('fi-FI', { timeZone: 'Europe/Helsinki' })
   const title = `${event.title} – ${startDate}`
   const desc = event.shortDescription || event.description.slice(0, 160)
     || [event.title, event.venue, 'Helsinki'].filter(Boolean).join(' – ')
-  // params-id on jo prosenttikoodattu → dekoodaus ensin, muuten ':' päätyy
-  // muotoon %253A ja canonical/JSON-LD-url eroavat oikeasta osoitteesta.
-  const pageUrl = `${BASE}/e/${encodeURIComponent(decodeURIComponent(id))}`
+  const pageUrl = sivunOsoite(id, r)
+  const jakokuva = nostonJakokuva(ev) ?? event.image
 
   return {
     title,
@@ -270,13 +290,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
       type: 'website',
       locale: 'fi_FI',
       url: pageUrl,
-      ...(event.image ? { images: [{ url: event.image, width: 1200, height: 630, alt: event.title }] } : {}),
+      ...(jakokuva ? { images: [{ url: jakokuva, width: 1200, height: 630, alt: event.title }] } : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title: event.title,
       description: desc,
-      ...(event.image ? { images: [event.image] } : {}),
+      ...(jakokuva ? { images: [jakokuva] } : {}),
     },
   }
 }
@@ -291,7 +311,7 @@ export default async function EventPage({ params, searchParams }: Props) {
   // "Jaa" tuottaa saman linkin ja "Lisää suunnitelmaan" tunnistaa saman.
   const { data: event, ev } = r
 
-  const pageUrl = `${BASE}/e/${encodeURIComponent(decodeURIComponent(id))}`
+  const pageUrl = sivunOsoite(id, r)
   const isolla = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
   const jsonLd = {

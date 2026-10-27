@@ -26,6 +26,8 @@ import { useGeolocation } from '@/hooks/useGeolocation'
 import { getCategoryScores } from '@/lib/preferences'
 import EventCard from '@/components/EventCard'
 import HeroSwiper from '@/components/HeroSwiper'
+import TulossaNosto from '@/components/TulossaNosto'
+import type { Nosto } from '@/lib/nostot'
 import EventDetailPanel from '@/components/EventDetailPanel'
 import SuunnitelmaView from '@/components/SuunnitelmaView'
 import SearchBar from '@/components/SearchBar'
@@ -35,7 +37,7 @@ import InstallSheet from '@/components/InstallSheet'
 import VibePanel from '@/components/VibePanel'
 import DatePicker from '@/components/DatePicker'
 import EiTiedaModal, { EiTiedaMode } from '@/components/EiTiedaModal'
-import GuideInlineView, { GUIDE_META, type GuideSlug, type GuidePayload } from '@/components/GuideInlineView'
+import GuideInlineView, { GUIDE_META, naytettavatOppaat, type GuideSlug, type GuidePayload } from '@/components/GuideInlineView'
 import JarjestajaForm from '@/components/JarjestajaForm'
 import LanguageSwitch, { useLanguageSwitch } from '@/components/LanguageSwitch'
 import { ListSheet } from '@/components/BottomSheet'
@@ -109,6 +111,7 @@ const OPAS_KARTALLE: Record<string, { layers: { events: boolean; restaurants: bo
   // Jamit on pelkkiä TAPAHTUMIA (oppaassa ei ole paikkoja): kartalle jää
   // tapahtumataso, ja kartta hakee jamit-oppaan tapahtumat itse (opasSlug).
   jamit:             { layers: { events: true,  restaurants: false, activities: false } },
+  joulukonsertit:    { layers: { events: true,  restaurants: false, activities: false } },
 }
 
 interface EmptyStateProps {
@@ -240,8 +243,13 @@ export default function HomeClient({
   initialMode,
   initialDateFilter,
   initialEvent,
+  initialNostot,
   heroAsHeading = true,
 }: {
+  /** "✦ Tulossa" — kärkinostot (lib/nostot), palvelimella haettu joka
+   *  renderillä (myös jaetun linkin ja laskeutumissivujen kautta tultaessa),
+   *  jotta kortti on etusivunäkymässä heti kun käyttäjä päätyy siihen. */
+  initialNostot?: Nosto[]
   /** SEO-sivu (esim. /saunat) avaa saman sovellusnäkymän kuin oppaan
    *  klikkaus etusivulla, mutta data on esiladattu palvelimella jotta
    *  Googlelle lähtevä HTML sisältää listan. Omistajan linjaus 26.8.2026:
@@ -450,7 +458,7 @@ export default function HomeClient({
     return {
       grid: tee('grid'), picks: tee('picks'), search: tee('search'), hero: tee('hero'),
       map: tee('map'), idea: tee('idea'), guide: tee('guide'), venue: tee('venue'),
-      eitieda: tee('eitieda'), plan: tee('plan'),
+      eitieda: tee('eitieda'), plan: tee('plan'), promo: tee('promo'),
     }
   }, [])
   const [showFilters, setShowFilters] = useState(false)
@@ -1852,6 +1860,12 @@ export default function HomeClient({
                 </div>
               )}
 
+              {/* "✦ TULOSSA": kärkinosto ennen heroa (omistaja 27.10.2026, ansaintamalli).
+                  Esiladattu palvelimella, joten näkyy heti — ei odota tapahtumahakua. */}
+              {initialNostot && initialNostot.length > 0 && (
+                <TulossaNosto nostot={initialNostot} onOpen={avaa.promo} />
+              )}
+
               {/* HERO: 🎸 Illan keikat — pyyhkäistävä, 5 nostoa */}
               {!loading && <HeroSwiper events={heroGigs} onOpen={avaa.hero} />}
 
@@ -1966,7 +1980,7 @@ export default function HomeClient({
                               (omistajan huomio: tuplakama). */}
                           {/* Oppaat avautuvat ETUSIVUN SISÄLLÄ (ei /saunat-navigointia) —
                               SEO-sivut säilyvät Googlelle, valikko pitää käyttäjän tässä. */}
-                          {(Object.keys(GUIDE_META) as GuideSlug[]).map((slug) => {
+                          {naytettavatOppaat().map((slug) => {
                             const g = GUIDE_META[slug]
                             return (
                               <button key={slug}
@@ -2185,6 +2199,7 @@ export default function HomeClient({
       {/* ══ IDEA ══ */}
       {mode === 'idea' && (
         <IdeaView
+          nostot={initialNostot}
           events={filteredEvents}
           onShowOnMap={(lat, lon, name, type) => handleShowOnMap(lat, lon, name, type)}
           onEventClick={avaa.idea}
@@ -2319,7 +2334,7 @@ export default function HomeClient({
           onClick: () => { setSheet(null); setHoodFilter(n.id); window.scrollTo(0, 0) },
         }))} />
       <ListSheet open={sheet === 'guides'} onClose={() => setSheet(null)} title={t('discover.guides')}
-        rivit={(Object.keys(GUIDE_META) as GuideSlug[]).map((slug) => {
+        rivit={naytettavatOppaat().map((slug) => {
           const g = GUIDE_META[slug]
           return {
             id: slug, emoji: g.emoji, title: t(g.titleKey), sub: t(g.subKey), active: guideView === slug,

@@ -529,7 +529,7 @@ export default function AdminStats() {
                   selite={`Kaikki uloslinkit; niistä lippukauppaan ${data.tapahtuma.lippuklikit}.`} />
                 <div className="grid md:grid-cols-2 gap-x-8">
                   <Palkit otsikko="Mistä kortti avattiin" rivit={data.tapahtuma.pinnat}
-                    selite="search = haku, grid = ruudukko, hero = karuselli, share = jaettu linkki, map = kartta, picks = poiminnat." />
+                    selite="search = haku, grid = ruudukko, hero = karuselli, promo = Tulossa-kärkinosto, share = jaettu linkki, map = kartta, picks = poiminnat." />
                   <Palkit otsikko="Minne klikattiin" rivit={data.tapahtuma.domainit} selite="Uloslinkin verkkotunnus." />
                   <Palkit otsikko="Maat" rivit={data.tapahtuma.maat.map((r) => ({ ...r, nimi: maaNimi(r.nimi) }))} />
                   <Palkit otsikko="Paikkakunnat (Suomi)" rivit={data.tapahtuma.kaupungitFI} />
@@ -565,7 +565,7 @@ export default function AdminStats() {
             selite="Uloslinkit lipunmyyjien sivuille (lippu.fi, Ticketmaster, Tiketti, Kide…). Tämä on lähin asia ostoon. Sovellus EI näe toteutuiko osto — vain että käyttäjä siirtyi lipunmyyjälle." />
           <Palkit otsikko="Avatuimmat tapahtumat" rivit={data.tapahtumatAvaukset} />
           <Palkit otsikko="Mistä tapahtumat avataan" rivit={data.pinnat}
-            selite="grid = tapahtumaruudukko, picks = parhaat poiminnat, hero = etusivun karuselli, search = haku, map = kartta, idea = ideapakka, guide = opas, venue = paikan lista." />
+            selite="grid = tapahtumaruudukko, picks = parhaat poiminnat, hero = etusivun karuselli, promo = Tulossa-kärkinosto (mainospaikka), search = haku, map = kartta, idea = ideapakka, guide = opas, venue = paikan lista." />
           <Palkit otsikko="Käytetyimmät osiot" rivit={data.osiot} />
           <Palkit otsikko="Tallennetuimmat suosikeiksi" rivit={data.suosikit} />
           <Palkit otsikko="Avatuimmat oppaat" rivit={data.oppaat} />

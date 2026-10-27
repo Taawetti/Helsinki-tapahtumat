@@ -30,6 +30,8 @@ import KulkutapaValitsin from '@/components/KulkutapaValitsin'
 import { walkMinutesBetween } from '@/lib/group'
 import type { Event, Restaurant } from '@/lib/types'
 import { rakennaRungot, kaytaRunko, seuraavaRunko, rungonTapahtumat, type Runko } from '@/lib/illan-rungot'
+import { aktiivisetNostot, yhdistaNostot, type NostoTiedosto } from '@/lib/nostot'
+import nostoData from '@/data/nostot.json'
 import { addDays } from '@/lib/arvo-ilta'
 import { naytaToast } from '@/lib/toast'
 import { getDateRange } from '@/lib/utils'
@@ -81,7 +83,11 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
   // "Vaihda iltaa" -kiertoon (mitattu 24.9.: tyhjennyksen jälkeen näkyi enää
   // 1 runko 3:sta, koska aiemmin katsotut oli ohitettu).
   const rungot = useMemo(
-    () => (runkoData ? rakennaRungot(runkoData.events, runkoData.restaurants, new Date()) : null),
+    // Kärkinostot (lib/nostot) rungon pääasiaksi, kun nosto on tarjolla tänään
+    // tai huomenna — sama tapahtuma kuin etusivun "✦ Tulossa" -kortissa.
+    () => (runkoData ? rakennaRungot(runkoData.events, runkoData.restaurants, new Date(), {
+      nostot: new Set(yhdistaNostot(aktiivisetNostot((nostoData as NostoTiedosto).nostot, helsinkiToday()), runkoData.events).map((n) => n.event.id)),
+    }) : null),
     [runkoData],
   )
   useEffect(() => {

@@ -124,6 +124,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/en/pub-quizzes`,         lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.72 },
     { url: `${BASE}/en/flea-markets`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
     { url: `${BASE}/en/free-museums`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
+    { url: `${BASE}/en/christmas-concerts`,  lastModified: now, changeFrequency: 'daily' as const,   priority: 0.75 },
     { url: `${BASE}/en/jam-sessions`,        lastModified: now, changeFrequency: 'weekly' as const,  priority: 0.7 },
     // Sovelluksen asennussivut — indeksoitavia mutta puuttuivat kartasta.
     { url: `${BASE}/lataa`,                  lastModified: now, changeFrequency: 'monthly' as const, priority: 0.5 },
@@ -147,6 +148,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/saunat`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.85 },
     { url: `${BASE}/kirpputorit`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.8 },
     { url: `${BASE}/jamit`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
+    { url: `${BASE}/joulukonsertit`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
     { url: `${BASE}/ilmaiset-museot`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.8 },
     // Keikkapaikkojen ohjelmasivut — "tavastia ohjelma" -tyyppiset haut
     ...VENUE_PAGES.map((v) => ({

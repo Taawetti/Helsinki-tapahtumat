@@ -7,7 +7,8 @@ import { track } from '@/lib/track'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
 import { isOpenNow } from '@/lib/opening-hours'
-import { helsinkiToday, helsinkiDateOf } from '@/lib/helsinki-time'
+import { helsinkiToday, helsinkiDateOf, formatEventDate } from '@/lib/helsinki-time'
+import type { Nosto } from '@/lib/nostot'
 import { stripPriceFromPrefix, tuntematonAika } from '@/lib/utils'
 import { addDays } from '@/lib/arvo-ilta'
 import { buildIdeaDeck, usefulWhy, type IdeaSceneId } from '@/lib/idea-deck'
@@ -132,13 +133,15 @@ const NAPPIRIVI_PX = 80
 
 interface Props {
   events: Event[]
+  /** "✦ Tulossa" -kärkinostot (lib/nostot): toisena korttina pakassa. */
+  nostot?: Nosto[]
   onShowOnMap?: (lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => void
   onEventClick?: (event: Event) => void
 }
 
 // ── Component ────────────────────────────────────────────
 
-export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
+export default function IdeaView({ events, nostot, onShowOnMap, onEventClick }: Props) {
   const { lang, t } = useLanguage()
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
   /** "Kiinnostaa"-lista (laitteella, lib/kiinnostavat) — ei suosikki. */
@@ -345,9 +348,34 @@ export default function IdeaView({ events, onShowOnMap, onEventClick }: Props) {
       }
       return band - (s.image ? 0.5 : 0)
     }
-    return [...base].sort((a, b) => score(a) - score(b))
+    const jarjestetty = [...base].sort((a, b) => score(a) - score(b))
+    // "✦ Tulossa" -nosto (lib/nostot) Idea-pakkaan (omistaja 27.10.2026):
+    // ensimmäinen kortti on aina päivän oma ehdotus, nosto tulee heti sen
+    // jälkeen. Pakka rakennetaan uudestaan joka ohituksella, joten paikka
+    // lasketaan ohitusten määrästä — ei "aina toiseksi", mikä ei koskaan
+    // nousisi esiin. Päivä kulkee badge-kentässä, koska kortti ei ole tämän
+    // päivän tapahtuma.
+    const paikka = seenIds.size === 0 ? Math.min(1, jarjestetty.length) : 0
+    for (const n of [...(nostot ?? [])].reverse()) {
+      const id = `promo-${n.id}`
+      if (seenIds.has(id)) continue
+      const e = n.event
+      jarjestetty.splice(paikka, 0, {
+        id, type: 'event' as const, title: e.title,
+        why: n.koukku ?? usefulWhy(e) ?? '',
+        subWhy: n.todiste,
+        image: e.image,
+        address: e.location?.name || e.location?.streetAddress,
+        lat: e.location?.lat, lon: e.location?.lon,
+        url: e.ticketUrl ?? e.infoUrl ?? undefined,
+        isFree: e.isFree, buyable: canBuyTickets(e), price: e.price ?? undefined,
+        badge: formatEventDate(e.startTime, lang === 'fi' ? 'fi' : 'en'),
+        time: '', emoji: '✦', eventRef: e,
+      })
+    }
+    return jarjestetty
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activityPool.length, eventPool.length, seenIds, ideaDate])
+  }, [activityPool.length, eventPool.length, seenIds, ideaDate, nostot, lang])
 
   const current = pool[0] ?? null
   const meta = current ? TYPE_META[current.type] : TYPE_META.event

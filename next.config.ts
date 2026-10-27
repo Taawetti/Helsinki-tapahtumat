@@ -2,6 +2,12 @@ import type { NextConfig } from 'next'
 import path from 'path'
 
 const nextConfig: NextConfig = {
+  // Kehityspalvelimen katselu puhelimella samassa lähiverkossa (omistaja
+  // 27.10.2026: "näytä lokaalisti"). Next 16 estää oletuksena toisesta
+  // osoitteesta tulevat /_next-kehitysresurssit, jolloin sivu jää puhelimella
+  // ikuisesti lataamaan. Koskee vain `next dev`, ei tuotantoa.
+  allowedDevOrigins: ['192.168.1.*', '*.local'],
+
 
   // Suojausotsakkeet (auditointi 5.9.2026: tuotannosta puuttuivat kokonaan —
   // mm. /admin/login oli upotettavissa vieraaseen kehykseen eli
@@ -41,6 +47,8 @@ const nextConfig: NextConfig = {
       '/pubivisa': '/pubivisat',
       '/kirpputori': '/kirpputorit',
       '/jami': '/jamit',
+      '/joulukonsertti': '/joulukonsertit',
+      '/joulukonsertit-helsinki': '/joulukonsertit',
       '/ilmainen-museo': '/ilmaiset-museot',
       '/ilmaiset-museo': '/ilmaiset-museot',
       // puuttuva kirjain tai ääkkösmuoto
@@ -75,6 +83,7 @@ const nextConfig: NextConfig = {
       '/en/flea-market': '/en/flea-markets',
       '/en/free-museum': '/en/free-museums',
       '/en/jam-session': '/en/jam-sessions',
+      '/en/christmas-concert': '/en/christmas-concerts',
     }
     return Object.entries(map).map(([source, destination]) => ({ source, destination, permanent: false }))
   },

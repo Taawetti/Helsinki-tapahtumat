@@ -20,7 +20,7 @@ export const maxDuration = 60
 // Vuorokauden SWR tarjoaa vanhan heti ja päivittää taustalla.
 const CACHE = { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=86400' }
 
-const SLUGS: GuideDataSlug[] = ['saunat', 'terassit', 'pubivisat', 'kirpputorit', 'jamit', 'ilmaiset-museot']
+const SLUGS: GuideDataSlug[] = ['saunat', 'terassit', 'pubivisat', 'kirpputorit', 'jamit', 'ilmaiset-museot', 'joulukonsertit']
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params

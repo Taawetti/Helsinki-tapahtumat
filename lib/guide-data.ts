@@ -6,7 +6,7 @@
 // sivuilta TÄNNE sellaisenaan, jotta molemmat pinnat näyttävät saman datan.
 import { decodeHtmlEntities } from '@/lib/utils'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
-import { helsinkiDateRange } from '@/lib/helsinki-time'
+import { helsinkiDateRange, helsinkiToday } from '@/lib/helsinki-time'
 import { haeOpenmicTapahtumat, type Koordinaatit } from '@/lib/openmic'
 import OPENMIC_KOORDIT from '@/data/openmic-koordinaatit.json'
 import { TERRACE_REGEX } from '@/lib/nightlife'
@@ -23,6 +23,10 @@ import activityReasonData from '@/data/activity-reasons.json'
 import secondhandData from '@/data/secondhand.json'
 import { fetchVisas, nextOccurrenceISO } from '@/lib/pubivisat'
 import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
+import type { Event } from '@/lib/types'
+import { suodataJoulukonsertit } from '@/lib/joulukonsertit'
+import { aktiivisetNostot, yhdistaNostot, type NostoTiedosto } from '@/lib/nostot'
+import nostoData from '@/data/nostot.json'
 
 export const JAMIT_REGEX = /jamit\b|jameja\b|jamien\b|jameissa\b|jameihin\b|\bjami\b|jam[\s-]?sessio|jam session|open[\s-]?mic|open[\s-]?stage|lavamikki|avoin lava/i
 export const KIRPPIS_REGEX = /kirppis|kirpputori|second\s?hand|vintage|vaatteidenvaihto|myyjäis/i
@@ -48,6 +52,9 @@ export interface GuideEvent {
    *  oppaan kortti kadotti linkin kokonaan: GuideInlineView.toEvent rakensi
    *  Eventin infoUrl: null (mitattu 16.9.2026, openmic-kortti ilman nappia). */
   infoUrl?: string | null
+  /** Lippulinkki — ilman tätä oppaan kortti kadotti "Osta liput" -napin,
+   *  koska GuideInlineView.toEvent asetti ticketUrl: null (27.10.2026). */
+  ticketUrl?: string | null
 }
 
 interface LEEvent {
@@ -435,6 +442,42 @@ export async function buildFreeMuseums(): Promise<{ museums: GuidePlace[]; galle
   return { museums: toPlace('museo'), galleries: toPlace('galleria') }
 }
 
+// ── Joulukonsertit: koosteen joulukonsertit marras-joulukuulta ──────────────
+// Kooste (ei pelkkä LinkedEvents): Jannan joulu tulee stadissa-lähteestä, ja
+// kirkkojen konsertteja on myös lipunmyyjillä. Haku päiväsivuittain (10 pv /
+// sivu) hakusanoilla joulu ja christmas, suodatus lib/joulukonsertit, kärkinostot
+// ensin, sitten aikajärjestys.
+
+export async function fetchJoulukonsertit(origin: string): Promise<GuideEvent[]> {
+  const tanaan = helsinkiToday()
+  const vuosi = tanaan.slice(5) <= '12-26' ? tanaan.slice(0, 4) : String(Number(tanaan.slice(0, 4)) + 1)
+  const start = tanaan.slice(0, 4) === vuosi ? tanaan : `${vuosi}-10-15`
+  const end = `${vuosi}-12-26`
+  const nahty = new Map<string, Event>()
+  for (const keyword of ['joulu', 'christmas']) {
+    for (let page = 1; page <= 8; page++) {
+      try {
+        const params = new URLSearchParams({ start, end, page: String(page), municipality: 'helsinki', keyword })
+        const res = await fetch(`${origin}/api/events?${params}`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(30_000) })
+        if (!res.ok) break
+        const data = (await res.json()) as { events?: Event[]; hasMore?: boolean }
+        for (const e of data.events ?? []) nahty.set(e.id, e)
+        if (!data.hasMore) break
+      } catch { break }
+    }
+  }
+  const konsertit = suodataJoulukonsertit([...nahty.values()])
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  const nostoIds = new Set(yhdistaNostot(aktiivisetNostot((nostoData as NostoTiedosto).nostot, tanaan), konsertit).map((n) => n.event.id))
+  const jarjestetty = [...konsertit.filter((e) => nostoIds.has(e.id)), ...konsertit.filter((e) => !nostoIds.has(e.id))]
+  return jarjestetty.map((e) => ({
+    id: e.id, title: e.title, startTime: e.startTime, venue: e.location?.name ?? '',
+    street: e.location?.streetAddress || undefined, lat: e.location?.lat, lon: e.location?.lon,
+    city: e.location?.city || undefined, isFree: e.isFree, price: e.price ?? null,
+    image: e.image ?? null, infoUrl: e.infoUrl ?? null, ticketUrl: e.ticketUrl ?? null,
+  }))
+}
+
 // ── Oppaan koko datapaketti yhdestä paikasta ─────────────────────────────────
 //
 // MIKSI TÄMÄ ON OLEMASSA. Sama kytkin oli aiemmin vain /api/guides/[slug]:ssä.
@@ -449,7 +492,7 @@ export async function buildFreeMuseums(): Promise<{ museums: GuidePlace[]; galle
 //   omaa palvelinta ei vielä ole pystyssä), opas näytetään ilman kuvia ja
 //   arvosanoja — sama kuin näiden sivujen käytös ennen tätä muutosta.
 
-export type GuideDataSlug = 'saunat' | 'terassit' | 'pubivisat' | 'kirpputorit' | 'jamit' | 'ilmaiset-museot'
+export type GuideDataSlug = 'saunat' | 'terassit' | 'pubivisat' | 'kirpputorit' | 'jamit' | 'ilmaiset-museot' | 'joulukonsertit'
 
 // Paluutyyppi on SE SAMA jonka opaskomponentti kuluttaa. Omaa rinnakkaista
 // määrittelyä ei tehdä: se sallisi väärän muotoisen datan mennä läpi
@@ -524,5 +567,8 @@ export async function buildGuidePayload(slug: GuideDataSlug, origin: string): Pr
 
     case 'ilmaiset-museot':
       return await buildFreeMuseums()
+
+    case 'joulukonsertit':
+      return { events: await fetchJoulukonsertit(origin) }
   }
 }
