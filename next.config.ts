@@ -85,7 +85,18 @@ const nextConfig: NextConfig = {
       '/en/jam-session': '/en/jam-sessions',
       '/en/christmas-concert': '/en/christmas-concerts',
     }
-    return Object.entries(map).map(([source, destination]) => ({ source, destination, permanent: false }))
+    // KAMPANJAN LYHYTOSOITE (omistaja 27.10.2026): artisti jakaa osoitteen
+    // mitatanaan.fi/jannanjoulu Instagram-tarinassa, biossa ja julisteessa.
+    // Ohjaa tapahtuman omalle sivulle — samaan osoitteeseen jonka paneelin Jaa
+    // tuottaa — jolloin esikatselukuva ja avausten mittaus toimivat kuten
+    // pitkällä linkillä. Osuma on kirjainkoosta riippumaton (/JannanJoulu käy;
+    // Nextin path-match: sensitive=false). Väliaikainen (307): konsertin
+    // 9.12.2026 jälkeen vaihda kohteeksi /joulukonsertit tai poista rivi.
+    const kampanjat: Record<string, string> = {
+      '/jannanjoulu': '/e/stadissa-117757?d=2026-12-09',
+      '/jannan-joulu': '/e/stadissa-117757?d=2026-12-09',
+    }
+    return Object.entries({ ...map, ...kampanjat }).map(([source, destination]) => ({ source, destination, permanent: false }))
   },
   images: {
     remotePatterns: [
