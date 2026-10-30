@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { fetchOSMCached, fetchPKCached } from '@/app/api/restaurants/route'
 
 // Vercel Cron — runs daily at 06:00 UTC (09:00 Helsinki time).
-// Revalidates event and restaurant caches, then pre-warms restaurant data
-// so the first daily user never hits the slow Overpass fetch.
+// Revalidates event and restaurant caches, then pre-warms restaurant data.
+// (30.10.2026 alkaen ravintolalista luetaan valmiista OSM-otoksesta, ei enää
+// Overpassista — lämmitys kestää sekunnin eikä minuuttia, eikä vanhennus voi
+// enää jättää välilehteä Overpassin armoille. Ks. lib/osm-ravintolat.ts.)
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
 

@@ -3,6 +3,10 @@ import { deriveFlags } from '@/lib/google-attributes'
 import { summariseMenu, type MenuSummary } from '@/lib/menu-summary'
 import { unstable_cache } from 'next/cache'
 import type { Restaurant } from '@/lib/types'
+// OSM-ravintolat tulevat VALMIISTA OTOKSESTA (Supabase Storage, varana repoon
+// committoitu pohjaotos), ei Overpassista pyynnön aikana. Ks. lib/osm-ravintolat.ts.
+import { lueRavintolaOtosVarastosta, type RavintolaOtos, type OsmElement } from '@/lib/osm-ravintolat'
+import pohjaOtosData from '@/data/ravintolat-osm.json'
 import {
   MICHELIN_STARS,
   BIB_GOURMAND,
@@ -45,17 +49,6 @@ const DEAD_IMAGES = new Set<string>((deadImageData as { dead?: string[] }).dead 
 
 const WEBSITE_IMAGES: Record<string, string> =
   (websiteImageData as { byWww?: Record<string, string> }).byWww ?? {}
-
-// ── Types ─────────────────────────────────────────────────
-
-interface OSMElement {
-  type: 'node' | 'way' | 'relation'
-  id: number
-  lat?: number
-  lon?: number
-  center?: { lat: number; lon: number }
-  tags?: Record<string, string>
-}
 
 // ── Cuisine mapping ───────────────────────────────────────
 
@@ -301,25 +294,14 @@ function enrichWithAwards(name: string, result: Partial<Restaurant>): void {
   }
 }
 
-// ── OpenStreetMap Overpass ────────────────────────────────
-// Helsinki+Espoo+Vantaa bounding box (south,west,north,east)
-
-const OSM_BBOX = '60.09,24.58,60.41,25.26'
-const OSM_QUERY = `[out:json][timeout:30][bbox:${OSM_BBOX}];(node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten|nightclub)$"]["name"];way["amenity"~"^(restaurant|cafe|bar|pub|fast_food|food_court|biergarten|nightclub)$"]["name"];);out center;`
-
-// overpass.openstreetmap.fr poistettu 23.10.2026: vastaa 403 "only available
-// to white-listed usages" — jokainen haku maksoi turhan kierroksen ennen
-// toimivaa peiliä. Sama lista kuin lib/osm-aktiviteetit.ts.
-const OVERPASS_MIRRORS = [
-  'https://z.overpass-api.de/api/interpreter',
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-]
-
-const OSM_HEADERS = {
-  'User-Agent': 'Helsinki-Tapahtumat/1.0 (https://github.com/Taawetti/Helsinki-tapahtumat)',
-  'Accept': 'application/json',
-}
+// ── OpenStreetMap-otos → Restaurant-rivit ─────────────────
+// Overpassia EI kutsuta tässä tiedostossa. Otos (karsitut OSM-elementit)
+// haetaan päivittäin /api/cron/osm-ravintolat-reitissä Supabase Storageen
+// ja luetaan sieltä valmiina; kysely, karsinta ja romahdusvahti ovat
+// lib/osm-ravintolat.ts:ssä. Miksi: 30.10.2026 Overpass-peilit vastasivat
+// 35–60 s, reitin haku katkesi aikarajaan ja Ravintolat-välilehti jäi
+// näyttämään latausrunkoa — sama vika ja sama korjaus kuin aktiviteeteissa
+// 23.10. (lib/osm-aktiviteetit.ts).
 
 function osmAmenityToType(amenity?: string): Restaurant['type'] {
   switch (amenity) {
@@ -339,70 +321,53 @@ function osmAddress(tags?: Record<string, string>): string {
   return street ? `${street}${num ? ` ${num}` : ''}` : ''
 }
 
-async function _fetchOSM(): Promise<Restaurant[]> {
-  const url = `?data=${encodeURIComponent(OSM_QUERY)}`
+/** Otoksen elementit → Restaurant-rivit. Sama tulkinta kuin aiemmassa
+ *  suorassa Overpass-haussa: nimettömät ja koordinaatittomat pois, keittiö
+ *  OSM-tagista tai nimestä, palkinnot ja kuratoidut kuvat päälle. Ei muuta
+ *  otoksen elementtejä (pohjaotos on moduulitason olio). */
+function elementitRavintoloiksi(elements: OsmElement[]): Restaurant[] {
+  const results: Restaurant[] = []
 
-  for (const mirror of OVERPASS_MIRRORS) {
-    try {
-      const res = await fetch(mirror + url, {
-        headers: OSM_HEADERS,
-        signal: AbortSignal.timeout(35000),
-      })
-      if (!res.ok) continue
+  for (const el of elements) {
+    const name = el.tags?.name || el.tags?.['name:fi'] || ''
+    if (!name) continue
+    const lat = el.type === 'node' ? el.lat : el.center?.lat
+    const lon = el.type === 'node' ? el.lon : el.center?.lon
+    if (!lat || !lon) continue
 
-      const data: { elements: OSMElement[] } = await res.json()
-      const results: Restaurant[] = []
-
-      for (const el of data.elements ?? []) {
-        const name = el.tags?.name || el.tags?.['name:fi'] || ''
-        if (!name) continue
-        const lat = el.type === 'node' ? el.lat : el.center?.lat
-        const lon = el.type === 'node' ? el.lon : el.center?.lon
-        if (!lat || !lon) continue
-
-        const cuisineRaw = el.tags?.cuisine ?? ''
-        const osmCats = parseCuisineCategories(cuisineRaw)
-        const cuisineCategories = osmCats.length > 0 ? osmCats : inferCuisineFromName(name)
-        const partial: Partial<Restaurant> = {
-          id: `osm-${el.type[0]}${el.id}`,
-          name,
-          description: cuisineRaw.replace(/_/g, ' '),
-          cuisines: parseCuisines(cuisineRaw),
-          cuisineCategories,
-          address: osmAddress(el.tags),
-          city: el.tags?.['addr:city'] ?? '',
-          lat,
-          lon,
-          image: null,
-          www: el.tags?.website ?? el.tags?.url ?? el.tags?.['contact:website'] ?? null,
-          phone: el.tags?.phone ?? el.tags?.['contact:phone'] ?? null,
-          email: el.tags?.email ?? el.tags?.['contact:email'] ?? null,
-          instagram: el.tags?.['contact:instagram'] ?? null,
-          type: osmAmenityToType(el.tags?.amenity),
-          priceRange: parsePriceRange(el.tags),
-          openingHours: el.tags?.opening_hours ?? undefined,
-          awards: [],
-          outdoorSeating: el.tags?.outdoor_seating === 'yes' || undefined,
-          takeaway: el.tags?.takeaway === 'yes' || el.tags?.takeaway === 'only' || undefined,
-        }
-
-        enrichWithAwards(name, partial)
-        if (!partial.image && CURATED_IMAGES[name]) partial.image = CURATED_IMAGES[name]
-
-        results.push(partial as Restaurant)
-      }
-
-      // Images are handled by Twemoji illustrations in the UI — no Wikipedia fetch needed here.
-
-      console.log(`[restaurants] OSM: ${results.length} results from ${mirror}`)
-      return results
-    } catch (err) {
-      console.warn(`[restaurants] OSM mirror ${mirror} failed:`, (err as Error).message)
+    const cuisineRaw = el.tags?.cuisine ?? ''
+    const osmCats = parseCuisineCategories(cuisineRaw)
+    const cuisineCategories = osmCats.length > 0 ? osmCats : inferCuisineFromName(name)
+    const partial: Partial<Restaurant> = {
+      id: `osm-${el.type[0]}${el.id}`,
+      name,
+      description: cuisineRaw.replace(/_/g, ' '),
+      cuisines: parseCuisines(cuisineRaw),
+      cuisineCategories,
+      address: osmAddress(el.tags),
+      city: el.tags?.['addr:city'] ?? '',
+      lat,
+      lon,
+      image: null,
+      www: el.tags?.website ?? el.tags?.url ?? el.tags?.['contact:website'] ?? null,
+      phone: el.tags?.phone ?? el.tags?.['contact:phone'] ?? null,
+      email: el.tags?.email ?? el.tags?.['contact:email'] ?? null,
+      instagram: el.tags?.['contact:instagram'] ?? null,
+      type: osmAmenityToType(el.tags?.amenity),
+      priceRange: parsePriceRange(el.tags),
+      openingHours: el.tags?.opening_hours ?? undefined,
+      awards: [],
+      outdoorSeating: el.tags?.outdoor_seating === 'yes' || undefined,
+      takeaway: el.tags?.takeaway === 'yes' || el.tags?.takeaway === 'only' || undefined,
     }
+
+    enrichWithAwards(name, partial)
+    if (!partial.image && CURATED_IMAGES[name]) partial.image = CURATED_IMAGES[name]
+
+    results.push(partial as Restaurant)
   }
 
-  console.error('[restaurants] All OSM mirrors failed')
-  return []
+  return results
 }
 
 // ── Supplement restaurants (not in OSM as restaurant node) ───────────────
@@ -565,38 +530,47 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
   return results
 }
 
-// ── Cached wrapper ────────────────────────────────────────
+// ── Otoksen luku + välimuisti ─────────────────────────────
+// Otos Storagesta; ilman sitä repoon committoitu pohjaotos. Kumpikaan ei
+// kutsu Overpassia, joten kylmä luku kestää sekunnin eikä minuuttia, eikä
+// mikään polku enää palauta pelkkiä supplementteja (aiempi 99 paikan
+// "varalista" Overpass-katkon ajaksi on poistettu). Tyhjää otosta ei voi
+// syntyä: lueRavintolaOtosVarastosta palauttaa null vajaasta otoksesta ja
+// pohjaotos on testattu (scripts/test-categories.ts).
 
-// KRIITTINEN: tyhjää OSM-tulosta EI SAA cachettaa. _fetchOSM palauttaa []
-// kun kaikki Overpass-mirrorit pettävät → aiemmin applySupplements([]) (= vain
-// ~57 kovakoodattua supplementtia) cachettui 24 h:ksi ja koko ravintolalista
-// romahti supplementteihin päiväksi. Nyt tyhjä HEITTÄÄ → unstable_cache ei
-// talleta hylättyä promisea → seuraava pyyntö yrittää OSM:ää uudestaan. Vain
-// onnistunut (ei-tyhjä) haku cachetetaan. Ulompi wrapper tarjoaa supplementit
-// varana TÄLLE pyynnölle (cachettamatta), ettei sivu kaadu Overpass-katkoon.
-const _fetchOSMCachedOrThrow = unstable_cache(
-  async () => {
-    const osm = await _fetchOSM()
-    if (osm.length === 0) throw new Error('OSM fetch empty — not caching (Overpass mirrors down)')
-    return applySupplements(osm)
-  },
-  ['restaurants-osm-v18'], // v18: älä cacheta tyhjää OSM-tulosta (bustaa aiemman myrkytetyn cachen)
-  { revalidate: 86400, tags: ['restaurants'] }
-)
+const POHJA_OTOS = pohjaOtosData as unknown as RavintolaOtos
 
-/** OSM-lista + tieto siitä, palveltiinko VARALISTA (Overpass-katko). GET
- *  tarvitsee tiedon, jotta varavastaus ei saa tunnin reunavälimuistia. */
-export const fetchOSMCachedTila = async (): Promise<{ lista: Restaurant[]; vara: boolean }> => {
-  try {
-    return { lista: await _fetchOSMCachedOrThrow(), vara: false }
-  } catch {
-    // Overpass-katko → tarjoa pelkät supplementit varana (ei cachea);
-    // seuraava pyyntö yrittää täyttä OSM-hakua taas.
-    return { lista: applySupplements([]), vara: true }
-  }
+export interface OsmTila {
+  lista: Restaurant[]
+  /** Mistä otos luettiin ja milloin se haettiin Overpassista — mukana
+   *  /api/restaurants-vastauksessa, jotta vanhentunut otos huomataan. */
+  otos: { fetchedAt: string; lahde: 'varasto' | 'pohja' }
 }
 
-export const fetchOSMCached = async (): Promise<Restaurant[]> => (await fetchOSMCachedTila()).lista
+async function _haeOsmTila(): Promise<OsmTila> {
+  // 10 s: Storage vastaa normaalisti alle sekunnissa; jumiutunut luku ei saa
+  // syödä funktion 60 sekunnista enempää, kun pohjaotos on yhtä hyvä vastaus.
+  const varasto = await lueRavintolaOtosVarastosta(10_000)
+  const otos = varasto ?? POHJA_OTOS
+  const lahde = varasto ? 'varasto' as const : 'pohja' as const
+  const lista = applySupplements(elementitRavintoloiksi(otos.elements))
+  console.log(`[restaurants] otos ${lahde} (${otos.fetchedAt}): ${lista.length} paikkaa`)
+  return { lista, otos: { fetchedAt: otos.fetchedAt, lahde } }
+}
+
+// v19: Overpass pois pyyntöpolulta; arvo on { lista, otos } (v18 piti pelkkää
+// listaa). Tunnisteen 'restaurants' vanhentavat /api/cron (päivittäin) ja
+// /api/cron/osm-ravintolat (kun uusi otos on viety Storageen).
+const _haeOsmTilaCached = unstable_cache(_haeOsmTila, ['restaurants-osm-v19'], {
+  revalidate: 86400,
+  tags: ['restaurants'],
+})
+
+/** Lista + otoksen alkuperä (GET-vastaukseen ja reunavälimuistin pituuteen). */
+export const fetchOSMCachedTila = (): Promise<OsmTila> => _haeOsmTilaCached()
+
+/** Pelkkä lista — venue-site, admin-rikastus ja cron. */
+export const fetchOSMCached = async (): Promise<Restaurant[]> => (await _haeOsmTilaCached()).lista
 
 export const fetchPKCached = async () => [] as Restaurant[]
 
@@ -771,7 +745,9 @@ function newOpeningRestaurants(): Restaurant[] {
 
 // ── Route handler ─────────────────────────────────────────
 
-// Kylmä rakennus (OSM + rikastus) mitattiin 16 s — funktio ei saa kuolla kesken.
+// Kylmä rakennus (otoksen luku Storagesta + rikastus) kestää muutaman
+// sekunnin; 60 s on varaa Storagen ja Supabasen hitaimmalle hetkelle. Ennen
+// 30.10.2026 tässä odotettiin Overpassia (16–60 s).
 export const maxDuration = 60
 
 export async function GET(req: NextRequest) {
@@ -1040,6 +1016,8 @@ export async function GET(req: NextRequest) {
     restaurants,
     total: restaurants.length,
     categoryCount,
+    // Otoksen alkuperä ja ikä vianetsintään (sama kenttä kuin /api/activities).
+    otos: osmTila.otos,
   }, {
     headers: {
       // NOPEUS (mitattu 4.9.2026): ilman tätä x-vercel-cache oli MISS joka
@@ -1051,16 +1029,14 @@ export async function GET(req: NextRequest) {
       // esilataus ja Ravintolat-välilehden haku eivät lataa 2,3 Mt kahdesti.
       // Tuoreus ei heikkene: rikastus oli jo ennestään tunnin välimuistissa.
       //
-      // OSM-KATKON VARALISTA (~99 supplementtia) EI SAA JÄÄDÄ REUNALLE TUNNIKSI.
-      // Mitattu 4.10.2026: deployn jälkeinen ensimmäinen pyyntö osui Overpass-
-      // katkoon, 99 paikan vastaus sai s-maxage=3600:n ja Ravintolat-välilehti
-      // sekä Suunnitelman valmiit rungot elivät varalistalla (age 661 s) vaikka
-      // Overpass oli jo toipunut — ohittava pyyntö antoi 3628 paikkaa. Minuutin
-      // reunavälimuisti rajoittaa uusintayritykset katkon aikana (no-store
-      // laukaisisi kolmen peilin aikakatkaisut joka pyynnöllä); selain ei
-      // tallenna varalistaa lainkaan. Sama periaate kuin /api/activities.
-      'Cache-Control': osmTila.vara
-        ? 'public, max-age=0, s-maxage=60'
+      // POHJAOTOS (Storage ei vastannut tai otosta ei vielä ole) on täysi lista
+      // mutta päivän tai pari vanhempi: 5 min reunavälimuisti, jotta Storagen
+      // toipuminen näkyy pian, eikä selain tallenna sitä. Aiempi 99 paikan
+      // Overpass-varalista on poistettu (mitattu 4.10.2026: se eli reunalla
+      // 661 s vaikka OSM oli jo toipunut) — nyt mikään polku ei palauta
+      // vajaata listaa. Sama periaate kuin /api/activities.
+      'Cache-Control': osmTila.otos.lahde === 'pohja'
+        ? 'public, max-age=0, s-maxage=300'
         : 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
     },
   })

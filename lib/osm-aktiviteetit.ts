@@ -299,6 +299,62 @@ export async function haeOverpass<T extends { remark?: string } = { elements?: O
   throw new Error(`overpass: kaikki peilit epäonnistuivat (${kierrokset} kierrosta) — ${virheet.join('; ')}`)
 }
 
+/** Yksi Overpass-kysely peilit läpi AIKABUDJETILLA: kyselyn oma timeout
+ *  mitoitetaan jäljellä olevasta budjetista, ja ensimmäinen kelvollinen
+ *  vastaus (ei osittainen, tulkinta ei tyhjä) palautetaan. HEITTÄÄ kun
+ *  yksikään peili ei vastannut. Sama kierto kuin haeOsmAktiviteetit, mutta
+ *  kysely ja tulkinta annetaan parametreina (ravintolaotos: lib/osm-ravintolat). */
+export async function haeOverpassBudjetilla<T>(
+  kysely: (timeoutS: number) => string,
+  tulkitse: (elements: OsmElement[]) => T[],
+  o: { budjettiMs?: number; aikakatkaisuMs?: number; peilit?: readonly string[] } = {},
+): Promise<{ tulos: T[]; peili: string; ms: number; yritykset: OverpassYritys[] }> {
+  const t0 = Date.now()
+  const budjetti = o.budjettiMs ?? 110_000
+  const maxAikakatkaisu = o.aikakatkaisuMs ?? 60_000
+  const peilit = o.peilit ?? OVERPASS_PEILIT
+  const yritykset: OverpassYritys[] = []
+
+  for (const peili of peilit) {
+    const jaljella = budjetti - (Date.now() - t0)
+    // Alle 15 s ei riitä: vastaukset ovat megatavuja ja kestävät hyvänäkin päivänä 20 s.
+    if (jaljella < 15_000) break
+    const aikakatkaisu = Math.min(maxAikakatkaisu, jaljella - 5_000)
+    const palvelinS = Math.max(20, Math.floor(aikakatkaisu / 1000) - 5)
+    const alku = Date.now()
+    try {
+      const res = await fetch(peili, {
+        method: 'POST',
+        headers: { ...OSM_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(kysely(palvelinS)),
+        signal: AbortSignal.timeout(aikakatkaisu),
+      })
+      if (!res.ok) {
+        yritykset.push({ peili, status: res.status, ms: Date.now() - alku, virhe: `HTTP ${res.status}` })
+        continue
+      }
+      const data = (await res.json()) as { elements?: OsmElement[]; remark?: string }
+      if (data.remark && /runtime error|timed out|out of memory/i.test(data.remark)) {
+        yritykset.push({ peili, status: res.status, ms: Date.now() - alku, virhe: `osittainen vastaus: ${data.remark.slice(0, 80)}` })
+        continue
+      }
+      const tulos = tulkitse(data.elements ?? [])
+      if (tulos.length === 0) {
+        yritykset.push({ peili, status: res.status, ms: Date.now() - alku, virhe: 'tyhjä vastaus' })
+        continue
+      }
+      yritykset.push({ peili, status: res.status, ms: Date.now() - alku })
+      return { tulos, peili, ms: Date.now() - t0, yritykset }
+    } catch (e) {
+      const virhe = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
+      yritykset.push({ peili, status: 0, ms: Date.now() - alku, virhe: virhe.slice(0, 80) })
+    }
+  }
+
+  const seloste = yritykset.map((y) => `${new URL(y.peili).host} ${y.virhe ?? ''} (${y.ms} ms)`).join('; ')
+  throw new Error(`kaikki Overpass-peilit epäonnistuivat: ${seloste || 'budjetti loppui ennen ensimmäistä yritystä'}`)
+}
+
 // ── Romahdusvahti ───────────────────────────────────────────────────────────
 // Mitattu 23.10.2026: 3 175 kohdetta, joista 43 saunaa ja 92 museota.
 // Vähempi tarkoittaa hakuvikaa (osittainen vastaus, peilin vajaa kanta),
@@ -337,38 +393,50 @@ function storageAsetukset(): { url: string; key: string } | null {
 
 const tunnistus = (key: string) => ({ apikey: key, Authorization: `Bearer ${key}` })
 
-/** Otos Storagesta, tai null kun sitä ei ole tai lukua ei voi tehdä (ei
- *  avaimia, bucket puuttuu, Storage ei vastaa). Ei koskaan heitä: kutsuja
- *  siirtyy pohjaotokseen. */
-export async function lueOtosVarastosta(aikakatkaisuMs = 15_000): Promise<OsmOtos | null> {
+/** JSON-tiedosto Storagesta jäsennettynä, tai null kun sitä ei ole tai lukua
+ *  ei voi tehdä (ei avaimia, bucket puuttuu, Storage ei vastaa, rikkinäinen
+ *  JSON). Ei koskaan heitä: kutsuja siirtyy pohjaotokseen. Yhteinen
+ *  aktiviteettien ja ravintoloiden (lib/osm-ravintolat) otoksille. */
+export async function lueJsonVarastosta(polku: string, aikakatkaisuMs = 15_000): Promise<unknown> {
   const s = storageAsetukset()
   if (!s) return null
   try {
-    const res = await fetch(`${s.url}/storage/v1/object/${OTOS_BUCKET}/${OTOS_POLKU}`, {
+    const res = await fetch(`${s.url}/storage/v1/object/${OTOS_BUCKET}/${polku}`, {
       headers: tunnistus(s.key),
       signal: AbortSignal.timeout(aikakatkaisuMs),
     })
     if (!res.ok) {
       // 400/404 = bucket tai tiedosto puuttuu (ensimmäinen deploy) — ei vika.
-      if (res.status !== 400 && res.status !== 404) console.warn(`[osm-otos] varaston luku: HTTP ${res.status}`)
+      if (res.status !== 400 && res.status !== 404) console.warn(`[osm-otos] varaston luku ${polku}: HTTP ${res.status}`)
       return null
     }
-    const otos = (await res.json()) as Partial<OsmOtos>
-    if (typeof otos?.fetchedAt !== 'string' || !Array.isArray(otos.activities) || otos.activities.length === 0) return null
-    return { fetchedAt: otos.fetchedAt, peili: otos.peili ?? '', activities: otos.activities as Activity[] }
+    return await res.json()
   } catch (e) {
-    console.warn('[osm-otos] varaston luku epäonnistui:', e instanceof Error ? e.message : e)
+    console.warn(`[osm-otos] varaston luku ${polku} epäonnistui:`, e instanceof Error ? e.message : e)
     return null
   }
+}
+
+/** Aktiviteettiotos Storagesta, tai null (ks. lueJsonVarastosta). */
+export async function lueOtosVarastosta(aikakatkaisuMs = 15_000): Promise<OsmOtos | null> {
+  const otos = (await lueJsonVarastosta(OTOS_POLKU, aikakatkaisuMs)) as Partial<OsmOtos> | null
+  if (typeof otos?.fetchedAt !== 'string' || !Array.isArray(otos.activities) || otos.activities.length === 0) return null
+  return { fetchedAt: otos.fetchedAt, peili: otos.peili ?? '', activities: otos.activities as Activity[] }
 }
 
 /** Vie otoksen Storageen (korvaa edellisen). Luo bucketin ensimmäisellä
  *  kerralla. HEITTÄÄ virheen syineen — kutsuja (cron, skripti) raportoi. */
 export async function kirjoitaOtosVarastoon(otos: OsmOtos): Promise<{ tavua: number }> {
+  return kirjoitaJsonVarastoon(OTOS_POLKU, JSON.stringify(otos))
+}
+
+/** Vie JSON-tekstin Storageen annettuun polkuun (korvaa edellisen). Luo
+ *  bucketin ensimmäisellä kerralla. HEITTÄÄ virheen syineen — kutsuja
+ *  (cron, skripti) raportoi. Yhteinen aktiviteeteille ja ravintoloille. */
+export async function kirjoitaJsonVarastoon(polku: string, body: string): Promise<{ tavua: number }> {
   const s = storageAsetukset()
   if (!s) throw new Error('NEXT_PUBLIC_SUPABASE_URL tai SUPABASE_SERVICE_ROLE_KEY puuttuu')
-  const body = JSON.stringify(otos)
-  const vie = () => fetch(`${s.url}/storage/v1/object/${OTOS_BUCKET}/${OTOS_POLKU}`, {
+  const vie = () => fetch(`${s.url}/storage/v1/object/${OTOS_BUCKET}/${polku}`, {
     method: 'POST',
     headers: { ...tunnistus(s.key), 'Content-Type': 'application/json', 'x-upsert': 'true' },
     body,

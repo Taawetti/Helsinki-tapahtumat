@@ -34,7 +34,8 @@ import { parseApolloGrid } from '../lib/apollo-parse'
 import { parseMaxineTribe } from '../lib/maxine-parse'
 import { parseTanssintaloEntries } from '../lib/tanssintalo-parse'
 import { parsePostbarEvents } from '../lib/postbar-parse'
-import { elementitAktiviteeteiksi, tarkistaOtos, type OsmElement, type OsmOtos } from '../lib/osm-aktiviteetit'
+import { OSM_BBOX, elementitAktiviteeteiksi, tarkistaOtos, type OsmElement, type OsmOtos } from '../lib/osm-aktiviteetit'
+import { karsiRavintolaElementit, tarkistaRavintolaOtos, ravintolaKysely, RAVINTOLA_TAGIT, type RavintolaOtos } from '../lib/osm-ravintolat'
 import {
   reasonKey,
   reasonKeyVariants,
@@ -4928,6 +4929,55 @@ odotettavat.push((async () => {
   for (const c of oCases) {
     if (c.ok) pass++
     else failures.push(`✗ osm-otos: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── OSM-ravintolaotos: karsinta, romahdusvahti, pohjaotos (lib/osm-ravintolat) ─
+// Ravintolat-välilehti lukee otoksen suoraan — Overpassia ei kutsuta pyynnön
+// aikana (30.10.2026: välilehti jäi lataamaan, kun peilit vastasivat 35–60 s).
+{
+  const solmu = (id: number, tags: Record<string, string>, lat = 60.17, lon = 24.94): OsmElement => ({ type: 'node', id, lat, lon, tags })
+  const karsittu = karsiRavintolaElementit([
+    solmu(1, { name: 'Ravintola Testi', amenity: 'restaurant', cuisine: 'pizza;italian', 'addr:street': 'Testikatu', 'addr:housenumber': '1', 'addr:postcode': '00100', 'diet:vegan': 'yes', 'payment:cards': 'yes', website: 'https://testi.fi', opening_hours: 'Mo-Su 11:00-22:00', 'check_in:price_range': '2' }),
+    solmu(2, { amenity: 'cafe' }),                                                                   // nimetön → pois
+    { type: 'way', id: 3, center: { lat: 60.1702, lon: 24.9442 }, tags: { name: 'Kahvila Alue', amenity: 'cafe', building: 'yes' } },
+    { type: 'way', id: 4, tags: { name: 'Ilman keskipistettä', amenity: 'bar' } },                    // ei koordinaatteja → pois
+  ])
+  const byId = new Map(karsittu.map((e) => [e.id, e]))
+  const testi = byId.get(1)
+  const alue = byId.get(3)
+  const monta = (n: number, amenity: string): OsmElement[] => Array.from({ length: n }, (_, i) => solmu(i, { name: `${amenity} ${i}`, amenity }))
+  const terve = [...monta(1800, 'restaurant'), ...monta(600, 'cafe'), ...monta(300, 'pub'), ...monta(200, 'bar'), ...monta(500, 'fast_food'), ...monta(30, 'nightclub')]
+  const routeSrc = readFileSync(new URL('../app/api/restaurants/route.ts', import.meta.url), 'utf8')
+  const luetutTagit = new Set<string>()
+  for (const m of routeSrc.matchAll(/\btags\??\.?\[\s*['"]([^'"]+)['"]\s*\]|\btags\??\.([A-Za-z_]\w*)/g)) luetutTagit.add(m[1] ?? m[2])
+  const sallitut = new Set<string>(RAVINTOLA_TAGIT)
+  const pohja = JSON.parse(readFileSync(new URL('../data/ravintolat-osm.json', import.meta.url), 'utf8')) as RavintolaOtos
+  const pohjaTarkistus = tarkistaRavintolaOtos(pohja.elements, null)
+  const kysely = ravintolaKysely(30)
+  const rCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'karsinta säilyttää tulkinnan tagit ja pudottaa muut (postinumero, diet, maksutavat)',
+      ok: !!testi && testi.tags?.name === 'Ravintola Testi' && testi.tags?.cuisine === 'pizza;italian' && testi.tags?.['addr:street'] === 'Testikatu' && testi.tags?.['check_in:price_range'] === '2'
+        && testi.tags?.opening_hours === 'Mo-Su 11:00-22:00' && testi.tags?.['addr:postcode'] === undefined && testi.tags?.['diet:vegan'] === undefined && testi.tags?.['payment:cards'] === undefined && testi.lat === 60.17, got: JSON.stringify(testi) },
+    { name: 'nimetön ja koordinaatiton kohde jäävät pois', ok: !byId.has(2) && !byId.has(4) && karsittu.length === 2 },
+    { name: 'alue (way) säilyttää keskipisteen, rakennustagi putoaa', ok: !!alue && alue.type === 'way' && alue.center?.lat === 60.1702 && alue.center?.lon === 24.9442 && alue.tags?.building === undefined, got: JSON.stringify(alue) },
+    { name: 'reitti lukee vain otokseen säilytettyjä tageja', ok: luetutTagit.size >= 15 && [...luetutTagit].every((t) => sallitut.has(t)), got: `${luetutTagit.size} tagia; vieraat: ${[...luetutTagit].filter((t) => !sallitut.has(t)).join(',')}` },
+    // Kommenteissa sana saa esiintyä; peilien osoitteet, interpreter-polku ja peililista eivät.
+    { name: 'reitti ei kutsu Overpassia pyynnön aikana', ok: !/api\/interpreter|overpass-api\.de|kumi\.systems|OVERPASS_/i.test(routeSrc) },
+    { name: 'kysely: aikaraja, bbox, solmut ja alueet keskipisteineen, kaikki amenity-tyypit',
+      ok: kysely.includes('[timeout:30]') && kysely.includes(`[bbox:${OSM_BBOX}]`) && kysely.includes('out center') && /node\["amenity"/.test(kysely) && /way\["amenity"/.test(kysely) && kysely.includes('nightclub') && kysely.includes('fast_food') && kysely.includes('biergarten'), got: kysely },
+    { name: 'romahdusvahti: terve otos (3 430 kohdetta) kelpaa', ok: tarkistaRavintolaOtos(terve, null).ok },
+    { name: 'romahdusvahti: 1 500 kohdetta ei kelpaa', ok: !tarkistaRavintolaOtos([...monta(1100, 'restaurant'), ...monta(400, 'cafe')], null).ok },
+    { name: 'romahdusvahti: 200 kahvilaa ei kelpaa', ok: !tarkistaRavintolaOtos([...monta(1800, 'restaurant'), ...monta(200, 'cafe'), ...monta(600, 'pub')], null).ok },
+    { name: 'romahdusvahti: 2 000 kohdetta on alle 60 % edellisestä (3 430) eikä kelpaa; 2 410 kelpaa',
+      ok: !tarkistaRavintolaOtos([...monta(1200, 'restaurant'), ...monta(500, 'cafe'), ...monta(300, 'pub')], terve).ok && tarkistaRavintolaOtos([...monta(1600, 'restaurant'), ...monta(500, 'cafe'), ...monta(310, 'pub')], terve).ok },
+    { name: 'pohjaotos data/ravintolat-osm.json läpäisee romahdusvahdin ja on karsittu',
+      ok: typeof pohja.fetchedAt === 'string' && pohjaTarkistus.ok && pohja.elements.every((e) => Boolean((e.tags?.name || e.tags?.['name:fi']) && (e.type === 'node' ? e.lat && e.lon : e.center?.lat && e.center?.lon) && Object.keys(e.tags ?? {}).every((k) => sallitut.has(k)))),
+      got: pohjaTarkistus.ok ? `${pohja.elements.length} kohdetta` : pohjaTarkistus.syy },
+  ]
+  for (const c of rCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ osm-ravintolaotos: ${c.name}${c.got ? ` (sai: ${c.got.slice(0, 200)})` : ''}`)
   }
 }
 
