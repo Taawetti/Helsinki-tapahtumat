@@ -49,6 +49,28 @@ export function preloadEventsCache(key: string, events: Event[], total: number, 
   eventsCache.set(key, { events, hasMore: false, total, ts: ts ?? Date.now(), seed: true })
 }
 
+/** Täysi (ei-kevyt) tapahtuma muistivälimuistista id:llä — infopaneelin
+ *  täydennys kartan kevyelle riville (hooks/useTaydennettyTapahtuma) ilman
+ *  verkkohakua, kun sama tapahtuma on jo ladattu jossain päiväikkunassa. */
+export function etsiTaysiValimuistista(id: string): Event | null {
+  for (const entry of eventsCache.values()) {
+    const e = entry.events.find((x) => x.id === id && !x.kevyt)
+    if (e) return e
+  }
+  return null
+}
+
+/** Kartan siemen: edellisen päiväikkunan TÄYSI tulos, jos se on muistissa.
+ *  Kartta avautuu kuukausi-ikkunaan, mutta sen oletuspäivä on sama kuin
+ *  listan, joten listan jo lataamat tapahtumat ovat oikeat pinnit heti —
+ *  ilman pikahakua ja odotusta (mitattu 30.10.2026: ensimmäiset pinnit
+ *  1,2 s nopealla verkolla ja 2 s 4G:llä; siemenellä 0 s). */
+function karttaSiemen(edellinenAvain: string | null): CacheEntry | null {
+  if (!edellinenAvain) return null
+  const entry = eventsCache.get(edellinenAvain)
+  return entry && !entry.seed && entry.events.length > 0 ? entry : null
+}
+
 interface UseEventsOptions {
   dateFilter: DateFilter
   customDate?: string
@@ -142,6 +164,8 @@ export function useEvents({
   /** Ensimmäinen haku mountissa: siemen näytetään heti (ei skeleton-välähdystä
    *  etusivun ensimaalaukseen); myöhemmät suodatinvaihdot odottavat armonajan. */
   const ensimmainenRef = useRef(true)
+  /** Viimeisin muu kuin kuukausi-ikkunan hakuavain — kartan siemen (karttaSiemen). */
+  const edellinenAvainRef = useRef<string | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [total, setTotal] = useState(0)
@@ -200,6 +224,10 @@ export function useEvents({
       const now = Date.now()
       const ensimmainen = ensimmainenRef.current
       ensimmainenRef.current = false
+      // Kartan siemen ENNEN avaimen päivitystä: ref osoittaa vielä listan
+      // ikkunaan. Kuukausi on kartan oma ikkuna eikä päivitä refiä.
+      const siemenKartalle = dateFilter === 'month' && pageNum === 1 && !cached ? karttaSiemen(edellinenAvainRef.current) : null
+      if (dateFilter !== 'month' && pageNum === 1) edellinenAvainRef.current = cacheKey
 
       if (cached && !cached.seed) {
         // Serve cached results immediately — no loading flash (täysi data)
@@ -255,8 +283,11 @@ export function useEvents({
       // ei näytetä lainkaan; muuten se on väliaikainen ja UI kertoo haun olevan
       // kesken (osittainen). Mountissa siemen näytetään heti (armonaika 0):
       // etusivun ensimaalaus ei saa välähtää skeletonina.
-      const siemen = cached?.seed ? cached : null
-      if (!(siemen && ensimmainen)) setLoading(true)
+      const siemen = cached?.seed ? cached : siemenKartalle
+      // Siemen näytetään heti (armonaika 0) mountissa ja kartalle: kumpikaan
+      // ei saa välähtää skeletonina, kun oikeaa dataa on jo kädessä.
+      const siemenHeti = !!siemen && (ensimmainen || !!siemenKartalle)
+      if (!siemenHeti) setLoading(true)
 
       const hae = async (quick: boolean): Promise<EventsResponse> => {
         const p = new URLSearchParams(params)
@@ -282,7 +313,7 @@ export function useEvents({
           ? () => Promise.resolve({ events: siemen.events, hasMore: siemen.hasMore, total: siemen.total, generatedAt: siemen.generatedAt, sources: siemen.sources })
           : () => hae(true),
         taysi: () => hae(false),
-        armonaikaMs: siemen && ensimmainen ? 0 : undefined,
+        armonaikaMs: siemenHeti ? 0 : undefined,
         // Peruttu (uusi suodatin kesken haun): ei yhtään setStatea perumisen
         // jälkeen — uusi fetchEvents-kutsu on jo nollannut fetchingFullin.
         peruttu: () => controller.signal.aborted,
@@ -335,7 +366,10 @@ export function useEvents({
           }
         }
       } catch {}
-      if (!eventsCache.has(ck)) setEvents([])
+      // Kartan siemen pitää listan tapahtumat näkyvissä: kuukausi-ikkunaan
+      // siirryttäessä edellisen ikkunan tapahtumat ovat oikeat pinnit, kunnes
+      // kuukausi saapuu (fetchEvents näyttää ne siemenenä heti).
+      if (!eventsCache.has(ck) && !(dateFilter === 'month' && karttaSiemen(edellinenAvainRef.current))) setEvents([])
     }
     // Ei debouncea hakusanalle: pyyntö ei enää riipu keywordista, joten
     // kirjoittaminen ei laukaise uusia hakuja — haku tehdään KERRAN kun

@@ -22,6 +22,8 @@ import { canBuyTickets } from '@/lib/tickets'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import { useEvents, preloadEventsCache } from '@/hooks/useEvents'
 import { useTranslatedEvents } from '@/hooks/useTranslatedEvents'
+import { useTaydennettyTapahtuma } from '@/hooks/useTaydennettyTapahtuma'
+import { tapahtumaHakuParams } from '@/lib/events-fetch'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { getCategoryScores } from '@/lib/preferences'
 import EventCard from '@/components/EventCard'
@@ -436,6 +438,9 @@ export default function HomeClient({
   const [listStyle, setListStyle] = useState<ListStyle>('feed')
   const [priceFilter, setPriceFilter] = useState<PriceFilter>(initialPriceFilter ?? 'all')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(initialEvent ?? null)
+  // Kartan kevyt rivi (kuukausipaketti ilman kuvauksia) täydennetään paneeliin
+  // avattaessa — ks. lib/tapahtumat-kevyt ja hooks/useTaydennettyTapahtuma.
+  const { event: paneelinTapahtuma, kuvausLatautuu } = useTaydennettyTapahtuma(selectedEvent, municipality)
   // Jaetun linkin avaus mitataan omana pintanaan — kertoo kuinka moni jaettu
   // tapahtuma oikeasti avataan (vrt. grid/picks/search alla).
   useEffect(() => {
@@ -1203,9 +1208,10 @@ export default function HomeClient({
       return
     }
     let peruttu = false
-    const { start, end } = getDateRange('month')
-    // Sama osoite kuin kuukausi-ikkunan normaalihaku → osuu reunavälimuistiin.
-    fetch(`/api/events?start=${start}&end=${end}&page=1&municipality=${municipality}`)
+    // Sama osoite kuin kartan kuukausihaku (kevyt muoto, lib/events-fetch
+    // lisää kentat=kartta) → osuu reunavälimuistiin ja lämmitykseen. Kortit
+    // eivät tarvitse kuvausta; paneeli täydentää sen avattaessa.
+    fetch(`/api/events?${tapahtumaHakuParams({ dateFilter: 'month', page: 1, municipality })}`)
       .then((r) => r.json())
       .then((d: { events?: Event[] }) => {
         if (peruttu) return
@@ -2357,7 +2363,7 @@ export default function HomeClient({
         }
       }} />
 
-      <EventDetailPanel event={selectedEvent} onClose={() => setSelectedEvent(null)}
+      <EventDetailPanel event={paneelinTapahtuma} kuvausLatautuu={kuvausLatautuu} onClose={() => setSelectedEvent(null)}
         onShowVenueEvents={showVenueEvents} avattuHeti={!!initialEvent}
         etaisyysKm={karttaSijainti && selectedEvent?.location?.lat != null && selectedEvent.location.lon != null
           ? haversineMeters(karttaSijainti[0], karttaSijainti[1], selectedEvent.location.lat, selectedEvent.location.lon) / 1000

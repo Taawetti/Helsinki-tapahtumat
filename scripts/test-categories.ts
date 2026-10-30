@@ -116,6 +116,7 @@ import { HELSINKI_NIGHTCLUBS } from '../lib/helsinki-nightclubs'
 import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
 import { onEstettyPaikka } from '../lib/venue-blocklist'
 import { haeKahdessaVaiheessa, tapahtumaHakuParams, ESILADATTAVAT, lammitettavatParams } from '../lib/events-fetch'
+import { kevennaKartalle, taydennaKevyt } from '../lib/tapahtumat-kevyt'
 import { osuuPaivaan, viikonlopunPaivat, paivaPlus } from '../lib/map-date-filter'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
 import venueSiteFile from '../data/venue-sites.json'
@@ -4872,21 +4873,56 @@ odotettavat.push((async () => {
       ok: [...tonight.keys()].join(',') === 'start,end,page,municipality,startAfter' && tonight.get('startAfter')!.includes('T17:00'), got: [...tonight.keys()].join(',') },
     { name: 'hakuavain: Tänään ilman startAfteria, sama avain kahdesti', ok: tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).toString() === tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).toString() && !tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).has('startAfter') },
     { name: 'esiladattavat: Illalla, Huomenna, Viikonloppu — ei viikkoa (1,8 MB)', ok: ESILADATTAVAT.join(',') === 'tonight,tomorrow,weekend' },
-    { name: 'lämmitys: 5 eri ikkunaa, Illalla startAfterilla, avaimet = selaimen haun avaimet',
+    { name: 'lämmitys: 6 eri ikkunaa (myös kartan kevyt kuukausi), Illalla startAfterilla, avaimet = selaimen haun avaimet',
       ok: (() => {
         const l = lammitettavatParams()
         const avaimet = l.map((x) => x.params.toString())
-        return l.length === 5 && new Set(avaimet).size === 5
+        return l.length === 6 && new Set(avaimet).size === 6
           && avaimet.includes(tapahtumaHakuParams({ dateFilter: 'tonight', page: 1, municipality: 'helsinki' }).toString())
           && avaimet.includes(tapahtumaHakuParams({ dateFilter: 'week', page: 1, municipality: 'helsinki' }).toString())
+          && avaimet.includes(tapahtumaHakuParams({ dateFilter: 'month', page: 1, municipality: 'helsinki' }).toString())
           && l.every((x) => x.params.get('municipality') === 'helsinki' && x.params.get('page') === '1')
       })() },
+    { name: 'hakuavain: kuukausi (kartta) pyytää kevyen muodon kentat=kartta; Tänään, Viikko ja haku eivät',
+      ok: tapahtumaHakuParams({ dateFilter: 'month', page: 1, municipality: 'helsinki' }).get('kentat') === 'kartta'
+        && tapahtumaHakuParams({ dateFilter: 'month', page: 2, municipality: 'helsinki' }).get('kentat') === 'kartta'
+        && !tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).has('kentat')
+        && !tapahtumaHakuParams({ dateFilter: 'week', page: 1, municipality: 'helsinki' }).has('kentat')
+        && !tapahtumaHakuParams({ dateFilter: 'search', page: 1, municipality: 'helsinki' }).has('kentat') },
   ]
   for (const c of hCases) {
     if (c.ok) pass++
     else failures.push(`✗ kaksivaihehaku: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 })())
+
+// ── Kartan kevyt tapahtumamuoto (lib/tapahtumat-kevyt) ───────────────────────
+// Kuukausipaketti oli 4,4 Mt, josta 1,9 Mt kuvauksia ja neljännes
+// koordinaatittomia (30.10.2026). Kevyt rivi on muuten täysi: kortit ja
+// pinnit toimivat, paneeli täydentää kuvauksen kevyt-lipun perusteella.
+{
+  const ev = (id: string, lat?: number): Event => ({
+    id, title: `T ${id}`, shortDescription: 'lyhyt', description: 'pitkä kuvaus', startTime: '2026-11-05T19:00:00+02:00', endTime: null,
+    location: { name: 'Paikka', streetAddress: 'Katu 1', city: 'Helsinki', ...(lat ? { lat, lon: 24.94 } : {}) },
+    image: 'https://x/kuva.jpg', isFree: false, price: '12 €', ticketUrl: 'https://liput', infoUrl: null, categories: ['Musiikki'], source: 'linked-events', vibes: ['keikka'],
+  })
+  const alkuperainen = ev('a', 60.17)
+  const kevyet = kevennaKartalle([alkuperainen, ev('b'), ev('c', 60.18)])
+  const a = kevyet.find((e) => e.id === 'a')
+  const taydennetty = a ? taydennaKevyt(a, ev('a', 60.17)) : null
+  const kCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'kevennys pudottaa koordinaatittoman, tyhjentää kuvaukset ja merkitsee kevyt-lipun; muu säilyy',
+      ok: kevyet.length === 2 && !kevyet.some((e) => e.id === 'b') && !!a && a.kevyt === true && a.description === '' && a.shortDescription === ''
+        && a.title === 'T a' && a.ticketUrl === 'https://liput' && a.image === 'https://x/kuva.jpg' && a.price === '12 €' && a.vibes?.[0] === 'keikka' && a.location?.lat === 60.17 && a.location?.name === 'Paikka',
+      got: JSON.stringify(a) },
+    { name: 'kevennys ei muuta syötettä', ok: alkuperainen.description === 'pitkä kuvaus' && alkuperainen.kevyt === undefined },
+    { name: 'täydennys palauttaa kuvaukset ja poistaa kevyt-lipun', ok: !!taydennetty && taydennetty.description === 'pitkä kuvaus' && taydennetty.shortDescription === 'lyhyt' && taydennetty.kevyt === undefined && !('kevyt' in taydennetty) && taydennetty.title === 'T a', got: JSON.stringify(taydennetty) },
+  ]
+  for (const c of kCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ kevyt karttamuoto: ${c.name}${c.got ? ` (sai: ${c.got.slice(0, 200)})` : ''}`)
+  }
+}
 
 // ── OSM-otos: tagien tulkinta ja romahdusvahti (lib/osm-aktiviteetit) ─────────
 // Saunaopas ja ilmaiset museot lukevat otoksen suoraan — väärin tulkittu tai

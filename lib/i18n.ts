@@ -305,6 +305,7 @@ const t = {
 
     // ── EventDetailPanel ─────────────────────────────────────
     'detail.tickets':    'Osta liput',
+    'detail.description_loading': 'Haetaan kuvausta…',
     'detail.more_info':  'Lisätiedot',
     'detail.share':      'Jaa',
     'detail.save':       'Tallenna',
@@ -1351,6 +1352,7 @@ const t = {
 
     // ── EventDetailPanel ─────────────────────────────────────
     'detail.tickets':    'Buy tickets',
+    'detail.description_loading': 'Loading description…',
     'detail.more_info':  'More info',
     'detail.share':      'Share',
     'detail.save':       'Save',

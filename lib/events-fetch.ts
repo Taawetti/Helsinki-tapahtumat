@@ -19,6 +19,7 @@
 
 import { CATEGORIES, type DateFilter } from './types'
 import { getDateRange } from './utils'
+import { KENTAT_KARTTA } from './tapahtumat-kevyt'
 
 /** Armonaika: kuinka kauan täyttä tulosta odotetaan ennen pikatuloksen
  *  näyttämistä. Lämpimän täyden haun p95 oli mitatusti alle 0,8 s;
@@ -140,6 +141,12 @@ export function tapahtumaHakuParams(o: HakuAvainOpts): URLSearchParams {
   // ei tunne esiintyjänimiä ja pudotti mitatusti koko aineiston.
   const kws = kategoriaAvainsanat(o.activeCategories)
   if (kws) params.set('categories', kws)
+  // KUUKAUSI = KARTAN IKKUNA (HomeClient: mode 'map' → 'month'; tyhjän
+  // kategorian "tulevat"-täydennys). Kevyt muoto (lib/tapahtumat-kevyt):
+  // koordinaatilliset tapahtumat ilman kuvauksia, neljäsosa täyden koosta.
+  // Parametri on osa avainta, jotta lämmitys, välimuistin tarkistus ja haku
+  // osuvat samaan reunavälimuistin merkintään.
+  if (o.dateFilter === 'month') params.set('kentat', KENTAT_KARTTA)
   return params
 }
 
@@ -148,10 +155,14 @@ export function tapahtumaHakuParams(o: HakuAvainOpts): URLSearchParams {
  *  Viikko (1,8 MB, mitattu 24.9.2026) jätetään pois. */
 export const ESILADATTAVAT: readonly DateFilter[] = ['tonight', 'tomorrow', 'weekend']
 
-/** CDN:n lämmitys (app/api/warm): ne ikkunat joihin päivächipit vievät.
+/** CDN:n lämmitys (app/api/warm): ne ikkunat joihin päivächipit vievät, sekä
+ *  kartan kuukausi-ikkuna kevyenä. Kuukausi rakentui kylmänä 7,8 s (mitattu
+ *  30.10.2026) eikä ollut listalla, joten kartan avaaja maksoi sen itse.
+ *  Reitti antaa kevyelle kuukaudelle 15 min reunavälimuistin, joten 5 min
+ *  lämmitys osuu enimmäkseen reunaan eikä rakenna kuukautta joka kerta.
  *  Sama avainrakentaja kuin selaimen haussa — lämmitetty osoite on merkki
  *  merkiltä sama kuin käyttäjän pyyntö, muuten CDN-osuma ei synny. */
-export const LAMMITETTAVAT: readonly DateFilter[] = ['today', 'tonight', 'tomorrow', 'weekend', 'week']
+export const LAMMITETTAVAT: readonly DateFilter[] = ['today', 'tonight', 'tomorrow', 'weekend', 'week', 'month']
 
 export function lammitettavatParams(municipality = 'helsinki'): { filter: DateFilter; params: URLSearchParams }[] {
   return LAMMITETTAVAT.map((filter) => ({ filter, params: tapahtumaHakuParams({ dateFilter: filter, page: 1, municipality }) }))

@@ -40,6 +40,11 @@ export interface Event {
   // Kielestä riippumaton, törmäyksetön PÄÄsignaali luokittelulle (L0).
   // Vain LinkedEvents-pohjaisilla lähteillä; muut → tyhjä → tekstikerrokset.
   ysoIds?: string[]
+  // KEVYT KARTTAMUOTO (/api/events?kentat=kartta, lib/tapahtumat-kevyt):
+  // description ja shortDescription ovat tyhjiä, jotta kuukauden pinnit
+  // latautuvat neljäsosapaketilla. Infopaneeli täydentää rivin tämän lipun
+  // perusteella (hooks/useTaydennettyTapahtuma). Puuttuu = täysi rivi.
+  kevyt?: boolean
 }
 
 // Per-source fetch status from /api/events — powers the freshness badge and admin health panel

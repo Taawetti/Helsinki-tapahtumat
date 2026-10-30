@@ -32,9 +32,11 @@ interface Props {
    *  ei liukuanimaatiota ensimmäisellä piirrolla, jotta vastaanottaja näkee
    *  kortin heti — myös palvelimen HTML:ssä ennen hydraatiota. */
   avattuHeti?: boolean
+  /** Kartan kevyt rivi: kuvaus on vielä matkalla (hooks/useTaydennettyTapahtuma). */
+  kuvausLatautuu?: boolean
 }
 
-export default function EventDetailPanel({ event, onClose, onShowVenueEvents, avattuHeti = false, etaisyysKm }: Props) {
+export default function EventDetailPanel({ event, onClose, onShowVenueEvents, avattuHeti = false, etaisyysKm, kuvausLatautuu = false }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   // Fokus paneeliin, Tab-loukku, palautus avaajaan (Escape sidottu alla).
   // HUOM: open on !!event eikä true — komponentti on AINA mountattuna
@@ -542,6 +544,10 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents, av
                 .replace(/\n{3,}/g, '\n\n')
                 .trim()}
             </p>
+          )}
+          {/* Kartan kevyt rivi: kuvaus täydentyy hetken päästä (ei tyhjää aukkoa). */}
+          {!naytaKuvaus && kuvausLatautuu && (
+            <p className="text-white/35 text-sm">{t('detail.description_loading')}</p>
           )}
 
           {/* Tags. Englanniksi lähteen suomenkielisiä tageja ei näytetä raakana

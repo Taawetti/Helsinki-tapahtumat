@@ -11,6 +11,7 @@ import { onEstettyPaikka } from '@/lib/venue-blocklist'
 import { haeUlkoisetLahteet, ULKOISET_LAHTEET } from '@/lib/lahdevarasto'
 import { sovellaTapahtumakorjaukset, type TapahtumakorjausTiedosto } from '@/lib/tapahtumakorjaukset'
 import tapahtumakorjaukset from '@/data/tapahtumakorjaukset.json'
+import { kevennaKartalle, KENTAT_KARTTA } from '@/lib/tapahtumat-kevyt'
 
 // Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
 // Ilman tätä alusta voi katkaista pyynnön oletuksellaan kesken kaiken, jolloin
@@ -130,6 +131,10 @@ export async function GET(req: NextRequest) {
   const bbox = searchParams.get('bbox') || '' // neighborhood bounding box
 
   const quick = searchParams.get('quick') === '1'
+  // kentat=kartta: kevyt karttamuoto (lib/tapahtumat-kevyt) — vain
+  // koordinaatilliset tapahtumat ilman kuvaustekstejä. Kuukausi-ikkunan
+  // pyynnöt tulevat aina tällä (lib/events-fetch tapahtumaHakuParams).
+  const kevytKartalle = searchParams.get('kentat') === KENTAT_KARTTA
   // varasto=0: ulkoiset lähteet suoraan reiteistä, ei lähdevarastoa (A/B-
   // vertailu ja hätäkytkin). CDN-avain eroaa parametrin takia → ei sotke
   // normaalia välimuistia.
@@ -618,6 +623,9 @@ export async function GET(req: NextRequest) {
     // Viimeisenä, jotta korjaus näkyy kaikissa lähteissä ja myös jaetulla
     // /e/-sivulla, joka lukee tämän koosteen.
     events = sovellaTapahtumakorjaukset(events, (tapahtumakorjaukset as TapahtumakorjausTiedosto).korjaukset)
+    // Kartan kevyt muoto VIIMEISENÄ: korjaukset ja koordinaattitäydennys ovat
+    // jo mukana, joten kevyt rivi on muuten identtinen täyden kanssa.
+    if (kevytKartalle) events = kevennaKartalle(events)
     // Reunavälimuisti: ilman otsaketta Vercel antaa max-age=0:n eikä reuna
     // koskaan osu (mitattu 5.9.2026: x-vercel-cache MISS, TTFB 3,7–6,7 s per
     // käynti). 5 min tuoreus + SWR tunniksi → tyypillinen käynti ~0,2 s.
@@ -626,7 +634,13 @@ export async function GET(req: NextRequest) {
       // varasto: lähdevaraston tila tälle pyynnölle (luettu/puuttui/vanhin) —
       // admin ja mittaukset näkevät, kulkeeko kooste varastosta.
       { events, hasMore, total, generatedAt: new Date().toISOString(), sources, varasto: ulkoiset?.varasto ?? null },
-      { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' } },
+      // Kevyt kuukausipaketti saa 15 min reunan: kuukauden rakennus maksaa
+      // kylmänä 7,8 s ja 31 LinkedEvents-päiväpalaa, eikä kuukauden päähän
+      // ilmestyvä tapahtuma tarvitse 5 min tuoreutta. Lämmitys (/api/warm)
+      // käy 5 min välein → kuukausi rakentuu enintään neljästi tunnissa.
+      { headers: { 'Cache-Control': kevytKartalle
+        ? 'public, max-age=60, s-maxage=900, stale-while-revalidate=3600'
+        : 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' } },
     )
   } catch (err) {
     console.error('Events API error:', err)
