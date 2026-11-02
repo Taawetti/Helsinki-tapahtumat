@@ -106,7 +106,11 @@ import { onPaikkaPlaceholder, naytettavaKuvaus, lyhytkuvaus } from '../lib/event
 import { arvioiPudotus, type Kuolinsyy } from './fetch-venue-sites'
 import { mapOpenmicEvent, koordAvain, katuosoite, poistaPaikkaHanta, type OpenmicRaw } from '../lib/openmic'
 import { yhdistaJamit } from '../lib/guide-data'
-import { sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypille, type Suunnitelma } from '../lib/suunnitelma'
+import {
+  sovitaAjat, kloTunneiksi, tunnitKloksi, reittiohjeUrl, oletusKloTyypille, type Suunnitelma,
+  normalisoiVarasto, jarjestaSuunnitelmat, poistaVarastosta, karsiLahdeoliot, onMennytSuunnitelma,
+  type SuunnitelmaAskel, type AskelData, type TallennettuSuunnitelma, type SuunnitelmaVarasto,
+} from '../lib/suunnitelma'
 import { rakennaRungot, seuraavaRunko, rungonTapahtumat, onIsoTapahtuma, onUrheilu, onFestivaali } from '../lib/illan-rungot'
 import { taydennaKoordinaatit, isoPaikka } from '../lib/venue-coords'
 import { pakotettuTyyppi, onKeikkapaikka } from '../lib/venue-type-overrides'
@@ -5195,6 +5199,81 @@ odotettavat.push((async () => {
   for (const c of jCases) {
     if (c.ok) pass++
     else failures.push(`✗ joulukonsertit: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── OMAT SUUNNITELMAT (lib/suunnitelma varasto-osio): siirto vanhasta
+// avaimesta, aktiivisen vartiointi, katto, järjestys, poisto ja kiintiö-
+// kevennys. Kaikki puhtaita funktioita — selainta ei tarvita.
+{
+  const NYT = '2026-11-02T10:00:00.000Z'
+  const TANAAN = '2026-11-02'
+  const askel = (nimi: string, data = false): SuunnitelmaAskel => ({
+    id: `a-${nimi}`, tyyppi: 'oma', nimi, rooli: 'tekeminen',
+    ...(data ? { data: { laji: 'tapahtuma', tapahtuma: { id: 'e1', title: nimi } as Event } as AskelData } : {}),
+  })
+  const tall = (id: string, paiva: string, muokattu: string, askeleet: SuunnitelmaAskel[] = [askel(id)], otsikko = ''): TallennettuSuunnitelma =>
+    ({ id, otsikko, paiva, askeleet, luotu: '2026-10-01T00:00:00.000Z', muokattu })
+
+  // 1) Siirto: vanha yhden suunnitelman avain → listan ainoa, aktiivinen.
+  const siirto = normalisoiVarasto(null, { otsikko: 'Vanha ilta', paiva: '2026-11-07', alkuKlo: '18:30', askeleet: [askel('Ruoka'), { nimi: 'Ilman id:tä', tyyppi: 'oma', rooli: 'tekeminen' }] }, NYT)
+  // 2) Ei mitään tallessa → yksi tyhjä, aktiivinen.
+  const tyhja = normalisoiVarasto(null, null, NYT)
+  // 3) Uusi avain, aktiivinen osoittaa poistettuun → ensimmäinen.
+  const A = tall('A', '2026-11-05', '2026-11-01T10:00:00.000Z')
+  const B = tall('B', '2026-11-10', '2026-11-01T11:00:00.000Z')
+  const puuttuva = normalisoiVarasto({ aktiivinen: 'x', suunnitelmat: [A, B] }, { otsikko: 'ei saa näkyä', paiva: '', askeleet: [] }, NYT)
+  // 4) Roska pois, id-törmäys yksilöidään.
+  const roska = normalisoiVarasto({ aktiivinen: 'A', suunnitelmat: [A, 'roska', { otsikko: 'ei askeleita' }, { ...B, id: 'A' }, null] }, null, NYT)
+  // 5) Katto: 25 → 20, aktiivinen (24.) säilyy.
+  const monta = Array.from({ length: 25 }, (_, i) => tall(`p${i}`, '2026-11-20', `2026-11-01T${String(i).padStart(2, '0')}:00:00.000Z`))
+  const katto = normalisoiVarasto({ aktiivinen: 'p23', suunnitelmat: monta }, null, NYT)
+  // 6) Järjestys: tulevat nousevasti, päivättömät muokattu-uusin ensin, menneet uusin ensin.
+  const mennytVanha = tall('mv', '2026-10-20', '2026-10-19T00:00:00.000Z')
+  const mennytUusi = tall('mu', '2026-10-30', '2026-10-29T00:00:00.000Z')
+  const paivatonVanha = tall('pv', '', '2026-11-01T08:00:00.000Z')
+  const paivatonUusi = tall('pu', '', '2026-11-02T09:00:00.000Z')
+  const tanaanSuunnitelma = tall('tn', TANAAN, '2026-11-02T07:00:00.000Z')
+  const jarjestys = jarjestaSuunnitelmat([mennytVanha, B, paivatonVanha, mennytUusi, A, paivatonUusi, tanaanSuunnitelma], TANAAN).map((s) => s.id)
+  // 7) Poisto: aktiivisen poisto → järjestyksen ensimmäinen; tuntematon → sama viite; viimeinen → uusi tyhjä.
+  const varasto: SuunnitelmaVarasto = { aktiivinen: 'A', suunnitelmat: [B, A, paivatonUusi] }
+  const poistoAktiivinen = poistaVarastosta(varasto, 'A', NYT, TANAAN)
+  const poistoMuu = poistaVarastosta(varasto, 'pu', NYT, TANAAN)
+  const poistoTuntematon = poistaVarastosta(varasto, 'zzz', NYT, TANAAN)
+  const poistoViimeinen = poistaVarastosta({ aktiivinen: 'A', suunnitelmat: [A] }, 'A', NYT, TANAAN)
+  // 8) Kiintiökevennys: säilytettävän data jää, muiden lähtee, koskematon säilyttää viitteen.
+  const D1 = tall('D1', '2026-11-05', NYT, [askel('x', true), askel('y')])
+  const D2 = tall('D2', '2026-11-06', NYT, [askel('z', true)])
+  const D3 = tall('D3', '2026-11-07', NYT, [askel('w')])
+  const kevyt = karsiLahdeoliot({ aktiivinen: 'D1', suunnitelmat: [D1, D2, D3] }, 'D1')
+  const kevyin = karsiLahdeoliot({ aktiivinen: 'D1', suunnitelmat: [D1, D2, D3] }, null)
+  const onData = (v: SuunnitelmaVarasto, id: string) => v.suunnitelmat.find((s) => s.id === id)!.askeleet.some((a) => a.data !== undefined)
+
+  const vCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'siirto: vanha avain listan ainoaksi ja aktiiviseksi, sisältö ja aloitusaika säilyvät, luotu = nyt',
+      ok: siirto.suunnitelmat.length === 1 && siirto.aktiivinen === siirto.suunnitelmat[0].id && siirto.suunnitelmat[0].otsikko === 'Vanha ilta'
+        && siirto.suunnitelmat[0].paiva === '2026-11-07' && siirto.suunnitelmat[0].alkuKlo === '18:30' && siirto.suunnitelmat[0].askeleet.length === 2
+        && siirto.suunnitelmat[0].askeleet[0].nimi === 'Ruoka' && siirto.suunnitelmat[0].luotu === NYT, got: JSON.stringify(siirto).slice(0, 200) },
+    { name: 'siirto: id:tön askel saa id:n', ok: !!siirto.suunnitelmat[0].askeleet[1].id },
+    { name: 'tyhjä varasto → yksi tyhjä suunnitelma, aktiivinen', ok: tyhja.suunnitelmat.length === 1 && tyhja.suunnitelmat[0].askeleet.length === 0 && tyhja.aktiivinen === tyhja.suunnitelmat[0].id },
+    { name: 'uusi avain voittaa vanhan; puuttuva aktiivinen → ensimmäinen', ok: puuttuva.suunnitelmat.length === 2 && puuttuva.aktiivinen === 'A' && !puuttuva.suunnitelmat.some((s) => s.otsikko === 'ei saa näkyä') },
+    { name: 'roska pudotetaan, id-törmäys yksilöidään', ok: roska.suunnitelmat.length === 2 && new Set(roska.suunnitelmat.map((s) => s.id)).size === 2 && roska.aktiivinen === 'A', got: roska.suunnitelmat.map((s) => s.id).join(',') },
+    { name: 'katto 20: ylimääräiset pois, aktiivinen säilyy', ok: katto.suunnitelmat.length === 20 && katto.aktiivinen === 'p23' && katto.suunnitelmat.some((s) => s.id === 'p23') },
+    { name: 'järjestys: tänään, tulevat nousevasti, päivättömät uusin ensin, menneet uusin ensin',
+      ok: jarjestys.join(',') === 'tn,A,B,pu,pv,mu,mv', got: jarjestys.join(',') },
+    { name: 'mennyt: eilinen on mennyt, tänään ja päivätön eivät', ok: onMennytSuunnitelma({ paiva: '2026-11-01' }, TANAAN) && !onMennytSuunnitelma({ paiva: TANAAN }, TANAAN) && !onMennytSuunnitelma({ paiva: '' }, TANAAN) },
+    { name: 'poisto: aktiivisen poisto siirtää aktiivisuuden järjestyksen ensimmäiseen (B 10.11. ennen päivätöntä)', ok: poistoAktiivinen.suunnitelmat.length === 2 && poistoAktiivinen.aktiivinen === 'B', got: poistoAktiivinen.aktiivinen },
+    { name: 'poisto: muun poisto ei vaihda aktiivista', ok: poistoMuu.aktiivinen === 'A' && poistoMuu.suunnitelmat.length === 2 },
+    { name: 'poisto: tuntematon id → sama viite (ei kirjoitusta)', ok: poistoTuntematon === varasto },
+    { name: 'poisto: viimeisen poisto jättää uuden tyhjän aktiiviseksi', ok: poistoViimeinen.suunnitelmat.length === 1 && poistoViimeinen.suunnitelmat[0].id !== 'A' && poistoViimeinen.suunnitelmat[0].askeleet.length === 0 && poistoViimeinen.aktiivinen === poistoViimeinen.suunnitelmat[0].id },
+    { name: 'kevennys: säilytettävän lähdeoliot jäävät, muiden lähtevät, koskematon säilyttää viitteen',
+      ok: onData(kevyt, 'D1') && !onData(kevyt, 'D2') && kevyt.suunnitelmat[0] === D1 && kevyt.suunnitelmat[2] === D3 && kevyt.suunnitelmat[1].askeleet.length === 1 && kevyt.suunnitelmat[1].askeleet[0].nimi === 'z' },
+    { name: 'kevennys null: kaikilta lähdeoliot pois, muut kentät ennallaan', ok: !onData(kevyin, 'D1') && !onData(kevyin, 'D2') && kevyin.suunnitelmat[0].askeleet.map((a) => a.nimi).join() === 'x,y' },
+    { name: 'kevennys ei muuta alkuperäistä', ok: onData({ aktiivinen: '', suunnitelmat: [D1] }, 'D1') && D2.askeleet[0].data !== undefined },
+  ]
+  for (const c of vCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ omat suunnitelmat: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

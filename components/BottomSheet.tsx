@@ -30,9 +30,13 @@ interface Props {
   children: ReactNode
   /** Alaosa (esim. iso CTA) — pysyy paikallaan kun sisältö vierii. */
   footer?: ReactNode
+  /** Työpöydällä (md+) 560 px leveä, keskitetty levy koko leveyden sijaan
+   *  — lyhyille listoille, joita käytetään myös työpöydällä (Omat
+   *  suunnitelmat). Oletus ennallaan: mobiilisheetit ovat koko leveyden. */
+  kapeaTyopoydalla?: boolean
 }
 
-export default function BottomSheet({ open, onClose, title, subtitle, ariaLabel, maxHeight = '85vh', children, footer }: Props) {
+export default function BottomSheet({ open, onClose, title, subtitle, ariaLabel, maxHeight = '85vh', children, footer, kapeaTyopoydalla = false }: Props) {
   const { t } = useLanguage()
   const panelRef = useRef<HTMLDivElement>(null)
   useDialogiFokus(open, panelRef)
@@ -73,7 +77,7 @@ export default function BottomSheet({ open, onClose, title, subtitle, ariaLabel,
         aria-label={ariaLabel ?? title}
         tabIndex={-1}
         inert={!open}
-        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+        className={`fixed bottom-0 left-0 right-0 z-50 flex flex-col${kapeaTyopoydalla ? ' md:left-1/2 md:right-auto md:w-[560px] md:-ml-[280px]' : ''}`}
         style={{
           background: '#111118',
           borderRadius: '28px 28px 0 0',

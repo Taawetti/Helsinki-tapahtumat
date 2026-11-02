@@ -87,9 +87,14 @@ export default function PlannerMap({ items, korkeus = 360 }: { items: MapItem[];
         )
       })
 
+      // animate: false — sovitus on alkuasento, ei siirtymä. Animoitu zoom
+      // jätti CSS-siirtymän kesken kun kartta purettiin heti perään (näkymän
+      // vaihto, suunnitelman vaihto Omissa suunnitelmissa 2.11.2026), ja
+      // Leafletin transitionend osui jo poistettuun paneeliin: TypeError
+      // "reading '_leaflet_pos'" konsoliin.
       const sovita = () => {
-        if (latLngs.length > 1) map.fitBounds(latLngs, { padding: [30, 30] })
-        else map.setView(latLngs[0], 15)
+        if (latLngs.length > 1) map.fitBounds(latLngs, { padding: [30, 30], animate: false })
+        else map.setView(latLngs[0], 15, { animate: false })
       }
       if (latLngs.length > 1) {
         L.polyline(latLngs, {

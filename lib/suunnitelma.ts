@@ -11,7 +11,8 @@
 // (lib/group), aukiolo-clamp (lib/opening-hours) ja roolikestot/puskurit
 // (lib/candidate). Puhdas funktio — now annetaan parametrina.
 //
-// TALLENNUS: localStorage (ei kirjautumista). Jakaminen tekee palvelimelle
+// TALLENNUS: localStorage (ei kirjautumista), MONTA suunnitelmaa joista yksi on
+// aktiivinen (ks. varasto-osio alempana). Jakaminen tekee palvelimelle
 // SNAPSHOTIN — jaettu linkki ei elä tämän tilan mukana.
 
 import type { Restaurant, Event } from './types'
@@ -21,6 +22,7 @@ import { walkMinutesBetween } from './group'
 import { clampToOpenHour, isOpenAt } from './opening-hours'
 import { DUR_H, TRAVEL_BUFFER_H, ARC_END_CAP_H, DRINKS_END_CAP_H } from './group-scheduler'
 import { helsinkiClock } from './arvo-ilta'
+import { helsinkiToday } from './helsinki-time'
 import { tuntematonAika } from './utils'
 import { externalUrlFor } from './event-links'
 import { naytettavaKuvaus } from './event-text'
@@ -288,40 +290,225 @@ function kelloksi(paiva: Date, h: number): Date {
 }
 
 // ── Tila (localStorage + tilaajat) ───────────────────────────────────────────
+//
+// MONTA SUUNNITELMAA (omistaja 2.11.2026: "suunnitelman voi tallentaa
+// itselleen talteen ja tehdä vaikka monta valmiiksi"). Varastossa on lista
+// tallennettuja suunnitelmia ja yksi AKTIIVINEN, jota keräilynapit ja
+// Suunnitelma-välilehti muokkaavat. Vanha yhden suunnitelman API
+// (lueSuunnitelma, lisaaTapahtuma, …) toimii ennallaan aktiiviseen, joten
+// paneelien "Lisää suunnitelmaan" ei tiedä listasta mitään.
+//
+// "Tallenna" ei ole erillinen toiminto: jokainen suunnitelma on aina
+// tallessa, ja Uusi suunnitelma jättää edellisen listaan. Kaikki tallentuu
+// tähän laitteeseen ilman kirjautumista, kuten suosikit.
+//
+// SIIRTO: vanha avain 'oma-suunnitelma-v1' luetaan ensimmäisellä kerralla
+// listan ensimmäiseksi suunnitelmaksi. Avainta ei poisteta eikä päivitetä —
+// paluu vanhaan versioon näyttäisi viimeisimmän yhden suunnitelman.
+//
+// KIINTIÖ: askeleen täysi lähdeolio (data) on raskain osa. Jos localStorage
+// täyttyy, tallennus yritetään uudelleen ilman muiden kuin aktiivisen
+// suunnitelman lähdeolioita, sitten ilman yhtäkään (karsiLahdeoliot) —
+// suunnitelmat säilyvät, vain askeleen napautus avaa suppean infokortin.
 
-const LS_AVAIN = 'oma-suunnitelma-v1'
+const LS_AVAIN_VANHA = 'oma-suunnitelma-v1'
+const LS_AVAIN = 'omat-suunnitelmat-v1'
+/** Listan katto: 20 × 15 askelta pysyy reilusti localStoragen rajoissa. */
+export const SUUNNITELMA_MAX = 20
 
-function oletus(): Suunnitelma {
-  return { otsikko: '', paiva: '', askeleet: [] }
+export interface TallennettuSuunnitelma extends Suunnitelma {
+  id: string
+  /** ISO-aikaleimat: luotu ja viimeksi muokattu (listan järjestys). */
+  luotu: string
+  muokattu: string
 }
 
-const TYHJA: Suunnitelma = oletus()
+export interface SuunnitelmaVarasto {
+  aktiivinen: string
+  suunnitelmat: TallennettuSuunnitelma[]
+}
 
-let tila: Suunnitelma | null = null
+const PAIVA_RE = /^\d{4}-\d{2}-\d{2}$/
+
+function uusiSuunnitelmaId(): string {
+  return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
+}
+
+function tyhjaTallennettu(nyt: string): TallennettuSuunnitelma {
+  return { id: uusiSuunnitelmaId(), otsikko: '', paiva: '', askeleet: [], luotu: nyt, muokattu: nyt }
+}
+
+/** Kelpuuttaa yhden suunnitelman raakadatasta (uusi tai vanha avain);
+ *  null = ei suunnitelma. Askeleista hyväksytään nimelliset oliot. */
+function kelpuutaSuunnitelma(raaka: unknown, nyt: string): TallennettuSuunnitelma | null {
+  if (!raaka || typeof raaka !== 'object') return null
+  const r = raaka as Partial<TallennettuSuunnitelma>
+  if (!Array.isArray(r.askeleet)) return null
+  const askeleet = r.askeleet
+    .filter((a): a is SuunnitelmaAskel => !!a && typeof a === 'object' && typeof (a as SuunnitelmaAskel).nimi === 'string')
+    .slice(0, ASKEL_MAX)
+    .map((a) => (typeof a.id === 'string' && a.id ? a : { ...a, id: uusiId() }))
+  return {
+    id: typeof r.id === 'string' && r.id ? r.id : uusiSuunnitelmaId(),
+    otsikko: typeof r.otsikko === 'string' ? r.otsikko.slice(0, 80) : '',
+    paiva: typeof r.paiva === 'string' ? r.paiva : '',
+    alkuKlo: typeof r.alkuKlo === 'string' ? r.alkuKlo : undefined,
+    askeleet,
+    luotu: typeof r.luotu === 'string' ? r.luotu : nyt,
+    muokattu: typeof r.muokattu === 'string' ? r.muokattu : nyt,
+  }
+}
+
+/** Rakentaa varaston raakadatasta: uusi avain → lista; muuten vanha yhden
+ *  suunnitelman avain siirretään listan ainoaksi; muuten yksi tyhjä
+ *  suunnitelma. Aktiivinen osoittaa aina olemassa olevaan, id:t ovat
+ *  yksilöllisiä ja lista mahtuu kattoon (aktiivinen säilyy aina).
+ *  Puhdas funktio — testattavissa ilman selainta. */
+export function normalisoiVarasto(uusi: unknown, vanha: unknown, nyt: string): SuunnitelmaVarasto {
+  let lista: TallennettuSuunnitelma[] = []
+  let aktiivinen = ''
+  const u = uusi as Partial<SuunnitelmaVarasto> | null
+  if (u && typeof u === 'object' && Array.isArray(u.suunnitelmat)) {
+    lista = u.suunnitelmat.map((s) => kelpuutaSuunnitelma(s, nyt)).filter((s): s is TallennettuSuunnitelma => s !== null)
+    aktiivinen = typeof u.aktiivinen === 'string' ? u.aktiivinen : ''
+  } else {
+    const siirretty = kelpuutaSuunnitelma(vanha, nyt)
+    if (siirretty) { lista = [siirretty]; aktiivinen = siirretty.id }
+  }
+  const nahdyt = new Set<string>()
+  lista = lista.map((s) => {
+    const yksilollinen = nahdyt.has(s.id) ? { ...s, id: uusiSuunnitelmaId() } : s
+    nahdyt.add(yksilollinen.id)
+    return yksilollinen
+  })
+  if (lista.length > SUUNNITELMA_MAX) {
+    lista = [...lista.filter((s) => s.id === aktiivinen), ...lista.filter((s) => s.id !== aktiivinen)].slice(0, SUUNNITELMA_MAX)
+  }
+  if (lista.length === 0) lista = [tyhjaTallennettu(nyt)]
+  if (!lista.some((s) => s.id === aktiivinen)) aktiivinen = lista[0].id
+  return { aktiivinen, suunnitelmat: lista }
+}
+
+export function onMennytSuunnitelma(s: Pick<Suunnitelma, 'paiva'>, tanaan: string): boolean {
+  return PAIVA_RE.test(s.paiva) && s.paiva < tanaan
+}
+
+/** Listan järjestys näkymässä: tulevat päivät nousevasti (sama päivä →
+ *  viimeksi muokattu ensin), sitten päivättömät viimeksi muokattu ensin,
+ *  lopuksi menneet uusin ensin. Puhdas funktio. */
+export function jarjestaSuunnitelmat(lista: TallennettuSuunnitelma[], tanaan: string): TallennettuSuunnitelma[] {
+  const paivallinen = (s: TallennettuSuunnitelma) => PAIVA_RE.test(s.paiva)
+  const tulevat = lista.filter((s) => paivallinen(s) && !onMennytSuunnitelma(s, tanaan))
+    .sort((a, b) => a.paiva.localeCompare(b.paiva) || b.muokattu.localeCompare(a.muokattu))
+  const paivattomat = lista.filter((s) => !paivallinen(s)).sort((a, b) => b.muokattu.localeCompare(a.muokattu))
+  const menneet = lista.filter((s) => onMennytSuunnitelma(s, tanaan))
+    .sort((a, b) => b.paiva.localeCompare(a.paiva) || b.muokattu.localeCompare(a.muokattu))
+  return [...tulevat, ...paivattomat, ...menneet]
+}
+
+/** Poistaa suunnitelman varastosta. Aktiivisen poisto siirtää aktiivisuuden
+ *  listajärjestyksen ensimmäiseen; viimeisen poisto jättää uuden tyhjän.
+ *  Tuntematon id → sama varasto. Puhdas funktio. */
+export function poistaVarastosta(v: SuunnitelmaVarasto, id: string, nyt: string, tanaan: string): SuunnitelmaVarasto {
+  const jaljella = v.suunnitelmat.filter((s) => s.id !== id)
+  if (jaljella.length === v.suunnitelmat.length) return v
+  if (jaljella.length === 0) {
+    const tyhja = tyhjaTallennettu(nyt)
+    return { aktiivinen: tyhja.id, suunnitelmat: [tyhja] }
+  }
+  const aktiivinen = v.aktiivinen === id ? jarjestaSuunnitelmat(jaljella, tanaan)[0].id : v.aktiivinen
+  return { aktiivinen, suunnitelmat: jaljella }
+}
+
+function ilmanLahdeoliota(a: SuunnitelmaAskel): SuunnitelmaAskel {
+  const kopio = { ...a }
+  delete kopio.data
+  return kopio
+}
+
+/** Riisuu askelten täydet lähdeoliot muilta kuin säilytettävältä
+ *  suunnitelmalta (null = kaikilta) — kiintiön ylittyessä tallennus
+ *  yritetään uudelleen kevyempänä. Koskemattomat suunnitelmat säilyttävät
+ *  viitteensä. Puhdas funktio. */
+export function karsiLahdeoliot(v: SuunnitelmaVarasto, sailyta: string | null): SuunnitelmaVarasto {
+  return {
+    ...v,
+    suunnitelmat: v.suunnitelmat.map((s) => (s.id === sailyta || !s.askeleet.some((a) => a.data)
+      ? s
+      : { ...s, askeleet: s.askeleet.map(ilmanLahdeoliota) })),
+  }
+}
+
+const TYHJA: TallennettuSuunnitelma = { id: '', otsikko: '', paiva: '', askeleet: [], luotu: '', muokattu: '' }
+const EI_YHTAAN: TallennettuSuunnitelma[] = []
+const PALVELIN_VARASTO: SuunnitelmaVarasto = { aktiivinen: '', suunnitelmat: EI_YHTAAN }
+
+let tila: SuunnitelmaVarasto | null = null
 const tilaajat = new Set<() => void>()
 
-function lataa(): Suunnitelma {
-  if (tila) return tila
-  if (typeof window === 'undefined') return TYHJA
+function lueJson(avain: string): unknown {
   try {
-    const raaka = localStorage.getItem(LS_AVAIN)
-    tila = raaka ? { ...oletus(), ...(JSON.parse(raaka) as Suunnitelma) } : oletus()
+    const raaka = localStorage.getItem(avain)
+    return raaka ? JSON.parse(raaka) : null
   } catch {
-    tila = oletus()
+    return null
   }
+}
+
+function lataaVarasto(): SuunnitelmaVarasto {
+  if (tila) return tila
+  if (typeof window === 'undefined') return PALVELIN_VARASTO
+  tila = normalisoiVarasto(lueJson(LS_AVAIN), lueJson(LS_AVAIN_VANHA), new Date().toISOString())
   return tila
 }
 
-function paivita(muutos: (s: Suunnitelma) => Suunnitelma): void {
-  tila = muutos(lataa())
-  try {
-    localStorage.setItem(LS_AVAIN, JSON.stringify(tila))
-  } catch { /* privaattitila */ }
+/** Kirjoittaa varaston. Kiintiön ylittyessä kevennetään portaittain; jos
+ *  mikään ei mene läpi (privaattitila), tila jää muistiin istunnon ajaksi. */
+function tallenna(v: SuunnitelmaVarasto): void {
+  const yritykset = [v, karsiLahdeoliot(v, v.aktiivinen), karsiLahdeoliot(v, null)]
+  for (const yritys of yritykset) {
+    try {
+      localStorage.setItem(LS_AVAIN, JSON.stringify(yritys))
+      tila = yritys
+      return
+    } catch { /* kiintiö täynnä tai privaattitila → seuraava porras */ }
+  }
+}
+
+function paivitaVarasto(muutos: (v: SuunnitelmaVarasto) => SuunnitelmaVarasto): void {
+  const vanha = lataaVarasto()
+  const uusi = muutos(vanha)
+  if (uusi === vanha) return
+  tila = uusi
+  tallenna(uusi)
   tilaajat.forEach((cb) => cb())
 }
 
-export function lueSuunnitelma(): Suunnitelma {
-  return lataa()
+/** Muuttaa AKTIIVISTA suunnitelmaa. Muutos palauttaa koko suunnitelman
+ *  sisällön (kuten ennen listaa); id ja luontiaika säilyvät, muokattu päivittyy. */
+function paivita(muutos: (s: Suunnitelma) => Suunnitelma): void {
+  paivitaVarasto((v) => {
+    const nyt = new Date().toISOString()
+    return {
+      ...v,
+      suunnitelmat: v.suunnitelmat.map((s) => (s.id === v.aktiivinen
+        ? { ...muutos(s), id: s.id, luotu: s.luotu, muokattu: nyt }
+        : s)),
+    }
+  })
+}
+
+/** Aktiivinen suunnitelma — sama viite kunnes jokin muuttuu
+ *  (useSyncExternalStore). Palvelimella vakio tyhjä. */
+export function lueSuunnitelma(): TallennettuSuunnitelma {
+  const v = lataaVarasto()
+  return v.suunnitelmat.find((s) => s.id === v.aktiivinen) ?? TYHJA
+}
+
+/** Kaikki tallennetut suunnitelmat tallennusjärjestyksessä (näkymä järjestää
+ *  jarjestaSuunnitelmat-funktiolla). Sama viite kunnes jokin muuttuu. */
+export function lueSuunnitelmat(): TallennettuSuunnitelma[] {
+  return lataaVarasto().suunnitelmat
 }
 
 /** useSyncExternalStore-yhteensopiva tilaus. Palvelimella vakioviite. */
@@ -330,8 +517,29 @@ export function tilaaSuunnitelma(cb: () => void): () => void {
   return () => tilaajat.delete(cb)
 }
 
-export function lueSuunnitelmaServer(): Suunnitelma {
+export function lueSuunnitelmaServer(): TallennettuSuunnitelma {
   return TYHJA
+}
+
+export function lueSuunnitelmatServer(): TallennettuSuunnitelma[] {
+  return EI_YHTAAN
+}
+
+/** Uusi tyhjä suunnitelma aktiiviseksi; edellinen jää listaan talteen.
+ *  null = lista täynnä (SUUNNITELMA_MAX). */
+export function uusiSuunnitelma(): string | null {
+  if (lataaVarasto().suunnitelmat.length >= SUUNNITELMA_MAX) return null
+  const uusi = tyhjaTallennettu(new Date().toISOString())
+  paivitaVarasto((v) => ({ aktiivinen: uusi.id, suunnitelmat: [...v.suunnitelmat, uusi] }))
+  return uusi.id
+}
+
+export function vaihdaSuunnitelma(id: string): void {
+  paivitaVarasto((v) => (v.aktiivinen !== id && v.suunnitelmat.some((s) => s.id === id) ? { ...v, aktiivinen: id } : v))
+}
+
+export function poistaSuunnitelma(id: string): void {
+  paivitaVarasto((v) => poistaVarastosta(v, id, new Date().toISOString(), helsinkiToday()))
 }
 
 let idLaskuri = 0
@@ -341,7 +549,7 @@ function uusiId(): string {
 }
 
 export function onSuunnitelmassa(viiteId: string): boolean {
-  return lataa().askeleet.some((a) => a.viiteId === viiteId)
+  return lueSuunnitelma().askeleet.some((a) => a.viiteId === viiteId)
 }
 
 export function poistaViitteella(viiteId: string): void {
@@ -349,7 +557,7 @@ export function poistaViitteella(viiteId: string): void {
 }
 
 function lisaaAskel(askel: Omit<SuunnitelmaAskel, 'id'>, paivaEhdotus?: string): boolean {
-  const s = lataa()
+  const s = lueSuunnitelma()
   if (s.askeleet.length >= ASKEL_MAX) return false
   paivita((vanha) => ({
     ...vanha,
@@ -559,7 +767,7 @@ export function asetaKasinKlo(id: string, klo: string | undefined): void {
 }
 
 export function tyhjennaSuunnitelma(): void {
-  paivita(() => oletus())
+  paivita(() => ({ otsikko: '', paiva: '', askeleet: [] }))
 }
 
 export function korvaaSuunnitelma(uusi: Suunnitelma): void {
@@ -569,6 +777,14 @@ export function korvaaSuunnitelma(uusi: Suunnitelma): void {
     alkuKlo: uusi.alkuKlo,
     askeleet: (uusi.askeleet ?? []).slice(0, ASKEL_MAX).map((a) => ({ ...a, id: uusiId() })),
   }))
+}
+
+/** Tuo valmiin suunnitelman (jaetun linkin kopio): tyhjä aktiivinen
+ *  korvataan, muuten tuotu tulee UUDEKSI suunnitelmaksi, jotta oma
+ *  keskeneräinen ilta ei katoa. Lista täynnä → korvataan aktiivinen. */
+export function tuoSuunnitelma(uusi: Suunnitelma): void {
+  if (lueSuunnitelma().askeleet.length > 0) uusiSuunnitelma()
+  korvaaSuunnitelma(uusi)
 }
 
 function helsinkiPaivaISO(iso: string): string {

@@ -8,7 +8,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Navigation, X } from 'lucide-react'
-import { korvaaSuunnitelma, reittiohjeUrl, tunnitKloksi, KULKUTAPA_META, type SuunnitelmaAskel, type AskelRooli, type Kulkutapa } from '@/lib/suunnitelma'
+import { tuoSuunnitelma, reittiohjeUrl, tunnitKloksi, KULKUTAPA_META, type SuunnitelmaAskel, type AskelRooli, type Kulkutapa } from '@/lib/suunnitelma'
 import { openIntervalsForDate } from '@/lib/opening-hours'
 import { formatDateRange } from '@/lib/utils'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -301,7 +301,9 @@ export function JaettuToiminnot({ token, otsikko, paiva, alkuKlo, askeleet }: {
 
   function kopioi() {
     const roolit: AskelRooli[] = ['tekeminen', 'ruoka', 'drinkit', 'ohjelma']
-    korvaaSuunnitelma({
+    // tuoSuunnitelma: oma keskeneräinen suunnitelma jää talteen listaan,
+    // kopio avautuu uutena (omat suunnitelmat 2.11.2026).
+    tuoSuunnitelma({
       otsikko: otsikko ?? '',
       paiva: paiva ?? '',
       alkuKlo: alkuKlo ?? undefined,

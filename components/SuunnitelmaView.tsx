@@ -19,13 +19,15 @@ import dynamic from 'next/dynamic'
 import { Loader2, X, ChevronUp, ChevronDown, Share2, AlertTriangle, GripVertical, Navigation } from 'lucide-react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import {
-  lueSuunnitelma, lueSuunnitelmaServer, tilaaSuunnitelma, sovitaAjat,
+  lueSuunnitelma, lueSuunnitelmaServer, lueSuunnitelmat, lueSuunnitelmatServer, tilaaSuunnitelma, sovitaAjat,
+  uusiSuunnitelma, vaihdaSuunnitelma, poistaSuunnitelma, SUUNNITELMA_MAX,
   poistaAskel, siirraAskelta, siirraIndeksiin, asetaOtsikko, asetaPaiva, kuittaaVaroitus,
   asetaAlkuKlo, asetaKasinKlo, tyhjennaSuunnitelma, korvaaSuunnitelma, ROOLI_META,
   reittiohjeUrl, asetaKulkutapa, roolinKesto, kloTunneiksi, tunnitKloksi,
   KULKUTAPA_META, type VaroitusSyy, type SuunnitelmaAskel, type AskelData, type Suunnitelma,
 } from '@/lib/suunnitelma'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
+import { OmatSuunnitelmatPalkki, OmatSuunnitelmatSheet } from '@/components/OmatSuunnitelmat'
 import KulkutapaValitsin from '@/components/KulkutapaValitsin'
 import { walkMinutesBetween } from '@/lib/group'
 import type { Event, Restaurant } from '@/lib/types'
@@ -51,13 +53,29 @@ const VAROITUS_AVAIN: Record<VaroitusSyy, string> = {
   mennyt: 'plan.warn_mennyt',
 }
 
-export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
+interface Props {
   onAvaaTapahtuma?: (e: Event) => void
   /** Tyhjän tilan selauspolut: vie käyttäjän Tapahtumat- tai Ravintolat-osioon. */
   onSiirryOsioon?: (osio: 'discover' | 'restaurants') => void
-}) {
+}
+
+/** Kuori: avain = aktiivisen suunnitelman id. Kun suunnitelma vaihtuu
+ *  (Omat suunnitelmat: avaus, uusi, poisto), näkymä mountataan uudelleen ja
+ *  istuntokohtainen tila — runkokierto ja sen kumoamispohja, jakolinkki,
+ *  avoimet valitsimet, listasheet — nollautuu itsestään. Rungon käyttö ja
+ *  kumoaminen eivät vaihda id:tä, joten ne eivät remounttaa. */
+export default function SuunnitelmaView(props: Props) {
+  const suunnitelma = useSyncExternalStore(tilaaSuunnitelma, lueSuunnitelma, lueSuunnitelmaServer)
+  return <SuunnitelmaNakyma key={suunnitelma.id} {...props} />
+}
+
+function SuunnitelmaNakyma({ onAvaaTapahtuma, onSiirryOsioon }: Props) {
   const { t } = useLanguage()
   const suunnitelma = useSyncExternalStore(tilaaSuunnitelma, lueSuunnitelma, lueSuunnitelmaServer)
+  // Omat suunnitelmat (components/OmatSuunnitelmat): kaikki tallennetut +
+  // listasheetin tila. Aktiivinen on `suunnitelma`.
+  const suunnitelmat = useSyncExternalStore(tilaaSuunnitelma, lueSuunnitelmat, lueSuunnitelmatServer)
+  const [listaAuki, setListaAuki] = useState(false)
   const [jakoTila, setJakoTila] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
   const [jakoLinkki, setJakoLinkki] = useState<string | null>(null)
   /** Auki oleva aikavalitsin: askeleen id tai 'alku' (aloitusaika). */
@@ -148,6 +166,28 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
     if (edellinen && edellinen.askeleet.length > 0) korvaaSuunnitelma(edellinen)
     else tyhjennaSuunnitelma()
   })
+
+  // ── Omat suunnitelmat: vaihto, uusi, poisto ──
+  // Vaihto remounttaa näkymän (kuoren key), joten istuntotilaa ei nollata
+  // täällä käsin; sheetkin sulkeutuu remountissa.
+  const taynna = suunnitelmat.length >= SUUNNITELMA_MAX
+  /** Uusi tyhjä suunnitelma; edellinen jää listaan. Toast kertoo sen, kun
+   *  edellisessä oli sisältöä — muuten näyttäisi siltä että ilta katosi. */
+  function luoUusi() {
+    const edellisessaSisaltoa = suunnitelma.askeleet.length > 0
+    if (!uusiSuunnitelma()) return
+    if (edellisessaSisaltoa) naytaToast({ teksti: t('plan.saved_toast') })
+  }
+  function valitseSuunnitelma(id: string) {
+    vaihdaSuunnitelma(id)
+  }
+  /** Tyhjän voi poistaa kysymättä; sisällöllinen varmistetaan. */
+  function poistaTallennettu(id: string) {
+    const kohde = suunnitelmat.find((x) => x.id === id)
+    if (!kohde) return
+    if (kohde.askeleet.length > 0 && !confirm(t('plan.delete_confirm'))) return
+    poistaSuunnitelma(id)
+  }
   /** Napautuksesta avattu OIKEA infopaneeli — sama kuin muualla sovelluksessa. */
   const [avattuRavintola, setAvattuRavintola] = useState<Extract<AskelData, { laji: 'ravintola' }> | null>(null)
   const [avattuPaikka, setAvattuPaikka] = useState<Extract<AskelData, { laji: 'paikka' }> | null>(null)
@@ -260,6 +300,13 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
         🗓 {t('nav.suunnitelma')}
         {sovitetut.length > 0 && <span className="text-white/30 text-[14px] font-bold ml-2">· {sovitetut.length} {t('plan.steps')}</span>}
       </h1>
+      {/* Omat suunnitelmat -palkki: täytetyssä tilassa aina; tyhjässä vain kun
+          tallessa on muitakin (ensikertalaisen tyhjä tila pysyy ennallaan).
+          "+ Uusi" vain täytetyssä — tyhjästä ei ole mitä tallentaa. */}
+      {(!tyhja || suunnitelmat.length > 1) && (
+        <OmatSuunnitelmatPalkki maara={suunnitelmat.length} onAvaa={() => setListaAuki(true)}
+          onUusi={tyhja ? undefined : luoUusi} uusiEstetty={taynna} />
+      )}
 
       {sovitetut.length === 0 ? (
         <>
@@ -505,6 +552,9 @@ export default function SuunnitelmaView({ onAvaaTapahtuma, onSiirryOsioon }: {
           )}
         </>
       )}
+
+      <OmatSuunnitelmatSheet open={listaAuki} onClose={() => setListaAuki(false)} suunnitelmat={suunnitelmat}
+        aktiivinenId={suunnitelma.id} onValitse={valitseSuunnitelma} onPoista={poistaTallennettu} onUusi={luoUusi} />
 
       {/* Rullavalitsin: aloitusaika tai askeleen aika */}
       {aikaAuki === 'alku' && (
