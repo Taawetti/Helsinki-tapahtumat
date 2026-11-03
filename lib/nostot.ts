@@ -22,6 +22,8 @@
 // avaukset) ja "Mistä kortti avattiin" -listan promo-rivistä.
 
 import type { Event } from './types'
+import { shareUrlFor } from './event-links'
+import { tapahtumaHakuParams } from './events-fetch'
 import { osuukoKorjaus } from './tapahtumakorjaukset'
 
 export interface NostoMaaritys {
@@ -71,6 +73,17 @@ export function yhdistaNostot(maaritykset: readonly NostoMaaritys[], events: rea
     if (e) out.push({ id: n.id, mainos: n.mainos, event: e, koukku: n.koukku, todiste: n.todiste, jakokuva: n.jakokuva })
   }
   return out
+}
+
+/** Nostopäivän lämmitysosoitteet (app/api/warm, omistaja 3.11.2026: Jannan
+ *  jakosivu aukesi hiljaisen jakson jälkeen 7–10 s). Päiväikkuna on SAMA
+ *  osoite kuin selaimen päivähaku ja jaetun sivun kooste (lib/jaettu-tapahtuma
+ *  haeKoosteesta), jotta reunaosuma syntyy; jakosivu löytyy vain jos nosto
+ *  osuu ikkunan tapahtumiin. Puhdas funktio. */
+export function nostonLammitysOsoitteet(n: NostoMaaritys, events: readonly Event[], origin: string): { ikkuna: string; sivu: string | null } {
+  const ikkuna = `${origin}/api/events?${tapahtumaHakuParams({ dateFilter: 'custom', customDate: n.osuma.paiva, page: 1, municipality: 'helsinki' })}`
+  const osuma = yhdistaNostot([n], events)[0]
+  return { ikkuna, sivu: osuma ? shareUrlFor(osuma.event, origin) : null }
 }
 
 /** Hakee aktiivisten nostojen tapahtumat koosteesta (hakusana + päivä, jotta

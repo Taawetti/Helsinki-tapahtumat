@@ -69,10 +69,11 @@ import secondhandFile from '../data/secondhand.json'
 import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from '../lib/nightlife'
 import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/arvo-ilta'
-import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto } from '../lib/tapahtumakorjaukset'
+import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto, type Tapahtumakorjaus } from '../lib/tapahtumakorjaukset'
+import { onLinkedEventsId, kelpoKuvausPyynto, kuvausParams, kuvattavaLeRaakadatasta, kuvausVastaus, type LeKuvausRaaka } from '../lib/kuvaus'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, type KlikkiRivi } from '../lib/kavijatilastot'
-import { aktiivisetNostot, yhdistaNostot, type NostoMaaritys, type NostoTiedosto } from '../lib/nostot'
+import { aktiivisetNostot, yhdistaNostot, type NostoMaaritys, type NostoTiedosto, nostonLammitysOsoitteet } from '../lib/nostot'
 import nostoFile from '../data/nostot.json'
 import { suodataJoulukonsertit, onJoulukausi } from '../lib/joulukonsertit'
 import { nameOverlap } from '../lib/dataforseo'
@@ -5274,6 +5275,40 @@ odotettavat.push((async () => {
   for (const c of vCases) {
     if (c.ok) pass++
     else failures.push(`✗ omat suunnitelmat: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── KUVAUS TUNNISTEELLA (lib/kuvaus) + NOSTOPÄIVIEN LÄMMITYS (lib/nostot):
+// kartan kevyen rivin kuvaus haetaan yhdellä tunnisteella, nostopäivän
+// ikkuna ja jakosivu lämmitetään samoilla osoitteilla kuin selain käyttää.
+{
+  const korjaus: Tapahtumakorjaus = { id: 't', osuma: { otsikko: 'jannan joulu', paiva: '2026-12-09', paikka: 'kallion kirkko' }, aseta: { description: 'Korjattu kuvaus', shortDescription: 'Lyhyt' } }
+  const raakaFi: LeKuvausRaaka = { id: 'helsinki:abc123', name: { fi: 'Testi &amp; tapahtuma' }, description: { fi: '<p>Kuvaus &amp; lisää</p>', en: 'Desc' }, short_description: { en: 'Short' }, start_time: '2026-11-20T18:00:00+02:00', location: { name: { fi: 'Paikka' } } }
+  const v1 = kuvausVastaus(kuvattavaLeRaakadatasta(raakaFi), [korjaus])
+  const raakaJanna: LeKuvausRaaka = { id: 'stadissa:x', name: { fi: 'Jannan Joulu' }, description: { fi: 'Lähteen kuvaus' }, start_time: '2026-12-09T19:00:00+02:00', location: { name: { fi: 'Kallion kirkko' } } }
+  const v2 = kuvausVastaus(kuvattavaLeRaakadatasta(raakaJanna), [korjaus])
+  const nosto: NostoMaaritys = { id: 'n', osuma: { otsikko: 'jannan joulu', paiva: '2026-12-09', paikka: 'kallion kirkko' }, alku: '2026-10-27', loppu: '2026-12-09', mainos: false }
+  const janna = { id: 'stadissa-117757', title: 'Jannan joulu – Ystävien kanssa', startTime: '2026-12-09T19:00:00+02:00', location: { name: 'Kallion kirkko' } } as unknown as Event
+  const osoitteet = nostonLammitysOsoitteet(nosto, [janna], 'https://mitatanaan.fi')
+  const eiOsumaa = nostonLammitysOsoitteet(nosto, [], 'https://mitatanaan.fi')
+  const kCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'LinkedEvents-tunniste: helsinki:, kulke: kyllä; stadissa-, tm-, museum-helsinki:, tyhjä ei',
+      ok: onLinkedEventsId('helsinki:agqpyvl5by') && onLinkedEventsId('kulke:53585') && !onLinkedEventsId('stadissa-37901') && !onLinkedEventsId('tm-123') && !onLinkedEventsId('museum-helsinki:abc') && !onLinkedEventsId('') },
+    { name: 'pyynnön kelpuutus: kelpo läpi; puuttuva, välilyönti, väärä päivä ja ylipitkä hylätään',
+      ok: JSON.stringify(kelpoKuvausPyynto('helsinki:abc', '2026-11-20')) === JSON.stringify({ id: 'helsinki:abc', paiva: '2026-11-20' })
+        && kelpoKuvausPyynto(null, '2026-11-20') === null && kelpoKuvausPyynto('a b', '2026-11-20') === null
+        && kelpoKuvausPyynto('helsinki:abc', '20.11.2026') === null && kelpoKuvausPyynto('x'.repeat(201), '2026-11-20') === null },
+    { name: 'kuvausParams: id ja d', ok: kuvausParams('helsinki:abc', '2026-11-20').toString() === 'id=helsinki%3Aabc&d=2026-11-20', got: kuvausParams('helsinki:abc', '2026-11-20').toString() },
+    { name: 'LE-mäppäys: kuvaus fi ennen en, lyhyt en varalla, entiteetit puretaan, tagit jäävät (kuten koosteessa), korjaus ei osu',
+      ok: v1.id === 'helsinki:abc123' && v1.description === '<p>Kuvaus & lisää</p>' && v1.shortDescription === 'Short', got: JSON.stringify(v1) },
+    { name: 'korjaus osuu otsikolla + päivällä + paikalla ja korvaa kuvaukset', ok: v2.description === 'Korjattu kuvaus' && v2.shortDescription === 'Lyhyt', got: JSON.stringify(v2) },
+    { name: 'nostopäivän ikkuna on sama osoite kuin selaimen päivähaku', ok: osoitteet.ikkuna === 'https://mitatanaan.fi/api/events?start=2026-12-09&end=2026-12-09&page=1&municipality=helsinki', got: osoitteet.ikkuna },
+    { name: 'noston jakosivu löytyy osumasta (/e/<id>?d=P)', ok: osoitteet.sivu === 'https://mitatanaan.fi/e/stadissa-117757?d=2026-12-09', got: String(osoitteet.sivu) },
+    { name: 'ilman osumaa jakosivu on null, ikkuna sama', ok: eiOsumaa.sivu === null && eiOsumaa.ikkuna === osoitteet.ikkuna },
+  ]
+  for (const c of kCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ kuvaus/lämmitys: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

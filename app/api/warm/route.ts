@@ -19,10 +19,22 @@
 // lib/events-fetch lammitettavatParams, sama rakentaja kuin hooks/useEvents.
 // Päivämäärät lasketaan tässä (Helsinki-aika), koska UptimeRobotille ei voi
 // antaa joka päivä vaihtuvaa osoitetta.
+//
+// 3) NOSTOPÄIVÄT (3.11.2026): aktiivisen kärkinoston (data/nostot.json) päivän
+//    ikkuna ja tapahtuman jakosivu (/e/<id>?d=P) lämmitetään samalla. Jannan
+//    jakosivu aukesi hiljaisen jakson jälkeen 7–10 s (LinkedEventsin päivä-
+//    sivu kylmänä), ja Instagram-tarinasta tuleva katsoja ei odota sitä.
+//    Päivä putoaa lämmityksestä itsestään, kun nosto päättyy. Nostojen tulos
+//    ei vaikuta ok-tilaan: ne ovat lisä, eivät terveysmittari. ?vain=nostot
+//    ajaa vain tämän osan (paikallinen testaus ilman varaston rakennusta).
 
 import { NextRequest, NextResponse } from 'next/server'
 import { lammitettavatParams } from '@/lib/events-fetch'
 import { rakennaVarasto } from '@/lib/lahdevarasto'
+import { aktiivisetNostot, nostonLammitysOsoitteet, type NostoTiedosto } from '@/lib/nostot'
+import { helsinkiToday } from '@/lib/helsinki-time'
+import type { Event } from '@/lib/types'
+import nostoData from '@/data/nostot.json'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -37,9 +49,43 @@ function lahtoOsoite(req: NextRequest): string {
   return process.env.WARM_ORIGIN ?? 'https://mitatanaan.fi'
 }
 
+interface NostoLammitys {
+  id: string
+  paiva: string
+  ikkuna: { ok: boolean; status: number; ms: number; cache: string | null }
+  sivu: { url: string; ok: boolean; status: number; ms: number } | null
+  error?: string
+}
+
+// Aikakatkaisut 12 s + 12 s: rakennus (30 s) + nosto (24 s) mahtuu 60 s funktioon.
+async function lammitaNostot(origin: string): Promise<NostoLammitys[]> {
+  const aktiiviset = aktiivisetNostot((nostoData as NostoTiedosto).nostot, helsinkiToday())
+  return Promise.all(aktiiviset.map(async (n): Promise<NostoLammitys> => {
+    const paiva = n.osuma.paiva
+    const { ikkuna: ikkunaUrl } = nostonLammitysOsoitteet(n, [], origin)
+    const t0 = Date.now()
+    try {
+      const res = await fetch(ikkunaUrl, { signal: AbortSignal.timeout(12_000), cache: 'no-store' })
+      const body = await res.text()
+      const ikkuna = { ok: res.ok, status: res.status, ms: Date.now() - t0, cache: res.headers.get('x-vercel-cache') ?? null }
+      let events: Event[] = []
+      try { events = (JSON.parse(body) as { events?: Event[] }).events ?? [] } catch { /* ikkuna vastasi muuta kuin JSONia */ }
+      const { sivu } = nostonLammitysOsoitteet(n, events, origin)
+      if (!sivu) return { id: n.id, paiva, ikkuna, sivu: null }
+      const t1 = Date.now()
+      const r2 = await fetch(sivu, { signal: AbortSignal.timeout(12_000), cache: 'no-store' })
+      await r2.text()
+      return { id: n.id, paiva, ikkuna, sivu: { url: sivu, ok: r2.ok, status: r2.status, ms: Date.now() - t1 } }
+    } catch (e) {
+      return { id: n.id, paiva, ikkuna: { ok: false, status: 0, ms: Date.now() - t0, cache: null }, sivu: null, error: e instanceof Error ? e.name : String(e) }
+    }
+  }))
+}
+
 export async function GET(req: NextRequest) {
   const origin = lahtoOsoite(req)
   const alku = Date.now()
+  const vainNostot = req.nextUrl.searchParams.get('vain') === 'nostot'
   // Rakennus ENSIN. Lähdekutsut JULKISEEN osoitteeseen (sama kuin lämmitys),
   // EI req.nextUrl.originiin: Vercelin cron kutsuu reittiä deployment-URL:lla,
   // joka on "Protected by Vercel Authentication" — sisäinen fetch siihen saa
@@ -48,9 +94,9 @@ export async function GET(req: NextRequest) {
   // Supabase-virhe ei kaada lämmitystä — kooste toimii silloin suoralla
   // haulla kuten ennen, ja varasto-kenttä kertoo syyn. maxHaut 60: tasainen
   // tarve on ~48 paria / 5 min (tämän päivän pala 10 min välein ×45 jne.).
-  const varasto = await rakennaVarasto({ origin, budjettiMs: 30_000, maxHaut: 60 })
-  const tulokset = await Promise.all(
-    lammitettavatParams().map(async ({ filter, params }) => {
+  const varasto = vainNostot ? null : await rakennaVarasto({ origin, budjettiMs: 30_000, maxHaut: 60 })
+  const [tulokset, nostot] = await Promise.all([Promise.all(
+    (vainNostot ? [] : lammitettavatParams()).map(async ({ filter, params }) => {
       const url = `${origin}/api/events?${params}`
       const t0 = Date.now()
       try {
@@ -64,12 +110,12 @@ export async function GET(req: NextRequest) {
         return { filter, ok: false, status: 0, ms: Date.now() - t0, bytes: 0, cache: null, error: e instanceof Error ? e.name : String(e) }
       }
     }),
-  )
+  ), lammitaNostot(origin)])
   const kaikkiOk = tulokset.every((t) => t.ok)
   // 503 kun jokin ikkuna ei vastannut: UptimeRobotin hälytys kertoo silloin
   // tapahtuma-API:n viasta, ei tämän reitin.
   return NextResponse.json(
-    { ok: kaikkiOk, ms: Date.now() - alku, varasto, ikkunat: tulokset },
+    { ok: kaikkiOk, ms: Date.now() - alku, varasto, ikkunat: tulokset, nostot },
     { status: kaikkiOk ? 200 : 503, headers: { 'Cache-Control': 'no-store' } },
   )
 }
