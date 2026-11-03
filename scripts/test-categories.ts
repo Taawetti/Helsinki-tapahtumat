@@ -5292,16 +5292,21 @@ odotettavat.push((async () => {
   const osoitteet = nostonLammitysOsoitteet(nosto, [janna], 'https://mitatanaan.fi')
   const eiOsumaa = nostonLammitysOsoitteet(nosto, [], 'https://mitatanaan.fi')
   const kCases: { name: string; ok: boolean; got?: string }[] = [
-    { name: 'LinkedEvents-tunniste: helsinki:, kulke: kyllä; stadissa-, tm-, museum-helsinki:, tyhjä ei',
-      ok: onLinkedEventsId('helsinki:agqpyvl5by') && onLinkedEventsId('kulke:53585') && !onLinkedEventsId('stadissa-37901') && !onLinkedEventsId('tm-123') && !onLinkedEventsId('museum-helsinki:abc') && !onLinkedEventsId('') },
+    { name: 'LinkedEvents-tunniste: helsinki:, kulke:, hko:2-4361 kyllä; stadissa-, tm-, museum-lippupiste:, tyhjä ei',
+      ok: onLinkedEventsId('helsinki:agqpyvl5by') && onLinkedEventsId('kulke:53585') && onLinkedEventsId('hko:2-4361') && !onLinkedEventsId('stadissa-37901') && !onLinkedEventsId('tm-123') && !onLinkedEventsId('museum-lippupiste:20985491') && !onLinkedEventsId('') },
+    { name: 'ei näytettävää kuvausta → null (tyhjä; pelkkä "@ Paikka" -placeholder); korjaus voi tuoda kuvauksen',
+      ok: kuvausVastaus({ id: 'stadissa-1', title: 'X', startTime: '2026-11-25T19:00:00+02:00', location: { name: 'Teatteri Jurkka' }, description: '', shortDescription: '@ Teatteri Jurkka' }, []) === null
+        && kuvausVastaus({ id: 'stadissa-2', title: 'X', startTime: '2026-11-25T19:00:00+02:00', location: null, description: '', shortDescription: '' }, []) === null
+        && kuvausVastaus({ id: 'stadissa-3', title: 'X', startTime: '2026-11-25T19:00:00+02:00', location: { name: 'Jurkka' }, description: '', shortDescription: 'Oikea teaser' }, [])?.shortDescription === 'Oikea teaser'
+        && kuvausVastaus({ id: 'stadissa-4', title: 'Jannan Joulu', startTime: '2026-12-09T19:00:00+02:00', location: { name: 'Kallion kirkko' }, description: '', shortDescription: '@ Kallion kirkko' }, [korjaus])?.description === 'Korjattu kuvaus' },
     { name: 'pyynnön kelpuutus: kelpo läpi; puuttuva, välilyönti, väärä päivä ja ylipitkä hylätään',
       ok: JSON.stringify(kelpoKuvausPyynto('helsinki:abc', '2026-11-20')) === JSON.stringify({ id: 'helsinki:abc', paiva: '2026-11-20' })
         && kelpoKuvausPyynto(null, '2026-11-20') === null && kelpoKuvausPyynto('a b', '2026-11-20') === null
         && kelpoKuvausPyynto('helsinki:abc', '20.11.2026') === null && kelpoKuvausPyynto('x'.repeat(201), '2026-11-20') === null },
     { name: 'kuvausParams: id ja d', ok: kuvausParams('helsinki:abc', '2026-11-20').toString() === 'id=helsinki%3Aabc&d=2026-11-20', got: kuvausParams('helsinki:abc', '2026-11-20').toString() },
     { name: 'LE-mäppäys: kuvaus fi ennen en, lyhyt en varalla, entiteetit puretaan, tagit jäävät (kuten koosteessa), korjaus ei osu',
-      ok: v1.id === 'helsinki:abc123' && v1.description === '<p>Kuvaus & lisää</p>' && v1.shortDescription === 'Short', got: JSON.stringify(v1) },
-    { name: 'korjaus osuu otsikolla + päivällä + paikalla ja korvaa kuvaukset', ok: v2.description === 'Korjattu kuvaus' && v2.shortDescription === 'Lyhyt', got: JSON.stringify(v2) },
+      ok: v1?.id === 'helsinki:abc123' && v1?.description === '<p>Kuvaus & lisää</p>' && v1?.shortDescription === 'Short', got: JSON.stringify(v1) },
+    { name: 'korjaus osuu otsikolla + päivällä + paikalla ja korvaa kuvaukset', ok: v2?.description === 'Korjattu kuvaus' && v2?.shortDescription === 'Lyhyt', got: JSON.stringify(v2) },
     { name: 'nostopäivän ikkuna on sama osoite kuin selaimen päivähaku', ok: osoitteet.ikkuna === 'https://mitatanaan.fi/api/events?start=2026-12-09&end=2026-12-09&page=1&municipality=helsinki', got: osoitteet.ikkuna },
     { name: 'noston jakosivu löytyy osumasta (/e/<id>?d=P)', ok: osoitteet.sivu === 'https://mitatanaan.fi/e/stadissa-117757?d=2026-12-09', got: String(osoitteet.sivu) },
     { name: 'ilman osumaa jakosivu on null, ikkuna sama', ok: eiOsumaa.sivu === null && eiOsumaa.ikkuna === osoitteet.ikkuna },

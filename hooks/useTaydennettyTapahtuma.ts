@@ -46,7 +46,10 @@ export function useTaydennettyTapahtuma(event: Event | null, municipality: strin
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
         .then((d: KuvausVastaus) => {
           const kevyt = kevytRef.current
-          if (!elossa || !kevyt || kevyt.id !== id || typeof d.description !== 'string') return false
+          // Tyhjä kuvaus ei kelpaa: varareitti (päivän kooste) voi tuoda dedupen
+          // täydentämän tekstin toisesta lähteestä. Palvelin vastaa tähän jo 404,
+          // tämä on varmistus reunan vanhaa vastausta vastaan.
+          if (!elossa || !kevyt || kevyt.id !== id || typeof d.description !== 'string' || !d.description.trim()) return false
           setHaettu({ id, taysi: { ...kevyt, description: d.description, shortDescription: d.shortDescription || kevyt.shortDescription } })
           return true
         })

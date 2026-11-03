@@ -16,18 +16,21 @@
 
 import type { Event } from './types'
 import { decodeHtmlEntities } from './utils'
+import { naytettavaKuvaus } from './event-text'
 import { sovellaTapahtumakorjaukset, type Korjattava, type Tapahtumakorjaus } from './tapahtumakorjaukset'
 
 export const KUVAUS_POLKU = '/api/kuvaus'
 
 const PAIVA_RE = /^\d{4}-\d{2}-\d{2}$/
 
-/** LinkedEvents-tunniste: datalähde, kaksoispiste, tunnus — sama sääntö kuin
- *  lib/event-links hasOwnEventPage. Skraperien omat tunnisteet käyttävät
- *  yhdysviivaa (stadissa-37901) tai yhdysviivallista etuliitettä
- *  (museum-helsinki:…), eivätkä ne löydy LinkedEventsistä. */
+/** LinkedEvents-tunniste: datalähde, kaksoispiste, tunnus. Etuliite on
+ *  pelkkiä kirjaimia kuten lib/event-links hasOwnEventPage -säännössä, mutta
+ *  tunnusosassa sallitaan yhdysviiva: hko:2-4361 on oikea LinkedEvents-
+ *  tapahtuma (todettu tuotannosta 3.11.2026, data_source hko). Skraperien
+ *  omat tunnisteet käyttävät yhdysviivaa etuliitteessä (stadissa-37901,
+ *  museum-lippupiste:…), eivätkä ne löydy LinkedEventsistä. */
 export function onLinkedEventsId(id: string): boolean {
-  return /^[a-z_]+:[a-z0-9]+$/i.test(id)
+  return /^[a-z_]+:[a-z0-9][a-z0-9-]*$/i.test(id)
 }
 
 export function kuvausParams(id: string, paiva: string): URLSearchParams {
@@ -80,9 +83,16 @@ export function kuvattavaTapahtumasta(e: Event): Kuvattava {
 
 /** Korjaukset ja entiteettien purku kuten koosteen vastauksen reunalla —
  *  paneeli näyttää saman tekstin riippumatta siitä, kumpaa reittiä se tuli.
- *  HTML-tagit jätetään kuten koosteessa: paneeli riisuu ne näyttäessään. */
-export function kuvausVastaus(e: Kuvattava, korjaukset: readonly Tapahtumakorjaus[]): KuvausVastaus {
+ *  HTML-tagit jätetään kuten koosteessa: paneeli riisuu ne näyttäessään.
+ *
+ *  null, kun lähteellä ei ole näytettävää kuvausta (tyhjä tai skraperin
+ *  "@ Paikka" -placeholder, lib/event-text naytettavaKuvaus): silloin reitti
+ *  vastaa 404 ja paneeli käyttää päivän koostetta, jonka dedupe on voinut
+ *  täydentää kuvauksen toisesta lähteestä (stadissa-115191 tuotannossa
+ *  3.11.2026: oma kuvaus tyhjä, kooste 116 merkkiä toiselta lähteeltä). */
+export function kuvausVastaus(e: Kuvattava, korjaukset: readonly Tapahtumakorjaus[]): KuvausVastaus | null {
   const korjattu = sovellaTapahtumakorjaukset([e], korjaukset)[0]
+  if (naytettavaKuvaus(korjattu) === null) return null
   return {
     id: e.id,
     description: decodeHtmlEntities(korjattu.description ?? ''),
