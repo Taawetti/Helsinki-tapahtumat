@@ -8,7 +8,10 @@
 // kortti ei vain kerro vaan myy — nimet, hinta ja todiste vastaavat kysymyksiin
 // ennen klikkausta, kuten heron "Liput alk. 30€" -nappi. Kortti on matala
 // (HANDOFF-mobiili: etusivu ei saa työntää Illan nostoja ruudun alle), mutta
-// juliste on tarpeeksi iso erottuakseen ruudukosta.
+// juliste on tarpeeksi iso erottuakseen ruudukosta. Juliste on 128 × 171 px
+// myös puhelimessa (omistaja 3.11.2026: 104 px oli liian pieni) ja avautuu
+// napautuksesta koko kokoon (components/Kuvakatselu) — koko leveyden
+// pystyjuliste olisi puhelimessa yli 500 px korkea.
 //
 // Napautus avaa saman infopaneelin kuin muualla (onOpen → pinta 'promo');
 // lippunappi vie suoraan lippukauppaan ja kirjautuu external_clickinä samalla
@@ -16,7 +19,9 @@
 // eikä button, koska sen sisällä on linkki: button-elementin sisään ei saa
 // laittaa toista interaktiivista elementtiä.
 
+import { useState } from 'react'
 import { Ticket, ArrowUpRight } from 'lucide-react'
+import Kuvakatselu from '@/components/Kuvakatselu'
 import type { Event } from '@/lib/types'
 import type { Nosto } from '@/lib/nostot'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -31,6 +36,8 @@ function verkkotunnus(url: string): string {
 
 export default function TulossaNosto({ nostot, onOpen }: { nostot: Nosto[]; onOpen: (e: Event) => void }) {
   const { lang, t } = useLanguage()
+  /** Koko kokoon avattu juliste (Kuvakatselu). */
+  const [julisteAuki, setJulisteAuki] = useState<{ src: string; alt: string } | null>(null)
   if (nostot.length === 0) return null
   return (
     <section aria-label={t('promo.title')} className="mt-1 md:mt-5">
@@ -48,6 +55,7 @@ export default function TulossaNosto({ nostot, onOpen }: { nostot: Nosto[]; onOp
               ? `${t('discover.tickets_from')} ${stripPriceFromPrefix(e.price)}`
               : e.ticketUrl && url === e.ticketUrl ? t('promo.tickets') : t('promo.more')
           const avaa = () => onOpen(e)
+          const kuva = e.image
           return (
             <div key={n.id} role="button" tabIndex={0} onClick={avaa}
               onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); avaa() } }}
@@ -60,17 +68,28 @@ export default function TulossaNosto({ nostot, onOpen }: { nostot: Nosto[]; onOp
               <div className="absolute inset-0" style={{ background: 'linear-gradient(90deg, rgba(10,10,12,.86) 0%, rgba(10,10,12,.72) 55%, rgba(10,10,12,.55) 100%)' }} />
 
               <div className="relative flex gap-3.5 p-3.5 items-stretch">
-                {e.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={e.image} alt="" className="w-[104px] h-[139px] md:w-[128px] md:h-[171px] object-cover rounded-xl shrink-0" style={{ boxShadow: '0 10px 24px -10px rgba(0,0,0,.8)' }} />
+                {kuva ? (
+                  /* Oma nappi kortin (div role=button) sisällä: napautus avaa julisteen,
+                     ei infopaneelia. Enter/välilyönti pysäytetään, ettei kortin
+                     onKeyDown avaa paneelia samalla. */
+                  <button type="button" aria-label={t('promo.open_image')}
+                    onClick={(ev) => { ev.stopPropagation(); setJulisteAuki({ src: kuva, alt: e.title }) }}
+                    onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation() }}
+                    className="shrink-0 rounded-xl transition-transform active:scale-[.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={kuva} alt="" className="block w-[128px] h-[171px] object-cover rounded-xl" style={{ boxShadow: '0 10px 24px -10px rgba(0,0,0,.8)' }} />
+                  </button>
                 ) : (
-                  <div className="w-[104px] h-[139px] md:w-[128px] md:h-[171px] rounded-xl shrink-0 flex items-center justify-center text-3xl" style={{ background: 'rgba(255,255,255,.06)' }}>✦</div>
+                  <div className="w-[128px] h-[171px] rounded-xl shrink-0 flex items-center justify-center text-3xl" style={{ background: 'rgba(255,255,255,.06)' }}>✦</div>
                 )}
                 <div className="min-w-0 flex-1 flex flex-col">
-                  <p className="text-[11px] font-black uppercase tracking-[.12em] pr-16" style={{ color: '#a3abff' }}>
+                  {/* Oikean reunan varaus vain kun Mainos-merkki on kulmassa — muuten
+                      päivä ja paikka saavat koko palstan (isompi juliste kavensi sitä). */}
+                  <p className={`text-[11px] font-black uppercase tracking-[.12em]${n.mainos ? ' pr-16' : ''}`} style={{ color: '#a3abff' }}>
                     {formatEventDate(e.startTime, lang === 'en' ? 'en' : 'fi')}{e.location?.name ? ` · ${e.location.name}` : ''}
                   </p>
-                  <h3 className="font-black text-white leading-[1.05] mt-1 text-[20px] md:text-[28px] line-clamp-2" style={{ letterSpacing: '-0.02em' }}>
+                  {/* Puhelimessa kolme riviä: isompi juliste kaventaa tekstipalstan. */}
+                  <h3 className="font-black text-white leading-[1.05] mt-1 text-[20px] md:text-[28px] line-clamp-3 md:line-clamp-2" style={{ letterSpacing: '-0.02em' }}>
                     {e.title}
                   </h3>
                   {n.koukku && (
@@ -103,6 +122,7 @@ export default function TulossaNosto({ nostot, onOpen }: { nostot: Nosto[]; onOp
           )
         })}
       </div>
+      <Kuvakatselu src={julisteAuki?.src ?? null} alt={julisteAuki?.alt ?? ''} open={!!julisteAuki} onClose={() => setJulisteAuki(null)} />
     </section>
   )
 }

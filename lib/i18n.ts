@@ -448,6 +448,7 @@ const t = {
     'promo.ad':         'Mainos',
     'promo.tickets':    'Liput',
     'promo.more':       'Lue lisää',
+    'promo.open_image': 'Näytä juliste isompana',
 
     // ── Spontaani ─────────────────────────────────────────────
     'spontaani.title':      'Spontaani ilta',
@@ -1508,6 +1509,7 @@ const t = {
     'promo.ad':         'Ad',
     'promo.tickets':    'Tickets',
     'promo.more':       'Read more',
+    'promo.open_image': 'Show the poster larger',
 
     // ── Spontaani ─────────────────────────────────────────────
     'spontaani.title':      'Spontaneous evening',
