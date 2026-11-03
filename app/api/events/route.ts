@@ -12,6 +12,7 @@ import { haeUlkoisetLahteet, ULKOISET_LAHTEET } from '@/lib/lahdevarasto'
 import { sovellaTapahtumakorjaukset, type TapahtumakorjausTiedosto } from '@/lib/tapahtumakorjaukset'
 import tapahtumakorjaukset from '@/data/tapahtumakorjaukset.json'
 import { kevennaKartalle, KENTAT_KARTTA } from '@/lib/tapahtumat-kevyt'
+import { normalisoiOtsikkoAvain, onSamaEsitys, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '@/lib/sama-esitys'
 
 // Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
 // Ilman tätä alusta voi katkaista pyynnön oletuksellaan kesken kaiken, jolloin
@@ -288,21 +289,10 @@ export async function GET(req: NextRequest) {
     let total: number = events.length
 
     // Normalize title for dedup: strip ticket tiers, years, punctuation variation
+    // (lib/sama-esitys normalisoiOtsikkoAvain — sama normalisointi kuin
+    // "sama esitys eri otsikolla" -säännössä alempana).
     function dedupKey(title: string, date: string): string {
-      // Entiteettipurku ENNEN avainta: '& Julia' ja '&amp; Julia' ovat sama
-      // tapahtuma (tuotannossa 5.9.2026 sama musikaali näkyi 2–3 korttina eri
-      // lähteistä). Samoin 'SOLD OUT:' -etuliite ei saa erottaa avaimia.
-      const base = decodeHtmlEntities(title)
-        .replace(/^\s*(?:sold\s*out|loppuunmyyty|myyty\s*loppuun)\s*[:!]?\s*/i, '')
-        .replace(/\s*\|.*$/, '')            // strip everything after | (ticket tier separators)
-        .replace(/\s*[\|–\-]\s*(premium|legacy|standard|vip|gold|silver|early|late|general|suite|seat|ticket|standing|seated|presale|fan\s*club)[\w\s]*/gi, '')
-        .replace(/\b20\d{2}\b/g, '')        // strip years
-        .replace(/\s*\(päivä\s*\d+\/\d+\)/gi, '') // strip festival day suffix
-        .replace(/[^\wäöåÄÖÅ\s]/g, ' ')    // punct → space
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLowerCase()
-      return `${base}|${date}`
+      return `${normalisoiOtsikkoAvain(title)}|${date}`
     }
 
     /** Paikka + alkuminuutti. Käytetään VAIN openmic-lähteen karsintaan:
@@ -327,6 +317,37 @@ export async function GET(req: NextRequest) {
         if (!prev || new Date(e.startTime).getTime() < new Date(prev.startTime).getTime()) byKey.set(k, e)
       }
       events = [...byKey.values()]
+      // SAMA ESITYS ERI OTSIKOLLA myös LinkedEventsin sisällä (lib/sama-esitys):
+      // "Avoimet kirjoittajatreffit" (helsinki:) ja "Avoimet kirjoittajatreffit
+      // Itäkeskus" (kursor:) ovat sama tilaisuus 24 m päässä toisistaan. Säilyttäjä
+      // on ensimmäinen; pudotettavan kuva, pidempi teksti ja kategoriat siirtyvät
+      // sille (tieto ei saa vähentyä).
+      {
+        const sailytetyt: Event[] = []
+        const paivittain = new Map<string, number[]>()
+        for (const e of events) {
+          let paiva: string
+          try { paiva = helsinkiDateOf(e.startTime) } catch { sailytetyt.push(e); continue }
+          const samat = paivittain.get(paiva) ?? []
+          const osuma = samat.find((i) => onSamaEsitys(sailytetyt[i], e))
+          if (osuma !== undefined) {
+            const k = sailytetyt[osuma]
+            sailytetyt[osuma] = {
+              ...k,
+              image: k.image || e.image,
+              description: (e.description?.length ?? 0) > (k.description?.length ?? 0) ? e.description : k.description,
+              shortDescription: (e.shortDescription?.length ?? 0) > (k.shortDescription?.length ?? 0) ? e.shortDescription : k.shortDescription,
+              categories: [...new Set([...(k.categories ?? []), ...(e.categories ?? [])])],
+              ysoIds: [...new Set([...(k.ysoIds ?? []), ...(e.ysoIds ?? [])])],
+            }
+            continue
+          }
+          samat.push(sailytetyt.length)
+          paivittain.set(paiva, samat)
+          sailytetyt.push(e)
+        }
+        events = sailytetyt
+      }
       total = events.length
     }
 
@@ -335,6 +356,23 @@ export async function GET(req: NextRequest) {
     // from the incoming version (e.g. recurring has coords, Linked Events doesn't).
     // Every attempted source gets a status entry so failures are visible instead of silent.
     const seenMap = new Map(events.map((e, i) => [dedupKey(e.title, helsinkiDateOf(e.startTime)), i]))
+    // SAMA ESITYS ERI OTSIKOLLA (lib/sama-esitys, omistaja 3.11.2026): paikan
+    // omat sivut kirjoittavat otsikon lyhyemmin ("Cory Henry" vs LinkedEventsin
+    // "Cory Henry: A Jam Good Time"), joten avain ei täsmää. Kun avainta ei
+    // löydy, etsitään saman Helsinki-päivän tapahtumista sana-alkuosuma samassa
+    // paikassa lähellä samaa aikaa — säännöt ja rajat lib/sama-esitys. Osuma
+    // yhdistetään täsmälleen kuten avainosuma (alla), ja tulokkaan avain
+    // ohjataan samaan korttiin, jotta myös seuraavat saman lyhyen otsikon
+    // lähteet osuvat siihen. Päiväindeksi pitää haun pienenä.
+    const paivanIndeksit = new Map<string, number[]>()
+    const lisaaPaivaan = (paiva: string, idx: number) => {
+      const lista = paivanIndeksit.get(paiva)
+      if (lista) lista.push(idx)
+      else paivanIndeksit.set(paiva, [idx])
+    }
+    events.forEach((e, i) => { try { lisaaPaivaan(helsinkiDateOf(e.startTime), i) } catch { /* rikkinäinen aikaleima: ei indeksiin */ } })
+    const etsiSamaEsitys = (e: Event, paiva: string): number | undefined =>
+      (paivanIndeksit.get(paiva) ?? []).find((i) => onSamaEsitys(events[i], e))
     const sources: SourceStatus[] = [{ name: 'linked-events', ok: leOk, count: events.length }]
 
     // Luokittelu joka ei koskaan heitä — käytetään dedupin vibe-unionissa.
@@ -383,8 +421,13 @@ export async function GET(req: NextRequest) {
             // tapahtumat menetettäisiin JA lähde merkittäisiin kuolleeksi,
             // vaikka vain yksi rivi oli rikki.
             try {
-            const key = dedupKey(e.title, helsinkiDateOf(e.startTime))
-            const existingIdx = seenMap.get(key)
+            const paiva = helsinkiDateOf(e.startTime)
+            const key = dedupKey(e.title, paiva)
+            let existingIdx = seenMap.get(key)
+            if (existingIdx === undefined) {
+              existingIdx = etsiSamaEsitys(e, paiva)
+              if (existingIdx !== undefined) seenMap.set(key, existingIdx)
+            }
             if (existingIdx !== undefined) {
               // Upgrade existing event with best available data from the incoming duplicate
               const existing = events[existingIdx]
@@ -419,7 +462,10 @@ export async function GET(req: NextRequest) {
               // "T19:00"-oletusta. Ilman tätä "Loosen Jytädisko" jäisi klo 19
               // placeholderiin vaikka toinen lähde tietää sen alkavan 23:30.
               // Dedup-osuma takaa saman Helsinki-päivän, joten avain ei vanhene.
-              if (existing?.startTimeApprox && !e.startTimeApprox) {
+              // Myös otsikkoon kirjoitettu kellonaika paljastaa oletusajan ("… klo
+              // 16:00" mutta startTime 19:00, Finlandia-talo 29.11.2026) — tulokkaan
+              // oikea aika voittaa silloinkin (lib/sama-esitys otsikonKloEroaaAjasta).
+              if ((existing?.startTimeApprox || (existing && otsikonKloEroaaAjasta(existing))) && !e.startTimeApprox) {
                 upgrades.startTime = e.startTime
                 // endTime VAIN jos tulokkaalla on se — muuten säilyttäjän
                 // kelvollinen päättymisaika pyyhkiytyisi null:lla (tiedon
@@ -456,9 +502,15 @@ export async function GET(req: NextRequest) {
               // ysoIds ovat luokittelun tarkin signaali (L0) — myös ne yhdistetään
               const mergedYso = [...new Set([...(existing?.ysoIds ?? []), ...(e.ysoIds ?? [])])]
               if (mergedYso.length > (existing?.ysoIds?.length ?? 0)) upgrades.ysoIds = mergedYso
+              // Päivä-/kellonaikaliite otsikossa on skraperin jäännös ("Bo Kaspers
+              // Orkester – Il Magnifico 29.11.2026 klo 16:00"): tulokkaan puhdas
+              // otsikko voittaa, kun sillä ei ole liitettä. Ainoa poikkeus
+              // "säilyttäjän kirjoitusasu voittaa" -sääntöön.
+              if (existing && otsikossaPaivaliite(existing.title) && !otsikossaPaivaliite(e.title)) upgrades.title = e.title
               if (Object.keys(upgrades).length > 0) events[existingIdx] = { ...existing, ...upgrades }
             } else {
               seenMap.set(key, events.length)
+              lisaaPaivaan(paiva, events.length)
               events.push(e)
               total++
             }

@@ -71,6 +71,8 @@ import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from '../lib/nightlife'
 import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/arvo-ilta'
 import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto, type Tapahtumakorjaus } from '../lib/tapahtumakorjaukset'
 import { onLinkedEventsId, kelpoKuvausPyynto, kuvausParams, kuvattavaLeRaakadatasta, kuvausVastaus, type LeKuvausRaaka } from '../lib/kuvaus'
+import { onSamaEsitys, paikkasuhde, normalisoiOtsikkoAvain, etaisyysM, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '../lib/sama-esitys'
+import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, type KlikkiRivi } from '../lib/kavijatilastot'
 import { aktiivisetNostot, yhdistaNostot, type NostoMaaritys, type NostoTiedosto, nostonLammitysOsoitteet } from '../lib/nostot'
@@ -5314,6 +5316,55 @@ odotettavat.push((async () => {
   for (const c of kCases) {
     if (c.ok) pass++
     else failures.push(`✗ kuvaus/lämmitys: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── SAMA ESITYS ERI OTSIKOLLA (lib/sama-esitys) + OTSIKON KELLONAIKA
+// (lib/otsikon-aika): parit tuotannosta 3.11.2026. Omistajan ehto: kaksi eri
+// esitysaikaa samana päivänä ei saa yhdistyä.
+{
+  const E = (title: string, startTime: string, location: { name?: string; lat?: number; lon?: number } | null, extra: Record<string, unknown> = {}) => ({ title, startTime, location, ...extra })
+  const KT = { name: 'Kulttuuritalo', lat: 60.1938, lon: 24.9463 }
+  const KT2 = { name: 'Kulttuuritalo', lat: 60.18818, lon: 24.944391 }
+  const FT = { name: 'Finlandia-talo', lat: 60.1758, lon: 24.9336 }
+  const FT2 = { name: 'Finlandia-talo', lat: 60.1748, lon: 24.9289 }
+  const SK = { name: 'Ravintola Skiffer', lat: 60.17, lon: 24.93 }
+  const SKP = { name: 'Ravintola Skiffer Postipuisto', lat: 60.17, lon: 24.93 }
+  const KIRJASTO = { name: 'Itäkeskuksen kirjasto', lat: 60.2105, lon: 25.0785 }
+  const STOA = { name: 'Stoa', lat: 60.2107, lon: 25.0788 }
+  const bo = irrotaOtsikonAika('Bo Kaspers Orkester – Il Magnifico 29.11.2026 klo 16:00')
+  const jt = irrotaOtsikonAika('Jarkko Tamminen Show 5.-7.11.2026')
+  const sCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'Cory Henry: paikan oma rivi (oletusaika) + LinkedEvents (18Z=20) → sama', ok: onSamaEsitys(E('Cory Henry', '2026-11-29T19:00:00+02:00', KT, { startTimeApprox: true }), E('Cory Henry: A Jam Good Time', '2026-11-29T18:00:00Z', KT2, { endTime: '2026-11-29T20:00:00Z' })) },
+    { name: 'ovet 19 ja esitys 20 samassa paikassa → sama (60 min)', ok: onSamaEsitys(E('Cory Henry', '2026-11-29T19:00:00+02:00', KT), E('Cory Henry: A Jam Good Time', '2026-11-29T20:00:00+02:00', KT2)) },
+    { name: 'kaksi oikeaa aikaa 3 h erossa → EI sama (eri esitysaika)', ok: !onSamaEsitys(E('Cory Henry', '2026-11-29T16:00:00+02:00', KT), E('Cory Henry: A Jam Good Time', '2026-11-29T19:00:00+02:00', KT2)) },
+    { name: 'päivä- ja iltanäytös 14 ja 19 → EI sama', ok: !onSamaEsitys(E('Peter Pan', '2026-11-14T14:00:00+02:00', KT), E('Peter Pan – iltanäytös', '2026-11-14T19:00:00+02:00', KT)) },
+    { name: 'Bo Kaspers: otsikon "klo 16:00" täsmää toisen aikaan vaikka skraperin aika on 19 → sama', ok: onSamaEsitys(E('Bo Kaspers Orkester - Il Magnifico', '2026-11-29T16:00:00+02:00', FT), E('Bo Kaspers Orkester – Il Magnifico 29.11.2026 klo 16:00', '2026-11-29T19:00:00+02:00', FT2)) },
+    { name: 'otsikon kellonaika EI täsmää (klo 18:00 vs 16) → EI sama', ok: !onSamaEsitys(E('Bo Kaspers Orkester - Il Magnifico', '2026-11-29T16:00:00+02:00', FT), E('Bo Kaspers Orkester – Il Magnifico 29.11.2026 klo 18:00', '2026-11-29T19:00:00+02:00', FT2)) },
+    { name: 'Skiffer vs Skiffer Postipuisto: eri toimipiste, sama aika ja koordinaatit → EI sama', ok: !onSamaEsitys(E('Tietovisa – Ravintola Skiffer', '2026-11-04T19:00:00+02:00', SK), E('Tietovisa – Ravintola Skiffer Postipuisto', '2026-11-04T19:00:00+02:00', SKP)) },
+    { name: 'G Livelab vs G Livelab Helsinki (kaupunkisana) + "Wed"-liite → sama', ok: onSamaEsitys(E('Maria Ylipää & Marzi Nyman', '2026-11-25T19:00:00+02:00', { name: 'G Livelab', lat: 60.1655, lon: 24.9323 }), E('Maria Ylipää & Marzi Nyman Wed', '2026-11-25T19:00:00+02:00', { name: 'G Livelab Helsinki', lat: 60.168, lon: 24.936 })) },
+    { name: 'eri-nimiset paikat 24 m päässä, sama aika → sama (Stoa / Itäkeskuksen kirjasto)', ok: onSamaEsitys(E('Avoimet kirjoittajatreffit', '2026-11-04T16:00:00+02:00', KIRJASTO), E('Avoimet kirjoittajatreffit Itäkeskus', '2026-11-04T16:00:00+02:00', STOA)) },
+    { name: 'eri-nimiset paikat: 30 min ero → EI sama', ok: !onSamaEsitys(E('Avoimet kirjoittajatreffit', '2026-11-04T16:00:00+02:00', KIRJASTO), E('Avoimet kirjoittajatreffit Itäkeskus', '2026-11-04T16:30:00+02:00', STOA)) },
+    { name: 'eri-nimiset paikat 400 m päässä → EI sama', ok: !onSamaEsitys(E('Avoimet kirjoittajatreffit', '2026-11-04T16:00:00+02:00', KIRJASTO), E('Avoimet kirjoittajatreffit Itäkeskus', '2026-11-04T16:00:00+02:00', { name: 'Stoa', lat: 60.2141, lon: 25.0788 })) },
+    { name: 'tuntematon aika (pelkkä päivä) → EI sama', ok: !onSamaEsitys(E('Liikkeellä marraskuussa', '2026-11-05', { name: 'Caisa' }), E('Liikkeellä marraskuussa – Anna Kozonina: Audience Club', '2026-11-05', { name: 'Caisa' })) },
+    { name: 'kattotapahtuma (3 pv) + ohjelmanumero erottimen perässä → EI sama', ok: !onSamaEsitys(E('Festivaali', '2026-11-05T12:00:00+02:00', KT, { endTime: '2026-11-08T12:00:00+02:00' }), E('Festivaali: avajaiskonsertti', '2026-11-05T12:00:00+02:00', KT)) && !onSamaEsitys(E('Festivaali', '2026-11-05T12:00:00+02:00', KT, { endTime: '2026-11-08T12:00:00+02:00' }), E('Festivaali – avajaiskonsertti', '2026-11-05T12:00:00+02:00', KT)) },
+    { name: 'teatterin esityskausi (No-No 19.11.–29.12.) + "No-No Ensi-Ilta" samaan aikaan → sama', ok: onSamaEsitys(E('No-No', '2026-11-19T17:30:00Z', { name: 'Helsingin Kaupunginteatteri', lat: 60.181675, lon: 24.942722 }, { endTime: '2026-12-29' }), E('No-No Ensi-Ilta', '2026-11-19T17:30:00Z', { name: 'Helsingin Kaupunginteatteri', lat: 60.181675, lon: 24.942722 })) },
+    { name: 'esityskausi + "ennakko" (Taru hohtavasta helmestä) → sama', ok: onSamaEsitys(E('Taru hohtavasta helmestä', '2026-11-14T11:00:00Z', { name: 'Suomen Kansallisteatteri', lat: 60.172485, lon: 24.943838 }, { endTime: '2026-12-19T14:00:00Z' }), E('Taru hohtavasta helmestä ennakko', '2026-11-14T13:00:00+02:00', { name: 'Suomen Kansallisteatteri', lat: 60.17253, lon: 24.94353 })) },
+    { name: 'tarkkeet eivät erota: Uuspõld vs Uuspold (17Z = 19 +02) → sama', ok: onSamaEsitys(E('Jan Uuspõld STAND-UP (eesti keeles)', '2026-11-25T17:00:00Z', { name: 'Savoy-teatteri', lat: 60.16663, lon: 24.947306 }), E('Jan Uuspold STAND-UP', '2026-11-25T19:00:00+02:00', { name: 'Savoy-teatteri', lat: 60.166639, lon: 24.947417 })) },
+    { name: 'lyhyt yksisanainen otsikko ("Jazz") → EI sama; "Nightwish" (9 merkkiä) → sama', ok: !onSamaEsitys(E('Jazz', '2026-11-05T19:00:00+02:00', KT), E('Jazz Night', '2026-11-05T19:00:00+02:00', KT)) && onSamaEsitys(E('Nightwish', '2026-11-05T19:00:00+02:00', KT), E('Nightwish: Yesterwynde', '2026-11-05T19:00:00+02:00', KT)) },
+    { name: 'täsmälleen sama otsikko → false (avain hoitaa); eri päivä → false; ei sana-alku → false', ok: !onSamaEsitys(E('Cory Henry', '2026-11-29T19:00:00+02:00', KT), E('Cory Henry', '2026-11-29T19:00:00+02:00', KT)) && !onSamaEsitys(E('Cory Henry', '2026-11-28T19:00:00+02:00', KT), E('Cory Henry: A Jam Good Time', '2026-11-29T19:00:00+02:00', KT)) && !onSamaEsitys(E('Cory Henry', '2026-11-29T19:00:00+02:00', KT), E('Henry Cory Live', '2026-11-29T19:00:00+02:00', KT)) },
+    { name: 'paikkasuhde: sama; +kaupunki sama; +muu sana eri toimipiste; eri nimi; tyhjä tuntematon', ok: paikkasuhde('Kulttuuritalo', 'Kulttuuritalo') === 'sama' && paikkasuhde('Kulttuuritalo', 'Kulttuuritalo Helsinki') === 'sama' && paikkasuhde('Ravintola Skiffer', 'Ravintola Skiffer Postipuisto') === 'eri-toimipiste' && paikkasuhde('Stoa', 'Itäkeskuksen kirjasto') === 'eri-nimi' && paikkasuhde('', 'Stoa') === 'tuntematon' },
+    { name: 'etäisyys: Stoa–kirjasto noin 25 m, Kulttuuritalon kaksi koordinaattia alle 650 m', ok: (() => { const a = etaisyysM(KIRJASTO, STOA) ?? 9999; const b = etaisyysM(KT, KT2) ?? 9999; return a > 10 && a < 40 && b > 500 && b < 700 })(), got: `${etaisyysM(KIRJASTO, STOA)} / ${etaisyysM(KT, KT2)}` },
+    { name: 'otsikon aika: päivä + klo irtoaa', ok: bo.otsikko === 'Bo Kaspers Orkester – Il Magnifico' && bo.klo === '16:00', got: JSON.stringify(bo) },
+    { name: 'otsikon klo eroaa ajasta: klo 16:00 vs startTime 19 → true; täsmäävä → false; ilman kloa → false', ok: otsikonKloEroaaAjasta({ title: 'Bo Kaspers Orkester – Il Magnifico 29.11.2026 klo 16:00', startTime: '2026-11-29T19:00:00+02:00' }) && !otsikonKloEroaaAjasta({ title: 'Bo Kaspers Orkester – Il Magnifico 29.11.2026 klo 16:00', startTime: '2026-11-29T16:00:00+02:00' }) && !otsikonKloEroaaAjasta({ title: 'Bo Kaspers Orkester', startTime: '2026-11-29T19:00:00+02:00' }) },
+    { name: 'päiväliite otsikossa: kyllä / ei', ok: otsikossaPaivaliite('Jarkko Tamminen Show 5.-7.11.2026') && !otsikossaPaivaliite('Jarkko Tamminen Show') },
+    { name: 'otsikon aika: päiväväli irtoaa ilman kelloa', ok: jt.otsikko === 'Jarkko Tamminen Show' && jt.klo === null, got: JSON.stringify(jt) },
+    { name: 'otsikon aika: "klo 19.30" pisteellä, pelkkä otsikko ennallaan, pelkkä päivä ei tyhjennä otsikkoa', ok: irrotaOtsikonAika('Konsertti 2.10.2026 klo 19.30').klo === '19:30' && irrotaOtsikonAika('Pelkkä otsikko').otsikko === 'Pelkkä otsikko' && irrotaOtsikonAika('29.11.2026 klo 16:00').otsikko === '29.11.2026 klo 16:00' },
+    { name: 'avaimen normalisointi: Sold out -etuliite, lippuluokka ja entiteetit pois', ok: normalisoiOtsikkoAvain('SOLD OUT: Foo &amp; Bar | VIP') === 'foo & bar'.replace('&', '').replace(/\s+/g, ' ').trim() || normalisoiOtsikkoAvain('SOLD OUT: Foo &amp; Bar | VIP') === 'foo bar', got: normalisoiOtsikkoAvain('SOLD OUT: Foo &amp; Bar | VIP') },
+  ]
+  for (const c of sCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ sama esitys: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

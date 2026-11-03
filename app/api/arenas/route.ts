@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { irrotaOtsikonAika } from '@/lib/otsikon-aika'
 import { Event } from '@/lib/types'
 
 const HEADERS = {
@@ -189,12 +190,16 @@ async function scrapeMessukeskus(): Promise<Event[]> {
 // WordPress: event cards with class="global-link" → alt text = title
 // Date in class="event-date ..."
 
-function parseFinlandiaDate(raw: string): string | null {
+// Kellonaika tulee kortin alt-tekstistä ("… 29.11.2026 klo 16:00",
+// lib/otsikon-aika); ilman sitä klo 19 on oletus ja startTimeApprox kertoo
+// sen dedupille. Aiemmin oletus 19 oli aina, ja stadissan sama keikka klo 16
+// jäi toiseksi kortiksi (Bo Kaspers Orkester 29.11.2026).
+function parseFinlandiaDate(raw: string, klo: string | null): string | null {
   // "29.06.2026" or "2.10.2026"
   const m = raw.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/)
   if (!m) return null
   const [, d, mo, y] = m
-  return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}T19:00:00`
+  return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}T${klo ?? '19:00'}:00`
 }
 
 async function scrapeFinlandiatalo(): Promise<Event[]> {
@@ -224,15 +229,19 @@ async function scrapeFinlandiatalo(): Promise<Event[]> {
     const dateM = dateText.match(/\d{1,2}\.\d{1,2}\.\d{4}/)
     if (!dateM) continue
 
-    const dateStr = parseFinlandiaDate(dateM[0])
+    // Otsikon päivä- ja kellonaikaliite pois näkyvistä; id lasketaan yhä
+    // alkuperäisestä alt-tekstistä, jotta suosikit ja suunnitelmat eivät
+    // menetä viitettään.
+    const altTitle = decodeHtml(rawTitle)
+    const { otsikko: title, klo } = irrotaOtsikonAika(altTitle)
+    const dateStr = parseFinlandiaDate(dateM[0], klo)
     if (!dateStr) continue
-
-    const title = decodeHtml(rawTitle)
     if (!title || title.length < 3) continue
 
     events.push({
-      id: `finlandia-${Buffer.from(title + dateStr.slice(0, 10)).toString('base64').slice(0, 18)}`,
+      id: `finlandia-${Buffer.from(altTitle + dateStr.slice(0, 10)).toString('base64').slice(0, 18)}`,
       title,
+      startTimeApprox: klo === null,
       shortDescription: 'Finlandia-talo — Helsinki',
       description: '',
       startTime: dateStr,
