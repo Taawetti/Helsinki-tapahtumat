@@ -69,8 +69,10 @@ export function onMaksunkeruuUrl(url: string | null | undefined): boolean {
  *  löytää tapahtuman koosteesta, jos jakohetken tilannekuvaa ei ole
  *  (lib/jaettu-tapahtuma). Aiempi versio (25.8.2026) ohjasi muut
  *  järjestäjän sivulle — se oli 404-korjaus, ei tavoite. */
-export function shareUrlFor(e: { id: string; startTime?: string | null }, base: string): string {
-  const polku = `${base}/e/${encodeURIComponent(e.id)}`
+export function shareUrlFor(e: { id: string; startTime?: string | null }, base: string, lang: 'fi' | 'en' = 'fi'): string {
+  // Englanninkielinen jakosivu elää /en/e/-polussa (app/en/e), jolloin
+  // vastaanottaja saa paneelin ja tekstit englanniksi (omistaja 4.11.2026).
+  const polku = `${base}${lang === 'en' ? '/en' : ''}/e/${encodeURIComponent(e.id)}`
   if (hasOwnEventPage(e)) return polku
   let paiva = ''
   try { paiva = e.startTime ? helsinkiDateOf(e.startTime) : '' } catch { paiva = '' }

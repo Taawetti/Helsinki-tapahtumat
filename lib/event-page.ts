@@ -19,6 +19,8 @@ export interface EventPageData {
   title: string
   shortDescription: string
   description: string
+  /** Englanninkielinen kuvaus, kun lähde tai käsikorjaus antaa sen (ks. Event.descriptionEn). */
+  descriptionEn?: string
   startTime: string
   endTime: string | null
   image: string | null
@@ -58,6 +60,7 @@ export function toEvent(id: string, d: EventPageData): Event {
     title: d.title,
     shortDescription: d.shortDescription,
     description: d.description,
+    ...(d.descriptionEn ? { descriptionEn: d.descriptionEn } : {}),
     // Vyöhykkeetön aikaleima (Ticketmaster, festivaalit) saa Helsingin
     // offsetin: muuten palvelin (UTC) ja selain näyttäisivät eri kellonajan
     // ja hydraatio rikkoutuisi.
@@ -89,6 +92,7 @@ export function eventToPageData(e: Event, nyt = Date.now()): EventPageData {
     title: e.title,
     shortDescription: e.shortDescription ?? '',
     description: e.description ?? '',
+    ...(e.descriptionEn ? { descriptionEn: e.descriptionEn } : {}),
     startTime: e.startTime,
     endTime: e.endTime ?? null,
     image: e.image ?? null,
@@ -132,4 +136,11 @@ export function kelpoPaiva(d: string): boolean {
 /** Tapahtuma koosteesta tunnisteella. */
 export function etsiTapahtuma(events: Event[], id: string): Event | null {
   return events.find((e) => e.id === id) ?? null
+}
+
+/** Jakosivun kuvausteksti kielen mukaan: englanniksi lähteen tai ilmoittajan
+ *  oma englanninkielinen teksti kun se on, muuten suomenkielinen (sovellus
+ *  kääntää sen koneella paneelissa). Suomeksi aina description. */
+export function sivunKuvaus(d: Pick<EventPageData, 'description' | 'descriptionEn'>, lang: 'fi' | 'en'): string {
+  return lang === 'en' && d.descriptionEn ? d.descriptionEn : d.description
 }

@@ -121,7 +121,7 @@ import { rakennaRungot, seuraavaRunko, rungonTapahtumat, onIsoTapahtuma, onUrhei
 import { taydennaKoordinaatit, isoPaikka } from '../lib/venue-coords'
 import { pakotettuTyyppi, onKeikkapaikka } from '../lib/venue-type-overrides'
 import { lisaaKiinnostava, poistaKiinnostava, siivoaKiinnostavat, lueKiinnostavat, tallennaKiinnostavat, KIINNOSTAVAT_MAX, type Kiinnostava } from '../lib/kiinnostavat'
-import { toEvent, lahdeIdsta, eventToPageData, kelpoJakoId, kelpoPaiva, etsiTapahtuma, normalisoiAjat } from '../lib/event-page'
+import { toEvent, lahdeIdsta, eventToPageData, kelpoJakoId, kelpoPaiva, etsiTapahtuma, normalisoiAjat, sivunKuvaus } from '../lib/event-page'
 import { HELSINKI_NIGHTCLUBS } from '../lib/helsinki-nightclubs'
 import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
 import { onEstettyPaikka } from '../lib/venue-blocklist'
@@ -1736,6 +1736,7 @@ for (const c of arcChecks) {
     // Jako vie AINA sovellukseen (omistaja 28.9.2026) — ei järjestäjän sivulle eikä kilpailijalle.
     { name: 'jako: skrapattu tapahtuma → sovellukseen päivän kanssa, EI kilpailijan eikä järjestäjän osoitetta', ok: shareUrlFor({ id: 'stadissa-1', startTime: '2026-09-28T19:00:00+03:00' }, B) === `${B}/e/stadissa-1?d=2026-09-28` },
     { name: 'jako: ilman aikaa sovellukseen ilman päivää', ok: shareUrlFor({ id: 'venue-1' }, B) === `${B}/e/venue-1` && shareUrlFor({ id: 'x-1', startTime: 'roska' }, B) === `${B}/e/x-1` },
+    { name: 'jako englanniksi: /en/e/-polku, oma sivu ilman päivää ja skrapattu päivän kanssa', ok: shareUrlFor({ id: 'helsinki:abc123' }, B, 'en') === `${B}/en/e/helsinki%3Aabc123` && shareUrlFor({ id: 'stadissa-1', startTime: '2026-09-28T19:00:00+03:00' }, B, 'en') === `${B}/en/e/stadissa-1?d=2026-09-28` && shareUrlFor({ id: 'helsinki:abc123' }, B, 'fi') === `${B}/e/helsinki%3Aabc123` },
     { name: 'jako: päivä on Helsingin päivä (UTC 21.30 = 00.30 seuraavana), oma sivu ilman päivää', ok: shareUrlFor({ id: 'nauramaan-20260928-x', startTime: '2026-09-28T21:30:00Z' }, B) === `${B}/e/nauramaan-20260928-x?d=2026-09-29` && shareUrlFor({ id: 'helsinki:abc123', startTime: '2026-09-28T19:00:00+03:00' }, B) === `${B}/e/helsinki%3Aabc123` },
   ]
   // CTA-linkki: kilpailijan osoite ei kelpaa ulkoiseksi linkiksi, ja kun
@@ -5485,6 +5486,22 @@ odotettavat.push((async () => {
   for (const c of lCases) {
     if (c.ok) pass++
     else failures.push(`✗ lipputuote: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── JAKOSIVUN KUVAUS KIELEN MUKAAN (lib/event-page sivunKuvaus) + descriptionEn
+// kulkee toEvent/eventToPageData-muunnosten läpi (Cory Henry 29.11.2026).
+{
+  const pohja = { title: 'Cory Henry: A Jam Good Time', shortDescription: 'Lyhyt.', description: 'Suomeksi.', descriptionEn: 'In English.', startTime: '2026-11-29T18:00:00Z', endTime: null, image: null, isFree: false, price: '53,60 €', ticketUrl: null, infoUrl: null, categories: [], venue: 'Kulttuuritalo', address: 'Sturenkatu 4', city: 'Helsinki', isPast: false }
+  const ev = toEvent('helsinki:x', pohja)
+  const takaisin = eventToPageData(ev)
+  const jCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'sivunKuvaus: englanniksi descriptionEn, suomeksi description, ilman englantia suomi', ok: sivunKuvaus(pohja, 'en') === 'In English.' && sivunKuvaus(pohja, 'fi') === 'Suomeksi.' && sivunKuvaus({ description: 'Suomeksi.' }, 'en') === 'Suomeksi.' },
+    { name: 'descriptionEn säilyy toEvent → eventToPageData -kierroksessa; ilman sitä kenttää ei synny', ok: ev.descriptionEn === 'In English.' && takaisin.descriptionEn === 'In English.' && !('descriptionEn' in toEvent('helsinki:y', { ...pohja, descriptionEn: undefined })) },
+  ]
+  for (const c of jCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ jakosivu: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

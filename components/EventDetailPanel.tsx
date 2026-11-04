@@ -335,7 +335,7 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents, av
   // (lib/event-links). Aiemmin tämä katsoi source-kenttää, ja koska stadissa
   // merkitsee tapahtumansa 'linked-events'-lähteeksi, jokainen jako niistä
   // osoitti 404-sivulle (mitattu 25.8.2026).
-  const shareUrl = shareUrlFor(event, 'https://mitatanaan.fi')
+  const shareUrl = shareUrlFor(event, 'https://mitatanaan.fi', lang === 'en' ? 'en' : 'fi')
 
   // Jaon tilannekuva palvelimelle (fire-and-forget, keepalive: pyyntö
   // selviää vaikka WhatsApp avautuisi heti päälle). Selain lähettää VAIN
