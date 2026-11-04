@@ -717,11 +717,19 @@ export default function HomeClient({
   }, [])
 
   const clearFilters = useCallback(() => {
-    setActiveCategories([]); setActiveVibes([]); setKeyword('')
+    // Hakusana säilyy, kun jokin MUU suodatin on päällä: tyhjän tilan
+    // "Tyhjennä suodattimet" pyyhki myös haun, joten ilmaiset-laskeutumis-
+    // sivulla (hinta "ilmainen" valmiiksi päällä) haun tuloksia ei saanut
+    // koskaan näkyviin (omistaja 4.11.2026). Pelkkä hakusana tyhjenee kuten
+    // ennen — silloin se on ainoa suodatin.
+    const muitaSuodattimia = activeVibes.some((v) => v !== 'kaikki') || activeCategories.length > 0
+      || priceFilter !== 'all' || !!customDate || !!customDateEnd
+    setActiveCategories([]); setActiveVibes([])
+    if (!muitaSuodattimia) setKeyword('')
     setDateFilter('today'); setMunicipality('helsinki')
     setPriceFilter('all'); setCustomDate(''); setCustomDateEnd('')
     setKoCat(null) // palauta etusivulle, ei jää orpoa fokusnäkymää
-  }, [])
+  }, [activeVibes, activeCategories.length, priceFilter, customDate, customDateEnd])
 
   const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
     // Mittaus myös syvälinkeistä: aiemmin vain yläpalkin ikoni laski
@@ -992,6 +1000,21 @@ export default function HomeClient({
     observer.observe(el)
     return () => observer.disconnect()
   }, [hasMore, loading, fetchingFull, loadMore, nayttoRaja, discoverEvents.length])
+
+  // HAKU LATAA KAIKKI SIVUT ITSE (omistaja 4.11.2026). Sentinel elää vain
+  // tuloslistan alla, joten kun 90 pv haun ensimmäisellä sivulla (10 pv) ei
+  // ollut yhtään osumaa, tyhjä tila piirtyi ilman sentineliä eikä sivuja 2–10
+  // haettu koskaan: "cory henry" (29.11., sivu 3) antoi "Ei tuloksia" myös
+  // etusivulla. Ennen koosteen sivurajausta ulkoisen lähteen kopio sivulla 1
+  // peitti tämän. Hakutilassa seuraava sivu haetaan aina kun sivuja on
+  // jäljellä, osumista riippumatta — ei kesken haun eikä virheen jälkeen
+  // (virheellä sivunumero kasvaisi loputtomiin). Tyhjä tila odottaa, kunnes
+  // kaikki sivut on käyty (hakuKesken).
+  useEffect(() => {
+    if (!hakuIkkuna || !hasMore || loading || fetchingFull || error) return
+    loadMore()
+  }, [hakuIkkuna, hasMore, loading, fetchingFull, error, loadMore])
+  const hakuKesken = hakuIkkuna && !error && (loading || fetchingFull || hasMore)
 
   // Base events for the picks grid — date/keyword filtered but NOT vibe/category filtered
   // so rows always show content even when a specific vibe is active
@@ -2113,7 +2136,7 @@ export default function HomeClient({
           {/* Suodatetun näkymän lataustila: vaihe 1 on ohi (skeleton poissa)
               mutta täysi haku kesken eikä osumia vielä ole — ilman tätä
               paikkahaku ("Paikan kaikki tapahtumat") näytti 2–3 s tyhjää. */}
-          {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length === 0 && (loading || fetchingFull) && (
+          {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length === 0 && (loading || fetchingFull || hakuKesken) && (
             <div className="flex items-center justify-center gap-2 py-10">
               <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>{t('discover.loading_events')}</span>
@@ -2146,7 +2169,7 @@ export default function HomeClient({
                 {osittainen && discoverEvents.length > 0 && <KorttiSkeletonit n={4} />}
               </div>
               <div ref={sentinelRef} className="h-1" />
-              {(loading || fetchingFull) && <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-white/30" /></div>}
+              {(loading || fetchingFull || hakuKesken) && <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-white/30" /></div>}
             </section>
           )}
 
@@ -2168,7 +2191,7 @@ export default function HomeClient({
           {/* Tyhjä tila: kun jokin suodatin (haku/kaupunginosa/aihepiiri/hinta) on
               päällä, ratkaisee SUODATETTU tulos — muuten "Ei tuloksia haulle X"
               ei näkyisi koskaan, koska pakassa on aina tapahtumia. */}
-          {!loading && !fetchingFull && !error && !koCat && !guideView &&
+          {!loading && !fetchingFull && !hakuKesken && !error && !koCat && !guideView &&
             ((keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all')
               ? discoverEvents.length === 0
               : baseEvents.length === 0) && (
