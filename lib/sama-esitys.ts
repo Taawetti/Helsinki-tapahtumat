@@ -12,7 +12,9 @@
 // normalisoitu otsikko on toisen SANA-ALKU. Omistajan ehto: kaksi eri
 // esitysaikaa samana päivänä ei saa yhdistyä. Siksi:
 //   - paikan nimen pitää olla sama (tai sama + kaupungin nimi: "G Livelab" /
-//     "G Livelab Helsinki"); muulla sanalla jatkettu nimi on ERI TOIMIPISTE
+//     "G Livelab Helsinki", suomeksi genetiivi edessä: "Helsingin
+//     Kulttuuritalo" / "Kulttuuritalo" — lippu.fi, todettu 4.11.2026);
+//     muulla sanalla jatkettu nimi on ERI TOIMIPISTE
 //     ("Ravintola Skiffer" / "Ravintola Skiffer Postipuisto" — kaksi eri
 //     tietovisaa samaan aikaan, koordinaatitkin samat) eikä yhdisty koskaan;
 //   - eri-nimiset paikat yhdistyvät vain alle 150 m päässä ja käytännössä
@@ -74,7 +76,12 @@ export const SAMA_ESITYS_RAJAT = {
   kattoTuntia: 24,
 } as const
 
-const KAUPUNKISANAT = new Set(['helsinki', 'helsingfors', 'espoo', 'esbo', 'vantaa', 'vanda', 'kauniainen', 'grankulla'])
+// Myös genetiivit: suomi laittaa kaupungin nimen ETEEN ("Helsingin
+// Kulttuuritalo"), englanti ja ruotsi perään. Ruotsin genetiivi on sama sana.
+const KAUPUNKISANAT = new Set([
+  'helsinki', 'helsingin', 'helsingfors', 'espoo', 'espoon', 'esbo', 'vantaa', 'vantaan', 'vanda',
+  'kauniainen', 'kauniaisten', 'grankulla',
+])
 
 const sanat = (s: string): string[] => s.split(' ').filter(Boolean)
 /** ä→a, õ→o jne. — vain sana-alkuvertailuun, ei koosteen avaimeen. */
@@ -100,6 +107,14 @@ export function paikkasuhde(a: string | null | undefined, b: string | null | und
   if (onSanaAlku(lyhyt, pitka)) {
     const lisa = sanat(pitka.slice(lyhyt.length))
     return lisa.every((s) => KAUPUNKISANAT.has(s)) ? 'sama' : 'eri-toimipiste'
+  }
+  // Kaupunkisana EDESSÄ: "Helsingin Kulttuuritalo" (lippu.fi) on sama talo
+  // kuin "Kulttuuritalo". Muu etusana ("KULT, Kulttuuritalo", "Arena-näyttämö
+  // - Helsingin kaupunginteatteri") jää eri nimeksi: sali tai lava samassa
+  // talossa ratkeaa etäisyydellä ja ajalla kuten ennenkin.
+  if (pitka.endsWith(` ${lyhyt}`)) {
+    const etu = sanat(pitka.slice(0, pitka.length - lyhyt.length))
+    if (etu.every((s) => KAUPUNKISANAT.has(s))) return 'sama'
   }
   return 'eri-nimi'
 }

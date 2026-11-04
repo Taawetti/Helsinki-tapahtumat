@@ -12,6 +12,8 @@ import { haeUlkoisetLahteet, ULKOISET_LAHTEET } from '@/lib/lahdevarasto'
 import { sovellaTapahtumakorjaukset, type TapahtumakorjausTiedosto } from '@/lib/tapahtumakorjaukset'
 import tapahtumakorjaukset from '@/data/tapahtumakorjaukset.json'
 import { kevennaKartalle, KENTAT_KARTTA } from '@/lib/tapahtumat-kevyt'
+import { kanoninenPaikannimi } from '@/lib/paikannimet'
+import { kuuluuSivulle, sivunRajat, ulkoistenVali } from '@/lib/sivurajaus'
 import { normalisoiOtsikkoAvain, onSamaEsitys, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '@/lib/sama-esitys'
 
 // Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
@@ -77,7 +79,9 @@ function normalize(raw: LinkedEventsEvent): Event {
   const loc = raw.location
   const locationObj = loc
     ? {
-        name: loc.name?.fi || loc.name?.en || '',
+        // Kanoninen paikannimi (lib/paikannimet) ennen dedupia ja
+        // hakuehdotusten laskuria — sama talo yhdellä nimellä joka lähteestä.
+        name: kanoninenPaikannimi(loc.name?.fi || loc.name?.en || ''),
         streetAddress: loc.street_address?.fi || loc.street_address?.en || '',
         city: loc.address_locality?.fi || loc.address_locality?.en || 'Helsinki',
         lat: loc.position?.coordinates?.[1],
@@ -173,7 +177,6 @@ export async function GET(req: NextRequest) {
 
     // quick=1: return only LinkedEvents immediately (used for phase-1 fast load)
     const pageNum = Math.max(1, parseInt(page) || 1)
-    const attemptExternal = !quick && page === '1'
 
     // Client page N covers DAYS_PER_PAGE days of the range: page 1 = days
     // 1-10, page 2 = days 11-20 … so infinite scroll walks a long range
@@ -188,18 +191,34 @@ export async function GET(req: NextRequest) {
     const dayDates = Array.from({ length: dayCount }, (_, i) =>
       new Date(rangeStartTs + (firstDayIdx + i) * 86400000).toISOString().slice(0, 10)
     )
+    // More day-windows left in the range → client can load the next window
+    const hasMore = firstDayIdx + dayCount < totalDays
+
+    // SIVURAJAUS (lib/sivurajaus, 4.11.2026): jokainen rivi tasan yhdellä
+    // sivulla, kaikista lähteistä — ulkoiset luetaan sivun omalta väliltä ja
+    // LinkedEvents rajataan sivun päiviin. Aiemmin ulkoiset tulivat koko
+    // väliltä sivulle 1, joten sivun 1 ulkoinen rivi ja sivun 3 LinkedEvents-
+    // rivi samasta keikasta eivät koskaan kohdanneet dedupissa (mitattu: 10 %
+    // 90 pv hakuikkunan korteista tuplia). Kartan kuukausi-ikkuna lukee vain
+    // sivun 1 eikä selaa → sille ulkoiset edelleen koko väliltä sivulle 1.
+    // quick=1 hakee vain LinkedEventsin ensimmäisen päivän kuten ennenkin.
+    const rajat = kevytKartalle ? null : sivunRajat(dayDates, pageNum === 1, !hasMore)
+    const attemptExternal = !quick && (rajat !== null || page === '1')
 
     // Fetch all day-chunks + external sources in parallel.
     // Fresh options per call — AbortSignal.timeout starts ticking on creation,
     // so a shared signal would shortchange the second fetch wave.
     const leFetchOpts = () => ({ next: { revalidate: 300, tags: ['events'] }, signal: AbortSignal.timeout(10000) })
     // LinkedEventsin päiväpalat ja ulkoiset lähteet rinnakkain. Ulkoiset
-    // tulevat lähdevarastosta koko välille (sivu 1), puuttuvat palat suoraan
-    // lähteestä (lib/lahdevarasto haeUlkoisetLahteet). Hakusanaa ei välitetä
-    // lähteille — se suodatetaan yhtenäisesti koko lopputulokseen alempana.
+    // tulevat lähdevarastosta sivun omalta väliltä (kartalle koko väliltä
+    // sivulle 1), puuttuvat palat suoraan lähteestä (lib/lahdevarasto
+    // haeUlkoisetLahteet). Hakusanaa ei välitetä lähteille — se suodatetaan
+    // yhtenäisesti koko lopputulokseen alempana.
     const [dayResults, ulkoiset] = await Promise.all([
       Promise.allSettled(dayDates.map((day) => fetch(buildLeUrl(day), leFetchOpts()))),
-      attemptExternal ? haeUlkoisetLahteet({ origin, start, end, ohita: ohitaVarasto }) : Promise.resolve(null),
+      attemptExternal
+        ? haeUlkoisetLahteet({ origin, ...(rajat ? ulkoistenVali(rajat, start, end) : { start, end }), ohita: ohitaVarasto })
+        : Promise.resolve(null),
     ])
 
     // Cutoff anchored to THIS PAGE's day-window (not the range start) so
@@ -284,8 +303,15 @@ export async function GET(req: NextRequest) {
     let events: Event[] = leRaw
       .map(normalize)
       .filter((e: Event) => new Date(e.startTime).getTime() >= realCutoff)
-    // More day-windows left in the range → client can load the next window
-    const hasMore = firstDayIdx + dayCount < totalDays
+      // Sivurajaus myös LinkedEventsille: päiväkysely palauttaa käynnissä
+      // olevan monipäiväisen rivin joka päivälle, ja −24 h -raja päästi sen
+      // seuraavalle sivulle uudestaan (mitattu 4.11.2026: 1 201 saman id:n
+      // toistoa 90 pv haussa, 66 kertaa eri id:llä → näkyvä tupla). Rikkinäinen
+      // aikaleima säilyy tässä ja kaatuu kuten ennenkin dedup-avaimessa.
+      .filter((e: Event) => {
+        if (!rajat) return true
+        try { return kuuluuSivulle(helsinkiDateOf(e.startTime), rajat) } catch { return true }
+      })
     let total: number = events.length
 
     // Normalize title for dedup: strip ticket tiers, years, punctuation variation
@@ -401,6 +427,11 @@ export async function GET(req: NextRequest) {
             ...e,
             startTime: normalizeHelsinkiTimestamp(e.startTime) ?? e.startTime,
             endTime: normalizeHelsinkiTimestamp(e.endTime),
+            // Paikannimi kanoniseksi ENNEN dedupia (lib/paikannimet): lippu.fi:n
+            // "Helsingin Kulttuuritalo" ja stadissan "KULT, Kulttuuritalo" ovat
+            // sama talo kuin LinkedEventsin "Kulttuuritalo", jolloin sama esitys
+            // -sääntö ja hakuehdotusten laskuri näkevät yhden paikan.
+            location: e.location ? { ...e.location, name: kanoninenPaikannimi(e.location.name) } : e.location,
           }))
           // OPENMIC ON VIIMEINEN LÄHDE, joten kaikki muut ovat jo listassa.
           // Sen sarjanimi on geneerinen ("Storyville Jam Night"), eikä täsmää
@@ -422,6 +453,9 @@ export async function GET(req: NextRequest) {
             // vaikka vain yksi rivi oli rikki.
             try {
             const paiva = helsinkiDateOf(e.startTime)
+            // Sivurajaus: varasto antaa välin reunoilta myös käynnissä olevat
+            // (alku −4 pv), jotka kuuluvat edelliselle sivulle.
+            if (rajat && !kuuluuSivulle(paiva, rajat)) continue
             const key = dedupKey(e.title, paiva)
             let existingIdx = seenMap.get(key)
             if (existingIdx === undefined) {

@@ -72,6 +72,8 @@ import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/
 import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto, type Tapahtumakorjaus } from '../lib/tapahtumakorjaukset'
 import { onLinkedEventsId, kelpoKuvausPyynto, kuvausParams, kuvattavaLeRaakadatasta, kuvausVastaus, type LeKuvausRaaka } from '../lib/kuvaus'
 import { onSamaEsitys, paikkasuhde, normalisoiOtsikkoAvain, etaisyysM, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '../lib/sama-esitys'
+import { sivunRajat, kuuluuSivulle, ulkoistenVali } from '../lib/sivurajaus'
+import { kanoninenPaikannimi, normalisoiPaikannimi, PAIKANNIMET } from '../lib/paikannimet'
 import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, onLippuklikki, type KlikkiRivi } from '../lib/kavijatilastot'
@@ -5381,6 +5383,8 @@ odotettavat.push((async () => {
     { name: 'lyhyt yksisanainen otsikko ("Jazz") → EI sama; "Nightwish" (9 merkkiä) → sama', ok: !onSamaEsitys(E('Jazz', '2026-11-05T19:00:00+02:00', KT), E('Jazz Night', '2026-11-05T19:00:00+02:00', KT)) && onSamaEsitys(E('Nightwish', '2026-11-05T19:00:00+02:00', KT), E('Nightwish: Yesterwynde', '2026-11-05T19:00:00+02:00', KT)) },
     { name: 'täsmälleen sama otsikko → false (avain hoitaa); eri päivä → false; ei sana-alku → false', ok: !onSamaEsitys(E('Cory Henry', '2026-11-29T19:00:00+02:00', KT), E('Cory Henry', '2026-11-29T19:00:00+02:00', KT)) && !onSamaEsitys(E('Cory Henry', '2026-11-28T19:00:00+02:00', KT), E('Cory Henry: A Jam Good Time', '2026-11-29T19:00:00+02:00', KT)) && !onSamaEsitys(E('Cory Henry', '2026-11-29T19:00:00+02:00', KT), E('Henry Cory Live', '2026-11-29T19:00:00+02:00', KT)) },
     { name: 'paikkasuhde: sama; +kaupunki sama; +muu sana eri toimipiste; eri nimi; tyhjä tuntematon', ok: paikkasuhde('Kulttuuritalo', 'Kulttuuritalo') === 'sama' && paikkasuhde('Kulttuuritalo', 'Kulttuuritalo Helsinki') === 'sama' && paikkasuhde('Ravintola Skiffer', 'Ravintola Skiffer Postipuisto') === 'eri-toimipiste' && paikkasuhde('Stoa', 'Itäkeskuksen kirjasto') === 'eri-nimi' && paikkasuhde('', 'Stoa') === 'tuntematon' },
+    { name: 'paikkasuhde: kaupungin genetiivi edessä → sama; muu etusana (KULT, …; Arena-näyttämö …) → eri nimi', ok: paikkasuhde('Kulttuuritalo', 'Helsingin Kulttuuritalo') === 'sama' && paikkasuhde('Helsingin Kulttuuritalo', 'Kulttuuritalo') === 'sama' && paikkasuhde('Kulttuuritalo', 'KULT, Kulttuuritalo') === 'eri-nimi' && paikkasuhde('Helsingin kaupunginteatteri', 'Arena-näyttämö - Helsingin kaupunginteatteri') === 'eri-nimi' && paikkasuhde('Espoon kulttuurikeskus', 'Kulttuurikeskus') === 'sama' },
+    { name: 'lippu.fi "Helsingin Kulttuuritalo" ilman koordinaatteja + kulttuuritalo.fi (oletusaika, SOLD OUT -liite) → sama; "KULT, Kulttuuritalo" ilman koordinaatteja → EI sama', ok: onSamaEsitys(E('Europe - The Final Countdown 40th Anniversary Tour', '2026-11-25T19:00:00+02:00', { name: 'Helsingin Kulttuuritalo' }), E('Europe – The Final Countdown 40th Anniversary Tour (SOLD OUT!)', '2026-11-25T19:00:00+02:00', KT2, { startTimeApprox: true })) && !onSamaEsitys(E('Kult: Joshua Idehen', '2026-12-03T19:00:00+02:00', { name: 'KULT, Kulttuuritalo' }), E('KULT: Joshua Idehen + HYRYSYSY', '2026-12-03T19:00:00+02:00', KT2, { startTimeApprox: true })) },
     { name: 'etäisyys: Stoa–kirjasto noin 25 m, Kulttuuritalon kaksi koordinaattia alle 650 m', ok: (() => { const a = etaisyysM(KIRJASTO, STOA) ?? 9999; const b = etaisyysM(KT, KT2) ?? 9999; return a > 10 && a < 40 && b > 500 && b < 700 })(), got: `${etaisyysM(KIRJASTO, STOA)} / ${etaisyysM(KT, KT2)}` },
     { name: 'otsikon aika: päivä + klo irtoaa', ok: bo.otsikko === 'Bo Kaspers Orkester – Il Magnifico' && bo.klo === '16:00', got: JSON.stringify(bo) },
     { name: 'otsikon klo eroaa ajasta: klo 16:00 vs startTime 19 → true; täsmäävä → false; ilman kloa → false', ok: otsikonKloEroaaAjasta({ title: 'Bo Kaspers Orkester – Il Magnifico 29.11.2026 klo 16:00', startTime: '2026-11-29T19:00:00+02:00' }) && !otsikonKloEroaaAjasta({ title: 'Bo Kaspers Orkester – Il Magnifico 29.11.2026 klo 16:00', startTime: '2026-11-29T16:00:00+02:00' }) && !otsikonKloEroaaAjasta({ title: 'Bo Kaspers Orkester', startTime: '2026-11-29T19:00:00+02:00' }) },
@@ -5392,6 +5396,50 @@ odotettavat.push((async () => {
   for (const c of sCases) {
     if (c.ok) pass++
     else failures.push(`✗ sama esitys: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── SIVURAJAUS (lib/sivurajaus): jokainen rivi tasan yhdellä sivulla. Mitattu
+// 4.11.2026: ulkoiset koko väliltä sivulle 1 + LinkedEvents omalle sivulleen
+// → 746 tuplakorttia 90 pv hakuikkunassa (Cory Henry 18.00 ja 20.00).
+{
+  const paivat = (alku: number, n: number) => Array.from({ length: n }, (_, i) => `2026-11-${String(alku + i).padStart(2, '0')}`)
+  const s1 = sivunRajat(paivat(4, 10), true, false)!   // 4.–13.11., ensimmäinen
+  const s2 = sivunRajat(paivat(14, 10), false, false)! // 14.–23.11., keskellä
+  const s3 = sivunRajat(paivat(24, 7), false, true)!   // 24.–30.11., viimeinen
+  const yksi = sivunRajat(paivat(4, 7), true, true)!   // viikko: yksi sivu
+  const sivut = [s1, s2, s3]
+  const rCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'sivu 1 ottaa aiemmin alkaneen ja omat päivät, ei seuraavan sivun päivää', ok: kuuluuSivulle('2026-11-01', s1) && kuuluuSivulle('2026-11-04', s1) && kuuluuSivulle('2026-11-13', s1) && !kuuluuSivulle('2026-11-14', s1) },
+    { name: 'keskisivu ottaa vain omat päivät', ok: !kuuluuSivulle('2026-11-13', s2) && kuuluuSivulle('2026-11-14', s2) && kuuluuSivulle('2026-11-23', s2) && !kuuluuSivulle('2026-11-24', s2) },
+    { name: 'viimeinen sivu ottaa myös myöhemmin alkavan, ei edellisen sivun päivää', ok: !kuuluuSivulle('2026-11-23', s3) && kuuluuSivulle('2026-11-24', s3) && kuuluuSivulle('2026-11-30', s3) && kuuluuSivulle('2026-12-05', s3) },
+    { name: 'yksisivuinen ikkuna ottaa kaiken', ok: kuuluuSivulle('2026-10-01', yksi) && kuuluuSivulle('2026-11-07', yksi) && kuuluuSivulle('2027-01-01', yksi) },
+    { name: 'Cory Henry 29.11.: MyHelsinki- ja LinkedEvents-rivi kuuluvat samalle sivulle (3), eivät sivulle 1', ok: kuuluuSivulle('2026-11-29', s3) && !kuuluuSivulle('2026-11-29', s1) && !kuuluuSivulle('2026-11-29', s2) },
+    { name: 'jokainen päivä 1.11.–5.12. kuuluu tasan yhdelle sivulle', ok: Array.from({ length: 35 }, (_, i) => new Date(Date.UTC(2026, 10, 1 + i)).toISOString().slice(0, 10)).every((d) => sivut.filter((r) => kuuluuSivulle(d, r)).length === 1) },
+    { name: 'tyhjä päivälista → null (sivu välin ulkopuolella)', ok: sivunRajat([], false, true) === null },
+    { name: 'ulkoisten väli: sivu 1 pyynnön alusta sivun loppuun, keskisivu omat päivät, viimeinen pyynnön loppuun', ok: JSON.stringify(ulkoistenVali(s1, '2026-11-04', '2027-02-01')) === JSON.stringify({ start: '2026-11-04', end: '2026-11-13' }) && JSON.stringify(ulkoistenVali(s2, '2026-11-04', '2027-02-01')) === JSON.stringify({ start: '2026-11-14', end: '2026-11-23' }) && JSON.stringify(ulkoistenVali(s3, '2026-11-04', '2027-02-01')) === JSON.stringify({ start: '2026-11-24', end: '2027-02-01' }) && JSON.stringify(ulkoistenVali(yksi, '2026-11-04', '2026-11-10')) === JSON.stringify({ start: '2026-11-04', end: '2026-11-10' }) },
+  ]
+  for (const c of rCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ sivurajaus: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── PAIKANNIMET (lib/paikannimet): sama talo yhdellä nimellä. Mitattu 4.11.2026:
+// Kulttuuritalo kolmena paikkana hakuehdotuksissa, 24 paikkaa kahdella asulla.
+{
+  const pCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'Helsingin Kulttuuritalo, KULT, Kulttuuritalo ja Kulttuuritalo Helsinki → Kulttuuritalo', ok: kanoninenPaikannimi('Helsingin Kulttuuritalo') === 'Kulttuuritalo' && kanoninenPaikannimi('KULT, Kulttuuritalo') === 'Kulttuuritalo' && kanoninenPaikannimi('Kulttuuritalo Helsinki') === 'Kulttuuritalo' && kanoninenPaikannimi('Kulttuuritalo') === 'Kulttuuritalo' },
+    { name: 'kirjainkoko ja viiva: FINLANDIA-TALO, On The Rocks, Maunula talo, Kulttuurikeskus CAISA', ok: kanoninenPaikannimi('FINLANDIA-TALO') === 'Finlandia-talo' && kanoninenPaikannimi('On The Rocks') === 'On the Rocks' && kanoninenPaikannimi('Maunula talo') === 'Maunula-talo' && kanoninenPaikannimi('Kulttuurikeskus CAISA') === 'Kulttuurikeskus Caisa' },
+    { name: 'kaupunkisana perässä ja englanti: Messukeskus, Helsinki / Helsinki Music Centre / G Livelab', ok: kanoninenPaikannimi('Messukeskus, Helsinki') === 'Messukeskus' && kanoninenPaikannimi('Helsinki Music Centre') === 'Musiikkitalo' && kanoninenPaikannimi('G Livelab') === 'G Livelab Helsinki' },
+    { name: 'heittomerkit: Henry´s / Henry’s → Henry\'s Music Bar; John Scott\'s → John Scott’s Arkadia', ok: kanoninenPaikannimi('Henry´s Music Bar') === "Henry's Music Bar" && kanoninenPaikannimi('Henry’s Music Bar') === "Henry's Music Bar" && kanoninenPaikannimi("John Scott's Arkadia") === 'John Scott’s Arkadia' },
+    { name: 'nimen alku ei riitä: Musiikkitalo, Konserttisali ja Kulttuuritalo Martinus säilyvät', ok: kanoninenPaikannimi('Musiikkitalo, Konserttisali') === 'Musiikkitalo, Konserttisali' && kanoninenPaikannimi('Kulttuuritalo Martinus') === 'Kulttuuritalo Martinus' },
+    { name: 'tuntematon nimi, tyhjä ja entiteetti säilyvät/purkautuvat', ok: kanoninenPaikannimi('Bar Loose') === 'Bar Loose' && kanoninenPaikannimi('') === '' && kanoninenPaikannimi('Liszt-instituutti &#8211; Unkarin kulttuurikeskus') === 'Liszt-instituutti - Unkarin kulttuurikeskus' },
+    { name: 'taulun variantit ovat normalisoidussa muodossa eivätkä toistu (muuten osuma ei synny tai on ristiriitainen)', ok: (() => { const kaikki = PAIKANNIMET.flatMap((p) => [normalisoiPaikannimi(p.nimi), ...p.variantit]); return PAIKANNIMET.every((p) => p.variantit.every((v) => v === normalisoiPaikannimi(v))) && new Set(kaikki).size === kaikki.length })() },
+  ]
+  for (const c of pCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ paikannimet: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

@@ -10,12 +10,17 @@ function hkiISO(date: string, hour: number, minute: number): string {
 }
 
 
+// Koordinaatit talon kohdalle. Aiempi 60.1938/24.9463 oli mitatusti 634 m
+// koilliseen (LinkedEvents 60.18818/24.944391, OSM 60.18807/24.94421 —
+// todettu 4.11.2026): pinni oli väärässä korttelissa, eikä lippu.fi:n
+// "Helsingin Kulttuuritalo" -rivi yhdistynyt sama esitys -säännön 150 m
+// etäisyysehdolla (lib/sama-esitys).
 const VENUE = {
   name: 'Kulttuuritalo',
   address: 'Sturenkatu 4',
   city: 'Helsinki',
-  lat: 60.1938,
-  lon: 24.9463,
+  lat: 60.1882,
+  lon: 24.9443,
   url: 'https://kulttuuritalo.fi',
 }
 

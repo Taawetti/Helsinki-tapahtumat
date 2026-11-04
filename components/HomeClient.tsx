@@ -967,6 +967,17 @@ export default function HomeClient({
   // Infinite scroll: sentinel kasvattaa ENSIN renderöintirajaa (osumia on jo
   // muistissa enemmän kuin ruudulla) ja hakee palvelimelta lisää vasta kun
   // kaikki ladatut ovat näkyvissä.
+  //
+  // EI SEURAAVAA SIVUA TÄYDEN HAUN AIKANA (4.11.2026). Jatkosivu haetaan
+  // kahdessa vaiheessa (hooks/useEvents): pikatulos näyttää sivun ensimmäisen
+  // päivän ja täysi haku tuo loput. Pikatuloksen jälkeen loading on jo false,
+  // ja kun hakutulos on lyhyt, sentinel on heti näkyvissä → loadMore käynnisti
+  // seuraavan sivun, ja uusi fetchEvents KESKEYTTI edellisen sivun täyden
+  // haun. Sivulle jäi vain yksi päivä. Mitattu paikallisella tuotantobuildilla
+  // (kylmät sivut, 5–10 s): sivuista 2–8 saapui vain pikatulos. Tuotannossa
+  // reunavälimuisti vastaa alle sekunnissa, joten sama kilpajuoksu näkyy vain
+  // kylmillä sivuilla — ja koosteen sivurajauksen jälkeen se pudottaisi myös
+  // ulkoisten lähteiden rivit (ennen ne tulivat kaikki sivulla 1).
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
@@ -974,13 +985,13 @@ export default function HomeClient({
       ([entry]) => {
         if (!entry.isIntersecting) return
         if (nayttoRaja < discoverEvents.length) setNayttoRaja((r) => r + NAYTTO_ERA)
-        else if (hasMore && !loading) loadMore()
+        else if (hasMore && !loading && !fetchingFull) loadMore()
       },
       { rootMargin: '200px' }
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [hasMore, loading, loadMore, nayttoRaja, discoverEvents.length])
+  }, [hasMore, loading, fetchingFull, loadMore, nayttoRaja, discoverEvents.length])
 
   // Base events for the picks grid — date/keyword filtered but NOT vibe/category filtered
   // so rows always show content even when a specific vibe is active
