@@ -14,6 +14,7 @@ import tapahtumakorjaukset from '@/data/tapahtumakorjaukset.json'
 import { kevennaKartalle, KENTAT_KARTTA } from '@/lib/tapahtumat-kevyt'
 import { kanoninenPaikannimi } from '@/lib/paikannimet'
 import { kuuluuSivulle, sivunRajat, ulkoistenVali } from '@/lib/sivurajaus'
+import { SIVUN_PAIVAT } from '@/lib/events-fetch'
 import { jaetutLipputuotteet, lipputuoteRyhma, onSamaLipputuote } from '@/lib/lipputuote'
 import { normalisoiOtsikkoAvain, onSamaEsitys, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '@/lib/sama-esitys'
 
@@ -192,7 +193,9 @@ export async function GET(req: NextRequest) {
     // sivurajauksen jälkeen. Nyt koko väli on yksi sivu: 32 LinkedEvents-
     // päiväpalaa rinnakkain. Päiväpalat jakavat fetch-välimuistin päivänäkymien
     // kanssa, lämmitys hakee ikkunan 5 min välein ja reuna pitää sen 15 min.
-    const DAYS_PER_PAGE = kevytKartalle ? 40 : 10
+    // SIVUN_PAIVAT on jaettu selaimen kanssa (lib/events-fetch): hakuikkuna
+    // laskee siitä sivumäärän ja hakee sivut 2…N rinnakkain.
+    const DAYS_PER_PAGE = kevytKartalle ? 40 : SIVUN_PAIVAT
     const rangeStartTs = new Date(start).getTime()
     const totalDays = Math.max(1, Math.round((new Date(end).getTime() - rangeStartTs) / 86400000) + 1)
     const firstDayIdx = (pageNum - 1) * DAYS_PER_PAGE

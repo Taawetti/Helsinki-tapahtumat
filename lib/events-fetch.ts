@@ -164,6 +164,29 @@ export const ESILADATTAVAT: readonly DateFilter[] = ['tonight', 'tomorrow', 'wee
  *  merkiltä sama kuin käyttäjän pyyntö, muuten CDN-osuma ei synny. */
 export const LAMMITETTAVAT: readonly DateFilter[] = ['today', 'tonight', 'tomorrow', 'weekend', 'week', 'month']
 
-export function lammitettavatParams(municipality = 'helsinki'): { filter: DateFilter; params: URLSearchParams }[] {
-  return LAMMITETTAVAT.map((filter) => ({ filter, params: tapahtumaHakuParams({ dateFilter: filter, page: 1, municipality }) }))
+/** Koosteen sivun pituus päivinä (app/api/events DAYS_PER_PAGE lukee tämän).
+ *  Selaimen hakuikkuna laskee tästä, montako sivua se hakee rinnakkain. */
+export const SIVUN_PAIVAT = 10
+
+/** Montako sivua väli start…end (YYYY-MM-DD, molemmat mukana) tarvitsee —
+ *  sama päivälaskenta kuin koosteessa (totalDays). */
+export function sivumaara(start: string, end: string): number {
+  const paivia = Math.max(1, Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1)
+  return Math.ceil(paivia / SIVUN_PAIVAT)
+}
+
+/** Lämmitettävät osoitteet: päivächippien ikkunat sivulla 1 sekä 90 pv
+ *  hakuikkunan KAIKKI sivut. Haku oli ainoa lämmittämätön ikkuna: sen 10 sivua
+ *  rakentuivat käyttäjälle kylmänä 5–10 s kukin, ja haku valmistui mitatusti
+ *  79–102 s (4.11.2026). Lämmitettynä sivu on reunaosuma (~0,3 s), ja reunan
+ *  stale-while-revalidate pitää sen heti vastaavana tunnin, vaikka lämmitys
+ *  jäisi väliin. LinkedEventsin päiväpalat jakavat fetch-välimuistin muiden
+ *  ikkunoiden kanssa, joten lisäkuorma on vain kuukauden ulkopuoliset päivät. */
+export function lammitettavatParams(municipality = 'helsinki', o: { hakusivut?: boolean } = {}): { filter: DateFilter; params: URLSearchParams }[] {
+  const paivaikkunat = LAMMITETTAVAT.map((filter) => ({ filter, params: tapahtumaHakuParams({ dateFilter: filter, page: 1, municipality }) }))
+  if (o.hakusivut === false) return paivaikkunat
+  const { start, end } = getDateRange('search')
+  const hakusivut = Array.from({ length: sivumaara(start, end) }, (_, i) =>
+    ({ filter: 'search' as DateFilter, params: tapahtumaHakuParams({ dateFilter: 'search', page: i + 1, municipality }) }))
+  return [...paivaikkunat, ...hakusivut]
 }

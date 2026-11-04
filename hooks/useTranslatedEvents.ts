@@ -55,9 +55,16 @@ function saveLs(): void {
 /**
  * @param events lähdetapahtumat (suomeksi)
  * @param lang   nykyinen kieli
+ * @param vain   pilkulla erotetut id:t, joille käännös PYYDETÄÄN — null =
+ *               kaikki listan tapahtumat. Hakutilassa HomeClient antaa vain
+ *               ruudulla olevat tulokset: 90 pv ikkunassa on n. 6 800
+ *               tapahtumaa, joista joulukuun sivulla 2 % oli käännetty
+ *               (mitattu 4.11.2026), joten yksi englanninkielinen haku olisi
+ *               tilannut n. 55 Claude-erää koko ikkunasta. Muistissa olevat
+ *               käännökset sovelletaan silti koko listaan.
  * @returns      sama lista, englanniksi siltä osin kuin käännös on saatavilla
  */
-export function useTranslatedEvents(events: Event[], lang: string): Event[] {
+export function useTranslatedEvents(events: Event[], lang: string, vain: string | null = null): Event[] {
   // Kasvaa kun uusia käännöksiä saapuu → pakottaa uudelleenlaskennan.
   const [version, setVersion] = useState(0)
   // Yritetyt AVAIMELLA id|hash, ei pelkällä id:llä. useEvents hakee kahdessa
@@ -70,12 +77,31 @@ export function useTranslatedEvents(events: Event[], lang: string): Event[] {
   // hakkaamaan loputtomiin.
   const attempted = useRef<Set<string>>(new Set())
 
+  // RIIPPUVUUSAVAIN VAIN ENGLANNIKSI JA VAIN KUN LISTA VAIHTUU (4.11.2026).
+  // Aiemmin avain (id|hash joka tapahtumasta) laskettiin riippuvuuslistassa
+  // JOKA renderÖINNILLÄ myös suomeksi: 6 800 tapahtuman otsikot ja kuvaukset
+  // hajautettiin jokaisella hakukentän näppäinpainalluksella — profiloituna
+  // noin kaksi kolmasosaa kirjoituksen aikaisesta pääsäikeen työstä, ja
+  // näppäinpainallus maksoi 70–100 ms. Lista (events-viite) vaihtuu vain kun
+  // dataa saapuu, ei näppäinpainalluksella, joten memo riittää.
+  const vainJoukko = useMemo(() => (vain == null ? null : new Set(vain.split(',').filter(Boolean))), [vain])
+  // Käännettävät ehdokkaat: rajattu joukko tai koko lista. Avain lasketaan
+  // vain ehdokkaista, joten hakutilassa se on muutaman kymmenen rivin mittainen.
+  const ehdokkaat = useMemo(
+    () => (vainJoukko ? events.filter((e) => vainJoukko.has(e.id)) : events),
+    [events, vainJoukko],
+  )
+  const avain = useMemo(
+    () => (lang === 'en' ? ehdokkaat.map((e) => `${e.id}|${sourceHash(e)}`).join(',') : ''),
+    [ehdokkaat, lang],
+  )
+
   useEffect(() => {
-    if (lang !== 'en' || !events.length) return
+    if (lang !== 'en' || !ehdokkaat.length) return
     loadLs()
 
     // Puuttuvat = ei muistissa TAI lähdeteksti muuttunut hashin perusteella.
-    const missing = events.filter((e) => {
+    const missing = ehdokkaat.filter((e) => {
       const h = sourceHash(e)
       const key = `${e.id}|${h}`
       const hit = mem.get(e.id)
@@ -118,9 +144,9 @@ export function useTranslatedEvents(events: Event[], lang: string): Event[] {
       .finally(() => { keys.forEach((k) => inFlight.delete(k)) })
 
     return () => { alive = false }
-    // events-viittaus vaihtuu joka haussa; id-lista riittää riippuvuudeksi.
+    // avain kattaa listan sisällön; events-viite itse ei ole riippuvuus.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, events.map((e) => `${e.id}|${sourceHash(e)}`).join(','), version])
+  }, [lang, avain, version])
 
   return useMemo(() => {
     if (lang !== 'en') return events

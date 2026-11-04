@@ -82,6 +82,18 @@ async function lammitaNostot(origin: string): Promise<NostoLammitys[]> {
   }))
 }
 
+/** Hakuikkunan 10 sivua lämmitetään joka kolmannella kierroksella (15 min),
+ *  ei joka viides minuutti: jokainen sivu lukee omat palansa Supabasen
+ *  lähdevarastosta, ja kaikki 10 sivua ovat n. 1,5 × koko 90 pv aineisto
+ *  (7,8 MB, mitattu 4.11.2026) — joka kierroksella se olisi kaksinkertaistanut
+ *  lämmityksen Supabase-liikenteen. Reuna tarjoaa 5 min vanhemman sivun heti
+ *  (stale-while-revalidate 1 h) ja päivittää sen taustalla, joten 15 min
+ *  väli ei näy hakijalle. Minuutti tarkistetaan 5 min lohkona, jotta cronin
+ *  muutaman sekunnin myöhästyminen ei pudota kierrosta. */
+function hakusivutTallaKierroksella(nyt: Date = new Date()): boolean {
+  return Math.floor(nyt.getUTCMinutes() / 5) % 3 === 0
+}
+
 export async function GET(req: NextRequest) {
   const origin = lahtoOsoite(req)
   const alku = Date.now()
@@ -96,7 +108,7 @@ export async function GET(req: NextRequest) {
   // tarve on ~48 paria / 5 min (tämän päivän pala 10 min välein ×45 jne.).
   const varasto = vainNostot ? null : await rakennaVarasto({ origin, budjettiMs: 30_000, maxHaut: 60 })
   const [tulokset, nostot] = await Promise.all([Promise.all(
-    (vainNostot ? [] : lammitettavatParams()).map(async ({ filter, params }) => {
+    (vainNostot ? [] : lammitettavatParams('helsinki', { hakusivut: hakusivutTallaKierroksella() })).map(async ({ filter, params }) => {
       const url = `${origin}/api/events?${params}`
       const t0 = Date.now()
       try {

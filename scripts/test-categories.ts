@@ -104,7 +104,7 @@ import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/he
 import { arvioiSitoutuminen, TYHJA_TILA } from '../lib/engagement'
 import { slotFor, poimiPoydat, aukioloTieto } from '../lib/poyta-poiminnat'
 import { karsiTapahtumaPerheet, karsiTapahtumaSarjat } from '../lib/tapahtumaperhe'
-import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, formatDateRange, tuntematonAika, isTonight } from '../lib/utils'
+import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, formatDateRange, tuntematonAika, isTonight, getDateRange } from '../lib/utils'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, ctaKohde, onMaksunkeruuUrl } from '../lib/event-links'
@@ -125,7 +125,7 @@ import { toEvent, lahdeIdsta, eventToPageData, kelpoJakoId, kelpoPaiva, etsiTapa
 import { HELSINKI_NIGHTCLUBS } from '../lib/helsinki-nightclubs'
 import { poimintaJarjestys, poimintaPisteet } from '../lib/picks'
 import { onEstettyPaikka } from '../lib/venue-blocklist'
-import { haeKahdessaVaiheessa, tapahtumaHakuParams, ESILADATTAVAT, lammitettavatParams } from '../lib/events-fetch'
+import { haeKahdessaVaiheessa, tapahtumaHakuParams, ESILADATTAVAT, lammitettavatParams, sivumaara, SIVUN_PAIVAT } from '../lib/events-fetch'
 import { kevennaKartalle, taydennaKevyt } from '../lib/tapahtumat-kevyt'
 import { osuuPaivaan, viikonlopunPaivat, paivaPlus } from '../lib/map-date-filter'
 import { venueKey, acceptSite } from '../scripts/fetch-venue-sites'
@@ -4883,16 +4883,24 @@ odotettavat.push((async () => {
       ok: [...tonight.keys()].join(',') === 'start,end,page,municipality,startAfter' && tonight.get('startAfter')!.includes('T17:00'), got: [...tonight.keys()].join(',') },
     { name: 'hakuavain: Tänään ilman startAfteria, sama avain kahdesti', ok: tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).toString() === tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).toString() && !tapahtumaHakuParams({ dateFilter: 'today', page: 1, municipality: 'helsinki' }).has('startAfter') },
     { name: 'esiladattavat: Illalla, Huomenna, Viikonloppu — ei viikkoa (1,8 MB)', ok: ESILADATTAVAT.join(',') === 'tonight,tomorrow,weekend' },
-    { name: 'lämmitys: 6 eri ikkunaa (myös kartan kevyt kuukausi), Illalla startAfterilla, avaimet = selaimen haun avaimet',
+    { name: 'lämmitys: 6 päiväikkunaa sivulla 1 (myös kartan kevyt kuukausi) + 90 pv haun kaikki sivut, avaimet = selaimen haun avaimet',
       ok: (() => {
         const l = lammitettavatParams()
         const avaimet = l.map((x) => x.params.toString())
-        return l.length === 6 && new Set(avaimet).size === 6
+        const paiva = l.filter((x) => x.filter !== 'search')
+        const haku = l.filter((x) => x.filter === 'search')
+        const { start, end } = getDateRange('search')
+        return paiva.length === 6 && new Set(avaimet).size === l.length
           && avaimet.includes(tapahtumaHakuParams({ dateFilter: 'tonight', page: 1, municipality: 'helsinki' }).toString())
           && avaimet.includes(tapahtumaHakuParams({ dateFilter: 'week', page: 1, municipality: 'helsinki' }).toString())
           && avaimet.includes(tapahtumaHakuParams({ dateFilter: 'month', page: 1, municipality: 'helsinki' }).toString())
-          && l.every((x) => x.params.get('municipality') === 'helsinki' && x.params.get('page') === '1')
+          && paiva.every((x) => x.params.get('municipality') === 'helsinki' && x.params.get('page') === '1')
+          && haku.length === sivumaara(start, end) && haku.length >= 9
+          && haku.map((x) => x.params.get('page')).join(',') === haku.map((_, i) => String(i + 1)).join(',')
+          && haku.every((x) => x.params.toString() === tapahtumaHakuParams({ dateFilter: 'search', page: Number(x.params.get('page')), municipality: 'helsinki' }).toString())
       })() },
+    { name: 'lämmitys ilman hakusivuja (joka kolmas kierros ohittaa ne): vain 6 päiväikkunaa', ok: lammitettavatParams('helsinki', { hakusivut: false }).length === 6 && lammitettavatParams('helsinki', { hakusivut: false }).every((x) => x.filter !== 'search') },
+    { name: 'sivumaara: 91 pv → 10 sivua, 32 → 4, 10 → 1, 11 → 2, 1 → 1; sivun pituus 10', ok: sivumaara('2026-11-04', '2027-02-02') === 10 && sivumaara('2026-11-04', '2026-12-05') === 4 && sivumaara('2026-11-04', '2026-11-13') === 1 && sivumaara('2026-11-04', '2026-11-14') === 2 && sivumaara('2026-11-04', '2026-11-04') === 1 && SIVUN_PAIVAT === 10 },
     { name: 'hakuavain: kuukausi (kartta) pyytää kevyen muodon kentat=kartta; Tänään, Viikko ja haku eivät',
       ok: tapahtumaHakuParams({ dateFilter: 'month', page: 1, municipality: 'helsinki' }).get('kentat') === 'kartta'
         && tapahtumaHakuParams({ dateFilter: 'month', page: 2, municipality: 'helsinki' }).get('kentat') === 'kartta'

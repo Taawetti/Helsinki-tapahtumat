@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { Fragment, useState, useCallback, useMemo, useEffect, useRef, useSyncExternalStore } from 'react'
+import { Fragment, useState, useCallback, useMemo, useEffect, useRef, useSyncExternalStore, useDeferredValue } from 'react'
 import { Loader2, Heart, Bell, Plus, ChevronLeft, Download, Ellipsis } from 'lucide-react'
 import { Event, Activity, Restaurant, DateFilter, PriceFilter, CATEGORIES, VIBES, NEIGHBORHOODS, NEIGHBORHOOD_INESSIVE } from '@/lib/types'
 import { getEventVibes } from '@/lib/event-classify'
@@ -377,6 +377,12 @@ export default function HomeClient({
   const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [activeVibes, setActiveVibes] = useState<string[]>(initialVibes ?? [])
   const [keyword, setKeyword] = useState('')
+  // VIIVÄSTETTY HAKUSANA (4.11.2026): hakukenttä saa keywordin heti, kaikki
+  // muu (suodatus, järjestely, ehdotukset, näkymän valinta) lukee hakua.
+  // React piirtää näppäinpainalluksen ensin ja laskee raskaan osan perässä
+  // keskeytettävästi, joten kirjaimet eivät pätki vaikka 90 pv aineisto
+  // (n. 6 800 tapahtumaa) on muistissa. Mitattu ennen: 70–100 ms per merkki.
+  const haku = useDeferredValue(keyword)
   /** Koodista asetettu hakusana (paikan tapahtumat), ei käyttäjän
    *  näppäimistöltä — ks. hakumittauksen efekti alla. Talletetaan ARVO eikä
    *  pelkkä lippu: jos hakusanaksi asetetaan se mikä siellä jo on, React ei
@@ -388,7 +394,7 @@ export default function HomeClient({
   // kaikkeen (mitattu 6.9.2026: "k" = 4875/4975 tapahtumaa) eikä kukaan
   // hae yhdellä kirjaimella — kylmä 90 pv haku maksaa 25 s ja 5,3 Mt.
   // Alle kynnyksen hakusana suodattaa valittua päiväikkunaa normaalisti.
-  const hakuIkkuna = keyword.trim().length >= 2
+  const hakuIkkuna = haku.trim().length >= 2
 
   // Haku mitataan VASTA kun kirjoittaminen loppuu. Jokaisen näppäimen
   // kirjaaminen tuottaisi roskaa ("k", "ke", "kei", "keik"…) ja kymmenkertaisen
@@ -404,11 +410,11 @@ export default function HomeClient({
   useEffect(() => {
     const ohjelmallinen = ohjelmallinenHaku.current
     ohjelmallinenHaku.current = null
-    const kw = keyword.trim()
+    const kw = haku.trim()
     if (kw === ohjelmallinen || kw.length < 3) return
     const t = setTimeout(() => track('search', { label: kw.slice(0, 60) }), 1200)
     return () => clearTimeout(t)
-  }, [keyword])
+  }, [haku])
 
   // Taustalta paluun tuoreutus: iOS palauttaa kotivalikkosovelluksen nukkuvan
   // istunnon muistista ILMAN sivulatausta, joten sekä sovelluskoodi että
@@ -522,7 +528,7 @@ export default function HomeClient({
   // Sarja sulkeutuu kun päivä, kategoria tai hakusana vaihtuu — muuten vanha
   // lista jäisi näkyviin väärän valinnan alle.
   // eslint-disable-next-line react-hooks/set-state-in-effect -- nollaus valinnan vaihtuessa; ei kaskadia (yksi setState, riippuu vain syötteistä)
-  useEffect(() => { setAvattuSarja(null) }, [dateFilter, customDate, koCat, keyword])
+  useEffect(() => { setAvattuSarja(null) }, [dateFilter, customDate, koCat, haku])
   // Kategorian avaus/vaihto vie aina listan alkuun — muuten näkymä jää
   // etusivun scrollikohtaan ja lista aukeaa "puolesta välistä"
   useEffect(() => {
@@ -557,7 +563,7 @@ export default function HomeClient({
     searchDataLoaded.current = true
     fetch('/api/activities').then(r => r.json()).then(d => setAllActivities(d?.activities ?? [])).catch(() => {})
     fetch('/api/restaurants').then(r => r.json()).then(d => setAllRestaurants(d?.restaurants ?? [])).catch(() => {})
-  }, [keyword])
+  }, [haku])
 
 
 
@@ -605,7 +611,7 @@ export default function HomeClient({
   const [pushEnabled, setPushEnabled] = useState(false)
   const geo = useGeolocation() // korttien etäisyyslaskuun (jos sijainti jo sallittu)
 
-  const { events: rawEvents, loading, fetchingFull, osittainen, error, hasMore, total, generatedAt, sources, loadMore } = useEvents({
+  const { events: rawEvents, loading, fetchingFull, osittainen, error, hasMore, total, generatedAt, sources, loadMore, lataaLoputSivut } = useEvents({
     // Idea-näkymä on aina "tänään" — ei riipu Discoverin päivävalinnasta (muuten
     // esim. "Huomenna" tyhjentäisi Idea-deckin tapahtumat). Ei muuta tallennettua
     // dateFilteriä, joten Discoveriin palatessa käyttäjän valinta säilyy.
@@ -614,7 +620,7 @@ export default function HomeClient({
     // haun aikaikkunan — käyttäjän oma päivävalinta säilyy tilassa ja palaa
     // voimaan heti kun hakukenttä tyhjennetään.
     dateFilter: mode === 'map' ? 'month' : mode === 'idea' ? 'today' : hakuIkkuna ? 'search' : dateFilter,
-    customDate, customDateEnd, keyword, municipality, activeCategories, bbox: '',
+    customDate, customDateEnd, keyword: haku, municipality, activeCategories, bbox: '',
     nearbyCoords: null,
   })
 
@@ -624,11 +630,18 @@ export default function HomeClient({
   // Suomeksi tämä palauttaa listan koskemattomana. Kytkentä on tässä, koska
   // KAIKKI näkymät (kortit, kartta, Idea, infopaneeli) saavat tapahtumansa
   // tämän saman listan kautta.
-  const events = useTranslatedEvents(rawEvents, lang)
+  // KÄÄNNÖS VAIN NÄKYVILLE HAKUTULOKSILLE (omistaja 4.11.2026). Hakutilassa
+  // lista on koko 90 pv ikkuna; käännettäväksi annetaan vain ruudulla oleva
+  // viipale (discoverEvents.slice(0, nayttoRaja)), joka tiedetään vasta kun
+  // suodatus on laskettu käännetystä listasta — siksi tila + effekti, yksi
+  // ylimääräinen renderöinti. Muissa näkymissä kuten ennen (koko ikkuna),
+  // koska etusivun nostot ja rivit lukevat listaa muualtakin kuin ruudukosta.
+  const [kaannettavat, setKaannettavat] = useState<string | null>(null)
+  const events = useTranslatedEvents(rawEvents, lang, hakuIkkuna ? (kaannettavat ?? '') : null)
 
   const localSearchHits = useMemo(() => {
-    if (!keyword || keyword.length < 2) return { venues: [], activities: [], restaurants: [] }
-    const kw = keyword.toLowerCase()
+    if (!haku || haku.length < 2) return { venues: [], activities: [], restaurants: [] }
+    const kw = haku.toLowerCase()
     // Hakuehdotusten omat lyhytmuodot kolmelle luokalle: cat.*-avaimet ovat
     // kartan/oppaiden yhteinen kategoriasanasto ('Näköalapaikka', 'Tori & halli',
     // 'Muu'), mutta hakurivi on aina käyttänyt tiiviimpiä muotoja. Omat avaimet
@@ -680,7 +693,7 @@ export default function HomeClient({
         // ei raakaa tunnistetta ('yokerho').
         .map(r => ({ id: r.id, name: r.name, sub: `${REST_EMOJI[r.type] ?? '🍴'} ${r.description || t(`rest.type.${r.type}`)}` })),
     }
-  }, [keyword, allActivities, allRestaurants, events, t])
+  }, [haku, allActivities, allRestaurants, events, t])
 
   const handleRangeChange = useCallback((start: string, end: string) => {
     setCustomDate(start)
@@ -888,8 +901,8 @@ export default function HomeClient({
 
     // Keyword concept filter — applied client-side because Linked Events full-text search
     // returns too many false positives (word "keikka" appears in unrelated descriptions).
-    if (keyword) {
-      const kw = keyword.toLowerCase().trim()
+    if (haku) {
+      const kw = haku.toLowerCase().trim()
       const conceptTerms = KEYWORD_CONCEPTS[kw]
       if (conceptTerms) {
         // Concept search: match against categories + title
@@ -953,7 +966,7 @@ export default function HomeClient({
     return result
     // keyword puuttui riippuvuuksista (piilevä bugi: pelkkä hakusanan muutos
     // ei laskenut suodatusta uudelleen ellei jokin muu tila muuttunut samalla)
-  }, [upcomingEvents, activeCategories, activeVibes, priceFilter, keyword, hoodFilter])
+  }, [upcomingEvents, activeCategories, activeVibes, priceFilter, haku, hoodFilter])
 
   // Suodatetut listat (kaupunginosa, aihepiiri, hinta) samaan poiminta-
   // järjestykseen kuin etusivu (omistaja 24.9.2026, Kallion lista). HAKU
@@ -964,13 +977,22 @@ export default function HomeClient({
       : [...filteredEvents].sort(poimintaJarjestys),
     [filteredEvents, hakuIkkuna]
   )
+  // Ruudulla olevien hakutulosten id:t käännöskoukulle (ks. kaannettavat yllä).
+  const nakyvatAvain = useMemo(
+    () => (hakuIkkuna ? discoverEvents.slice(0, nayttoRaja).map((e) => e.id).join(',') : null),
+    [discoverEvents, nayttoRaja, hakuIkkuna],
+  )
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- käännettävä joukko johdetaan suodatetusta listasta
+    setKaannettavat(nakyvatAvain)
+  }, [nakyvatAvain])
 
   // Renderöintiraja alkuun aina kun suodatus vaihtuu — muuten uusi haku
   // perisi edellisen vierityksen kasvattaman rajan.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- raja nollataan suodattimien vaihtuessa
     setNayttoRaja(NAYTTO_ERA)
-  }, [keyword, activeVibes, activeCategories, priceFilter, hoodFilter])
+  }, [haku, activeVibes, activeCategories, priceFilter, hoodFilter])
 
   // Infinite scroll: sentinel kasvattaa ENSIN renderöintirajaa (osumia on jo
   // muistissa enemmän kuin ruudulla) ja hakee palvelimelta lisää vasta kun
@@ -1010,10 +1032,11 @@ export default function HomeClient({
   // jäljellä, osumista riippumatta — ei kesken haun eikä virheen jälkeen
   // (virheellä sivunumero kasvaisi loputtomiin). Tyhjä tila odottaa, kunnes
   // kaikki sivut on käyty (hakuKesken).
+  // Sivut 2…N rinnakkain (hooks/useEvents lataaLoputSivut), ei sivu kerrallaan.
   useEffect(() => {
     if (!hakuIkkuna || !hasMore || loading || fetchingFull || error) return
-    loadMore()
-  }, [hakuIkkuna, hasMore, loading, fetchingFull, error, loadMore])
+    lataaLoputSivut()
+  }, [hakuIkkuna, hasMore, loading, fetchingFull, error, lataaLoputSivut])
   const hakuKesken = hakuIkkuna && !error && (loading || fetchingFull || hasMore)
 
   // Base events for the picks grid — date/keyword filtered but NOT vibe/category filtered
@@ -1608,9 +1631,9 @@ export default function HomeClient({
                 {/* Numeerinen kuukausi: "torstai 24. syyskuuta · 233 tapahtumaa tänään"
                     ei mahtunut 390 px:iin (mitattu 24.9.2026). */}
                 {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'numeric', timeZone: 'Europe/Helsinki' })}
-                {osittainen && !keyword
+                {osittainen && !haku
                   ? ` · ${t('discover.fetching_short')}`
-                  : !loading && baseEvents.length > 0 && !keyword
+                  : !loading && baseEvents.length > 0 && !haku
                     ? ` · ${baseEvents.length} ${dateFilter === 'today' || dateFilter === 'tonight' ? t('discover.events_today') : t('discover.events_count')}`
                     : ''}
               </span>
@@ -1746,12 +1769,12 @@ export default function HomeClient({
 
           {/* ═══ KATEGORIAN PYSTYLISTA (koCat) — ← Takaisin + rikkaat kortit ═══ */}
           {/* ═══ OPAS ETUSIVUN SISÄLLÄ (guideView) ═══ */}
-          {guideView && !koCat && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+          {guideView && !koCat && !haku && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <GuideInlineView slug={guideView} initialSlug={initialGuide} initialData={initialGuideData} onBack={() => setGuideView(null)}
               onSwitch={setGuideView} onEventClick={avaa.guide} />
           )}
 
-          {koCat && !guideView && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+          {koCat && !guideView && !haku && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <section className="space-y-4">
               <div className="flex items-center gap-3">
                 <button onClick={() => setKoCat(null)}
@@ -1867,7 +1890,7 @@ export default function HomeClient({
                         className="text-white/60 hover:text-white text-sm font-bold px-2 py-1 rounded-lg hover:bg-white/10">✕</button>
                     </div>
                   )}
-                  {(avattuSarja ? avattuSarja.tapahtumat : keyword ? koCatEvents : ryhmitaSarjat(koCatEvents)).map((r) => (
+                  {(avattuSarja ? avattuSarja.tapahtumat : haku ? koCatEvents : ryhmitaSarjat(koCatEvents)).map((r) => (
                     'tyyppi' in r ? (
                       <SarjaKortti key={r.avain} ryhma={r} onOpen={avaaSarja} />
                     ) : (
@@ -1882,16 +1905,16 @@ export default function HomeClient({
               )}
               {/* Museo on ainoa peruskategoria jossa PAIKAT kuuluvat tapahtumien
                   perään (omistaja 23.9.2026) — ks. components/MuseoOsio. */}
-              {koCat === 'museo' && !keyword && <MuseoOsio />}
+              {koCat === 'museo' && !haku && <MuseoOsio />}
             </section>
           )}
 
           {/* ═══ ETUSIVU (koFront) — hero → ruudukko → kompaktit rivit → aihepiirit ═══ */}
-          {!koCat && !guideView && !keyword && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
+          {!koCat && !guideView && !haku && !hoodFilter && activeVibes.length === 0 && activeCategories.length === 0 && priceFilter === 'all' && (
             <>
               {/* Tilarivi: vihreä pulssipiste + päivän tapahtumamäärä */}
               {/* Mobiilissa sama tieto on HELSINKI-otsikon alarivillä (§2). */}
-              {!loading && baseEvents.length > 0 && !keyword && (
+              {!loading && baseEvents.length > 0 && !haku && (
                 <div className="hidden md:flex items-center gap-2 -mb-1">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#5fd9a6', boxShadow: '0 0 8px rgba(95,217,166,.8)', animation: 'pulse-glow 2s ease-in-out infinite' }} />
                   <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,.55)' }}>
@@ -2136,23 +2159,23 @@ export default function HomeClient({
           {/* Suodatetun näkymän lataustila: vaihe 1 on ohi (skeleton poissa)
               mutta täysi haku kesken eikä osumia vielä ole — ilman tätä
               paikkahaku ("Paikan kaikki tapahtumat") näytti 2–3 s tyhjää. */}
-          {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length === 0 && (loading || fetchingFull || hakuKesken) && (
+          {(haku || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length === 0 && (loading || fetchingFull || hakuKesken) && (
             <div className="flex items-center justify-center gap-2 py-10">
               <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1.5px solid rgba(107,118,255,.2)', borderTopColor: '#6b76ff', animation: 'spin 0.75s linear infinite', flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>{t('discover.loading_events')}</span>
             </div>
           )}
 
-          {/* ── Flat grid — näkyy kun keyword, kategoria, vibe tai Nyt menossa valittu ── */}
-          {(keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
+          {/* ── Flat grid — näkyy kun hakusana, kategoria, vibe tai Nyt menossa valittu ── */}
+          {(haku || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all') && discoverEvents.length > 0 && (
             <section>
               {/* Hakuotsikko: kertoo että tulokset ovat KAIKILTA tulevilta
                   päiviltä, ei valitulta päivältä — muuten laskuri ja
                   päivävalinta jäisivät ristiriitaisiksi. */}
-              {keyword && (
+              {haku && (
                 <div className="flex items-baseline gap-2 mb-3 flex-wrap">
                   <h2 className="font-black text-white text-[18px]" style={{ letterSpacing: '-0.02em' }}>
-                    &quot;{keyword}&quot;
+                    &quot;{haku}&quot;
                   </h2>
                   <span className="text-[13px] font-bold text-white/40">
                     {discoverEvents.length} {discoverEvents.length === 1 ? t('discover.upcoming_event') : t('discover.upcoming_events')}
@@ -2192,11 +2215,11 @@ export default function HomeClient({
               päällä, ratkaisee SUODATETTU tulos — muuten "Ei tuloksia haulle X"
               ei näkyisi koskaan, koska pakassa on aina tapahtumia. */}
           {!loading && !fetchingFull && !hakuKesken && !error && !koCat && !guideView &&
-            ((keyword || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all')
+            ((haku || hoodFilter || activeVibes.length > 0 || activeCategories.length > 0 || priceFilter !== 'all')
               ? discoverEvents.length === 0
               : baseEvents.length === 0) && (
             <EmptyState
-              keyword={keyword}
+              keyword={haku}
               activeVibes={activeVibes}
               activeCategories={activeCategories}
               priceFilter={priceFilter}

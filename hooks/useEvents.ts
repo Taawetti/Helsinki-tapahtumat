@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Event, DateFilter, SourceStatus, CATEGORIES } from '@/lib/types'
 import { getDateRange, haversineKm } from '@/lib/utils'
-import { haeKahdessaVaiheessa, tapahtumaHakuParams, ESILADATTAVAT } from '@/lib/events-fetch'
+import { haeKahdessaVaiheessa, tapahtumaHakuParams, ESILADATTAVAT, sivumaara } from '@/lib/events-fetch'
 import { getCategoryScores, virtualStartTime } from '@/lib/preferences'
 import type { GeoCoords } from './useGeolocation'
 
@@ -94,6 +94,8 @@ interface UseEventsResult {
   generatedAt: string | null
   sources: SourceStatus[]
   loadMore: () => void
+  /** Hakee ikkunan loput sivut (2…N) rinnakkain, vain täysi haku — hakuikkuna. */
+  lataaLoputSivut: () => void
 }
 
 // localStorage-kiintiö on 5–10 MB per origin. Hakuikkuna (90 pv) tuottaa
@@ -391,7 +393,58 @@ export function useEvents({
     fetchEvents(next, true)
   }, [page, fetchEvents])
 
-  return { events, loading, fetchingFull, osittainen, error, hasMore, total, generatedAt, sources, loadMore }
+  // HAKUIKKUNAN SIVUT RINNAKKAIN (4.11.2026). Sivu kerrallaan (loadMore) haku
+  // valmistui lämpimänäkin 10–20 s: joka sivulle pikatulos + täysi haku
+  // peräkkäin. Hakuikkuna tarvitsee aina kaikki sivut, joten sivut 2…N haetaan
+  // yhdellä kertaa ja vain täytenä. Sivumäärä lasketaan ikkunasta (sama
+  // SIVUN_PAIVAT kuin koosteessa). Epäonnistunut sivu yritetään kerran
+  // uudestaan; sen jälkeen hasMore on false eikä puuttuvaa sivua jäädä
+  // kiertämään — haku on silloin vajaa, ei jumissa. Tulokset menevät
+  // samaan applySort-karsintaan kuin sivuttainen lataus.
+  const lataaLoputSivut = useCallback(() => {
+    const { start, end } = getDateRange(dateFilter, customDate, customDateEnd)
+    const sivuja = sivumaara(start, end)
+    if (sivuja <= 1) { setHasMore(false); return }
+    if (abortRef.current) abortRef.current.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+    setFetchingFull(true)
+    const haeSivu = async (p: number): Promise<EventsResponse | null> => {
+      const params = tapahtumaHakuParams({ dateFilter, customDate, customDateEnd, page: p, municipality, bbox, activeCategories })
+      const key = params.toString()
+      const c = eventsCache.get(key)
+      if (c && !c.seed && Date.now() - c.ts < CACHE_TTL) return { events: c.events, hasMore: c.hasMore, total: c.total, generatedAt: c.generatedAt, sources: c.sources }
+      try {
+        const res = await fetch(`/api/events?${params}`, { signal: controller.signal })
+        if (!res.ok) return null
+        const d = (await res.json()) as EventsResponse
+        eventsCache.set(key, { events: d.events, hasMore: d.hasMore, total: d.total, ts: Date.now(), generatedAt: d.generatedAt, sources: d.sources })
+        return d
+      } catch {
+        return null
+      }
+    }
+    const sivunumerot = Array.from({ length: sivuja - 1 }, (_, i) => i + 2)
+    ;(async () => {
+      const tulokset = await Promise.all(sivunumerot.map(haeSivu))
+      if (controller.signal.aborted) return
+      const puuttuvat = sivunumerot.filter((_, i) => tulokset[i] === null)
+      if (puuttuvat.length > 0) {
+        const uusinta = await Promise.all(puuttuvat.map(haeSivu))
+        if (controller.signal.aborted) return
+        puuttuvat.forEach((p, i) => { tulokset[sivunumerot.indexOf(p)] = uusinta[i] })
+      }
+      const saadut = tulokset.filter((d): d is EventsResponse => d !== null)
+      if (saadut.length < sivunumerot.length) console.warn(`[useEvents] hakuikkuna: ${sivunumerot.length - saadut.length} sivua jäi saamatta`)
+      setEvents((prev) => applySort(saadut.flatMap((d) => d.events), prev, true))
+      setTotal((t) => t + saadut.reduce((s, d) => s + d.total, 0))
+      setPage(sivuja)
+      setHasMore(false)
+      setFetchingFull(false)
+    })()
+  }, [dateFilter, customDate, customDateEnd, municipality, bbox, activeCategories, applySort])
+
+  return { events, loading, fetchingFull, osittainen, error, hasMore, total, generatedAt, sources, loadMore, lataaLoputSivut }
 }
 
 // Lightweight hook for collection previews (fetches up to 10 events)
