@@ -184,7 +184,15 @@ export async function GET(req: NextRequest) {
     // (month/map) forward in time. quick fetches only the first day of the
     // window for a fast first paint. Short ranges (today/weekend/week) fit
     // entirely in page 1 → hasMore=false and every filter sees the full data.
-    const DAYS_PER_PAGE = 10
+    // KARTAN KUUKAUSI-IKKUNA (kentat=kartta) YHTENÄ SIVUNA (4.11.2026): kartta
+    // ja tyhjän kategorian "tulevat"-täydennys (HomeClient) lukevat vain sivun 1
+    // eivätkä selaa. Kymmenen päivän sivulla ne saivat LinkedEventsin vain
+    // ikkunan alusta ja ulkoiset lähteet koko väliltä ilman dedupin vastapuolta:
+    // Saiturin joulu 2.12. näkyi kolmena (LinkedEvents, Fienta, stadissa) vielä
+    // sivurajauksen jälkeen. Nyt koko väli on yksi sivu: 32 LinkedEvents-
+    // päiväpalaa rinnakkain. Päiväpalat jakavat fetch-välimuistin päivänäkymien
+    // kanssa, lämmitys hakee ikkunan 5 min välein ja reuna pitää sen 15 min.
+    const DAYS_PER_PAGE = kevytKartalle ? 40 : 10
     const rangeStartTs = new Date(start).getTime()
     const totalDays = Math.max(1, Math.round((new Date(end).getTime() - rangeStartTs) / 86400000) + 1)
     const firstDayIdx = (pageNum - 1) * DAYS_PER_PAGE
@@ -200,11 +208,11 @@ export async function GET(req: NextRequest) {
     // LinkedEvents rajataan sivun päiviin. Aiemmin ulkoiset tulivat koko
     // väliltä sivulle 1, joten sivun 1 ulkoinen rivi ja sivun 3 LinkedEvents-
     // rivi samasta keikasta eivät koskaan kohdanneet dedupissa (mitattu: 10 %
-    // 90 pv hakuikkunan korteista tuplia). Kartan kuukausi-ikkuna lukee vain
-    // sivun 1 eikä selaa → sille ulkoiset edelleen koko väliltä sivulle 1.
-    // quick=1 hakee vain LinkedEventsin ensimmäisen päivän kuten ennenkin.
-    const rajat = kevytKartalle ? null : sivunRajat(dayDates, pageNum === 1, !hasMore)
-    const attemptExternal = !quick && (rajat !== null || page === '1')
+    // 90 pv hakuikkunan korteista tuplia). Kartan kuukausi-ikkuna on yksi sivu
+    // (DAYS_PER_PAGE yllä), joten rajaus on sille läpinäkyvä. quick=1 hakee
+    // vain LinkedEventsin ensimmäisen päivän kuten ennenkin.
+    const rajat = sivunRajat(dayDates, pageNum === 1, !hasMore)
+    const attemptExternal = !quick && rajat !== null
 
     // Fetch all day-chunks + external sources in parallel.
     // Fresh options per call — AbortSignal.timeout starts ticking on creation,

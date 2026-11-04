@@ -25,9 +25,10 @@
 // joten niitä ei synny, mutta rivi ei saa kadota). Ulkoiset lähteet luetaan
 // kullekin sivulle vain sen omalta väliltä.
 //
-// KARTAN KUUKAUSI-IKKUNA (kentat=kartta) EI käytä tätä: kartta lukee vain
-// sivun 1 eikä selaa, joten sille ulkoiset liitetään edelleen koko väliltä
-// sivulle 1 (ks. app/api/events). Puhtaita funktioita — testit
+// KARTAN KUUKAUSI-IKKUNA (kentat=kartta) palvellaan yhtenä sivuna (app/api/
+// events DAYS_PER_PAGE), koska kartta ja "tulevat"-täydennys lukevat vain
+// sivun 1 eivätkä selaa. Yhden sivun ikkunalle rajaus on läpinäkyvä: ensimmäinen
+// ja viimeinen sivu ottavat kaiken. Puhtaita funktioita — testit
 // scripts/test-categories.ts.
 
 export interface SivunRajat {
