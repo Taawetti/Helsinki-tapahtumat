@@ -75,7 +75,7 @@ import { onSamaEsitys, paikkasuhde, normalisoiOtsikkoAvain, etaisyysM, otsikonKl
 import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, onLippuklikki, type KlikkiRivi } from '../lib/kavijatilastot'
-import { aktiivisetNostot, yhdistaNostot, type NostoMaaritys, type NostoTiedosto, nostonLammitysOsoitteet } from '../lib/nostot'
+import { aktiivisetNostot, yhdistaNostot, type NostoMaaritys, type NostoTiedosto, nostonLammitysOsoitteet, ryhmitteleKuukausittain, kuukausiOtsikko, nostonKuukausi } from '../lib/nostot'
 import nostoFile from '../data/nostot.json'
 import { suodataJoulukonsertit, onJoulukausi } from '../lib/joulukonsertit'
 import { nameOverlap } from '../lib/dataforseo'
@@ -5180,6 +5180,18 @@ odotettavat.push((async () => {
     { name: 'yhdistys koosteen tapahtumaan otsikolla, päivällä ja paikalla (Tampere 16.12. ei kelpaa)',
       ok: (() => { const r = yhdistaNostot([m()], [ev('Jannan Joulu', '2026-12-16T19:00:00+02:00', 'Tampereen Tuomiokirkko'), ev('Jannan Joulu', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')]); return r.length === 1 && r[0].event.location?.name === 'Kallion kirkko' && r[0].mainos === true })() },
     { name: 'ilman osuvaa tapahtumaa nosto jää pois', ok: yhdistaNostot([m()], [ev('Joulukonsertti', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')]).length === 0 },
+    // Osion otsikko kuukaudesta (omistaja 4.11.2026): lasketaan, ei kirjoiteta käsin.
+    { name: 'kuukausiOtsikko: Joulukuun nosto / nostot, December pick / picks', ok: kuukausiOtsikko('2026-12', 1, 'fi') === 'Joulukuun nosto' && kuukausiOtsikko('2026-12', 2, 'fi') === 'Joulukuun nostot' && kuukausiOtsikko('2026-11', 1, 'en') === 'November pick' && kuukausiOtsikko('2026-11', 3, 'en') === 'November picks' },
+    { name: 'kuukausiOtsikko: kelvoton kuukausi antaa null (näkymä näyttää yleisen otsikon)', ok: kuukausiOtsikko('2026-13', 1, 'fi') === null && kuukausiOtsikko('', 1, 'fi') === null && kuukausiOtsikko('2026-00', 1, 'en') === null },
+    { name: 'nostonKuukausi: Helsinki-kuukausi, 30.11. klo 22:30Z on jo joulukuuta', ok: nostonKuukausi({ event: ev('x', '2026-11-30T22:30:00Z', 'y') }) === '2026-12' && nostonKuukausi({ event: ev('x', '2026-11-30T23:30:00+02:00', 'y') }) === '2026-11' && nostonKuukausi({ event: ev('x', '2026-12-09', 'y') }) === '2026-12' },
+    { name: 'ryhmitteleKuukausittain: saman kuun nostot yhteen, ryhmät ensimmäisen esiintymän järjestyksessä',
+      ok: (() => {
+        const r = ryhmitteleKuukausittain([
+          { id: 'j1', event: ev('a', '2026-12-09T19:00:00+02:00', 'k') }, { id: 'm1', event: ev('b', '2026-11-20T19:00:00+02:00', 'k') }, { id: 'j2', event: ev('c', '2026-12-16T19:00:00+02:00', 'k') },
+        ])
+        return r.length === 2 && r[0].kuukausi === '2026-12' && r[0].nostot.map((n) => n.id).join(',') === 'j1,j2' && r[1].kuukausi === '2026-11' && r[1].nostot[0].id === 'm1'
+      })() },
+    { name: 'ryhmitteleKuukausittain: yksi nosto on yksi ryhmä, tyhjä on tyhjä', ok: ryhmitteleKuukausittain([{ id: 'j', event: ev('a', '2026-12-09T19:00:00+02:00', 'k') }]).length === 1 && ryhmitteleKuukausittain([]).length === 0 },
   ]
   const tiedosto = nostoFile as unknown as NostoTiedosto
   nCases.push({ name: 'nostot.json: tunniste, päivät YYYY-MM-DD, alku ≤ loppu ≤ tapahtumapäivä, mainos boolean',

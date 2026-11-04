@@ -1,6 +1,9 @@
 'use client'
 
-// "✦ TULOSSA" — etusivun kärkinosto (lib/nostot). Yksi leveä kortti per nosto:
+// "✦ JOULUKUUN NOSTO" — etusivun kärkinosto (lib/nostot). Osion otsikko on
+// tapahtuman kuukausi (kuukausiOtsikko): "Joulukuun nosto", useammalle
+// "Joulukuun nostot"; eri kuukausien nostot ovat omia ryhmiään omalla
+// otsikollaan (omistaja 4.11.2026). Yksi leveä kortti per nosto:
 // juliste vasemmalla, päivä + paikka, otsikko, koukkurivi (esiintyjät),
 // sosiaalinen todiste ja lippunappi hintoineen. "Mainos"-merkki maksetuissa.
 //
@@ -32,7 +35,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import { Ticket, ArrowUpRight } from 'lucide-react'
 import Kuvakatselu from '@/components/Kuvakatselu'
 import type { Event } from '@/lib/types'
-import type { Nosto } from '@/lib/nostot'
+import { kuukausiOtsikko, ryhmitteleKuukausittain, type Nosto } from '@/lib/nostot'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { affiliateUrl, stripPriceFromPrefix } from '@/lib/utils'
 import { track } from '@/lib/track'
@@ -83,18 +86,24 @@ function useNayttokerta(ref: RefObject<HTMLDivElement | null>, n: Nosto): void {
 }
 
 export default function TulossaNosto({ nostot, onOpen }: { nostot: Nosto[]; onOpen: (e: Event) => void }) {
-  const { t } = useLanguage()
+  const { lang, t } = useLanguage()
   /** Koko kokoon avattu juliste (Kuvakatselu). */
   const [julisteAuki, setJulisteAuki] = useState<{ src: string; alt: string } | null>(null)
   if (nostot.length === 0) return null
+  const ryhmat = ryhmitteleKuukausittain(nostot)
   return (
     <section aria-label={t('promo.title')} className="mt-1 md:mt-5">
-      <p className="text-[11px] font-black uppercase tracking-[.12em] mb-2" style={{ color: 'rgba(255,255,255,.5)' }}>
-        ✦ {t('promo.title')}
-      </p>
-      <div className="space-y-2.5">
-        {nostot.map((n) => <NostoKortti key={n.id} n={n} onOpen={onOpen} onJuliste={setJulisteAuki} />)}
-      </div>
+      {ryhmat.map((r, i) => (
+        <div key={r.kuukausi} className={i > 0 ? 'mt-4' : undefined}>
+          {/* Otsikko kuukaudesta; yleinen "Tulossa" vain jos kuukautta ei saada. */}
+          <p className="text-[11px] font-black uppercase tracking-[.12em] mb-2" style={{ color: 'rgba(255,255,255,.5)' }}>
+            ✦ {kuukausiOtsikko(r.kuukausi, r.nostot.length, lang === 'en' ? 'en' : 'fi') ?? t('promo.title')}
+          </p>
+          <div className="space-y-2.5">
+            {r.nostot.map((n) => <NostoKortti key={n.id} n={n} onOpen={onOpen} onJuliste={setJulisteAuki} />)}
+          </div>
+        </div>
+      ))}
       <Kuvakatselu src={julisteAuki?.src ?? null} alt={julisteAuki?.alt ?? ''} open={!!julisteAuki} onClose={() => setJulisteAuki(null)} />
     </section>
   )
