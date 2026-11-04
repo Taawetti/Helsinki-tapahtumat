@@ -16,10 +16,12 @@
 // kortti on aina sama kuin muuallakin sovelluksessa. Nosto, jolle ei löydy
 // tapahtumaa, jää pois: mieluummin ei korttia kuin kortti ilman tietoja.
 //
-// MITTAUS: avaus kirjautuu pinnalla 'promo' ja lippuklikki external_clickinä
+// MITTAUS: juliste ruudulla kirjautuu promo_view'na (kerran per sivulataus,
+// 4.11.2026 alkaen), avaus pinnalla 'promo' ja lippuklikki external_clickinä
 // samalla pinnalla. Kampanjan raportti luetaan admin-näkymän Tapahtuman
-// seuranta -osiosta (avaukset, eri kävijät, lippukauppaklikit, jaetun sivun
-// avaukset) ja "Mistä kortti avattiin" -listan promo-rivistä.
+// seuranta -osiosta (näyttökerrat, avaukset, eri kävijät, lippukauppaklikit,
+// suosikit, jaetun sivun avaukset) ja "Mistä kortti avattiin" -listan
+// promo-rivistä.
 
 import type { Event } from './types'
 import { shareUrlFor } from './event-links'

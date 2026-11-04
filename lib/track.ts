@@ -26,6 +26,10 @@ export type TrackKind =
   | 'section' | 'guide_open' | 'category' | 'search'
   | 'map_open' | 'install' | 'newsletter' | 'share' | 'plan_add' | 'plan_copy'
   | 'venue_events'
+  /** Tulossa-noston juliste oli ruudulla (components/TulossaNosto), kerran per
+   *  sivulataus. Suppilon ylin porras kampanjaraporttiin: nähty → avattu →
+   *  lippukauppaan. */
+  | 'promo_view'
 
 interface TrackData {
   /** Mistä pinnasta tapahtuma tuli: grid, picks, search, hero, map, idea, venue. */
@@ -52,6 +56,12 @@ const POISSULKU_AVAIN = 'mt-notrack'
  *  esikatselujulkaisut kirjoittaisivat samaan tietokantaan kuin tuotanto —
  *  yksi koodauspäivä täyttäisi luvut valheellisilla käynneillä. */
 function tuotannossa(): boolean {
+  // Kehityspalvelin ei kirjaa MISTÄÄN osoitteesta. Pelkkä hostname-sääntö ei
+  // riittänyt: esikatselu puhelimella lähiverkon osoitteesta (192.168.x.x,
+  // ks. preview-before-push) läpäisi sen, ja kehityspalvelin kirjoitti
+  // omistajan napautukset tuotannon tilastoihin (lokissa POST /api/track
+  // 3.11.2026). Next sijoittaa NODE_ENV:n selainpakettiin käännösaikana.
+  if (process.env.NODE_ENV !== 'production') return false
   const h = window.location.hostname
   if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h.endsWith('.local')) return false
   // Esikatselujulkaisut ovat muotoa <jotain>-<hash>.vercel.app.

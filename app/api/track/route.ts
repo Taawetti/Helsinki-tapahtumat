@@ -28,11 +28,14 @@ import { rateLimit, clientIp } from '@/lib/rate-limit'
 /** Sallitut tapahtumatyypit. Vapaa teksti kelpaisi kenelle tahansa roskan
  *  syöttäjälle ja tekisi raporteista lukukelvottomia. */
 const SALLITUT = new Set([
-  // Sivun avaus. TÄMÄ ON AINOA TYYPPI JOKA EI VAADI KLIKKAUSTA — ilman sitä
-  // kävijä joka saapuu, lukee ja poistuu ei näkyisi missään luvussa, ei edes
-  // eri kävijöissä. Mitattu 28.8.2026: kannassa oli 74 riviä ja jokainen
-  // niistä oli syntynyt klikkauksesta.
+  // Sivun avaus. Tämä ja promo_view ovat ainoat tyypit jotka EIVÄT VAADI
+  // KLIKKAUSTA — ilman tätä kävijä joka saapuu, lukee ja poistuu ei näkyisi
+  // missään luvussa, ei edes eri kävijöissä. Mitattu 28.8.2026: kannassa oli
+  // 74 riviä ja jokainen niistä oli syntynyt klikkauksesta.
   'pageview',
+  // Tulossa-noston juliste oli ruudulla, kerran per sivulataus
+  // (components/TulossaNosto, 4.11.2026). Kampanjaraportin näyttökerrat.
+  'promo_view',
   'engaged',         // käynti ylitti sitoutumiskynnyksen (lib/engagement)
   'returning',       // kävijä palasi eri päivänä (tunnistus palvelimella, ks. POST)
   'event_open',      // tapahtuman tietopaneeli avattiin

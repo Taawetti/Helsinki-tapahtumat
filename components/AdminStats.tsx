@@ -23,7 +23,6 @@ interface Data {
   kaynnit: number
   sivut: Rivi[]
   tapahtumatAvaukset: Rivi[]
-  lippuklikit: Rivi[]
   ulkoisetKlikit: Rivi[]
   suosikit: Rivi[]
   pinnat: Rivi[]
@@ -114,6 +113,7 @@ const NIMET: Record<string, string> = {
   event_open: 'Tapahtuma avattu',
   ticket_click: 'Klikkaus lippukauppaan',
   external_click: 'Klikkaus ulos (lue lisää)',
+  promo_view: 'Nosto näytetty (juliste)',
   favorite_add: 'Tallennettu suosikiksi',
   section: 'Osion vaihto',
   guide_open: 'Opas avattu',
@@ -137,7 +137,8 @@ const SELITTEET: Record<string, string> = {
   returning: 'Kävijä, jonka tunniste on nähty aiemminkin tässä kuussa — kerran käynnissä.',
   event_open: 'Tapahtumakortin avaus mistä tahansa: ruudukko, poiminnat, hero, haku, kartta, Idea, opas, paikan lista.',
   ticket_click: 'Siirtymä lipunmyyjän sivulle tapahtumakortista — lähin asia ostoon.',
-  external_click: 'Muu klikkaus ulos: Lue lisää -linkit, paikkojen omat sivut, reittiohjeet.',
+  external_click: 'Muu klikkaus ulos: Lue lisää -linkit, paikkojen omat sivut, reittiohjeet. Tulossa-noston lippunappi kirjautuu tänne lippukaupan verkkotunnuksella ja lasketaan lippukauppaklikiksi.',
+  promo_view: 'Tulossa-kärkinoston kortti oli ruudulla — kerran per sivulataus, kun vähintään puolet kortista näkyi. Mittaus alkoi 4.11.2026.',
   favorite_add: 'Tapahtuma tallennettu suosikiksi (sydän).',
   section: 'Osion vaihto navigaatiosta (Tapahtumat, Idea, Ravintolat, Uutta, Suunnitelma).',
   guide_open: 'Opas avattu (saunat, kirpputorit, jamit, museot…).',
@@ -468,14 +469,16 @@ export default function AdminStats() {
 
           {/* TAPAHTUMAN SEURANTA (omistaja 25.10.2026: Jannan joulun näkyvyys).
               Luvut syntyvät samoista mittauspisteistä kuin muukin näkymä:
-              event_open (kortti), external_click (ulos, meta = verkkotunnus),
-              plan_add (otsikolla) ja pageview /e/<id> (jaettu sivu). */}
+              promo_view (juliste ruudulla), event_open (kortti), ticket_click ja
+              external_click (ulos, meta = verkkotunnus), favorite_add, plan_add
+              (otsikolla) ja pageview /e/<id> (jaettu sivu). */}
           <div className="rounded-2xl p-5 mb-8" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)' }}>
             <h3 className="text-sm font-bold text-white mb-1">Tapahtuman seuranta</h3>
             <p className="text-xs text-gray-500 leading-relaxed mb-3">
-              Valitse tapahtuma, niin sen luvut näkyvät valitulta jaksolta: kortin avaukset,
-              klikkaukset ulos (lippukauppaan ja muualle), Lisää suunnitelmaan ja jaetun
-              /e/-sivun avaukset. Valinta muistetaan tällä laitteella.
+              Valitse tapahtuma, niin sen luvut näkyvät valitulta jaksolta suppilona:
+              julisteen näyttökerrat, kortin avaukset, klikkaukset ulos (lippukauppaan ja
+              muualle), suosikiksi tallennukset, Lisää suunnitelmaan ja jaetun /e/-sivun
+              avaukset. Valinta muistetaan tällä laitteella.
             </p>
             <input value={haku} onChange={(e) => setHaku(e.target.value)} placeholder="Hae tapahtuman nimellä…"
               className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none mb-2"
@@ -507,11 +510,17 @@ export default function AdminStats() {
             )}
             {seurattava && data.tapahtuma && (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                {/* Suppilon järjestyksessä: nähty → avattu → klikattu ulos → talteen. */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
                   {[
+                    { arvo: data.tapahtuma.nayttokerrat, nimi: 'Julisteen näyttökertaa',
+                      selite: data.tapahtuma.nayttokerrat > 0
+                        ? `${data.tapahtuma.julisteenNapautukset} napautusta, ${Math.round(100 * data.tapahtuma.julisteenNapautukset / data.tapahtuma.nayttokerrat)} %`
+                        : 'Tulossa-nosto ruudulla; mittaus alkoi 4.11.2026' },
                     { arvo: data.tapahtuma.avaukset, nimi: 'Kortin avausta', selite: `${data.tapahtuma.eriAvaajat} eri kävijää` },
-                    { arvo: data.tapahtuma.lippuklikit, nimi: 'Klikkausta lippukauppaan', selite: 'lippu.fi, Ticketmaster, Tiketti…' },
+                    { arvo: data.tapahtuma.lippuklikit, nimi: 'Klikkausta lippukauppaan', selite: 'Osta liput -painike ja noston lippunappi' },
                     { arvo: data.tapahtuma.ulkoisetKlikit - data.tapahtuma.lippuklikit, nimi: 'Muuta klikkausta ulos', selite: 'paikan sivu, lue lisää' },
+                    { arvo: data.tapahtuma.suosikit, nimi: 'Tallennettu suosikiksi', selite: 'sydän kortissa' },
                     { arvo: data.tapahtuma.suunnitelmaan, nimi: 'Lisätty suunnitelmaan', selite: 'otsikon perusteella' },
                     { arvo: data.tapahtuma.jaetunSivunKaynnit, nimi: 'Jaetun sivun avausta', selite: '/e/-linkki' },
                   ].map((k) => (
@@ -522,6 +531,9 @@ export default function AdminStats() {
                     </div>
                   ))}
                 </div>
+                <PaivaPylvaat otsikko="Julisteen näyttökerrat päivittäin"
+                  sarja={data.tapahtuma.paivittain.map((p) => ({ paiva: p.paiva, arvo: p.nayttokerrat }))}
+                  selite="Tulossa-noston kortti ruudulla, kerran per sivulataus. Mittaus alkoi 4.11.2026, joten sitä vanhemmat päivät ovat nollia." />
                 <PaivaPylvaat otsikko="Avaukset päivittäin"
                   sarja={data.tapahtuma.paivittain.map((p) => ({ paiva: p.paiva, arvo: p.avaukset }))} />
                 <PaivaPylvaat otsikko="Klikkaukset ulos päivittäin"
@@ -561,8 +573,8 @@ export default function AdminStats() {
 
           <Palkit otsikko="Käydyimmät sivut" rivit={data.sivut}
             selite="Sivun osoite. / on sovelluksen etusivu ja /en sen englanninkielinen osoite; muut ovat laskeutumissivuja, jotka kilpailevat hakutuloksista." />
-          <Palkit otsikko="Klikkaukset lippukauppaan" rivit={data.lippukauppaKlikit.length ? data.lippukauppaKlikit : data.lippuklikit}
-            selite="Uloslinkit lipunmyyjien sivuille (lippu.fi, Ticketmaster, Tiketti, Kide…). Tämä on lähin asia ostoon. Sovellus EI näe toteutuiko osto — vain että käyttäjä siirtyi lipunmyyjälle." />
+          <Palkit otsikko="Klikkaukset lippukauppaan" rivit={data.lippukauppaKlikit}
+            selite="Kortin Osta liput -painike ja Tulossa-noston lippunappi yhteensä: uloslinkit lipunmyyjien sivuille (lippu.fi, Ticketmaster, Tiketti, Kide…). Tämä on lähin asia ostoon. Sovellus EI näe toteutuiko osto — vain että käyttäjä siirtyi lipunmyyjälle." />
           <Palkit otsikko="Avatuimmat tapahtumat" rivit={data.tapahtumatAvaukset} />
           <Palkit otsikko="Mistä tapahtumat avataan" rivit={data.pinnat}
             selite="grid = tapahtumaruudukko, picks = parhaat poiminnat, hero = etusivun karuselli, promo = Tulossa-kärkinosto (mainospaikka), search = haku, map = kartta, idea = ideapakka, guide = opas, venue = paikan lista." />

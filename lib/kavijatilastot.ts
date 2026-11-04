@@ -10,9 +10,11 @@
 //
 // MIKSI TAPAHTUMAKOHTAINEN: omistaja haluaa seurata yksittäisen tapahtuman
 // (Jannan joulu, Kallion kirkko 9.12.2026) näkyvyyttä. Mittaus tallentaa jo
-// event_id:n avauksiin ja uloslinkkeihin, uloslinkin verkkotunnuksen
-// meta-kenttään, suunnitelmaan lisäyksen otsikolla ja jaetun /e/-sivun
-// avauksen polkuna — tämä kooste vain lukee ne yhteen.
+// event_id:n avauksiin, uloslinkkeihin ja suosikkeihin, uloslinkin verkko-
+// tunnuksen meta-kenttään, suunnitelmaan lisäyksen otsikolla, jaetun /e/-sivun
+// avauksen polkuna ja noston julisteen näyttökerran (promo_view, 4.11.2026
+// alkaen) — tämä kooste vain lukee ne yhteen. Suppilo järjestäjälle:
+// näyttökerrat → kortin avaukset → klikkaukset lippukauppaan.
 //
 // Päivärajat ovat Helsinki-päiviä. 00:30 Helsinkiä on UTC:nä edellisen päivän
 // 21:30Z — UTC-päivä antaisi väärän päivän kaikille yön tapahtumille.
@@ -111,6 +113,19 @@ export function top(rivit: KlikkiRivi[], avain: (r: KlikkiRivi) => string | null
 
 const eriKavijoita = (rivit: KlikkiRivi[]) => new Set(rivit.map((r) => r.visitor).filter(Boolean)).size
 
+/** Onko rivi klikkaus lippukauppaan. Sovellus kirjaa siirtymän lipunmyyjälle
+ *  KAHDELLA lajilla: tapahtumakortin pääpainike ja paikan listan nappi
+ *  kirjaavat 'ticket_click' (components/EventDetailPanel, HomeClient), kun
+ *  taas Tulossa-noston lippunappi kirjaa 'external_click' verkkotunnuksella
+ *  (components/TulossaNosto). Kooste laski 3.11.2026 asti vain jälkimmäiset,
+ *  jolloin Jannan joulun lippuklikeistä näkyi 2/6. Kumpikin on sama teko. */
+export function onLippuklikki(r: Pick<KlikkiRivi, 'kind' | 'meta'>): boolean {
+  return r.kind === 'ticket_click' || (r.kind === 'external_click' && onLippukauppa(r.meta))
+}
+
+/** Onko rivi mikä tahansa siirtymä ulos sovelluksesta. */
+const onUloslinkki = (r: Pick<KlikkiRivi, 'kind'>) => r.kind === 'ticket_click' || r.kind === 'external_click'
+
 // ── Tapahtumakohtainen erittely ─────────────────────────────────────────────
 
 export interface TapahtumaTilasto {
@@ -125,19 +140,29 @@ export interface TapahtumaTilasto {
   suunnitelmaan: number
   /** Jaetun /e/<id>-sivun avaukset (pageview). */
   jaetunSivunKaynnit: number
+  /** Tallennettu suosikiksi (favorite_add, contexts/FavoritesContext). */
+  suosikit: number
+  /** Tulossa-noston juliste oli ruudulla (promo_view, components/TulossaNosto):
+   *  kerran per sivulataus. Mittaus alkoi 4.11.2026 — sitä vanhemmat päivät
+   *  ovat nollia, eivät "ei nähty". */
+  nayttokerrat: number
+  /** Julisteen napautukset: kortin avaus tai lippunappi pinnalla 'promo'. */
+  julisteenNapautukset: number
   /** Jakson ensimmäinen mittaus tälle tapahtumalle. */
   ensimmainen: string | null
   pinnat: Rivi[]
   domainit: Rivi[]
   maat: Rivi[]
   kaupungitFI: Rivi[]
-  paivittain: { paiva: string; avaukset: number; ulkoiset: number; lippuklikit: number }[]
+  paivittain: { paiva: string; nayttokerrat: number; avaukset: number; ulkoiset: number; lippuklikit: number }[]
 }
 
 export function koostaTapahtuma(rivit: KlikkiRivi[], id: string, paivat: string[]): TapahtumaTilasto | null {
   const omat = rivit.filter((r) => r.event_id === id)
   const avaukset = omat.filter((r) => r.kind === 'event_open')
-  const ulkoiset = omat.filter((r) => r.kind === 'external_click')
+  // Molemmat uloslinkin lajit — ks. onLippuklikki.
+  const ulkoiset = omat.filter(onUloslinkki)
+  const nayttokerrat = omat.filter((r) => r.kind === 'promo_view')
   const nimi = top(avaukset.length ? avaukset : omat, (r) => r.label, 1)[0]?.nimi ?? null
   // Suunnitelmaan lisäys kirjataan otsikolla ilman event_id:tä (lib/suunnitelma).
   const suunnitelmaan = nimi ? rivit.filter((r) => r.kind === 'plan_add' && r.label === nimi).length : 0
@@ -146,12 +171,13 @@ export function koostaTapahtuma(rivit: KlikkiRivi[], id: string, paivat: string[
   const jaetunSivunKaynnit = rivit.filter((r) => r.kind === 'pageview' && r.label && polut.has(r.label)).length
   if (omat.length === 0 && suunnitelmaan === 0 && jaetunSivunKaynnit === 0) return null
 
-  const paivaMap = new Map(paivat.map((p) => [p, { paiva: p, avaukset: 0, ulkoiset: 0, lippuklikit: 0 }]))
+  const paivaMap = new Map(paivat.map((p) => [p, { paiva: p, nayttokerrat: 0, avaukset: 0, ulkoiset: 0, lippuklikit: 0 }]))
   for (const r of omat) {
     const rivi = paivaMap.get(helsinkiDateOf(r.created_at))
     if (!rivi) continue
+    if (r.kind === 'promo_view') rivi.nayttokerrat++
     if (r.kind === 'event_open') rivi.avaukset++
-    if (r.kind === 'external_click') { rivi.ulkoiset++; if (onLippukauppa(r.meta)) rivi.lippuklikit++ }
+    if (onUloslinkki(r)) { rivi.ulkoiset++; if (onLippuklikki(r)) rivi.lippuklikit++ }
   }
   return {
     id,
@@ -159,9 +185,12 @@ export function koostaTapahtuma(rivit: KlikkiRivi[], id: string, paivat: string[
     avaukset: avaukset.length,
     eriAvaajat: eriKavijoita(avaukset),
     ulkoisetKlikit: ulkoiset.length,
-    lippuklikit: ulkoiset.filter((r) => onLippukauppa(r.meta)).length,
+    lippuklikit: ulkoiset.filter(onLippuklikki).length,
     suunnitelmaan,
     jaetunSivunKaynnit,
+    suosikit: omat.filter((r) => r.kind === 'favorite_add').length,
+    nayttokerrat: nayttokerrat.length,
+    julisteenNapautukset: omat.filter((r) => r.surface === 'promo' && (r.kind === 'event_open' || onUloslinkki(r))).length,
     ensimmainen: omat.map((r) => r.created_at).sort()[0] ?? null,
     pinnat: top(avaukset, (r) => r.surface),
     domainit: top(ulkoiset, (r) => r.meta),
@@ -196,7 +225,7 @@ export function koostaTilastot(rivit: KlikkiRivi[], a: KoosteAsetukset) {
     if (!rivi) continue
     if (r.kind === 'pageview') rivi.kaynnit++
     if (r.kind === 'event_open') rivi.avaukset++
-    if (r.kind === 'external_click') rivi.ulkoiset++
+    if (onUloslinkki(r)) rivi.ulkoiset++
     if (r.visitor) rivi.kavijat.add(r.visitor)
   }
 
@@ -242,12 +271,13 @@ export function koostaTilastot(rivit: KlikkiRivi[], a: KoosteAsetukset) {
     tapahtuma: a.tapahtumaId ? koostaTapahtuma(rivit, a.tapahtumaId, paivat) : null,
     sivut:              top(vain('pageview'), (r) => r.label, 25),
     tapahtumatAvaukset: top(vain('event_open'), (r) => r.label),
-    lippuklikit:        top(vain('ticket_click'), (r) => r.label),
-    // Lippukauppaan menneet uloslinkit verkkotunnuksen mukaan (external_click,
-    // meta = domain). Vanha ticket_click-laji ei enää kirjaudu, joten tämä on
-    // nykyinen "lähin asia ostoon".
-    lippukauppaKlikit:  top(vain('external_click').filter((r) => onLippukauppa(r.meta)), (r) => r.label),
-    ulkoisetKlikit:     top(vain('external_click'), (r) => r.label),
+    // Klikkaukset lippukauppaan otsikolla: kortin pääpainikkeen ticket_click
+    // JA noston lippunapin external_click lippukaupan verkkotunnuksella
+    // (onLippuklikki). Ennen 4.11.2026 tässä oli kaksi erillistä listaa, joista
+    // näkymä näytti vain toisen.
+    lippukauppaKlikit:  top(rivit.filter(onLippuklikki), (r) => r.label),
+    // Muut uloslinkit = ne jotka EIVÄT menneet lippukauppaan, kuten otsikko sanoo.
+    ulkoisetKlikit:     top(vain('external_click').filter((r) => !onLippukauppa(r.meta)), (r) => r.label),
     suosikit:           top(vain('favorite_add'), (r) => r.label),
     pinnat:             top(vain('event_open'), (r) => r.surface),
     osiot:              top(vain('section'), (r) => r.label),
@@ -255,10 +285,10 @@ export function koostaTilastot(rivit: KlikkiRivi[], a: KoosteAsetukset) {
     kategoriat:         top(vain('category'), (r) => r.label),
     haut:               top(vain('search'), (r) => r.label, 25),
     maat:               top(rivit, (r) => r.country, 20),
-    maatLippuklikit:    top(vain('ticket_click'), (r) => r.country, 20),
+    maatLippuklikit:    top(rivit.filter(onLippuklikki), (r) => r.country, 20),
     ilmanMaata:         rivit.filter((r) => !r.country).length,
     kaupungitFI:        top(rivit.filter((r) => r.country === 'FI'), (r) => r.city, 25),
-    kaupungitFILippu:   top(rivit.filter((r) => r.country === 'FI' && r.kind === 'ticket_click'), (r) => r.city, 15),
+    kaupungitFILippu:   top(rivit.filter((r) => r.country === 'FI' && onLippuklikki(r)), (r) => r.city, 15),
     // Maakunnat ja suuret kaupungit raakana koodi→määrä, jotta näkymä
     // täydentää nollat (ks. AdminStats).
     maakunnat: (() => {
