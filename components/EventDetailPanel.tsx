@@ -238,7 +238,9 @@ export default function EventDetailPanel({ event, onClose, onShowVenueEvents, av
   const paikanNimi = event.location?.name?.trim() ?? ''
   const paikanTapahtumatSaatavilla = !!paikanNimi && !!onShowVenueEvents
   const ctaTyyppi = ctaKohde(ulkoinenUrl, venueSite, paikanTapahtumatSaatavilla)
-  const naytaKuvaus = naytettavaKuvaus(event)
+  // Englanniksi ilmoittajan oma englanninkielinen teksti voittaa konekäännöksen
+  // (lib/tapahtumakorjaukset aseta.descriptionEn; omistaja 4.11.2026).
+  const naytaKuvaus = lang === 'en' && event.descriptionEn ? event.descriptionEn : naytettavaKuvaus(event)
 
   // ── Pääpainikkeet (HANDOFF-mobiili §5) ──────────────────────────────────
   // Mobiilissa HETI otsikon alla kaksi rinnakkaista 52 px nappia: vasemmalla

@@ -69,7 +69,7 @@ import secondhandFile from '../data/secondhand.json'
 import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from '../lib/nightlife'
 import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/arvo-ilta'
-import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto, type Tapahtumakorjaus } from '../lib/tapahtumakorjaukset'
+import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto, type Tapahtumakorjaus, type Korjattava } from '../lib/tapahtumakorjaukset'
 import { onLinkedEventsId, kelpoKuvausPyynto, kuvausParams, kuvattavaLeRaakadatasta, kuvausVastaus, type LeKuvausRaaka } from '../lib/kuvaus'
 import { onSamaEsitys, paikkasuhde, normalisoiOtsikkoAvain, etaisyysM, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '../lib/sama-esitys'
 import { sivunRajat, kuuluuSivulle, ulkoistenVali } from '../lib/sivurajaus'
@@ -5076,6 +5076,7 @@ odotettavat.push((async () => {
   const osuva = ev('JANNAN JOULU – Ystävien kanssa', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')
   const [tulos] = sovellaTapahtumakorjaukset([osuva], [k])
   const kCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'descriptionEn asetetaan englanninkieliselle näkymälle; suomenkielinen kuvaus ei muutu', ok: (() => { const r = sovellaTapahtumakorjaukset<Korjattava>([{ ...osuva, description: 'Suomeksi.' }], [{ ...k, aseta: { descriptionEn: 'In English.' } }])[0]; return r.descriptionEn === 'In English.' && r.description === 'Suomeksi.' })() },
     { name: 'otsikko + päivä + paikka osuu kirjainkoosta ja välimerkeistä riippumatta', ok: osuukoKorjaus(osuva, k) },
     { name: 'kuva ja lippulinkki asetetaan, infoUrl säilyy', ok: tulos.image === 'https://kuva.test/j.jpg' && tulos.ticketUrl === 'https://www.lippu.fi/event/x/' && tulos.infoUrl === 'https://www.stadissa.fi/x', got: JSON.stringify(tulos) },
     { name: 'eri päivä ei osu (kiertueen Tampere 16.12.)', ok: !osuukoKorjaus(ev('Jannan joulu', '2026-12-16T19:00:00+02:00', 'Kallion kirkko'), k) },
@@ -5331,6 +5332,13 @@ odotettavat.push((async () => {
         && kuvausVastaus({ id: 'stadissa-2', title: 'X', startTime: '2026-11-25T19:00:00+02:00', location: null, description: '', shortDescription: '' }, []) === null
         && kuvausVastaus({ id: 'stadissa-3', title: 'X', startTime: '2026-11-25T19:00:00+02:00', location: { name: 'Jurkka' }, description: '', shortDescription: 'Oikea teaser' }, [])?.shortDescription === 'Oikea teaser'
         && kuvausVastaus({ id: 'stadissa-4', title: 'Jannan Joulu', startTime: '2026-12-09T19:00:00+02:00', location: { name: 'Kallion kirkko' }, description: '', shortDescription: '@ Kallion kirkko' }, [korjaus])?.description === 'Korjattu kuvaus' },
+    { name: 'descriptionEn kulkee korjauksesta kuvausvastaukseen (Cory Henry 29.11.), muille ei synny kenttää',
+      ok: (() => {
+        const korjaus = { id: 't', osuma: { otsikko: 'cory henry', paiva: '2026-11-29', paikka: 'kulttuuritalo' }, aseta: { descriptionEn: 'In English.' } }
+        const v = kuvausVastaus({ id: 'helsinki:x', title: 'Cory Henry: A Jam Good Time', startTime: '2026-11-29T18:00:00Z', location: { name: 'Kulttuuritalo' }, description: 'Suomeksi.', shortDescription: '' }, [korjaus])
+        const w = kuvausVastaus({ id: 'helsinki:y', title: 'Muu konsertti', startTime: '2026-11-29T18:00:00Z', location: { name: 'Kulttuuritalo' }, description: 'Suomeksi.', shortDescription: '' }, [korjaus])
+        return v?.description === 'Suomeksi.' && v?.descriptionEn === 'In English.' && w !== null && !('descriptionEn' in w)
+      })() },
     { name: 'pyynnön kelpuutus: kelpo läpi; puuttuva, välilyönti, väärä päivä ja ylipitkä hylätään',
       ok: JSON.stringify(kelpoKuvausPyynto('helsinki:abc', '2026-11-20')) === JSON.stringify({ id: 'helsinki:abc', paiva: '2026-11-20' })
         && kelpoKuvausPyynto(null, '2026-11-20') === null && kelpoKuvausPyynto('a b', '2026-11-20') === null

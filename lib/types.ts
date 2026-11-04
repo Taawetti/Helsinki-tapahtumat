@@ -13,6 +13,12 @@ export interface Event {
   title: string
   shortDescription: string
   description: string
+  // Ilmoittajan tai lähteen OMA englanninkielinen kuvaus (data/tapahtuma-
+  // korjaukset.json aseta.descriptionEn). Englanninkielinen infopaneeli
+  // näyttää sen konekäännöksen sijaan (omistaja 4.11.2026: Cory Henry,
+  // ilmoittajan lähettämä teksti). Suomenkielinen polku ei lue tätä. Kevyt
+  // karttamuoto pudottaa sen kuten descriptionin; /api/kuvaus tuo sen takaisin.
+  descriptionEn?: string
   startTime: string
   endTime: string | null
   location: EventLocation | null

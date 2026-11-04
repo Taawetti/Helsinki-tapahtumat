@@ -48,7 +48,7 @@ export function kelpoKuvausPyynto(id: string | null, paiva: string | null): Kuva
   return { id, paiva }
 }
 
-export interface KuvausVastaus { id: string; description: string; shortDescription: string }
+export interface KuvausVastaus { id: string; description: string; shortDescription: string; descriptionEn?: string }
 
 /** LinkedEventsin raakatapahtuman kentät, joita kuvaus ja korjauksen osuma
  *  (otsikko + päivä + paikka) tarvitsevat. */
@@ -97,5 +97,9 @@ export function kuvausVastaus(e: Kuvattava, korjaukset: readonly Tapahtumakorjau
     id: e.id,
     description: decodeHtmlEntities(korjattu.description ?? ''),
     shortDescription: decodeHtmlEntities(korjattu.shortDescription ?? ''),
+    // Korjauksen englanninkielinen teksti kulkee kevyen rivin täydennykseen
+    // (hooks/useTaydennettyTapahtuma), jotta kartalta avattu paneeli näyttää
+    // saman kuin listasta avattu.
+    ...(korjattu.descriptionEn ? { descriptionEn: decodeHtmlEntities(korjattu.descriptionEn) } : {}),
   }
 }

@@ -50,7 +50,7 @@ export function useTaydennettyTapahtuma(event: Event | null, municipality: strin
           // täydentämän tekstin toisesta lähteestä. Palvelin vastaa tähän jo 404,
           // tämä on varmistus reunan vanhaa vastausta vastaan.
           if (!elossa || !kevyt || kevyt.id !== id || typeof d.description !== 'string' || !d.description.trim()) return false
-          setHaettu({ id, taysi: { ...kevyt, description: d.description, shortDescription: d.shortDescription || kevyt.shortDescription } })
+          setHaettu({ id, taysi: { ...kevyt, description: d.description, shortDescription: d.shortDescription || kevyt.shortDescription, ...(d.descriptionEn ? { descriptionEn: d.descriptionEn } : {}) } })
           return true
         })
         .catch(() => false)

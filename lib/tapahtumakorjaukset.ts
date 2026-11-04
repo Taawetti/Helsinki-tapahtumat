@@ -38,6 +38,10 @@ export interface Tapahtumakorjaus {
     infoUrl?: string
     /** Infopaneelin kuvaus (kappaleet tyhjällä rivillä; näytetään whitespace-pre-line). */
     description?: string
+    /** Englanninkielisen näkymän kuvaus sellaisenaan (ilmoittajan oma teksti) —
+     *  konekäännöstä ei käytetä, kun tämä on annettu. Suomenkielinen näkymä
+     *  näyttää edelleen descriptionin. */
+    descriptionEn?: string
     /** Yhden rivin kuvaus: kortin alarivi ja jaetun sivun meta description. */
     shortDescription?: string
     /** Otsikko lähteen tilalle, kun lähde kirjoittaa sen vajaana ("Jannan Joulu"
@@ -63,6 +67,7 @@ export interface Korjattava {
   ticketUrl?: string | null
   infoUrl?: string | null
   description?: string
+  descriptionEn?: string
   shortDescription?: string
   price?: string | null
 }
@@ -97,6 +102,7 @@ export function sovellaTapahtumakorjaukset<T extends Korjattava>(events: T[], ko
         ...(k.aseta.ticketUrl ? { ticketUrl: k.aseta.ticketUrl } : {}),
         ...(k.aseta.infoUrl ? { infoUrl: k.aseta.infoUrl } : {}),
         ...(k.aseta.description ? { description: k.aseta.description } : {}),
+        ...(k.aseta.descriptionEn ? { descriptionEn: k.aseta.descriptionEn } : {}),
         ...(k.aseta.shortDescription ? { shortDescription: k.aseta.shortDescription } : {}),
         ...(k.aseta.title ? { title: k.aseta.title } : {}),
         ...(k.aseta.price ? { price: k.aseta.price } : {}),

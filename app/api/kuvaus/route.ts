@@ -28,7 +28,11 @@ const LOYTYI = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400
 const EI_LOYTYNYT = 'public, max-age=60, s-maxage=300'
 
 async function linkedEventsista(id: string): Promise<KuvausVastaus | null> {
-  const res = await fetch(`${LE_BASE}/event/${encodeURIComponent(id)}/?format=json`, {
+  // include=location: ilman sitä LinkedEvents antaa paikasta vain viitteen
+  // (@id), jolloin paikan nimi on tyhjä eikä korjauksen osuma (otsikko +
+  // päivä + PAIKKA, lib/tapahtumakorjaukset) voi osua LinkedEvents-tunnisteella
+  // haettuun kuvaukseen — todettu 4.11.2026 Cory Henryn descriptionEn:llä.
+  const res = await fetch(`${LE_BASE}/event/${encodeURIComponent(id)}/?format=json&include=location`, {
     next: { revalidate: 3600 },
     signal: AbortSignal.timeout(8000),
   })

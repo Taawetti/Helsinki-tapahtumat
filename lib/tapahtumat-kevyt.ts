@@ -27,7 +27,9 @@ export function kevennaKartalle(events: Event[]): Event[] {
     const lat = e.location?.lat
     const lon = e.location?.lon
     if (typeof lat !== 'number' || typeof lon !== 'number') continue
-    out.push({ ...e, description: '', shortDescription: '', kevyt: true })
+    const kevyt: Event = { ...e, description: '', shortDescription: '', kevyt: true }
+    delete kevyt.descriptionEn // täydennys tuo sen takaisin /api/kuvaus-reitistä
+    out.push(kevyt)
   }
   return out
 }
