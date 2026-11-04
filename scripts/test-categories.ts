@@ -74,6 +74,7 @@ import { onLinkedEventsId, kelpoKuvausPyynto, kuvausParams, kuvattavaLeRaakadata
 import { onSamaEsitys, paikkasuhde, normalisoiOtsikkoAvain, etaisyysM, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '../lib/sama-esitys'
 import { sivunRajat, kuuluuSivulle, ulkoistenVali } from '../lib/sivurajaus'
 import { kanoninenPaikannimi, normalisoiPaikannimi, PAIKANNIMET } from '../lib/paikannimet'
+import { lipputuoteAvain, lipputuoteRyhma, jaetutLipputuotteet, onSamaLipputuote } from '../lib/lipputuote'
 import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, onLippuklikki, type KlikkiRivi } from '../lib/kavijatilastot'
@@ -5430,6 +5431,7 @@ odotettavat.push((async () => {
 {
   const pCases: { name: string; ok: boolean; got?: string }[] = [
     { name: 'Helsingin Kulttuuritalo, KULT, Kulttuuritalo ja Kulttuuritalo Helsinki → Kulttuuritalo', ok: kanoninenPaikannimi('Helsingin Kulttuuritalo') === 'Kulttuuritalo' && kanoninenPaikannimi('KULT, Kulttuuritalo') === 'Kulttuuritalo' && kanoninenPaikannimi('Kulttuuritalo Helsinki') === 'Kulttuuritalo' && kanoninenPaikannimi('Kulttuuritalo') === 'Kulttuuritalo' },
+    { name: 'Stage Konepaja → Konepajan näyttämö, Tavastia-klubi → Tavastia; Kino Konepaja säilyy', ok: kanoninenPaikannimi('Stage Konepaja') === 'Konepajan näyttämö' && kanoninenPaikannimi('Tavastia-klubi') === 'Tavastia' && kanoninenPaikannimi('Kino Konepaja') === 'Kino Konepaja' },
     { name: 'kirjainkoko ja viiva: FINLANDIA-TALO, On The Rocks, Maunula talo, Kulttuurikeskus CAISA', ok: kanoninenPaikannimi('FINLANDIA-TALO') === 'Finlandia-talo' && kanoninenPaikannimi('On The Rocks') === 'On the Rocks' && kanoninenPaikannimi('Maunula talo') === 'Maunula-talo' && kanoninenPaikannimi('Kulttuurikeskus CAISA') === 'Kulttuurikeskus Caisa' },
     { name: 'kaupunkisana perässä ja englanti: Messukeskus, Helsinki / Helsinki Music Centre / G Livelab', ok: kanoninenPaikannimi('Messukeskus, Helsinki') === 'Messukeskus' && kanoninenPaikannimi('Helsinki Music Centre') === 'Musiikkitalo' && kanoninenPaikannimi('G Livelab') === 'G Livelab Helsinki' },
     { name: 'heittomerkit: Henry´s / Henry’s → Henry\'s Music Bar; John Scott\'s → John Scott’s Arkadia', ok: kanoninenPaikannimi('Henry´s Music Bar') === "Henry's Music Bar" && kanoninenPaikannimi('Henry’s Music Bar') === "Henry's Music Bar" && kanoninenPaikannimi("John Scott's Arkadia") === 'John Scott’s Arkadia' },
@@ -5440,6 +5442,33 @@ odotettavat.push((async () => {
   for (const c of pCases) {
     if (c.ok) pass++
     else failures.push(`✗ paikannimet: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── SAMA LIPPUKAUPAN TUOTE (lib/lipputuote): Saiturin joulu / Greta Tuotanto:
+// A Christmas Carol, 2.12.2026 — otsikot ja paikat eroavat, lippulinkki ei.
+{
+  const SARJA = 'https://fienta.com/fi/s/gretatuotantosaiturinjoulu'
+  const KERTA = 'https://fienta.com/gretatuotantosaiturinjoulu-189005'
+  const L = (title: string, startTime: string, ticketUrl: string | null, extra: Record<string, unknown> = {}) => ({ title, startTime, ticketUrl, ...extra })
+  const le = L('Saiturin joulu', '2026-12-02T16:00:00Z', SARJA)
+  const fienta = L('Greta Tuotanto: A Christmas Carol', '2026-12-02T18:00:00+02:00', KERTA)
+  const eiJaettuja = new Set<string>()
+  const lCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'avain: Fientan sarjasivu ja kertalinkki samaksi', ok: lipputuoteAvain(SARJA) === 'fienta.com/gretatuotantosaiturinjoulu' && lipputuoteAvain(KERTA) === lipputuoteAvain(SARJA), got: String(lipputuoteAvain(KERTA)) },
+    { name: 'avain: lippu.fi alidomain ja www, numerot ja tickets pois', ok: lipputuoteAvain('https://kulttuuritalo.lippu.fi/event/Cory-Henry-presents:-A-Jam-Good-Time/166920/405254/tickets?') === 'lippu.fi/cory-henry-presents:-a-jam-good-time' && lipputuoteAvain('https://www.lippu.fi/event/boris-jpn-planning-for-burial-us-helsingin-kulttuuritalo-21718093/?affiliate=LPU') === 'lippu.fi/boris-jpn-planning-for-burial-us-helsingin-kulttuuritalo' },
+    { name: 'avain: kide uuid, tavastia päivä+slug, kansallisteatteri slug', ok: lipputuoteAvain('https://kide.app/events/1c235eb9-a56f-4605-960f-ff53da8514d5') === 'kide.app/1c235eb9-a56f-4605-960f-ff53da8514d5' && lipputuoteAvain('https://tavastiaklubi.fi/events/2026-11-04/finding-jens-hortling/119915/') === 'tavastiaklubi.fi/2026-11-04/finding-jens-hortling' && lipputuoteAvain('https://www.kansallisteatteri.fi/esitys/viidakon-villit-naiset') === 'kansallisteatteri.fi/viidakon-villit-naiset' },
+    { name: 'ei avainta: buyingflow, /tapahtuma/<id>, juuri, pelkkä numero, lyhyt yksisanainen, tyhjä, roska', ok: [lipputuoteAvain('https://tix.hurjaruuth.fi/fi/buyingflow/tickets/15909/'), lipputuoteAvain('https://tiketti.fi/tapahtuma/121133'), lipputuoteAvain('https://kuudeslinja.com/'), lipputuoteAvain('https://ra.co/events/2548354'), lipputuoteAvain('https://www.kansallisteatteri.fi/esitys/lopetus'), lipputuoteAvain(''), lipputuoteAvain(null), lipputuoteAvain('ei-url')].every((v) => v === null) },
+    { name: 'Saiturin joulu + Greta Tuotanto (sama tuote, 18.00 = 16Z) → sama', ok: onSamaLipputuote(le, fienta, eiJaettuja) },
+    { name: 'eri alkuminuutti (18 vs 19) → EI sama; oletusaika → EI sama (Finlandia-talon jatkoilta 17.12.2026)', ok: !onSamaLipputuote(le, L('Greta Tuotanto: A Christmas Carol', '2026-12-02T19:00:00+02:00', KERTA), eiJaettuja) && !onSamaLipputuote(le, L('Greta Tuotanto: A Christmas Carol', '2026-12-02T18:00:00+02:00', KERTA, { startTimeApprox: true }), eiJaettuja) && !onSamaLipputuote(L('Pepe Willberg 80', '2026-12-17T16:00:00Z', 'https://www.finlandiatalo.fi/tapahtumat/elamalta-kaiken-sain-jatkoilta-piazzalla/'), L('Elämältä kaiken sain – Jatkoilta Piazzalla', '2026-12-17T19:00:00+02:00', 'https://www.finlandiatalo.fi/tapahtumat/elamalta-kaiken-sain-jatkoilta-piazzalla/', { startTimeApprox: true }), eiJaettuja) },
+    { name: 'tuntematon aika, eri päivä, eri tuote, sama otsikko → EI sama', ok: !onSamaLipputuote(le, L('Greta Tuotanto: A Christmas Carol', '2026-12-02', KERTA), eiJaettuja) && !onSamaLipputuote(le, L('Greta Tuotanto: A Christmas Carol', '2026-12-03T18:00:00+02:00', KERTA), eiJaettuja) && !onSamaLipputuote(le, L('Greta Tuotanto: A Christmas Carol', '2026-12-02T18:00:00+02:00', 'https://fienta.com/toinen-tuote-1'), eiJaettuja) && !onSamaLipputuote(le, L('Saiturin joulu', '2026-12-02T18:00:00+02:00', KERTA), eiJaettuja) },
+    { name: 'jaettu tuote: yksi lähde listaa kaksi otsikkoa samaan minuuttiin → ryhmä jaettu eikä yhdisty', ok: (() => { const festari = 'https://festari.fi/liput/paivalippu-lauantai'; const a = L('Yhtye A', '2026-11-14T20:00:00+02:00', festari); const b = L('Yhtye B', '2026-11-14T20:00:00+02:00', festari); const jaetut = jaetutLipputuotteet([[a, b]]); return jaetut.size === 1 && jaetut.has(lipputuoteRyhma(a)!) && !onSamaLipputuote(a, L('Yhtye A (Festari)', '2026-11-14T20:00:00+02:00', festari), jaetut) })() },
+    { name: 'ei jaettu: kaksi lähdettä, kummallakin yksi otsikko; sama lähde eri minuutteina', ok: jaetutLipputuotteet([[le], [fienta]]).size === 0 && jaetutLipputuotteet([[L('A', '2026-11-14T20:00:00+02:00', SARJA), L('B', '2026-11-14T21:00:00+02:00', SARJA)]]).size === 0 },
+    { name: 'ryhmä: oletusaika → null, tuntematon aika → null, ilman linkkiä → null; todellinen aika → avain|päivä|minuutti', ok: lipputuoteRyhma(L('X', '2026-12-02T19:00:00+02:00', KERTA, { startTimeApprox: true })) === null && lipputuoteRyhma(L('X', '2026-12-02', KERTA)) === null && lipputuoteRyhma(L('X', '2026-12-02T19:00:00+02:00', null)) === null && lipputuoteRyhma(le) === lipputuoteRyhma(fienta) && /^fienta\.com\/gretatuotantosaiturinjoulu\|2026-12-02\|\d+$/.test(lipputuoteRyhma(le) ?? '') },
+  ]
+  for (const c of lCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ lipputuote: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

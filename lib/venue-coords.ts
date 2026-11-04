@@ -49,6 +49,12 @@ export const ISOT_PAIKAT: IsoPaikka[] = [
   { nimet: ['messukeskus', 'helsingin messukeskus', 'helsinki expo and convention centre'], lat: 60.2039, lon: 24.9363, osoite: 'Messuaukio 1' },
   { nimet: ['töölönlahti', 'töölönlahden puisto'], lat: 60.1810, lon: 24.9341 },
   { nimet: ['esplanadin puisto', 'esplanadinpuisto', 'espan puisto', 'espa'], lat: 60.1674, lon: 24.9449 },
+  // Lisätty 4.11.2026: Fientan "Stage Konepaja" ja Tavastian oma kauppa
+  // "Tavastia-klubi" tulevat ilman koordinaatteja (lib/paikannimet yhtenäistää
+  // nimet). Konepajan näyttämö kaupungin toimipisterekisteristä (LinkedEvents
+  // tprek), Tavastia Nominatimista 4.11.2026.
+  { nimet: ['konepajan näyttämö', 'stage konepaja'], lat: 60.1929, lon: 24.9481, osoite: 'Aleksis Kiven katu 17' },
+  { nimet: ['tavastia', 'tavastia-klubi', 'tavastia klubi'], lat: 60.1685, lon: 24.9329, osoite: 'Urho Kekkosen katu 4-6' },
 ]
 
 function normalisoi(nimi: string): string {

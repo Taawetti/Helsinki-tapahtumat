@@ -38,6 +38,10 @@ export const PAIKANNIMET: Paikannimi[] = [
   { nimi: 'Messukeskus', variantit: ['messukeskus helsinki', 'helsingin messukeskus', 'helsinki expo and convention centre'] },
   { nimi: 'Olympiaterminaali', variantit: ['helsingin olympiaterminaali'] },
   { nimi: 'G Livelab Helsinki', variantit: ['g livelab'] },
+  // Fienta kirjoittaa Konepajan näyttämön englanniksi (18 riviä), Tavastian
+  // oma kauppa "Tavastia-klubi" (15) kun LinkedEvents sanoo "Tavastia" (44)
+  { nimi: 'Konepajan näyttämö', variantit: ['stage konepaja'] },
+  { nimi: 'Tavastia', variantit: ['tavastia klubi'] },
   // Kirjainkoko-, viiva- ja heittomerkkivariantit: virallinen kirjoitusasu
   { nimi: 'On the Rocks', variantit: [] },
   { nimi: 'Helsingin kaupunginmuseo', variantit: [] },

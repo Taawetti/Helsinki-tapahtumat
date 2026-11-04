@@ -14,6 +14,7 @@ import tapahtumakorjaukset from '@/data/tapahtumakorjaukset.json'
 import { kevennaKartalle, KENTAT_KARTTA } from '@/lib/tapahtumat-kevyt'
 import { kanoninenPaikannimi } from '@/lib/paikannimet'
 import { kuuluuSivulle, sivunRajat, ulkoistenVali } from '@/lib/sivurajaus'
+import { jaetutLipputuotteet, lipputuoteRyhma, onSamaLipputuote } from '@/lib/lipputuote'
 import { normalisoiOtsikkoAvain, onSamaEsitys, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '@/lib/sama-esitys'
 
 // Fan-out kestää mitattuna 7–11 s (45 lähdettä + LinkedEventsin päiväpalaset).
@@ -399,6 +400,24 @@ export async function GET(req: NextRequest) {
     events.forEach((e, i) => { try { lisaaPaivaan(helsinkiDateOf(e.startTime), i) } catch { /* rikkinäinen aikaleima: ei indeksiin */ } })
     const etsiSamaEsitys = (e: Event, paiva: string): number | undefined =>
       (paivanIndeksit.get(paiva) ?? []).find((i) => onSamaEsitys(events[i], e))
+    // SAMA LIPPUKAUPAN TUOTE (lib/lipputuote, 4.11.2026): kun otsikko ja paikka
+    // eroavat liikaa ("Saiturin joulu" @ Konepajan näyttämö vs Fientan "Greta
+    // Tuotanto: A Christmas Carol" @ Stage Konepaja), sama lippulinkin tuote +
+    // sama todellinen alkuminuutti tunnistaa esityksen. Jaetut tuotteet (yksi lähde listaa
+    // kaksi otsikkoa samaan minuuttiin: festivaalin päivälippu) lasketaan
+    // KAIKISTA tämän vastauksen riveistä ennen yhdistämistä, ja yhdistetään
+    // vain kun päivältä löytyy täsmälleen yksi ehdokas.
+    const jaetutTuotteet = jaetutLipputuotteet([
+      events,
+      ...(ulkoiset ? [...ulkoiset.tulokset.values()].filter((r) => r.ok).map((r) =>
+        r.events.map((e) => ({ ...e, startTime: normalizeHelsinkiTimestamp(e.startTime) ?? e.startTime }))) : []),
+    ])
+    const etsiSamaTuote = (e: Event, paiva: string): number | undefined => {
+      const ryhma = lipputuoteRyhma(e)
+      if (!ryhma || jaetutTuotteet.has(ryhma)) return undefined
+      const osumat = (paivanIndeksit.get(paiva) ?? []).filter((i) => onSamaLipputuote(events[i], e, jaetutTuotteet))
+      return osumat.length === 1 ? osumat[0] : undefined
+    }
     const sources: SourceStatus[] = [{ name: 'linked-events', ok: leOk, count: events.length }]
 
     // Luokittelu joka ei koskaan heitä — käytetään dedupin vibe-unionissa.
@@ -460,6 +479,10 @@ export async function GET(req: NextRequest) {
             let existingIdx = seenMap.get(key)
             if (existingIdx === undefined) {
               existingIdx = etsiSamaEsitys(e, paiva)
+              if (existingIdx !== undefined) seenMap.set(key, existingIdx)
+            }
+            if (existingIdx === undefined) {
+              existingIdx = etsiSamaTuote(e, paiva)
               if (existingIdx !== undefined) seenMap.set(key, existingIdx)
             }
             if (existingIdx !== undefined) {
