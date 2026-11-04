@@ -255,3 +255,13 @@ export function stripPriceFromPrefix(price: string): string {
   return price.replace(/^\s*(?:alkaen|alk\.?|from)\s*/i, '').trim()
 }
 
+
+/** Kuvaosoite https:nä. LinkedEventsin kuvista osa (Stoa, Malmitalo, Vuotalo,
+ *  Kanneltalo, Caisa, Annantalo, Savoy…) tulee http-osoitteina (mitattu
+ *  4.11.2026: 13–27 per laskeutumissivu). Selaimet korottavat passiivisen
+ *  sekasisällön itse, mutta esilatausvihje (hero) ja HTML:n siisteys vaativat
+ *  https:n; kaikki ko. palvelimet vastaavat https:llä. Tyhjä → null. */
+export function httpsKuva(url: string | null | undefined): string | null {
+  if (!url) return null
+  return url.startsWith('http://') ? `https://${url.slice(7)}` : url
+}

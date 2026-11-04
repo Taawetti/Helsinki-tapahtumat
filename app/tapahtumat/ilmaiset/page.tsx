@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
+import { paivaEssiivi, vilkkaimmatPaikat, luettelo } from '@/lib/seo-intro'
+import { httpsKuva } from '@/lib/utils'
 import { curateForLanding } from '@/lib/seo-curation'
 import Link from 'next/link'
 import HomeShell from '@/components/HomeShell'
@@ -13,9 +16,27 @@ const DESC = 'Ilmaiset tapahtumat Helsingissä: maksuttomat konsertit, näyttely
 
 const OG_TITLE = "Ilmaiset tapahtumat Helsinki – maksuton ohjelma"
 
-export const metadata: Metadata = {
-  title: 'Ilmaiset tapahtumat Helsinki – maksuton ohjelma',
-  description: DESC,
+// ELÄVÄ OTSIKKO JA KUVAUS (SEO-suunnitelma 2, 4.11.2026): ilmaisten määrä
+// otsikossa ja kuvauksessa kertoo hakijalle heti, että sivu vastaa juuri tämän
+// viikon kysymykseen. Luvut tulevat samasta listasta jonka sivu näyttää (React
+// cache → yksi haku per pyyntö); tyhjällä listalla palataan pysyvään tekstiin.
+export async function generateMetadata(): Promise<Metadata> {
+  const events = await fetchFree()
+  const today = helsinkiToday()
+  const tanaan = events.filter((e) => helsinkiDateOf(e.startTime) === today).length
+  const title = events.length > 0
+    ? `Ilmaiset tapahtumat Helsinki – ${events.length} maksutonta menoa tällä viikolla`
+    : 'Ilmaiset tapahtumat Helsinki – maksuton ohjelma'
+  const description = events.length > 0
+    ? `Seuraavan 7 päivän aikana Helsingissä on ${events.length} ilmaista tapahtumaa, tänään ${tanaan}: konsertit, näyttelyt, kirjastojen ja kulttuuritalojen ohjelma ja perhemenot – koko maksuton lista yhdessä paikassa.`
+    : DESC
+  return metadataFor(title, description)
+}
+
+function metadataFor(title: string, description: string): Metadata {
+  return {
+  title,
+  description,
   // Kielipari: englanninkielinen vastine on /en/free-events. Vastavuoroisuus on
   // hreflangin ehto — Google jättää yksipuolisen parin huomiotta.
   alternates: {
@@ -32,11 +53,12 @@ export const metadata: Metadata = {
     // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
     images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
     title: 'Ilmaiset tapahtumat Helsinki',
-    description: DESC,
+    description,
     locale: 'fi_FI',
     type: 'website',
     url: `${BASE}/tapahtumat/ilmaiset`,
   },
+  }
 }
 
 interface LEEvent {
@@ -61,7 +83,7 @@ function normalize(raw: LEEvent): PageEvent | null {
     title: raw.name?.fi || raw.name?.en || raw.name?.sv || 'Tapahtuma',
     startTime: raw.start_time,
     venue: raw.location?.name?.fi || raw.location?.name?.en || '',
-    image: raw.images?.[0]?.url || null,
+    image: httpsKuva(raw.images?.[0]?.url),
   }
 }
 
@@ -72,7 +94,8 @@ function formatDate(iso: string): string {
   })
 }
 
-async function fetchFree(): Promise<PageEvent[]> {
+// React cache: generateMetadata ja sivu jakavat yhden haun per pyyntö.
+const fetchFree = cache(async (): Promise<PageEvent[]> => {
   // helsinkiToday() eikä kiinteä +3 h: kesäajan päätyttyä 25.10. kiinteä
   // siirtymä laskisi "tänään" väärin aamuyöllä (auditointi 5.9.2026).
   const today = helsinkiToday()
@@ -114,10 +137,12 @@ async function fetchFree(): Promise<PageEvent[]> {
   } catch {
     return []
   }
-}
+})
 
 export default async function IlmaisetPage() {
   const events = await fetchFree()
+  const tanaanMaara = events.filter((e) => helsinkiDateOf(e.startTime) === helsinkiToday()).length
+  const paikat = vilkkaimmatPaikat(events)
 
   const eventListLd = {
     '@context': 'https://schema.org',
@@ -164,14 +189,25 @@ export default async function IlmaisetPage() {
 
           <div className="mb-8">
             <h1 className="sr-only">🆓 Ilmaiset tapahtumat Helsinki</h1>
-            <p className="text-gray-400 mb-4">Seuraavat 7 päivää — {events.length} ilmaista tapahtumaa</p>
+            <p className="text-gray-400 mb-4">Seuraavat 7 päivää</p>
 
             <div className="text-sm text-gray-400 leading-relaxed space-y-3">
-              <p>
-                Helsinki tarjoaa runsaasti <strong>ilmaisia tapahtumia</strong> ympäri vuoden.
-                Kaupungin puistoissa, toreilla ja kulttuurikeskuksissa järjestetään säännöllisesti
-                maksutonta ohjelmaa kaikille ikäryhmille.
-              </p>
+              {/* Vastaus hakijan kysymykseen heti ja konkreettisesti: määrä
+                  viikolle ja tälle päivälle sekä vilkkaimmat paikat — samasta
+                  listasta jonka sivu näyttää (lib/seo-intro). */}
+              {events.length > 0 ? (
+                <p>
+                  <strong>Seuraavan seitsemän päivän aikana Helsingissä on {events.length} ilmaista tapahtumaa</strong>, joista {tanaanMaara} on tänään ({paivaEssiivi(helsinkiToday())}).
+                  {paikat.length > 0 && <> Vilkkaimmat paikat: {luettelo(paikat)}.</>}
+                  {' '}Lista päivittyy automaattisesti, ja jokaiselta tapahtumalta pääset suoraan järjestäjän sivulle.
+                </p>
+              ) : (
+                <p>
+                  Helsinki tarjoaa runsaasti <strong>ilmaisia tapahtumia</strong> ympäri vuoden.
+                  Kaupungin puistoissa, toreilla ja kulttuurikeskuksissa järjestetään säännöllisesti
+                  maksutonta ohjelmaa kaikille ikäryhmille.
+                </p>
+              )}
               <p>
                 Kesäisin Esplanadin puisto, Kauppatori ja Hernesaari täyttyvät ilmaisista konserteista
                 ja tapahtumista. Malmitalossa, Vuotalossa ja muissa kaupunginosakulttuuritaloissa
@@ -208,7 +244,7 @@ export default async function IlmaisetPage() {
                 <li key={e.id}>
                   <Link href={`/e/${encodeURIComponent(e.id)}`}
                     className="flex items-start gap-3 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors group">
-                    {e.image && <img src={e.image} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
+                    {e.image && <img src={e.image} alt="" width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
                     <div className="flex-1 min-w-0">
                       <h2 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
                         {e.title}

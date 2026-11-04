@@ -17,6 +17,7 @@
 // englanti ja vasta sen puuttuessa suomi. Tämä EI ole konekäännös vaan lähteen
 // oma kenttä; osa otsikoista jää silti suomeksi, ja lähdemaininta kertoo sen.
 
+import { httpsKuva } from '@/lib/utils'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import EnGuidePage from '@/components/EnGuidePage'
@@ -88,7 +89,7 @@ function normalize(raw: LEEvent): PageEvent {
     venue: raw.location?.name?.en || raw.location?.name?.fi || '',
     isFree: offer?.is_free ?? false,
     price: offer?.is_free ? null : (offer?.price?.en || offer?.price?.fi || null),
-    image: raw.images?.[0]?.url || null,
+    image: httpsKuva(raw.images?.[0]?.url),
     ticketUrl: offer?.info_url?.en || offer?.info_url?.fi || raw.info_url?.en || raw.info_url?.fi || null,
   }
 }
@@ -231,7 +232,7 @@ export default async function EnEventsTodayPage() {
               <li key={e.id}>
                 <Link href={`/e/${encodeURIComponent(e.id)}`}
                   className="flex items-start gap-3 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors group">
-                  {e.image && <img src={e.image} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
+                  {e.image && <img src={e.image} alt="" width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <h2 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
                       {e.title}

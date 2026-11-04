@@ -4,7 +4,7 @@ import { taydennaKoordinaatit } from '@/lib/venue-coords'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
 import { helsinkiDateOf, normalizeHelsinkiTimestamp, helsinkiToday } from '@/lib/helsinki-time'
-import { decodeHtmlEntities } from '@/lib/utils'
+import { decodeHtmlEntities, httpsKuva } from '@/lib/utils'
 import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { eventMatchesKeyword } from '@/lib/keyword-filter'
 import { onEstettyPaikka } from '@/lib/venue-blocklist'
@@ -76,7 +76,7 @@ function normalize(raw: LinkedEventsEvent): Event {
   const title = raw.name?.fi || raw.name?.en || raw.name?.sv || 'Nimetön tapahtuma'
   const shortDescription = raw.short_description?.fi || raw.short_description?.en || ''
   const description = raw.description?.fi || raw.description?.en || ''
-  const image = raw.images?.[0]?.url ?? null
+  const image = httpsKuva(raw.images?.[0]?.url)
 
   const loc = raw.location
   const locationObj = loc

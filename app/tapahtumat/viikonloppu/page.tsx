@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
+import { paivavaliLyhyt, vilkkaimmatPaikat, luettelo } from '@/lib/seo-intro'
+import { httpsKuva } from '@/lib/utils'
 import { curateForLanding } from '@/lib/seo-curation'
 import Link from 'next/link'
 import HomeShell from '@/components/HomeShell'
@@ -14,28 +17,52 @@ const DESC = 'Helsingin viikonlopun tapahtumat: perjantain, lauantain ja sunnunt
 
 const OG_TITLE = "Tapahtumat Helsinki viikonloppu – perjantai, lauantai, sunnuntai"
 
-export const metadata: Metadata = {
-  title: 'Tapahtumat Helsinki viikonloppu – perjantai, lauantai, sunnuntai',
-  description: DESC,
-  alternates: {
-    canonical: `${BASE}/tapahtumat/viikonloppu`,
-    languages: {
-      fi: `${BASE}/tapahtumat/viikonloppu`,
-      en: `${BASE}/en/events-this-weekend`,
-      'x-default': `${BASE}/tapahtumat/viikonloppu`,
+/** Viikonlopun luvut yhdestä listasta: yhteensä, per päivä ja ilmaiset. */
+function viikonlopunLuvut(events: PageEvent[], fri: string, sun: string) {
+  const la = new Date(Date.parse(`${fri}T12:00:00Z`) + 86400000).toISOString().slice(0, 10)
+  const paivana = (d: string) => events.filter((e) => helsinkiDateOf(e.startTime) === d).length
+  return { yhteensa: events.length, pe: paivana(fri), la: paivana(la), su: paivana(sun), ilmaisia: events.filter((e) => e.isFree).length }
+}
+
+// ELÄVÄ OTSIKKO JA KUVAUS (SEO-suunnitelma 2, 4.11.2026): viikonlopun
+// päivämäärät otsikossa ja oikeat luvut kuvauksessa kertovat hakijalle heti,
+// että sivu vastaa juuri tämän viikonlopun kysymykseen. Luvut tulevat samasta
+// listasta jonka sivu näyttää (React cache → yksi haku per pyyntö); tyhjällä
+// listalla palataan pysyvään tekstiin.
+export async function generateMetadata(): Promise<Metadata> {
+  const events = await fetchWeekend()
+  const { fri, sun } = getWeekendRange()
+  const vali = paivavaliLyhyt(fri, sun)
+  const l = viikonlopunLuvut(events, fri, sun)
+  const title = events.length > 0
+    ? `Tapahtumat Helsinki viikonloppu ${vali} – pe, la ja su`
+    : 'Tapahtumat Helsinki viikonloppu – perjantai, lauantai, sunnuntai'
+  const description = events.length > 0
+    ? `Viikonloppuna ${vali} Helsingissä on ${l.yhteensa} tapahtumaa (pe ${l.pe}, la ${l.la}, su ${l.su}), joista ${l.ilmaisia} ilmaista: keikat, klubit, festivaalit ja menovinkit yhdessä paikassa.`
+    : DESC
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `${BASE}/tapahtumat/viikonloppu`,
+      languages: {
+        fi: `${BASE}/tapahtumat/viikonloppu`,
+        en: `${BASE}/en/events-this-weekend`,
+        'x-default': `${BASE}/tapahtumat/viikonloppu`,
+      },
     },
-  },
-  openGraph: {
-    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
-    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
-    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
-    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
-    title: 'Tapahtumat Helsinki viikonloppu',
-    description: DESC,
-    locale: 'fi_FI',
-    type: 'website',
-    url: `${BASE}/tapahtumat/viikonloppu`,
-  },
+    openGraph: {
+      // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+      // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+      // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+      images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
+      title: 'Tapahtumat Helsinki viikonloppu',
+      description,
+      locale: 'fi_FI',
+      type: 'website',
+      url: `${BASE}/tapahtumat/viikonloppu`,
+    },
+  }
 }
 
 interface LEEvent {
@@ -62,7 +89,7 @@ function normalize(raw: LEEvent): PageEvent {
     venue: raw.location?.name?.fi || raw.location?.name?.en || '',
     isFree: offer?.is_free ?? false,
     price: offer?.is_free ? null : (offer?.price?.fi || null),
-    image: raw.images?.[0]?.url || null,
+    image: httpsKuva(raw.images?.[0]?.url),
   }
 }
 
@@ -91,7 +118,8 @@ function formatDate(iso: string): string {
   })
 }
 
-async function fetchWeekend(): Promise<PageEvent[]> {
+// React cache: generateMetadata ja sivu jakavat yhden haun per pyyntö.
+const fetchWeekend = cache(async (): Promise<PageEvent[]> => {
   const { fri, sun } = getWeekendRange()
   try {
     // Descending sort + date filter: LinkedEvents `start=` also matches
@@ -137,12 +165,23 @@ async function fetchWeekend(): Promise<PageEvent[]> {
   } catch {
     return []
   }
-}
+})
 
 export default async function ViikonloppuPage() {
   const events = await fetchWeekend()
   const { label, fri, sun } = getWeekendRange()
-  const freeCount = events.filter(e => e.isFree).length
+  const luvut = viikonlopunLuvut(events, fri, sun)
+  const paikat = vilkkaimmatPaikat(events)
+  // FAQ samoilla elävillä luvuilla kuin tanaan- ja ilmaiset-sivuilla.
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: 'Mitä Helsingissä tapahtuu viikonloppuna?', acceptedAnswer: { '@type': 'Answer', text: `Viikonloppuna ${paivavaliLyhyt(fri, sun)} Helsingissä on ${luvut.yhteensa} tapahtumaa: perjantaina ${luvut.pe}, lauantaina ${luvut.la} ja sunnuntaina ${luvut.su}. Tarjolla on keikkoja, klubeja, festivaaleja, markkinoita, urheilua ja perhetapahtumia. Katso koko lista mitatanaan.fi/tapahtumat/viikonloppu.` } },
+      { '@type': 'Question', name: 'Onko Helsingissä ilmaisia tapahtumia viikonloppuna?', acceptedAnswer: { '@type': 'Answer', text: `Tänä viikonloppuna ilmaisia tapahtumia on ${luvut.ilmaisia}. Kaikki viikon ilmaiset tapahtumat on koottu sivulle mitatanaan.fi/tapahtumat/ilmaiset.` } },
+      { '@type': 'Question', name: 'Mistä löydän kaikki viikonlopun tapahtumat Helsingissä?', acceptedAnswer: { '@type': 'Answer', text: 'Mitatanaan.fi kokoaa viikonlopun tapahtumat automaattisesti yli 40 lähteestä ja päivittää listan tunnin välein. Jokaiselta tapahtumalta pääsee suoraan lippuihin tai järjestäjän sivulle.' } },
+    ],
+  }
 
   const eventListLd = {
     '@context': 'https://schema.org',
@@ -178,6 +217,7 @@ export default async function ViikonloppuPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(eventListLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(faqLd) }} />
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo, eikä sitä saa menettää. */}
@@ -187,14 +227,26 @@ export default async function ViikonloppuPage() {
 
           <div className="mb-8">
             <h1 className="sr-only">🎉 Tapahtumat Helsinki viikonloppu</h1>
-            <p className="text-gray-400 mb-4">{label} — {events.length} tapahtumaa · {freeCount} ilmaista</p>
+            <p className="text-gray-400 mb-4">{label}</p>
 
             <div className="text-sm text-gray-400 leading-relaxed space-y-3">
-              <p>
-                Helsingin <strong>viikonlopun tapahtumatarjonta</strong> on Suomen monipuolisinta.
-                Perjantai-illasta sunnuntai-iltapäivään kaupungissa on käynnissä satoja tapahtumia —
-                keikkoja, festivaaleja, markkinoita, urheiluotteluita, museonäyttelyjä ja ravintolatapahtumia.
-              </p>
+              {/* Vastaus hakijan kysymykseen heti ja konkreettisesti: päivät,
+                  määrä per päivä, ilmaiset ja vilkkaimmat paikat — samasta
+                  listasta jonka sivu näyttää (lib/seo-intro). */}
+              {events.length > 0 ? (
+                <p>
+                  <strong>Viikonloppuna {paivavaliLyhyt(fri, sun)} Helsingissä on {luvut.yhteensa} tapahtumaa</strong>: perjantaina {luvut.pe}, lauantaina {luvut.la} ja sunnuntaina {luvut.su}.
+                  {' '}Ilmaisia niistä on {luvut.ilmaisia}.
+                  {paikat.length > 0 && <> Vilkkaimmat paikat: {luettelo(paikat)}.</>}
+                  {' '}Lista päivittyy automaattisesti, ja jokaiselta tapahtumalta pääset suoraan lippuihin tai järjestäjän sivulle.
+                </p>
+              ) : (
+                <p>
+                  Helsingin <strong>viikonlopun tapahtumatarjonta</strong> on Suomen monipuolisinta.
+                  Perjantai-illasta sunnuntai-iltapäivään kaupungissa on käynnissä satoja tapahtumia —
+                  keikkoja, festivaaleja, markkinoita, urheiluotteluita, museonäyttelyjä ja ravintolatapahtumia.
+                </p>
+              )}
               <p>
                 Perjantai-ilta on perinteisesti keikkojen ja klubien aikaa: Tavastia, Circus Helsinki,
                 Korjaamo ja G Livelab täyttyvät esiintyjistä. Lauantaisin kaupungissa on eniten
@@ -234,7 +286,7 @@ export default async function ViikonloppuPage() {
                       <li key={e.id}>
                         <Link href={`/e/${encodeURIComponent(e.id)}`}
                           className="flex items-start gap-3 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors group">
-                          {e.image && <img src={e.image} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
+                          {e.image && <img src={e.image} alt="" width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
                               {e.title}

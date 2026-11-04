@@ -80,6 +80,14 @@ interface UseEventsOptions {
   activeCategories: string[]
   bbox?: string
   nearbyCoords?: GeoCoords | null
+  /** SSR-SIEMEN ensimmäiseen renderiin (4.11.2026): palvelimella esiladattu
+   *  lista, joka on sama propsi palvelimella ja selaimessa. Näin etusivun
+   *  HTML sisältää noston, heron ja ruudukon valmiina eikä hydraatio vaihda
+   *  skeletoneja sisältöön (mitattu CLS 0,28 ennen muutosta — siirtymä tuli
+   *  yksinomaan tästä). Luetaan VAIN mountissa; siemen on LinkedEvents-
+   *  osajoukko, joten tila on heti "osittainen" ja mountin tavallinen haku
+   *  (välimuistin siemen → täysi 45 lähteen haku) täydentää sen. */
+  alkuSiemen?: { events: Event[]; total: number } | null
 }
 
 interface UseEventsResult {
@@ -153,15 +161,18 @@ export function useEvents({
   activeCategories,
   bbox,
   nearbyCoords,
+  alkuSiemen = null,
 }: UseEventsOptions): UseEventsResult {
-  const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
+  // Alkutila siemenestä: sama sisältö palvelimella ja selaimessa (ks.
+  // UseEventsOptions.alkuSiemen). Ilman siementä entinen "ladataan"-tila.
+  const [events, setEvents] = useState<Event[]>(() => alkuSiemen?.events ?? [])
+  const [loading, setLoading] = useState(!alkuSiemen)
   const [fetchingFull, setFetchingFull] = useState(false)
   /** Näkyvä data on OSITTAINEN (pikatulos tai siemen) ja täysi haku on
    *  kesken — UI näyttää "Haetaan…" + skeletonit. Eri asia kuin fetchingFull,
    *  joka on tosi myös täyden mutta yli 5 min vanhan datan hiljaisessa
    *  päivityksessä (silloin skeletonit lupaisivat lisää sisältöä turhaan). */
-  const [osittainen, setOsittainen] = useState(false)
+  const [osittainen, setOsittainen] = useState(!!alkuSiemen)
   const [error, setError] = useState<string | null>(null)
   /** Ensimmäinen haku mountissa: siemen näytetään heti (ei skeleton-välähdystä
    *  etusivun ensimaalaukseen); myöhemmät suodatinvaihdot odottavat armonajan. */
@@ -170,7 +181,7 @@ export function useEvents({
   const edellinenAvainRef = useRef<string | null>(null)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
-  const [total, setTotal] = useState(0)
+  const [total, setTotal] = useState(alkuSiemen?.total ?? 0)
   const [generatedAt, setGeneratedAt] = useState<string | null>(null)
   const [sources, setSources] = useState<SourceStatus[]>([])
 

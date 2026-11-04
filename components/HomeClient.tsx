@@ -296,6 +296,9 @@ export default function HomeClient({
     tomorrow: PreloadedDateRange
     weekend: PreloadedDateRange
     week: PreloadedDateRange
+    /** Palvelimen kello esirenderöinnin hetkellä (ms). Ensimmäisen renderin
+     *  "nyt" sekä palvelimella että selaimessa — ks. nowTs. */
+    luotu?: number
   }
 }) {
   // Pre-seed in-memory cache for today/tomorrow/weekend/week.
@@ -611,6 +614,17 @@ export default function HomeClient({
   const [pushEnabled, setPushEnabled] = useState(false)
   const geo = useGeolocation() // korttien etäisyyslaskuun (jos sijainti jo sallittu)
 
+  // SSR-SIEMEN (4.11.2026, CLS/LCP): ensimmäinen renderi piirtää esiladatun
+  // ikkunan suoraan propsista — palvelimella JA selaimessa — jotta HTML
+  // sisältää noston, heron ja ruudukon valmiina eikä hydraatio siirrä mitään.
+  // Välimuistin siemennys (yllä) tarkistaa päivän; tämä EI tarkista tahallaan:
+  // palvelimen ja selaimen ensimmäisen renderin on oltava identtiset myös
+  // keskiyön ympärillä (vanhentunut lista vaihtuu mountin haussa). Ikkuna on
+  // sama kuin useEventsin dateFilter mountissa (alla).
+  const alkuIkkuna: DateFilter | null = initialMode === 'map' ? null : initialMode === 'idea' ? 'today' : (initialDateFilter ?? 'today')
+  const alkuData = alkuIkkuna === 'today' || alkuIkkuna === 'tomorrow' || alkuIkkuna === 'weekend' || alkuIkkuna === 'week' ? preloadedData[alkuIkkuna] : null
+  const alkuSiemen = alkuData && alkuData.events.length > 0 ? { events: alkuData.events, total: alkuData.total } : null
+
   const { events: rawEvents, loading, fetchingFull, osittainen, error, hasMore, total, generatedAt, sources, loadMore, lataaLoputSivut } = useEvents({
     // Idea-näkymä on aina "tänään" — ei riipu Discoverin päivävalinnasta (muuten
     // esim. "Huomenna" tyhjentäisi Idea-deckin tapahtumat). Ei muuta tallennettua
@@ -622,6 +636,7 @@ export default function HomeClient({
     dateFilter: mode === 'map' ? 'month' : mode === 'idea' ? 'today' : hakuIkkuna ? 'search' : dateFilter,
     customDate, customDateEnd, keyword: haku, municipality, activeCategories, bbox: '',
     nearbyCoords: null,
+    alkuSiemen,
   })
 
   // Tapahtumien OMA sisältö (otsikko, kuvaus) tulee lähteistä suomeksi, eikä
@@ -877,9 +892,12 @@ export default function HomeClient({
 
   // Menneet piiloon: päättynyt tapahtuma ei kuulu millekään listalle.
   // Ilman endTimeä tapahtuma lasketaan käynnissä olevaksi 3 h alusta (sama
-  // sääntö kuin "Nyt menossa"). nowTs asetetaan effectissä eikä
-  // initializerissa → ei SSR/hydraatioristiriitaa.
-  const [nowTs, setNowTs] = useState<number | null>(null)
+  // sääntö kuin "Nyt menossa"). Ensimmäisen renderin "nyt" on PALVELIMEN
+  // kello esirenderöinnin hetkellä (preloadedData.luotu): sama luku
+  // palvelimella ja selaimessa → ei hydraatioristiriitaa, ja SSR-siemenestä
+  // piirretty lista (ks. alkuSiemen) on jo karsittu menneistä. Mountissa
+  // vaihdetaan selaimen kelloon (ISR-sivu voi olla minuutteja vanha).
+  const [nowTs, setNowTs] = useState<number | null>(preloadedData.luotu ?? null)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- nowTs asetetaan mountissa SSR-hydraatioristiriidan välttämiseksi (vrt. kommentti yllä)
   useEffect(() => { setNowTs(Date.now()) }, [])
   const upcomingEvents = useMemo(() => {

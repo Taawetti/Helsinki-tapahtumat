@@ -15,6 +15,7 @@
 // englanniksi (name.en), käytetään sitä; muuten näytetään suomenkielinen nimi
 // sellaisenaan. Konekäännöstä ei tehdä.
 
+import { httpsKuva } from '@/lib/utils'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import EnGuidePage from '@/components/EnGuidePage'
@@ -80,7 +81,7 @@ function normalize(raw: LEEvent): PageEvent | null {
     title: raw.name?.en || raw.name?.fi || raw.name?.sv || 'Event',
     startTime: raw.start_time,
     venue: raw.location?.name?.en || raw.location?.name?.fi || '',
-    image: raw.images?.[0]?.url || null,
+    image: httpsKuva(raw.images?.[0]?.url),
   }
 }
 
@@ -229,7 +230,7 @@ export default async function EnFreeEventsPage() {
                 <Link href={`/e/${encodeURIComponent(e.id)}`}
                   className="flex items-start gap-3 rounded-xl p-4 transition-colors group"
                   style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-                  {e.image && <img src={e.image} alt="" className="w-14 h-14 object-cover rounded-lg shrink-0" />}
+                  {e.image && <img src={e.image} alt="" width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-lg shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <h2 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
                       {e.title}

@@ -75,6 +75,8 @@ import { onSamaEsitys, paikkasuhde, normalisoiOtsikkoAvain, etaisyysM, otsikonKl
 import { sivunRajat, kuuluuSivulle, ulkoistenVali } from '../lib/sivurajaus'
 import { kanoninenPaikannimi, normalisoiPaikannimi, PAIKANNIMET } from '../lib/paikannimet'
 import { lipputuoteAvain, lipputuoteRyhma, jaetutLipputuotteet, onSamaLipputuote } from '../lib/lipputuote'
+import { normalisoiPolku } from '../lib/polku'
+import { paivaLyhyt, paivaEssiivi, paivavaliLyhyt, luettelo, vilkkaimmatPaikat, alkamisaikavali, isoAlkukirjain } from '../lib/seo-intro'
 import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, onLippuklikki, type KlikkiRivi } from '../lib/kavijatilastot'
@@ -104,7 +106,7 @@ import { paataTerveystila, VAIHTOVALI_MS, TOIPUMISVAHVISTUS_MS } from '../lib/he
 import { arvioiSitoutuminen, TYHJA_TILA } from '../lib/engagement'
 import { slotFor, poimiPoydat, aukioloTieto } from '../lib/poyta-poiminnat'
 import { karsiTapahtumaPerheet, karsiTapahtumaSarjat } from '../lib/tapahtumaperhe'
-import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, formatDateRange, tuntematonAika, isTonight, getDateRange } from '../lib/utils'
+import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, formatDateRange, tuntematonAika, isTonight, getDateRange, httpsKuva } from '../lib/utils'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
 import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, ctaKohde, onMaksunkeruuUrl } from '../lib/event-links'
@@ -5502,6 +5504,54 @@ odotettavat.push((async () => {
   for (const c of jCases) {
     if (c.ok) pass++
     else failures.push(`✗ jakosivu: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Kuvaosoitteen https-korotus ja usePathname()-normalisointi (4.11.2026) ──
+{
+  const pCases: { name: string; ok: boolean }[] = [
+    { name: 'httpsKuva: http → https', ok: httpsKuva('http://www.stoa.fi/kuva.jpg') === 'https://www.stoa.fi/kuva.jpg' },
+    { name: 'httpsKuva: https ja suhteellinen ennallaan, tyhjä → null',
+      ok: httpsKuva('https://a.fi/k.jpg') === 'https://a.fi/k.jpg' && httpsKuva('/icon.png') === '/icon.png' && httpsKuva(null) === null && httpsKuva(undefined) === null && httpsKuva('') === null },
+    { name: 'normalisoiPolku: Vercelin "/index" → "/", muut ennallaan',
+      ok: normalisoiPolku('/index') === '/' && normalisoiPolku('/') === '/' && normalisoiPolku('/en') === '/en' && normalisoiPolku('/index/x') === '/index/x' && normalisoiPolku(null) === null },
+  ]
+  for (const c of pCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ polku/kuva: ${c.name}`)
+  }
+}
+
+// ── Laskeutumissivujen elävät faktat (lib/seo-intro, 4.11.2026) ──
+{
+  const ev = (startTime: string, venue: string, title = 'Keikka') => ({ title, startTime, venue })
+  const lista = [
+    ev('2026-11-04T07:00:00Z', 'Kampin palvelukeskus'),  // kohderyhmän ulkopuolella: ei paikkalistaan
+    ev('2026-11-04T07:30:00Z', 'Kampin palvelukeskus'),
+    ev('2026-11-04T08:30:00Z', 'Kampin palvelukeskus'),
+    ev('2026-11-04T09:00:00Z', 'Kampin palvelukeskus'),
+    ev('2026-11-04T08:00:00Z', 'Helsingin Kulttuuritalo'), // 10.00 Helsinki
+    ev('2026-11-04T17:00:00Z', 'Kulttuuritalo'),           // 19.00
+    ev('2026-11-04T15:00:00Z', 'KULT Kulttuuritalo'),
+    ev('2026-11-04T21:00:00Z', 'Tavastia'),                // 23.00
+    ev('2026-11-04T18:00:00Z', 'Oodi'),
+    ev('2026-11-04T19:00:00Z', 'Oodi'),
+    ev('2026-11-04T19:30:00Z', 'Oodi'),
+    ev('2026-11-04T00:00:00+02:00', ''),                   // ajaton, nimetön
+  ]
+  const vali = alkamisaikavali(lista)
+  const sCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'paivaLyhyt / paivaEssiivi', ok: paivaLyhyt('2026-11-04') === '4.11.' && paivaEssiivi('2026-11-04') === 'keskiviikkona 4.11.' && paivaEssiivi('2026-11-08') === 'sunnuntaina 8.11.', got: paivaEssiivi('2026-11-04') },
+    { name: 'paivavaliLyhyt samassa kuussa ja kuukauden yli', ok: paivavaliLyhyt('2026-11-06', '2026-11-08') === '6.–8.11.' && paivavaliLyhyt('2026-10-30', '2026-11-01') === '30.10.–1.11.', got: paivavaliLyhyt('2026-10-30', '2026-11-01') },
+    { name: 'luettelo 0/1/2/3 osaa', ok: luettelo([]) === '' && luettelo(['A']) === 'A' && luettelo(['A', 'B']) === 'A ja B' && luettelo(['A', 'B', 'C']) === 'A, B ja C' },
+    { name: 'vilkkaimmatPaikat: kanoninen nimi yhdistää, tyhjä ja palvelukeskus ohitetaan, vähintään 3 tapahtumaa ja 2 paikkaa', ok: JSON.stringify(vilkkaimmatPaikat(lista)) === JSON.stringify(['Kulttuuritalo', 'Oodi']) && vilkkaimmatPaikat(lista.slice(0, 6)).length === 0, got: JSON.stringify(vilkkaimmatPaikat(lista)) },
+    { name: 'alkamisaikavali Helsingin aikaa, ajaton ohitetaan', ok: !!vali && vali.ensimmainen === '9.00' && vali.viimeinen === '23.00', got: JSON.stringify(vali) },
+    { name: 'alkamisaikavali null pelkillä ajattomilla', ok: alkamisaikavali([ev('2026-11-04T00:00:00+02:00', 'X')]) === null },
+    { name: 'isoAlkukirjain', ok: isoAlkukirjain('keskiviikkona 4.11.') === 'Keskiviikkona 4.11.' && isoAlkukirjain('') === '' },
+  ]
+  for (const c of sCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ seo-intro: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

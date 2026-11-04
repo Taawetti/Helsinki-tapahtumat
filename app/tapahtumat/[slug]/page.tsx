@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { httpsKuva } from '@/lib/utils'
 import { curateForLanding } from '@/lib/seo-curation'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -60,7 +61,7 @@ function normalizeLE(raw: LEEvent): PageEvent {
   const isFree = offer?.is_free ?? false
   const price = isFree ? null : (offer?.price?.fi || null)
   const ticketUrl = offer?.info_url?.fi || offer?.info_url?.en || raw.info_url?.fi || raw.info_url?.en || null
-  const image = raw.images?.[0]?.url || null
+  const image = httpsKuva(raw.images?.[0]?.url)
   return { id: raw.id, title, shortDescription, startTime: raw.start_time, endTime: raw.end_time || null, venue, address, categories, ysoIds, isFree, price, ticketUrl, image }
 }
 
@@ -361,7 +362,7 @@ export default async function TapahtumaSivu({ params }: Props) {
                     style={{ background: 'rgba(255,255,255,.04)' }}>
                     {e.image && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={e.image} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
+                      <img src={e.image} alt="" width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white/90 group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug text-[14px]">

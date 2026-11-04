@@ -8,7 +8,8 @@
 // eikä kieltä (englanti ei ole vain briteille), ja kaksikirjaiminen tunnus on
 // se mitä käyttäjät osaavat etsiä.
 
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { usePolku } from '@/hooks/usePolku'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 /** Kielenvaihdon logiikka — sama sekä tälle napille että mobiilin ⋯-valikon
@@ -16,7 +17,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
  *  kopioidu kahteen paikkaan. */
 export function useLanguageSwitch() {
   const { lang, setLang } = useLanguage()
-  const pathname = usePathname()
+  const pathname = usePolku() // "/index" → "/" Vercelin esirenderöinnissä (lib/polku)
   const router = useRouter()
   const next = lang === 'fi' ? 'en' : 'fi'
 

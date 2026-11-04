@@ -1,4 +1,4 @@
-import { decodeHtmlEntities } from '@/lib/utils'
+import { decodeHtmlEntities, httpsKuva } from '@/lib/utils'
 import { onMaksunkeruuUrl } from '@/lib/event-links'
 import { unstable_cache } from 'next/cache'
 import type { Event } from '@/lib/types'
@@ -41,7 +41,7 @@ function normalize(raw: LEEvent): Event {
       lat: loc.position?.coordinates?.[1],
       lon: loc.position?.coordinates?.[0],
     } : null,
-    image: raw.images?.[0]?.url ?? null,
+    image: httpsKuva(raw.images?.[0]?.url),
     isFree: offer?.is_free ?? false,
     price: offer?.is_free ? null : (offer?.price?.fi || offer?.price?.en || null),
     ticketUrl: (() => {

@@ -18,6 +18,7 @@
 // nös vaan järjestäjän oma englanninkielinen nimi; osa tapahtumista jää silti
 // suomeksi, mikä on tiedossa oleva rajoite.
 
+import { httpsKuva } from '@/lib/utils'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import EnGuidePage from '@/components/EnGuidePage'
@@ -94,7 +95,7 @@ function normalize(raw: LEEvent): PageEvent {
     isFree: offer?.is_free ?? false,
     // Hinta on merkkijono lähteestä ("15/12 €"); en-kenttä käytetään jos on.
     price: offer?.is_free ? null : (priceText(offer?.price?.en) || priceText(offer?.price?.fi)),
-    image: raw.images?.[0]?.url || null,
+    image: httpsKuva(raw.images?.[0]?.url),
   }
 }
 
@@ -252,7 +253,7 @@ export default async function EnWeekendPage() {
                     <li key={e.id}>
                       <Link href={`/e/${encodeURIComponent(e.id)}`}
                         className="flex items-start gap-3 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors group">
-                        {e.image && <img src={e.image} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
+                        {e.image && <img src={e.image} alt="" width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
                             {e.title}

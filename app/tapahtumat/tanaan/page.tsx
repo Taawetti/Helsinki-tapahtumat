@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
+import { paivaEssiivi, paivaLyhyt, vilkkaimmatPaikat, alkamisaikavali, luettelo, isoAlkukirjain } from '@/lib/seo-intro'
+import { httpsKuva } from '@/lib/utils'
 import { curateForLanding } from '@/lib/seo-curation'
 import Link from 'next/link'
 import HomeShell from '@/components/HomeShell'
@@ -14,28 +17,45 @@ const DESC = 'Mitä tänään tapahtuu Helsingissä? Kaikki päivän keikat, klu
 
 const OG_TITLE = "Tapahtumat Helsinki tänään – mitä tapahtuu nyt"
 
-export const metadata: Metadata = {
-  title: 'Tapahtumat Helsinki tänään – mitä tapahtuu nyt',
-  description: DESC,
-  alternates: {
-    canonical: `${BASE}/tapahtumat/tanaan`,
-    languages: {
-      fi: `${BASE}/tapahtumat/tanaan`,
-      en: `${BASE}/en/events-today`,
-      'x-default': `${BASE}/tapahtumat/tanaan`,
+// ELÄVÄ OTSIKKO JA KUVAUS (SEO-suunnitelma 2, 4.11.2026): hakutuloksessa
+// päivämäärä ja päivän oikeat luvut ("87 tapahtumaa, joista 23 ilmaista")
+// kertovat hakijalle heti, että sivu vastaa juuri tämän päivän kysymykseen.
+// Luvut tulevat samasta listasta jonka sivu näyttää (React cache → yksi haku
+// per pyyntö). Jos haku epäonnistuu (tyhjä lista), palataan pysyvään
+// tekstiin, jottei hakutulokseen jää "0 tapahtumaa".
+export async function generateMetadata(): Promise<Metadata> {
+  const events = await fetchToday()
+  const today = helsinkiToday()
+  const ilmaisia = events.filter((e) => e.isFree).length
+  const title = events.length > 0
+    ? `Tapahtumat Helsinki tänään ${paivaLyhyt(today)} – mitä tapahtuu nyt`
+    : 'Tapahtumat Helsinki tänään – mitä tapahtuu nyt'
+  const description = events.length > 0
+    ? `${isoAlkukirjain(paivaEssiivi(today))} Helsingissä on ${events.length} tapahtumaa, joista ${ilmaisia} ilmaista: keikat, klubit, näyttelyt ja perhemenot yhdessä listassa – päivittyy joka tunti.`
+    : DESC
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `${BASE}/tapahtumat/tanaan`,
+      languages: {
+        fi: `${BASE}/tapahtumat/tanaan`,
+        en: `${BASE}/en/events-today`,
+        'x-default': `${BASE}/tapahtumat/tanaan`,
+      },
     },
-  },
-  openGraph: {
-    // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
-    // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
-    // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
-    images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
-    title: 'Tapahtumat Helsinki tänään',
-    description: DESC,
-    locale: 'fi_FI',
-    type: 'website',
-    url: `${BASE}/tapahtumat/tanaan`,
-  },
+    openGraph: {
+      // Jakokuva. Ilman tätä sivu peri juurilayoutin openGraphin EI lainkaan
+      // (sivun oma openGraph korvaa sen kokonaan), joten jaettu linkki näkyi
+      // WhatsAppissa ja Facebookissa pelkkänä tekstirivinä ilman kuvaa.
+      images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(OG_TITLE)}`, width: 1200, height: 630 }],
+      title: 'Tapahtumat Helsinki tänään',
+      description,
+      locale: 'fi_FI',
+      type: 'website',
+      url: `${BASE}/tapahtumat/tanaan`,
+    },
+  }
 }
 
 interface LEEvent {
@@ -65,7 +85,7 @@ function normalize(raw: LEEvent): PageEvent {
     venue: raw.location?.name?.fi || raw.location?.name?.en || '',
     isFree: offer?.is_free ?? false,
     price: offer?.is_free ? null : (offer?.price?.fi || null),
-    image: raw.images?.[0]?.url || null,
+    image: httpsKuva(raw.images?.[0]?.url),
     ticketUrl: offer?.info_url?.fi || offer?.info_url?.en || raw.info_url?.fi || null,
   }
 }
@@ -74,7 +94,8 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' })
 }
 
-async function fetchToday(): Promise<PageEvent[]> {
+// React cache: generateMetadata ja sivu jakavat yhden haun per pyyntö.
+const fetchToday = cache(async (): Promise<PageEvent[]> => {
   // Helsingin päivä kirjaston kautta. Tässä oli kovakoodattu +3 h, joka on
   // oikea vain kesäaikana (EEST): talvella (EET, +2) offset heitti päivän
   // väärin klo 22–24 UTC, eli "Tänään"-sivu näytti huomista.
@@ -120,7 +141,7 @@ async function fetchToday(): Promise<PageEvent[]> {
   } catch {
     return []
   }
-}
+})
 
 export default async function TanaanPage() {
   const events = await fetchToday()
@@ -155,13 +176,15 @@ export default async function TanaanPage() {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: [
-      { '@type': 'Question', name: 'Mitä tapahtuu Helsingissä tänään?', acceptedAnswer: { '@type': 'Answer', text: `Tänään ${dateStr} Helsingissä on ${events.length} tapahtumaa. Tarjolla on konsertteja, näyttelyjä, teatteriesityksiä, urheilutapahtumia ja paljon muuta.` } },
+      { '@type': 'Question', name: 'Mitä tapahtuu Helsingissä tänään?', acceptedAnswer: { '@type': 'Answer', text: `Tänään, ${paivaEssiivi(helsinkiToday())}, Helsingissä on ${events.length} tapahtumaa. Tarjolla on konsertteja, näyttelyjä, teatteriesityksiä, urheilutapahtumia ja paljon muuta.` } },
       { '@type': 'Question', name: 'Onko Helsingissä ilmaisia tapahtumia tänään?', acceptedAnswer: { '@type': 'Answer', text: `Tänään ilmaisia tapahtumia on ${events.filter(e => e.isFree).length} kappaletta. Katso täydellinen lista alta.` } },
       { '@type': 'Question', name: 'Mistä löydän kaikki Helsingin tapahtumat?', acceptedAnswer: { '@type': 'Answer', text: 'Mitatanaan.fi kokoaa automaattisesti tapahtumat 40+ lähteestä: LinkedEvents, Ticketmaster, Eventbrite, RA, Kide, Lippu.fi ja kymmenet helsinkiläiset venues.' } },
     ],
   }
 
   const freeCount = events.filter(e => e.isFree).length
+  const aikavali = alkamisaikavali(events)
+  const paikat = vilkkaimmatPaikat(events)
 
   return (
     <>
@@ -176,19 +199,32 @@ export default async function TanaanPage() {
 
           <div className="mb-8">
             <h1 className="sr-only">📅 Tapahtumat Helsinki tänään</h1>
-            <p className="text-gray-400 mb-4">{dateStr} — {events.length} tapahtumaa · {freeCount} ilmaista</p>
+            <p className="text-gray-400 mb-4">{dateStr}</p>
 
             <div className="text-sm text-gray-400 leading-relaxed space-y-3">
+              {/* Vastaus hakijan kysymykseen heti ja konkreettisesti: päivä,
+                  määrä, ilmaiset, kellonaikaväli ja vilkkaimmat paikat — samasta
+                  listasta jonka sivu näyttää (lib/seo-intro). Yleisteksti vain
+                  jos haku epäonnistui. */}
+              {events.length > 0 ? (
+                <p>
+                  <strong>{isoAlkukirjain(paivaEssiivi(helsinkiToday()))} Helsingissä on {events.length} tapahtumaa</strong>, joista {freeCount} on ilmaisia.
+                  {aikavali && <> Päivän ohjelma alkaa klo {aikavali.ensimmainen} ja viimeiset tapahtumat alkavat klo {aikavali.viimeinen}.</>}
+                  {paikat.length > 0 && <> Vilkkaimmat paikat tänään: {luettelo(paikat)}.</>}
+                  {' '}Lista päivittyy automaattisesti, ja jokaiselta tapahtumalta pääset suoraan lippuihin tai järjestäjän sivulle.
+                </p>
+              ) : (
+                <p>
+                  Helsinki on Suomen aktiivisin tapahtumakaupunki. Joka päivä kaupungissa on tarjolla kymmeniä
+                  konsertteja, näyttelyjä, teatteriesityksiä, urheilutapahtumia ja muita elämyksiä.
+                  Tältä sivulta löydät <strong>tämän päivän kaikki tapahtumat Helsingissä</strong>.
+                </p>
+              )}
               <p>
-                Helsinki on Suomen aktiivisin tapahtumakaupunki. Joka päivä kaupungissa on tarjolla kymmeniä
-                konsertteja, näyttelyjä, teatteriesityksiä, urheilutapahtumia ja muita elämyksiä.
-                Tältä sivulta löydät <strong>tämän päivän kaikki tapahtumat Helsingissä</strong> — koottuna
-                automaattisesti 40+ lähteestä.
-              </p>
-              <p>
-                Tänään voit suunnata live-musiikkia Tavastiaalle, G Livelabiin tai Korjaamolle,
-                tutustua vaihtuviin näyttelyihin Kiasmassa tai Ateneumissa, tai löytää ilmaisen
-                tapahtuman lähikaupunginosasta. Monissa museoissa on myös ilmaisia sisäänpääsypäiviä.
+                Keikat, klubit, näyttelyt, teatteri, urheilu ja perhetapahtumat ovat samassa listassa — koottuna
+                automaattisesti yli 40 lähteestä, muun muassa Helsingin kaupungin tapahtumakalenterista,
+                lipunmyyjiltä ja keikkapaikkojen omista kalentereista. Illan keikat, viikonlopun ohjelma ja
+                ilmaiset tapahtumat löytyvät myös omilta sivuiltaan alta.
               </p>
             </div>
           </div>
@@ -217,7 +253,7 @@ export default async function TanaanPage() {
                 <li key={e.id}>
                   <Link href={`/e/${encodeURIComponent(e.id)}`}
                     className="flex items-start gap-3 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors group">
-                    {e.image && <img src={e.image} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
+                    {e.image && <img src={e.image} alt="" width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />}
                     <div className="flex-1 min-w-0">
                       <h2 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
                         {e.title}

@@ -96,6 +96,9 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
       initialNostot={nostot}
       heroAsHeading={heroAsHeading ?? !(initialGuide || initialVibes?.length || initialHood || initialPriceFilter || initialMode || initialDateFilter || initialEvent)}
       preloadedData={{
+        // Esirenderöinnin kello: ensimmäisen renderin "nyt" (HomeClient nowTs).
+        // eslint-disable-next-line react-hooks/purity -- palvelimen kello luetaan tarkoituksella renderissä: sama luku kulkee propsina selaimeen
+        luotu:    Date.now(),
         today:    { start: todayRange.start,    end: todayRange.end,    events: todayData.events,    total: todayData.total    },
         tomorrow: { start: tomorrowRange.start, end: tomorrowRange.end, events: tomorrowData.events, total: tomorrowData.total },
         weekend:  { start: weekendRange.start,  end: weekendRange.end,  events: weekendData.events,  total: weekendData.total  },

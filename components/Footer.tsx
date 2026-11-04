@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePolku } from '@/hooks/usePolku'
 import { VIBES } from '@/lib/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import type { TranslationKey } from '@/lib/i18n'
@@ -24,7 +24,10 @@ const FOOTER_TKEY: Record<string, TranslationKey> = {
 }
 
 export default function Footer() {
-  const pathname = usePathname()
+  // usePolku eikä usePathname: Vercelin esirenderöinti antaa juurelle polun
+  // "/index" (lib/polku), ja vertailu '/':aan valitsi palvelimella täyden
+  // footerin ja selaimessa kevyen → hydraatiovirhe joka latauksella.
+  const pathname = usePolku()
   const { t, lang } = useLanguage()
   // '/en' on sama SOVELLUSNÄKYMÄ kuin '/', vain eri kielellä — sen on saatava
   // sama kevyt footer. Ilman tätä englanninkielinen etusivu sai laskeutumis-
@@ -50,6 +53,25 @@ export default function Footer() {
             <Link href={lang === 'en' ? '/en/privacy' : '/tietosuoja'}
               className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
               {t('priv.title')}
+            </Link>
+          </p>
+          {/* SISÄINEN LINKITYS (SEO-suunnitelma 2, 4.11.2026): etusivu on
+              sivuston vahvin sivu, ja päiväsivut kilpailevat hauista
+              "tapahtumat helsinki tänään / viikonloppu / ilmaiset". Kolme
+              tekstilinkkiä samassa hillityssä rivissä kuin yllä — ei valikko,
+              joten omistajan footer-linjaus pysyy. Englanniksi vastinsivut. */}
+          <p className="text-white/30 text-xs mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Link href={lang === 'en' ? '/en/events-today' : '/tapahtumat/tanaan'}
+              className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
+              {t('discover.grid_title')}
+            </Link>
+            <Link href={lang === 'en' ? '/en/events-this-weekend' : '/tapahtumat/viikonloppu'}
+              className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
+              {t('footer.events_weekend')}
+            </Link>
+            <Link href={lang === 'en' ? '/en/free-events' : '/tapahtumat/ilmaiset'}
+              className="underline decoration-white/15 underline-offset-2 hover:text-white/60 transition-colors">
+              {t('footer.events_free')}
             </Link>
           </p>
         </div>
