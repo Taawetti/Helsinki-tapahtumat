@@ -219,7 +219,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const desc = VIBE_DESC_OVERRIDES[slug]
       ?? `Kaikki ${vibe.label.toLowerCase()} tapahtumat Helsingissä. Löydä parhaat ${vibe.keywords.slice(0, 3).join(', ')} -tapahtumat aikatauluineen.`
     return {
-      title: `${vibe.label} Helsinki – tapahtumat | Mitä tänään`,
+      title: `${vibe.label} Helsinki – tapahtumat`,
       description: desc,
       alternates: { canonical: `${BASE}/tapahtumat/${slug}` },
       // JAKOKUVA. Sivun oma openGraph KORVAA juurilayoutin kokonaan, joten
@@ -235,7 +235,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const locative = NEIGHBORHOOD_INESSIVE[slug] || `${n.name}ssa`
     const desc = `Kaikki tapahtumat ${locative} – ${n.vibe}. Löydä tulevat tapahtumat, konsertit, näyttelyt ja muut menot ${NEIGHBORHOOD_ELATIVE[n.id] ?? n.name + 'sta'}.`
     return {
-      title: `Tapahtumat ${locative} | Mitä tänään`,
+      title: `Tapahtumat ${locative}`,
       description: desc,
       alternates: { canonical: `${BASE}/tapahtumat/${slug}` },
       openGraph: { title: `${n.emoji} ${n.name} tapahtumat`, description: desc, locale: 'fi_FI', type: 'website', url: `${BASE}/tapahtumat/${slug}`, images: [{ url: `/api/og?brand=HELSINKI%20TAPAHTUMAT&title=${encodeURIComponent(`Tapahtumat ${n.name}`)}`, width: 1200, height: 630 }] },

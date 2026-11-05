@@ -1,19 +1,26 @@
 import type { Metadata } from 'next'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import HomeShell from '@/components/HomeShell'
 import { supabase } from '@/lib/supabase'
 import { VENUE_PAGES, type VenuePage } from '@/lib/venue-pages'
-import { helsinkiDateRange, helsinkiOffset, formatEventDate } from '@/lib/helsinki-time'
+import { helsinkiDateRange, helsinkiOffset, helsinkiDateOf, formatEventDate } from '@/lib/helsinki-time'
 import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
+import { normalisoiLinkedEvent, type LinkedEventRaw } from '@/lib/fetchInitialEvents'
+import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
 import { jsonLdHtml } from '@/lib/json-ld'
+import { lueLahdepalat, palatValille } from '@/lib/lahdevarasto'
+import { kanoninenPaikannimi } from '@/lib/paikannimet'
+import { hasOwnEventPage } from '@/lib/event-links'
+import { httpsKuva } from '@/lib/utils'
+import type { Event } from '@/lib/types'
 
 export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
-// = app/api/events/route.ts EXTERNAL_SOURCES.length (40) + linked-events.
-
+/** Sivun oman listan rivi (hakukoneosio sovellusnäkymän alla). */
 interface PageEvent {
   id: string
   title: string
@@ -22,20 +29,17 @@ interface PageEvent {
   price: string | null
   ticketUrl: string | null
   image: string | null
-  /** LinkedEvents ids (contain ':') get an internal /e/[id] page; scraped rows link out */
+  /** Oma sivu /e/[id] (LinkedEvents-tyyliset tunnisteet); skrapatut rivit linkittävät lippusivulle */
   internal: boolean
 }
 
-interface LEEvent {
-  id: string
-  name: { fi?: string; en?: string; sv?: string }
-  start_time: string
-  images?: { url: string }[]
-  offers?: { is_free: boolean; price?: { fi?: string }; info_url?: { fi?: string; en?: string } }[]
-  info_url?: { fi?: string; en?: string }
-}
+// ── Paikan tapahtumat TÄYSINÄ Event-riveinä ─────────────────────────────────
+// Sama muoto kuin sovelluksen koosteessa, koska lista annetaan HomeShellille
+// sovellusnäkymän siemeneksi (initialSearchSeed): kortit ja infopaneeli
+// piirtyvät samasta rakenteesta kuin selaimen oma haku, ja id:t täsmäävät
+// koosteen riveihin, jotta siemen ja saapuva tulos yhdistyvät ilman tuplia.
 
-async function fetchTprekEvents(tprekId: string): Promise<PageEvent[]> {
+async function fetchTprekEvents(tprekId: string): Promise<Event[]> {
   const { start, end } = helsinkiDateRange(60)
   // Sivutettu ja laskeva — ks. lib/linked-events.ts. Tässä oli nouseva
   // lajittelu ja yksi 100 rivin sivu 60 PÄIVÄN ikkunalle: sama muoto joka
@@ -43,12 +47,12 @@ async function fetchTprekEvents(tprekId: string): Promise<PageEvent[]> {
   // Malmitalo (tprek:8740) = 89 osumaa 100:sta, eli 11 rivin päässä
   // hiljaisesta katkaisusta josta mikään ei olisi ilmoittanut.
   try {
-    const { rows } = await fetchLinkedEventsAll<LEEvent>(
+    const { rows } = await fetchLinkedEventsAll<LinkedEventRaw>(
       (page) =>
         `https://api.hel.fi/linkedevents/v1/event/?${new URLSearchParams({
           location: tprekId, format: 'json', start, end,
           page: String(page), page_size: String(LE_MAX_PAGE_SIZE),
-          sort: '-start_time', include: 'location',
+          sort: '-start_time', include: 'location,keywords',
         })}`,
       () => ({ next: { revalidate: 3600 }, signal: AbortSignal.timeout(8000) }),
     )
@@ -58,26 +62,13 @@ async function fetchTprekEvents(tprekId: string): Promise<PageEvent[]> {
     const cutoff = new Date(start).getTime() - 24 * 60 * 60 * 1000
     return rows
       .filter((raw) => new Date(raw.start_time).getTime() >= cutoff)
-      .map((raw) => {
-        const offer = raw.offers?.[0]
-        const isFree = offer?.is_free ?? false
-        return {
-          id: raw.id,
-          title: raw.name?.fi || raw.name?.en || raw.name?.sv || 'Tapahtuma',
-          startTime: raw.start_time,
-          isFree,
-          price: isFree ? null : (offer?.price?.fi || null),
-          ticketUrl: offer?.info_url?.fi || offer?.info_url?.en || raw.info_url?.fi || null,
-          image: raw.images?.[0]?.url || null,
-          internal: true,
-        }
-      })
+      .map(normalisoiLinkedEvent)
   } catch {
     return []
   }
 }
 
-async function fetchScrapedEvents(venueId: string): Promise<PageEvent[]> {
+async function fetchScrapedEvents(venue: VenuePage, venueId: string): Promise<Event[]> {
   if (!supabase) return []
   // Helsinki calendar dates + DST-aware offset — a UTC server's own date
   // flips to "yesterday" between 00-03 Helsinki time and would resurface
@@ -86,43 +77,108 @@ async function fetchScrapedEvents(venueId: string): Promise<PageEvent[]> {
   const offset = helsinkiOffset(new Date())
   const { data, error } = await supabase
     .from('scraped_events')
-    .select('id, title, start_datetime, image_url, is_free, price_info, ticket_url')
+    .select('id, title, start_datetime, image_url, is_free, price_info, ticket_url, venue_name')
     .eq('venue_id', venueId)
     .gte('start_datetime', `${start}T00:00:00${offset}`)
     .lte('start_datetime', `${end}T23:59:59${offset}`)
     .order('start_datetime', { ascending: true })
   if (error || !data) return []
+  // Sama muunnos kuin app/api/scraped (koosteen lähde): id, paikka ja
+  // kategoria täsmäävät, jotta siemen yhdistyy koosteen riveihin.
   return data.map((row) => ({
     id: String(row.id),
     title: row.title as string,
+    shortDescription: '',
+    description: '',
     startTime: row.start_datetime as string,
+    endTime: null,
+    location: { name: (row.venue_name as string | null) || venue.name, streetAddress: venue.address, city: 'Helsinki' },
+    image: httpsKuva(row.image_url as string | null),
     isFree: Boolean(row.is_free),
-    price: (row.price_info as string) ?? null,
-    ticketUrl: (row.ticket_url as string) ?? null,
-    image: (row.image_url as string) ?? null,
-    internal: false,
+    price: (row.price_info as string | null) ?? null,
+    ticketUrl: (row.ticket_url as string | null) ?? null,
+    infoUrl: (row.ticket_url as string | null) ?? null,
+    categories: ['Kulttuuri'],
+    source: 'scraped',
   }))
 }
 
-async function fetchVenueEvents(venue: VenuePage): Promise<PageEvent[]> {
+/** Lähdevarasto (lib/lahdevarasto): paikan oman skraperin tapahtumat samoista
+ *  10 päivän paloista, jotka kooste lukee. Yksi Supabase-kysely per sivu;
+ *  jos varastoa ei voi lukea, sivu näyttää tyhjän listan (ei kaadu). */
+async function fetchStoreEvents(lahde: string, paikka?: string): Promise<Event[]> {
+  const { start, end } = helsinkiDateRange(60)
+  const luku = await lueLahdepalat(palatValille(start, end))
+  if ('virhe' in luku) return []
+  const haluttu = paikka ? kanoninenPaikannimi(paikka) : null
+  const seen = new Set<string>()
+  const out: Event[] = []
+  for (const rivi of luku.rivit) {
+    if (rivi.lahde !== lahde || !rivi.ok || !Array.isArray(rivi.tapahtumat)) continue
+    for (const e of rivi.tapahtumat) {
+      if (!e?.id || seen.has(e.id)) continue
+      let paiva: string
+      try { paiva = helsinkiDateOf(e.startTime) } catch { continue }
+      if (paiva < start || paiva > end) continue
+      if (haluttu && kanoninenPaikannimi(e.location?.name ?? '') !== haluttu) continue
+      seen.add(e.id)
+      out.push({ ...e, image: httpsKuva(e.image) })
+    }
+  }
+  return out
+}
+
+async function fetchVenueEvents(venue: VenuePage): Promise<Event[]> {
   const events = venue.tprekId
     ? await fetchTprekEvents(venue.tprekId)
     : venue.scrapedId
-    ? await fetchScrapedEvents(venue.scrapedId)
+    ? await fetchScrapedEvents(venue, venue.scrapedId)
+    : venue.lahde
+    ? await fetchStoreEvents(venue.lahde, venue.paikka)
     : []
-  return events.slice(0, 60)
+  // Aikajärjestys ENNEN rajausta: LinkedEvents tulee laskevana, ja 60 rivin
+  // katto ilman lajittelua olisi pudottanut lähimmät (Oodi: yli 60 riviä).
+  const lista = events
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    .slice(0, 60)
+  // Paikkakuva kuvattomille riveille — sama varakuva kuin koosteessa, jotta
+  // siemenen kortti ei vaihda ulkoasua kun selaimen haku korvaa sen.
+  try {
+    const { venues: venueMap } = await fetchImagesCached()
+    for (const e of lista) {
+      if (!e.image) {
+        const varakuva = getEventImage(e.location?.name, e.categories, venueMap, {})
+        if (varakuva) e.image = varakuva
+      }
+    }
+  } catch { /* lista kelpaa kuvittakin */ }
+  return lista
 }
 
-// Nostokortin linkkilogiikka — sama kuin listariveillä. Moduulitasolla,
-// ei renderin sisällä (React Compiler: ei komponentteja renderissä).
-function EventLink({ e, className, children }: { e: PageEvent; className: string; children: ReactNode }) {
+function toPageEvent(e: Event): PageEvent {
+  return {
+    id: e.id,
+    title: e.title,
+    startTime: e.startTime,
+    isFree: !!e.isFree,
+    price: e.isFree ? null : (e.price ?? null),
+    ticketUrl: e.ticketUrl ?? e.infoUrl ?? null,
+    image: e.image,
+    internal: hasOwnEventPage(e),
+  }
+}
+
+// Listarivin linkkilogiikka: LinkedEvents-tyyliset tunnisteet saavat oman
+// sivun, skrapatut rivit linkittävät suoraan paikan lippusivulle. Moduuli-
+// tasolla, ei renderin sisällä (ei komponentteja renderissä).
+function EventLink({ e, className, style, children }: { e: PageEvent; className: string; style?: CSSProperties; children: ReactNode }) {
   if (e.internal) {
-    return <Link href={`/e/${encodeURIComponent(e.id)}`} className={className}>{children}</Link>
+    return <Link href={`/e/${encodeURIComponent(e.id)}`} className={className} style={style}>{children}</Link>
   }
   if (e.ticketUrl) {
-    return <a href={e.ticketUrl} target="_blank" rel="noopener noreferrer" className={className}>{children}</a>
+    return <a href={e.ticketUrl} target="_blank" rel="noopener noreferrer" className={className} style={style}>{children}</a>
   }
-  return <div className={className}>{children}</div>
+  return <div className={className} style={style}>{children}</div>
 }
 
 type Props = { params: Promise<{ venue: string }> }
@@ -142,7 +198,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     desc = `${venue.name} — tulevat keikat ja tapahtumat. ${venue.description}`
   }
   return {
-    title: `${venue.name} ohjelma & keikat | Mitä tänään Helsinki`,
+    title: `${venue.name} ohjelma & keikat`,
     description: desc,
     alternates: { canonical: `${BASE}/ohjelma/${slug}` },
     openGraph: {
@@ -159,7 +215,9 @@ export default async function OhjelmaSivu({ params }: Props) {
   const venue = VENUE_PAGES.find((v) => v.slug === slug)
   if (!venue) notFound()
 
-  const events = await fetchVenueEvents(venue)
+  const tapahtumat = await fetchVenueEvents(venue)
+  const events = tapahtumat.map(toPageEvent)
+  const hakusana = venue.haku ?? venue.name
 
   const venuePlaceLd = {
     '@context': 'https://schema.org',
@@ -209,147 +267,95 @@ export default async function OhjelmaSivu({ params }: Props) {
     ],
   }
 
-  // Event row: LinkedEvents ids get internal detail pages; scraped rows
-  // link straight to the venue's ticket page (no /e/[id] route for them).
-  const EventInner = ({ e }: { e: PageEvent }) => (
-    <>
-      {e.image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={e.image} alt="" className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
-      )}
-      <div className="flex-1 min-w-0">
-        <h2 className="font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
-          {e.title}
-        </h2>
-        <p className="text-sm text-gray-400 mt-1">{formatEventDate(e.startTime)}</p>
-      </div>
-      <div className="flex-shrink-0 self-center">
-        {e.isFree ? (
-          <span className="text-green-400 text-xs font-medium">Ilmainen</span>
-        ) : e.price ? (
-          <span className="text-gray-400 text-xs">{e.price}</span>
-        ) : null}
-      </div>
-    </>
-  )
-
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(venuePlaceLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
-      <main className="min-h-screen bg-gray-950 text-white">
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          {/* Breadcrumb */}
-          <nav className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-            <Link href="/" className="hover:text-gray-300 transition-colors">Mitä tänään</Link>
-            <span>/</span>
-            <span className="text-gray-300">Ohjelma</span>
-            <span>/</span>
-            <span className="text-white">{venue.name}</span>
-          </nav>
 
-          {/* Page header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">🎸 {venue.name} — ohjelma</h1>
-            <p className="text-gray-400 mb-3">
-              {events.length > 0 ? `${events.length} tulevaa tapahtumaa` : 'Tulevat tapahtumat'} · {venue.address}
-            </p>
-            <p className="text-sm text-gray-500 leading-relaxed">{venue.description}</p>
-            {venue.www && (
-              <a href={venue.www} target="_blank" rel="noopener noreferrer"
-                className="inline-block mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
+      {/* SOVELLUSNÄKYMÄ PAIKAN HAKUSANALLA (omistaja 5.11.2026): hakukoneesta
+          tuleva laskeutuu itse sovellukseen — sama tila kuin infokortin "Paikan
+          kaikki tapahtumat" — eikä erilliselle listasivulle, jotta hän jatkaa
+          siitä. Palvelimella haettu lista on siemen: kortit ovat näkyvissä heti
+          ja Googlen HTML:ssä, ja selaimen 90 pv haku korvaa ne valmistuttuaan.
+          Sivun oma sisältö jää alle: se on tämän sivun hakukonearvo. Sama
+          rakenne kuin kategoriasivuilla (app/tapahtumat/[slug]). */}
+      <HomeShell initialSearch={hakusana} initialSearchSeed={tapahtumat} />
+
+      <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
+        <h1 className="sr-only">{venue.name} — ohjelma ja tulevat tapahtumat</h1>
+        <p className="text-sm text-white/35 leading-relaxed">
+          {venue.emoji ?? '🎸'} {venue.name} · {venue.address}
+          {venue.www && (
+            <>
+              {' · '}
+              <a href={venue.www} target="_blank" rel="noopener noreferrer" className="text-blue-400/80 hover:text-blue-300 transition-colors">
                 {venue.www.replace(/^https?:\/\//, '')} ↗
               </a>
-            )}
-          </div>
-
-          {/* Other venues */}
-          <div className="mb-8">
-            <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Muut keikkapaikat</p>
-            <div className="flex flex-wrap gap-2">
-              {VENUE_PAGES.filter((v) => v.slug !== slug).map((v) => (
-                <Link key={v.slug} href={`/ohjelma/${v.slug}`}
-                  className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">
-                  {v.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Seuraava tapahtuma — lähin tuleva rivi nostettuna esiin korttiin;
-              lista alla alkaa tämän jälkeisestä (slice(1)), joten ei duplikaattia */}
-          {events.length > 0 && (
-            <div className="mb-8">
-              <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Seuraava tapahtuma</p>
-              <EventLink e={events[0]}
-                className="flex items-start gap-4 bg-gray-900 hover:bg-gray-800 border border-gray-800 rounded-xl p-5 transition-colors group">
-                {events[0].image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={events[0].image} alt="" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-semibold text-white group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug">
-                    {events[0].title}
-                  </h2>
-                  <p className="text-sm text-gray-400 mt-1">{formatEventDate(events[0].startTime)}</p>
-                </div>
-                <div className="flex-shrink-0 self-center">
-                  {events[0].isFree ? (
-                    <span className="text-green-400 text-sm font-medium">Ilmainen</span>
-                  ) : events[0].price ? (
-                    <span className="text-gray-400 text-sm">{events[0].price}</span>
-                  ) : null}
-                </div>
-              </EventLink>
-            </div>
+            </>
           )}
+        </p>
+        <p className="mt-3 text-[13px] text-white/28 leading-relaxed">{venue.description}</p>
 
-          {/* Event list */}
-          {events.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">
-              <p className="text-4xl mb-3">🎸</p>
-              <p>Ei tulevia tapahtumia listattuna juuri nyt.</p>
-              {venue.www && (
-                <a href={venue.www} target="_blank" rel="noopener noreferrer"
-                  className="mt-4 inline-block text-blue-400 hover:text-blue-300 text-sm">
-                  Katso {venue.name}n oma sivu ↗
-                </a>
-              )}
-            </div>
-          ) : events.length > 1 ? (
+        {events.length > 0 ? (
+          <>
+            <h2 className="text-[15px] font-black tracking-[.08em] uppercase text-white/70 mt-8 mb-3">
+              Tulevat <span className="text-white/30 font-bold">· {events.length} · 60 päivää</span>
+            </h2>
             <ul className="space-y-2">
-              {events.slice(1).map((e) => (
+              {events.map((e) => (
                 <li key={e.id}>
-                  {e.internal ? (
-                    <Link href={`/e/${encodeURIComponent(e.id)}`}
-                      className="flex items-start gap-3 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors group">
-                      <EventInner e={e} />
-                    </Link>
-                  ) : e.ticketUrl ? (
-                    <a href={e.ticketUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-start gap-3 bg-gray-900 hover:bg-gray-800 rounded-xl p-4 transition-colors group">
-                      <EventInner e={e} />
-                    </a>
-                  ) : (
-                    <div className="flex items-start gap-3 bg-gray-900 rounded-xl p-4 group">
-                      <EventInner e={e} />
+                  <EventLink e={e} className="flex items-start gap-3 rounded-xl p-3 transition-colors group" style={{ background: 'rgba(255,255,255,.04)' }}>
+                    {e.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={e.image} alt="" width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-white/90 group-hover:text-blue-300 transition-colors line-clamp-2 leading-snug text-[14px]">
+                        {e.title}
+                      </h3>
+                      <p className="text-[12px] text-white/35 mt-1">{formatEventDate(e.startTime)}</p>
                     </div>
-                  )}
+                    <div className="flex-shrink-0 self-center">
+                      {e.isFree ? (
+                        <span className="text-green-400 text-[11px] font-medium">Ilmainen</span>
+                      ) : e.price ? (
+                        <span className="text-white/35 text-[11px]">{e.price}</span>
+                      ) : null}
+                    </div>
+                  </EventLink>
                 </li>
               ))}
             </ul>
-          ) : null}
+          </>
+        ) : (
+          <p className="mt-8 text-sm text-white/35">
+            Ei tulevia tapahtumia listattuna juuri nyt.
+            {venue.www && (
+              <>
+                {' '}
+                <a href={venue.www} target="_blank" rel="noopener noreferrer" className="text-blue-400/80 hover:text-blue-300 transition-colors">
+                  Katso paikan oma sivu ↗
+                </a>
+              </>
+            )}
+          </p>
+        )}
 
-          <div className="mt-10 pt-6 border-t border-gray-800 flex items-center justify-between gap-4">
-            <Link href="/" className="text-blue-400 hover:text-blue-300 transition-colors text-sm">
-              ← Kaikki Helsinki tapahtumat
+        {/* Ristiinlinkit muihin ohjelmasivuihin — sisäinen linkitys on osa
+            näiden sivujen hakukonearvoa. Listan jälkeen, ei ennen: 30 sirua
+            ennen sisältöä työnsi ohjelman puhelimessa ruudun ulkopuolelle. */}
+        <p className="text-xs text-white/30 uppercase tracking-wider mt-8 mb-2">Muut paikat</p>
+        <div className="flex flex-wrap gap-2">
+          {VENUE_PAGES.filter((v) => v.slug !== slug).map((v) => (
+            <Link key={v.slug} href={`/ohjelma/${v.slug}`}
+              className="text-sm px-3 py-1.5 rounded-full transition-colors hover:bg-white/10"
+              style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)' }}>
+              {v.emoji ?? '🎸'} {v.name}
             </Link>
-            {/* Lähdelinkki poistettu (omistaja 3.9.2026: lähteet eivät ole
-                julkista tietoa) — sama linjaus kuin etusivun tuoreusleimassa. */}
-          </div>
+          ))}
         </div>
-      </main>
+      </section>
     </>
   )
 }

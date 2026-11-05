@@ -137,3 +137,9 @@ export async function fetchInitialEvents(start: string, end: string): Promise<{ 
     return { events: [], total: 0 }
   }
 }
+
+/** Ohjelmasivun (app/ohjelma/[venue]) siemen rakennetaan samalla
+ *  muunnoksella kuin etusivun siemen, jotta sovellusnäkymän kortit ovat
+ *  identtiset riippumatta siitä, tuliko rivi siemenestä vai selaimen hausta. */
+export type LinkedEventRaw = LEEvent
+export const normalisoiLinkedEvent = normalize

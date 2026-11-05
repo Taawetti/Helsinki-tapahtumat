@@ -14,7 +14,7 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 
 export async function generateMetadata(): Promise<Metadata> {
   const { label } = nextWeekendRange()
-  const title = 'Torstain pakka — viikonlopun 5 valittua | Mitä tänään'
+  const title = 'Torstain pakka — viikonlopun 5 valittua'
   const description = `Joka torstai klo 16: viikonlopun (${label}) 5 valittua tapahtumaa Helsingissä — keikka, kulttuuri, perhe, ilmainen ja yöelämä yhdessä paketissa.`
   const ogParams = new URLSearchParams({
     title: 'Torstain pakka 🎁',

@@ -17,7 +17,7 @@ import type { Event } from '@/lib/types'
 import type { SaunaRow } from '@/components/SaunatView'
 import type { GuidePlace } from '@/components/GuidePlaceList'
 import type { GuideEvent } from '@/lib/guide-data'
-import { helsinkiToday } from '@/lib/helsinki-time'
+import { helsinkiToday, formatEventDateNumeric } from '@/lib/helsinki-time'
 import { onJoulukausi } from '@/lib/joulukonsertit'
 
 export type GuideSlug = 'saunat' | 'terassit' | 'pubivisat' | 'kirpputorit' | 'jamit' | 'ilmaiset-museot' | 'joulukonsertit'
@@ -117,13 +117,10 @@ function toEvent(e: GuideEvent): Event {
   }
 }
 
+// Kiinteät nimet, ei Intl-kielidataa: Safarin ja palvelimen muodot eroavat
+// (ks. lib/helsinki-time), ja pubivisasivu renderöidään palvelimella.
 function visaTime(iso: string, lang: Lang): string {
-  try {
-    return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'fi-FI', {
-      timeZone: 'Europe/Helsinki', weekday: 'short', day: 'numeric', month: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    }).format(new Date(iso)).replace(',', '')
-  } catch { return '' }
+  return formatEventDateNumeric(iso, lang === 'en' ? 'en' : 'fi')
 }
 
 // ── Paikkakortti — PosterCardin geometria (3/4-juliste + nimi alla) ─────────

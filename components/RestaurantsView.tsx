@@ -1098,7 +1098,7 @@ function SortFilterRow({ open, nearby, byReviews, minRating, count, onOpen, onNe
 
 // ── Main view ─────────────────────────────────────────────
 
-export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey, onSuodatinMuutos, alkuValinta }: {
+export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey, onSuodatinMuutos, alkuValinta, otsikkoH2 }: {
   onShowOnMap?: (lat: number, lon: number, name: string) => void
   jumpToId?: string
   jumpToKey?: object
@@ -1111,8 +1111,12 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey, onSu
    *  ehdollisesti) — ilman siementä paluu kartalta nollasi välilehden
    *  takaisin Ruokapaikkoihin. */
   alkuValinta?: { restType: string; subCat: string }
+  /** Laskeutumissivu (esim. /yokerhot) tuo oman h1:nsä, jolloin tämän näkymän
+   *  otsikko on h2 — muuten sivulla olisi kaksi h1:tä (mitattu 5.11.2026). */
+  otsikkoH2?: boolean
 }) {
   const { t, lang } = useLanguage()
+  const Otsikko = otsikkoH2 ? 'h2' : 'h1'
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
   const [restType, setRestType] = useState<RestType>(
@@ -1420,9 +1424,9 @@ export default function RestaurantsView({ onShowOnMap, jumpToId, jumpToKey, onSu
       {/* Heading */}
       <div>
         <p className="text-white/30 text-[11px] font-black uppercase tracking-[.2em] mb-0.5">HELSINKI</p>
-        <h1 className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
+        <Otsikko className="font-black text-white leading-none" style={{ fontSize: 'clamp(1.8rem,6vw,3rem)', letterSpacing: '-0.03em' }}>
           {t('restaurants.heading')}
-        </h1>
+        </Otsikko>
       </div>
 
       {/* Type tabs — always visible */}

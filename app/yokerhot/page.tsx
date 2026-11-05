@@ -35,6 +35,16 @@ const SECTIONS: { key: string; emoji: string; title: string; blurb: string }[] =
   { key: 'katto',   emoji: '🌇', title: 'Kattoterassit & rooftop-baarit', blurb: 'Drinkit kaupungin kattojen yllä.' },
 ]
 
+/** Usein kysyttyä: näkyvä osio + FAQPage-rakenne. Yleistasolla tahallaan —
+ *  paikkakohtaiset aukioloajat ja ikärajat vaihtuvat, ja väärä tieto olisi
+ *  pahempi kuin yleinen. */
+const USEIN_KYSYTTYA: { k: string; v: string }[] = [
+  { k: 'Mihin aikaan Helsingin yökerhot sulkeutuvat?', v: 'Useimmat klubit ovat auki kello neljään asti; osa baareista sulkee jo kahdelta tai kolmelta ja muutama klubi jatkaa viiteen. Tarkista aina paikan omat aukioloajat ennen lähtöä.' },
+  { k: 'Mikä on yökerhojen ikäraja Helsingissä?', v: 'Ikärajat vaihtelevat 18:sta 24:ään. Monessa baarissa ja teknoklubilla 18 vuotta riittää, mutta keskustan klubeilla viikonloppuisin ikäraja on usein 20–22. Henkilöllisyystodistus kannattaa pitää aina mukana.' },
+  { k: 'Missä Helsingin teknoklubit ovat?', v: 'Teknon ja elektronisen musiikin keskittymä on Sörnäisissä ja Vallilassa: Kaiku ja Post Bar Kaikukadulla sekä Ääniwalli Pälkäneentien teollisuushallissa. Keskustan klubit painottuvat hittimusiikkiin ja livekeikkoihin.' },
+  { k: 'Mistä näen, mitä klubeilla tapahtuu tänä iltana?', v: 'Sovelluksen Tapahtumat-välilehden Yöelämä-suodatin listaa illan klubi-illat ja keikat, ja suurimmilla paikoilla on oma ohjelmasivu (esimerkiksi Kaiku, Tavastia, Apollo ja Maxine), jolla näkyvät tulevat illat ja lippulinkit.' },
+]
+
 interface RatingInfo { rating: number; reviewCount: number }
 
 async function fetchRatings(names: string[]): Promise<Record<string, RatingInfo>> {
@@ -110,14 +120,27 @@ export default async function YokerhotSivu() {
     ],
   }
 
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: USEIN_KYSYTTYA.map((q) => ({ '@type': 'Question', name: q.k, acceptedAnswer: { '@type': 'Answer', text: q.v } })),
+  }
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(itemListLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(faqLd) }} />
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo, eikä sitä saa menettää. */}
-      <HomeShell initialVibes={['yoelama']} initialDateFilter="week" />
+      {/* RAVINTOLAT → YÖKERHOT (omistaja 5.11.2026): yökerhot ovat paikkoja,
+          eivät tapahtumia, joten sivu avaa sovelluksen Ravintolat-välilehden
+          Yökerhot-tyyppiin — klubit näkyvät sovelluksen omina paikkakortteina
+          ja infopaneeleina (kuvaukset lib/helsinki-nightclubs → /api/restaurants
+          blurb). Aiempi Yöelämä-tapahtumasuodatin ja sivun oma korttilista
+          poistuivat. Sivun teksti jää alle: se on tämän sivun hakukonearvo. */}
+      <HomeShell initialMode="restaurants" initialRestaurantFilter={{ restType: 'yokerhot', subCat: 'all' }} />
 
       <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
           {/* Breadcrumb */}
@@ -126,7 +149,32 @@ export default async function YokerhotSivu() {
           <div className="mb-8">
             <h1 className="sr-only">🪩 Yökerhot Helsingissä</h1>
             <p className="text-gray-400 mb-3">{HELSINKI_NIGHTCLUBS.length} kuratoitua klubia, baaria ja kattoterassia</p>
-            <p className="text-sm text-gray-500 leading-relaxed">{DESC}</p>
+            {/* OPAS, EI PELKKÄ LISTA (SEO-suunnitelma 1, 5.11.2026): hakija
+                kysyy "mihin lähteä" — vastaus on kaupunginosat, tyylit ja
+                käytännön säännöt, ei osoiteluettelo. Aukioloajat ja ikärajat
+                yleistasolla, koska paikkakohtaiset vanhenevat. */}
+            <div className="text-sm text-gray-400 leading-relaxed space-y-3">
+              <p>
+                Helsingin yöelämä jakautuu kahteen suuntaan. <strong>Keskustassa ja Kampissa</strong> ovat
+                isot klubit ja hittimusiikki – Kaarle XII, <Link href="/ohjelma/apollo" className="text-blue-400 hover:text-blue-300">Apollo Live Club</Link> ja{' '}
+                <Link href="/ohjelma/maxine" className="text-blue-400 hover:text-blue-300">Maxine</Link> – sekä rockklubit{' '}
+                <Link href="/ohjelma/tavastia" className="text-blue-400 hover:text-blue-300">Tavastia</Link> ja{' '}
+                <Link href="/ohjelma/on-the-rocks" className="text-blue-400 hover:text-blue-300">On The Rocks</Link>.{' '}
+                <strong>Kalliossa ja Sörnäisissä</strong> on vaihtoehtoisempi ja elektronisempi puoli:{' '}
+                <Link href="/ohjelma/kaiku" className="text-blue-400 hover:text-blue-300">Kaiku</Link>,{' '}
+                <Link href="/ohjelma/post-bar" className="text-blue-400 hover:text-blue-300">Post Bar</Link>,{' '}
+                <Link href="/ohjelma/siltanen" className="text-blue-400 hover:text-blue-300">Siltanen</Link> ja Kuudes Linja
+                Hämeentien ja Kaikukadun tuntumassa sekä Ääniwalli Vallilan teollisuushallissa.
+              </p>
+              <p>
+                <strong>Hyvä tietää:</strong> useimmat klubit ovat auki kello neljään asti. Ikäraja vaihtelee –
+                18 vuotta riittää monessa baarissa ja teknoklubilla, keskustan klubeilla viikonloppuisin
+                usein 20–22. Sisäänpääsy on usein ilmainen tai alle 20 euroa; isommat artistivierailut
+                maksavat enemmän, ja narikka maksetaan erikseen. Klubit löydät sovellusnäkymästä yllä;
+                illan klubi-illat ja keikat näet Tapahtumat-välilehden Yöelämä-suodattimella sekä kunkin
+                paikan ohjelmasivulta.
+              </p>
+            </div>
           </div>
 
           {/* Related pages */}
@@ -134,47 +182,27 @@ export default async function YokerhotSivu() {
             <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Katso myös</p>
             <div className="flex flex-wrap gap-2">
               <Link href="/tapahtumat/yoelama" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🌃 Illan tapahtumat</Link>
+              <Link href="/tapahtumat/viikonloppu" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🎉 Viikonloppu</Link>
               <Link href="/ohjelma/kaiku" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🎛 Kaiku — ohjelma</Link>
               <Link href="/ohjelma/tavastia" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🎸 Tavastia — ohjelma</Link>
+              <Link href="/ohjelma/apollo" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🪩 Apollo — ohjelma</Link>
               <Link href="/pubivisat" className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors">🧠 Pubivisat</Link>
             </div>
           </div>
 
-          {/* Sections */}
-          <div className="space-y-10">
-            {grouped.map((g) => (
-              <section key={g.key}>
-                <h2 className="text-lg font-bold mb-1 text-white">{g.emoji} {g.title}</h2>
-                <p className="text-sm text-gray-500 mb-3">{g.blurb}</p>
-                <ul className="space-y-2">
-                  {g.venues.map((v) => {
-                    const r = ratings[v.name.toLowerCase().trim()]
-                    return (
-                      <li key={v.id} className="bg-gray-900 rounded-xl p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <h3 className="font-semibold text-white leading-snug">
-                              {v.www ? (
-                                <a href={v.www} target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
-                                  {v.name} ↗
-                                </a>
-                              ) : v.name}
-                            </h3>
-                            <p className="text-sm text-gray-500 truncate">{v.address}</p>
-                          </div>
-                          {r && (
-                            <span className="flex-shrink-0 text-xs text-amber-400">
-                              ⭐ {r.rating.toFixed(1)} <span className="text-gray-600">({r.reviewCount})</span>
-                            </span>
-                          )}
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </section>
-            ))}
-          </div>
+          {/* Usein kysyttyä — sama sisältö kuin FAQPage-rakenteessa (faqLd),
+              näkyvänä, koska Google ei lue piilotettua FAQ:ta. */}
+          <section className="mt-12">
+            <h2 className="text-lg font-bold mb-3 text-white">Usein kysyttyä</h2>
+            <dl className="space-y-4">
+              {USEIN_KYSYTTYA.map((q) => (
+                <div key={q.k}>
+                  <dt className="font-semibold text-white text-sm">{q.k}</dt>
+                  <dd className="text-sm text-gray-400 leading-relaxed mt-1">{q.v}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
 
           <div className="mt-10 pt-6 border-t border-gray-800">
             <Link href="/" className="text-blue-400 hover:text-blue-300 transition-colors text-sm">

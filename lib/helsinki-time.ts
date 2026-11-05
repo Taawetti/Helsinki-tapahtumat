@@ -39,6 +39,17 @@ export function helsinkiHourOf(iso: string): number {
   return Number(HKI_HOUR_FMT.format(new Date(iso)))
 }
 
+const HKI_HM_FMT = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Helsinki', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+/** Minuutit Helsingin vuorokauden alusta (19.30 → 1170). Käytä tätä kellon-
+ *  aikasääntöihin: new Date(iso).getHours() elää AJON vyöhykkeessä, joka on
+ *  Vercelin palvelimella UTC ja selaimessa Helsinki → sama sääntö osui eri
+ *  riveihin ja aiheutti hydraatiovirheen (/yokerhot, 5.11.2026). */
+export function helsinkiMinutesOfDay(iso: string): number {
+  const [h, m] = HKI_HM_FMT.format(new Date(iso)).split(':').map(Number)
+  return h * 60 + m
+}
+
 /** Helsinki date range from today forward, as YYYY-MM-DD strings. */
 export function helsinkiDateRange(days: number): { start: string; end: string } {
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Helsinki' })
@@ -137,13 +148,77 @@ export function normalizeHelsinkiTimestamp(iso: string | null | undefined): stri
   return `${datePart}T${timePart}${offset}`
 }
 
-/** Event timestamp for list rows: 'ke 15. heinäk. klo 19.00' style, Helsinki time.
- *  Date-only strings (ongoing/all-day events) render without a misleading time. */
+// ── NÄKYVÄT PÄIVÄMÄÄRÄT ILMAN SELAIMEN KIELIDATAA (5.11.2026) ───────────────
+// Noden (Vercel, Chrome) ja Safarin ICU-kirjastot tuottavat samoille
+// Intl-asetuksille eri tekstin: fi "torstaina 5.11." vs "torstai 5.11.",
+// en "Thu 5 Nov, 19:05" vs "Thu 5 Nov at 19:05", syyskuu "Sept" vs "Sep".
+// Palvelimen HTML:n ja Safarin ensimmäisen renderin ero kaatoi hydraation
+// koko sivulta jokaisella Safari- ja iPhone-latauksella 24.9.2026 lähtien
+// (mitattu WebKitillä 5.11.2026; Chromessa ei näy, koska sama ICU kuin
+// Nodessa). Näkyvät nimet tulevat siksi omista taulukoista. Numerot ja
+// Helsinki-aikavyöhyke lasketaan edelleen Intl:llä (en-CA/en-GB numeeriset
+// muodot ovat samat kaikissa moottoreissa).
+const VIIKONPAIVAT_FI = ['sunnuntai', 'maanantai', 'tiistai', 'keskiviikko', 'torstai', 'perjantai', 'lauantai']
+const VIIKONPAIVAT_FI_ESSIIVI = ['sunnuntaina', 'maanantaina', 'tiistaina', 'keskiviikkona', 'torstaina', 'perjantaina', 'lauantaina']
+const VIIKONPAIVAT_FI_LYHYT = ['su', 'ma', 'ti', 'ke', 'to', 'pe', 'la']
+const KUUKAUDET_FI_PARTITIIVI = ['tammikuuta', 'helmikuuta', 'maaliskuuta', 'huhtikuuta', 'toukokuuta', 'kesäkuuta', 'heinäkuuta', 'elokuuta', 'syyskuuta', 'lokakuuta', 'marraskuuta', 'joulukuuta']
+const WEEKDAYS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const WEEKDAYS_EN_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const MONTHS_EN_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const kaksi = (n: number) => String(n).padStart(2, '0')
+
+export interface HelsinkiOsat { vuosi: number; kuukausi: number; paiva: number; viikonpaiva: number; tunti: number; minuutti: number }
+
+/** Helsinki-kalenterin osat: kuukausi 1–12, viikonpäivä 0 = sunnuntai.
+ *  null, jos aikaleima ei ole kelvollinen. */
+export function helsinkiOsat(aika: string | Date): HelsinkiOsat | null {
+  const d = aika instanceof Date ? aika : new Date(aika)
+  if (Number.isNaN(d.getTime())) return null
+  const ymd = HKI_DATE_FMT.format(d)
+  const [vuosi, kuukausi, paiva] = ymd.split('-').map(Number)
+  const [tunti, minuutti] = HKI_HM_FMT.format(d).split(':').map(Number)
+  return { vuosi, kuukausi, paiva, viikonpaiva: new Date(`${ymd}T12:00:00Z`).getUTCDay(), tunti, minuutti }
+}
+
+/** Mobiilin päivärivi: "torstaina 5.11." / "Thursday 05/11". */
+export function paivaOtsikkoLyhyt(aika: string | Date, lang: 'fi' | 'en' = 'fi'): string {
+  const o = helsinkiOsat(aika)
+  if (!o) return ''
+  return lang === 'en'
+    ? `${WEEKDAYS_EN[o.viikonpaiva]} ${kaksi(o.paiva)}/${kaksi(o.kuukausi)}`
+    : `${VIIKONPAIVAT_FI_ESSIIVI[o.viikonpaiva]} ${o.paiva}.${o.kuukausi}.`
+}
+
+/** Työpöydän päivärivi: "torstai 5. marraskuuta" / "Thursday 5 November". */
+export function paivaOtsikkoPitka(aika: string | Date, lang: 'fi' | 'en' = 'fi'): string {
+  const o = helsinkiOsat(aika)
+  if (!o) return ''
+  return lang === 'en'
+    ? `${WEEKDAYS_EN[o.viikonpaiva]} ${o.paiva} ${MONTHS_EN[o.kuukausi - 1]}`
+    : `${VIIKONPAIVAT_FI[o.viikonpaiva]} ${o.paiva}. ${KUUKAUDET_FI_PARTITIIVI[o.kuukausi - 1]}`
+}
+
+/** Listarivin aikaleima: "to 5.11. klo 19.00" / "Thu 5 Nov, 19:00", Helsinki-
+ *  aikaa. Pelkkä päivämäärä (käynnissä oleva / koko päivän tapahtuma) ilman
+ *  harhaanjohtavaa kellonaikaa. */
 export function formatEventDate(iso: string, lang: 'fi' | 'en' = 'fi'): string {
+  const o = helsinkiOsat(iso)
+  if (!o) return iso
   const dateOnly = !iso.includes('T')
-  return new Date(iso).toLocaleDateString(lang === 'en' ? 'en-GB' : 'fi-FI', {
-    weekday: 'short', day: 'numeric', month: 'short',
-    ...(dateOnly ? {} : { hour: '2-digit' as const, minute: '2-digit' as const }),
-    timeZone: 'Europe/Helsinki',
-  })
+  if (lang === 'en') {
+    const pvm = `${WEEKDAYS_EN_SHORT[o.viikonpaiva]} ${o.paiva} ${MONTHS_EN_SHORT[o.kuukausi - 1]}`
+    return dateOnly ? pvm : `${pvm}, ${kaksi(o.tunti)}:${kaksi(o.minuutti)}`
+  }
+  const pvm = `${VIIKONPAIVAT_FI_LYHYT[o.viikonpaiva]} ${o.paiva}.${o.kuukausi}.`
+  return dateOnly ? pvm : `${pvm} klo ${kaksi(o.tunti)}.${kaksi(o.minuutti)}`
+}
+
+/** Pubivisarivin aika numeerisella päivällä: "to 5.11. klo 19.00" /
+ *  "Thu 05/11 19:00". Tyhjä, jos aikaleima ei kelpaa. */
+export function formatEventDateNumeric(iso: string, lang: 'fi' | 'en' = 'fi'): string {
+  const o = helsinkiOsat(iso)
+  if (!o) return ''
+  if (lang !== 'en') return formatEventDate(iso, 'fi')
+  return `${WEEKDAYS_EN_SHORT[o.viikonpaiva]} ${kaksi(o.paiva)}/${kaksi(o.kuukausi)} ${kaksi(o.tunti)}:${kaksi(o.minuutti)}`
 }

@@ -11,7 +11,7 @@ import { helsinkiToday } from '@/lib/helsinki-time'
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'Helsinki-raportti — tapahtumaviikko lukuina | Mitä tänään',
+  title: 'Helsinki-raportti — tapahtumaviikko lukuina',
   description:
     'Helsingin tapahtumatarjonta lukuina: montako tapahtumaa, mitä missäkin päivässä, vilkkaimmat paikat ja ilmaistarjonta — koosteena 41 lähteestä, päivitetty tunneittain.',
   alternates: { canonical: '/raportti' },

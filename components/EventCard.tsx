@@ -1,7 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { MapPin, Clock, Share2, Heart } from 'lucide-react'
 import { Event } from '@/lib/types'
+import { hasOwnEventPage } from '@/lib/event-links'
 import { getEventVibes } from '@/lib/event-classify'
 import { lyhytkuvaus } from '@/lib/event-text'
 import { formatDate, formatTime, truncate, isTonight, fmtDistance, tuntematonAika } from '@/lib/utils'
@@ -77,10 +79,23 @@ export default function EventCard({ event, onClick, distance, aikaLisa }: Props)
   const typeBadge = getTypeBadge(event.categories, getEventVibes(event))
   const kuvaus = lyhytkuvaus(event)
 
+  // INDEKSOITAVA LINKKI (SEO-suunnitelma 3, 5.11.2026): kortti on <a>, jonka
+  // osoite on tapahtuman oma sivu (/e/[id]) — sama kuvio kuin PosterCardissa.
+  // Googlelle etusivulta lähtee näin kymmeniä linkkejä päivän tapahtumiin
+  // (ennen 0: kortit olivat nappeja). Napautus avaa paneelin kuten ennen;
+  // href vain id:lle, jonka /e/[id] oikeasti ratkaisee (muuten '#').
+  const omaSivu = hasOwnEventPage(event)
+
   return (
-    <button
-      onClick={() => { recordClick(event); onClick(event) }}
-      className="group w-full text-left bg-[#111318] border border-white/8 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl hover:shadow-black/50 hover:-translate-y-1 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]"
+    <Link
+      href={omaSivu ? `${lang === 'en' ? '/en' : ''}/e/${encodeURIComponent(event.id)}` : '#'}
+      onClick={(ev) => {
+        // Cmd/Ctrl/Shift-klikki: selain avaa oman sivun uuteen välilehteen.
+        if (omaSivu && (ev.metaKey || ev.ctrlKey || ev.shiftKey)) return
+        ev.preventDefault()
+        recordClick(event); onClick(event)
+      }}
+      className="group block w-full text-left bg-[#111318] border border-white/8 rounded-2xl overflow-hidden hover:border-white/20 hover:shadow-2xl hover:shadow-black/50 hover:-translate-y-1 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]"
     >
       {/* Image */}
       {/* Mobiilissa 150 px kuva; kortissa otsikko + paikka + aika · hinta
@@ -129,7 +144,7 @@ export default function EventCard({ event, onClick, distance, aikaLisa }: Props)
           )}
         </div>
 
-        {/* Heart — div because outer card is already a <button> (no nesting allowed) */}
+        {/* Heart — div, ei button: kortin juuri on linkki (<a>), jonka sisään ei saa laittaa toista interaktiivista elementtiä */}
         <div
           onClick={(e) => { e.stopPropagation(); toggle(event) }}
           role="button"
@@ -203,6 +218,6 @@ export default function EventCard({ event, onClick, distance, aikaLisa }: Props)
           ) : null}
         </div>
       </div>
-    </button>
+    </Link>
   )
 }

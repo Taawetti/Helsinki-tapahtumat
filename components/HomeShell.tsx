@@ -15,7 +15,7 @@ import type { DateFilter, Event, PriceFilter } from '@/lib/types'
 /** @param initialGuide  Avaa sovelluksen suoraan tähän opasnäkymään.
  *  @param initialGuideData  Palvelimella haettu data samalle oppaalle, jotta
  *    Googlelle lähtevä HTML sisältää listan eikä tyhjää kuorta. */
-export default async function HomeShell({ initialGuide, initialGuideData, initialVibes, initialHood, initialPriceFilter, initialMode, initialDateFilter, initialEvent, heroAsHeading }: {
+export default async function HomeShell({ initialGuide, initialGuideData, initialVibes, initialHood, initialPriceFilter, initialMode, initialDateFilter, initialEvent, initialSearch, initialSearchSeed, initialRestaurantFilter, heroAsHeading }: {
   initialGuide?: GuideSlug
   initialGuideData?: GuidePayload
   /** Jaettu tapahtumalinkki (/e/[id]) avaa sovelluksen tämän tapahtuman
@@ -23,11 +23,19 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
    *  28.9.2026: jaetusta linkistä pitää olla hyvin pieni kynnys alkaa
    *  käyttää sovellusta). Ks. HomeClient. */
   initialEvent?: Event | null
+  /** Ks. HomeClient: ohjelmasivu (/ohjelma/[venue]) avaa sovelluksen paikan
+   *  hakusana valmiina, ja palvelimella haettu paikan lista näkyy
+   *  hakutuloksina kunnes selaimen 90 pv haku on valmis. */
+  initialSearch?: string
+  initialSearchSeed?: Event[]
   /** Ks. HomeClient. Kategoriasivu avaa sovelluksen tunnelmasuodatin päällä. */
   initialVibes?: string[]
   initialHood?: string | null
   initialPriceFilter?: PriceFilter
-  initialMode?: 'discover' | 'uutta'
+  initialMode?: 'discover' | 'uutta' | 'restaurants'
+  /** Ks. HomeClient: laskeutumissivu voi avata Ravintolat-välilehden tiettyyn
+   *  tyyppiin (esim. /yokerhot → yökerhot). Vaatii initialMode 'restaurants'. */
+  initialRestaurantFilter?: { restType: string; subCat: string }
   initialDateFilter?: DateFilter
   /** Ks. HomeClient: laskeutumissivu tuo oman h1:nsä, jolloin sovelluksen
    *  kaupunkiotsikko ei saa olla h1. Oletus päätellään laskeutumislipuista:
@@ -58,7 +66,7 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
   // joten se putoaa suoraan tavalliseen hakuun.
   const tarvitaan: DateFilter[] = initialDateFilter
     ? [initialDateFilter]
-    : (initialGuide || initialVibes?.length || initialHood || initialMode || initialEvent)
+    : (initialGuide || initialVibes?.length || initialHood || initialMode || initialEvent || initialSearch)
       ? ['today']
       : ['today', 'tomorrow', 'weekend', 'week']
 
@@ -93,8 +101,11 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
       initialMode={initialMode}
       initialDateFilter={initialDateFilter}
       initialEvent={initialEvent}
+      initialSearch={initialSearch}
+      initialSearchSeed={initialSearchSeed}
+      initialRestaurantFilter={initialRestaurantFilter}
       initialNostot={nostot}
-      heroAsHeading={heroAsHeading ?? !(initialGuide || initialVibes?.length || initialHood || initialPriceFilter || initialMode || initialDateFilter || initialEvent)}
+      heroAsHeading={heroAsHeading ?? !(initialGuide || initialVibes?.length || initialHood || initialPriceFilter || initialMode || initialDateFilter || initialEvent || initialSearch)}
       preloadedData={{
         // Esirenderöinnin kello: ensimmäisen renderin "nyt" (HomeClient nowTs).
         // eslint-disable-next-line react-hooks/purity -- palvelimen kello luetaan tarkoituksella renderissä: sama luku kulkee propsina selaimeen

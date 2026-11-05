@@ -146,7 +146,10 @@ export default async function EnNightclubsPage() {
       {/* Sovellusnäkymä valmiiksi tämän sivun suodattimella — sama tila kuin
           jos käyttäjä säätäisi sen itse etusivulla. Sivun oma sisältö jää
           alle: se on tämän sivun hakukonearvo. */}
-      <HomeShell initialVibes={['yoelama']} initialDateFilter="week" />
+      {/* Restaurants → Clubs, same as /yokerhot (owner 5.11.2026): clubs are
+          places, not events, so the app opens on the Clubs type of the
+          Restaurants tab with the app's own place cards and info panels. */}
+      <HomeShell initialMode="restaurants" initialRestaurantFilter={{ restType: 'yokerhot', subCat: 'all' }} />
 
       <EnGuidePage
         asSection
@@ -162,42 +165,23 @@ export default async function EnNightclubsPage() {
         ]}
         sources="Sources: a hand-kept list drawn from MyHelsinki, Resident Advisor, Parasta Stadissa and the venues' own sites, with ratings from Google. Opening hours, door policies and club nights change — check the venue's own channels before you head out."
       >
-        <div className="space-y-9">
-          {grouped.map((g) => (
-            <section key={g.key}>
-              <h2 className="text-[15px] font-black tracking-[.08em] uppercase text-white/70 mb-1">
-                {g.emoji} {g.title} <span className="text-white/30 font-bold">· {g.venues.length}</span>
-              </h2>
-              <p className="text-[12.5px] text-white/40 mb-3">{g.blurb}</p>
-              <ul className="space-y-2">
-                {g.venues.map((v) => {
-                  const r = ratings[v.name.toLowerCase().trim()]
-                  return (
-                    <li key={v.id} className="rounded-xl p-3.5"
-                      style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="font-bold text-white text-[15px] leading-snug">
-                            {v.www ? (
-                              <a href={v.www} target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors">
-                                {v.name} ↗
-                              </a>
-                            ) : v.name}
-                          </h3>
-                          <p className="text-[12.5px] text-white/50 truncate">{v.address}</p>
-                        </div>
-                        {r && (
-                          <span className="shrink-0 text-[12.5px] font-bold" style={{ color: '#e8c06a' }}>
-                            ★ {r.rating.toFixed(1)} <span className="text-white/35 font-normal">({r.reviewCount})</span>
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          ))}
+        {/* Text only — the clubs themselves are the app view above (Restaurants →
+            Clubs). The old card list duplicated the app with a different look. */}
+        <div className="text-sm text-white/45 leading-relaxed space-y-3">
+          <p>
+            Helsinki&apos;s nightlife splits in two. <strong className="text-white/70">Downtown and Kamppi</strong> have
+            the big clubs and chart music (Kaarle XII, Apollo Live Club, Maxine) and the rock clubs Tavastia and
+            On The Rocks. <strong className="text-white/70">Kallio and Sörnäinen</strong> are the alternative,
+            electronic side: Kaiku, Post Bar, Siltanen and Kuudes Linja around Hämeentie, plus Ääniwalli in an old
+            industrial hall in Vallila.
+          </p>
+          <p>
+            <strong className="text-white/70">Good to know:</strong> most clubs stay open until 4 am. Age limits vary:
+            18 is enough in many bars and techno clubs, while downtown clubs often ask for 20–22 at weekends. Entry is
+            often free or under 20 euros, bigger guest nights cost more, and the cloakroom is paid separately. The clubs
+            are in the app view above; tonight&apos;s club nights and gigs are under the Events tab with the Nightlife
+            filter and on each venue&apos;s programme page.
+          </p>
         </div>
       </EnGuidePage>
     </>

@@ -8,6 +8,7 @@ import { useFavorites } from '@/contexts/FavoritesContext'
 import { classifyEventCategory } from '@/lib/event-category'
 import { stripPriceFromPrefix, tuntematonAika } from '@/lib/utils'
 import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
+import { hasOwnEventPage } from '@/lib/event-links'
 import type { TranslationKey } from '@/lib/i18n'
 
 // "✦ ILLAN NOSTOT" — pyyhkäistävä hero, enintään 5 nostoa.
@@ -260,7 +261,15 @@ function HeroSlide({ e, lang, t: tt, ensimmainen }: {
           })()}
         </p>
         <h2 className="font-black text-white leading-[1.02] mb-3.5 text-[clamp(1.6rem,6.5cqw,2.1rem)] md:text-[clamp(1.6rem,6.5vw,2.1rem)]" style={{ letterSpacing: '-0.03em' }}>
-          {e.title}
+          {/* Indeksoitava linkki tapahtuman omalle sivulle (SEO 3, 5.11.2026);
+              napautus hoituu raiteen pointer-käsittelyssä, joten linkki ei
+              navigoi itse. tabIndex -1: raide on jo näppäimistöllä avattava. */}
+          {hasOwnEventPage(e) ? (
+            <a href={`${lang === 'en' ? '/en' : ''}/e/${encodeURIComponent(e.id)}`} tabIndex={-1} draggable={false}
+              onClick={(ev) => ev.preventDefault()} className="text-inherit">
+              {e.title}
+            </a>
+          ) : e.title}
         </h2>
         <div className="flex items-center justify-between gap-3">
           <span className="px-[18px] py-3 text-[14px] md:px-4 md:py-2.5 md:text-[13px] rounded-full text-white font-black shrink-0"

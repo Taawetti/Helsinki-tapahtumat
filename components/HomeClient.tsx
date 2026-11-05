@@ -13,7 +13,7 @@ import { isOutsideTargetAudience, isPrimaryPick } from '@/lib/audience'
 import { samaTapahtumaSarja, ryhmitaSarjat, type Sarjaryhma } from '@/lib/tapahtumaperhe'
 import SarjaKortti from '@/components/SarjaKortti'
 import MuseoOsio from '@/components/MuseoOsio'
-import { helsinkiDateOf, helsinkiToday } from '@/lib/helsinki-time'
+import { helsinkiDateOf, helsinkiToday, helsinkiMinutesOfDay, paivaOtsikkoLyhyt, paivaOtsikkoPitka } from '@/lib/helsinki-time'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
@@ -245,6 +245,9 @@ export default function HomeClient({
   initialMode,
   initialDateFilter,
   initialEvent,
+  initialSearch,
+  initialSearchSeed,
+  initialRestaurantFilter,
   initialNostot,
   heroAsHeading = true,
 }: {
@@ -284,6 +287,24 @@ export default function HomeClient({
    *  Aiemmin linkki laskeutui erilliselle sivulle, josta sovellukseen pääsi
    *  vain "← Kaikki tapahtumat" -linkistä (omistaja 28.9.2026). */
   initialEvent?: Event | null
+  /** OHJELMASIVU (/ohjelma/[venue], 5.11.2026): sovellus avautuu paikan
+   *  hakusana valmiina — sama tila kuin infokortin "Paikan kaikki
+   *  tapahtumat" -napista (showVenueEvents). Omistajan linjaus: hakukoneesta
+   *  tuleva laskeutuu itse sovellukseen eikä erilliselle listasivulle, jotta
+   *  hän jatkaa siitä. Ohjelmallinen hakusana ei kirjaudu hakumittariin. */
+  initialSearch?: string
+  /** Palvelimella haettu paikan oma lista hakusanalle: näkyy hakutuloksina
+   *  heti — myös Googlen näkemässä HTML:ssä — kunnes selaimen 90 pv haku on
+   *  valmis, jonka jälkeen sovelluksen oma tulos korvaa sen. Ilman tätä
+   *  laskeutuja näkisi pelkän latausmerkin siihen asti (kylmä hakuikkuna on
+   *  mitatusti 10–25 s). */
+  initialSearchSeed?: Event[]
+  /** YÖKERHOSIVU (/yokerhot, 5.11.2026): sovellus avautuu Ravintolat-
+   *  välilehden Yökerhot-tyyppiin — sama tila kuin jos käyttäjä napauttaisi
+   *  sen itse. Yökerhot ovat paikkoja, eivät tapahtumia, joten Yöelämä-
+   *  tapahtumasuodatin oli väärä laskeutumistila (omistaja). Vaatii
+   *  initialMode 'restaurants'. */
+  initialRestaurantFilter?: { restType: string; subCat: string }
   /** Laskeutumissivu tuo OMAN h1:nsä (esim. "Saunat Helsingissä"), joten
    *  sovelluksen koristeellinen kaupunkiotsikko ei saa olla h1 — muuten
    *  jokaisen laskeutumissivun vahvin otsikkosignaali Googlelle olisi sama
@@ -379,7 +400,7 @@ export default function HomeClient({
   const [municipality, setMunicipality] = useState('helsinki')
   const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [activeVibes, setActiveVibes] = useState<string[]>(initialVibes ?? [])
-  const [keyword, setKeyword] = useState('')
+  const [keyword, setKeyword] = useState(initialSearch ?? '')
   // VIIVÄSTETTY HAKUSANA (4.11.2026): hakukenttä saa keywordin heti, kaikki
   // muu (suodatus, järjestely, ehdotukset, näkymän valinta) lukee hakua.
   // React piirtää näppäinpainalluksen ensin ja laskee raskaan osan perässä
@@ -392,7 +413,9 @@ export default function HomeClient({
    *  muuta tilaa eikä efekti aja, ja pelkkä lippu jäisi päälle syömään
    *  käyttäjän SEURAAVAN oikean haun. Näin käy tavallisella polulla, jossa
    *  käyttäjä kirjoittaa paikan nimen ja napauttaa hakuehdotusten paikkariviä. */
-  const ohjelmallinenHaku = useRef<string | null>(null)
+  // Ohjelmasivun alkuhaku (initialSearch) on ohjelmallinen samalla tavalla.
+  const alkuHaku = initialSearch?.trim() ?? ''
+  const ohjelmallinenHaku = useRef<string | null>(alkuHaku || null)
   // 90 pv hakuikkuna aukeaa vasta 2 merkistä: yksi merkki osuu lähes
   // kaikkeen (mitattu 6.9.2026: "k" = 4875/4975 tapahtumaa) eikä kukaan
   // hae yhdellä kirjaimella — kylmä 90 pv haku maksaa 25 s ja 5,3 Mt.
@@ -414,10 +437,13 @@ export default function HomeClient({
     const ohjelmallinen = ohjelmallinenHaku.current
     ohjelmallinenHaku.current = null
     const kw = haku.trim()
-    if (kw === ohjelmallinen || kw.length < 3) return
+    // alkuHaku myös suoraan: kehitystilan kaksoisajo (StrictMode) kuluttaa
+    // refin ensimmäisellä kierroksella, eikä laskeutumissivun hakusana saa
+    // silti kirjautua hakuna.
+    if (kw === ohjelmallinen || (alkuHaku && kw === alkuHaku) || kw.length < 3) return
     const t = setTimeout(() => track('search', { label: kw.slice(0, 60) }), 1200)
     return () => clearTimeout(t)
-  }, [haku])
+  }, [haku, alkuHaku])
 
   // Taustalta paluun tuoreutus: iOS palauttaa kotivalikkosovelluksen nukkuvan
   // istunnon muistista ILMAN sivulatausta, joten sekä sovelluskoodi että
@@ -476,7 +502,11 @@ export default function HomeClient({
     }
   }, [])
   const [showFilters, setShowFilters] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta' | 'suunnitelma'>('discover')
+  // Alavalikon korostus seuraa laskeutumistilaa: Ravintolat- tai Uutta-
+  // välilehteen avautuva sivu korostaa sen välilehden, ei Tapahtumia.
+  const [mobileTab, setMobileTab] = useState<'discover' | 'idea' | 'map' | 'favorites' | 'restaurants' | 'uutta' | 'suunnitelma'>(
+    initialMode === 'restaurants' || initialMode === 'uutta' ? initialMode : 'discover',
+  )
   const [customDate, setCustomDate] = useState('')
   const [customDateEnd, setCustomDateEnd] = useState('')
   // Mobiilin päivächipit (HANDOFF-mobiili §2): aktiivinen chip näkyviin joka
@@ -599,7 +629,8 @@ export default function HomeClient({
   // Oppaan tapahtuma-id:t kartalle. GuideInlineView raportoi ne kun lista on
   // ladattu; kartta näyttää täsmälleen samat tapahtumat (id-liitos), koska
   // pelkkä sanaportti osuu liian laajasti (terassiportti myös "puisto"/"ranta").
-  const [restSuodatin, setRestSuodatin] = useState<{ restType: string; subCat: string }>({ restType: 'ruokapaikat', subCat: 'all' })
+  // Laskeutumissivu (initialRestaurantFilter) avaa suoraan tietyn tyypin.
+  const [restSuodatin, setRestSuodatin] = useState<{ restType: string; subCat: string }>(initialRestaurantFilter ?? { restType: 'ruokapaikat', subCat: 'all' })
 
   const [jumpToRestaurant, setJumpToRestaurant] = useState<{ id: string } | undefined>()
 
@@ -623,7 +654,10 @@ export default function HomeClient({
   // sama kuin useEventsin dateFilter mountissa (alla).
   const alkuIkkuna: DateFilter | null = initialMode === 'map' ? null : initialMode === 'idea' ? 'today' : (initialDateFilter ?? 'today')
   const alkuData = alkuIkkuna === 'today' || alkuIkkuna === 'tomorrow' || alkuIkkuna === 'weekend' || alkuIkkuna === 'week' ? preloadedData[alkuIkkuna] : null
-  const alkuSiemen = alkuData && alkuData.events.length > 0 ? { events: alkuData.events, total: alkuData.total } : null
+  // Ohjelmasivu avautuu HAKUIKKUNAAN (initialSearch), ei päiväikkunaan:
+  // päivän siemen olisi väärän ikkunan dataa, ja hakutilan siemen on
+  // initialSearchSeed (ks. siemennetyt alla).
+  const alkuSiemen = !initialSearch && alkuData && alkuData.events.length > 0 ? { events: alkuData.events, total: alkuData.total } : null
 
   const { events: rawEvents, loading, fetchingFull, osittainen, error, hasMore, total, generatedAt, sources, loadMore, lataaLoputSivut } = useEvents({
     // Idea-näkymä on aina "tänään" — ei riipu Discoverin päivävalinnasta (muuten
@@ -652,7 +686,23 @@ export default function HomeClient({
   // ylimääräinen renderöinti. Muissa näkymissä kuten ennen (koko ikkuna),
   // koska etusivun nostot ja rivit lukevat listaa muualtakin kuin ruudukosta.
   const [kaannettavat, setKaannettavat] = useState<string | null>(null)
-  const events = useTranslatedEvents(rawEvents, lang, hakuIkkuna ? (kaannettavat ?? '') : null)
+  // Haku kesken: ensimmäinen sivu lataa tai sivut 2…N ovat vielä tulossa.
+  // Tyhjä tila odottaa tätä (ks. EmptyState alempana).
+  const hakuKesken = hakuIkkuna && !error && (loading || fetchingFull || hasMore)
+  // OHJELMASIVUN SIEMEN (initialSearchSeed): paikan palvelimella haettu
+  // lista täydentää hakutuloksia kunnes haku on valmis. Yhdistetään id:llä,
+  // joten jo saapuneet samat rivit eivät tuplaannu; haun valmistuttua siemen
+  // putoaa pois ja sovelluksen oma tulos jää — sama lopputila kuin "Paikan
+  // kaikki tapahtumat" -napin jälkeen. Vain alkuperäiselle hakusanalle: kun
+  // käyttäjä muuttaa hakua, paikan lista ei saa jäädä sotkemaan tuloksia.
+  // Palvelimella ja selaimen ensimmäisessä renderissä tila on sama (haku
+  // kesken, ei rivejä), joten HTML sisältää paikan kortit ilman hydraatioeroa.
+  const siemennetyt = useMemo(() => {
+    if (!initialSearchSeed?.length || !hakuKesken || haku.trim() !== alkuHaku) return rawEvents
+    const ids = new Set(rawEvents.map((e) => e.id))
+    return [...rawEvents, ...initialSearchSeed.filter((e) => !ids.has(e.id))]
+  }, [rawEvents, initialSearchSeed, hakuKesken, haku, alkuHaku])
+  const events = useTranslatedEvents(siemennetyt, lang, hakuIkkuna ? (kaannettavat ?? '') : null)
 
   const localSearchHits = useMemo(() => {
     if (!haku || haku.length < 2) return { venues: [], activities: [], restaurants: [] }
@@ -950,8 +1000,10 @@ export default function HomeClient({
         // Evening events (19:30+) count as nightlife — but not sports matches.
         // Käytä yhtenäistä luokitinta (vibes), EI erillistä isUrheilu-regexiä,
         // jotta salibandy/tennis/turnaus ei valu yöelämään.
-        const d = new Date(e.startTime)
-        const eveningMatch = isNightlife && (d.getHours() > 19 || (d.getHours() === 19 && d.getMinutes() >= 30)) && !vibes.includes('urheilu')
+        // Helsinki-aika, EI ajon paikallinen kello (getHours): palvelin on
+        // UTC:ssä ja selain Helsingissä → sääntö osui eri riveihin ja
+        // SSR-siemen aiheutti hydraatiovirheen /yokerhot-sivulla (5.11.2026).
+        const eveningMatch = isNightlife && helsinkiMinutesOfDay(e.startTime) >= 19 * 60 + 30 && !vibes.includes('urheilu')
         return kwMatch || eveningMatch
       })
     }
@@ -1055,7 +1107,6 @@ export default function HomeClient({
     if (!hakuIkkuna || !hasMore || loading || fetchingFull || error) return
     lataaLoputSivut()
   }, [hakuIkkuna, hasMore, loading, fetchingFull, error, lataaLoputSivut])
-  const hakuKesken = hakuIkkuna && !error && (loading || fetchingFull || hasMore)
 
   // Base events for the picks grid — date/keyword filtered but NOT vibe/category filtered
   // so rows always show content even when a specific vibe is active
@@ -1637,6 +1688,9 @@ export default function HomeClient({
                 <HeroTag className="font-black text-white leading-none select-none text-[clamp(2.8rem,12cqw,8rem)] md:text-[clamp(2.8rem,12vw,8rem)]"
                   style={{ letterSpacing: '-0.04em' }}>
                   {municipality.toUpperCase()}
+                  {/* SEO (5.11.2026): H1 oli pelkkä kaupungin nimi. Näkymätön
+                      jatko kertoo hakukoneelle sivun aiheen; ulkoasu ei muutu. */}
+                  {heroAsHeading && <span className="sr-only"> – {t('seo.h1_suffix')}</span>}
                 </HeroTag>
               )
             })()}
@@ -1648,7 +1702,10 @@ export default function HomeClient({
               <span className="min-w-0 truncate">
                 {/* Numeerinen kuukausi: "torstai 24. syyskuuta · 233 tapahtumaa tänään"
                     ei mahtunut 390 px:iin (mitattu 24.9.2026). */}
-                {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'numeric', timeZone: 'Europe/Helsinki' })}
+                {/* Kiinteät nimet (lib/helsinki-time), ei toLocaleDateString:
+                    Safarin ICU antoi "torstai 5.11." ja palvelin "torstaina
+                    5.11." → hydraatiovirhe joka Safari-latauksella (5.11.2026). */}
+                {paivaOtsikkoLyhyt(new Date(), lang === 'en' ? 'en' : 'fi')}
                 {osittainen && !haku
                   ? ` · ${t('discover.fetching_short')}`
                   : !loading && baseEvents.length > 0 && !haku
@@ -1657,7 +1714,7 @@ export default function HomeClient({
               </span>
             </p>
             <p className="hidden md:block text-white/18 text-[11px] font-bold tracking-[0.3em] uppercase mt-1">
-              {new Date().toLocaleDateString(lang === 'fi' ? 'fi-FI' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Helsinki' })}
+              {paivaOtsikkoPitka(new Date(), lang === 'en' ? 'en' : 'fi')}
               {/* Tuoreusleima: tapahtumamäärä ja kellonaika. Lähdemäärä ja
                   /lahteet-linkki POISTETTU julkisesta näkymästä (omistaja
                   3.9.2026: käyttäjän ei kuulu nähdä lähteitä eikä niiden
@@ -1672,6 +1729,16 @@ export default function HomeClient({
                 </span>
               ) : null}
             </p>
+            {/* ESITTELYLAUSE (SEO-suunnitelma 3, 5.11.2026): etusivun HTML
+                kertoo Googlelle mitä sivu on — otsikko on pelkkä kaupungin
+                nimi. Näkyvä mutta hillitty; vain sovelluksen omalla etusivulla
+                (heroAsHeading), ei laskeutumissivuilla joilla on oma esittely,
+                eikä haun aikana. */}
+            {heroAsHeading && !hakuIkkuna && (
+              <p className="mt-2 max-w-xl text-[12.5px] md:text-[13px] leading-snug" style={{ color: 'rgba(255,255,255,.42)' }}>
+                {t('seo.home_intro')}
+              </p>
+            )}
           </div>
 
           {/* Date strip — PIILOSSA haun aikana: haku katsoo 90 pv eteenpäin,
@@ -2329,7 +2396,7 @@ export default function HomeClient({
       )}
 
       {/* ══ RESTAURANTS ══ */}
-      {mode === 'restaurants' && <RestaurantsView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'restaurant')} jumpToId={jumpToRestaurant?.id} jumpToKey={jumpToRestaurant} onSuodatinMuutos={setRestSuodatin} alkuValinta={restSuodatin} />}
+      {mode === 'restaurants' && <RestaurantsView onShowOnMap={(lat, lon, name) => handleShowOnMap(lat, lon, name, 'restaurant')} jumpToId={jumpToRestaurant?.id} jumpToKey={jumpToRestaurant} onSuodatinMuutos={setRestSuodatin} alkuValinta={restSuodatin} otsikkoH2={!heroAsHeading} />}
 
       {/* ══ ACTIVITIES ══ */}
       {/* ══ UUTTA HELSINGISSÄ ══ */}

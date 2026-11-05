@@ -16,7 +16,7 @@ import {
   CURATED_IMAGES,
   FEATURED_PICKS,
 } from '@/lib/restaurant-awards'
-import { HELSINKI_NIGHTCLUBS } from '@/lib/helsinki-nightclubs'
+import { HELSINKI_NIGHTCLUBS, samaKatu } from '@/lib/helsinki-nightclubs'
 import { pakotettuTyyppi as haePakotettuTyyppi } from '@/lib/venue-type-overrides'
 import { supabase } from '@/lib/supabase'
 import { matchReasons, reasonsWeight } from '@/lib/restaurant-reasons'
@@ -498,10 +498,31 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
     results.push(entry as Restaurant)
   }
 
-  // Curated Helsinki nightclubs — add those missing from OSM
-  const osmNames = new Set(results.map(r => normName(r.name)))
+  // Kuratoidut yökerhot (lib/helsinki-nightclubs). OSM:ssä jo oleva paikka saa
+  // kuratoidun kuvauksen infopaneeliin (blurb) ja verkkosivun, jos ne
+  // puuttuvat (omistaja 5.11.2026: kuvaukset klubien paneeleihin). Pelkkä
+  // nimi ei riitä tunnistukseen — sama nimi voi olla eri paikalla — joten
+  // vaaditaan sama katu tai osoitteeton OSM-rivi. Toimituksen valinnan teksti
+  // (FEATURED_PICKS, asetettu yllä) säilyy; Google-tiivistelmä väistyy
+  // myöhemmässä mergessä, koska r.blurb voittaa. OSM:stä puuttuva paikka
+  // lisätään kuratoiduilla tiedoilla kuten ennen.
+  const nimella = new Map<string, Restaurant[]>()
+  for (const r of results) {
+    const avain = normName(r.name)
+    const lista = nimella.get(avain)
+    if (lista) lista.push(r)
+    else nimella.set(avain, [r])
+  }
   for (const venue of HELSINKI_NIGHTCLUBS) {
-    if (osmNames.has(normName(venue.name))) continue  // already in OSM
+    const samat = nimella.get(normName(venue.name)) ?? []
+    if (samat.length > 0) {
+      for (const r of samat) {
+        if (r.address && !samaKatu(r.address, venue.address)) continue
+        if (!r.blurb && venue.kuvaus) r.blurb = venue.kuvaus
+        if (!r.www && venue.www) r.www = venue.www
+      }
+      continue  // already in OSM
+    }
     results.push({
       id: venue.id,
       name: venue.name,
@@ -524,6 +545,7 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
       subCategories: venue.subCategories,
       outdoorSeating: undefined,
       takeaway: undefined,
+      blurb: venue.kuvaus,
     })
   }
 
@@ -561,7 +583,7 @@ async function _haeOsmTila(): Promise<OsmTila> {
 // v19: Overpass pois pyyntöpolulta; arvo on { lista, otos } (v18 piti pelkkää
 // listaa). Tunnisteen 'restaurants' vanhentavat /api/cron (päivittäin) ja
 // /api/cron/osm-ravintolat (kun uusi otos on viety Storageen).
-const _haeOsmTilaCached = unstable_cache(_haeOsmTila, ['restaurants-osm-v19'], {
+const _haeOsmTilaCached = unstable_cache(_haeOsmTila, ['restaurants-osm-v20'], {
   revalidate: 86400,
   tags: ['restaurants'],
 })

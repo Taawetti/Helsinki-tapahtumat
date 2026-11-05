@@ -11,6 +11,11 @@ export interface CuratedVenue {
   type: 'yokerho' | 'baari'
   subCategories: string[]   // klubi | tekno | karaoke | katto
   www?: string
+  /** 1–2 lauseen kuvaus oppaaseen (/yokerhot): musiikki, tunnelma, sijainti.
+   *  Ei aukioloaikoja tai hintoja — ne vanhenevat (lisätty 5.11.2026). */
+  kuvaus?: string
+  /** Paikan ohjelmasivun slug (/ohjelma/<slug>, lib/venue-pages), jos on. */
+  ohjelma?: string
 }
 
 export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
@@ -27,6 +32,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1617, lon: 24.9727,
     type: 'yokerho',
     subCategories: ['tekno'],
+    kuvaus: 'Sörnäisten teknoklubi ja Helsingin elektronisen musiikin keskus – kansainvälisiä DJ-vieraita, pitkiä settejä ja laadukas äänentoisto.',
+    ohjelma: 'kaiku',
     www: 'https://kaikuhelsinki.fi',
   },
   {
@@ -36,6 +43,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1700, lon: 24.9367,
     type: 'yokerho',
     subCategories: ['tekno'],
+    kuvaus: 'Vanhaan teollisuushalliin Vallilaan rakennettu klubi, jonka ohjelma nojaa Berliinin tyyliseen teknoon. Uudistettu 2024, tilaa noin tuhannelle.',
   },
   {
     id: 'curated-post-bar',
@@ -44,6 +52,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1616, lon: 24.9725,
     type: 'yokerho',
     subCategories: ['tekno'],
+    kuvaus: 'Pieni elektronisen musiikin klubi Kaikun sisäpihalla Sörnäisissä – housea, teknoa ja kokeellisempaa klubimusiikkia.',
+    ohjelma: 'post-bar',
   },
   {
     id: 'curated-kult',
@@ -52,6 +62,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1757, lon: 24.9560,
     type: 'yokerho',
     subCategories: ['tekno', 'klubi'],
+    kuvaus: 'Kulttuuritalon yhteydessä Alppilassa toimiva klubi – klubi-iltoja ja elektronista musiikkia Kulttuuritalon keikkojen rinnalla.',
+    ohjelma: 'kulttuuritalo',
   },
   {
     id: 'curated-pluto',
@@ -60,6 +72,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1552, lon: 24.9478,
     type: 'yokerho',
     subCategories: ['tekno', 'klubi'],
+    kuvaus: 'Klubi Uudenmaankadulla keskustan tuntumassa – elektronista musiikkia ja klubi-iltoja intiimissä tilassa.',
   },
 
   // ── Klubit & indie / alternative ──────────────────────────────
@@ -70,6 +83,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1638, lon: 24.9752,
     type: 'yokerho',
     subCategories: ['klubi'],
+    kuvaus: 'Kallion keikkaklubi Hämeentiellä vuodesta 2005 – indieä, elektronista ja kokeellista musiikkia, kotimaisia ja kansainvälisiä artisteja.',
     www: 'https://kuudeslinja.com',
   },
   {
@@ -79,6 +93,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1640, lon: 24.9750,
     type: 'yokerho',
     subCategories: ['klubi'],
+    kuvaus: 'Hämeentien kulmakivi: päivisin baari ja iso terassi, viikonloppuisin DJ-klubi – Kuudennen Linjan naapuri.',
+    ohjelma: 'siltanen',
   },
   {
     id: 'curated-tavastia',
@@ -87,6 +103,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1686, lon: 24.9498,
     type: 'baari',
     subCategories: ['klubi'],
+    kuvaus: 'Suomen tunnetuin rockklubi Kampissa vuodesta 1970 – keikkoja lähes joka ilta, kotimaiset ja ulkomaiset nimet.',
+    ohjelma: 'tavastia',
     www: 'https://tavastiaklubi.fi',
   },
   {
@@ -96,6 +114,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1686, lon: 24.9498,
     type: 'baari',
     subCategories: ['klubi'],
+    kuvaus: 'Tavastian pikkuveli samassa rakennuksessa – nousevia bändejä, indieä ja klubi-iltoja.',
+    ohjelma: 'semifinal',
   },
   {
     id: 'curated-on-the-rocks',
@@ -104,6 +124,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1688, lon: 24.9442,
     type: 'baari',
     subCategories: ['klubi'],
+    kuvaus: 'Rockklubi Mikonkadulla keskustassa – keikkoja ja klubi-iltoja viikon ympäri, usein myöhään yöhön.',
+    ohjelma: 'on-the-rocks',
     www: 'https://rocks.fi',
   },
   {
@@ -113,6 +135,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1660, lon: 24.9433,
     type: 'baari',
     subCategories: ['klubi'],
+    kuvaus: 'Rockbaari Annankadulla – pieniä keikkoja, DJ-iltoja ja rock-henkinen tunnelma keskellä kaupunkia.',
     www: 'https://barloose.com',
   },
   {
@@ -122,6 +145,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1708, lon: 24.9442,
     type: 'baari',
     subCategories: ['klubi'],
+    kuvaus: 'Irlantilaispubi Kaisaniemessä – livemusiikkia lähes joka ilta ja myöhään auki oleva tanssilattia.',
     www: 'https://mollymalones.fi',
   },
   {
@@ -131,6 +155,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1644, lon: 24.9600,
     type: 'yokerho',
     subCategories: ['klubi'],
+    kuvaus: 'Kasarmikadun klassikkoyökerho – tanssilattia, hittimusiikkia ja useita baareja yhdessä keskustan tunnetuimmista bilepaikoista.',
   },
   {
     id: 'curated-maxine',
@@ -139,6 +164,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1688, lon: 24.9483,
     type: 'yokerho',
     subCategories: ['klubi'],
+    kuvaus: 'Kampin keskuksen kuudennessa kerroksessa – klubi, jossa hittimusiikkia, artistivierailuja ja näköala kaupungin ylle.',
+    ohjelma: 'maxine',
   },
   {
     id: 'curated-tanner',
@@ -147,6 +174,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1633, lon: 24.9742,
     type: 'yokerho',
     subCategories: ['klubi'],
+    kuvaus: 'Kallion klubi Hämeentiellä – DJ-iltoja ja klubitapahtumia Siltasen ja Kuudennen Linjan korttelissa.',
   },
   {
     id: 'curated-g-livelab',
@@ -155,6 +183,8 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1667, lon: 24.9500,
     type: 'baari',
     subCategories: ['klubi'],
+    kuvaus: 'Intiimi musiikkiklubi Yrjönkadulla – jazzia, maailmanmusiikkia ja indieä huippuäänentoistolla, istumapaikat ja baari.',
+    ohjelma: 'g-livelab',
     www: 'https://glivelab.fi',
   },
 
@@ -166,6 +196,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1665, lon: 24.9433,
     type: 'baari',
     subCategories: ['karaoke'],
+    kuvaus: 'Annankadun karaokebaari keskustassa – matala kynnys, laaja biisilista ja pitkät illat.',
   },
   {
     id: 'curated-holiday-karaoke',
@@ -174,6 +205,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1638, lon: 24.9417,
     type: 'baari',
     subCategories: ['karaoke'],
+    kuvaus: 'Iso Roobertinkadun karaokebaari Punavuoressa – rento meininki ja karaokea myöhään.',
   },
   {
     id: 'curated-wallis-karaoke',
@@ -182,6 +214,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1683, lon: 24.9600,
     type: 'baari',
     subCategories: ['karaoke'],
+    kuvaus: 'Karaokebaari Kanavarannassa Kauppatorin kupeessa – pieni ja tunnelmallinen.',
   },
   {
     id: 'curated-erottaja-bar',
@@ -190,6 +223,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1638, lon: 24.9467,
     type: 'baari',
     subCategories: ['karaoke'],
+    kuvaus: 'Erottajan kulmassa ydinkeskustassa – karaokea ja klubimeininkiä.',
   },
   {
     id: 'curated-karaokebar-populus',
@@ -198,6 +232,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1722, lon: 24.9733,
     type: 'baari',
     subCategories: ['karaoke'],
+    kuvaus: 'Vallilan karaokebaari Aleksis Kiven kadulla – paikallinen tunnelma ja karaokea.',
   },
   {
     id: 'curated-ake-karaoke',
@@ -206,6 +241,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1640, lon: 24.9460,
     type: 'baari',
     subCategories: ['karaoke'],
+    kuvaus: 'Karaokebaari Erottajankadulla – pieni ja tunnelmallinen, keskellä iltaelämää.',
   },
   {
     id: 'curated-mascot',
@@ -214,6 +250,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1808, lon: 24.9808,
     type: 'baari',
     subCategories: ['karaoke', 'klubi'],
+    kuvaus: 'Kallion baari Neljännellä linjalla – karaokea, livekeikkoja ja klubi-iltoja pienellä lavalla.',
   },
   {
     id: 'curated-musta-harka',
@@ -222,6 +259,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1892, lon: 24.9567,
     type: 'baari',
     subCategories: ['karaoke'],
+    kuvaus: 'Mäkelänkadun karaokebaari – kantabaari, jossa lauletaan myöhään.',
   },
   {
     id: 'curated-kraken',
@@ -230,6 +268,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1650, lon: 24.9183,
     type: 'baari',
     subCategories: ['karaoke'],
+    kuvaus: 'Karaokebaari Hietaniemenkadulla Kampin kupeessa.',
     www: 'https://krakenhelsinki.fi',
   },
 
@@ -241,6 +280,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1683, lon: 24.9417,
     type: 'baari',
     subCategories: ['katto'],
+    kuvaus: 'Hotelli Tornin ylimmän kerroksen baari – Helsingin tunnetuin näköalabaari, jonne noustaan drinkin ja maiseman takia.',
   },
   {
     id: 'curated-monkey-rooftop',
@@ -249,6 +289,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1692, lon: 24.9342,
     type: 'baari',
     subCategories: ['katto'],
+    kuvaus: 'Simonkadun kattobaari Kampissa – drinkkejä ja DJ-iltoja kaupungin kattojen tasolla.',
   },
   {
     id: 'curated-bisoubisou',
@@ -257,6 +298,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1850, lon: 25.0025,
     type: 'baari',
     subCategories: ['katto'],
+    kuvaus: 'Hermannin rantatien kattoterassi Kalasataman kupeessa – kesäinen rooftop-baari drinkkeineen ja DJ-setteineen.',
     www: 'https://bisoubisou.fi',
   },
   {
@@ -266,6 +308,7 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1567, lon: 24.8950,
     type: 'baari',
     subCategories: ['katto'],
+    kuvaus: 'Jätkäsaaren kattobaari Tyynenmerenkadulla – näkymät satamaan ja merelle hotellin huipulta.',
   },
   {
     id: 'curated-loi-loi',
@@ -274,5 +317,18 @@ export const HELSINKI_NIGHTCLUBS: CuratedVenue[] = [
     lat: 60.1900, lon: 24.9458,
     type: 'baari',
     subCategories: ['katto'],
+    kuvaus: 'Konepajan kattoterassi Vallilassa – kesäiltojen rooftop-baari.',
   },
 ]
+
+/** Sama katu kahdessa osoitteessa: "Hämeentie 13 B" ~ "Hämeentie 13b",
+ *  "Urho Kekkosen katu 4-6" ~ "Urho Kekkosen katu 6, sisäpiha". Vertaa vain
+ *  katuosaa ennen talonumeroa, koska OSM:n ja tämän listan numeromuodot
+ *  eroavat. Pelkkä nimi ei tunnista paikkaa (sama nimi voi olla eri kadulla),
+ *  ja tämän listan koordinaatit eivät kelpaa tunnistukseen (ks. mittaus
+ *  5.11.2026: Kaiku 2,5 km OSM-rivistä). */
+export function samaKatu(a: string, b: string): boolean {
+  const katu = (s: string) => s.split(/\d/)[0].toLowerCase().replace(/[^a-zäöå]+/g, ' ').trim()
+  const ka = katu(a), kb = katu(b)
+  return ka.length > 2 && ka === kb
+}

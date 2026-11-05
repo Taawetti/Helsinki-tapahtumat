@@ -76,7 +76,10 @@ import { sivunRajat, kuuluuSivulle, ulkoistenVali } from '../lib/sivurajaus'
 import { kanoninenPaikannimi, normalisoiPaikannimi, PAIKANNIMET } from '../lib/paikannimet'
 import { lipputuoteAvain, lipputuoteRyhma, jaetutLipputuotteet, onSamaLipputuote } from '../lib/lipputuote'
 import { normalisoiPolku } from '../lib/polku'
+import { VENUE_PAGES } from '../lib/venue-pages'
 import { paivaLyhyt, paivaEssiivi, paivavaliLyhyt, luettelo, vilkkaimmatPaikat, alkamisaikavali, isoAlkukirjain } from '../lib/seo-intro'
+import { helsinkiMinutesOfDay, helsinkiOsat, formatEventDate, formatEventDateNumeric, paivaOtsikkoLyhyt, paivaOtsikkoPitka } from '../lib/helsinki-time'
+import { samaKatu as samaKatuTesti } from '../lib/helsinki-nightclubs'
 import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, onLippuklikki, type KlikkiRivi } from '../lib/kavijatilastot'
@@ -5548,10 +5551,89 @@ odotettavat.push((async () => {
     { name: 'alkamisaikavali Helsingin aikaa, ajaton ohitetaan', ok: !!vali && vali.ensimmainen === '9.00' && vali.viimeinen === '23.00', got: JSON.stringify(vali) },
     { name: 'alkamisaikavali null pelkillä ajattomilla', ok: alkamisaikavali([ev('2026-11-04T00:00:00+02:00', 'X')]) === null },
     { name: 'isoAlkukirjain', ok: isoAlkukirjain('keskiviikkona 4.11.') === 'Keskiviikkona 4.11.' && isoAlkukirjain('') === '' },
+    { name: 'helsinkiMinutesOfDay: 19.30 Helsinkiä talvella (17.30Z) ja kesällä (16.30Z), keskiyö 0', ok: helsinkiMinutesOfDay('2026-11-04T17:30:00Z') === 1170 && helsinkiMinutesOfDay('2026-07-04T16:30:00Z') === 1170 && helsinkiMinutesOfDay('2026-11-04T22:00:00Z') === 0 },
   ]
   for (const c of sCases) {
     if (c.ok) pass++
     else failures.push(`✗ seo-intro: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Näkyvät päivämäärät ilman kielidataa (lib/helsinki-time, 5.11.2026) ──
+// Taulukkomuoto vastaa Noden Intl-tulosta vuoden 2026 jokaisena päivänä
+// (fi täsmälleen; en lukuun ottamatta syyskuun "Sept" → "Sep", joka valittiin
+// Safarin muodon mukaan). Safarin Intl antoi eri tekstin → hydraatiovirhe.
+{
+  const tz = 'Europe/Helsinki'
+  const erot: string[] = []
+  for (let i = 0; i < 365; i++) {
+    for (const [h, m] of [[17, 5], [7, 0], [21, 59]]) {
+      const d = new Date(Date.UTC(2026, 0, 1 + i, h, m))
+      const iso = d.toISOString()
+      const odot = {
+        fiRivi: d.toLocaleDateString('fi-FI', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz }),
+        enRivi: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz }).replace('Sept', 'Sep'),
+        fiLyhyt: d.toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'numeric', timeZone: tz }),
+        enLyhyt: d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'numeric', timeZone: tz }),
+        fiPitka: d.toLocaleDateString('fi-FI', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }),
+        enPitka: d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }),
+        fiVisa: new Intl.DateTimeFormat('fi-FI', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d).replace(',', ''),
+        enVisa: new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d).replace(',', ''),
+      }
+      const saatu = {
+        fiRivi: formatEventDate(iso, 'fi'), enRivi: formatEventDate(iso, 'en'),
+        fiLyhyt: paivaOtsikkoLyhyt(d, 'fi'), enLyhyt: paivaOtsikkoLyhyt(d, 'en'),
+        fiPitka: paivaOtsikkoPitka(d, 'fi'), enPitka: paivaOtsikkoPitka(d, 'en'),
+        fiVisa: formatEventDateNumeric(iso, 'fi'), enVisa: formatEventDateNumeric(iso, 'en'),
+      }
+      for (const key of Object.keys(odot) as (keyof typeof odot)[]) {
+        if (odot[key] !== saatu[key] && erot.length < 5) erot.push(`${key} ${iso}: ${saatu[key]} ≠ ${odot[key]}`)
+      }
+    }
+  }
+  const pCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'taulukkomuodot vastaavat Intl-tulosta koko vuoden 2026 (fi, en)', ok: erot.length === 0, got: erot.join(' | ') },
+    { name: 'pelkkä päivä ilman kellonaikaa', ok: formatEventDate('2026-11-05', 'fi') === 'to 5.11.' && formatEventDate('2026-11-05', 'en') === 'Thu 5 Nov', got: `${formatEventDate('2026-11-05', 'fi')} / ${formatEventDate('2026-11-05', 'en')}` },
+    { name: 'kelvoton aikaleima ei kaadu', ok: helsinkiOsat('x') === null && paivaOtsikkoLyhyt('x') === '' && formatEventDateNumeric('', 'en') === '' },
+    { name: 'kesä- ja talviaika Helsingissä', ok: formatEventDate('2026-07-10T16:30:00Z', 'fi') === 'pe 10.7. klo 19.30' && formatEventDate('2026-12-10T17:30:00Z', 'fi') === 'to 10.12. klo 19.30', got: `${formatEventDate('2026-07-10T16:30:00Z', 'fi')} / ${formatEventDate('2026-12-10T17:30:00Z', 'fi')}` },
+  ]
+  for (const c of pCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ päivämäärät: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Yökerhojen kuvaukset ja katuvertailu (lib/helsinki-nightclubs, 5.11.2026) ──
+{
+  const ilmanKuvausta = HELSINKI_NIGHTCLUBS.filter((v) => !v.kuvaus || v.kuvaus.length < 40).map((v) => v.name)
+  const kCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'jokaisella kuratoidulla paikalla on vähintään 40 merkin kuvaus (infopaneeli)', ok: ilmanKuvausta.length === 0, got: ilmanKuvausta.join(',') },
+    { name: 'samaKatu: numeromuodot ja lisätiedot eivät haittaa', ok: samaKatuTesti('Hämeentie 13 B', 'Hämeentie 13b') && samaKatuTesti('Urho Kekkosen katu 4-6', 'Urho Kekkosen katu 6, sisäpiha/inner yard') && samaKatuTesti('Kaisaniemenkatu 1 C', 'Kaisaniemenkatu') },
+    { name: 'samaKatu: eri katu tai tyhjä osoite ei täsmää, pelkkä katu ilman numeroa täsmää', ok: !samaKatuTesti('Neljäs linja 2', 'Hämeentie 14') && !samaKatuTesti('', 'Kaikukatu 4') && samaKatuTesti('Kaikukatu 4', 'Kaikukatu') },
+  ]
+  for (const c of kCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ yökerhot: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Ohjelmasivujen rekisteri (lib/venue-pages, 5.11.2026) ──
+{
+  const slugit = VENUE_PAGES.map((v) => v.slug)
+  const lahteet = new Set<string>(ULKOISET_LAHTEET)
+  const vCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'slugit uniikkeja ja url-kelpoisia', ok: new Set(slugit).size === slugit.length && slugit.every((s) => /^[a-z0-9-]+$/.test(s)), got: slugit.filter((s, i) => slugit.indexOf(s) !== i).join(',') },
+    { name: 'jokaisella täsmälleen yksi datamekanismi (tprekId | scrapedId | lahde)', ok: VENUE_PAGES.every((v) => [v.tprekId, v.scrapedId, v.lahde].filter(Boolean).length === 1), got: VENUE_PAGES.filter((v) => [v.tprekId, v.scrapedId, v.lahde].filter(Boolean).length !== 1).map((v) => v.slug).join(',') },
+    { name: 'lahde on lähdevaraston lähde ja paikka vain lahde-mekanismilla', ok: VENUE_PAGES.every((v) => (!v.lahde || lahteet.has(v.lahde)) && (!v.paikka || !!v.lahde)) },
+    { name: 'osoite ja kuvaus jokaisella, kuvaus 40–170 merkkiä', ok: VENUE_PAGES.every((v) => v.address.length > 3 && v.description.length >= 40 && v.description.length <= 170), got: VENUE_PAGES.filter((v) => v.description.length < 40 || v.description.length > 170).map((v) => `${v.slug}:${v.description.length}`).join(',') },
+    { name: 'www alkaa https:// kun annettu', ok: VENUE_PAGES.every((v) => !v.www || v.www.startsWith('https://')) },
+    // haku (sovellusnäkymän hakusana) on nimen osa ja vähintään 4 merkkiä — lyhyt tai vieras sana ei osuisi paikan riveihin tai osuisi kaikkeen
+    { name: 'haku on nimen osa ja vähintään 4 merkkiä', ok: VENUE_PAGES.every((v) => !v.haku || (v.haku.length >= 4 && v.name.toLowerCase().includes(v.haku.toLowerCase()))), got: VENUE_PAGES.filter((v) => v.haku && !(v.haku.length >= 4 && v.name.toLowerCase().includes(v.haku.toLowerCase()))).map((v) => v.slug).join(',') },
+    { name: 'vähintään 30 paikkaa, mukana kulttuuritalo, oodi ja musiikkitalo', ok: VENUE_PAGES.length >= 30 && ['kulttuuritalo', 'oodi', 'musiikkitalo'].every((s) => slugit.includes(s)) },
+  ]
+  for (const c of vCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ venue-pages: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 
