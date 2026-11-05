@@ -809,6 +809,18 @@ export default function HomeClient({
     setKoCat(null) // palauta etusivulle, ei jää orpoa fokusnäkymää
   }, [activeVibes, activeCategories.length, priceFilter, customDate, customDateEnd])
 
+  // PALUU ETUSIVULLE (omistaja 5.11.2026): laskeutumissivu avaa sovelluksen
+  // hakutilaan tai suodattimeen, eikä kävijä löytänyt reittiä sovelluksen
+  // etusivulle — logo ja hakutilan "← Etusivulle" -nappi vievät nyt sinne ja
+  // palauttavat KAIKEN oletukseen (haku, suodattimet, päivä, opas, paneeli,
+  // välilehti).
+  const palaaEtusivulle = useCallback(() => {
+    setKeyword(''); setActiveCategories([]); setActiveVibes([]); setPriceFilter('all'); setHoodFilter(null)
+    setCustomDate(''); setCustomDateEnd(''); setDateFilter('today'); setGuideView(null); setSelectedEvent(null)
+    setMode('discover'); setMobileTab('discover'); setKoCat(null)
+    window.scrollTo(0, 0)
+  }, [])
+
   const handleShowOnMap = useCallback((lat: number, lon: number, name: string, type?: 'event' | 'restaurant' | 'activity') => {
     // Mittaus myös syvälinkeistä: aiemmin vain yläpalkin ikoni laski
     // map_open-tapahtumia, joten kartan käyttö aliarvioitui tilastoissa.
@@ -904,14 +916,20 @@ export default function HomeClient({
     // niitä lainkaan. Tämä on ainoa tapa tietää mitä osiota käytetään.
     track('section', { label: tab })
     setMobileTab(tab)
-    if (tab === 'discover') { setMode('discover'); setKoCat(null) }
+    if (tab === 'discover') {
+      setMode('discover'); setKoCat(null)
+      // Aktiivisen Tapahtumat-välilehden uusi napautus = etusivulle: tyhjentää
+      // haun (laskeutumissivun hakutila) ja rullaa ylös, kuten sovelluksissa
+      // yleensä (omistaja 5.11.2026: hakutilasta ei löytynyt pois).
+      if (tab === mobileTab) { setKeyword(''); window.scrollTo(0, 0) }
+    }
     else if (tab === 'idea') setMode('idea')
     else if (tab === 'map') setMode('map')
     else if (tab === 'favorites') setMode('favorites')
     else if (tab === 'restaurants') setMode('restaurants')
     else if (tab === 'uutta') setMode('uutta')
     else if (tab === 'suunnitelma') setMode('suunnitelma')
-  }, [])
+  }, [mobileTab])
 
   // Kartta/Suosikit avataan yläpalkin pyöreistä napeista TAI discover-näkymän
   // Lista⇄Kartta-kytkimestä; muistetaan mistä tultiin niin ‹-paluunappi vie
@@ -1456,7 +1474,7 @@ export default function HomeClient({
             (ListSheet alla); Kartta-nappi poistui, koska Lista⇄Kartta-kytkin
             kattaa sen. Työpöydän rivi alla on ennallaan. */}
         <div className="md:hidden flex items-center justify-between px-4 pt-2.5 pb-1.5">
-          <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }}
+          <button onClick={palaaEtusivulle}
             aria-label={t('nav.home')} className="flex items-center gap-2 min-h-11 py-2">
             {/* Merkki tulee nimen PERÄÄN — se on nimen kysymysmerkki, ei
                 erillinen ikoni. Aiemmin tässä oli indigo-laatta jossa luki M. */}
@@ -1510,7 +1528,7 @@ export default function HomeClient({
             välilehdissä vasta xl:stä (säästää ~130 px kapeilla), hakukentällä
             vähimmäisleveys ja tulosvalikko omassa 380 px leveydessään. */}
         <div className="hidden md:flex max-w-7xl mx-auto px-4 py-3 items-center gap-3">
-          <button onClick={() => { setMode('discover'); setMobileTab('discover'); setKoCat(null) }} className="shrink-0 flex items-center gap-2">
+          <button onClick={palaaEtusivulle} aria-label={t('nav.home')} className="shrink-0 flex items-center gap-2">
             <Logo size={15} className="shrink-0" />
           </button>
 
@@ -1729,16 +1747,10 @@ export default function HomeClient({
                 </span>
               ) : null}
             </p>
-            {/* ESITTELYLAUSE (SEO-suunnitelma 3, 5.11.2026): etusivun HTML
-                kertoo Googlelle mitä sivu on — otsikko on pelkkä kaupungin
-                nimi. Näkyvä mutta hillitty; vain sovelluksen omalla etusivulla
-                (heroAsHeading), ei laskeutumissivuilla joilla on oma esittely,
-                eikä haun aikana. */}
-            {heroAsHeading && !hakuIkkuna && (
-              <p className="mt-2 max-w-xl text-[12.5px] md:text-[13px] leading-snug" style={{ color: 'rgba(255,255,255,.42)' }}>
-                {t('seo.home_intro')}
-              </p>
-            )}
+            {/* Näkyvä esittelylause kokeiltiin 5.11.2026 ja poistettiin samana
+                päivänä (omistaja: puoliturha, vei puhelimella kaksi riviä
+                päivävalintojen yltä). Hakukoneelle riittävät otsikko,
+                kuvaus, h1-jatke "tapahtumat tänään" ja rakenteinen tieto. */}
           </div>
 
           {/* Date strip — PIILOSSA haun aikana: haku katsoo 90 pv eteenpäin,
@@ -2265,6 +2277,16 @@ export default function HomeClient({
                   <span className="text-[13px] font-bold text-white/40">
                     {discoverEvents.length} {discoverEvents.length === 1 ? t('discover.upcoming_event') : t('discover.upcoming_events')}
                   </span>
+                  {/* Selkeä reitti etusivulle (omistaja 5.11.2026): hakutilaan
+                      laskeutunut ei löytänyt pois. Teksti nimeää kohteen, ei
+                      mekanismia ("Etusivulle", ei "Poistu hausta"), koska Googlesta
+                      tullut ei tiedä olevansa haussa — ja nappi tekee saman kuin
+                      logo: koko näkymä oletukseen. */}
+                  <button onClick={palaaEtusivulle}
+                    className="text-[12px] font-black flex-shrink-0 ml-auto px-3 py-1 rounded-full transition-all"
+                    style={{ color: 'rgba(255,255,255,.4)', border: '1px solid rgba(255,255,255,.1)' }}>
+                    {t('discover.to_home')}
+                  </button>
                 </div>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
