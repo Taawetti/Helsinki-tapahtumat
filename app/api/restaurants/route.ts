@@ -17,6 +17,7 @@ import {
   FEATURED_PICKS,
 } from '@/lib/restaurant-awards'
 import { HELSINKI_NIGHTCLUBS, samaKatu } from '@/lib/helsinki-nightclubs'
+import { ravintolanEsittely } from '@/lib/kuratoidut-esittelyt'
 import { pakotettuTyyppi as haePakotettuTyyppi } from '@/lib/venue-type-overrides'
 import { supabase } from '@/lib/supabase'
 import { matchReasons, reasonsWeight } from '@/lib/restaurant-reasons'
@@ -549,6 +550,20 @@ function applySupplements(results: Restaurant[]): Restaurant[] {
     })
   }
 
+  // Kuratoidut esittelyt (lib/kuratoidut-esittelyt, omistaja 6.11.2026):
+  // paikka, jolta puuttuu Googlen tiivistelmä (esim. BasBas Sirkus, "ei
+  // Googlessa" 23.10.), saa toimituksen tekstin. FEATURED_PICKS- ja
+  // yökerhoteksti (asetettu yllä) säilyvät; Googlen tiivistelmä väistyy
+  // myöhemmässä mergessä, koska r.blurb voittaa.
+  for (const r of results) {
+    if (r.blurb) continue
+    const esittely = ravintolanEsittely(r.name, r.address)
+    if (esittely) {
+      r.blurb = esittely.fi
+      r.blurbEn = esittely.en
+    }
+  }
+
   return results
 }
 
@@ -583,7 +598,8 @@ async function _haeOsmTila(): Promise<OsmTila> {
 // v19: Overpass pois pyyntöpolulta; arvo on { lista, otos } (v18 piti pelkkää
 // listaa). Tunnisteen 'restaurants' vanhentavat /api/cron (päivittäin) ja
 // /api/cron/osm-ravintolat (kun uusi otos on viety Storageen).
-const _haeOsmTilaCached = unstable_cache(_haeOsmTila, ['restaurants-osm-v20'], {
+// v21 (6.11.2026): kuratoidut esittelyt (lib/kuratoidut-esittelyt) listaan.
+const _haeOsmTilaCached = unstable_cache(_haeOsmTila, ['restaurants-osm-v21'], {
   revalidate: 86400,
   tags: ['restaurants'],
 })

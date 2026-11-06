@@ -20,6 +20,7 @@ import { useDialogiFokus } from '@/hooks/useDialogiFokus'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { tilaaSuunnitelma, onSuunnitelmassa, poistaViitteella, lisaaPaikka } from '@/lib/suunnitelma'
 import { naytaToast } from '@/lib/toast'
+import { paikanEsittely } from '@/lib/kuratoidut-esittelyt'
 
 export interface PaikkaTieto {
   id: string
@@ -84,7 +85,7 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   // itsestään, eikä efektin tarvitse kutsua setStatea.
   const [kuvaEpaonnistui, setKuvaEpaonnistui] = useState<string | null>(null)
   const imgOk = kuvaEpaonnistui !== paikka?.id
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   // Slide-in — double-rAF kuten EventDetailPanelissa (iOS-välähdyksen esto).
   useEffect(() => {
@@ -106,10 +107,14 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
   useTaaksepain(!!paikka, handleClose)
   // "Lisää suunnitelmaan" -tila: peilaa suunnitelmavarastoa.
   const suunnitelmassa = useSyncExternalStore(tilaaSuunnitelma, () => paikka?.id ? onSuunnitelmassa(paikka?.id) : false, () => false)
+  // Kuratoitu esittely (lib/kuratoidut-esittelyt, omistaja 6.11.2026):
+  // metakortin alle ja suunnitelman infokorttiin samalla kielellä kuin paneeli.
+  const esittely = paikka ? paikanEsittely(paikka.name, paikka.address) : null
+  const esittelyTeksti = esittely ? (lang === 'en' ? esittely.en : esittely.fi) : null
   const suunnitelmaKlik = () => {
     if (!paikka) return
     if (suunnitelmassa) poistaViitteella(paikka.id)
-    else if (lisaaPaikka(paikka, guideSlug)) naytaToast({ teksti: t('plan.toast_added'), toiminto: { label: t('plan.toast_show'), tyyppi: 'nayta-suunnitelma' } })
+    else if (lisaaPaikka(esittelyTeksti ? { ...paikka, description: esittelyTeksti } : paikka, guideSlug)) naytaToast({ teksti: t('plan.toast_added'), toiminto: { label: t('plan.toast_show'), tyyppi: 'nayta-suunnitelma' } })
     else alert(t('plan.full'))
   }
 
@@ -329,6 +334,11 @@ export default function PlaceDetailPanel({ paikka, guideSlug, onClose }: Props) 
               </div>
             )}
           </div>
+
+          {/* Esittely — sama paikka ja tyyli kuin ravintolan infopaneelissa */}
+          {esittelyTeksti && (
+            <p className="text-white/60 text-sm leading-relaxed">{esittelyTeksti}</p>
+          )}
 
           {/* Jaa kavereille — identtinen tapahtumapaneelin kanssa */}
           <div className="space-y-2">

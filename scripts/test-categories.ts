@@ -81,6 +81,8 @@ import { paivaLyhyt, paivaEssiivi, paivavaliLyhyt, luettelo, vilkkaimmatPaikat, 
 import { helsinkiMinutesOfDay, helsinkiOsat, formatEventDate, formatEventDateNumeric, paivaOtsikkoLyhyt, paivaOtsikkoPitka } from '../lib/helsinki-time'
 import { samaKatu as samaKatuTesti } from '../lib/helsinki-nightclubs'
 import { hakutermit, osuuHakuun } from '../lib/hakusynonyymit'
+import { ravintolanEsittely, paikanEsittely, RAVINTOLAESITTELYT, PAIKKAESITTELYT } from '../lib/kuratoidut-esittelyt'
+import { samaKatu as samaKatuSuoraan } from '../lib/katu'
 import { korvaajanTunniste, siistiNimi, onLinkedEventsTunniste } from '../lib/poistunut-tapahtuma'
 import { joulukaudenVuosi, joulunavausTila, joulunHakuvali, JOULUNAVAUS } from '../lib/joulu-helsingissa'
 import { irrotaOtsikonAika } from '../lib/otsikon-aika'
@@ -5645,6 +5647,28 @@ odotettavat.push((async () => {
   for (const c of kCases) {
     if (c.ok) pass++
     else failures.push(`✗ yökerhot: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Kuratoidut esittelyt (lib/kuratoidut-esittelyt, 6.11.2026) ──
+{
+  const kaikki = [...RAVINTOLAESITTELYT, ...PAIKKAESITTELYT]
+  const aikaTaiHinta = /€|\bklo\b|\d{1,2}[.:]\d{2}|\b\d{1,2}\s*[–-]\s*\d{1,2}\b/
+  const puutteelliset = kaikki.filter((e) => e.fi.length < 80 || e.en.length < 80 || !/^https:\/\//.test(e.lahde) || !/^\d{4}-\d{2}-\d{2}$/.test(e.tarkistettu) || aikaTaiHinta.test(`${e.fi} ${e.en}`)).map((e) => e.nimi)
+  const wwwKuvat = (websiteImages as { byWww: Record<string, string> }).byWww
+  const eCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'BasBas sirkus (OSM-nimi) saa esittelyn samalla kadulla, numeromuoto ei haittaa', ok: !!ravintolanEsittely('BasBas sirkus', 'Paasivuorenkatu 4-6') && !!ravintolanEsittely('BasBas Sirkus', 'Paasivuorenkatu 4') },
+    { name: 'osoitteeton rivi tunnistetaan pelkällä nimellä', ok: !!ravintolanEsittely('BasBas Sirkus', null) && !!ravintolanEsittely('BASBAS SIRKUS', '') },
+    { name: 'muut BasBas-paikat ja eri katu eivät saa esittelyä', ok: !ravintolanEsittely('BasBas sirkus', 'Tehtaankatu 27-29') && !ravintolanEsittely('Basbas Kulma', 'Tehtaankatu 27-29') && !ravintolanEsittely('Baskeri & Basso Bistro', 'Tehtaankatu 27-29') && !ravintolanEsittely('', null) },
+    { name: 'Kotiharjun sauna: oppaan ja kartan osoitemuodot, ei muita saunoja', ok: !!paikanEsittely('Kotiharjun sauna', 'Harjutorinkatu 1') && !!paikanEsittely('Kotiharjun Sauna', 'Harjutorinkatu 1, 00500 Helsinki') && !paikanEsittely('Sauna Hermanni', 'Hämeentie 63') && !paikanEsittely('Kotiharjun sauna', 'Mannerheimintie 1') },
+    { name: 'ravintolaesittely ei vuoda paikkoihin eikä päinvastoin', ok: !paikanEsittely('BasBas Sirkus', 'Paasivuorenkatu 4-6') && !ravintolanEsittely('Kotiharjun sauna', 'Harjutorinkatu 1') },
+    { name: 'jokaisella esittelyllä fi ja en, https-lähde ja tarkistuspäivä, ei hintoja eikä kellonaikoja', ok: puutteelliset.length === 0, got: puutteelliset.join(',') },
+    { name: 'BasBas Sirkuksen kuva on nettisivukuvissa samalla osoitteella kuin OSM:ssä', ok: (wwwKuvat['https://basbas.fi/sirkus/'] ?? '').startsWith('https://basbas.fi/sirkus/') },
+    { name: 'samaKatu siirtyi lib/katuun: vanha ja uusi tuonti ovat sama funktio', ok: samaKatuTesti === samaKatuSuoraan },
+  ]
+  for (const c of eCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ kuratoidut esittelyt: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 
