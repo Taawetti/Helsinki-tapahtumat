@@ -257,6 +257,22 @@ export async function lueLahdepalat(palat: string[]): Promise<{ rivit: Lahdepala
   }
 }
 
+/** Yhden lähteen rivit annetuille paloille. Ohjelmasivu (/ohjelma/[venue])
+ *  tarvitsee vain oman paikkansa lähteen: mitattu 6.11.2026, koko varasto
+ *  60 päivältä on 6,9 Mt, yksittäinen paikkalähde 0,03–0,4 Mt. Koko varaston
+ *  luku joka sivun päivityksessä olisi ollut turhaa Supabase-liikennettä. */
+export async function lueLahteenPalat(lahde: string, palat: string[]): Promise<{ rivit: LahdepalaRivi[] } | { virhe: string }> {
+  if (!supabaseAdmin) return { virhe: 'ei supabase-asetuksia' }
+  if (palat.length === 0) return { rivit: [] }
+  try {
+    const { data, error } = await supabaseAdmin.from(TAULU).select('*').eq('lahde', lahde).in('alku', palat)
+    if (error) return { virhe: error.message }
+    return { rivit: (data ?? []) as LahdepalaRivi[] }
+  } catch (e) {
+    return { virhe: e instanceof Error ? e.message : String(e) }
+  }
+}
+
 /** Tallennuserän yläraja tavuina. Mitattu 13.10.2026: 60 rivin kertatallennus
  *  (tämän päivän pala 1,2k tapahtumaa × 45 lähdettä) kaatui "fetch failed"
  *  -verkkovirheeseen; yksittäiset rivit ovat 1–900 kB. Erät pidetään alle

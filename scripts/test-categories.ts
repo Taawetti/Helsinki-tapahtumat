@@ -80,6 +80,9 @@ import { VENUE_PAGES } from '../lib/venue-pages'
 import { paivaLyhyt, paivaEssiivi, paivavaliLyhyt, luettelo, vilkkaimmatPaikat, alkamisaikavali, isoAlkukirjain } from '../lib/seo-intro'
 import { helsinkiMinutesOfDay, helsinkiOsat, formatEventDate, formatEventDateNumeric, paivaOtsikkoLyhyt, paivaOtsikkoPitka } from '../lib/helsinki-time'
 import { samaKatu as samaKatuTesti } from '../lib/helsinki-nightclubs'
+import { hakutermit, osuuHakuun } from '../lib/hakusynonyymit'
+import { korvaajanTunniste, siistiNimi, onLinkedEventsTunniste } from '../lib/poistunut-tapahtuma'
+import { joulukaudenVuosi, joulunavausTila, joulunHakuvali, JOULUNAVAUS } from '../lib/joulu-helsingissa'
 import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, onLippuklikki, type KlikkiRivi } from '../lib/kavijatilastot'
@@ -5600,6 +5603,34 @@ odotettavat.push((async () => {
   for (const c of pCases) {
     if (c.ok) pass++
     else failures.push(`✗ päivämäärät: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Hakusynonyymit, poistunut tapahtuma ja joulusivu (6.11.2026) ──
+{
+  const aleksi = { title: 'Aleksin joulukadun avajaiset', shortDescription: '', location: { name: 'Aleksanterinkatu' }, categories: [] as string[] }
+  const tuomas = { title: 'Tuomaan Markkinat 2026', location: { name: 'Senaatintori' } }
+  const englanti = { title: 'Christmas Jazz at Savoy', categories: ['Musiikki'] }
+  const keikka = { title: 'Tavastia: Ismo Alanko', location: { name: 'Tavastia' }, categories: ['Musiikki'] }
+  const sCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'joulunavaus löytää joulukadun avajaiset', ok: osuuHakuun(aleksi, hakutermit('joulunavaus')) && osuuHakuun(aleksi, hakutermit('Helsingin Joulunavaus')) && osuuHakuun(aleksi, hakutermit('joulun avaus')), got: hakutermit('Helsingin Joulunavaus').join('|') },
+    { name: 'englanninkielinen christmas opening löytää joulukadun avajaiset', ok: osuuHakuun(aleksi, hakutermit('christmas street opening')) },
+    { name: 'joulu löytää Tuomaan markkinat ja englanninkielisen otsikon', ok: osuuHakuun(tuomas, hakutermit('joulu')) && osuuHakuun(englanti, hakutermit('joulu')) && osuuHakuun(aleksi, hakutermit('joulu')) },
+    { name: 'synonyymit eivät laukea tavallisessa haussa', ok: hakutermit('keikka').length === 1 && hakutermit('joulukonsertti').length === 1 && hakutermit('tavastia').join() === 'tavastia', got: hakutermit('joulukonsertti').join('|') },
+    { name: 'tavallinen haku toimii kuten ennen (osajono, paikka mukana)', ok: osuuHakuun(keikka, hakutermit('tavastia')) && !osuuHakuun(keikka, hakutermit('joulunavaus')) && osuuHakuun(keikka, hakutermit('ALANKO')) },
+    { name: 'tyhjä haku ei rajaa', ok: hakutermit('  ').length === 0 && osuuHakuun(keikka, []) },
+    { name: 'korvaajan tunniste: id ja rajapinnan osoite', ok: korvaajanTunniste('helsinki:abc123', 'helsinki:x') === 'helsinki:abc123' && korvaajanTunniste('https://api.hel.fi/linkedevents/v1/event/helsinki:abc123/', 'helsinki:x') === 'helsinki:abc123' && korvaajanTunniste('https://api.hel.fi/linkedevents/v1/event/helsinki%3Aabc123/?x=1', 'helsinki:x') === 'helsinki:abc123' },
+    { name: 'korvaajan tunniste: oma, tyhjä ja roska hylätään', ok: korvaajanTunniste('helsinki:x', 'helsinki:x') === null && korvaajanTunniste(null, 'a:b') === null && korvaajanTunniste('', 'a:b') === null && korvaajanTunniste('../../admin', 'a:b') === null && korvaajanTunniste(42, 'a:b') === null },
+    { name: 'LinkedEvents-tunniste tunnistetaan, skraperin ei', ok: onLinkedEventsTunniste('helsinki:agqwhasyyu') && !onLinkedEventsTunniste('stadissa-33470') && !onLinkedEventsTunniste('tm-123') },
+    { name: 'nimen siistiminen: poistomerkintä hylätään, välit siistitään, pitkä lyhennetään', ok: siistiNimi('POISTETTU') === null && siistiNimi('DELETED') === null && siistiNimi('  Helsingin   Joulunavaus ') === 'Helsingin Joulunavaus' && (siistiNimi('x'.repeat(300)) ?? '').length === 120 && siistiNimi(undefined) === null },
+    { name: 'joulukauden vuosi vaihtuu 27.12.', ok: joulukaudenVuosi('2026-11-06') === 2026 && joulukaudenVuosi('2026-12-26') === 2026 && joulukaudenVuosi('2026-12-27') === 2027 && joulukaudenVuosi('2027-01-05') === 2027 },
+    { name: 'joulunavauksen tila: tulossa, mennyt, väärän vuoden tieto ei näy', ok: (() => { const a = joulunavausTila('2026-11-06', { paiva: '2026-11-21', klo: '16' }); const b = joulunavausTila('2026-11-22', { paiva: '2026-11-21', klo: '16' }); const c = joulunavausTila('2027-03-01', { paiva: '2026-11-21', klo: '16' }); return a.tila === 'tulossa' && a.paivaTeksti === 'lauantaina 21.11.' && a.lyhyt === '21.11.' && b.tila === 'mennyt' && c.tila === 'tuntematon' })() },
+    { name: 'käsin ylläpidetty joulunavauspäivä on kelvollinen päivä', ok: /^\d{4}-\d{2}-\d{2}$/.test(JOULUNAVAUS.paiva) && !Number.isNaN(new Date(`${JOULUNAVAUS.paiva}T12:00:00Z`).getTime()) && /^\d{1,2}(\.\d{2})?$/.test(JOULUNAVAUS.klo) },
+    { name: 'joulun hakuväli: kauden loppuun, enintään 90 pv', ok: (() => { const a = joulunHakuvali('2026-11-06'); const b = joulunHakuvali('2026-12-27'); return a.start === '2026-11-06' && a.end === '2026-12-26' && b.end === '2027-03-27' })(), got: JSON.stringify(joulunHakuvali('2026-12-27')) },
+  ]
+  for (const c of sCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ synonyymit/poistunut/joulu: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

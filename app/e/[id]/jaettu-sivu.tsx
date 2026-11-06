@@ -11,7 +11,7 @@
 import type { Metadata } from 'next'
 import { onMaksunkeruuUrl, hasOwnEventPage, shareUrlFor } from '@/lib/event-links'
 import { cache } from 'react'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import HomeShell from '@/components/HomeShell'
 import type { Event } from '@/lib/types'
@@ -26,6 +26,7 @@ import { jsonLdHtml } from '@/lib/json-ld'
 import { aktiivisetNostot, yhdistaNostot, type NostoTiedosto } from '@/lib/nostot'
 import nostoData from '@/data/nostot.json'
 import { helsinkiToday } from '@/lib/helsinki-time'
+import { onLinkedEventsTunniste, haeLinkedEventsPoistotila, viimeisinTunnettuNimi } from '@/lib/poistunut-tapahtuma'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
@@ -241,7 +242,11 @@ export type Props = { params: Promise<{ id: string }>; searchParams: Promise<Rec
 // pidä ryömiä koostehakuja laukaisevia osoitteita (palvelinkuorma).
 interface Ratkaistu { data: EventPageData; ev: Event; oma: boolean }
 
-const ratkaise = cache(async (rawId: string, d: string): Promise<Ratkaistu | null> => {
+/** Kalenteri on POISTANUT tapahtuman (lib/poistunut-tapahtuma). korvaaja =
+ *  kalenterin ilmoittama korvaava tapahtuma; nimi = viimeisin tunnettu nimi. */
+interface Poistunut { poistunut: true; korvaaja: string | null; nimi: string | null }
+
+const ratkaise = cache(async (rawId: string, d: string): Promise<Ratkaistu | Poistunut | null> => {
   const id = decodeURIComponent(rawId)
   if (!kelpoJakoId(id)) return null
   if (hasOwnEventPage({ id })) {
@@ -254,6 +259,16 @@ const ratkaise = cache(async (rawId: string, d: string): Promise<Ratkaistu | nul
       // näkynyt /e/-sivulla. isPast säilyy lähteen laskemana.
       const ev = sovellaTapahtumakorjaukset([toEvent(id, data)], KORJAUKSET)[0]
       return { data: { ...eventToPageData(ev), isPast: data.isPast }, ev, oma: true }
+    }
+    // POISTETTU KALENTERISTA (6.11.2026). Tarkistetaan ENNEN tilannekuvaa:
+    // jakohetken tilannekuva näyttäisi poistetun tapahtuman kuin se olisi yhä
+    // tulossa. Vain kalenterin nimenomainen "poistettu" — katkossa (null)
+    // jatketaan kuten ennen, jotta tilannekuva ja kooste paikkaavat katkon.
+    if (onLinkedEventsTunniste(id)) {
+      const tila = await haeLinkedEventsPoistotila(id)
+      if (tila?.poistettu) {
+        return { poistunut: true, korvaaja: tila.korvaaja, nimi: tila.korvaaja ? null : await viimeisinTunnettuNimi(id) }
+      }
     }
   }
   const tilannekuva = await lueJaettuTilannekuva(id)
@@ -293,6 +308,15 @@ export async function jaettuMetadata({ params, searchParams }: Props, lang: Kiel
   const { id } = await params
   const r = await ratkaise(id, await paivaParametri(searchParams))
   if (!r) return { title: lang === 'en' ? 'Event not found' : 'Tapahtumaa ei löydy' }
+  // Poistettu: sivu on sovellusnäkymä ilmoituksella, ei tapahtumasivu. noindex
+  // poistaa osoitteen Googlen hakemistosta (Next.js:n ohje: noindex-merkintä
+  // estää indeksoinnin, vaikka tila on 200), mutta kävijä ei päädy umpikujaan.
+  if ('poistunut' in r) {
+    return {
+      title: lang === 'en' ? 'Event removed from the calendar' : 'Tapahtuma on poistunut kalenterista',
+      robots: { index: false, follow: true },
+    }
+  }
   const { data: event, ev, oma } = r
 
   const startDate = new Date(event.startTime).toLocaleDateString(lang === 'en' ? 'en-GB' : 'fi-FI', { timeZone: 'Europe/Helsinki' })
@@ -339,6 +363,20 @@ export async function JaettuSivu({ params, searchParams, lang }: Props & { lang:
   const { id } = await params
   const r = await ratkaise(id, await paivaParametri(searchParams))
   if (!r) notFound()
+  if ('poistunut' in r) {
+    // Kalenteri kertoo korvaavan tapahtuman → pysyvä ohjaus sen sivulle
+    // (308): kävijä ja Google päätyvät suoraan oikeaan tapahtumaan.
+    if (r.korvaaja) permanentRedirect(`${lang === 'en' ? '/en' : ''}/e/${encodeURIComponent(r.korvaaja)}`)
+    // Muuten sovellus avautuu ilmoituksella: nimellä haettuna, jos nimi
+    // tiedetään (samanniminen tai synonyymi löytyy usein toisesta lähteestä),
+    // muuten etusivu. Kävijä jää sovellukseen eikä virhesivulle.
+    return (
+      <>
+        <HomeShell initialSearch={r.nimi ?? undefined} poistunutTapahtuma={{ nimi: r.nimi }} heroAsHeading={false} />
+        <h1 className="sr-only">{lang === 'en' ? 'Event removed from the calendar' : 'Tapahtuma on poistunut kalenterista'}</h1>
+      </>
+    )
+  }
   // Sovelluksen oma olio: sama id kuin /api/events antaa, joten paneelin
   // "Jaa" tuottaa saman linkin ja "Lisää suunnitelmaan" tunnistaa saman.
   const { data: event, ev } = r

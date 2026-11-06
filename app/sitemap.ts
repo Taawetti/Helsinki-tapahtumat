@@ -149,6 +149,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/kirpputorit`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.8 },
     { url: `${BASE}/jamit`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
     { url: `${BASE}/joulukonsertit`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
+    // Joulu Helsingissä — joulunavaus ja kaikki joulun tapahtumat (6.11.2026)
+    { url: `${BASE}/joulu-helsingissa`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
     { url: `${BASE}/ilmaiset-museot`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.8 },
     // Keikkapaikkojen ohjelmasivut — "tavastia ohjelma" -tyyppiset haut
     ...VENUE_PAGES.map((v) => ({

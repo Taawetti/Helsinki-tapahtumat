@@ -10,7 +10,7 @@ import { fetchLinkedEventsAll, LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 import { normalisoiLinkedEvent, type LinkedEventRaw } from '@/lib/fetchInitialEvents'
 import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
 import { jsonLdHtml } from '@/lib/json-ld'
-import { lueLahdepalat, palatValille } from '@/lib/lahdevarasto'
+import { lueLahteenPalat, palatValille } from '@/lib/lahdevarasto'
 import { kanoninenPaikannimi } from '@/lib/paikannimet'
 import { hasOwnEventPage } from '@/lib/event-links'
 import { httpsKuva } from '@/lib/utils'
@@ -104,11 +104,12 @@ async function fetchScrapedEvents(venue: VenuePage, venueId: string): Promise<Ev
 }
 
 /** Lähdevarasto (lib/lahdevarasto): paikan oman skraperin tapahtumat samoista
- *  10 päivän paloista, jotka kooste lukee. Yksi Supabase-kysely per sivu;
+ *  10 päivän paloista, jotka kooste lukee. Yksi Supabase-kysely per sivu, VAIN
+ *  tämän lähteen rivit (6.11.2026: koko varaston luku oli 6,9 Mt per päivitys);
  *  jos varastoa ei voi lukea, sivu näyttää tyhjän listan (ei kaadu). */
 async function fetchStoreEvents(lahde: string, paikka?: string): Promise<Event[]> {
   const { start, end } = helsinkiDateRange(60)
-  const luku = await lueLahdepalat(palatValille(start, end))
+  const luku = await lueLahteenPalat(lahde, palatValille(start, end))
   if ('virhe' in luku) return []
   const haluttu = paikka ? kanoninenPaikannimi(paikka) : null
   const seen = new Set<string>()

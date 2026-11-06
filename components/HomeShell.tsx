@@ -15,7 +15,7 @@ import type { DateFilter, Event, PriceFilter } from '@/lib/types'
 /** @param initialGuide  Avaa sovelluksen suoraan tähän opasnäkymään.
  *  @param initialGuideData  Palvelimella haettu data samalle oppaalle, jotta
  *    Googlelle lähtevä HTML sisältää listan eikä tyhjää kuorta. */
-export default async function HomeShell({ initialGuide, initialGuideData, initialVibes, initialHood, initialPriceFilter, initialMode, initialDateFilter, initialEvent, initialSearch, initialSearchSeed, initialRestaurantFilter, heroAsHeading }: {
+export default async function HomeShell({ initialGuide, initialGuideData, initialVibes, initialHood, initialPriceFilter, initialMode, initialDateFilter, initialEvent, initialSearch, initialSearchSeed, initialRestaurantFilter, poistunutTapahtuma, heroAsHeading }: {
   initialGuide?: GuideSlug
   initialGuideData?: GuidePayload
   /** Jaettu tapahtumalinkki (/e/[id]) avaa sovelluksen tämän tapahtuman
@@ -36,6 +36,8 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
   /** Ks. HomeClient: laskeutumissivu voi avata Ravintolat-välilehden tiettyyn
    *  tyyppiin (esim. /yokerhot → yökerhot). Vaatii initialMode 'restaurants'. */
   initialRestaurantFilter?: { restType: string; subCat: string }
+  /** Ks. HomeClient: jakosivu, jonka tapahtuma on poistettu kalenterista. */
+  poistunutTapahtuma?: { nimi: string | null }
   initialDateFilter?: DateFilter
   /** Ks. HomeClient: laskeutumissivu tuo oman h1:nsä, jolloin sovelluksen
    *  kaupunkiotsikko ei saa olla h1. Oletus päätellään laskeutumislipuista:
@@ -104,6 +106,7 @@ export default async function HomeShell({ initialGuide, initialGuideData, initia
       initialSearch={initialSearch}
       initialSearchSeed={initialSearchSeed}
       initialRestaurantFilter={initialRestaurantFilter}
+      poistunutTapahtuma={poistunutTapahtuma}
       initialNostot={nostot}
       heroAsHeading={heroAsHeading ?? !(initialGuide || initialVibes?.length || initialHood || initialPriceFilter || initialMode || initialDateFilter || initialEvent || initialSearch)}
       preloadedData={{

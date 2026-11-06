@@ -14,6 +14,7 @@ import { samaTapahtumaSarja, ryhmitaSarjat, type Sarjaryhma } from '@/lib/tapaht
 import SarjaKortti from '@/components/SarjaKortti'
 import MuseoOsio from '@/components/MuseoOsio'
 import { helsinkiDateOf, helsinkiToday, helsinkiMinutesOfDay, paivaOtsikkoLyhyt, paivaOtsikkoPitka } from '@/lib/helsinki-time'
+import { hakutermit, osuuHakuun } from '@/lib/hakusynonyymit'
 import { useTaaksepain } from '@/hooks/useTaaksepain'
 import { Logo } from '@/components/Logo'
 import { track } from '@/lib/track'
@@ -248,6 +249,7 @@ export default function HomeClient({
   initialSearch,
   initialSearchSeed,
   initialRestaurantFilter,
+  poistunutTapahtuma,
   initialNostot,
   heroAsHeading = true,
 }: {
@@ -305,6 +307,14 @@ export default function HomeClient({
    *  tapahtumasuodatin oli väärä laskeutumistila (omistaja). Vaatii
    *  initialMode 'restaurants'. */
   initialRestaurantFilter?: { restType: string; subCat: string }
+  /** POISTUNUT TAPAHTUMA (/e/<id>, 6.11.2026): kalenteri on poistanut
+   *  tapahtuman, jonka jakolinkki tai hakutulos toi kävijän tänne. Ennen
+   *  kävijä näki virhesivun ja lähti (mitattu: "Helsingin Joulunavaus",
+   *  13 avausta Googlesta). Nyt sovellus avautuu ja kertoo mitä tapahtui;
+   *  nimi on viimeisin tunnettu (lib/poistunut-tapahtuma), ja sillä haetaan
+   *  (initialSearch) — samanniminen tai synonyymi löytyy usein toisesta
+   *  lähteestä. Ilman nimeä etusivu. */
+  poistunutTapahtuma?: { nimi: string | null }
   /** Laskeutumissivu tuo OMAN h1:nsä (esim. "Saunat Helsingissä"), joten
    *  sovelluksen koristeellinen kaupunkiotsikko ei saa olla h1 — muuten
    *  jokaisen laskeutumissivun vahvin otsikkosignaali Googlelle olisi sama
@@ -416,6 +426,9 @@ export default function HomeClient({
   // Ohjelmasivun alkuhaku (initialSearch) on ohjelmallinen samalla tavalla.
   const alkuHaku = initialSearch?.trim() ?? ''
   const ohjelmallinenHaku = useRef<string | null>(alkuHaku || null)
+  // Poistuneen tapahtuman ilmoituksen sulkeminen (✕). Alkuarvo sama
+  // palvelimella ja selaimessa → ei hydraatioeroa.
+  const [poistoIlmoitusSuljettu, setPoistoIlmoitusSuljettu] = useState(false)
   // 90 pv hakuikkuna aukeaa vasta 2 merkistä: yksi merkki osuu lähes
   // kaikkeen (mitattu 6.9.2026: "k" = 4875/4975 tapahtumaa) eikä kukaan
   // hae yhdellä kirjaimella — kylmä 90 pv haku maksaa 25 s ja 5,3 Mt.
@@ -997,11 +1010,11 @@ export default function HomeClient({
           return conceptTerms.some((term) => haystack.includes(term))
         })
       } else {
-        // Specific search: match title or shortDescription
-        result = result.filter((e) => {
-          const haystack = [e.title, e.shortDescription ?? '', e.location?.name ?? '', ...e.categories].join(' ').toLowerCase()
-          return haystack.includes(kw)
-        })
+        // Specific search: otsikko, lyhyt kuvaus, paikka ja kategoriat —
+        // hakusana TAI sen synonyymit (lib/hakusynonyymit, 6.11.2026:
+        // "joulunavaus" löytää myös "Aleksin joulukadun avajaiset").
+        const termit = hakutermit(kw)
+        result = result.filter((e) => osuuHakuun(e, termit))
       }
     }
 
@@ -1751,6 +1764,29 @@ export default function HomeClient({
                 päivänä (omistaja: puoliturha, vei puhelimella kaksi riviä
                 päivävalintojen yltä). Hakukoneelle riittävät otsikko,
                 kuvaus, h1-jatke "tapahtumat tänään" ja rakenteinen tieto. */}
+            {/* Poistuneen tapahtuman ilmoitus (ks. poistunutTapahtuma). Näkyy
+                niin kauan kuin kävijä on laskeutumistilassa: nimellä haettaessa
+                alkuperäinen haku, ilman nimeä etusivu ennen omaa hakua. */}
+            {poistunutTapahtuma && !poistoIlmoitusSuljettu && (poistunutTapahtuma.nimi ? haku.trim() === alkuHaku : !hakuIkkuna) && (
+              <div role="status" className="mt-3 flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 max-w-xl"
+                style={{ background: 'rgba(255,190,90,.07)', border: '1px solid rgba(255,190,90,.22)' }}>
+                <span aria-hidden className="text-[14px] leading-5 shrink-0">ℹ️</span>
+                <p className="text-[12.5px] md:text-[13px] leading-snug flex-1 min-w-0" style={{ color: 'rgba(255,255,255,.78)' }}>
+                  {poistunutTapahtuma.nimi
+                    ? t('event_removed.named').replace('{nimi}', `”${poistunutTapahtuma.nimi}”`)
+                    : t('event_removed.unnamed')}
+                  {' '}
+                  <span style={{ color: 'rgba(255,255,255,.5)' }}>
+                    {poistunutTapahtuma.nimi ? t('event_removed.search_hint') : t('event_removed.today_hint')}
+                  </span>
+                </p>
+                <button onClick={() => setPoistoIlmoitusSuljettu(true)} aria-label={t('common.close')}
+                  className="shrink-0 text-[13px] leading-5 px-1 -mr-1 rounded transition-colors hover:text-white"
+                  style={{ color: 'rgba(255,255,255,.45)' }}>
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Date strip — PIILOSSA haun aikana: haku katsoo 90 pv eteenpäin,

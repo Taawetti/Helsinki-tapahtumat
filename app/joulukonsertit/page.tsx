@@ -9,6 +9,9 @@ import { buildGuidePayload, haeTaiBuildissaTyhja } from '@/lib/guide-data'
 import { jsonLdHtml } from '@/lib/json-ld'
 import { hasOwnEventPage } from '@/lib/event-links'
 import { omaOrigin } from '@/lib/origin'
+import Link from 'next/link'
+import { helsinkiToday } from '@/lib/helsinki-time'
+import { joulukaudenVuosi } from '@/lib/joulu-helsingissa'
 
 export const revalidate = 3600
 
@@ -80,6 +83,15 @@ export default async function JoulukonsertitSivu() {
       <section className="max-w-2xl mx-auto px-4 pb-10 pt-2">
         <h1 className="sr-only">Joulukonsertit Helsingissä 2026 — {events.length} konserttia</h1>
         <p className="text-sm text-white/35 leading-relaxed">{DESC}</p>
+        {/* Sisäinen linkki kausisivulle (6.11.2026): joulunavaus ja muut
+            joulun tapahtumat kuin konsertit ovat siellä. */}
+        <p className="mt-3 text-sm text-white/35 leading-relaxed">
+          Katso myös{' '}
+          <Link href="/joulu-helsingissa" className="text-blue-400 hover:text-blue-300 transition-colors">
+            Joulu Helsingissä {joulukaudenVuosi(helsinkiToday())}
+          </Link>
+          {' '}– joulunavaus, joulumarkkinat ja kaikki joulun tapahtumat.
+        </p>
         <p className="mt-4 text-[11px] text-white/25 leading-relaxed">
           Lähteet: Helsingin kaupungin tapahtumakalenteri, lipunmyyjät ja
           järjestäjien omat ilmoitukset. Lista päivittyy tunneittain marras-
