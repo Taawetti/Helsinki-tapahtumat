@@ -76,7 +76,7 @@ export const VENUE_PAGES: VenuePage[] = [
     slug: 'storyville',
     name: 'Storyville',
     scrapedId: 'storyville',
-    address: 'Eerikinkatu 2',
+    address: 'Museokatu 8',
     www: 'https://storyville.fi',
     description: 'Helsingin jazzklubi — livejazzia, bluesia ja soulia useana iltana viikossa.',
     schemaType: 'MusicVenue',

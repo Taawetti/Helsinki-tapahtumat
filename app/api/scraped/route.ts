@@ -10,7 +10,8 @@ const VENUE_LOCATIONS: Record<string, { streetAddress: string; city: string }> =
   semifinal:       { streetAddress: 'Urho Kekkosen katu 4-6', city: 'Helsinki' },
   korjaamo:        { streetAddress: 'Töölönkatu 51 b', city: 'Helsinki' },
   kaiku:           { streetAddress: 'Kaikukatu 4', city: 'Helsinki' },
-  storyville:      { streetAddress: 'Eerikinkatu 2', city: 'Helsinki' },
+  // Storyville on Museokatu 8 (omistaja 12.11.2026, storyville.fi ja OSM).
+  storyville:      { streetAddress: 'Museokatu 8', city: 'Helsinki' },
   raflaamo:        { streetAddress: '', city: 'Helsinki' },
 }
 

@@ -5672,6 +5672,24 @@ odotettavat.push((async () => {
   }
 }
 
+// ── Storyvillen osoite (omistaja 12.11.2026: Museokatu 8, ei Eerikinkatu) ──
+{
+  const skrapattuSrc = readFileSync(new URL('../app/api/scraped/route.ts', import.meta.url), 'utf8')
+  const sivu = VENUE_PAGES.find((v) => v.slug === 'storyville')
+  const osmPohja = JSON.parse(readFileSync(new URL('../data/ravintolat-osm.json', import.meta.url), 'utf8')) as { elements: { tags?: Record<string, string> }[] }
+  const osm = osmPohja.elements.find((e) => e.tags?.name === 'Storyville')
+  const osmOsoite = osm?.tags ? `${osm.tags['addr:street']} ${osm.tags['addr:housenumber']}` : ''
+  const stCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'skrapattujen tapahtumien osoite on Museokatu 8', ok: /storyville:\s*\{\s*streetAddress:\s*'Museokatu 8'/.test(skrapattuSrc) },
+    { name: 'ohjelmasivun osoite on Museokatu 8', ok: sivu?.address === 'Museokatu 8', got: sivu?.address },
+    { name: 'sama osoite kuin karttadatassa (OSM)', ok: osmOsoite === 'Museokatu 8', got: osmOsoite },
+  ]
+  for (const c of stCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ storyville: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
 // ── Ohjelmasivujen rekisteri (lib/venue-pages, 5.11.2026) ──
 {
   const slugit = VENUE_PAGES.map((v) => v.slug)
