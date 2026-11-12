@@ -22,8 +22,11 @@
 // 30–38 px; lg-leveydestä (1024 px) ylöspäin oikeassa reunassa on oma palsta:
 // päivä isolla, viikonpäivä + kellonaika ja lippunappi, ja ylärivillä on
 // silloin vain paikka, ettei päivä toistu. Kolmas palsta vasta lg:stä, koska
-// 800 px:n tabletilla se katkaisi otsikon. Puhelimen asettelu ei muutu;
-// nappi on DOM:ssa kahdesti mutta vain toinen näkyy.
+// 800 px:n tabletilla se katkaisi otsikon. lg:stä ylöspäin juliste on 232 × 309
+// px kiinni kortin vasemmassa reunassa koko korkeudelta (omistaja 12.11.2026:
+// "miksi kuva on niin pieni verrattuna laatikkoon" — pystykuva täytti jo
+// korkeuden, joten ainoa keino on korkeampi kortti ja juliste ilman kehystä).
+// Puhelimen asettelu ei muutu; nappi on DOM:ssa kahdesti mutta vain toinen näkyy.
 //
 // Napautus avaa saman infopaneelin kuin muualla (onOpen → pinta 'promo');
 // lippunappi vie suoraan lippukauppaan ja kirjautuu external_clickinä samalla
@@ -162,7 +165,7 @@ function NostoKortti({ n, onOpen, onJuliste }: { n: Nosto; onOpen: (e: Event) =>
       <div className="absolute inset-0 md:hidden" style={{ background: 'linear-gradient(90deg, rgba(10,10,12,.86) 0%, rgba(10,10,12,.72) 55%, rgba(10,10,12,.55) 100%)' }} />
       <div className="absolute inset-0 hidden md:block" style={{ background: 'radial-gradient(60% 130% at 88% 50%, rgba(255,255,255,.08), transparent 70%), linear-gradient(90deg, rgba(10,10,12,.9) 0%, rgba(10,10,12,.74) 40%, rgba(10,10,12,.42) 100%)' }} />
 
-      <div className="relative flex gap-3.5 p-3.5 md:gap-6 md:p-6 items-stretch">
+      <div className="relative flex gap-3.5 p-3.5 md:gap-6 md:p-6 lg:gap-0 lg:p-0 items-stretch">
         {kuva ? (
           /* Oma nappi kortin (div role=button) sisällä: napautus avaa julisteen,
              ei infopaneelia. Enter/välilyönti pysäytetään, ettei kortin
@@ -170,14 +173,14 @@ function NostoKortti({ n, onOpen, onJuliste }: { n: Nosto; onOpen: (e: Event) =>
           <button type="button" aria-label={t('promo.open_image')}
             onClick={(ev) => { ev.stopPropagation(); onJuliste({ src: kuva, alt: e.title }) }}
             onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation() }}
-            className="shrink-0 rounded-xl md:rounded-2xl transition-transform active:scale-[.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]">
+            className="shrink-0 rounded-xl md:rounded-2xl lg:rounded-none transition-transform active:scale-[.98] lg:active:scale-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={kuva} alt="" className="block w-[128px] h-[171px] md:w-[184px] md:h-[245px] object-cover rounded-xl md:rounded-2xl" style={{ boxShadow: '0 16px 40px -14px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.08)' }} />
+            <img src={kuva} alt="" className="block w-[128px] h-[171px] md:w-[184px] md:h-[245px] lg:w-[232px] lg:h-[309px] object-cover rounded-xl md:rounded-2xl lg:rounded-none shadow-[0_16px_40px_-14px_rgba(0,0,0,.85)] lg:shadow-none" />
           </button>
         ) : (
-          <div className="w-[128px] h-[171px] md:w-[184px] md:h-[245px] rounded-xl md:rounded-2xl shrink-0 flex items-center justify-center text-3xl" style={{ background: 'rgba(255,255,255,.06)' }}>✦</div>
+          <div className="w-[128px] h-[171px] md:w-[184px] md:h-[245px] lg:w-[232px] lg:h-[309px] rounded-xl md:rounded-2xl lg:rounded-none shrink-0 flex items-center justify-center text-3xl" style={{ background: 'rgba(255,255,255,.06)' }}>✦</div>
         )}
-        <div className="min-w-0 flex-1 flex flex-col">
+        <div className="min-w-0 flex-1 flex flex-col lg:justify-center lg:py-6 lg:pl-7 lg:pr-6">
           {/* Oikean reunan varaus vain kun Mainos-merkki on kulmassa — muuten
               päivä ja paikka saavat koko palstan (isompi juliste kavensi sitä).
               Leveällä ruudulla päivä on omassa lohkossaan, joten ylärivillä on vain paikka. */}
@@ -192,7 +195,7 @@ function NostoKortti({ n, onOpen, onJuliste }: { n: Nosto; onOpen: (e: Event) =>
           {n.koukku && (
             <p className="text-[13px] md:text-[16px] xl:text-[17px] text-white/80 leading-snug mt-1 md:mt-2 line-clamp-2">{n.koukku}</p>
           )}
-          <div className="mt-auto pt-2 flex items-end justify-between gap-3 flex-wrap">
+          <div className="mt-auto lg:mt-4 pt-2 lg:pt-0 flex items-end justify-between gap-3 flex-wrap">
             {n.todiste ? (
               <p className="text-[11.5px] md:text-[13.5px] font-bold leading-snug" style={{ color: '#fcd34d' }}>★ {n.todiste}</p>
             ) : <span />}
@@ -200,7 +203,7 @@ function NostoKortti({ n, onOpen, onJuliste }: { n: Nosto; onOpen: (e: Event) =>
           </div>
         </div>
         {paiva && (
-          <div className={`hidden lg:flex flex-col items-end justify-between shrink-0 pl-6 min-w-[200px] border-l border-white/10${n.mainos ? ' pt-6' : ''}`}>
+          <div className={`hidden lg:flex flex-col items-end justify-between shrink-0 pl-6 pr-6 py-6 min-w-[224px] border-l border-white/10${n.mainos ? ' pt-12' : ''}`}>
             <div className="text-right">
               <p className="text-[44px] xl:text-[52px] font-black text-white leading-none" style={{ letterSpacing: '-0.03em' }}>{paiva.paiva}</p>
               <p className="mt-2 text-[12px] font-black uppercase tracking-[.12em]" style={{ color: '#a3abff' }}>{paiva.rivi}</p>
