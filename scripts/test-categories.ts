@@ -78,7 +78,7 @@ import { lipputuoteAvain, lipputuoteRyhma, jaetutLipputuotteet, onSamaLipputuote
 import { normalisoiPolku } from '../lib/polku'
 import { VENUE_PAGES } from '../lib/venue-pages'
 import { paivaLyhyt, paivaEssiivi, paivavaliLyhyt, luettelo, vilkkaimmatPaikat, alkamisaikavali, isoAlkukirjain } from '../lib/seo-intro'
-import { helsinkiMinutesOfDay, helsinkiOsat, formatEventDate, formatEventDateNumeric, paivaOtsikkoLyhyt, paivaOtsikkoPitka } from '../lib/helsinki-time'
+import { helsinkiMinutesOfDay, helsinkiOsat, formatEventDate, formatEventDateNumeric, paivaOtsikkoLyhyt, paivaOtsikkoPitka, nostoPaivays } from '../lib/helsinki-time'
 import { samaKatu as samaKatuTesti } from '../lib/helsinki-nightclubs'
 import { hakutermit, osuuHakuun } from '../lib/hakusynonyymit'
 import { ravintolanEsittely, paikanEsittely, RAVINTOLAESITTELYT, PAIKKAESITTELYT } from '../lib/kuratoidut-esittelyt'
@@ -5600,6 +5600,8 @@ odotettavat.push((async () => {
     { name: 'taulukkomuodot vastaavat Intl-tulosta koko vuoden 2026 (fi, en)', ok: erot.length === 0, got: erot.join(' | ') },
     { name: 'pelkkä päivä ilman kellonaikaa', ok: formatEventDate('2026-11-05', 'fi') === 'to 5.11.' && formatEventDate('2026-11-05', 'en') === 'Thu 5 Nov', got: `${formatEventDate('2026-11-05', 'fi')} / ${formatEventDate('2026-11-05', 'en')}` },
     { name: 'kelvoton aikaleima ei kaadu', ok: helsinkiOsat('x') === null && paivaOtsikkoLyhyt('x') === '' && formatEventDateNumeric('', 'en') === '' },
+    { name: 'noston työpöytälohko: päivä isolla, viikonpäivä + kellonaika', ok: JSON.stringify(nostoPaivays('2026-12-09T17:00:00Z', 'fi')) === JSON.stringify({ paiva: '9.12.', rivi: 'ke · klo 19.00' }) && JSON.stringify(nostoPaivays('2026-12-09T17:00:00Z', 'en')) === JSON.stringify({ paiva: '9 Dec', rivi: 'Wed · 19:00' }), got: `${JSON.stringify(nostoPaivays('2026-12-09T17:00:00Z', 'fi'))} / ${JSON.stringify(nostoPaivays('2026-12-09T17:00:00Z', 'en'))}` },
+    { name: 'noston työpöytälohko ilman kellonaikaa ja kelvottomalla ajalla', ok: nostoPaivays('2026-12-09', 'fi')?.rivi === 'ke' && nostoPaivays('2026-12-09', 'en')?.rivi === 'Wed' && nostoPaivays('x') === null, got: `${nostoPaivays('2026-12-09', 'fi')?.rivi} / ${nostoPaivays('2026-12-09', 'en')?.rivi} / ${nostoPaivays('x')}` },
     { name: 'kesä- ja talviaika Helsingissä', ok: formatEventDate('2026-07-10T16:30:00Z', 'fi') === 'pe 10.7. klo 19.30' && formatEventDate('2026-12-10T17:30:00Z', 'fi') === 'to 10.12. klo 19.30', got: `${formatEventDate('2026-07-10T16:30:00Z', 'fi')} / ${formatEventDate('2026-12-10T17:30:00Z', 'fi')}` },
   ]
   for (const c of pCases) {

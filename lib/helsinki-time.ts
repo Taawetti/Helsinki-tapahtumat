@@ -222,3 +222,19 @@ export function formatEventDateNumeric(iso: string, lang: 'fi' | 'en' = 'fi'): s
   if (lang !== 'en') return formatEventDate(iso, 'fi')
   return `${WEEKDAYS_EN_SHORT[o.viikonpaiva]} ${kaksi(o.paiva)}/${kaksi(o.kuukausi)} ${kaksi(o.tunti)}:${kaksi(o.minuutti)}`
 }
+
+/** Nostokortin työpöytälohko: päivä isolla ja alarivillä viikonpäivä +
+ *  kellonaika — fi { paiva: '9.12.', rivi: 'ke · klo 19.00' }, en
+ *  { paiva: '9 Dec', rivi: 'Wed · 19:00' }. Pelkällä päivämäärällä alarivi
+ *  on vain viikonpäivä. null, jos aikaleima ei kelpaa. */
+export function nostoPaivays(iso: string, lang: 'fi' | 'en' = 'fi'): { paiva: string; rivi: string } | null {
+  const o = helsinkiOsat(iso)
+  if (!o) return null
+  const dateOnly = !iso.includes('T')
+  if (lang === 'en') {
+    const klo = dateOnly ? '' : ` · ${kaksi(o.tunti)}:${kaksi(o.minuutti)}`
+    return { paiva: `${o.paiva} ${MONTHS_EN_SHORT[o.kuukausi - 1]}`, rivi: `${WEEKDAYS_EN_SHORT[o.viikonpaiva]}${klo}` }
+  }
+  const klo = dateOnly ? '' : ` · klo ${kaksi(o.tunti)}.${kaksi(o.minuutti)}`
+  return { paiva: `${o.paiva}.${o.kuukausi}.`, rivi: `${VIIKONPAIVAT_FI_LYHYT[o.viikonpaiva]}${klo}` }
+}
