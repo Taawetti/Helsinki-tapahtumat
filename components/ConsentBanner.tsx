@@ -14,11 +14,19 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { subscribeConsent, readConsent, readConsentServer, setConsent } from '@/lib/consent'
 import Link from 'next/link'
 
+// TILAPÄISESTI POIS (omistaja 13.11.2026): Jannan joulun Instagram-tarinan
+// ajaksi banneri ei peitä tapahtumasivua tarinasta tuleville. Suostumus jää
+// Googlen tagin oletukseen (kielletty, components/GoogleTag), joten
+// mainosevästeitä ei aseteta kenellekään; evästeetön kävijämittaus toimii.
+// Tietosuojasivun "Vaihda valintaa" toimii yhä. Palautus omistajan
+// pyynnöstä: false.
+const BANNERI_POIS = true
+
 export default function ConsentBanner() {
   const { t, lang } = useLanguage()
   const choice = useSyncExternalStore(subscribeConsent, readConsent, readConsentServer)
 
-  if (choice !== null) return null
+  if (BANNERI_POIS || choice !== null) return null
 
   return (
     <div
