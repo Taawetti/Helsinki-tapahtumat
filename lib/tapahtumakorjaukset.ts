@@ -18,6 +18,13 @@
 // KORJAUS EI POISTA MITÄÄN: vain annetut kentät asetetaan. Menneen päivän
 // korjaus ei osu mihinkään, joten vanhat rivit ovat vaarattomia — ne voi
 // siivota, kun tapahtuma on ohi.
+//
+// POIKKEUS: piilota (omistaja 14.11.2026). Sama tapahtuma voi tulla kahdesta
+// lähteestä niin eri nimillä, ettei dedup tunnista sitä: stadissan "Aleksin
+// joulukadun avajaiset" on kaupungin kalenterin "Helsingin Suuri Joulunavaus
+// 2026". piilota: true poistaa osuvan rivin koosteesta (poistaPiilotetut);
+// muistiinpanoon kirjataan, mikä tapahtuma jää näkyviin. Piilotusrivillä on
+// aina paikka, jottei sama otsikko muualla katoa.
 
 import { helsinkiDateOf } from './helsinki-time'
 
@@ -51,6 +58,9 @@ export interface Tapahtumakorjaus {
     /** Lipun hinta tekstinä, esim. "39,90 €" → napissa "Liput alk. 39,90 €". */
     price?: string
   }
+  /** Osuva tapahtuma pois koosteesta kokonaan (kaksoiskappale, jota dedup ei
+   *  tunnista). aseta jätetään tyhjäksi. */
+  piilota?: boolean
   muistiinpano?: string
 }
 
@@ -110,4 +120,11 @@ export function sovellaTapahtumakorjaukset<T extends Korjattava>(events: T[], ko
     }
     return tulos
   })
+}
+
+/** Koosteesta pois tapahtumat, joihin osuu piilota-korjaus (kaksoiskappaleet). */
+export function poistaPiilotetut<T extends Pick<Korjattava, 'title' | 'startTime' | 'location'>>(events: T[], korjaukset: readonly Tapahtumakorjaus[]): T[] {
+  const piilotettavat = korjaukset.filter((k) => k.piilota === true)
+  if (piilotettavat.length === 0) return events
+  return events.filter((e) => !piilotettavat.some((k) => osuukoKorjaus(e, k)))
 }

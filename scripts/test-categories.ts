@@ -69,7 +69,7 @@ import secondhandFile from '../data/secondhand.json'
 import { normalizeInstagram, normalizeFacebook, splitWebsite } from '../lib/socials'
 import { nightlifeScore, COMMUNITY_DAYTIME_REGEX } from '../lib/nightlife'
 import { helsinkiClock, addDays, resolveArcTarget, planShareText } from '../lib/arvo-ilta'
-import { sovellaTapahtumakorjaukset, osuukoKorjaus, type TapahtumakorjausTiedosto, type Tapahtumakorjaus, type Korjattava } from '../lib/tapahtumakorjaukset'
+import { sovellaTapahtumakorjaukset, osuukoKorjaus, poistaPiilotetut, type TapahtumakorjausTiedosto, type Tapahtumakorjaus, type Korjattava } from '../lib/tapahtumakorjaukset'
 import { onLinkedEventsId, kelpoKuvausPyynto, kuvausParams, kuvattavaLeRaakadatasta, kuvausVastaus, type LeKuvausRaaka } from '../lib/kuvaus'
 import { onSamaEsitys, paikkasuhde, normalisoiOtsikkoAvain, etaisyysM, otsikonKloEroaaAjasta, otsikossaPaivaliite } from '../lib/sama-esitys'
 import { sivunRajat, kuuluuSivulle, ulkoistenVali } from '../lib/sivurajaus'
@@ -5108,6 +5108,12 @@ odotettavat.push((async () => {
     { name: 'kuvaus ja lyhyt kuvaus asetetaan kun ne on annettu',
       ok: (() => { const r = sovellaTapahtumakorjaukset([{ ...osuva, description: '', shortDescription: '@ Kallion kirkko' }], [{ ...k, aseta: { description: 'Eka kappale.\n\nToka kappale.', shortDescription: 'Lyhyt.' } }])[0]; return r.description === 'Eka kappale.\n\nToka kappale.' && r.shortDescription === 'Lyhyt.' && r.infoUrl === 'https://www.stadissa.fi/x' })() },
     { name: 'kelvoton aikaleima ei osu eikä kaada', ok: !osuukoKorjaus(ev('Jannan joulu', 'ei-aika', 'Kallion kirkko'), k) },
+    // piilota (omistaja 14.11.2026): kaksoiskappale pois koosteesta
+    { name: 'piilota poistaa osuvan tapahtuman ja jättää muut',
+      ok: (() => { const r = poistaPiilotetut([osuva, ev('Joulukonsertti', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')], [{ ...k, aseta: {}, piilota: true }]); return r.length === 1 && r[0].title === 'Joulukonsertti' })() },
+    { name: 'korjaus ilman piilota-merkintää ei poista mitään', ok: poistaPiilotetut([osuva], [k]).length === 1 },
+    { name: 'piilota ei osu toiseen päivään eikä toiseen paikkaan',
+      ok: poistaPiilotetut([ev('Jannan joulu', '2026-12-16T19:00:00+02:00', 'Kallion kirkko'), ev('Jannan joulu', '2026-12-09T19:00:00+02:00', 'Tampereen Tuomiokirkko')], [{ ...k, aseta: {}, piilota: true }]).length === 2 },
   ]
   // Oikea tiedosto: jokaisella rivillä tunniste, otsikko, päivä ja https-osoitteet.
   const tiedosto = tapahtumakorjausFile as unknown as TapahtumakorjausTiedosto
@@ -5116,6 +5122,17 @@ odotettavat.push((async () => {
     ok: tiedosto.korjaukset.every((r) => /^[a-z0-9-]+$/.test(r.id) && r.osuma.otsikko.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.osuma.paiva)
       && ([r.aseta.image, r.aseta.ticketUrl, r.aseta.infoUrl].filter((u) => u !== undefined) as string[]).every((u) => /^https:\/\//.test(u))
       && ([r.aseta.description, r.aseta.shortDescription, r.aseta.title, r.aseta.price].filter((u) => u !== undefined) as string[]).every((u) => u.trim().length > 0 && !/<[a-z][\s\S]*>/i.test(u))) })
+  kCases.push({ name: 'piilotusrivillä on aina paikka eikä asetettavia kenttiä',
+    ok: tiedosto.korjaukset.filter((r) => r.piilota).every((r) => (r.osuma.paikka ?? '').trim().length > 0 && Object.keys(r.aseta).length === 0) })
+  {
+    // Oikea tiedosto: stadissan "Aleksin joulukadun avajaiset" 21.11.2026 piiloon,
+    // kaupungin kalenterin virallinen "Helsingin Suuri Joulunavaus 2026" jää.
+    const r = poistaPiilotetut([
+      { title: 'Aleksin joulukadun avajaiset', startTime: '2026-11-21T16:00:00+02:00', location: { name: 'Aleksanterinkatu' } },
+      { title: 'Helsingin Suuri Joulunavaus 2026', startTime: '2026-11-21T14:00:00Z', location: { name: 'Helsingin keskusta' } },
+    ], tiedosto.korjaukset)
+    kCases.push({ name: 'joulunavaus 21.11.2026: stadissa-kaksoiskappale piiloon, virallinen jää', ok: r.length === 1 && r[0].title === 'Helsingin Suuri Joulunavaus 2026', got: JSON.stringify(r.map((x) => x.title)) })
+  }
   for (const c of kCases) {
     if (c.ok) pass++
     else failures.push(`✗ tapahtumakorjaukset: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)

@@ -28,6 +28,17 @@
         "descriptionEn": "Cory Henry is one of the most electrifying musicians on today’s global stage — a multiple GRAMMY Award winner, acclaimed composer, producer, and one of the most celebrated Hammond B-3 players of his generation. Blending soul, gospel, jazz, funk, and R&B with extraordinary ease, he has built a sound that is both deeply rooted and unmistakably his own.\n\nA true musical prodigy, Cory Henry gave his first public performance at the legendary Apollo Theater in New York at just six years old. He first rose to international prominence as a key member of Snarky Puppy, earning three GRAMMY Awards and worldwide recognition for his virtuosity, musical instinct, and unmistakable stage presence.\n\nSince launching his solo career, Cory has become one of the most compelling live artists in contemporary music. His performances are known for their intensity, emotional depth, and fearless spontaneity — moving effortlessly between explosive groove, intimate soul, and breathtaking improvisation. No two concerts are ever the same.\n\nHe has collaborated with some of the biggest names in modern music, including Kanye West, Rosalía, Stevie Wonder, Bruce Springsteen, and Imagine Dragons, while performing on some of the world’s most iconic stages and festivals, from Coachella and North Sea Jazz Festival to Lollapalooza and Bonnaroo.\n\nCory Henry live is more than a concert — it is a powerful, deeply human musical experience driven by groove, emotion, and pure creative freedom."
       },
       "muistiinpano": "Omistaja 4.11.2026: ilmoittajan Tapahtumaehdotus-lomakkeella 23.10.2026 lähettämä englanninkielinen kuvaus sellaisenaan englanninkieliseen näkymään. Suomenkielinen kuvaus tulee LinkedEventsistä (Kulttuuritalon oma suomennos). Lomakkeen otsikkorivi (\"Cory Henry presents: A Jam Good Time … Tickets: Lippu - …\") jätetty pois, koska päivä, paikka ja liput näkyvät paneelissa erikseen."
+    },
+    {
+      "id": "aleksin-joulukadun-avajaiset-2026-11-21-kaksoiskappale",
+      "osuma": {
+        "otsikko": "aleksin joulukadun avajaiset",
+        "paiva": "2026-11-21",
+        "paikka": "aleksanterinkatu"
+      },
+      "aseta": {},
+      "piilota": true,
+      "muistiinpano": "Omistaja 14.11.2026: stadissa.fi:n \"Aleksin joulukadun avajaiset\" (stadissa-33470: ei kuvausta eikä kuvaa, virheellisesti ei maksuton) on sama tapahtuma kuin järjestäjän oma \"Helsingin Suuri Joulunavaus 2026\" kaupungin kalenterissa (LinkedEvents helsinki:agq4jtsbri, 21.11.2026 klo 16, paraati Kansalaistorilta, ohjelmaa Narinkkatorilla). Dedup ei yhdistä eri otsikoita, joten stadissa-rivi piilotetaan ja virallinen jää ainoaksi kortiksi."
     }
   ]
 }

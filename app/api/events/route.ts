@@ -9,7 +9,7 @@ import { classifyEvent, extractYsoIds } from '@/lib/event-classify'
 import { eventMatchesKeyword } from '@/lib/keyword-filter'
 import { onEstettyPaikka } from '@/lib/venue-blocklist'
 import { haeUlkoisetLahteet, ULKOISET_LAHTEET } from '@/lib/lahdevarasto'
-import { sovellaTapahtumakorjaukset, type TapahtumakorjausTiedosto } from '@/lib/tapahtumakorjaukset'
+import { sovellaTapahtumakorjaukset, poistaPiilotetut, type TapahtumakorjausTiedosto } from '@/lib/tapahtumakorjaukset'
 import tapahtumakorjaukset from '@/data/tapahtumakorjaukset.json'
 import { kevennaKartalle, KENTAT_KARTTA } from '@/lib/tapahtumat-kevyt'
 import { kanoninenPaikannimi } from '@/lib/paikannimet'
@@ -606,6 +606,16 @@ export async function GET(req: NextRequest) {
     {
       const ennen = events.length
       events = events.filter((e: Event) => !onEstettyPaikka(e))
+      total -= ennen - events.length
+    }
+    // Käsin piilotetut kaksoiskappaleet (data/tapahtumakorjaukset.json,
+    // piilota: true), joita dedup ei tunnista eri nimien takia. Omistaja
+    // 14.11.2026: stadissan "Aleksin joulukadun avajaiset" on sama kuin
+    // kaupungin kalenterin "Helsingin Suuri Joulunavaus 2026". Samassa
+    // kohdassa kuin estetyt paikat, jotta total ei lupaa piilotettua riviä.
+    {
+      const ennen = events.length
+      events = poistaPiilotetut(events, (tapahtumakorjaukset as TapahtumakorjausTiedosto).korjaukset)
       total -= ennen - events.length
     }
 
