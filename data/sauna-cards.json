@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-23T12:04:48.113Z",
+  "fetchedAt": "2026-11-16T14:05:59.125Z",
   "cards": {
     "sompasauna": {
       "name": "Sompasauna",
@@ -324,6 +324,18 @@
       "rating": 3.8,
       "reviewCount": 26,
       "fetchedAt": "2026-10-23T12:04:48.113Z"
+    },
+    "saunalautta hiisi": {
+      "name": "Saunalautta Hiisi",
+      "title": "Saunalautta Hiisi",
+      "image": "https://lh3.googleusercontent.com/grass-cs/AABkmLd3OP1fWLP2Ezom6dD3P79dU3Ea9ZaEn5izdzTTgVbp8t8ydxh2mDXswp2MII2EktTr6agL0cSznodRQoarm2kZrZI9eTUgWhX-dWdHaR2URF3QYdq1QVcx5B_UxeP-OhcCBS3EX3Uhg2I5=w408-h305-k-no",
+      "address": "Merikannontie, 00260 Helsinki",
+      "www": "https://www.saunalauttahiisi.fi/",
+      "phone": "+358407773189",
+      "priceLevel": null,
+      "rating": 4.7,
+      "reviewCount": 14,
+      "fetchedAt": "2026-11-16T14:05:59.125Z"
     }
   },
   "misses": [

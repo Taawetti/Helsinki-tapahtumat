@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-23T11:55:38.961Z",
+  "fetchedAt": "2026-11-16T14:01:03.338Z",
   "cards": {
     "https://www.openstreetmap.org/node/13615218885": {
       "name": "Expo Open Lobby",
@@ -686,6 +686,104 @@
       "lat": 60.1839613,
       "lon": 24.942652,
       "fetchedAt": "2026-10-23T11:55:38.961Z"
+    },
+    "https://www.openstreetmap.org/node/14333311100": {
+      "name": "Tanskalainen Voileipä",
+      "title": "Tanskalainen Voileipä",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/11cc02969aa4301ce138b3798ba1a3138ebb8f2b.webp",
+      "address": "Cygnaeuksenkatu 5, 00100 Helsinki",
+      "www": "http://www.smorrepuoti.com/",
+      "phone": "+3589494843",
+      "category": "Tanskalainen ravintola",
+      "rating": 4.5,
+      "reviewCount": 84,
+      "lat": 60.1750475,
+      "lon": 24.928960699999998,
+      "fetchedAt": "2026-11-16T14:01:03.338Z"
+    },
+    "https://www.openstreetmap.org/node/14313180401": {
+      "name": "BasBas sirkus",
+      "title": "BasBas Sirkus",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/60478d29e6a05d05c3cfbbafc4f4e70421857b20.webp",
+      "address": "Paasivuorenkatu 4-6, 00530 Helsinki",
+      "www": "https://basbas.fi/sirkus/",
+      "phone": "+358503396780",
+      "category": "Ravintola",
+      "rating": 3.9,
+      "reviewCount": 50,
+      "lat": 60.1780578,
+      "lon": 24.9483596,
+      "fetchedAt": "2026-11-16T14:01:03.338Z"
+    },
+    "https://www.openstreetmap.org/node/14330386226": {
+      "name": "Gold Coast Chicken",
+      "title": "Gold Coast Chicken",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/10a15bf474aec350a1087ca9b278d73aaf4283f9.webp",
+      "address": "Länsisatamankatu 36, 00220 Helsinki",
+      "www": null,
+      "phone": "+358503788652",
+      "category": "Kanaravintola",
+      "rating": 5,
+      "reviewCount": 1,
+      "lat": 60.155148999999994,
+      "lon": 24.9156504,
+      "fetchedAt": "2026-11-16T14:01:03.338Z"
+    },
+    "https://www.openstreetmap.org/node/14354778501": {
+      "name": "Saunalautta Hiisi",
+      "title": "Saunalautta Hiisi",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/95834c64b6e744beb073eaab0f08a12168bf84aa.webp",
+      "address": "Merikannontie, 00260 Helsinki",
+      "www": "https://www.saunalauttahiisi.fi/",
+      "phone": "+358407773189",
+      "category": "Sauna",
+      "rating": 4.7,
+      "reviewCount": 14,
+      "lat": 60.1766686,
+      "lon": 24.9127635,
+      "fetchedAt": "2026-11-16T14:01:03.338Z"
+    },
+    "https://www.openstreetmap.org/node/14353160344": {
+      "name": "Prison Island Helsinki",
+      "title": "Prison Island Helsinki",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/ee6112a4e020023d7d2db5f0a571679538bd56b6.webp",
+      "address": "Energiakatu 3, 00180 Helsinki",
+      "www": "http://prisonisland.fi/",
+      "phone": "+358505965017",
+      "category": "Viihdekeskus",
+      "rating": 4.1,
+      "reviewCount": 234,
+      "lat": 60.1661358,
+      "lon": 24.904113799999998,
+      "fetchedAt": "2026-11-16T14:01:03.338Z"
+    },
+    "https://www.openstreetmap.org/node/14355508609": {
+      "name": "Alilo",
+      "title": "Alilo",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/d4bfd05d01df130d9ce3f7af628d40f58de2296b.webp",
+      "address": "Kahvipavunkuja 2, 00990 Helsinki",
+      "www": "https://alilo.fi/",
+      "phone": "+358505129528",
+      "category": "Gruusialainen ravintola",
+      "rating": 4.9,
+      "reviewCount": 77,
+      "lat": 60.2052461,
+      "lon": 25.147835099999998,
+      "fetchedAt": "2026-11-16T14:01:03.338Z"
+    },
+    "https://www.openstreetmap.org/node/14355393617": {
+      "name": "Vera Napoli",
+      "title": "Vera Napoli",
+      "image": "https://jrxsuicwuqowuhubjltw.supabase.co/storage/v1/object/public/venue-images/a162bd5cbdae6fadab3413c61bcc6476f339596c.webp",
+      "address": "Solvikinkatu 11, 00990 Helsinki",
+      "www": "https://veranapoli.info/",
+      "phone": "+358442478783",
+      "category": "Italialainen ravintola",
+      "rating": 4.7,
+      "reviewCount": 40,
+      "lat": 60.202319499999994,
+      "lon": 25.1546105,
+      "fetchedAt": "2026-11-16T14:01:03.338Z"
     }
   },
   "misses": [
@@ -879,6 +977,18 @@
       "url": "https://www.openstreetmap.org/way/1549061841",
       "name": "Solid Sauna",
       "at": "2026-10-23T11:55:38.961Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14354369445",
+      "name": "Suomalainen Kirjakauppa Pasilan asema",
+      "at": "2026-11-16T14:01:03.338Z",
+      "reason": "ei googlessa"
+    },
+    {
+      "url": "https://www.openstreetmap.org/node/14338607301",
+      "name": "Ferry Port",
+      "at": "2026-11-16T14:01:03.338Z",
       "reason": "ei googlessa"
     }
   ]

@@ -128,5 +128,15 @@
   "lat": 60.1596797,
   "lon": 24.9220185,
   "name": "Clarion Hotel Helsinki"
+ },
+ "rikhardinkatu 3|helsinki": {
+  "lat": 60.1662512,
+  "lon": 24.9462224,
+  "name": "Rikhardinkadun Kirjasto"
+ },
+ "suomenlahden tie 1|espoo": {
+  "lat": 60.1597706,
+  "lon": 24.738213,
+  "name": "Iso Omena Kirjasto"
  }
 }
