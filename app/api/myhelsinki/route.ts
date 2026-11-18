@@ -32,9 +32,16 @@ interface MHEvent {
 
 function toISO(date: string, time?: string): string {
   if (!time) return `${date}T00:00:00`
-  // Strip trailing Z — times are already in local Finnish time
+  // MyHelsingin "17:00:00Z" ON UTC-aika, ja start_date on saman UTC-hetken
+  // päivä. Z pidetään, jolloin aika muuntuu oikein Suomen aikaan. Aiemmin Z
+  // riisuttiin ja aika luettiin Suomen aikana, jolloin jokainen vain
+  // MyHelsingistä tullut tapahtuma näkyi talvella 2 h ja kesällä 3 h liian
+  // aikaisin. Tarkistettu 18.11.2026 LinkedEventsistä: Hong Kong Philharmonic
+  // 28.11. on molemmissa 17:00Z eli klo 19. Koko päivän monipäiväinen
+  // Finlandia Trophy 20.–21.11. tulee muodossa 19.11. 22:01Z–21.11. 21:59Z,
+  // ja ilman Z:aa se näkyi väärin jo 19.11. klo 22.01.
   const t = time.replace(/Z$/, '').slice(0, 8)
-  return `${date}T${t}`
+  return /Z$/.test(time) ? `${date}T${t}Z` : `${date}T${t}`
 }
 
 function normalize(raw: MHEvent): Event {
