@@ -25,6 +25,15 @@
 // 2026". piilota: true poistaa osuvan rivin koosteesta (poistaPiilotetut);
 // muistiinpanoon kirjataan, mikä tapahtuma jää näkyviin. Piilotusrivillä on
 // aina paikka, jottei sama otsikko muualla katoa.
+//
+// illanNosto (omistaja 18.11.2026): illanNosto: true nostaa osuvan tapahtuman
+// etusivun "✦ Illan nostot" -kortille (ja iltapushiin) ennen sääntöjen
+// valitsemia. Sääntö ei tunnista kaikkea: Musiikkitalo on pienemmällä
+// portaalla, koska suurin osa sen konserteista on orkesterikonsertteja, mutta
+// kevyen musiikin vierailijan konsertit (Yona, Lyyti) kuuluvat nostoihin.
+// eiIllanNostoihin: true on vastakohta: osuva tapahtuma ei nouse nostoihin,
+// mutta näkyy listoissa normaalisti (19.11.2026 Hellsingin Pre-Club, kun
+// festivaali on nostoissa pe ja la).
 
 import { helsinkiDateOf } from './helsinki-time'
 
@@ -61,6 +70,10 @@ export interface Tapahtumakorjaus {
   /** Osuva tapahtuma pois koosteesta kokonaan (kaksoiskappale, jota dedup ei
    *  tunnista). aseta jätetään tyhjäksi. */
   piilota?: boolean
+  /** Osuva tapahtuma illan nostoihin käsin (lib/picks valitseHero). */
+  illanNosto?: boolean
+  /** Osuva tapahtuma POIS illan nostoista (näkyy muualla normaalisti). */
+  eiIllanNostoihin?: boolean
   muistiinpano?: string
 }
 
@@ -80,6 +93,8 @@ export interface Korjattava {
   descriptionEn?: string
   shortDescription?: string
   price?: string | null
+  illanNosto?: boolean
+  eiIllanNostoihin?: boolean
 }
 
 /** Vertailumuoto: pienet kirjaimet, ääkköset pelkiksi kirjaimiksi, välimerkit välilyönneiksi. */
@@ -116,6 +131,8 @@ export function sovellaTapahtumakorjaukset<T extends Korjattava>(events: T[], ko
         ...(k.aseta.shortDescription ? { shortDescription: k.aseta.shortDescription } : {}),
         ...(k.aseta.title ? { title: k.aseta.title } : {}),
         ...(k.aseta.price ? { price: k.aseta.price } : {}),
+        ...(k.illanNosto ? { illanNosto: true } : {}),
+        ...(k.eiIllanNostoihin ? { eiIllanNostoihin: true } : {}),
       }
     }
     return tulos

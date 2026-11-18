@@ -39,6 +39,112 @@
       "aseta": {},
       "piilota": true,
       "muistiinpano": "Omistaja 14.11.2026: stadissa.fi:n \"Aleksin joulukadun avajaiset\" (stadissa-33470: ei kuvausta eikä kuvaa, virheellisesti ei maksuton) on sama tapahtuma kuin järjestäjän oma \"Helsingin Suuri Joulunavaus 2026\" kaupungin kalenterissa (LinkedEvents helsinki:agq4jtsbri, 21.11.2026 klo 16, paraati Kansalaistorilta, ohjelmaa Narinkkatorilla). Dedup ei yhdistä eri otsikoita, joten stadissa-rivi piilotetaan ja virallinen jää ainoaksi kortiksi."
+    },
+    {
+      "id": "hko-let-it-snow-2026-12-04",
+      "osuma": {
+        "otsikko": "let it snow",
+        "paiva": "2026-12-04",
+        "paikka": "musiikkitalo"
+      },
+      "aseta": {},
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 18.11.2026: kevyen musiikin vierailija Musiikkitalossa nostetaan käsin illan nostoihin (Musiikkitalo on paikkaportaissa pienemmällä portaalla orkesterikonserttien takia). HKO ja UMO: Hollywoodin kulta-aika ja jazz. Samana iltana Musiikkitalossa myös UMO:n Kohtaamisia-klubi klo 21; omistajan linjaus: vain toinen nostoihin, valittu pääsalin konsertti."
+    },
+    {
+      "id": "lyyti-uuden-ajan-siemenet-2026-12-05",
+      "osuma": {
+        "otsikko": "lyyti uuden ajan siemenet",
+        "paiva": "2026-12-05",
+        "paikka": "musiikkitalo"
+      },
+      "aseta": {},
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 18.11.2026: kevyen musiikin vierailija Musiikkitalossa nostetaan käsin illan nostoihin (Musiikkitalo on paikkaportaissa pienemmällä portaalla orkesterikonserttien takia). Laulaja-lauluntekijä Lyyti, 10-vuotisjuhlakonsertti."
+    },
+    {
+      "id": "yona-sininen-joulu-2026-12-12",
+      "osuma": {
+        "otsikko": "yona sininen joulu",
+        "paiva": "2026-12-12",
+        "paikka": "musiikkitalo"
+      },
+      "aseta": {
+        "ticketUrl": "https://liput.musiikkitalo.fi/fi/buyingflow/tickets/15835/22264/"
+      },
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 18.11.2026: kevyen musiikin vierailija Musiikkitalossa nostetaan käsin illan nostoihin (Musiikkitalo on paikkaportaissa pienemmällä portaalla orkesterikonserttien takia). Yona ja Vantaan viihdeorkesteri (VVO). Lähde (stadissa-117841) ei anna lippulinkkiä; linkki Musiikkitalon tapahtumasivulta (la 12.12.2026 klo 18 Konserttisali), tarkistettu 18.11.2026."
+    },
+    {
+      "id": "hko-re-sonata-2027-01-08",
+      "osuma": {
+        "otsikko": "re sonata",
+        "paiva": "2027-01-08",
+        "paikka": "musiikkitalo"
+      },
+      "aseta": {},
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 18.11.2026: kevyen musiikin vierailija Musiikkitalossa nostetaan käsin illan nostoihin (Musiikkitalo on paikkaportaissa pienemmällä portaalla orkesterikonserttien takia). HKO Re:Sonata: orkesteriteokset sähköisenä tulkintana."
+    },
+    {
+      "id": "hko-kohtaamisia-klubi-raidu-2027-01-22",
+      "osuma": {
+        "otsikko": "kohtaamisia klubi raidu",
+        "paiva": "2027-01-22",
+        "paikka": "musiikkitalo"
+      },
+      "aseta": {
+        "ticketUrl": "https://helsinginkaupunginorkesteri.fi/fi/node/4375"
+      },
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 18.11.2026: kevyen musiikin vierailija Musiikkitalossa nostetaan käsin illan nostoihin (Musiikkitalo on paikkaportaissa pienemmällä portaalla orkesterikonserttien takia). HKO:n Kohtaamisia-klubi, vieraana Ráidu. Lähteen (LinkedEvents hko:2-4375) lippulinkki oli rikki (\"route:<nolink>\"), joten lippunappi ohjataan HKO:n tapahtumasivulle."
+    },
+    {
+      "id": "greatest-film-music-show-2027-02-07",
+      "osuma": {
+        "otsikko": "greatest film music show",
+        "paiva": "2027-02-07",
+        "paikka": "musiikkitalo"
+      },
+      "aseta": {},
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 18.11.2026: kevyen musiikin vierailija Musiikkitalossa nostetaan käsin illan nostoihin (Musiikkitalo on paikkaportaissa pienemmällä portaalla orkesterikonserttien takia). The Grand Stars Orchestra: The Greatest Film Music Show."
+    },
+    {
+      "id": "kotijoukot-arena-2026-11-19",
+      "osuma": {
+        "otsikko": "kotijoukot",
+        "paiva": "2026-11-19",
+        "paikka": "arena"
+      },
+      "aseta": {},
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 18.11.2026: torstain illan nostoihin muuksi kuin keikaksi Niina Lahtisen ja Joonas Nordmanin komedianäytelmä Kotijoukot (Kaupunginteatterin Arena-näyttämö klo 18.30), Hellsingin Pre-Clubin tilalle."
+    },
+    {
+      "id": "hellsinki-pre-club-on-the-rocks-2026-11-19-ei-nostoihin",
+      "osuma": {
+        "otsikko": "pre club",
+        "paiva": "2026-11-19",
+        "paikka": "on the rocks"
+      },
+      "aseta": {},
+      "eiIllanNostoihin": true,
+      "muistiinpano": "Omistaja 18.11.2026: Hellsinki Industrial Festivalin Pre-Club (On the Rocks) ei torstain nostoihin; festivaali itse on nostoissa pe ja la. Osuu sekä stadissan että On the Rocksin omaan riviin. Näkyy listoissa normaalisti."
+    },
+    {
+      "id": "finlandia-trophy-jaahalli-2026-11-20",
+      "osuma": {
+        "otsikko": "finlandia trophy helsinki taitoluistelun",
+        "paiva": "2026-11-20",
+        "paikka": "jaahalli"
+      },
+      "aseta": {
+        "image": "https://api.hel.fi/linkedevents/media/images/Skating_Jatkasaari_JussiHellsten2021-12_1.jpg",
+        "ticketUrl": "https://www.lippu.fi/event/finlandia-trophy-helsinki-2026-helsingin-jaeaehalli-22019729/"
+      },
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 18.11.2026: perjantain illan nostoihin Grand Prix Finlandia Trophy (Bar Loosen keikan tilalle). Valittu stadissan rivi (stadissa-92876), koska se on ainoa yksipäiväinen ja sen aika on kilpailupäivän todellinen alku 14.00 (finlandiatrophy.com/aikataulu: pe 20.11. kilpailut 14.00–20.38); MyHelsingin/LinkedEventsin kaksipäiväinen rivi olisi noussut myös lauantaille. Kuva on kaupungin LinkedEventsissä tälle tapahtumalle käyttämä, lippulinkki lippu.fi:n perjantaituote."
     }
   ]
 }

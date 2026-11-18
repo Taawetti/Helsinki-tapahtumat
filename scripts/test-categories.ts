@@ -101,7 +101,7 @@ import { matchNewsToRestaurants, toNewsReason, type NewsLike } from '../lib/rest
 import { parseLepakkomiesEvents } from '../lib/lepakkomies-parse'
 import { buildDeterministicArc } from '../lib/group-arc'
 import { isOutsideTargetAudience, isPrimaryPick, onOsallistumisformaatti, lapsiSignaali } from '../lib/audience'
-import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello, onSuuriPaikka, heroJarjestys } from '../lib/picks'
+import { valitseHero, kaistaA, kaistaB, onPeruttu, onVisa, iltakello, onSuuriPaikka, heroJarjestys, onKlubi, onIsoStandupTaiUrheilu, paikkaporras } from '../lib/picks'
 import { mapAspEvent, onAllasLiveKeikka } from '../lib/allas'
 import { samaTapahtumaSarja, ryhmitaSarjat, sarjaEtuliite } from '../lib/tapahtumaperhe'
 import { kirjattavaAsennusPinta, asennusMuoto } from '../lib/install'
@@ -4508,6 +4508,81 @@ for (const c of kwChecks) {
     { name: 'hero-järjestys: Allas ennen Tavastiaa samoilla pisteillä', ok: heroJarjestys(
         mkEvent({ id: 'sp3', title: 'Karri Koira konsertti', startTime: '2026-09-18T19:00:00+03:00', location: { name: 'Allas Sea Pool', streetAddress: '', city: 'Helsinki' } }),
         mkEvent({ id: 'sp4', title: 'Bändi konsertti', startTime: '2026-09-18T21:00:00+03:00', location: { name: 'Tavastia', streetAddress: '', city: 'Helsinki' } })) < 0 },
+    // Vaihtelu (omistaja 18.11.2026): keikkaa ei pudoteta, discon voi korvata.
+    // Disco kantaa lähteen tapaan myös Keikka-kategorian, jolloin pisteet ovat
+    // samat kuin keikalla ja myöhempi alkuaika ehtii järjestyksessä ensin.
+    ...(() => {
+      const keikka = (id: string, paikka: string, klo = '20:00') => ev({ id, title: `Bändi ${id}`, location: { name: paikka }, categories: ['konsertit'], startTime: `2026-11-21T${klo}:00+02:00` })
+      const disco = (id: string, paikka: string) => ev({ id, title: `Jytädisko ${id}`, location: { name: paikka }, categories: ['konsertit', 'Keikka', 'DJ', 'Klubi'], startTime: '2026-11-21T23:30:00+02:00' })
+      const standup = ev({ id: 'su', title: 'Iikka Kivi - Protestinauru Stand Up Show K-18', location: { name: 'Arena-näyttämö - Helsingin kaupunginteatteri' },
+        categories: ['viihde', 'stand up -komiikka'], ysoIds: ['yso:p5', 'yso:p9244'], startTime: '2026-11-21T19:00:00+02:00' })
+      const neljaKeikkaa = [keikka('k1', 'Tavastia'), keikka('k2', 'Semifinal'), keikka('k3', 'On the Rocks'), keikka('k4', 'Kuudes Linja')]
+      const ids = (l: T[]) => l.map((e) => e.id).sort().join(',')
+      return [
+        { name: 'vaihtelu: saman paikan keikka voittaa saman paikan discon (Bar Loose)',
+          ok: ids(valitseHero([disco('d1', 'Bar Loose'), keikka('k1', 'Bar Loose', '20:30')], 5)) === 'k1' },
+        { name: 'vaihtelu: klubi-iltoja enintään kaksi',
+          ok: valitseHero([disco('d1', 'Bar Loose'), disco('d2', 'Maxine'), disco('d3', 'Kaiku'), keikka('k1', 'Tavastia'), keikka('k2', 'Semifinal')], 4).filter(onKlubi).length === 2 },
+        { name: 'vaihtelu: iso stand up nousee discon ohi',
+          ok: ids(valitseHero([...neljaKeikkaa, disco('d1', 'Bar Loose'), standup], 5)) === 'k1,k2,k3,k4,su',
+          got: ids(valitseHero([...neljaKeikkaa, disco('d1', 'Bar Loose'), standup], 5)) },
+        { name: 'vaihtelu: isot stand upit korvaavat enintään YHDEN keikan (keikat ovat tärkeitä)',
+          ok: valitseHero([...neljaKeikkaa, keikka('k5', 'Bar Loose'), standup,
+            ev({ id: 'su2', title: 'Salakapakka Stand Up', location: { name: 'Aleksanterin teatteri' }, categories: ['Komedia', 'Stand-up'], startTime: '2026-11-21T17:00:00+02:00' })], 5)
+            .filter((e) => e.id.startsWith('k')).length === 4 },
+        { name: 'vaihtelu: komedianäytelmä ei ole iso stand up (Kotijoukot nousi 8 iltana)',
+          ok: onIsoStandupTaiUrheilu(ev({ title: 'Kotijoukot', location: { name: 'Arena-näyttämö - Helsingin kaupunginteatteri' }, categories: ['komediat', 'teatteritaide'] })) === false },
+        { name: 'vaihtelu: lauluyhtye Club For Five ei ole klubi-ilta',
+          ok: onKlubi(ev({ title: 'Club For Five: Jouluna 2026', location: { name: 'Savoy-teatteri' }, categories: ['Musiikki', 'Konsertti'] })) === false },
+        { name: 'vaihtelu: ison paikan Disco Night -konsertti ei ole klubi-ilta',
+          ok: onKlubi(ev({ title: 'Disco Night: Baccara & Afric Simone', location: { name: 'Kulttuuritalo' }, categories: ['konsertit'] })) === false },
+        { name: 'vaihtelu: klubi-ilta vain hätävarana — viisi keikkaa ja disco → disco ei mukana',
+          ok: ids(valitseHero([...neljaKeikkaa, keikka('k5', 'Bar Loose'), disco('d1', 'Maxine')], 5)) === 'k1,k2,k3,k4,k5' },
+        { name: 'vaihtelu: tasapisteissä tarkka kellonaika ennen arvioitua (Semifinalin arvioaika)',
+          ok: ids(valitseHero([...neljaKeikkaa, { ...keikka('ka', 'Lepakkomies', '19:00'), startTimeApprox: true } as T, keikka('k5', 'Bar Loose', '19:00')], 5)) === 'k1,k2,k3,k4,k5' },
+        // Paikkaporras (omistaja 18.11.2026)
+        { name: 'porras: Finlandia-talon keikka ennen Semifinalin keikkaa, vaikka Semifinal alkaa myöhemmin (Vesta x UMO vs Leivo)',
+          ok: heroJarjestys(keikka('fi', 'Finlandia-talo', '19:00'), keikka('se', 'Semifinal', '21:00')) < 0 },
+        { name: 'porras: portaat 2a, 2b ja 3 omistajan jaon mukaan',
+          ok: paikkaporras(keikka('a', 'Tavastia')) === 2 && paikkaporras(keikka('a2', 'Finlandia-talo')) === 2
+            && paikkaporras(keikka('b', 'G Livelab Helsinki')) === 2.5 && paikkaporras(keikka('c', 'Ääniwalli')) === 2.5 && paikkaporras(keikka('c2', 'On the Rocks')) === 2.5
+            && paikkaporras(keikka('d', 'Semifinal')) === 3 && paikkaporras(keikka('e', 'Bar Loose')) === 3 && paikkaporras(keikka('f', 'Musiikkitalo')) === 3
+            && paikkaporras(keikka('g', 'Pub Nousuvesi')) === 4 },
+        { name: 'porras: iso paikka on porras 1', ok: paikkaporras(keikka('h', 'Helsingin jäähalli')) === 1 },
+        { name: 'porras: "Tiivistämö, Suvilahti" on porras 2b eikä Suvilahden iso paikka', ok: paikkaporras(keikka('t', 'Tiivistämö, Suvilahti')) === 2.5 },
+        { name: 'porras: Ääniwallin keikka on keikka, vaikka paikka luokittuu yöelämäksi (Olga – #Yolo Club Tour)',
+          ok: paikkaporras(ev({ title: 'Olga - #Yolo Club Tour', location: { name: 'Ääniwalli' }, categories: [] })) === 2.5 },
+        { name: 'vähintään yksi muu: viisi keikkaa → heikoin (2b) vaihtuu isoon stand upiin',
+          ok: (() => { const r = valitseHero([keikka('t1', 'Tavastia'), keikka('t2', 'Savoy-teatteri'), keikka('t3', 'Finlandia-talo'), keikka('t4', 'Aleksanterin teatteri'), keikka('o1', 'On the Rocks', '21:00'), standup], 5).map((e) => e.id).sort().join(',')
+            return r === 'su,t1,t2,t3,t4' })() },
+        { name: 'vähintään yksi muu: ilman isoa muuta kortti saa olla viisi keikkaa (pieni stand up ei pudota keikkaa)',
+          ok: valitseHero([...neljaKeikkaa, keikka('k5', 'Bar Loose'), ev({ id: 'pieni', title: 'Comedy Limbo', location: { name: 'Limbo Bar' }, categories: ['stand up -komiikka'] })], 5).every((e) => e.id !== 'pieni') },
+        { name: 'vähintään yksi muu: iso näyttämö kelpaa, kun isoa stand upia ei ole (Kotijoukot Arena-näyttämöllä)',
+          ok: valitseHero([...neljaKeikkaa, keikka('k5', 'Bar Loose'), ev({ id: 'kj', title: 'Kotijoukot', location: { name: 'Arena-näyttämö - Helsingin kaupunginteatteri' }, categories: ['komediat', 'teatteritaide'] })], 5).some((e) => e.id === 'kj') },
+        { name: 'käsin pois: eiIllanNostoihin-merkitty ei nouse, vaikka olisi paras',
+          ok: !valitseHero([{ ...keikka('pc', 'On the Rocks'), eiIllanNostoihin: true } as T, keikka('k1', 'Semifinal')], 5).some((e) => e.id === 'pc') },
+        { name: 'porras: M/S Finlandia ei ole Finlandia-talo', ok: paikkaporras(keikka('m', 'Eckerö Line M/S Finlandia')) === 4 },
+        { name: 'porras: näytelmä isossa salissa ei saa porrasta (näytelmä Savoyssa)',
+          ok: paikkaporras(ev({ title: 'Mirdja', location: { name: 'Savoy-teatteri' }, categories: ['teatteritaide'] })) === 4 },
+        { name: 'porras: klubi-ilta ei saa porrasta (Tavastian disco)', ok: paikkaporras(disco('tc', 'Tavastia')) === 4 },
+        { name: 'porras: festivals-taulun musiikkifestivaali porras 2, joulutori ei (Tuomaan Markkinat nousi joka päivälle)',
+          ok: paikkaporras(ev({ title: 'Väreet (päivä 1/4)', location: { name: 'Useita paikkoja' }, categories: ['Jazz', 'Musiikki', 'Festivaali'], source: 'festivals' })) === 2
+            && paikkaporras(ev({ title: 'Tuomaan Markkinat (päivä 3/26)', location: { name: 'Senaatintori' }, categories: [], source: 'festivals' })) === 4 },
+        { name: 'klubi: DJ-monikko tunnistuu (Linkin Park Night! Jumpdafuckup DJs)', ok: onKlubi(ev({ title: 'Linkin Park Night! Jumpdafuckup DJs', location: { name: 'On the Rocks' }, categories: ['Kulttuuri'] })) === true },
+        { name: 'vaihtelu: Maxine on klubi-ilta, vaikka lähde merkitsee keikaksi (K40-CLUB X-MAS FEST)',
+          ok: onKlubi(ev({ title: 'K40-CLUB X-MAS FEST@ Maxine La. 12.12 21.00-2.00', location: { name: 'Maxine' }, categories: ['Musiikki', 'Keikka'] })) === true },
+        { name: 'käsin nosto: illanNosto-korjaus asettaa merkinnän osuvalle tapahtumalle',
+          ok: sovellaTapahtumakorjaukset<Korjattava>([{ title: 'VVO: Yona – Sininen joulu', startTime: '2026-12-12T18:00:00+02:00', location: { name: 'Musiikkitalo' } }],
+            [{ id: 'y', osuma: { otsikko: 'yona sininen joulu', paiva: '2026-12-12', paikka: 'musiikkitalo' }, aseta: {}, illanNosto: true }])[0].illanNosto === true },
+        { name: 'käsin nosto: nousee nostoihin viiden paremman keikan ohi',
+          ok: valitseHero([...neljaKeikkaa, keikka('k5', 'Bar Loose'),
+            { ...ev({ id: 'y', title: 'VVO: Yona – Sininen joulu', location: { name: 'Musiikkitalo' }, categories: [] }), illanNosto: true } as T], 5).some((e) => e.id === 'y') },
+        { name: 'käsin nosto: peruttu ei nouse',
+          ok: !valitseHero([{ ...ev({ id: 'y', title: 'PERUTTU: VVO: Yona', location: { name: 'Musiikkitalo' } }), illanNosto: true } as T], 5).some((e) => e.id === 'y') },
+        { name: 'vaihtelu: ohut ilta täyttyy silti (kolme discoa eikä muuta)',
+          ok: valitseHero([disco('d1', 'Bar Loose'), disco('d2', 'Maxine'), disco('d3', 'Kaiku')], 5).length === 3 },
+      ]
+    })(),
     // Allas-lähteen muunnos (lib/allas): uusi asp_event-tyyppi.
     { name: 'allas: subtitle on otsikko, päivä end_datesta, kategoria konsertit', ok: (() => {
         const ev = mapAspEvent({ id: 6293, title: { rendered: 'Allas Live 18.9.' }, link: 'https://www.allaspool.fi/asp_event/allas-live-26-7/',

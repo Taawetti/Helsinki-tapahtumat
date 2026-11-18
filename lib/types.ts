@@ -42,6 +42,12 @@ export interface Event {
   // availability-sold-out-luokka). CTA:n on muututtava: "Osta liput" on
   // katteeton lupaus loppuunmyydylle. Dedup säilyttää tiedon unionina.
   soldOut?: boolean
+  // Omistaja nosti tapahtuman käsin illan nostoihin (data/tapahtumakorjaukset.json
+  // illanNosto: true). lib/picks valitseHero ottaa sen ensimmäisenä.
+  illanNosto?: boolean
+  // Omistaja jätti tapahtuman pois illan nostoista (tapahtumakorjaukset
+  // eiIllanNostoihin: true). Näkyy muualla sovelluksessa normaalisti.
+  eiIllanNostoihin?: boolean
   // LinkedEventsin vakaat yso-ontologiakoodit (esim. 'yso:p11185' = konsertit).
   // Kielestä riippumaton, törmäyksetön PÄÄsignaali luokittelulle (L0).
   // Vain LinkedEvents-pohjaisilla lähteillä; muut → tyhjä → tekstikerrokset.

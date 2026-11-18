@@ -109,6 +109,74 @@ export function onSuuriPaikka(e: Event): boolean {
   return !!n && SUURET_PAIKAT.some((p) => n.includes(p))
 }
 
+// ── Vaihtelu nostoissa (omistaja 18.11.2026) ─────────────────────────────────
+// "urheilu ja standup voisi nousta discon ohi. mutta niiden pitää olla iso
+// urheilutapahtuma tai isohko standup" + "älä poista keikkoja ja korvaa niitä,
+// discot voi korvata ennemmin. keikat ovat tärkeitä".
+//
+// Mitattu 30 vrk (19.11.–18.12.2026, tuotantodata) ennen muutosta: 15 klubi-
+// iltaa 150 nostosta, sama paikka kahdesti samana iltana 4 kertaa (Bar Loosen
+// keikka + Loosen disco), iso stand up vain 1 kerran. Syy: paikkojen omat
+// lähteet merkitsevät klubi-illankin "Keikka"-kategorialla, joten Loosen
+// Jytädisko saa saman 7 pisteen kuin Juha Tapio, ja tasapisteissä myöhempi
+// alkuaika voittaa. Muutoksen jälkeen samalla datalla (paikkaporras, klubit
+// hätävarana, tarkka aika ennen arvioitua, iso stand up korvaa vain muun kuin
+// keikan, käsin nostot): keikkoja 92 → 112, klubeja 15 → 0, sama paikka
+// kahdesti 0. Muuttui 21 päivää 30:stä. Pudonneet keikat olivat portaan 4
+// kirkko- ja kirjastokonsertteja ja pubijameja sekä portaan 3 keikkoja isojen
+// salien tieltä (Miika Leivo Semifinalissa → Vesta x UMO Finlandia-talossa).
+
+/** Isot salit stand upille ja urheilulle. TOIMITUKSELLINEN lista kuten
+ *  SUURET_PAIKAT: vain salit, joihin pieni ilta ei mahdu. Iso nimi isossa
+ *  salissa (Hedberg Finlandia-talossa, Iikka Kivi Arena-näyttämöllä) on
+ *  "isohko stand up"; baarin stand up -klubi-ilta ei ole. */
+export const ISOT_SALIT = [
+  'savoy-teatteri', 'aleksanterin teatteri', 'peacock', 'kaupunginteatteri', 'kansallisteatteri',
+  'finlandia-talo', 'kulttuuritalo', 'musiikkitalo', 'tavastia', 'circus', 'veturitallit',
+]
+export function onIsoSali(e: Event): boolean {
+  const n = (e.location?.name ?? '').toLowerCase()
+  return !!n && ISOT_SALIT.some((p) => n.includes(p))
+}
+
+/** Stand up = sana stand up / comedy otsikossa tai kategoriassa. EI vibes-
+ *  luokan 'standup', koska se syntyy myös näytelmäluokasta "komediat":
+ *  Lahtisen ja Nordmanin näytelmä Kotijoukot olisi noussut 8 iltana. */
+export const STANDUP_REGEX = /stand[\s-]?up|standup|comedy/i
+export const onStandup = (e: Event): boolean => STANDUP_REGEX.test(`${e.title} ${e.categories.join(' ')}`)
+
+export const onIsoStandupTaiUrheilu = (e: Event): boolean =>
+  onIsoSali(e) && (onStandup(e) || getEventVibes(e).includes('urheilu'))
+
+/** Klubi-ilta: lähteen oma Klubi/DJ-kategoria tai otsikon klubisana. Pelkkä
+ *  "club"/"klubi" otsikossa EI riitä: Club For Five on lauluyhtye, HKO:n
+ *  Kohtaamisia-klubi UMO:n konsertti, Tired Uncle's Comedy Club stand up.
+ *  Iso paikka ei ole klubi-ilta: "Disco Night: Baccara & Afric Simone"
+ *  Kulttuuritalossa on konsertti, eikä se saa viedä klubikiintiötä. */
+export const KLUBI_OTSIKKO = /disko|disco(?!rd|very)|(?<![a-zåäö])djs?(?![a-zåäö])|party|bileet|fiesta|(?<![a-zåäö])rave(?![a-zåäö])|club night|clubbing/i
+/** Pelkät yökerhot: kaikki niiden tapahtumat ovat klubi-iltoja, vaikka lähde
+ *  merkitsisi ne keikoiksi ("K40-CLUB X-MAS FEST@ Maxine" tuli [Musiikki,
+ *  Keikka] ja nousi 12.12.2026 nostoihin). */
+export const KLUBIPAIKAT = ['maxine']
+export const onKlubi = (e: Event): boolean => !onSuuriPaikka(e) &&
+  (KLUBI_OTSIKKO.test(e.title) || e.categories.some((c) => /^(klubi|dj)$/i.test(c.trim())) ||
+    KLUBIPAIKAT.some((p) => (e.location?.name ?? '').toLowerCase().includes(p)))
+
+/** Keikka, jota vaihtelusäännöt eivät koskaan pudota.
+ *  Ääniwalli on luokittelussa (lib/event-classify VENUE_RULES) yöelämää, joten
+ *  sen keikat ("Olga – #Yolo Club Tour" 19.11.2026) eivät saaneet keikka-
+ *  luokkaa eivätkä paikkaporrasta. Sen muut kuin klubi-illat ovat keikkoja. */
+const KEIKKAPAIKAT_YOELAMALUOKALLA = ['ääniwalli']
+export const onKeikka = (e: Event): boolean => !onKlubi(e) &&
+  (getEventVibes(e).includes('keikka') || KEIKKAPAIKAT_YOELAMALUOKALLA.some((p) => (e.location?.name ?? '').toLowerCase().includes(p)))
+
+/** Klubi-iltoja enintään näin monta viidestä nostosta. */
+export const MAX_KLUBIT = 2
+
+/** Isot näyttämöt "vähintään yksi muu" -paikalle, kun isoa stand upia tai
+ *  urheilua ei ole (omistaja 18.11.2026: Kotijoukot Arena-näyttämöllä). */
+export const ISOT_ESITYSSALIT = ['aleksanterin teatteri', 'kaupunginteatteri', 'kansallisteatteri', 'peacock']
+
 // ── Poimintajärjestys — sama ideologia joka listalle ─────────────────────────
 // Etusivun "Parhaat poiminnat" järjesti korttinsa näin jo 25.8. alkaen, mutta
 // kategoria- ja kaupunginosalistat olivat aikajärjestyksessä (kori ensin).
@@ -159,9 +227,64 @@ export function poimintaJarjestys(a: Event, b: Event): number {
     new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
 }
 
+// ── Paikkaporras (omistaja 18.11.2026) ───────────────────────────────────────
+// Pisteet eivät erota keikkoja toisistaan: kaikki keikat saavat 7, ja ennen
+// tätä tasapelin ratkaisi myöhempi alkuaika ja lopulta datan järjestys —
+// 19.11.2026 Semifinalin Miika Leivo voitti Finlandia-talon Vesta x UMO:n,
+// koska oli datassa kaksi riviä aiemmin. Sovelluksella ei ole kapasiteetti-,
+// myynti- eikä suosiotietoa, joten keikan kokoa arvioidaan paikan koosta.
+// Omistajan jako: "Tavastia, On the Rocks, G Livelab, Ääniwalli nämä isojen
+// paikkojen jälkeen", "Semifinal, Bar Loose, Mummotunneli, Lepakkomies, Post
+// Bar, Storyville ... hieman alempana", Musiikkitalo porras 3 (kevyen musiikin
+// vierailijat nostetaan käsin, data/tapahtumakorjaukset.json illanNosto).
+// TOIMITUKSELLINEN lista kuten SUURET_PAIKAT. Nimet tarkistettu tuotantodatan
+// kirjoitusasuista 18.11.2026 ("Finlandia-talo" eikä pelkkä "finlandia", joka
+// osuisi Eckerö Linen M/S Finlandiaan).
+// Porras 2 on jaettu (omistaja 18.11.2026, lauantain Iikka Kivi On the Rocksin
+// keikan tilalle): 2a isot salit ennen 2b isoja klubeja. Ilman jakoa saman
+// portaan sisällä ratkaisi myöhempi alkuaika, ja vähintään yksi muu -sääntö
+// olisi pudottanut Savoyn konsertin klubikeikan sijaan.
+export const PORRAS_2A = ['tavastia', 'finlandia-talo', 'finlandia hall', 'savoy', 'aleksanterin teatteri', 'circus']
+export const PORRAS_2B = ['on the rocks', 'g livelab', 'ääniwalli', 'korjaamo', 'tiivistämö']
+export const PORRAS_3 = [
+  'semifinal', 'bar loose', 'mummotunneli', 'lepakkomies', 'post bar', 'storyville',
+  'musiikkitalo', 'kuudes linja', 'juttutupa', 'apollo live', 'dubrovnik',
+]
+const nimiSisaltaa = (e: Event, lista: readonly string[]) => {
+  const n = (e.location?.name ?? '').toLowerCase()
+  return !!n && lista.some((p) => n.includes(p))
+}
+
+/** 1 = iso paikka, 2 = iso sali (2a), 2.5 = iso klubi (2b), 3 = pienempi
+ *  keikkapaikka, 4 = muu.
+ *
+ *  Porras 2–3 koskee VAIN keikkoja (ei klubi-iltoja): muuten Kansallisteatterin ja Kaupunginteatterin näytelmät
+ *  nousisivat joka ilta, ja isossa salissa oleva stand up ohittaisi pienemmän
+ *  paikan keikan ("älä poista keikkoja"). Stand up nousee isossa salissa
+ *  omalla säännöllään (onIsoStandupTaiUrheilu), joka korvaa vain muun kuin
+ *  keikan. Nimetyt keikkapaikat tarkistetaan ENNEN isoja paikkoja:
+ *  "Tiivistämö, Suvilahti" osuisi muuten SUURET_PAIKAT-listan Suvilahteen. */
+export function paikkaporras(e: Event): 1 | 2 | 2.5 | 3 | 4 {
+  const keikka = onKeikka(e)
+  if (keikka && nimiSisaltaa(e, PORRAS_2A)) return 2
+  if (keikka && nimiSisaltaa(e, PORRAS_2B)) return 2.5
+  if (keikka && nimiSisaltaa(e, PORRAS_3)) return 3
+  if (onSuuriPaikka(e)) return 1
+  // Kuratoidun festivals-taulun MUSIIKKIfestivaali ("Väreet", paikka "Useita
+  // paikkoja") on iso keikkatapahtuma. Muut taulun rivit (Tuomaan Markkinat
+  // klo 11, Slush) EIVÄT saa porrasta: ne nousivat simulaatiossa joka päivälle.
+  if (e.source === 'festivals' && keikka) return 2
+  return 4
+}
+
 export function heroJarjestys(a: Event, b: Event): number {
-  return Number(onSuuriPaikka(b)) - Number(onSuuriPaikka(a)) ||
+  return paikkaporras(a) - paikkaporras(b) ||
     nightlifeScore(b) - nightlifeScore(a) ||
+    // Tasapisteissä tarkka kellonaika ennen arvioitua (omistaja 18.11.2026:
+    // Semifinalin "Miika Leivo & Band" ilman tiedettyä alkamisaikaa nousi
+    // nostoksi). Arvioitu aika = paikan sivu ei kertonut kelloa; kortti ja
+    // somevideo näyttävät silloin vähemmän tietoa.
+    Number(!!a.startTimeApprox) - Number(!!b.startTimeApprox) ||
     new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
 }
 
@@ -173,17 +296,95 @@ export function heroJarjestys(a: Event, b: Event): number {
  *  mitatusti TYHJÄKSI kahtena päivänä 31:stä — etusivun ylin kortti ei saa
  *  kadota. */
 export function valitseHero(events: Event[], n = 5, vaadiKuva = true): Event[] {
+  // Omistajan käsin poistamat (tapahtumakorjaukset eiIllanNostoihin) eivät
+  // ole ehdokkaita millään säännöllä.
+  events = events.filter((e) => !e.eiIllanNostoihin)
+  // `out` on valintajärjestyksessä (vahvin ensin) aikajärjestykseen asti.
   const out: Event[] = []
-  const lisaa = (ehdokkaat: Event[]) => {
+  const paikka = (e: Event) => (e.location?.name ?? '').toLowerCase().trim()
+  const samaPaikka = (e: Event) => { const p = paikka(e); return p ? out.findIndex((o) => paikka(o) === p) : -1 }
+
+  // KÄSIN NOSTETUT ENSIN (data/tapahtumakorjaukset.json illanNosto: true).
+  // Omistajan valinta ohittaa kaistat, pisteet ja klubisäännön; peruttu ei
+  // nouse silti. Saman paikan raja pätee näihinkin.
+  for (const e of events.filter((x) => x.illanNosto && !onPeruttu(x)).sort(heroJarjestys)) {
+    if (out.length >= n) break
+    if (out.some((p) => p.id === e.id) || samaPaikka(e) >= 0) continue
+    out.push(e)
+  }
+
+  // VAIHTELURAJAT: sama paikka kerran (aina), klubeja enintään MAX_KLUBIT
+  // (klubiraja = true). Saman paikan keikka voittaa saman paikan klubin myös
+  // silloin, kun klubi ehti valituksi ensin (klo 23.30 disco on myöhempi,
+  // joten se tulee järjestyksessä ennen klo 20.30 keikkaa).
+  const lisaa = (ehdokkaat: Event[], klubiraja: boolean) => {
     for (const e of karsiTapahtumaSarjat([...ehdokkaat].sort(heroJarjestys))) {
-      if (out.length >= n) break
-      if (!out.some((p) => p.id === e.id)) out.push(e)
+      if (out.some((p) => p.id === e.id)) continue
+      const j = samaPaikka(e)
+      if (j >= 0) {
+        if (onKeikka(e) && onKlubi(out[j])) out[j] = e
+        continue
+      }
+      if (out.length >= n) continue
+      if (klubiraja && onKlubi(e) && out.filter(onKlubi).length >= MAX_KLUBIT) continue
+      out.push(e)
     }
   }
-  lisaa(events.filter((e) => kaistaA(e, vaadiKuva)))
-  if (out.length < n) lisaa(events.filter((e) => kaistaB(e, vaadiKuva)))
-  if (out.length < n && vaadiKuva) {
-    lisaa(events.filter((e) => !e.image && (kaistaA(e, false) || kaistaB(e, false))))
+  const A = events.filter((e) => kaistaA(e, vaadiKuva))
+  const B = events.filter((e) => kaistaB(e, vaadiKuva))
+  const C = vaadiKuva ? events.filter((e) => !e.image && (kaistaA(e, false) || kaistaB(e, false))) : []
+  // KLUBI-ILLAT VAIN HÄTÄVARAKSI (omistaja 18.11.2026: "ehkä näitä myöhäis
+  // illan klubeja ei tarvitse olla näissä. tuo maxine on turha"): ensin kaikki
+  // muut kaistoittain, klubit vasta jos kortti jäisi muuten vajaaksi.
+  const eiKlubi = (l: Event[]) => l.filter((e) => !onKlubi(e))
+  lisaa(eiKlubi(A), true)
+  if (out.length < n) lisaa(eiKlubi(B), true)
+  if (out.length < n) lisaa(eiKlubi(C), true)
+  if (out.length < n) lisaa([...A, ...B, ...C], true)
+  // Ohut ilta: klubiraja ei saa jättää korttia vajaaksi. Saman paikan raja
+  // pysyy, jottei keikan korvaama saman paikan disco palaa takaisin.
+  if (out.length < n) lisaa([...A, ...B, ...C], false)
+
+  // ISO STAND UP / URHEILU ISOSSA SALISSA tulee nostoihin VAIN korvaamalla
+  // klubin, tai jos klubia ei ole, muun kuin keikan. Keikkaa, festivaalia,
+  // isoa paikkaa tai toista isoa salia se ei korvaa koskaan.
+  const suojattu = (e: Event) => onKeikka(e) || onSuuriPaikka(e) || onIsoStandupTaiUrheilu(e) || nightlifeScore(e) >= 8
+  const korvattava = () => {
+    for (let i = out.length - 1; i >= 0; i--) if (onKlubi(out[i]) && !suojattu(out[i])) return i
+    for (let i = out.length - 1; i >= 0; i--) if (!suojattu(out[i])) return i
+    return -1
+  }
+  const isot = karsiTapahtumaSarjat([...A, ...B].filter(onIsoStandupTaiUrheilu).sort(heroJarjestys))
+  for (const e of isot) {
+    if (out.some((p) => p.id === e.id) || samaPaikka(e) >= 0) continue
+    if (out.length < n) { out.push(e); continue }
+    const i = korvattava()
+    if (i < 0) break
+    out[i] = e
+  }
+
+  // VÄHINTÄÄN YKSI MUU KUIN KEIKKA (omistaja 18.11.2026: "5 herokortissa ei
+  // saa olla 5 keikkaa. yksi pitää vähintään olla jotain muuta"). Muuksi
+  // kelpaa vain iso: stand up tai urheilu isossa salissa tai isolla paikalla,
+  // ja vasta niiden puuttuessa esitys isolla näyttämöllä. Heikompi muu ei saa
+  // pudottaa hyvää keikkaa — jos iso muu puuttuu, kortti saa olla 5 keikkaa.
+  // Korvattava on heikoin keikka (viimeinen valintajärjestyksessä), ei käsin
+  // nostettu, ei iso paikka eikä festivaali.
+  if (out.length >= n && out.every(onKeikka)) {
+    const taso = (e: Event) =>
+      onIsoStandupTaiUrheilu(e) || (onSuuriPaikka(e) && getEventVibes(e).includes('urheilu')) ? 2
+        : getEventVibes(e).includes('teatteri') && nimiSisaltaa(e, ISOT_ESITYSSALIT) ? 1 : 0
+    const muu = karsiTapahtumaSarjat([...A, ...B].filter((e) => !onKeikka(e) && !onKlubi(e) && !onPeruttu(e) && taso(e) > 0)
+      .sort((a, b) => taso(b) - taso(a) || heroJarjestys(a, b)))
+      .find((e) => !out.some((p) => p.id === e.id) && samaPaikka(e) < 0)
+    if (muu) {
+      for (let i = out.length - 1; i >= 0; i--) {
+        const p = out[i]
+        if (p.illanNosto || onSuuriPaikka(p) || nightlifeScore(p) >= 8) continue
+        out[i] = muu
+        break
+      }
+    }
   }
   return out.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 }
