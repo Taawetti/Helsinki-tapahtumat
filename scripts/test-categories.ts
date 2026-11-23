@@ -117,7 +117,7 @@ import { karsiTapahtumaPerheet, karsiTapahtumaSarjat } from '../lib/tapahtumaper
 import { decodeHtmlEntities, stripPriceFromPrefix, formatTime, formatDate, formatDateRange, tuntematonAika, isTonight, getDateRange, httpsKuva } from '../lib/utils'
 import { isTicketShopUrl, canBuyTickets } from '../lib/tickets'
 import { normName as guideNormName, streetKey as guideStreetKey } from '../lib/guide-data'
-import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, ctaKohde, onMaksunkeruuUrl } from '../lib/event-links'
+import { isCompetitorUrl, hasOwnEventPage, shareUrlFor, externalUrlFor, ctaKohde, onMaksunkeruuUrl, siistiLinkki } from '../lib/event-links'
 import { onPaikkaPlaceholder, naytettavaKuvaus, lyhytkuvaus } from '../lib/event-text'
 import { arvioiPudotus, type Kuolinsyy } from './fetch-venue-sites'
 import { mapOpenmicEvent, koordAvain, katuosoite, poistaPaikkaHanta, type OpenmicRaw } from '../lib/openmic'
@@ -3679,6 +3679,26 @@ for (const c of kwChecks) {
   }
 }
 
+// ── LINKKIEN SIIVOUS (lib/event-links siistiLinkki): Search Console 21.11.2026
+// "Virheellinen URL-osoite kentässä url". Lähteistä tuli HKO:n
+// "route:&lt;nolink&gt;", LinkedEventsin alkuvälilyönti ja "Http://".
+{
+  const lCases: { name: string; ok: boolean; got?: unknown }[] = [
+    { name: 'HKO:n paikkamerkki route:<nolink> → null', ok: siistiLinkki('route:&lt;nolink&gt;') === null && siistiLinkki('route:<nolink>') === null },
+    { name: 'alkuvälilyönti poistetaan', ok: siistiLinkki(' https://www.santasfarm.fi/') === 'https://www.santasfarm.fi/', got: siistiLinkki(' https://www.santasfarm.fi/') },
+    { name: 'iso alkukirjain skeemassa → pieni', ok: siistiLinkki('Http://www.tiketti.fi/welovehelsinki') === 'http://www.tiketti.fi/welovehelsinki' },
+    { name: 'kelvollinen osoite ei muutu', ok: siistiLinkki('https://www.lippu.fi/event/x/?affiliate=LPU&language=fi') === 'https://www.lippu.fi/event/x/?affiliate=LPU&language=fi' },
+    { name: '&amp; puretaan', ok: siistiLinkki('https://x.fi/?a=1&amp;b=2') === 'https://x.fi/?a=1&b=2' },
+    { name: 'sisäinen välilyönti → %20', ok: siistiLinkki('https://x.fi/a b') === 'https://x.fi/a%20b' },
+    { name: 'skeematon, mailto ja isännätön → null', ok: siistiLinkki('www.x.fi') === null && siistiLinkki('mailto:a@b.fi') === null && siistiLinkki('https://localhost/x') === null },
+    { name: 'null/tyhjä → null', ok: siistiLinkki(null) === null && siistiLinkki('') === null && siistiLinkki('   ') === null },
+  ]
+  for (const c of lCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ linkkien siivous: ${c.name}${c.got !== undefined ? ` (sai: ${JSON.stringify(c.got)})` : ''}`)
+  }
+}
+
 // ── SUUNNITELMAN AIKASOVITIN (lib/suunnitelma): käyttäjän järjestys on
 // laki, ankkurit kiinteitä, aukiolot ja kävelyajat varoittavat.
 {
@@ -5183,6 +5203,12 @@ odotettavat.push((async () => {
     { name: 'kuvaus ja lyhyt kuvaus asetetaan kun ne on annettu',
       ok: (() => { const r = sovellaTapahtumakorjaukset([{ ...osuva, description: '', shortDescription: '@ Kallion kirkko' }], [{ ...k, aseta: { description: 'Eka kappale.\n\nToka kappale.', shortDescription: 'Lyhyt.' } }])[0]; return r.description === 'Eka kappale.\n\nToka kappale.' && r.shortDescription === 'Lyhyt.' && r.infoUrl === 'https://www.stadissa.fi/x' })() },
     { name: 'kelvoton aikaleima ei osu eikä kaada', ok: !osuukoKorjaus(ev('Jannan joulu', 'ei-aika', 'Kallion kirkko'), k) },
+    // kello (omistaja 19.11.2026): lähde antaa ovien ajan, esitys alkaa myöhemmin
+    { name: 'kello asettaa alkamisajan samana Helsinki-päivänä (talviaika +02:00) ja poistaa arvio-merkinnän',
+      ok: (() => { const r = sovellaTapahtumakorjaukset<Korjattava>([{ ...osuva, startTime: '2026-12-09T17:00:00+00:00', startTimeApprox: true }], [{ ...k, aseta: { kello: '20:00' } }])[0]; return r.startTime === '2026-12-09T20:00:00+02:00' && r.startTimeApprox === false && r.image === osuva.image })() },
+    { name: 'kelvoton kello jättää ajan ennalleen',
+      ok: ['25:00', '20', '20:7', 'klo 20'].every((kl) => sovellaTapahtumakorjaukset<Korjattava>([osuva], [{ ...k, aseta: { kello: kl } }])[0].startTime === osuva.startTime) },
+    { name: 'ilman kelloa alkamisaika ei muutu', ok: tulos.startTime === osuva.startTime },
     // piilota (omistaja 14.11.2026): kaksoiskappale pois koosteesta
     { name: 'piilota poistaa osuvan tapahtuman ja jättää muut',
       ok: (() => { const r = poistaPiilotetut([osuva, ev('Joulukonsertti', '2026-12-09T19:00:00+02:00', 'Kallion kirkko')], [{ ...k, aseta: {}, piilota: true }]); return r.length === 1 && r[0].title === 'Joulukonsertti' })() },
@@ -5197,6 +5223,25 @@ odotettavat.push((async () => {
     ok: tiedosto.korjaukset.every((r) => /^[a-z0-9-]+$/.test(r.id) && r.osuma.otsikko.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.osuma.paiva)
       && ([r.aseta.image, r.aseta.ticketUrl, r.aseta.infoUrl].filter((u) => u !== undefined) as string[]).every((u) => /^https:\/\//.test(u))
       && ([r.aseta.description, r.aseta.shortDescription, r.aseta.title, r.aseta.price].filter((u) => u !== undefined) as string[]).every((u) => u.trim().length > 0 && !/<[a-z][\s\S]*>/i.test(u))) })
+  {
+    // Tarkka osuma (23.11.2026): stadissan "Stepa" piiloon, mutta "Stepa & Heimo
+    // ilman menneisyyttä, AB" jää — "stepa" sisältyy molempiin otsikoihin.
+    const kk = (title: string, startTime: string) => ({ title, startTime, location: { name: 'On the Rocks' } })
+    const tarkka = { id: 't', osuma: { otsikko: 'stepa', paiva: '2026-11-28', paikka: 'on the rocks', tarkka: true }, aseta: {}, piilota: true }
+    kCases.push({ name: 'tarkka osuma: vain koko otsikko osuu', ok: osuukoKorjaus(kk('Stepa', '2026-11-28T20:00:00+02:00'), tarkka) && !osuukoKorjaus(kk('Stepa & Heimo Ilman Menneisyyttä, AB', '2026-11-28T18:00:00+00:00'), tarkka) })
+    const r = poistaPiilotetut(sovellaTapahtumakorjaukset([
+      kk('Stepa', '2026-11-28T20:00:00+02:00'),
+      kk('Stepa, AB', '2026-11-28T18:00:00+00:00'),
+      kk('Stepa & Heimo Ilman Menneisyyttä, AB', '2026-11-28T18:00:00+00:00'),
+    ], tiedosto.korjaukset), tiedosto.korjaukset)
+    kCases.push({ name: 'Stepa 28.11.2026: kaksoiskappaleet piiloon, jäljelle oikea otsikko klo 20.30', ok: r.length === 1 && r[0].title === 'Stepa & Heimo ilman menneisyyttä, AB' && r[0].startTime === '2026-11-28T20:30:00+02:00', got: JSON.stringify(r.map((x) => [x.title, x.startTime])) })
+  }
+  kCases.push({ name: 'korjaustiedoston kello on muotoa HH:MM', ok: tiedosto.korjaukset.every((r) => r.aseta.kello === undefined || /^([01]\d|2[0-3]):[0-5]\d$/.test(r.aseta.kello)) })
+  {
+    // Oikea tiedosto: Tavastia 19.11.2026, ovet 19.00 → Röyhkä lavalla 20.00.
+    const [r] = sovellaTapahtumakorjaukset<Korjattava>([{ title: 'Kauko Röyhkä & Voimaeläin', startTime: '2026-11-19T17:00:00+00:00', location: { name: 'Tavastia' } }], tiedosto.korjaukset)
+    kCases.push({ name: 'Röyhkä 19.11.2026 Tavastiassa klo 20.00 (ei ovien 19.00)', ok: r.startTime === '2026-11-19T20:00:00+02:00', got: r.startTime })
+  }
   kCases.push({ name: 'piilotusrivillä on aina paikka eikä asetettavia kenttiä',
     ok: tiedosto.korjaukset.filter((r) => r.piilota).every((r) => (r.osuma.paikka ?? '').trim().length > 0 && Object.keys(r.aseta).length === 0) })
   {

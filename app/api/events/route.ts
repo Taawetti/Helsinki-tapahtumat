@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isCompetitorUrl, onMaksunkeruuUrl } from '@/lib/event-links'
+import { isCompetitorUrl, onMaksunkeruuUrl, siistiLinkki } from '@/lib/event-links'
 import { taydennaKoordinaatit } from '@/lib/venue-coords'
 import { Event, SourceStatus } from '@/lib/types'
 import { getEventImage, fetchImagesCached } from '@/lib/venue-images'
@@ -746,7 +746,11 @@ export async function GET(req: NextRequest) {
       image: e.image ? e.image.replace(/^http:\/\//, 'https://') : e.image,
       // Maksunkeruulinkki ei ole sivu: pois ticketUrlista, jolloin CTA:t
       // putoavat infoUrliin (ks. lib/event-links.ts onMaksunkeruuUrl).
-      ticketUrl: onMaksunkeruuUrl(e.ticketUrl) ? null : e.ticketUrl,
+      // Linkit siistitään ensin (lib/event-links siistiLinkki): lähteiden
+      // "route:<nolink>", alkuvälilyönnit ja "Http://" rikkoivat linkit ja
+      // JSON-LD:n url-kentän (Search Console 21.11.2026).
+      ticketUrl: (() => { const u = siistiLinkki(e.ticketUrl); return onMaksunkeruuUrl(u) ? null : u })(),
+      infoUrl: siistiLinkki(e.infoUrl),
     }))
     // Käsin tehdyt korjaukset (kuva, lippulinkki) tapahtumiin, joille lähde
     // ei niitä anna — data/tapahtumakorjaukset.json, ks. lib/tapahtumakorjaukset.

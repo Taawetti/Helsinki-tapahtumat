@@ -45,6 +45,24 @@ export function hasOwnEventPage(e: { id: string }): boolean {
   return /^[a-z_]+:[a-z0-9]+$/i.test(id)
 }
 
+/** Lähteen linkki kelvolliseksi verkko-osoitteeksi, tai null.
+ *
+ *  Search Console 21.11.2026: "Virheellinen URL-osoite kentässä url"
+ *  (Tapahtumat: strukturoitu data). Lähteistä tuli kolmenlaista roskaa, joka
+ *  päätyi sellaisenaan linkkeihin ja JSON-LD:hen: HKO:n rajapinnan
+ *  paikkamerkki "route:&lt;nolink&gt;" ilmaistapahtumilla, LinkedEventsin
+ *  välilyönti alussa (" https://www.santasfarm.fi/") ja iso alkukirjain
+ *  ("Http://www.tiketti.fi/…"). Välilyönnit pois (sisäiset → %20), skeema
+ *  pienellä, &amp; puretaan; kaikki muu kuin http(s)-osoite pisteellisellä
+ *  isäntänimellä hylätään, jolloin tapahtuma näkyy ilman rikkinäistä linkkiä. */
+export function siistiLinkki(url: string | null | undefined): string | null {
+  if (!url) return null
+  const u = url.trim().replace(/&amp;/gi, '&').replace(/\s/g, '%20')
+  const m = u.match(/^(https?):\/\/([^/?#]+)(.*)$/i)
+  if (!m || !m[2].includes('.')) return null
+  return `${m[1].toLowerCase()}://${m[2]}${m[3]}`
+}
+
 /** Pelkkä maksunkeruulinkki (MobilePay-lippaan pay-in-QR-sivu) ei ole
  *  tapahtuman infosivu eikä lippukauppa — "Lue lisää" ei saa pudottaa
  *  käyttäjää suoraan "Lähetä rahaa lippaaseen" -näkymään (todettu

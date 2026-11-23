@@ -12,9 +12,11 @@
 // ennen klikkausta, kuten heron "Liput alk. 30€" -nappi. Kortti on matala
 // (HANDOFF-mobiili: etusivu ei saa työntää Illan nostoja ruudun alle), mutta
 // juliste on tarpeeksi iso erottuakseen ruudukosta. Juliste on 128 × 171 px
-// myös puhelimessa (omistaja 3.11.2026: 104 px oli liian pieni) ja avautuu
-// napautuksesta koko kokoon (components/Kuvakatselu) — koko leveyden
-// pystyjuliste olisi puhelimessa yli 500 px korkea.
+// myös puhelimessa (omistaja 3.11.2026: 104 px oli liian pieni). Julisteen
+// napautus avaa infopaneelin kuten muukin kortti (omistaja 23.11.2026: "kun
+// kortista painaa kuvaa niin se näyttää kuvan vaan, sen pitäisi viedä info
+// kortin aukaisuun siitäkin"). Aiemmin juliste avautui koko kokoon
+// (components/Kuvakatselu); paneelissa kuva näkyy jo isona.
 //
 // TYÖPÖYTÄ (omistaja 12.11.2026: "tietokoneella nostokortti on vaisu"):
 // puhelimen mitat 1 180 px leveässä kortissa jättivät kaksi kolmasosaa
@@ -27,6 +29,18 @@
 // "miksi kuva on niin pieni verrattuna laatikkoon" — pystykuva täytti jo
 // korkeuden, joten ainoa keino on korkeampi kortti ja juliste ilman kehystä).
 // Puhelimen asettelu ei muutu; nappi on DOM:ssa kahdesti mutta vain toinen näkyy.
+//
+// YKSI ISO KORTTI, MUUT RIVEINÄ (omistaja 23.11.2026: "kännykällä kaksi
+// nostoa ja pitää scrollata jonkin verran että pääsee tämän päivän
+// tapahtumiin"). Sovelluksen lupaus on "mitä tänään", joten kärki ei saa
+// työntää päivän tapahtumia kahden ruudullisen alle. Ensimmäinen nosto
+// (omistajan jarjestys, käytännössä lähin) saa koko kortin; muut näkyvät sen
+// alla yhtenä kapeana "Tulossa myös" -rivinä per nosto: päivä, otsikko ja
+// nuoli. Rivin napautus avaa saman infopaneelin kuin kortti ja kirjaa
+// promo_view'n samalla säännöllä, joten kampanjaraportti pysyy vertailukelpoisena
+// (kapea rivi kerää vähemmän näyttöjä — se on oikea tieto, ei vika). Kun
+// ensimmäinen nosto on ohi, seuraava nousee itsestään isoksi. Otsikko on
+// ison kortin kuukausi ("Marraskuun nosto"); rivillä päivä kertoo kuukauden.
 //
 // Napautus avaa saman infopaneelin kuin muualla (onOpen → pinta 'promo');
 // lippunappi vie suoraan lippukauppaan ja kirjautuu external_clickinä samalla
@@ -43,9 +57,8 @@
 // pageview (lib/track), joten kehityspalvelin, ?notrack=1 ja admin-istunto
 // jäävät pois. Ei tunnistetta — sama tietosuoja-asema kuin sivun avauksella.
 
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import { Ticket, ArrowUpRight } from 'lucide-react'
-import Kuvakatselu from '@/components/Kuvakatselu'
 import type { Event } from '@/lib/types'
 import { kuukausiOtsikko, ryhmitteleKuukausittain, type Nosto } from '@/lib/nostot'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -99,31 +112,64 @@ function useNayttokerta(ref: RefObject<HTMLDivElement | null>, n: Nosto): void {
 
 export default function TulossaNosto({ nostot, onOpen }: { nostot: Nosto[]; onOpen: (e: Event) => void }) {
   const { lang, t } = useLanguage()
-  /** Koko kokoon avattu juliste (Kuvakatselu). */
-  const [julisteAuki, setJulisteAuki] = useState<{ src: string; alt: string } | null>(null)
   if (nostot.length === 0) return null
-  const ryhmat = ryhmitteleKuukausittain(nostot)
+  const [iso, ...muut] = nostot
+  const kuukausi = ryhmitteleKuukausittain([iso])[0].kuukausi
   return (
     <section aria-label={t('promo.title')} className="mt-1 md:mt-5">
-      {ryhmat.map((r, i) => (
-        <div key={r.kuukausi} className={i > 0 ? 'mt-4' : undefined}>
-          {/* Otsikko kuukaudesta; yleinen "Tulossa" vain jos kuukautta ei saada. */}
-          <p className="text-[11px] font-black uppercase tracking-[.12em] mb-2" style={{ color: 'rgba(255,255,255,.5)' }}>
-            ✦ {kuukausiOtsikko(r.kuukausi, r.nostot.length, lang === 'en' ? 'en' : 'fi') ?? t('promo.title')}
-          </p>
-          <div className="space-y-2.5">
-            {r.nostot.map((n) => <NostoKortti key={n.id} n={n} onOpen={onOpen} onJuliste={setJulisteAuki} />)}
-          </div>
+      {/* Otsikko ison kortin kuukaudesta; yleinen "Tulossa" vain jos kuukautta ei saada. */}
+      <p className="text-[11px] font-black uppercase tracking-[.12em] mb-2" style={{ color: 'rgba(255,255,255,.5)' }}>
+        ✦ {kuukausiOtsikko(kuukausi, 1, lang === 'en' ? 'en' : 'fi') ?? t('promo.title')}
+      </p>
+      <NostoKortti n={iso} onOpen={onOpen} />
+      {muut.length > 0 && (
+        <div className="mt-2 space-y-1.5">
+          {muut.map((n) => <NostoRivi key={n.id} n={n} onOpen={onOpen} />)}
         </div>
-      ))}
-      <Kuvakatselu src={julisteAuki?.src ?? null} alt={julisteAuki?.alt ?? ''} open={!!julisteAuki} onClose={() => setJulisteAuki(null)} />
+      )}
     </section>
+  )
+}
+
+/** Kapea rivi toiselle ja sitä seuraaville nostoille: "Tulossa myös ·
+ *  ke 9.12. · Jannan joulu – Ystävien kanssa →". Pieni juliste vasemmalla,
+ *  jotta rivi tunnistuu samaksi tapahtumaksi kuin myöhemmin iso kortti. */
+function NostoRivi({ n, onOpen }: { n: Nosto; onOpen: (e: Event) => void }) {
+  const { lang, t } = useLanguage()
+  const rivi = useRef<HTMLDivElement>(null)
+  useNayttokerta(rivi, n)
+  const e = n.event
+  const kieli = lang === 'en' ? 'en' : 'fi'
+  const avaa = () => onOpen(e)
+  return (
+    <div ref={rivi} role="button" tabIndex={0} onClick={avaa}
+      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); avaa() } }}
+      className="relative flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]"
+      style={{ background: '#111118', border: '1px solid rgba(107,118,255,.18)' }}>
+      {e.image ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={e.image} alt="" className="block w-[36px] h-[48px] rounded-md object-cover shrink-0" />
+      ) : (
+        <div className="w-[36px] h-[48px] rounded-md shrink-0 flex items-center justify-center text-base" style={{ background: 'rgba(255,255,255,.06)' }}>✦</div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-[10.5px] font-black uppercase tracking-[.12em] truncate" style={{ color: '#a3abff' }}>
+          {t('promo.also')} · {formatEventDate(e.startTime, kieli)}
+        </p>
+        <p className="text-[14px] md:text-[15px] font-black text-white leading-tight truncate">{e.title}</p>
+      </div>
+      {n.mainos && (
+        <span className="text-[10px] font-black uppercase tracking-[.1em] px-2 py-0.5 rounded-full shrink-0"
+          style={{ background: 'rgba(255,255,255,.14)', color: 'rgba(255,255,255,.85)' }}>{t('promo.ad')}</span>
+      )}
+      <ArrowUpRight size={16} className="shrink-0" style={{ color: '#a3abff' }} />
+    </div>
   )
 }
 
 /** Yksi nostokortti. Oma komponentti, jotta näyttökerran vahti (hook) saa
  *  oman viitteen jokaiseen korttiin. */
-function NostoKortti({ n, onOpen, onJuliste }: { n: Nosto; onOpen: (e: Event) => void; onJuliste: (kuva: { src: string; alt: string }) => void }) {
+function NostoKortti({ n, onOpen }: { n: Nosto; onOpen: (e: Event) => void }) {
   const { lang, t } = useLanguage()
   const kortti = useRef<HTMLDivElement>(null)
   useNayttokerta(kortti, n)
@@ -167,16 +213,9 @@ function NostoKortti({ n, onOpen, onJuliste }: { n: Nosto; onOpen: (e: Event) =>
 
       <div className="relative flex gap-3.5 p-3.5 md:gap-6 md:p-6 lg:gap-0 lg:p-0 items-stretch">
         {kuva ? (
-          /* Oma nappi kortin (div role=button) sisällä: napautus avaa julisteen,
-             ei infopaneelia. Enter/välilyönti pysäytetään, ettei kortin
-             onKeyDown avaa paneelia samalla. */
-          <button type="button" aria-label={t('promo.open_image')}
-            onClick={(ev) => { ev.stopPropagation(); onJuliste({ src: kuva, alt: e.title }) }}
-            onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation() }}
-            className="shrink-0 rounded-xl md:rounded-2xl lg:rounded-none transition-transform active:scale-[.98] lg:active:scale-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b76ff]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={kuva} alt="" className="block w-[128px] h-[171px] md:w-[184px] md:h-[245px] lg:w-[232px] lg:h-[309px] object-cover rounded-xl md:rounded-2xl lg:rounded-none shadow-[0_16px_40px_-14px_rgba(0,0,0,.85)] lg:shadow-none" />
-          </button>
+          /* Pelkkä kuva: napautus kuplii kortin onClickiin ja avaa infopaneelin. */
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={kuva} alt="" className="block shrink-0 w-[128px] h-[171px] md:w-[184px] md:h-[245px] lg:w-[232px] lg:h-[309px] object-cover rounded-xl md:rounded-2xl lg:rounded-none shadow-[0_16px_40px_-14px_rgba(0,0,0,.85)] lg:shadow-none" />
         ) : (
           <div className="w-[128px] h-[171px] md:w-[184px] md:h-[245px] lg:w-[232px] lg:h-[309px] rounded-xl md:rounded-2xl lg:rounded-none shrink-0 flex items-center justify-center text-3xl" style={{ background: 'rgba(255,255,255,.06)' }}>✦</div>
         )}

@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<!-- Somevideon pohja (scripts/somevideo/tee-video.ts ajaa tämän Chromessa).
+     Jokainen ruutu piirretään ajan funktiona ja pakataan H.264:ksi WebCodecsilla
+     (mediabunny), joten sama data tuottaa aina saman videon. Tekstit tulevat
+     valmiina skriptiltä: tämä tiedosto ei muodosta yhtään sanaa itse. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=block">
+<style>html,body{margin:0;background:#000}canvas{display:block;width:540px;height:960px}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="/mediabunny.js"></script>
+<script>
+const W = 1080, H = 1920, FPS = 30
+// Tahti: koukku 1,2 s, viisi kohdetta à 2,8 s, loppu 1,8 s ≈ 17 s. Lyhyt video
+// katsotaan useammin loppuun ja uudelleen, mikä on syötteen tärkein signaali.
+let INTRO = 1.2, KOHDE = 2.8, LOPPU = 1.8
+const SIIRTO = 0.22
+const KANSI_T = 0.6
+const LEIKKAUS = 0.24 // koukun kuvat vaihtuvat näin tiheään
+
+// TikTokin ja Reelsin omat painikkeet peittävät alalaidan (~25 %) ja oikean
+// reunan alapuoliskolla. Tekstit pidetään tämän alueen sisällä.
+const TURVA = { yla: 230, ala: 1480, vasen: 72, oikea: 920 }
+const TEKSTI_LEVEYS = TURVA.oikea - TURVA.vasen
+const PAIVA_TILA = 250 // ensimmäisen kortin tunnuksen ja ison päivärivin viemä tila
+
+const VARI = {
+  tausta: '#0a0a0f',
+  aksentti: '#8b93ff',
+  liuku1: '#6b76ff',
+  liuku2: '#5059e6',
+  himmea: 'rgba(255,255,255,0.74)',
+  ilmainenTausta: 'rgba(16,185,129,0.22)',
+  ilmainenTeksti: '#34d399',
+}
+
+const canvas = document.getElementById('c')
+const ctx = canvas.getContext('2d')
+
+const rajaa = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const pehmea = (x) => 1 - Math.pow(1 - rajaa(x), 3) // ease-out cubic
+
+let SPEC = null
+let KUVAT = [] // [{ kuva, tausta }] kohteittain
+let IKONI = null
+let AVAUS = [] // avauspätkän ruudut (30 fps)
+let JAKSOT = []
+let KESTO = 0
+const ASETTELU = new Map()
+
+function lataaKuva(src) {
+  return new Promise((ok, virhe) => {
+    const img = new Image()
+    img.onload = () => ok(img)
+    img.onerror = () => virhe(new Error('kuva ei latautunut: ' + src))
+    img.src = src
+  })
+}
+
+async function lataa(spec) {
+  SPEC = spec
+  for (const p of ['600', '700', '800', '900']) await document.fonts.load(`${p} 80px Inter`)
+  if (!document.fonts.check('900 80px Inter')) throw new Error('Inter-fontti ei latautunut')
+  KUVAT = await Promise.all(spec.kohteet.map(async (k) => ({
+    kuva: k.kuva ? await lataaKuva(k.kuva) : null,
+    tausta: k.tausta ? await lataaKuva(k.tausta) : null,
+  })))
+  IKONI = await lataaKuva('/ikoni.png')
+  if (spec.tahti) { KOHDE = spec.tahti.kohde; LOPPU = spec.tahti.loppu }
+  if (spec.avaus) {
+    AVAUS = await Promise.all(Array.from({ length: spec.avaus.ruutuja }, (_, i) => lataaKuva(`/avaus/${String(i).padStart(3, '0')}.jpg`)))
+    INTRO = AVAUS.length / FPS
+  }
+  if (spec.suora) {
+    // Ei otsikkoruutua: ensimmäinen kortti alkaa ruudusta 0 ja on yhtä pitkä kuin
+    // muut (omistaja 21.11.2026); koukku näkyy sen alussa suora.kesto sekuntia.
+    JAKSOT = spec.kohteet.map((_, i) => ({ laji: 'kohde', i, alku: i * KOHDE, kesto: KOHDE }))
+    JAKSOT.push({ laji: 'loppu', alku: spec.kohteet.length * KOHDE, kesto: LOPPU })
+    KESTO = spec.kohteet.length * KOHDE + LOPPU
+  } else {
+    JAKSOT = [{ laji: 'intro', alku: 0, kesto: INTRO }]
+    spec.kohteet.forEach((_, i) => JAKSOT.push({ laji: 'kohde', i, alku: INTRO + i * KOHDE, kesto: KOHDE }))
+    JAKSOT.push({ laji: 'loppu', alku: INTRO + spec.kohteet.length * KOHDE, kesto: LOPPU })
+    KESTO = INTRO + spec.kohteet.length * KOHDE + LOPPU
+  }
+}
+
+// ── apurit ─────────────────────────────────────────────────────────────────
+function pyoreaSuorakaide(x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.roundRect(x, y, w, h, r)
+}
+
+/** Kuva täyttää alueen (cover), skaalaus s >= 1 lisää zoomia, dx/dy siirtää. */
+function piirraPeittaen(img, x, y, w, h, s = 1, dx = 0, dy = 0) {
+  const k = Math.max(w / img.width, h / img.height) * s
+  const iw = img.width * k, ih = img.height * k
+  ctx.drawImage(img, x + (w - iw) / 2 + dx, y + (h - ih) / 2 + dy, iw, ih)
+}
+
+function rivita(teksti, maxW) {
+  const sanat = teksti.split(/\s+/).filter(Boolean)
+  const rivit = []
+  let r = ''
+  for (const s of sanat) {
+    const koe = r ? r + ' ' + s : s
+    if (!r || ctx.measureText(koe).width <= maxW) r = koe
+    else { rivit.push(r); r = s }
+  }
+  if (r) rivit.push(r)
+  return rivit
+}
+
+/** Isoin fonttikoko, jolla teksti mahtuu maxRivit riville. Pienimmälläkin
+ *  koolla ylimenevä osa katkaistaan sanarajasta ja loppuun tulee "…". */
+function sovita(teksti, paino, isoin, pienin, maxW, maxRivit) {
+  for (let koko = isoin; koko >= pienin; koko -= 4) {
+    ctx.font = `${paino} ${koko}px Inter`
+    const rivit = rivita(teksti, maxW)
+    if (rivit.length <= maxRivit && rivit.every((r) => ctx.measureText(r).width <= maxW)) return { koko, rivit }
+  }
+  ctx.font = `${paino} ${pienin}px Inter`
+  let rivit = rivita(teksti, maxW)
+  if (rivit.length > maxRivit) {
+    rivit = rivit.slice(0, maxRivit)
+    let viim = rivit[maxRivit - 1]
+    while (viim.includes(' ') && ctx.measureText(viim + '…').width > maxW) viim = viim.slice(0, viim.lastIndexOf(' '))
+    rivit[maxRivit - 1] = viim.replace(/[\s,:;–-]+$/, '') + '…'
+  }
+  return { koko: pienin, rivit }
+}
+
+function tekstiRivi(teksti, x, y, alfa, nousu) {
+  ctx.globalAlpha = alfa
+  ctx.fillText(teksti, x, y + nousu)
+}
+
+// ── edistymispalkki (kuten tarinoissa) ─────────────────────────────────────
+function piirraPalkki(nykyinen, osuus) {
+  const n = SPEC.kohteet.length
+  const vali = 12, x0 = TURVA.vasen, leveys = W - 2 * TURVA.vasen
+  const pala = (leveys - vali * (n - 1)) / n
+  for (let i = 0; i < n; i++) {
+    const x = x0 + i * (pala + vali)
+    ctx.fillStyle = 'rgba(255,255,255,0.28)'
+    pyoreaSuorakaide(x, TURVA.yla, pala, 8, 4); ctx.fill()
+    const tayttö = i < nykyinen ? 1 : i === nykyinen ? osuus : 0
+    if (tayttö > 0) {
+      ctx.fillStyle = '#ffffff'
+      pyoreaSuorakaide(x, TURVA.yla, Math.max(8, pala * tayttö), 8, 4); ctx.fill()
+    }
+  }
+}
+
+// ── apurit: tarrateksti (kuten TikTokin oma tekstityökalu) ──────────────────
+/** Teksti omassa pyöreäkulmaisessa laatikossa. Toimii minkä tahansa kuvan
+ *  päällä ja näyttää alustan omalta tekstiltä eikä mainokselta. */
+function tarra(teksti, x, y, koko, paino, tausta, vari, tasaus = 'left') {
+  ctx.font = `${paino} ${koko}px Inter`
+  const lev = ctx.measureText(teksti).width
+  const px = koko * 0.32, korkeus = koko * 1.28
+  const vasen = tasaus === 'center' ? x - lev / 2 - px : x
+  ctx.fillStyle = tausta
+  pyoreaSuorakaide(vasen, y, lev + 2 * px, korkeus, koko * 0.22)
+  ctx.fill()
+  ctx.fillStyle = vari
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillText(teksti, vasen + px, y + korkeus * 0.76)
+  return { lev: lev + 2 * px, korkeus }
+}
+
+function taustaKuva(tausta, p) {
+  ctx.fillStyle = VARI.tausta
+  ctx.fillRect(0, 0, W, H)
+  if (tausta) piirraPeittaen(tausta, 0, 0, W, H, 1.1 + 0.08 * p)
+  else {
+    const g = ctx.createLinearGradient(0, 0, W, H)
+    g.addColorStop(0, '#2a2f6b'); g.addColorStop(1, '#141633')
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
+  }
+}
+
+/** Reunasta reunaan ulottuva kuvakaista. Lähdekuvat ovat pieniä vaakakuvia
+ *  (768–2000 px), joten koko ruudun peittäminen suurentaisi ne suttuisiksi;
+ *  täysleveä kaista pysyy terävänä ja on silti iso. */
+function kuvaKaista(kuva, y, h, zoom, dx) {
+  ctx.save()
+  ctx.beginPath(); ctx.rect(0, y, W, h); ctx.clip()
+  if (kuva) piirraPeittaen(kuva, 0, y, W, h, zoom, dx, 0)
+  else {
+    const g = ctx.createLinearGradient(0, y, W, y + h)
+    g.addColorStop(0, VARI.liuku1); g.addColorStop(1, VARI.liuku2)
+    ctx.fillStyle = g; ctx.fillRect(0, y, W, h)
+  }
+  ctx.restore()
+}
+
+// ── koukku (ensimmäinen 1,2 s) ─────────────────────────────────────────────
+// Kaikki teksti on näkyvissä jo ruudussa 0: syöte näyttää sen pysäytyskuvana
+// ja katsoja päättää alle sekunnissa. Liike tulee kuvista, jotka vaihtuvat
+// 0,24 s välein ja nykäisevät sisään: viisi eri iltaa yhdellä silmäyksellä.
+function piirraIntro(t, A) {
+  ctx.save()
+  ctx.globalAlpha = A
+  const kuvalliset = (SPEC.intro.jarjestys || []).map((i) => KUVAT[i]).filter((k) => k && k.kuva)
+  const n = Math.floor(t / LEIKKAUS)
+  const nyt = kuvalliset.length ? kuvalliset[n % kuvalliset.length] : { kuva: null, tausta: null }
+  const paikallinen = (t - n * LEIKKAUS) / LEIKKAUS
+  taustaKuva(nyt.tausta, t / INTRO)
+  ctx.fillStyle = 'rgba(10,10,15,0.35)'
+  ctx.fillRect(0, 0, W, H)
+
+  // Tunnus joka videossa: valkoinen "✦ Mitä tänään?" ilman laatikkoa, ✦ ja ?
+  // sovelluksen violetilla. Tumma liuku yläosassa pitää tekstin luettavana
+  // vaaleankin kuvan päällä.
+  const { pieni, koukku, ala, korosta } = SPEC.intro
+  const g = ctx.createLinearGradient(0, 0, 0, TURVA.yla + 560)
+  g.addColorStop(0, 'rgba(10,10,15,0.75)'); g.addColorStop(1, 'rgba(10,10,15,0)')
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, TURVA.yla + 560)
+  // Suurin koko, jolla pisin rivi mahtuu turva-alueelle.
+  let koko = 200
+  for (; koko > 70; koko -= 4) {
+    ctx.font = `900 ${koko}px Inter`
+    if (koukku.every((r) => ctx.measureText(r).width <= TEKSTI_LEVEYS + 40)) break
+  }
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 4
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+  ctx.font = '800 40px Inter'
+  ctx.fillStyle = '#ffffff'
+  let y = TURVA.yla + 10
+  ctx.fillText(pieni, TURVA.vasen, y + 40)
+  y += 40 * 1.28 + 22
+  ctx.font = `900 ${koko}px Inter`
+  for (const r of koukku) {
+    let cx = TURVA.vasen
+    for (const m of r) {
+      ctx.fillStyle = korosta.includes(m) ? VARI.aksentti : '#ffffff'
+      ctx.fillText(m, cx, y + koko * 1.28 * 0.76)
+      cx += ctx.measureText(m).width
+    }
+    y += koko * 1.28 + 10
+  }
+  ctx.restore()
+
+  const kaistaY = y + 34
+  const kaistaH = Math.min(660, TURVA.ala - 110 - kaistaY)
+  const nyk = 1.16 - 0.12 * pehmea(paikallinen / 0.7)
+  kuvaKaista(nyt.kuva, kaistaY, kaistaH, nyk, 0)
+
+  ctx.font = '800 54px Inter'
+  ctx.fillStyle = '#ffffff'
+  ctx.textAlign = 'left'
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 18
+  ctx.fillText(ala, TURVA.vasen, kaistaY + kaistaH + 78)
+  ctx.restore()
+}
+
+// ── avauspätkä (oikea video) koukkuna ──────────────────────────────────────
+// Oikea puhelimella kuvattu pätkä näyttää käyttäjän tekemältä eikä mainokselta,
+// ja liike pysäyttää selauksen. Koko teksti näkyy jo ruudussa 0 (syötteen
+// pysäytyskuva). Viimeisen rivin viimeinen sana aksenttivärillä: käänne.
+function piirraAvaus(t, A) {
+  ctx.save()
+  ctx.globalAlpha = A
+  const i = Math.min(AVAUS.length - 1, Math.max(0, Math.floor(t * FPS + 1e-6)))
+  piirraPeittaen(AVAUS[i], 0, 0, W, H)
+  const g = ctx.createLinearGradient(0, 0, 0, 1250)
+  g.addColorStop(0, 'rgba(10,10,15,0.62)'); g.addColorStop(0.55, 'rgba(10,10,15,0.34)'); g.addColorStop(1, 'rgba(10,10,15,0)')
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 1250)
+
+  const { pieni, koukku, ala } = SPEC.avaus
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+  ctx.shadowColor = 'rgba(0,0,0,0.75)'; ctx.shadowBlur = 34; ctx.shadowOffsetY = 4
+  let y = TURVA.yla + 10
+  ctx.font = '800 42px Inter'
+  let cx = TURVA.vasen
+  for (const m of pieni) {
+    ctx.fillStyle = m === '✦' ? VARI.aksentti : '#ffffff'
+    ctx.fillText(m, cx, y + 42)
+    cx += ctx.measureText(m).width
+  }
+  y += 42 * 1.28 + 28
+  // Jokainen rivi omalla isoimmalla koollaan (enintään 172 px).
+  koukku.forEach((r, ri) => {
+    let koko = 172
+    for (; koko > 80; koko -= 4) { ctx.font = `900 ${koko}px Inter`; if (ctx.measureText(r).width <= TEKSTI_LEVEYS + 40) break }
+    ctx.font = `900 ${koko}px Inter`
+    const viimeinen = ri === koukku.length - 1 && koukku.length > 1
+    const jako = viimeinen ? r.lastIndexOf(' ') : -1
+    const alku = jako > 0 ? r.slice(0, jako + 1) : r
+    const loppu = jako > 0 ? r.slice(jako + 1) : ''
+    y += koko * 1.02
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(alku, TURVA.vasen, y)
+    if (loppu) { ctx.fillStyle = VARI.aksentti; ctx.fillText(loppu, TURVA.vasen + ctx.measureText(alku).width, y) }
+    y += 14
+  })
+  ctx.shadowColor = 'transparent'
+  tarra(ala, TURVA.vasen, y + 30, 50, 800, 'rgba(10,10,15,0.72)', '#ffffff')
+  ctx.restore()
+}
+
+// ── tapahtuma ──────────────────────────────────────────────────────────────
+function asettelu(i) {
+  if (ASETTELU.has(i)) return ASETTELU.get(i)
+  const k = SPEC.kohteet[i]
+  const otsikko = sovita(k.otsikko, 900, 96, 58, TEKSTI_LEVEYS, 3)
+  const paikka = sovita(k.paikka || '', 600, 48, 40, TEKSTI_LEVEYS, 2)
+  const kuva = KUVAT[i].kuva
+  const suhde = kuva ? kuva.width / kuva.height : 16 / 9
+  // Suora alku: ensimmäisen kortin yläpuolelle iso päivä (omistaja 21.11.2026).
+  const kaistaY = TURVA.yla + 44 + (SPEC.suora && i === 0 ? PAIVA_TILA : 0)
+  const pillit = k.aika || k.ilmainen || k.loppuunmyyty ? 88 : 0
+  const teksti = 90 + pillit + otsikko.rivit.length * otsikko.koko * 1.06 + 20 + paikka.rivit.length * paikka.koko * 1.25
+  const kaistaH = Math.max(420, Math.min(W / suhde, 820, TURVA.ala - kaistaY - teksti))
+  const a = { otsikko, paikka, pillit, kaistaY, kaistaH, tekstiY: kaistaY + kaistaH }
+  ASETTELU.set(i, a)
+  return a
+}
+
+function piirraKohde(i, tKoko, A) {
+  const k = SPEC.kohteet[i]
+  const { kuva, tausta } = KUVAT[i]
+  const L = asettelu(i)
+  // Suora alku: ensimmäisen kortin alussa koukku h sekuntia, sitten kortin oma
+  // aikajana (t). Kuva liikkuu koko ajan yhtenäisesti (tKoko).
+  const h = i === 0 && SPEC.suora ? SPEC.suora.kesto : 0
+  const koukku = tKoko < h
+  const t = Math.max(0, tKoko - h)
+  const p = t / (KOHDE - h)
+  const pz = tKoko / KOHDE
+  ctx.save()
+  ctx.globalAlpha = A
+
+  taustaKuva(tausta, pz)
+  const varjo = ctx.createLinearGradient(0, 0, 0, H)
+  varjo.addColorStop(0, 'rgba(10,10,15,0.30)')
+  varjo.addColorStop(0.55, 'rgba(10,10,15,0.55)')
+  varjo.addColorStop(1, 'rgba(10,10,15,0.90)')
+  ctx.fillStyle = varjo
+  ctx.fillRect(0, 0, W, H)
+
+  // Ensimmäisessä kortissa ei palkkia: sen paikalla on tunnus "✦ Mitä tänään?".
+  if (!koukku && h === 0) piirraPalkki(i, rajaa(p))
+  if (h > 0 && SPEC.suora.paiva) {
+    // Tunnus ja iso päivä ylhäällä koko ensimmäisen kortin ajan (omistaja 21.11.2026).
+    ctx.save()
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 20
+    let koko = 132
+    for (; koko > 70; koko -= 4) { ctx.font = `900 ${koko}px Inter`; if (ctx.measureText(SPEC.suora.paiva).width <= TEKSTI_LEVEYS + 40) break }
+    ctx.font = `900 ${koko}px Inter`
+    const paivaY = L.kaistaY - 34
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(SPEC.suora.paiva, TURVA.vasen, paivaY)
+    // "✦ Mitä tänään?" valkoisena, ✦ ja ? violettina (sama tunnus kuin aiemmissa videoissa).
+    ctx.font = '900 84px Inter'
+    let cx = TURVA.vasen
+    for (const m of SPEC.suora.pieni) {
+      ctx.fillStyle = m === '✦' || m === '?' ? VARI.aksentti : '#ffffff'
+      ctx.fillText(m, cx, paivaY - koko * 0.95 - 10)
+      cx += ctx.measureText(m).width
+    }
+    ctx.restore()
+  }
+
+  // Kuva nykäisee sisään (1,14 → 1,04) ja jatkaa hidasta liukua.
+  const suunta = i % 2 === 0 ? 1 : -1
+  const zoom = 1.14 - 0.1 * pehmea(tKoko / 0.45) - 0.03 * pz
+  kuvaKaista(kuva, L.kaistaY, L.kaistaH, zoom, suunta * (pz - 0.5) * W * 0.05)
+
+  if (koukku) {
+    // Koukku: tunnus ylhäällä, iso teksti kuvan alla. Kaikki näkyy ruudussa 0.
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+    let y = L.tekstiY + 40
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 24
+    for (const r of SPEC.suora.koukku) {
+      let koko = 124
+      for (; koko > 64; koko -= 4) { ctx.font = `900 ${koko}px Inter`; if (ctx.measureText(r).width <= TEKSTI_LEVEYS + 40) break }
+      ctx.font = `900 ${koko}px Inter`
+      y += koko * 1.04
+      const nuoli = r.endsWith('↓')
+      const runko = nuoli ? r.slice(0, -1) : r
+      ctx.fillStyle = '#ffffff'; ctx.fillText(runko, TURVA.vasen, y)
+      if (nuoli) { ctx.fillStyle = VARI.aksentti; ctx.fillText('↓', TURVA.vasen + ctx.measureText(runko).width, y) }
+      y += 8
+    }
+    ctx.restore()
+    ctx.restore()
+    return
+  }
+
+  // Järjestysnumero kuvan alakulmassa: "mikä on numero 5?" pitää katsomassa.
+  const nr = pehmea(t / 0.3)
+  const r = 72 * (0.7 + 0.3 * nr)
+  const cx = TURVA.vasen + 72, cy = L.kaistaY + L.kaistaH
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 24
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2)
+  ctx.fillStyle = VARI.liuku1; ctx.fill()
+  ctx.restore()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `900 ${Math.round(r * 1.25)}px Inter`
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(String(i + 1), cx, cy + 4)
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+
+  let y = L.tekstiY + 96
+  const nousu = (viive) => { const a = pehmea((t - viive) / 0.25); ctx.globalAlpha = A * a; return (1 - a) * 22 }
+  if (L.pillit) {
+    const dy = nousu(0.08)
+    let x = TURVA.vasen
+    if (k.aika) x += tarra(k.aika, x, y - 6 + dy, 46, 800, '#ffffff', '#0a0a0f').lev + 16
+    if (k.ilmainen) x += tarra('Ilmainen', x, y - 6 + dy, 46, 800, VARI.ilmainenTeksti, '#062b1f').lev + 16
+    if (k.loppuunmyyty) tarra('Loppuunmyyty', x, y - 6 + dy, 46, 800, 'rgba(239,68,68,0.92)', '#ffffff')
+    y += L.pillit
+  }
+  {
+    const dy = nousu(0.14)
+    ctx.font = `900 ${L.otsikko.koko}px Inter`
+    ctx.fillStyle = '#ffffff'
+    for (const rv of L.otsikko.rivit) {
+      y += L.otsikko.koko * 1.06
+      ctx.fillText(rv, TURVA.vasen, y - L.otsikko.koko * 0.12 + dy)
+    }
+  }
+  y += 20
+  if (L.paikka.rivit.length) {
+    const dy = nousu(0.2)
+    ctx.font = `600 ${L.paikka.koko}px Inter`
+    ctx.fillStyle = VARI.himmea
+    for (const rv of L.paikka.rivit) {
+      y += L.paikka.koko * 1.25
+      ctx.fillText(rv, TURVA.vasen, y - L.paikka.koko * 0.2 + dy)
+    }
+  }
+  ctx.restore()
+}
+
+// ── loppukortti ────────────────────────────────────────────────────────────
+function piirraLoppu(t, A) {
+  ctx.save()
+  ctx.globalAlpha = A
+  ctx.fillStyle = VARI.tausta
+  ctx.fillRect(0, 0, W, H)
+  const hehku = (x, y, r, vari) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+    g.addColorStop(0, vari); g.addColorStop(1, 'rgba(80,89,230,0)')
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H)
+  }
+  hehku(300 + 60 * Math.sin(t * 1.4), 620, 700, 'rgba(107,118,255,0.45)')
+  hehku(820 - 50 * Math.sin(t * 1.1), 1250, 650, 'rgba(80,89,230,0.35)')
+
+  const s = pehmea(t / 0.35)
+  const koko = 280 * (0.86 + 0.14 * s)
+  const keskiY = 790
+  ctx.globalAlpha = A * s
+  ctx.save()
+  ctx.shadowColor = 'rgba(107,118,255,0.6)'
+  ctx.shadowBlur = 70
+  pyoreaSuorakaide(W / 2 - koko / 2, keskiY - koko / 2, koko, koko, koko * 0.22)
+  ctx.fillStyle = VARI.liuku1
+  ctx.fill()
+  ctx.restore()
+  ctx.save()
+  pyoreaSuorakaide(W / 2 - koko / 2, keskiY - koko / 2, koko, koko, koko * 0.22)
+  ctx.clip()
+  ctx.drawImage(IKONI, W / 2 - koko / 2, keskiY - koko / 2, koko, koko)
+  ctx.restore()
+
+  const a = pehmea((t - 0.1) / 0.35)
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#ffffff'
+  let tk = 116
+  for (; tk > 60; tk -= 4) {
+    ctx.font = `900 ${tk}px Inter`
+    if (ctx.measureText(SPEC.loppu).width <= 860) break
+  }
+  tekstiRivi(SPEC.loppu, W / 2, keskiY + 370, A * a, (1 - a) * 30)
+  if (SPEC.loppuYla) {
+    ctx.font = '700 58px Inter'
+    ctx.fillStyle = 'rgba(255,255,255,0.82)'
+    tekstiRivi(SPEC.loppuYla, W / 2, keskiY + 260, A * a, (1 - a) * 30)
+  }
+  ctx.restore()
+}
+
+// ── kokoaminen ─────────────────────────────────────────────────────────────
+function piirraJakso(j, t, A) {
+  if (j.laji === 'intro') { if (SPEC.avaus) piirraAvaus(t, A); else piirraIntro(t, A) }
+  else if (j.laji === 'kohde') piirraKohde(j.i, t, A)
+  else piirraLoppu(t, A)
+}
+
+function piirra(T) {
+  let n = JAKSOT.findIndex((j) => T < j.alku + j.kesto)
+  if (n < 0) n = JAKSOT.length - 1
+  const j = JAKSOT[n]
+  const t = T - j.alku
+  // Siirtymä: uusi jakso työntää edellisen vasemmalle kuin pyyhkäisy.
+  // Ristikuva näytti diaesitykseltä; työntö pitää tahdin.
+  if (n > 0 && t < SIIRTO) {
+    const e = 1 - Math.pow(1 - t / SIIRTO, 3)
+    const ed = JAKSOT[n - 1]
+    ctx.save(); ctx.translate(-W * e, 0); piirraJakso(ed, ed.kesto + t, 1); ctx.restore()
+    ctx.save(); ctx.translate(W * (1 - e), 0); piirraJakso(j, t, 1); ctx.restore()
+  } else {
+    piirraJakso(j, t, 1)
+  }
+}
+
+async function laheta(nimi, data) {
+  const r = await fetch('/tulos/' + nimi, { method: 'POST', body: data })
+  if (!r.ok) throw new Error('tallennus epäonnistui: ' + nimi)
+}
+
+async function ruutu(T, nimi) {
+  piirra(T)
+  const blob = await new Promise((ok) => canvas.toBlob(ok, nimi.endsWith('.png') ? 'image/png' : 'image/jpeg', 0.92))
+  await laheta(nimi, blob)
+}
+
+window.renderoi = async (spec, ruudut) => {
+  await lataa(spec)
+  const M = window.Mediabunny
+  if (!(await M.canEncodeVideo('avc', { width: W, height: H, bitrate: 12e6 }))) throw new Error('H.264-pakkaus ei käytettävissä')
+  const output = new M.Output({ format: new M.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new M.BufferTarget() })
+  const lahde = new M.CanvasSource(canvas, { codec: 'avc', bitrate: 12e6, keyFrameInterval: 1 })
+  output.addVideoTrack(lahde, { frameRate: FPS })
+  await output.start()
+  const N = Math.round(KESTO * FPS)
+  for (let f = 0; f < N; f++) {
+    piirra(f / FPS)
+    await lahde.add(f / FPS, 1 / FPS)
+  }
+  await output.finalize()
+  await laheta('video.mp4', output.target.buffer)
+  await ruutu(spec.kansiT ?? KANSI_T, 'kansikuva.jpg')
+  for (const T of ruudut || []) await ruutu(T, `ruutu-${T.toFixed(1)}.png`)
+  return { ruutuja: N, kesto: KESTO }
+}
+window.pohjaValmis = true
+</script>
+</body>
+</html>

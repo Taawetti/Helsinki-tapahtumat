@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<!-- Instagram-karusellin pohja (scripts/somevideo/tee-karuselli.ts ajaa tämän
+     Chromessa). Jokainen dia piirretään kankaalle ja tallennetaan PNG:nä.
+     Tekstit tulevat valmiina spekistä: tämä tiedosto ei muodosta sanoja itse. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=block">
+<style>html,body{margin:0;background:#000}canvas{display:block;width:540px;height:675px}</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1350"></canvas>
+<script>
+const W = 1080, H = 1350, M = 72 // 4:5, Instagramin suurin pystymuoto
+const VARI = { tausta: '#0a0a0f', aksentti: '#8b93ff', liuku1: '#6b76ff', himmea: 'rgba(255,255,255,0.74)', himmeampi: 'rgba(255,255,255,0.62)', ilmainen: '#34d399' }
+const canvas = document.getElementById('c')
+const ctx = canvas.getContext('2d')
+
+function lataaKuva(src) {
+  return new Promise((ok, virhe) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => virhe(new Error('kuva: ' + src)); i.src = src })
+}
+function peita(img, x, y, w, h, s = 1) {
+  const k = Math.max(w / img.width, h / img.height) * s
+  ctx.drawImage(img, x + (w - img.width * k) / 2, y + (h - img.height * k) / 2, img.width * k, img.height * k)
+}
+function rivita(t, maxW) {
+  const out = []; let r = ''
+  for (const s of t.split(/\s+/).filter(Boolean)) { const k = r ? r + ' ' + s : s; if (!r || ctx.measureText(k).width <= maxW) r = k; else { out.push(r); r = s } }
+  if (r) out.push(r); return out
+}
+function sovita(t, paino, isoin, pienin, maxW, maxR) {
+  for (let k = isoin; k >= pienin; k -= 2) { ctx.font = `${paino} ${k}px Inter`; const r = rivita(t, maxW); if (r.length <= maxR && r.every((x) => ctx.measureText(x).width <= maxW)) return { koko: k, rivit: r } }
+  ctx.font = `${paino} ${pienin}px Inter`; return { koko: pienin, rivit: rivita(t, maxW).slice(0, maxR) }
+}
+function tarra(t, x, y, koko, paino, tausta, vari) {
+  ctx.font = `${paino} ${koko}px Inter`
+  const lev = ctx.measureText(t).width, px = koko * 0.36, kor = koko * 1.32
+  ctx.fillStyle = tausta; ctx.beginPath(); ctx.roundRect(x, y, lev + 2 * px, kor, koko * 0.24); ctx.fill()
+  ctx.fillStyle = vari; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(t, x + px, y + kor * 0.75)
+  return lev + 2 * px
+}
+function sumea(img) {
+  ctx.fillStyle = VARI.tausta; ctx.fillRect(0, 0, W, H)
+  if (img) { ctx.save(); ctx.filter = 'blur(40px) saturate(1.2)'; peita(img, -60, -60, W + 120, H + 120); ctx.restore() }
+  ctx.fillStyle = 'rgba(10,10,15,0.62)'; ctx.fillRect(0, 0, W, H)
+}
+/** Rivi, jossa ✦ ja korostettavat merkkijonot aksenttivärillä. */
+function korostettu(t, x, y, korosta) {
+  const osat = t.split(new RegExp(`(✦${korosta ? '|' + korosta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : ''})`)).filter(Boolean)
+  let cx = x
+  for (const o of osat) { ctx.fillStyle = o === '✦' || o === korosta ? VARI.aksentti : '#ffffff'; ctx.fillText(o, cx, y); cx += ctx.measureText(o).width }
+}
+
+// ── kansi: koukku ylhäällä, 2×2-kollaasi alhaalla (vaihtelu näkyy heti) ──────
+function kansi(spec, kuvat) {
+  const k = spec.kansi
+  ctx.fillStyle = VARI.tausta; ctx.fillRect(0, 0, W, H)
+  const kY = 760, kH = H - kY, vali = 8
+  const pw = (W - vali) / 2, ph = (kH - vali) / 2
+  k.kollaasi.forEach((n, i) => {
+    const x = (i % 2) * (pw + vali), y = kY + Math.floor(i / 2) * (ph + vali)
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, pw, ph); ctx.clip(); peita(kuvat[n], x, y, pw, ph); ctx.restore()
+  })
+  const g = ctx.createLinearGradient(0, kY - 60, 0, kY + 160)
+  g.addColorStop(0, 'rgba(10,10,15,1)'); g.addColorStop(1, 'rgba(10,10,15,0)')
+  ctx.fillStyle = g; ctx.fillRect(0, kY - 60, W, 220)
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+  ctx.font = '800 38px Inter'; korostettu(k.pieni, M, 128, null)
+  // Isoin koko, jolla rivit mahtuvat leveyteen JA kollaasin yläpuolelle.
+  const tila = kY - 60 - 150
+  let koko = Math.min(150, Math.floor(tila / (k.rivit.length * 1.0)))
+  for (; koko > 80; koko -= 2) { ctx.font = `900 ${koko}px Inter`; if (k.rivit.every((r) => ctx.measureText(r).width <= W - 2 * M)) break }
+  ctx.font = `900 ${koko}px Inter`
+  let y = 150
+  for (const r of k.rivit) { y += koko * 1.0; korostettu(r, M, y, k.korosta) }
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 24
+  tarra(k.ala, M, kY + kH - 130, 42, 800, 'rgba(10,10,15,0.82)', '#ffffff')
+  ctx.restore()
+}
+
+// ── tapahtumadia ───────────────────────────────────────────────────────────
+function dia(spec, kuvat, i) {
+  const e = spec.kohteet[i], n = spec.kohteet.length, img = kuvat[e.kuva]
+  sumea(img)
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+  ctx.font = '800 34px Inter'; korostettu(spec.ylarivi, M, 92, null)
+  ctx.textAlign = 'right'; ctx.fillStyle = VARI.himmea; ctx.font = '700 34px Inter'; ctx.fillText(`${i + 1}/${n}`, W - M, 92); ctx.textAlign = 'left'
+  const bY = 132, bH = 620
+  ctx.save(); ctx.beginPath(); ctx.rect(0, bY, W, bH); ctx.clip(); peita(img, 0, bY, W, bH, 1.0); ctx.restore()
+  // numero kuvan alakulmassa
+  const r = 64, cx = M + r, cy = bY + bH
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 20
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = VARI.liuku1; ctx.fill(); ctx.restore()
+  ctx.fillStyle = '#fff'; ctx.font = '900 76px Inter'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), cx, cy + 4)
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+  let y = cy + r + 34
+  let x = M
+  x += tarra(e.paiva, x, y, 44, 800, '#ffffff', '#0a0a0f') + 14
+  if (e.ilmainen) tarra('Ilmainen', x, y, 44, 800, VARI.ilmainen, '#062b1f')
+  y += 44 * 1.32 + 26
+  const o = sovita(e.otsikko, 900, 84, 56, W - 2 * M, 2)
+  ctx.font = `900 ${o.koko}px Inter`; ctx.fillStyle = '#fff'
+  for (const rv of o.rivit) { y += o.koko * 1.04; ctx.fillText(rv, M, y) }
+  y += 16
+  ctx.font = '700 40px Inter'; ctx.fillStyle = VARI.himmea; y += 44; ctx.fillText(e.paikka, M, y)
+  const k = sovita(e.kuvaus, 500, 36, 30, W - 2 * M, 3)
+  ctx.font = `500 ${k.koko}px Inter`; ctx.fillStyle = VARI.himmeampi; y += 14
+  for (const rv of k.rivit) { y += k.koko * 1.3; ctx.fillText(rv, M, y) }
+}
+
+// ── loppudia ───────────────────────────────────────────────────────────────
+function loppu(spec, ikoni) {
+  ctx.fillStyle = VARI.tausta; ctx.fillRect(0, 0, W, H)
+  const hehku = (x, y, r, v) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, v); g.addColorStop(1, 'rgba(80,89,230,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H) }
+  hehku(300, 420, 640, 'rgba(107,118,255,0.42)'); hehku(820, 1020, 600, 'rgba(80,89,230,0.32)')
+  const L = spec.loppu, kk = 230, ky = 300
+  ctx.save(); ctx.shadowColor = 'rgba(107,118,255,0.6)'; ctx.shadowBlur = 60
+  ctx.beginPath(); ctx.roundRect(W / 2 - kk / 2, ky, kk, kk, kk * 0.22); ctx.fillStyle = VARI.liuku1; ctx.fill(); ctx.restore()
+  ctx.save(); ctx.beginPath(); ctx.roundRect(W / 2 - kk / 2, ky, kk, kk, kk * 0.22); ctx.clip(); ctx.drawImage(ikoni, W / 2 - kk / 2, ky, kk, kk); ctx.restore()
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'
+  ctx.font = '900 100px Inter'
+  let y = ky + kk + 150
+  for (const r of L.rivit) {
+    const osat = r.split(/(✦)/).filter(Boolean); const lev = osat.reduce((s, o) => s + ctx.measureText(o).width, 0)
+    let cx = W / 2 - lev / 2; ctx.textAlign = 'left'
+    for (const o of osat) { ctx.fillStyle = o === '✦' ? VARI.aksentti : '#fff'; ctx.fillText(o, cx, y); cx += ctx.measureText(o).width }
+    ctx.textAlign = 'center'; y += 112
+  }
+  y += 40
+  ctx.font = '700 46px Inter'; ctx.fillStyle = VARI.himmea; ctx.fillText(L.ala, W / 2, y)
+  ctx.font = '900 88px Inter'; ctx.fillStyle = '#fff'; ctx.fillText(L.url, W / 2, y + 104)
+}
+
+async function laheta(nimi, blob) {
+  const r = await fetch('/tulos/' + nimi, { method: 'POST', body: blob }); if (!r.ok) throw new Error('tallennus: ' + nimi)
+}
+async function tallenna(nimi) {
+  const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/png')); await laheta(nimi, blob)
+}
+window.renderoi = async (spec) => {
+  for (const p of ['500', '600', '700', '800', '900']) await document.fonts.load(`${p} 80px Inter`)
+  if (!document.fonts.check('900 80px Inter')) throw new Error('Inter-fontti ei latautunut')
+  const nimet = new Set([...spec.kohteet.map((k) => k.kuva), ...spec.kansi.kollaasi])
+  const kuvat = {}
+  for (const n of nimet) kuvat[n] = await lataaKuva('/kuvat/' + encodeURIComponent(n))
+  const ikoni = await lataaKuva('/ikoni.png')
+  const pad = (n) => String(n).padStart(2, '0')
+  kansi(spec, kuvat); await tallenna(`${pad(1)}-kansi.png`)
+  for (let i = 0; i < spec.kohteet.length; i++) { dia(spec, kuvat, i); await tallenna(`${pad(i + 2)}-dia.png`) }
+  loppu(spec, ikoni); await tallenna(`${pad(spec.kohteet.length + 2)}-loppu.png`)
+  return spec.kohteet.length + 2
+}
+window.pohjaValmis = true
+</script>
+</body>
+</html>

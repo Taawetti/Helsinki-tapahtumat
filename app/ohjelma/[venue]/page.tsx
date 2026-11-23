@@ -12,7 +12,7 @@ import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
 import { jsonLdHtml } from '@/lib/json-ld'
 import { lueLahteenPalat, palatValille } from '@/lib/lahdevarasto'
 import { kanoninenPaikannimi } from '@/lib/paikannimet'
-import { hasOwnEventPage } from '@/lib/event-links'
+import { hasOwnEventPage, siistiLinkki } from '@/lib/event-links'
 import { httpsKuva } from '@/lib/utils'
 import type { Event } from '@/lib/types'
 
@@ -142,6 +142,12 @@ async function fetchVenueEvents(venue: VenuePage): Promise<Event[]> {
   const lista = events
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
     .slice(0, 60)
+  // Paikkasivu hakee lähteistä ohi koosteen, joten linkit siistitään tässäkin
+  // (Search Console 21.11.2026: HKO:n "route:<nolink>" Musiikkitalon sivulla).
+  for (const e of lista) {
+    e.ticketUrl = siistiLinkki(e.ticketUrl)
+    e.infoUrl = siistiLinkki(e.infoUrl)
+  }
   // Paikkakuva kuvattomille riveille — sama varakuva kuin koosteessa, jotta
   // siemenen kortti ei vaihda ulkoasua kun selaimen haku korvaa sen.
   try {

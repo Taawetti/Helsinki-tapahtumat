@@ -1,5 +1,5 @@
 import { decodeHtmlEntities, httpsKuva } from '@/lib/utils'
-import { onMaksunkeruuUrl } from '@/lib/event-links'
+import { onMaksunkeruuUrl, siistiLinkki } from '@/lib/event-links'
 import { unstable_cache } from 'next/cache'
 import type { Event } from '@/lib/types'
 import { fetchImagesCached, getEventImage } from '@/lib/venue-images'
@@ -45,10 +45,10 @@ function normalize(raw: LEEvent): Event {
     isFree: offer?.is_free ?? false,
     price: offer?.is_free ? null : (offer?.price?.fi || offer?.price?.en || null),
     ticketUrl: (() => {
-      const u = offer?.info_url?.fi || offer?.info_url?.en || null
+      const u = siistiLinkki(offer?.info_url?.fi || offer?.info_url?.en || null)
       return onMaksunkeruuUrl(u) ? null : u
     })(),
-    infoUrl: raw.info_url?.fi || raw.info_url?.en || null,
+    infoUrl: siistiLinkki(raw.info_url?.fi || raw.info_url?.en || null),
     categories: (raw.keywords || []).map(k => k.name?.fi || k.name?.en || '').filter(Boolean).slice(0, 4),
     // yso-tunnisteet myös siemeniin: kohderyhmäsääntö (lib/audience) lukee
     // "lapset ikäryhmänä" -tagin rakenteisesti, ja ilman tätä siemenetty

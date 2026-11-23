@@ -1,6 +1,21 @@
 {
   "nostot": [
     {
+      "id": "stepa-heimo-ab-on-the-rocks-2026-11-28",
+      "osuma": {
+        "otsikko": "stepa",
+        "paiva": "2026-11-28",
+        "paikka": "on the rocks"
+      },
+      "alku": "2026-11-23",
+      "loppu": "2026-11-28",
+      "mainos": false,
+      "asiakas": "Toimituksen nosto (ei vastiketta)",
+      "jarjestys": 0,
+      "muistiinpano": "Omistaja 23.11.2026: Marraskuun nosto (otsikko lasketaan tapahtuman kuukaudesta). jarjestys 0, jotta lähempi marraskuun nosto näkyy ennen Jannan joulukuun nostoa. Toimituksellinen valinta → ei Mainos-merkkiä; jos keikasta sovitaan vastike, aseta mainos: true. Kortin tiedot ja kuvaus data/tapahtumakorjaukset.json (stepa-heimo-ab-on-the-rocks-2026-11-28). Osuma pelkkä \"stepa\": haeNostot käyttää sitä koosteen hakusanana, eikä haku tunnista &-merkkiä eikä ääkkösiä; kaksoiskappaleet on piilotettu ennen hakua, joten osuma on yksiselitteinen.",
+      "koukku": "Stepa bändeineen klo 21.45, lämppärinä AB"
+    },
+    {
       "id": "jannan-joulu-kallion-kirkko-2026-12-09",
       "osuma": {
         "otsikko": "jannan joulu",

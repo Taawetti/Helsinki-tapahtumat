@@ -35,7 +35,7 @@
 // mutta näkyy listoissa normaalisti (19.11.2026 Hellsingin Pre-Club, kun
 // festivaali on nostoissa pe ja la).
 
-import { helsinkiDateOf } from './helsinki-time'
+import { helsinkiDateOf, helsinkiISO } from './helsinki-time'
 
 export interface Tapahtumakorjaus {
   /** Lyhyt tunniste lokiin ja diffiin, esim. "jannan-joulu-kallion-kirkko-2026-12-09". */
@@ -47,6 +47,11 @@ export interface Tapahtumakorjaus {
     paiva: string
     /** Osajono paikan nimestä. Ilman tätä päivän kaikki saman otsikon tapahtumat osuvat. */
     paikka?: string
+    /** true = otsikon pitää olla kokonaan tämä (vertailumuodossa), ei vain
+     *  sisältää sitä. Tarvitaan, kun kaksoiskappaleen otsikko on oikean
+     *  tapahtuman otsikon alkuosa: stadissan "Stepa" vs. On the Rocksin
+     *  "Stepa & Heimo ilman menneisyyttä, AB" (23.11.2026). */
+    tarkka?: boolean
   }
   aseta: {
     image?: string
@@ -66,6 +71,10 @@ export interface Tapahtumakorjaus {
     title?: string
     /** Lipun hinta tekstinä, esim. "39,90 €" → napissa "Liput alk. 39,90 €". */
     price?: string
+    /** Alkamisaika "HH:MM" samana Helsinki-päivänä, kun lähde antaa ovien
+     *  aukeamisen eikä esityksen alkua (Tavastia 19.11.2026: ovet 19.00,
+     *  Kauko Röyhkä lavalla 20.00). Päivä ei muutu, joten osuma pysyy. */
+    kello?: string
   }
   /** Osuva tapahtuma pois koosteesta kokonaan (kaksoiskappale, jota dedup ei
    *  tunnista). aseta jätetään tyhjäksi. */
@@ -95,6 +104,19 @@ export interface Korjattava {
   price?: string | null
   illanNosto?: boolean
   eiIllanNostoihin?: boolean
+  startTimeApprox?: boolean
+}
+
+/** "HH:MM" → uusi startTime samana Helsinki-päivänä, tai null jos muoto tai
+ *  aikaleima on kelvoton (silloin aika jätetään ennalleen). */
+export function korjattuAlku(startTime: string, kello: string): string | null {
+  const m = kello.trim().match(/^(\d{1,2})[:.](\d{2})$/)
+  if (!m) return null
+  const h = Number(m[1]), min = Number(m[2])
+  if (h > 23 || min > 59) return null
+  let paiva: string
+  try { paiva = helsinkiDateOf(startTime) } catch { return null }
+  return helsinkiISO(Number(paiva.slice(0, 4)), Number(paiva.slice(5, 7)), Number(paiva.slice(8, 10)), h, min)
 }
 
 /** Vertailumuoto: pienet kirjaimet, ääkköset pelkiksi kirjaimiksi, välimerkit välilyönneiksi. */
@@ -104,7 +126,8 @@ export const korjausAvain = (s: string | null | undefined): string =>
 export function osuukoKorjaus(e: Pick<Korjattava, 'title' | 'startTime' | 'location'>, k: Tapahtumakorjaus): boolean {
   const otsikko = korjausAvain(k.osuma.otsikko)
   if (!otsikko) return false
-  if (!korjausAvain(e.title).includes(otsikko)) return false
+  const avain = korjausAvain(e.title)
+  if (k.osuma.tarkka ? avain !== otsikko : !avain.includes(otsikko)) return false
   let paiva: string
   try { paiva = helsinkiDateOf(e.startTime) } catch { return false }
   if (paiva !== k.osuma.paiva) return false
@@ -121,6 +144,7 @@ export function sovellaTapahtumakorjaukset<T extends Korjattava>(events: T[], ko
     let tulos = e
     for (const k of korjaukset) {
       if (!osuukoKorjaus(e, k)) continue
+      const alku = k.aseta.kello ? korjattuAlku(tulos.startTime, k.aseta.kello) : null
       tulos = {
         ...tulos,
         ...(k.aseta.image ? { image: k.aseta.image } : {}),
@@ -131,6 +155,7 @@ export function sovellaTapahtumakorjaukset<T extends Korjattava>(events: T[], ko
         ...(k.aseta.shortDescription ? { shortDescription: k.aseta.shortDescription } : {}),
         ...(k.aseta.title ? { title: k.aseta.title } : {}),
         ...(k.aseta.price ? { price: k.aseta.price } : {}),
+        ...(alku ? { startTime: alku, startTimeApprox: false } : {}),
         ...(k.illanNosto ? { illanNosto: true } : {}),
         ...(k.eiIllanNostoihin ? { eiIllanNostoihin: true } : {}),
       }

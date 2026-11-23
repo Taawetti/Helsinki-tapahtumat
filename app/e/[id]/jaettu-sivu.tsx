@@ -9,7 +9,7 @@
 // Tämä ei ole reittitiedosto, joten se saa viedä mitä tahansa.
 
 import type { Metadata } from 'next'
-import { onMaksunkeruuUrl, hasOwnEventPage, shareUrlFor } from '@/lib/event-links'
+import { onMaksunkeruuUrl, hasOwnEventPage, shareUrlFor, siistiLinkki } from '@/lib/event-links'
 import { cache } from 'react'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { headers } from 'next/headers'
@@ -89,10 +89,10 @@ async function fetchLinkedEvent(id: string): Promise<EventPageData | null> {
       isFree,
       price: isFree ? null : (offer?.price?.fi || null),
       ticketUrl: (() => {
-        const u = offer?.info_url?.fi || offer?.info_url?.en || null
+        const u = siistiLinkki(offer?.info_url?.fi || offer?.info_url?.en || null)
         return onMaksunkeruuUrl(u) ? null : u
       })(),
-      infoUrl: e.info_url?.fi || e.info_url?.en || null,
+      infoUrl: siistiLinkki(e.info_url?.fi || e.info_url?.en || null),
       categories: (e.keywords || []).map((k) => k.name?.fi || k.name?.en || '').filter(Boolean).slice(0, 5),
       ysoIds: extractYsoIds(e.keywords),
       venue: loc?.name?.fi || loc?.name?.en || '',
@@ -147,8 +147,8 @@ async function fetchTicketmasterEvent(tmId: string): Promise<EventPageData | nul
       image,
       isFree,
       price: price && !isFree ? `${price.min}–${price.max} ${price.currency ?? '€'}` : null,
-      ticketUrl: e.url ?? null,
-      infoUrl: e.url ?? null,
+      ticketUrl: siistiLinkki(e.url),
+      infoUrl: siistiLinkki(e.url),
       categories: [genre, segment].filter((c) => c && c !== 'Undefined'),
       venue: venue?.name ?? '',
       address: venue?.address?.line1 ?? '',
@@ -189,8 +189,8 @@ async function fetchFestivalEvent(id: string): Promise<EventPageData | null> {
     image: fest.image?.replace(/^http:\/\//, 'https://') ?? fest.image,
     isFree: fest.isFree,
     price: null,
-    ticketUrl: fest.ticketUrl || null,
-    infoUrl: fest.infoUrl || null,
+    ticketUrl: siistiLinkki(fest.ticketUrl),
+    infoUrl: siistiLinkki(fest.infoUrl),
     categories: fest.categories,
     venue: fest.venueName,
     address: fest.address,

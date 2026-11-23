@@ -111,17 +111,6 @@
       "muistiinpano": "Omistaja 18.11.2026: kevyen musiikin vierailija Musiikkitalossa nostetaan käsin illan nostoihin (Musiikkitalo on paikkaportaissa pienemmällä portaalla orkesterikonserttien takia). The Grand Stars Orchestra: The Greatest Film Music Show."
     },
     {
-      "id": "kotijoukot-arena-2026-11-19",
-      "osuma": {
-        "otsikko": "kotijoukot",
-        "paiva": "2026-11-19",
-        "paikka": "arena"
-      },
-      "aseta": {},
-      "illanNosto": true,
-      "muistiinpano": "Omistaja 18.11.2026: torstain illan nostoihin muuksi kuin keikaksi Niina Lahtisen ja Joonas Nordmanin komedianäytelmä Kotijoukot (Kaupunginteatterin Arena-näyttämö klo 18.30), Hellsingin Pre-Clubin tilalle."
-    },
-    {
       "id": "hellsinki-pre-club-on-the-rocks-2026-11-19-ei-nostoihin",
       "osuma": {
         "otsikko": "pre club",
@@ -140,11 +129,150 @@
         "paikka": "jaahalli"
       },
       "aseta": {
-        "image": "https://api.hel.fi/linkedevents/media/images/Skating_Jatkasaari_JussiHellsten2021-12_1.jpg",
+        "image": "https://finlandiatrophy.com/wp-content/uploads/2026/06/20251122_ISU_GP_Helsinki_JM_0625-scaled.jpg",
         "ticketUrl": "https://www.lippu.fi/event/finlandia-trophy-helsinki-2026-helsingin-jaeaehalli-22019729/"
       },
       "illanNosto": true,
-      "muistiinpano": "Omistaja 18.11.2026: perjantain illan nostoihin Grand Prix Finlandia Trophy (Bar Loosen keikan tilalle). Valittu stadissan rivi (stadissa-92876), koska se on ainoa yksipäiväinen ja sen aika on kilpailupäivän todellinen alku 14.00 (finlandiatrophy.com/aikataulu: pe 20.11. kilpailut 14.00–20.38); MyHelsingin/LinkedEventsin kaksipäiväinen rivi olisi noussut myös lauantaille. Kuva on kaupungin LinkedEventsissä tälle tapahtumalle käyttämä, lippulinkki lippu.fi:n perjantaituote."
+      "muistiinpano": "Omistaja 18.11.2026: perjantain illan nostoihin Grand Prix Finlandia Trophy (Bar Loosen keikan tilalle). Valittu stadissan rivi (stadissa-92876), koska se on ainoa yksipäiväinen ja sen aika on kilpailupäivän todellinen alku 14.00 (finlandiatrophy.com/aikataulu: pe 20.11. kilpailut 14.00–20.38); MyHelsingin/LinkedEventsin kaksipäiväinen rivi olisi noussut myös lauantaille. Lippulinkki lippu.fi:n perjantaituote. Kuva 19.11.2026: finlandiatrophy.com:n oma kuva vuoden 2025 kisasta (Finlandia Trophy -palkintopallit, 2560×1708); kaupungin LinkedEvents-kuva oli yleinen ulkoluistelukuva Jätkäsaaresta."
+    },
+    {
+      "id": "viki-kopi-10v-show-veikkaus-arena-2026-11-20",
+      "osuma": {
+        "otsikko": "viki kopi 10v show i ticket package",
+        "paiva": "2026-11-20",
+        "paikka": "veikkaus arena"
+      },
+      "aseta": {
+        "title": "Viki & Köpi 10V Show"
+      },
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 19.11.2026: perjantain illan nostoihin ja videoon Viki & Köpi 10V Show (Veikkaus Arena), Bar Loosen keikan tilalle. Lähteessä (Ticketmaster tm-Z698xZ8KZ16v1p8_ad) otsikko on lippupaketin nimi \"VIKI & KÖPI 10V SHOW  I TICKET PACKAGE\", joten otsikko siistitään. Show on loppuunmyyty (Yle/STT: noin 10 000 katsojaa); lippulinkki on Ticketmasterin lippupaketti. Alkamisaika klo 18.30 on Ticketmasterin datasta, ei vahvistettu areenan sivulta."
+    },
+    {
+      "id": "showhat-big-bang-aleksanterin-teatteri-2026-11-19",
+      "osuma": {
+        "otsikko": "showhat big bang",
+        "paiva": "2026-11-19",
+        "paikka": "aleksanterin teatteri"
+      },
+      "aseta": {
+        "title": "ShoWhat: BIG BANG – Ensimmäinen jäähyväiskiertue",
+        "image": "https://showhat.fi/uusi/wp-content/uploads/2026/03/Big-Bang-Full-HD-vaaka.jpg"
+      },
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 19.11.2026: torstain illan nostoihin muuksi kuin keikaksi ShoWhatin (Osku Heiskanen, Jarkko Valtee, StepUp Dancers) drag-viihdeshow Aleksanterin teatterissa klo 19, Kotijoukkojen tilalle: Kotijoukot pyörii lähes joka ilta, ShoWhatilla Helsingissä vain 13.–21.11. Aika tarkistettu showhat.fi:stä ja aleksanterinteatteri.fi:stä 19.11.2026. Otsikon väliviiva siistitty. Kuva: ShoWhatin oma kiertuejuliste 1920×1080 (lippu.fi:n kuva oli 222×222)."
+    },
+    {
+      "id": "british-legends-lauri-mikkola-casino-2026-11-19",
+      "osuma": {
+        "otsikko": "british legends by lauri mikkola",
+        "paiva": "2026-11-19",
+        "paikka": "casino helsinki"
+      },
+      "aseta": {
+        "image": "https://casinohelsinki.fi/wp-content/uploads/2026/06/veikkaus_casino-helsinki_showanddinner_lauri-mikkola-ja-british-legends_900x500.jpg"
+      },
+      "illanNosto": true,
+      "muistiinpano": "Omistaja 19.11.2026: torstain illan nostoihin Lauri Mikkolan British Legends (Casino Helsinki Show & Dinner, Fennia Salonki) Bar Loosen keikan tilalle. Casino Helsingin sivu: ovet 17.30, show klo 19.00, päättyy n. klo 22; esityksiä 5.11.–31.12.2026. Osuu lippu.fi-riviin (paikka Casino Helsinki); stadissan rivi (paikka Fennia Salonki) ei osu, jottei sama show nouse kahdesti. Kuva: Casino Helsingin oma 900×500 (lippu.fi:n kuva oli 222×222)."
+    },
+    {
+      "id": "spit-rod-angel-boulevard-drift-bar-loose-2026-11-19-ei-nostoihin",
+      "osuma": {
+        "otsikko": "rod angel boulevard drift",
+        "paiva": "2026-11-19",
+        "paikka": "bar loose"
+      },
+      "aseta": {},
+      "eiIllanNostoihin": true,
+      "muistiinpano": "Omistaja 19.11.2026: torstain nostoissa Lauri Mikkolan British Legends tunnetumpana Bar Loosen S.P.I.T / Röd Ängel / Boulevard Drift -illan tilalla. Näkyy listoissa normaalisti."
+    },
+    {
+      "id": "vesta-x-umo-finlandia-talo-2026-11-19-kuva",
+      "osuma": {
+        "otsikko": "vesta x umo",
+        "paiva": "2026-11-19",
+        "paikka": "finlandia"
+      },
+      "aseta": {
+        "image": "https://umohelsinki.fi/wp-content/uploads/2026/05/VESTA.X.UMO_.nettiin.jpg"
+      },
+      "muistiinpano": "Omistaja 19.11.2026: terävämpi kuva illan nostoihin ja somevideoon. UMO Helsingin oma 1268×734 (lähteiden kuva oli lippu.fi:n 222×222)."
+    },
+    {
+      "id": "kauko-royhka-tavastia-2026-11-19-aika",
+      "osuma": {
+        "otsikko": "kauko royhka",
+        "paiva": "2026-11-19",
+        "paikka": "tavastia"
+      },
+      "aseta": {
+        "kello": "20:00"
+      },
+      "muistiinpano": "Omistaja 19.11.2026: tavastiaklubi.fi: ovet 19.00, Kauko Röyhkä & Voimaeläin 20.00. Lähteet antavat ovien ajan."
+    },
+    {
+      "id": "iikka-kivi-protestinauru-arena-2026-11-21-kuva",
+      "osuma": {
+        "otsikko": "iikka kivi protestinauru",
+        "paiva": "2026-11-21",
+        "paikka": "arena"
+      },
+      "aseta": {
+        "image": "https://6e256680.delivery.rocketcdn.me/wp-content/uploads/2026/04/iikka-kivi-protestinauru-2.jpg"
+      },
+      "muistiinpano": "21.11.2026: terävämpi kuva lauantain nostoihin ja somevideoon. Helsingin kaupunginteatterin oma (hkt.fi, 1600×750); lähteen kuva oli lippu.fi:n 222×222."
+    },
+    {
+      "id": "paka-pullomeri-korjaamo-2026-11-21-kuva",
+      "osuma": {
+        "otsikko": "paka pullomeri",
+        "paiva": "2026-11-21",
+        "paikka": "korjaamo"
+      },
+      "aseta": {
+        "image": "https://korjaamo.fi/wp-content/uploads/2026/11/NETTISIVUTPAKA.jpg"
+      },
+      "muistiinpano": "21.11.2026: Korjaamon oma kuva (lähteen kuva oli lippu.fi:n 222×222). korjaamo.fi: Kulmasali, ovet 19.00, showtime 20.00."
+    },
+    {
+      "id": "stepa-heimo-ab-on-the-rocks-2026-11-28",
+      "osuma": {
+        "otsikko": "stepa heimo ilman menneisyytta",
+        "paiva": "2026-11-28",
+        "paikka": "on the rocks"
+      },
+      "aseta": {
+        "title": "Stepa & Heimo ilman menneisyyttä, AB",
+        "kello": "20:30",
+        "price": "23 €",
+        "infoUrl": "https://www.rocks.fi/tapahtumat/stepa-heimo-ilman-menneisyytta-ab/",
+        "shortDescription": "Pohjoisen räpin ääni bändinsä kanssa, lämppärinä AB. Ovet 20, Stepa lavalla 21.45.",
+        "description": "Sodankylästä kotoisin oleva Stepa (Joni Stenberg) on yksi Suomen arvostetuimmista ja omaleimaisimmista rap-artisteista, pohjoisen räpin ääni. Lähes 20 vuoden uralla on syntynyt yksitoista albumia sekä yhteistöitä muun muassa Gettomasan, Paperi T:n, JVG:n ja Eevil Stöön kanssa. On the Rocksissa hän esiintyy bändinsä Heimo ilman menneisyyttä kanssa.\n\nIllan avaa Jyväskylästä Helsinkiin muuttanut AB, joka nousi syksyllä 2025 viraaliksi kappaleellaan Barcan paita. AB yhdistää house- ja garage-vaikutteiset biitit hauskoihin sanoituksiin ja kutsuu tyyliään optimismimusiikiksi.\n\nOvet 20.00 · AB 20.30 · Stepa & Heimo ilman menneisyyttä 21.45 · K18"
+      },
+      "muistiinpano": "Omistaja 23.11.2026: Marraskuun nostoksi (data/nostot.json). Tiedot rocks.fi/tapahtumat/stepa-heimo-ilman-menneisyytta-ab ja tiketti.fi/tapahtuma/120792: la 28.11.2026, ovet 20.00, AB 20.30, Stepa & Heimo ilman menneisyyttä 21.45, liput alk. 23 € / ovelta 26 €, K18. Alkamisajaksi illan ensimmäinen esiintyjä (20.30); lähde antoi ovien ajan."
+    },
+    {
+      "id": "stepa-ab-on-the-rocks-2026-11-28-kaksoiskappale",
+      "osuma": {
+        "otsikko": "stepa ab",
+        "paiva": "2026-11-28",
+        "paikka": "on the rocks"
+      },
+      "aseta": {},
+      "piilota": true,
+      "muistiinpano": "Omistaja 23.11.2026: kaksoiskappale. On the Rocksin vanha otsikko \"Stepa, AB\" jäi lähdevarastoon nimenmuutoksen jälkeen; näkyviin jää \"Stepa & Heimo ilman menneisyyttä, AB\" (sama Tiketti-linkki 120792)."
+    },
+    {
+      "id": "stepa-stadissa-on-the-rocks-2026-11-28-kaksoiskappale",
+      "osuma": {
+        "otsikko": "stepa",
+        "paiva": "2026-11-28",
+        "paikka": "on the rocks",
+        "tarkka": true
+      },
+      "aseta": {},
+      "piilota": true,
+      "muistiinpano": "Omistaja 23.11.2026: kaksoiskappale. Stadissan rivi \"Stepa\" (stadissa-117612) on sama keikka; näkyviin jää \"Stepa & Heimo ilman menneisyyttä, AB\". Tarkka osuma, koska \"stepa\" sisältyy myös oikean tapahtuman otsikkoon."
     }
   ]
 }

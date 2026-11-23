@@ -450,6 +450,7 @@ const t = {
 
     // ── "✦ Tulossa" — kärkinosto (lib/nostot) ────────────────
     'promo.title':      'Tulossa',
+    'promo.also':       'Tulossa myös',
     'promo.ad':         'Mainos',
     'promo.tickets':    'Liput',
     'promo.more':       'Lue lisää',
@@ -1512,6 +1513,7 @@ const t = {
 
     // ── "✦ Tulossa" — kärkinosto (lib/nostot) ────────────────
     'promo.title':      'Upcoming',
+    'promo.also':       'Also coming up',
     'promo.ad':         'Ad',
     'promo.tickets':    'Tickets',
     'promo.more':       'Read more',
