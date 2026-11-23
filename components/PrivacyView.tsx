@@ -23,7 +23,7 @@ import { subscribeConsent, readConsent, readConsentServer, setConsent } from '@/
 // TYHJÄ = riviä ei näytetä lainkaan.
 const REKISTERINPITAJA = 'Broven Oy'
 
-const PAIVITETTY = '26.8.2026'
+const PAIVITETTY = '23.11.2026'
 
 export default function PrivacyView() {
   const { t, lang } = useLanguage()
@@ -71,6 +71,7 @@ export default function PrivacyView() {
     { h: 'priv.h_email',     p: 'priv.email' },
     { h: 'priv.h_forms',     p: 'priv.forms' },
     { h: 'priv.h_third',     p: 'priv.third' },
+    { h: 'priv.h_delete',    p: 'priv.delete' },
     { h: 'priv.h_events',    p: 'priv.events' },
   ] as const as { h: string; p: string }[]
 
