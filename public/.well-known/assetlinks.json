@@ -1,11 +1,14 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "fi.mitatanaan.app",
       "sha256_cert_fingerprints": [
-        "C9:FB:B2:D0:D1:43:54:9B:31:4E:6D:6A:30:C7:B9:C8:8F:D1:7F:46:8F:C6:CC:05:6F:59:47:B9:61:09:BE:41"
+        "C9:FB:B2:D0:D1:43:54:9B:31:4E:6D:6A:30:C7:B9:C8:8F:D1:7F:46:8F:C6:CC:05:6F:59:47:B9:61:09:BE:41",
+        "F0:CA:C7:33:16:B4:82:C2:D3:4F:5B:4B:CB:4C:65:D9:B3:3B:F3:70:7A:66:21:C2:AF:64:95:0C:71:75:DD:E0"
       ]
     }
   }
