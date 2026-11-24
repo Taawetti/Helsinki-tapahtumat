@@ -4525,6 +4525,27 @@ for (const c of kwChecks) {
     // hero-järjestyksessä, muu järjestys ennallaan.
     { name: 'suuri paikka: Allas Sea Pool tunnistuu', ok: onSuuriPaikka(mkEvent({ id: 'sp1', title: 'X', startTime: '2026-09-18T19:00:00+03:00', location: { name: 'Allas Sea Pool', streetAddress: '', city: 'Helsinki' } })) === true },
     { name: 'suuri paikka: klubi ei ole', ok: onSuuriPaikka(mkEvent({ id: 'sp2', title: 'X', startTime: '2026-09-18T19:00:00+03:00', location: { name: 'Bar Loose', streetAddress: '', city: 'Helsinki' } })) === false },
+    // Omistaja 24.11.2026: vahvin nosto ensin, oppilaskonsertti pois, lähteen
+    // Klubi-luokka ei tee keikasta klubia.
+    ...(() => {
+      const t = (id: string, title: string, paikka: string, klo: string, categories: string[], shortDescription?: string) =>
+        mkEvent({ id, title, startTime: `2026-11-24T${klo}:00+02:00`, location: { name: paikka, streetAddress: '', city: 'Helsinki' }, categories, image: 'https://x/y.jpg', shortDescription })
+      const oppilas = t('op', 'Pohjois-Helsingin musiikkiopiston oppilaskonsertti', 'Malmin kirjasto', '18:00', ['konsertit', 'musiikki'], 'Konsertissa kuullaan lauluopiskelijoita.')
+      const savoy = t('sv', 'Jazzjoulu 2026!', 'Savoy-teatteri', '19:00', ['Keikat ja konsertit', 'Musiikki'])
+      const korjaamo = t('kj', 'Tasavallan Presidentti Complete', 'Kulttuuritehdas Korjaamo', '20:00', ['Keikat ja konsertit'])
+      const pjk = t('pjk', 'PJK Klubi: Backrooms, Soft Guys, Visio', 'Bar Loose', '20:00', ['Musiikki', 'Keikka', 'Jazz', 'DJ', 'Klubi', 'Yöelämä'],
+        'Bar Loosessa fiilistellään Pop & Jazz Konservatorion ammatillisten opiskelijoiden kokoonpanojen energistä meininkiä.')
+      const orkesteri = t('ok', 'Kaupunginorkesteri kirjastossasi: Kirjeitä Julialle', 'Oulunkylän kirjasto', '18:00', ['konsertit', 'musiikki'])
+      const r = valitseHero([oppilas, orkesteri, savoy, korjaamo, pjk], 5)
+      return [
+        { name: 'hero: musiikkiopiston oppilaskonsertti ei nouse nostoksi', ok: !r.some((e) => e.id === 'op') },
+        { name: 'hero: kirjaston kaupunginorkesterikonsertti kelpaa yhä', ok: r.some((e) => e.id === 'ok') },
+        { name: 'hero: vahvin ensin, ei aikajärjestystä (Savoy klo 19 ennen klo 18 kirjastoa)', ok: r[0]?.id === 'sv' && r[r.length - 1]?.id === 'ok', got: r.map((e) => e.id).join(',') },
+        { name: 'klubi: lähteen Klubi+DJ-luokka ei tee Keikka-luokan bändi-illasta klubia', ok: !onKlubi(pjk) && paikkaporras(pjk) === 3 },
+        { name: 'klubi: pelkkä Yöelämä+Klubi-luokka on yhä klubi', ok: onKlubi(t('st', 'Väärät sitsit', 'Pukinmäen VPK', '19:00', ['Yöelämä', 'Klubi'])) },
+        { name: 'klubi: otsikon disko on klubi vaikka luokka on Keikka', ok: onKlubi(t('jd', 'Jytädisko', 'Bar Loose', '23:30', ['Keikka', 'DJ', 'Klubi'])) },
+      ]
+    })(),
     { name: 'hero-järjestys: Allas ennen Tavastiaa samoilla pisteillä', ok: heroJarjestys(
         mkEvent({ id: 'sp3', title: 'Karri Koira konsertti', startTime: '2026-09-18T19:00:00+03:00', location: { name: 'Allas Sea Pool', streetAddress: '', city: 'Helsinki' } }),
         mkEvent({ id: 'sp4', title: 'Bändi konsertti', startTime: '2026-09-18T21:00:00+03:00', location: { name: 'Tavastia', streetAddress: '', city: 'Helsinki' } })) < 0 },

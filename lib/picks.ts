@@ -60,12 +60,23 @@ export function iltakello(e: Event): boolean {
   return e.source === 'festivals' || helsinkiHourOf(e.startTime) >= 15
 }
 
+/** Musiikkiopistojen oppilasesitykset (omistaja 24.11.2026: "Pohjois-Helsingin
+ *  musiikkiopiston oppilaskonsertti" Malmin kirjastossa oli illan nostojen
+ *  ensimmäinen). Ne kantavat LinkedEventsissä luokkaa 'konsertit' ja sanaa
+ *  "konsertti", joten ne saivat saman portin ja samat pisteet kuin oikea
+ *  keikka. Kategorialistoissa ne näkyvät yhä — vain nostoista pois.
+ *  Konservatorion opiskelijabändit klubilla (PJK Klubi @ Bar Loose) eivät osu:
+ *  ne ovat aikuisten keikkoja. */
+export const OPPILASESITYS_REGEX = /oppilaskonsert|oppilasilta|oppilasesity|oppilaiden (?:konsert|esity|joulu|kevät)|musiikkiopisto|lauluopiskelij|soitto-oppila|tutkintokonsert/i
+export const onOppilasesitys = (e: Event): boolean => OPPILASESITYS_REGEX.test(`${e.title} ${e.shortDescription ?? ''}`)
+
 /** Kaikille kaistoille yhteiset vetot. */
 function lapaiseePohjan(e: Event, vaadiKuva: boolean): boolean {
   if (isOutsideTargetAudience(e)) return false
   if (vaadiKuva && !e.image) return false
   if (!iltakello(e)) return false
   if (onPeruttu(e)) return false
+  if (onOppilasesitys(e)) return false
   if (onOsallistumisformaatti(e)) return false
   if (onVisa(e)) return false
   return true
@@ -158,8 +169,14 @@ export const KLUBI_OTSIKKO = /disko|disco(?!rd|very)|(?<![a-zåäö])djs?(?![a-z
  *  merkitsisi ne keikoiksi ("K40-CLUB X-MAS FEST@ Maxine" tuli [Musiikki,
  *  Keikka] ja nousi 12.12.2026 nostoihin). */
 export const KLUBIPAIKAT = ['maxine']
+/** Lähteen Klubi/DJ-luokka ei tee keikasta klubi-iltaa, jos sama lähde kertoo
+ *  myös keikan (omistaja 24.11.2026: "PJK Klubi: Backrooms, Soft Guys, Visio"
+ *  @ Bar Loose, kolme bändiä, tuli luokilla [Keikka, DJ, Klubi] ja putosi
+ *  nostoista klubina). Otsikon klubisana ja yökerhopaikka ratkaisevat yhä. */
+const KEIKKALUOKKA = /^(keikka|keikat|keikat ja konsertit|konsertti|konsertit)$/i
 export const onKlubi = (e: Event): boolean => !onSuuriPaikka(e) &&
-  (KLUBI_OTSIKKO.test(e.title) || e.categories.some((c) => /^(klubi|dj)$/i.test(c.trim())) ||
+  (KLUBI_OTSIKKO.test(e.title) ||
+    (e.categories.some((c) => /^(klubi|dj)$/i.test(c.trim())) && !e.categories.some((c) => KEIKKALUOKKA.test(c.trim()))) ||
     KLUBIPAIKAT.some((p) => (e.location?.name ?? '').toLowerCase().includes(p)))
 
 /** Keikka, jota vaihtelusäännöt eivät koskaan pudota.
@@ -289,7 +306,7 @@ export function heroJarjestys(a: Event, b: Event): number {
 }
 
 /** Hero-/pushinostot: kaista A ensin, sitten B, ja vasta viimeisenä keinona
- *  kuvattomat. Palautus aikajärjestyksessä (näytöllä ilta kulkee eteenpäin).
+ *  kuvattomat. Palautus vahvin ensin (ks. funktion loppu).
  *
  *  KUVATON VIIMEINEN KEINO: HeroSwiper piirtää kuvattomalle nostolle
  *  gradienttitaustan, joten se on visuaalisesti tuettu. Ilman tätä hero jäisi
@@ -299,7 +316,8 @@ export function valitseHero(events: Event[], n = 5, vaadiKuva = true): Event[] {
   // Omistajan käsin poistamat (tapahtumakorjaukset eiIllanNostoihin) eivät
   // ole ehdokkaita millään säännöllä.
   events = events.filter((e) => !e.eiIllanNostoihin)
-  // `out` on valintajärjestyksessä (vahvin ensin) aikajärjestykseen asti.
+  // `out` on valintajärjestyksessä (vahvin ensin); lopuksi järjestetään vielä
+  // heroJarjestyksellä, koska korvaukset sijoittuvat korvatun paikalle.
   const out: Event[] = []
   const paikka = (e: Event) => (e.location?.name ?? '').toLowerCase().trim()
   const samaPaikka = (e: Event) => { const p = paikka(e); return p ? out.findIndex((o) => paikka(o) === p) : -1 }
@@ -386,5 +404,11 @@ export function valitseHero(events: Event[], n = 5, vaadiKuva = true): Event[] {
       }
     }
   }
-  return out.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+  // VAHVIN ENSIN (omistaja 24.11.2026: "vahvin nosto ensimmäiseksi
+  // herokorttiin, sen ei tarvi mennä aikajärjestyksessä"). Aiemmin palautus
+  // oli aikajärjestyksessä, jolloin ohuena iltana heikoin valittu (klo 18
+  // kirjastokonsertti) oli ensimmäinen kortti ja Savoyn konsertti kolmas.
+  // Käsin nostetut ensin, sitten sama järjestys kuin valinnassa. Tämä on myös
+  // iltapushin oletusnosto (ranked[0]) ja somevideon korttijärjestys.
+  return out.sort((a, b) => Number(!!b.illanNosto) - Number(!!a.illanNosto) || heroJarjestys(a, b))
 }
