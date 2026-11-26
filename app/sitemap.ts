@@ -6,6 +6,20 @@ import { VENUE_PAGES } from '@/lib/venue-pages'
 import { LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 import { helsinkiToday } from '@/lib/helsinki-time'
 
+// SIVUKARTTA LUODAAN JOKA PYYNNÖLLÄ. Ilman tätä kartta on tuotannossa
+// staattinen tiedosto, joka uusiutuu vain julkaisun yhteydessä — vaikka
+// käännösloki näyttää sille "Revalidate 1h". Todettu 26.11.2026: kartan
+// lastmod oli edelleen 24.11. julkaisun kellonaika, Vercel vastasi HIT ja
+// last-modified-otsakkeella kuin tiedostolle (vertaa /pubivisat: STALE ja
+// uusiutuu), ja 641 osoitteesta 147 oli jo menneitä (noindex) tai poistuneita
+// (404). Search Console varoitti niistä samana päivänä.
+// Karttaa hakevat lähinnä hakurobotit muutaman kerran päivässä, joten seitsemän
+// rinnakkaista LinkedEvents-kutsua per pyyntö on halpa hinta tuoreudesta.
+// HUOM: force-dynamic poistaa myös fetch-välimuistin (Nextin ohje:
+// caching-without-cache-components), eli alla oleva `next.revalidate` ei
+// tässä reitissä enää vaikuta.
+export const dynamic = 'force-dynamic'
+
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
 
@@ -40,6 +54,7 @@ async function fetchUpcomingLinkedEventIds(): Promise<string[]> {
   // Helsingin päivä, ei UTC:n — klo 00–03 UTC-päivä on vielä eilinen, jolloin
   // sivukartta olisi listannut eilisen ja jättänyt viimeisen päivän pois.
   const first = helsinkiToday()
+  const nyt = Date.now()
   const anchor = new Date(`${first}T12:00:00Z`).getTime()
   const days = Array.from({ length: SITEMAP_DAYS }, (_, i) =>
     new Date(anchor + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -65,6 +80,10 @@ async function fetchUpcomingLinkedEventIds(): Promise<string[]> {
         // Peruttuja/lykättyjä ei indeksoida (sama sääntö kuin events-reitissä).
         return (data.data ?? [])
           .filter((e) => e.start_time?.slice(0, 10) === day)
+          // Jo alkanut tapahtuma on /e/-sivulla noindex (jaettu-sivu: isPast =
+          // alkamisaika ohitettu). Kartalla se olisi Googlelle ristiriita:
+          // "indeksoi tämä" ja sivulla "älä indeksoi".
+          .filter((e) => new Date(e.start_time ?? 0).getTime() > nyt)
           .filter((e) => e.event_status !== 'EventCancelled' && e.event_status !== 'EventPostponed')
           .map((e) => e.id)
           .filter(Boolean)
