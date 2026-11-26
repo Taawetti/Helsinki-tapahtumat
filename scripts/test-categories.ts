@@ -88,6 +88,7 @@ import { joulukaudenVuosi, joulunavausTila, joulunHakuvali, JOULUNAVAUS } from '
 import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, onLippuklikki, type KlikkiRivi } from '../lib/kavijatilastot'
+import { tulolahde } from '../lib/tulolahde'
 import { aktiivisetNostot, yhdistaNostot, type NostoMaaritys, type NostoTiedosto, nostonLammitysOsoitteet, ryhmitteleKuukausittain, kuukausiOtsikko, nostonKuukausi } from '../lib/nostot'
 import nostoFile from '../data/nostot.json'
 import { suodataJoulukonsertit, onJoulukausi } from '../lib/joulukonsertit'
@@ -5343,6 +5344,32 @@ odotettavat.push((async () => {
   for (const c of vCases) {
     if (c.ok) pass++
     else failures.push(`✗ kävijätilastot: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Tulolähde (lib/tulolahde): mistä kävijä saapui, yhtenä sanana ───────────
+// 24.11.2026 kävijät vähenivät kolmanneksen eikä omasta mittauksesta nähnyt
+// mistä. Lähde kirjataan sivulatauksen ensimmäiseen pageview-riviin.
+{
+  const l = (o: Partial<Parameters<typeof tulolahde>[0]>) => tulolahde({ referrer: '', oma: 'mitatanaan.fi', haku: '', standalone: false, ...o })
+  const rivi = (meta: string | null, visitor: string): KlikkiRivi =>
+    ({ kind: 'pageview', surface: null, event_id: null, label: '/', meta, country: 'FI', city: 'Helsinki', region: '18', visitor, created_at: '2026-11-26T10:00:00Z' })
+  const t = koostaTilastot([rivi('google.com', 'a'), rivi('google.com', 'b'), rivi('suora', 'c'), rivi(null, 'c')], { from: '2026-11-26', to: '2026-11-26' })
+  const lCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'ei viittaajaa = suora', ok: l({}) === 'suora' },
+    { name: 'hakukoneesta vain verkkotunnus, ei polkua eikä hakusanaa', ok: l({ referrer: 'https://www.google.com/search?q=pubivisat+helsinki' }) === 'google.com', got: String(l({ referrer: 'https://www.google.com/search?q=pubivisat+helsinki' })) },
+    { name: 'oman sivuston sisäinen siirtymä ei ole tulolähde', ok: l({ referrer: 'https://mitatanaan.fi/pubivisat' }) === null && l({ referrer: 'https://www.mitatanaan.fi/' }) === null },
+    { name: 'kotinäytön kuvake = sovellus, vaikka viittaajaa ei ole', ok: l({ standalone: true }) === 'sovellus' },
+    { name: 'Play-sovellus (TWA) = sovellus', ok: l({ referrer: 'android-app://fi.mitatanaan.app/' }) === 'sovellus' },
+    { name: 'Googlen sovellus erottuu hausta', ok: l({ referrer: 'android-app://com.google.android.googlequicksearchbox/' }) === 'google-sovellus' },
+    { name: 'tuntematon Android-sovellus paketin nimellä', ok: l({ referrer: 'android-app://com.example.app' }) === 'android:com.example.app' },
+    { name: 'kampanjalinkki: vain utm_source luetaan ja siistitään', ok: l({ haku: '?utm_source=Uutiskirje&q=salainen haku' }) === 'utm:uutiskirje', got: String(l({ haku: '?utm_source=Uutiskirje&q=salainen haku' })) },
+    { name: 'viallinen viittaaja ei kaada: suora', ok: l({ referrer: 'ei-osoite' }) === 'suora' },
+    { name: 'kooste laskee saapumiset lähteittäin, lähteettömät rivit pois', ok: JSON.stringify(t.lahteet) === JSON.stringify([{ nimi: 'google.com', maara: 2 }, { nimi: 'suora', maara: 1 }]), got: JSON.stringify(t.lahteet) },
+  ]
+  for (const c of lCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ tulolähde: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

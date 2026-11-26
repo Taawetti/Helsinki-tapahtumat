@@ -23,7 +23,7 @@ import { subscribeConsent, readConsent, readConsentServer, setConsent } from '@/
 // TYHJÄ = riviä ei näytetä lainkaan.
 const REKISTERINPITAJA = 'Broven Oy'
 
-const PAIVITETTY = '23.11.2026'
+const PAIVITETTY = '26.11.2026'
 
 export default function PrivacyView() {
   const { t, lang } = useLanguage()

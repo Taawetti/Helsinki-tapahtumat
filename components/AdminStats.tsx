@@ -22,6 +22,7 @@ interface Data {
   maarat: Record<string, number>
   kaynnit: number
   sivut: Rivi[]
+  lahteet?: Rivi[]
   tapahtumatAvaukset: Rivi[]
   ulkoisetKlikit: Rivi[]
   suosikit: Rivi[]
@@ -571,6 +572,8 @@ export default function AdminStats() {
               ))}
           </div>
 
+          <Palkit otsikko="Mistä kävijät saapuvat" rivit={data.lahteet ?? []}
+            selite="Saapumiset tulolähteittäin, kirjattu 26.11.2026 alkaen. suora = osoite kirjoitettu, kirjanmerkki tai linkki viestistä (selain ei kerro lähdettä). sovellus = kotinäytön kuvake tai Play-sovellus. google.com, bing.com jne. = hakukone tai sivusto, jonka linkistä tultiin. utm:… = kampanjalinkki." />
           <Palkit otsikko="Käydyimmät sivut" rivit={data.sivut}
             selite="Sivun osoite. / on sovelluksen etusivu ja /en sen englanninkielinen osoite; muut ovat laskeutumissivuja, jotka kilpailevat hakutuloksista." />
           <Palkit otsikko="Klikkaukset lippukauppaan" rivit={data.lippukauppaKlikit}

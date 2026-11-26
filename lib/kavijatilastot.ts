@@ -270,6 +270,10 @@ export function koostaTilastot(rivit: KlikkiRivi[], a: KoosteAsetukset) {
     tapahtumat,
     tapahtuma: a.tapahtumaId ? koostaTapahtuma(rivit, a.tapahtumaId, paivat) : null,
     sivut:              top(vain('pageview'), (r) => r.label, 25),
+    // Saapumiset tulolähteittäin (lib/tulolahde, kirjataan 26.11.2026 alkaen).
+    // Vain sivulatauksen ensimmäisellä pageview-rivillä on lähde, joten luku
+    // on saapumisia, ei sivunavauksia. Vanhemmilla riveillä lähdettä ei ole.
+    lahteet:            top(vain('pageview').filter((r) => r.meta), (r) => r.meta, 20),
     tapahtumatAvaukset: top(vain('event_open'), (r) => r.label),
     // Klikkaukset lippukauppaan otsikolla: kortin pääpainikkeen ticket_click
     // JA noston lippunapin external_click lippukaupan verkkotunnuksella

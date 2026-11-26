@@ -881,6 +881,7 @@ export default function HomeClient({
       setPushEnabled(false)
       return
     }
+    if (typeof Notification === 'undefined') return
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return
     const sub = await reg.pushManager.subscribe({
@@ -905,6 +906,10 @@ export default function HomeClient({
   useEffect(() => {
     if (typeof window === 'undefined' || !events.length) return
     const ask = async () => {
+      // iPhonen Safarissa Notification on olemassa vain kotinäytölle asennetussa
+      // sovelluksessa. Ilman tätä jokainen Safari-lataus heitti ReferenceErrorin
+      // (todettu WebKitillä 26.11.2026).
+      if (typeof Notification === 'undefined') return
       if (Notification.permission === 'default') return // don't auto-ask, user must click bell
       if (Notification.permission !== 'granted') return
       const last = Number(localStorage.getItem('hki-notif-ts') || 0)

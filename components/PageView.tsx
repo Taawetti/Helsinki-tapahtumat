@@ -18,6 +18,24 @@ import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { track } from '@/lib/track'
 import { kirjattavaAsennus, merkitseAsennusKirjatuksi } from '@/lib/install'
+import { tulolahde } from '@/lib/tulolahde'
+
+/** Tulolähde sivulatauksen ensimmäiselle kirjaukselle. Virhe ei saa estää
+ *  itse käynnin kirjaamista, joten kaikki on try/catchin sisällä. */
+function saapumislahde(): string | undefined {
+  try {
+    const standalone = window.matchMedia?.('(display-mode: standalone)').matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    return tulolahde({
+      referrer: document.referrer || '',
+      oma: window.location.hostname,
+      haku: window.location.search,
+      standalone,
+    }) ?? undefined
+  } catch {
+    return undefined
+  }
+}
 
 export default function PageView() {
   const pathname = usePathname()
@@ -28,11 +46,14 @@ export default function PageView() {
 
   useEffect(() => {
     if (!pathname || kirjattu.current === pathname) return
+    // Tulolähde vain sivulatauksen ENSIMMÄISEEN kirjaukseen: sovelluksen
+    // sisäinen siirtymä sivulta toiselle ei ole saapuminen (lib/tulolahde).
+    const saapuminen = kirjattu.current === null
     kirjattu.current = pathname
     // Polku talteen, jotta 47 laskeutumissivun liikenteen näkee erikseen.
     // Hakuparametreja EI oteta mukaan: ne voivat sisältää hakusanan, ja
     // sivupolku riittää kertomaan mitä avattiin.
-    track('pageview', { label: pathname })
+    track('pageview', { label: pathname, ...(saapuminen ? { meta: saapumislahde() } : {}) })
   }, [pathname])
 
   // Asennus käynnistyksestä. Juurilayout on oikea paikka, koska asennettu
