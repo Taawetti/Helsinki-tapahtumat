@@ -45,6 +45,9 @@ import { helsinkiDateOf, helsinkiToday, normalizeHelsinkiTimestamp } from './hel
 // ticketUrl-päivityksen kautta. Kilpailijalinkki hoidetaan täsmällisellä
 // infoUrl-päivityksellä koosteessa (isCompetitorUrl).
 export const ULKOISET_LAHTEET = [
+  // Käsin lisätyt (lib/kasin-lisatyt) ENSIMMÄISENÄ: käsin tarkistettu rivi
+  // voittaa dedupissa, kun skraperi myöhemmin tuo saman illan.
+  'kasin',
   'ticketmaster', 'fienta', 'billetto', 'meetup', 'rss', 'venues', 'culture', 'espoo',
   'helmet', 'ilmonet', 'finna', 'visitfinland', 'sports', 'festivals', 'theatre',
   'bars', 'ra', 'museums', 'liiga', 'kide', 'arenas', 'recurring', 'pubivisat',

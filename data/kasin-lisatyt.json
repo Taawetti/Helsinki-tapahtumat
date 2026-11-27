@@ -1,0 +1,29 @@
+{
+  "tapahtumat": [
+    {
+      "id": "oma-britallica-20271015",
+      "lisatty": "2026-11-27",
+      "lahde": "Tapahtumaehdotus 27.11.2026, Kibbs Entertainment LTD. Tiedot tarkistettu lepis.fi:stä ja Tickettailorista. Kuva: britallica.co.uk press-kuva (järjestäjän lupa ehdotuksessa).",
+      "muistiinpano": "Lippusivu 19.00–22.30, Lepakkomies 'ovet klo 20:00' — näytetään paikan oma aika, kuten Lepakkomiehen skraperikin. Lepakkomiehen lähde tuo saman illan syksyllä 2027; dedup yhdistää: otsikko ALKAA paikan omalla otsikolla 'Britallica (UK) + Spinors (UK)', ja lib/sama-esitys vaatii että toinen otsikko on toisen sana-alku (sama paikka, sama alkuminuutti). Älä muuta otsikon alkua.",
+      "title": "Britallica (UK) + Spinors (UK) – Britney Spears metal tribute",
+      "shortDescription": "Britney Spearsin hitit raskailla kitaroilla. Lontoolainen tribuuttiyhtye Britallica ja Spinors (UK) Lepakkomiehessä, K18.",
+      "description": "Lontoossa vuonna 2025 perustettu Britallica soittaa Britney Spearsin tunnetuimmat kappaleet uudelleen sovitettuina: raskaat kitarat, voimakas laulu ja rummut. Illan toinen esiintyjä on Spinors (UK).\n\nOvet klo 20.00. Ikäraja 18 vuotta, henkilöllisyystodistus vaaditaan. Liput 20 € + 1,25 € palvelumaksu Tickettailorista.",
+      "descriptionEn": "London-formed Britallica (2025) reworks Britney Spears' biggest hits with heavy guitars, powerful vocals and drums. Also on the bill: Spinors (UK).\n\nDoors 20:00. Ages 18+, valid ID required. Tickets €20 + €1.25 booking fee via Tickettailor.",
+      "startTime": "2027-10-15T20:00:00+03:00",
+      "endTime": null,
+      "location": {
+        "name": "Lepakkomies",
+        "streetAddress": "Helsinginkatu 1",
+        "city": "Helsinki",
+        "lat": 60.1882,
+        "lon": 24.9491
+      },
+      "image": "/kasin/britallica.jpg",
+      "isFree": false,
+      "price": "20 €",
+      "ticketUrl": "https://www.tickettailor.com/events/britallica/2262128",
+      "infoUrl": "https://www.lepis.fi/tapahtumat/britallica-uk-spinors-uk/",
+      "categories": ["Musiikki", "Keikka", "Live-musiikki", "Metalli"]
+    }
+  ]
+}

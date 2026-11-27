@@ -253,7 +253,10 @@ export const AGGREGATE_ZERO_STREAK_ALERT_DAYS = 21
 export function aggregateStreakSamples(
   payload: CanaryPayload | null,
 ): { name: string; sample: VenueScrapeSample }[] {
-  const skip = new Set<string>(VENUE_SCRAPERS)
+  // 'kasin' (käsin lisätyt, lib/kasin-lisatyt) on lähes aina laillisesti
+  // nollassa: muutama kaukana tulevaisuudessa oleva tapahtuma. Nollaputki ei
+  // kerro siitä mitään, joten se ei saa hälyttää 21 päivän välein.
+  const skip = new Set<string>([...VENUE_SCRAPERS, 'kasin'])
   return (payload?.sources ?? [])
     .filter((s) => s.name && !skip.has(s.name))
     .map((s) => ({

@@ -5,6 +5,7 @@ import { FESTIVALS_STATIC } from '@/lib/festivals-data'
 import { VENUE_PAGES } from '@/lib/venue-pages'
 import { LE_MAX_PAGE_SIZE } from '@/lib/linked-events'
 import { helsinkiToday } from '@/lib/helsinki-time'
+import { kasinTulevat } from '@/lib/kasin-lisatyt'
 
 // SIVUKARTTA LUODAAN JOKA PYYNNÖLLÄ. Ilman tätä kartta on tuotannossa
 // staattinen tiedosto, joka uusiutuu vain julkaisun yhteydessä — vaikka
@@ -198,6 +199,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: 0.85,
+    })),
+    // Käsin lisätyt tulevat tapahtumat (lib/kasin-lisatyt) — oma sivu heti,
+    // vaikka tapahtuma olisi kuukausien päässä.
+    ...kasinTulevat().map((e) => ({
+      url: `${BASE}/e/${encodeURIComponent(e.id)}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
     })),
     // Linked Events -tapahtumasivut — yksilölliset URL:t Google rich results -hakua varten
     ...linkedEventIds.map((id) => ({

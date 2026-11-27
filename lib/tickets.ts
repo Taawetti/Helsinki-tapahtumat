@@ -32,6 +32,7 @@ const TICKET_SHOP_DOMAINS = [
   'nostage.fi',       // kauppa.nostage.fi
   'eventu.al',
   'getyourguide.com',
+  'tickettailor.com', // osto Tickettailorin sivulla (Britallica, käsin lisätty 27.11.2026)
   // Paikat jotka myyvät omalla domainillaan (omistaja nimesi Allaksen)
   'allaspool.fi',
   'oopperabaletti.fi',

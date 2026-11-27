@@ -39,6 +39,8 @@ export function isCompetitorUrl(url: string | null | undefined): boolean {
 export function hasOwnEventPage(e: { id: string }): boolean {
   const id = e.id
   if (id.startsWith('tm-') || id.startsWith('festival-')) return true
+  // Käsin lisätty (lib/kasin-lisatyt): sivu rakennetaan suoraan tietotiedostosta.
+  if (id.startsWith('oma-')) return true
   if (id.startsWith('rss-') || id.startsWith('recurring-')) return false
   // LinkedEvents-id: "helsinki:agqa74rrka" — kirjaimia, kaksoispiste, tunnus.
   // Yhdysviivallinen etuliite (museum-helsinki:…) on skraperin oma id.

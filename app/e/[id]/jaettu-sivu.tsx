@@ -27,6 +27,7 @@ import { aktiivisetNostot, yhdistaNostot, type NostoTiedosto } from '@/lib/nosto
 import nostoData from '@/data/nostot.json'
 import { helsinkiToday } from '@/lib/helsinki-time'
 import { onLinkedEventsTunniste, haeLinkedEventsPoistotila, viimeisinTunnettuNimi } from '@/lib/poistunut-tapahtuma'
+import { kasinTapahtuma, onKasinTunniste } from '@/lib/kasin-lisatyt'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://mitatanaan.fi'
 const LE_BASE = 'https://api.hel.fi/linkedevents/v1'
@@ -205,6 +206,10 @@ const getEventData = cache(async (id: string): Promise<EventPageData | null> => 
   const decoded = decodeURIComponent(id)
   if (decoded.startsWith('tm-')) return fetchTicketmasterEvent(decoded.slice(3))
   if (decoded.startsWith('festival-')) return fetchFestivalEvent(decoded)
+  if (onKasinTunniste(decoded)) {
+    const e = kasinTapahtuma(decoded)
+    return e ? eventToPageData(e) : null
+  }
   if (decoded.startsWith('rss-') || decoded.startsWith('recurring-')) return null
   return fetchLinkedEvent(decoded)
 })
@@ -410,7 +415,9 @@ export async function JaettuSivu({ params, searchParams, lang }: Props & { lang:
         ? { geo: { '@type': 'GeoCoordinates', latitude: event.lat, longitude: event.lon } }
         : {}),
     },
-    ...(event.image ? { image: event.image } : {}),
+    // Absoluuttinen osoite: käsin lisätyn tapahtuman kuva on sivuston oma
+    // (/kasin/…), ja JSON-LD vaatii täyden URLin.
+    ...(event.image ? { image: new URL(event.image, BASE).toString() } : {}),
     ...(event.isFree
       ? { isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR', availability: 'https://schema.org/InStock' } }
       : {

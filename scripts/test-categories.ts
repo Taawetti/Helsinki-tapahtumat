@@ -89,6 +89,7 @@ import { irrotaOtsikonAika } from '../lib/otsikon-aika'
 import tapahtumakorjausFile from '../data/tapahtumakorjaukset.json'
 import { koostaTilastot, helsinkiPaivanAlku, siirraPaivaa, paivatValilla, ratkaiseJakso, onLippukauppa, onLippuklikki, type KlikkiRivi } from '../lib/kavijatilastot'
 import { tulolahde } from '../lib/tulolahde'
+import { KASIN_LISATYT, kasinTapahtuma, kasinValilla, kasinTulevat } from '../lib/kasin-lisatyt'
 import { aktiivisetNostot, yhdistaNostot, type NostoMaaritys, type NostoTiedosto, nostonLammitysOsoitteet, ryhmitteleKuukausittain, kuukausiOtsikko, nostonKuukausi } from '../lib/nostot'
 import nostoFile from '../data/nostot.json'
 import { suodataJoulukonsertit, onJoulukausi } from '../lib/joulukonsertit'
@@ -4845,8 +4846,8 @@ for (const c of kwChecks) {
           && rakentajanVali(horisontinPalat(TANAAN)[1], palanLoppu(horisontinPalat(TANAAN)[1]), TANAAN).start === horisontinPalat(TANAAN)[1] },
       { name: 'varasto: menneen välin pyyntö (alku ennen tänään −4 pv) ei lue varastoa',
         ok: kattaakoVarasto('2026-10-08', TANAAN) && !kattaakoVarasto('2026-10-07', TANAAN) && kattaakoVarasto(TANAAN, TANAAN) },
-      { name: 'varasto: lähdelista on 45 nimeä, openmic viimeisenä, ticketmaster ensimmäisenä',
-        ok: ULKOISET_LAHTEET.length === 45 && ULKOISET_LAHTEET[0] === 'ticketmaster' && ULKOISET_LAHTEET[ULKOISET_LAHTEET.length - 1] === 'openmic' },
+      { name: 'varasto: lähdelista on 46 nimeä, käsin lisätyt ensimmäisenä (voittaa dedupissa), ticketmaster toisena, openmic viimeisenä',
+        ok: ULKOISET_LAHTEET.length === 46 && ULKOISET_LAHTEET[0] === 'kasin' && ULKOISET_LAHTEET[1] === 'ticketmaster' && ULKOISET_LAHTEET[ULKOISET_LAHTEET.length - 1] === 'openmic' },
     ]
     for (const c of vCases) {
       if (c.ok) pass++
@@ -5370,6 +5371,33 @@ odotettavat.push((async () => {
   for (const c of lCases) {
     if (c.ok) pass++
     else failures.push(`✗ tulolähde: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
+  }
+}
+
+// ── Käsin lisätyt tapahtumat (lib/kasin-lisatyt, data/kasin-lisatyt.json) ───
+// Ilmoituslomakkeen ehdotuksista käsin tarkistetut tapahtumat. Jokaisen rivin
+// on oltava ehjä, koska rikkinäinen aikaleima tai tunniste rikkoisi sekä
+// lähteen että oman /e/-sivun.
+{
+  const ids = KASIN_LISATYT.map((e) => e.id)
+  const brit = kasinTapahtuma('oma-britallica-20271015')
+  // Lepakkomiehen skraperin rivi samasta illasta (muoto app/api/lepakkomies):
+  // dedupin pitää yhdistää se käsin lisättyyn, ei näyttää kahta korttia.
+  const skrapattu = { title: 'Britallica (UK) + Spinors (UK)', startTime: '2027-10-15T20:00:00+03:00', location: { name: 'Lepakkomies' } }
+  const kCases: { name: string; ok: boolean; got?: string }[] = [
+    { name: 'tunnisteet uniikkeja, oma-etuliite ja kelvollisia jakolinkkiin', ok: new Set(ids).size === ids.length && ids.every((i) => /^oma-[a-z0-9-]+-\d{8}$/.test(i) && kelpoJakoId(i)), got: ids.join(',') },
+    { name: 'jokaisella on oma indeksoitava sivu', ok: KASIN_LISATYT.every((e) => hasOwnEventPage(e)) },
+    { name: 'aikaleimoissa on aikavyöhyke ja ne jäsentyvät', ok: KASIN_LISATYT.every((e) => /[+-]\d{2}:\d{2}$|Z$/.test(e.startTime) && !Number.isNaN(new Date(e.startTime).getTime())) },
+    { name: 'tunnisteen päivä = alkamispäivä Helsingin aikaa', ok: KASIN_LISATYT.every((e) => e.id.slice(-8) === new Date(e.startTime).toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' }).replace(/-/g, '')) },
+    { name: 'lähde on kasin eikä ylläpitokenttiä vuoda', ok: KASIN_LISATYT.every((e) => e.source === 'kasin' && !('lahde' in e) && !('muistiinpano' in e) && !('lisatty' in e)) },
+    { name: 'Britallica: pe 15.10.2027 klo 20.00 Lepakkomies, liput Tickettailorista', ok: !!brit && new Date(brit.startTime).toISOString() === '2027-10-15T17:00:00.000Z' && brit.location?.name === 'Lepakkomies' && !!brit.ticketUrl?.includes('tickettailor') },
+    { name: 'väli: vain välin tapahtumat, ei aiemmin', ok: kasinValilla(Date.parse('2027-10-15T00:00:00Z'), Date.parse('2027-10-16T00:00:00Z')).length === 1 && kasinValilla(Date.parse('2026-11-01T00:00:00Z'), Date.parse('2027-10-01T00:00:00Z')).length === 0 },
+    { name: 'sivukartalle vain tulevat', ok: kasinTulevat(Date.parse('2027-10-16T00:00:00Z')).length === 0 && kasinTulevat(Date.parse('2026-11-27T00:00:00Z')).some((e) => e.id === 'oma-britallica-20271015') },
+    { name: 'Lepakkomiehen myöhempi rivi samasta illasta tunnistetaan samaksi esitykseksi', ok: !!brit && onSamaEsitys(brit, skrapattu as never) },
+  ]
+  for (const c of kCases) {
+    if (c.ok) pass++
+    else failures.push(`✗ käsin lisätyt: ${c.name}${c.got ? ` (sai: ${c.got})` : ''}`)
   }
 }
 

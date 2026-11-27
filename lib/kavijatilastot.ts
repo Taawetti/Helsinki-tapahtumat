@@ -72,7 +72,7 @@ export function paivatValilla(from: string, to: string): string[] {
 // ── Lippukaupat ─────────────────────────────────────────────────────────────
 // Uloslinkki näihin verkkotunnuksiin on "klikkaus lippukauppaan" — lähin asia
 // ostoon, jonka sovellus näkee. Lista on tarkoituksella lyhyt ja nimetty.
-const LIPPUKAUPAT = ['lippu.fi', 'lippupiste.fi', 'ticketmaster.', 'tiketti.fi', 'kide.app', 'eventim.', 'billetto.', 'fienta.', 'eventbrite.', 'liveto.', 'tickets.']
+const LIPPUKAUPAT = ['lippu.fi', 'lippupiste.fi', 'ticketmaster.', 'tiketti.fi', 'kide.app', 'eventim.', 'billetto.', 'fienta.', 'eventbrite.', 'liveto.', 'tickets.', 'tickettailor.com']
 
 export function onLippukauppa(domain: string | null | undefined): boolean {
   if (!domain) return false

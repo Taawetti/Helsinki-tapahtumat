@@ -116,12 +116,18 @@ function helsinkiPaiva(d: Date): string {
 }
 
 export function formatDate(isoString: string, lang: DateLang = 'fi'): string {
-  return kierratettyFmt(locale(lang), {
+  const pvm = kierratettyFmt(locale(lang), {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
     timeZone: HKI_TZ,
   }).format(new Date(isoString))
+  // Vuosi perään, kun tapahtuma on eri vuonna kuin nyt (käsin lisätty
+  // Britallica 15.10.2027 näkyi "pe 15. lokakuuta" kuin tämän vuoden päivä).
+  // Liitetään merkkijonona eikä Intl-optiona: Safarin ICU muotoilee
+  // year-option kanssa eri tavalla kuin Node (ks. lib/helsinki-time).
+  const vuosi = helsinkiPaiva(new Date(isoString)).slice(0, 4)
+  return vuosi && vuosi !== helsinkiPaiva(new Date()).slice(0, 4) ? `${pvm} ${vuosi}` : pvm
 }
 
 export function formatTime(isoString: string, lang: DateLang = 'fi'): string {
