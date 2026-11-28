@@ -277,7 +277,15 @@ const ratkaise = cache(async (rawId: string, d: string): Promise<Ratkaistu | Poi
     }
   }
   const tilannekuva = await lueJaettuTilannekuva(id)
-  if (tilannekuva) return { data: eventToPageData(tilannekuva), ev: tilannekuva, oma: false }
+  if (tilannekuva) {
+    // Käsikorjaukset myös jakohetken tilannekuvaan: kopio tallentuu sellaisena
+    // kuin tapahtuma oli ensimmäisellä jakokerralla, ja myöhemmin lisätyt
+    // korjaukset (kuvaus, oikea aika, siistitty otsikko) puuttuivat. Todettu
+    // 28.11.2026: mitatanaan.fi/stepa avasi Stepan kortin ilman kuvausta ja
+    // ovien ajalla 20.00, vaikka etusivun kortti oli korjattu.
+    const ev = sovellaTapahtumakorjaukset([tilannekuva], KORJAUKSET)[0] ?? tilannekuva
+    return { data: eventToPageData(ev), ev, oma: false }
+  }
   if (kelpoPaiva(d)) {
     const h = await headers()
     const ev = await haeKoosteesta(julkinenOsoite(h.get('x-forwarded-host') ?? h.get('host')), d, id)
