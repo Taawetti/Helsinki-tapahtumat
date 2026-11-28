@@ -95,6 +95,11 @@ const nextConfig: NextConfig = {
     const kampanjat: Record<string, string> = {
       '/jannanjoulu': '/e/stadissa-117757?d=2026-12-09',
       '/jannan-joulu': '/e/stadissa-117757?d=2026-12-09',
+      // Stepan keikka On the Rocksissa la 28.11.2026 (omistaja 28.11.: linkki
+      // artistin Instagram-tarinaan). Keikan jälkeen sivu jää avattavaksi
+      // (menneenä noindex); poista rivit joulukuussa.
+      '/stepa': '/e/otr-stepa-heimo-ilman-menneisyytta-ab?d=2026-11-28',
+      '/stepa-heimo': '/e/otr-stepa-heimo-ilman-menneisyytta-ab?d=2026-11-28',
     }
     return Object.entries({ ...map, ...kampanjat }).map(([source, destination]) => ({ source, destination, permanent: false }))
   },
